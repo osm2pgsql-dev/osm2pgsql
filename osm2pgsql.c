@@ -48,8 +48,8 @@ struct osmSegment {
 	unsigned long to;
 };
 
-static struct osmNode    nodes[MAX_ID_NODE];
-static struct osmSegment segments[MAX_ID_SEGMENT];
+static struct osmNode    nodes[MAX_ID_NODE+1];
+static struct osmSegment segments[MAX_ID_SEGMENT+1];
 
 struct keyval;
 
@@ -66,7 +66,8 @@ static struct keyval *segs = &kvTail;
 
 void usage(const char *arg0)
 {
-	fprintf(stderr, "Usage error\n\t%s < planet.osm  > planet.sql\n", arg0);
+	fprintf(stderr, "Usage error:\n\t%s planet.osm  > planet.sql\n", arg0);
+	fprintf(stderr, "or\n\tgzip -dc planet.osm.gz | %s - | gzip -c > planet.sql.gz\n", arg0);
 }
 
 
@@ -101,7 +102,7 @@ char *getItem(struct keyval **list, const char *name)
 	return NULL;
 }	
 
-#if 1
+
 struct keyval *popItem(struct keyval **list)
 {
 	struct keyval *p = *list;
@@ -131,36 +132,6 @@ void pushItem(struct keyval **list, struct keyval *item)
 	else 
 		*list = item;
 }	
-#else
-struct keyval *popItem(struct keyval **list)
-{
-	struct keyval *p = *list;
-	struct keyval *q = NULL;
-
-	if (!p->next)
-		return NULL;
-	
-	/* TODO: Improve this inefficient algorithm to locate end of list
-	 * e.g. cache tail or use double link list */
-	while(p->next->next) {
-		q = p;
-		p = p->next;
-	}
-
-	if (q)
-		q->next = p->next;
-	else
-		*list = p->next;
-	return p;
-}	
-
-
-void pushItem(struct keyval **list, struct keyval *item)
-{
-	item->next = *list;
-	*list = item;
-}	
-#endif
 
 void addItem(struct keyval **list, const char *name, const char *value)
 {
@@ -177,9 +148,7 @@ void addItem(struct keyval **list, const char *name, const char *value)
 }
 
 
-
-
-int WKT(char *wkt, int polygon)
+void WKT(char *wkt, int polygon)
 {
 	struct keyval *p = segs;
 	double start_x, start_y, end_x, end_y;
@@ -248,18 +217,13 @@ int WKT(char *wkt, int polygon)
 		freeItem(p);
 	}
 
-	if (!strlen(wkt))
-		return 0;
-
-	strcpy(tmpwkt, wkt);
-	if (polygon) 
-		snprintf(wkt, WKT_MAX-1, "POLYGON((%s,%.15g %.15g))", tmpwkt, start_x, start_y);
-	else 
-		snprintf(wkt, WKT_MAX-1, "LINESTRING(%s)", tmpwkt);
-	if (segs->next)	
-		return 0;
-	else
-		return 1;
+	if (strlen(wkt)) {
+		strcpy(tmpwkt, wkt);
+		if (polygon) 
+			snprintf(wkt, WKT_MAX-1, "POLYGON((%s,%.15g %.15g))", tmpwkt, start_x, start_y);
+		else 
+			snprintf(wkt, WKT_MAX-1, "LINESTRING(%s)", tmpwkt);
+	}
 }
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
@@ -280,11 +244,10 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 			nodes[id].lon = lon;
 			nodes[id].lat = lat;
 			DEBUG("NODE(%d) %f %f\n", id, lon, lat);
-			addItem(&keys, "type", "node");
 			addItem(&keys, "id", xid);
 		} else {
 			fprintf(stderr, "%s: Invalid node ID %d (max %d)\n", __FUNCTION__, id, MAX_ID_NODE);
-			//exit(1);
+			exit(1);
 		}
 		xmlFree(xid);
 		xmlFree(xlon);
@@ -297,9 +260,15 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 		from = strtoul(xfrom, NULL, 10);
 		to   = strtoul(xto, NULL, 10);
 		if (id > 0 && id < MAX_ID_SEGMENT) {
-			segments[id].to   = to;
-			segments[id].from = from;
-			DEBUG("SEGMENT(%d) %d, %d\n", id, from, to);
+			if (!nodes[to].lat && !nodes[to].lon) 
+				DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, to);
+			else if (!nodes[from].lat && !nodes[from].lon)
+				DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, from);
+			else {
+				segments[id].to   = to;
+				segments[id].from = from;
+				DEBUG("SEGMENT(%d) %d, %d\n", id, from, to);
+			}
 		} else {
 			fprintf(stderr, "%s: Invalid segment ID %d (max %d)\n", __FUNCTION__, id, MAX_ID_SEGMENT);
 			exit(1);
@@ -324,14 +293,20 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 		xmlFree(xv);
 	} else if (!strcmp(name, "way")) {
 		xid  = xmlTextReaderGetAttribute(reader, "id");
-		addItem(&keys, "type", "way");
 		addItem(&keys, "id", xid);
 		DEBUG("WAY(%s)\n", xid);
 		xmlFree(xid);
 	} else if (!strcmp(name, "seg")) {
 		xid  = xmlTextReaderGetAttribute(reader, "id");
-		addItem(&segs, "id", xid);
-		DEBUG("\tSEG(%s)\n", xid);
+		id   = strtoul(xid, NULL, 10);
+		if (!id || (id > MAX_ID_SEGMENT))
+			DEBUG("\tSEG(%s) - invalid segment ID\n", xid);
+		else if (!segments[id].to || !segments[id].from)
+			DEBUG("\tSEG(%s) - empty segment\n", xid);
+		else {
+			addItem(&segs, "id", xid);
+			DEBUG("\tSEG(%s)\n", xid);
+		}
 		xmlFree(xid);
 	} else if (!strcmp(name, "osm")) {
 		/* ignore */
@@ -366,8 +341,7 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 			if ((v = getItem(&tags, exportTags[i].name)))
 				count++;
 			else
-				v = "";			
-
+				v = "";
 
 			if (oldval)				
 				asprintf(&values, "%s,$$%.*s$$", oldval, width, v);
@@ -429,28 +403,15 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 
 			free(oldval);
 		}
-		if (WKT(wkt, polygon)) {
-			snprintf(sql, sizeof(sql)-1, 
-				"insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));", table_name,fieldNames,osm_id,values,wkt);
-			printf("%s\n", sql);
-		} else {
-			struct keyval *p = segs;
-			while(p->next) {
-				char *seg_xid = p->value;
-				unsigned long seg_id  = strtoul(seg_xid, NULL, 10);
-				p = p->next;
-				from = segments[seg_id].from;
-				to   = segments[seg_id].to;
-				if (!to || !from)
-					continue;
-				snprintf(wkt, sizeof(wkt)-1, 
-					"LINESTRING(%.15g %.15g,%.15g %.15g)", 
-					nodes[from].lon, nodes[from].lat, nodes[to].lon, nodes[to].lat);			
+
+		do {
+			WKT(wkt, polygon); 
+			if (strlen(wkt)) {
 				snprintf(sql, sizeof(sql)-1, 
-					"insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));", table_name,fieldNames,osm_id,values,wkt);
-				printf("%s\n", sql);
-			}	
-		}
+	               		"insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));", table_name,fieldNames,osm_id,values,wkt);
+			        printf("%s\n", sql);
+			}
+        	} while (segs->next);
 		resetList(&keys);
 		resetList(&tags);
 		resetList(&segs);
@@ -508,10 +469,6 @@ int streamFile(char *filename) {
 		return;
         }
 
-    //printf("read in whole file, press enter to continue\n");
-    //fgets(tmp, sizeof(tmp), stdin);
-    //printf("cleaning up\n");
-
         xmlFreeTextReader(reader);
     } else {
         fprintf(stderr, "Unable to open %s\n", filename);
@@ -527,9 +484,7 @@ int main(int argc, char *argv[])
 		usage(argv[0]);
 		exit(1);
 	}
-
-
-   
+ 
     /*
      * this initialize the library and check potential ABI mismatches
      * between the version it was compiled for and the actual shared
@@ -554,7 +509,8 @@ int main(int argc, char *argv[])
 
     printf("commit;\n");
     printf("vacuum analyze %s;\n", table_name);
-
+    printf("CREATE INDEX way_index ON %s USING GIST (way);\n", table_name);
+    printf("vacuum analyze %s;\n", table_name);
 
     /*
      * Cleanup function for the XML library.
@@ -565,5 +521,5 @@ int main(int argc, char *argv[])
      */
     xmlMemoryDump();
 
-	return 0;
+    return 0;
 }
