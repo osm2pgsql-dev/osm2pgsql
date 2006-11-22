@@ -20,15 +20,15 @@ struct tagDesc {
 }; 
 
 static struct tagDesc exportTags[] = {
-		{"name","varchar(64)"},
-               {"place","varchar(32)"},
-               {"landuse","varchar(32)"},
-               {"leisure","varchar(32)"},
-               {"waterway","varchar(32)"},
-               {"highway","varchar(32)"},
-               {"amenity","varchar(32)"},
-               {"tourism","varchar(32)"},
-               {"learning","varchar(32)"}
+		{"name","text"},
+               {"place","text"},
+               {"landuse","text"},
+               {"leisure","text"},
+               {"waterway","text"},
+               {"highway","text"},
+               {"amenity","text"},
+               {"tourism","text"},
+               {"learning","text"}
 };
 
 //segments = {}
