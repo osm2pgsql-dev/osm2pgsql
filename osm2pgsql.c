@@ -509,7 +509,7 @@ int main(int argc, char *argv[])
 
     printf("commit;\n");
     printf("vacuum analyze %s;\n", table_name);
-    printf("CREATE INDEX way_index ON %s USING GIST (way);\n", table_name);
+    printf("CREATE INDEX way_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name);
     printf("vacuum analyze %s;\n", table_name);
 
     /*
