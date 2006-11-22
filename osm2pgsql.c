@@ -20,12 +20,13 @@ struct tagDesc {
 }; 
 
 static struct tagDesc exportTags[] = {
-		{"name","text"},
+	       {"name","text"},
                {"place","text"},
                {"landuse","text"},
                {"leisure","text"},
                {"waterway","text"},
                {"highway","text"},
+	       {"railway","text"},
                {"amenity","text"},
                {"tourism","text"},
                {"learning","text"}
