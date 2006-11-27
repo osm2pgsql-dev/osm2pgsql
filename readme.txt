@@ -1,0 +1,48 @@
+osm2pgsql
+=========
+
+Converts OSM planet.osm data to SQL suitable for loading into 
+a PostgreSQL database and then rendered into tiles by Mapnik.
+
+The format of the database is optimised for ease of rendering
+by mapnik. It may be less suitable for other general purpose
+processing.
+
+For a broader view of the whole tile rendering tool chain see
+http://wiki.openstreetmap.org/index.php/Slippy_Map
+
+Any questions should be directed at the osm dev list
+http://wiki.openstreetmap.org/index.php/Mailing_lists 
+
+
+
+Operation
+=========
+
+1) Outputs SQL statements to create a new planet_osm table.
+
+2) Runs an XML parser on the input file (typically planet.osm) 
+and processes the nodes, segments and ways.
+
+3) If a node has a tag declaring one of the attributes below then
+ it is emitted in the SQL as a POINT. If it has no such tag then 
+the position is noted, but not added to the SQL.
+
+	name, place, landuse, waterway, highway, 
+	railway, amenity, tourism, learning	
+
+4) Segments are not output in the XML, they are used purely to 
+locate the nodes during way processing.
+
+5) Ways are read in and the segments are examined to determine
+contiguous sequences by WKT(). Each sequence is emitted as a 
+line of SQL. If way consists of several dis-joint sequences of
+segments then multiple lines will be generated with the  
+osm_id of the original way.
+
+6) Ways with the tags landuse or leisure are emitted as using 
+a POLYGON() geometry. Other ways are represented by using a 
+LINESTRING().
+
+7) Finally, more SQL is output to add a suitable index
+and analyse the table to aid efficient querying.
