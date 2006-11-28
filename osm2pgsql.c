@@ -24,6 +24,7 @@ static struct tagDesc exportTags[] = {
                {"place","text"},
                {"landuse","text"},
                {"leisure","text"},
+               {"natural","text"},
                {"waterway","text"},
                {"highway","text"},
 	       {"railway","text"},
