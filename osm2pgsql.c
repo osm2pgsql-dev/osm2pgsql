@@ -1,9 +1,41 @@
+/*
+#-----------------------------------------------------------------------------
+# osm2pgsql - converts planet.osm file into PostgreSQL
+# compatible output suitable to be rendered by mapnik
+# Use: osm2pgsql planet.osm > planet.sql
+#-----------------------------------------------------------------------------
+# Original Python implementation by unnkown author
+# Re-implementation by Jon Burgess, Copyright 2006
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+#-----------------------------------------------------------------------------
+*/
+
+#define _GNU_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
+#include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
+
+#include "bst.h"
+#include "avl.h"
 
 #define WKT_MAX 128000
 #define SQL_MAX 140000
@@ -20,20 +52,19 @@ struct tagDesc {
 }; 
 
 static struct tagDesc exportTags[] = {
-	       {"name","text"},
-               {"place","text"},
-               {"landuse","text"},
-               {"leisure","text"},
-               {"natural","text"},
-               {"waterway","text"},
-               {"highway","text"},
-	       {"railway","text"},
-               {"amenity","text"},
-               {"tourism","text"},
-               {"learning","text"}
+	{"name","text"},
+	{"place","text"},
+	{"landuse","text"},
+	{"leisure","text"},
+	{"natural","text"},
+	{"waterway","text"},
+	{"highway","text"},
+	{"railway","text"},
+	{"amenity","text"},
+	{"tourism","text"},
+	{"learning","text"}
 };
 
-//segments = {}
 static const char *table_name = "planet_osm";
 char fieldNames[128];
 
@@ -41,17 +72,39 @@ char fieldNames[128];
 #define MAX_ID_SEGMENT (25000000)
 
 struct osmNode {
+	unsigned int id;
 	double lon;
 	double lat;
 };
 
 struct osmSegment {
-	unsigned long from;
-	unsigned long to;
+	unsigned int id;
+	unsigned int from;
+	unsigned int to;
+};
+
+struct osmWay {
+	unsigned int id;
+	char *values;
+	char *wkt;	
 };
 
 static struct osmNode    nodes[MAX_ID_NODE+1];
 static struct osmSegment segments[MAX_ID_SEGMENT+1];
+
+struct bst_table *node_positions;
+struct avl_table *segment_unique;
+struct avl_table *way_tree;
+
+static int count_node, count_all_node, count_dupe_node;
+static int count_segment, count_all_segment, count_dupe_segment;
+static int count_way, count_all_way, count_dupe_way;
+
+// Enable this to suppress duplicate ways in the output
+// This is useful on the planet-061128.osm dump and earlier
+// to remove lots of redundant data in the US Tiger import.
+// Note: This approximately doubles the RAM usage!
+static int suppress_dupes=0;
 
 struct keyval;
 
@@ -59,12 +112,10 @@ struct keyval {
 	char *key;
 	char *value;
 	struct keyval *next;
+	struct keyval *prev;
 };
 
-static struct keyval kvTail = { NULL, NULL, NULL };
-static struct keyval *keys = &kvTail;
-static struct keyval *tags = &kvTail;
-static struct keyval *segs = &kvTail;
+static struct keyval keys, tags, segs;
 
 void usage(const char *arg0)
 {
@@ -72,6 +123,13 @@ void usage(const char *arg0)
 	fprintf(stderr, "or\n\tgzip -dc planet.osm.gz | %s - | gzip -c > planet.sql.gz\n", arg0);
 }
 
+void initList(struct keyval *head)
+{
+	head->next = head;
+	head->prev = head;
+	head->key = NULL;
+	head->value = NULL;
+}
 
 void freeItem(struct keyval *p)
 {
@@ -81,22 +139,28 @@ void freeItem(struct keyval *p)
 }
 
 
-void resetList(struct keyval **list) 
+unsigned int countList(struct keyval *head) 
 {
-	struct keyval *p = *list;
-	struct keyval *next;
-	
-	while((next = p->next)) {		
-		freeItem(p);
-		p = next;
+	struct keyval *p = head->next;
+	unsigned int count = 0;	
+
+	while(p != head) {
+		count++;
+		p = p->next;
 	}
-	*list = p;	
+	return count;
 }
 
-char *getItem(struct keyval **list, const char *name)
+int listHasData(struct keyval *head) 
 {
-	struct keyval *p = *list;
-	while(p->next) {
+	return (head->next != head);
+}
+
+
+char *getItem(struct keyval *head, const char *name)
+{
+	struct keyval *p = head->next;
+	while(p != head) {
 		if (!strcmp(p->key, name))
 			return p->value;
 		p = p->next;
@@ -105,82 +169,79 @@ char *getItem(struct keyval **list, const char *name)
 }	
 
 
-struct keyval *popItem(struct keyval **list)
+struct keyval *popItem(struct keyval *head)
 {
-	struct keyval *p = *list;
-	if (!p->next)
+	struct keyval *p = head->next;
+	if (p == head)
 		return NULL;
 
-	*list = p->next;
+	head->next = p->next;
+	p->next->prev = head;
+
+	p->next = NULL;
+	p->prev = NULL;
+
 	return p;
 }	
 
 
-void pushItem(struct keyval **list, struct keyval *item)
+void pushItem(struct keyval *head, struct keyval *item)
 {
-	struct keyval *p = *list;
-	struct keyval *q = NULL;
-	
-	/* TODO: Improve this inefficient algorithm to locate end of list
-	 * e.g. cache tail or use double link list */
-	while(p->next) {
-		q = p;
-		p = p->next;
-	}
-
-	item->next = p;
-	if (q) 
-		q->next = item;
-	else 
-		*list = item;
+	item->next = head;
+	item->prev = head->prev;
+	head->prev->next = item;
+	head->prev = item;
 }	
 
-void addItem(struct keyval **list, const char *name, const char *value)
+void addItem(struct keyval *head, const char *name, const char *value)
 {
-	struct keyval *p = malloc(sizeof(struct keyval));
+	struct keyval *item = malloc(sizeof(struct keyval));
 	
-	if (!p) {
+	if (!item) {
 		fprintf(stderr, "Error allocating keyval\n");
 		return;
 	}
-	p->key   = strdup(name);
-	p->value = strdup(value);
-	p->next = *list;
-	*list = p;
+	item->key   = strdup(name);
+	item->value = strdup(value);
+
+	item->next = head->next;
+	item->prev = head;
+	head->next->prev = item;
+	head->next = item;
 }
 
+void resetList(struct keyval *head) 
+{
+	struct keyval *item;
+	
+	while((item = popItem(head))) 
+		freeItem(item);
+}
 
 void WKT(char *wkt, int polygon)
 {
-	struct keyval *p = segs;
-	double start_x, start_y, end_x, end_y;
+	double start_x=0, start_y=0, end_x=0, end_y=0;
 	int first = 1;
 	char tmpwkt[WKT_MAX];
-	int i = 0; 
-	int max;
+	unsigned int i = countList(&segs); 
+	unsigned int max = i * i;
 	wkt[0] = '\0';
-	
-	while(p->next) {
-		i++;
-		p = p->next;
-	}
-	max = i * i;
+	static struct keyval triedSegs, *q;
 
+	initList(&triedSegs);	
 	i = 0;
-	while (segs->next && i < max) {
-		unsigned long id;
-		int from, to;
+
+	while (listHasData(&segs) && i++ < max) {
+		struct keyval *p;
+		unsigned int id, to, from;
 		double x0, y0, x1, y1;
 
 		p = popItem(&segs);
 		id = strtoul(p->value, NULL, 10);
+
 		from = segments[id].from;
 		to   = segments[id].to; 
-		i++;
-		if (!from || !to) {
-			freeItem(p);
-			continue;
-		}
+
 		x0 = nodes[from].lon;
 		y0 = nodes[from].lat;
 		x1 = nodes[to].lon;
@@ -194,29 +255,32 @@ void WKT(char *wkt, int polygon)
 			end_y = y1;
 			snprintf(wkt, WKT_MAX-1, "%.15g %.15g,%.15g %.15g", x0, y0, x1, y1);
 		} else {
-			strcpy(tmpwkt, wkt);
 			if (start_x == x0 && start_y == y0)  {
 				start_x = x1;
 				start_y = y1;
-				snprintf(wkt, WKT_MAX-1, "%.15g %.15g,%s", x1, y1, tmpwkt);
+				snprintf(tmpwkt, WKT_MAX-1, "%.15g %.15g,%s", x1, y1, wkt);
 			} else if (start_x == x1 && start_y == y1)  {
 				start_x = x0;
 				start_y = y0;
-				snprintf(wkt, WKT_MAX-1, "%.15g %.15g,%s", x0, y0, tmpwkt);
+				snprintf(tmpwkt, WKT_MAX-1, "%.15g %.15g,%s", x0, y0, wkt);
 			} else if (end_x == x0 && end_y == y0)  {
 				end_x = x1;
 				end_y = y1;
-				snprintf(wkt, WKT_MAX-1, "%s,%.15g %.15g", tmpwkt, x1, y1);
+				snprintf(tmpwkt, WKT_MAX-1, "%s,%.15g %.15g", wkt, x1, y1);
 			} else if (end_x == x1 && end_y == y1)  {
 				end_x = x0;
 				end_y = y0;
-				snprintf(wkt, WKT_MAX-1, "%s,%.15g %.15g", tmpwkt, x0, y0);
+				snprintf(tmpwkt, WKT_MAX-1, "%s,%.15g %.15g", wkt, x0, y0);
 			} else {
-				pushItem(&segs, p);
+				pushItem(&triedSegs, p);
 				continue;
 			}
+			strcpy(wkt, tmpwkt);
 		}
 		freeItem(p);
+		// Need to reconsider all previously tried segments again
+		while ((q = popItem(&triedSegs))) 
+			pushItem(&segs, q);
 	}
 
 	if (strlen(wkt)) {
@@ -226,91 +290,152 @@ void WKT(char *wkt, int polygon)
 		else 
 			snprintf(wkt, WKT_MAX-1, "LINESTRING(%s)", tmpwkt);
 	}
+
+	// Push any unattached segments back in the list for next time
+	while ((q = popItem(&triedSegs))) 
+		pushItem(&segs, q);
 }
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
 	xmlChar *xid, *xlat, *xlon, *xfrom, *xto, *xk, *xv;
-	unsigned long id, to, from;
+	unsigned int id, to, from;
 	double lon, lat;
-	char *k, *v;
+	char *k;
 
-	if (!strcmp(name, "node")) {
-		xid  = xmlTextReaderGetAttribute(reader, "id");
-		xlon = xmlTextReaderGetAttribute(reader, "lon");
-		xlat = xmlTextReaderGetAttribute(reader, "lat");
-		id  = strtoul(xid, NULL, 10);
-		lon = strtod(xlon, NULL);
-		lat = strtod(xlat, NULL);
-		if (id > 0 && id < MAX_ID_NODE) {
-			nodes[id].lon = lon;
-			nodes[id].lat = lat;
+	if (xmlStrEqual(name, BAD_CAST "node")) {
+		struct osmNode *node, *dupe;
+		xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+		xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
+		xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
+		assert(xid); assert(xlon); assert(xlat);
+		id  = strtoul((char *)xid, NULL, 10);
+		lon = strtod((char *)xlon, NULL);
+		lat = strtod((char *)xlat, NULL);
+
+		assert(id > 0 && id < MAX_ID_NODE);
+		count_all_node++;
+		if (count_all_node%10000 == 0) 
+			fprintf(stderr, "\rProcessing: Node(%dk)", count_all_node/1000);
+
+		node = &nodes[id];
+		node->id  = id;
+		node->lon = lon;
+		node->lat = lat;
+
+		dupe = suppress_dupes ? bst_insert(node_positions, (void *)node) : NULL;
+		
+		if (!dupe) {
 			DEBUG("NODE(%d) %f %f\n", id, lon, lat);
-			addItem(&keys, "id", xid);
 		} else {
-			fprintf(stderr, "%s: Invalid node ID %d (max %d)\n", __FUNCTION__, id, MAX_ID_NODE);
-			exit(1);
+			node->id = dupe->id;
+			count_dupe_node++;
+			DEBUG("NODE(%d) %f %f - dupe %d\n", id, lon, lat, dupe->id);
 		}
+		addItem(&keys, "id", (char *)xid);
+
 		xmlFree(xid);
 		xmlFree(xlon);
 		xmlFree(xlat);
-	} else if (!strcmp(name, "segment")) {
-		xid   = xmlTextReaderGetAttribute(reader, "id");
-		xfrom = xmlTextReaderGetAttribute(reader, "from");
-		xto   = xmlTextReaderGetAttribute(reader, "to");
-		id   = strtoul(xid, NULL, 10);
-		from = strtoul(xfrom, NULL, 10);
-		to   = strtoul(xto, NULL, 10);
-		if (id > 0 && id < MAX_ID_SEGMENT) {
-			if (!nodes[to].lat && !nodes[to].lon) 
-				DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, to);
-			else if (!nodes[from].lat && !nodes[from].lon)
-				DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, from);
-			else {
-				segments[id].to   = to;
-				segments[id].from = from;
-				DEBUG("SEGMENT(%d) %d, %d\n", id, from, to);
-			}
-		} else {
-			fprintf(stderr, "%s: Invalid segment ID %d (max %d)\n", __FUNCTION__, id, MAX_ID_SEGMENT);
-			exit(1);
+	} else if (xmlStrEqual(name, BAD_CAST "segment")) {
+		xid   = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+		xfrom = xmlTextReaderGetAttribute(reader, BAD_CAST "from");
+		xto   = xmlTextReaderGetAttribute(reader, BAD_CAST "to");
+		assert(xid); assert(xfrom); assert(xto);
+		id   = strtoul((char *)xid, NULL, 10);
+		from = strtoul((char *)xfrom, NULL, 10);
+		to   = strtoul((char *)xto, NULL, 10);
+
+		assert(id > 0 && id < MAX_ID_SEGMENT);
+		if (count_all_segment == 0) {
+			//fprintf(stderr, "\nBalancing node tree\n");
+			bst_balance(node_positions);
+			fprintf(stderr, "\n");
 		}
+
+		count_all_segment++;
+		if (count_all_segment%10000 == 0) 
+			fprintf(stderr, "\rProcessing: Segment(%dk)", count_all_segment/1000);
+
+		if (!nodes[to].id) {
+			DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, to);
+		} else if (!nodes[from].id) {
+			DEBUG("SEGMENT(%d), NODE(%d) is missing\n", id, from);
+		} else {
+			from = nodes[from].id;
+			to   = nodes[to].id;
+			if (from != to) {
+				struct osmSegment *segment, *dupe;
+				segment = &segments[id];
+				segment->id   = id;
+				segment->to   = to;
+				segment->from = from;
+
+				dupe = suppress_dupes ? avl_insert(segment_unique, (void *)segment) : NULL;
+
+				if (!dupe) {
+					count_segment++;
+					DEBUG("SEGMENT(%d) %d, %d\n", id, from, to);
+				} else {
+					count_dupe_segment++;
+					segment->id = dupe->id;
+					DEBUG("SEGMENT(%d) %d, %d - dupe %d\n", id, from, to, dupe->id);
+				}
+			}
+		}
+
 		xmlFree(xid);
 		xmlFree(xfrom);
 		xmlFree(xto);
-	} else if (!strcmp(name, "tag")) {
+	} else if (xmlStrEqual(name, BAD_CAST "tag")) {
 		char *p;
-		xk = xmlTextReaderGetAttribute(reader, "k");
-		xv = xmlTextReaderGetAttribute(reader, "v");
-		k  = xmlStrdup(xk);
+		xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
+		xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
+		assert(xk); assert(xv);
+		k  = (char *)xmlStrdup(xk);
 		/* FIXME: This does not look safe on UTF-8 data */
 		while ((p = strchr(k, ':')))
 			*p = '_';
 		while ((p = strchr(k, ' ')))
 			*p = '_';
-		addItem(&tags, k, xv);
+		addItem(&tags, k, (char *)xv);
 		DEBUG("\t%s = %s\n", xk, xv);
 		xmlFree(k);
 		xmlFree(xk);
 		xmlFree(xv);
-	} else if (!strcmp(name, "way")) {
-		xid  = xmlTextReaderGetAttribute(reader, "id");
-		addItem(&keys, "id", xid);
+	} else if (xmlStrEqual(name, BAD_CAST "way")) {
+		xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+		assert(xid);
+		addItem(&keys, "id", (char *)xid);
 		DEBUG("WAY(%s)\n", xid);
+
+		if (count_all_way == 0)
+			fprintf(stderr, "\n");
+		
+		count_all_way++;
+		if (count_all_way%1000 == 0) 
+			fprintf(stderr, "\rProcessing: Way(%dk)", count_all_way/1000);
+
 		xmlFree(xid);
-	} else if (!strcmp(name, "seg")) {
-		xid  = xmlTextReaderGetAttribute(reader, "id");
-		id   = strtoul(xid, NULL, 10);
+	} else if (xmlStrEqual(name, BAD_CAST "seg")) {
+		xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+		assert(xid);
+		id   = strtoul((char *)xid, NULL, 10);
 		if (!id || (id > MAX_ID_SEGMENT))
 			DEBUG("\tSEG(%s) - invalid segment ID\n", xid);
-		else if (!segments[id].to || !segments[id].from)
-			DEBUG("\tSEG(%s) - empty segment\n", xid);
+		else if (!segments[id].id)
+			DEBUG("\tSEG(%s) - missing segment\n", xid);
 		else {
-			addItem(&segs, "id", xid);
+			char *tmp;
+			// Find unique segment
+			id = segments[id].id;
+			asprintf(&tmp, "%d", id);
+			addItem(&segs, "id", tmp);
 			DEBUG("\tSEG(%s)\n", xid);
+			free(tmp);
 		}
 		xmlFree(xid);
-	} else if (!strcmp(name, "osm")) {
+	} else if (xmlStrEqual(name, BAD_CAST "osm")) {
 		/* ignore */
 	} else {
 		fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
@@ -319,14 +444,12 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 
 void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
-	xmlChar *xid, *xlat, *xlon, *xfrom, *xto, *xk, *xv;
-	unsigned long id, to, from;
-	double lon, lat;
-	char *k, *v;
+	unsigned int id;
+	char *v;
 
 	DEBUG("%s: %s\n", __FUNCTION__, name);
 
-	if (!strcmp(name, "node")) {
+	if (xmlStrEqual(name, BAD_CAST "node")) {
 		int i, count = 0; 
 		char *values = NULL;
 		char *osm_id = getItem(&keys, "id");
@@ -337,6 +460,16 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 			return;
 		}
 		id  = strtoul(osm_id, NULL, 10);
+		assert(nodes[id].id);
+#if 0
+		if (id != nodes[id].id) {
+			// TODO: Consider dropping all duplicate nodes or compare tags?
+			// Don't really want to store all node attributes for comparison.
+			resetList(&keys);
+			resetList(&tags);
+			return;
+		}
+#endif
 		for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
 			char *oldval = values;
 			int width = strcmp(exportTags[i].name, "name")?32:64;
@@ -353,25 +486,24 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 			free(oldval);
 		}
 		if (count) {
-			char wkt[WKT_MAX], sql[SQL_MAX];
+			char wkt[WKT_MAX];
+			count_node++;
 			snprintf(wkt, sizeof(wkt)-1, 
 				"POINT(%.15g %.15g)", nodes[id].lon, nodes[id].lat);
 			wkt[sizeof(wkt)-1] = '\0';
-			snprintf(sql, sizeof(sql)-1, 
-				"insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));", table_name,fieldNames,osm_id,values,wkt);
-			printf("%s\n", sql);
+			printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,fieldNames,osm_id,values,wkt);
 		}
 		resetList(&keys);
 		resetList(&tags);
 		free(values);
-	} else if (!strcmp(name, "segment")) {
+	} else if (xmlStrEqual(name, BAD_CAST "segment")) {
 		resetList(&tags);
-	} else if (!strcmp(name, "tag")) {
+	} else if (xmlStrEqual(name, BAD_CAST "tag")) {
 		/* Separate tag list so tag stack unused */
-	} else if (!strcmp(name, "way")) {
+	} else if (xmlStrEqual(name, BAD_CAST "way")) {
 		int i, polygon = 0; 
 		char *values = NULL;
-		char wkt[WKT_MAX], sql[SQL_MAX];
+		char wkt[WKT_MAX];
 		char *osm_id = getItem(&keys, "id");
 
 		if (!osm_id) {
@@ -381,19 +513,22 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 			resetList(&segs);
 			return;
 		}
-		if (!segs->next) {
-			DEBUG(stderr, "%s: WAY(%s) has no segments\n", __FUNCTION__, osm_id);
+
+		if (!listHasData(&segs)) {
+			DEBUG("%s: WAY(%s) has no segments\n", __FUNCTION__, osm_id);
 			resetList(&keys);
 			resetList(&tags);
 			resetList(&segs);
 			return;
 		}
 		id  = strtoul(osm_id, NULL, 10);
+
 		for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
 			char *oldval = values;
 			const char *name = exportTags[i].name;
 			if ((v = getItem(&tags, name))) {
-				if (!strcmp(name, "landuse") || !strcmp(name, "leisure"))
+				if (!strcmp(name, "landuse") || !strcmp(name, "leisure")
+				   || !strcmp(name, "amenity") || !strcmp(name, "natural"))
 					polygon = 1;
 			} else
 				v = "";			
@@ -409,18 +544,38 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 		do {
 			WKT(wkt, polygon); 
 			if (strlen(wkt)) {
-				snprintf(sql, sizeof(sql)-1, 
-	               		"insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));", table_name,fieldNames,osm_id,values,wkt);
-			        printf("%s\n", sql);
+				struct osmWay *dupe = NULL;
+
+				if (suppress_dupes) {
+					struct osmWay *way = malloc(sizeof(struct osmWay));
+					assert(way);
+					way->id = id;
+					way->values = strdup(values);
+					way->wkt    = strdup(wkt);
+					assert(way->values);
+					assert(way->wkt);
+					dupe = avl_insert(way_tree, (void *)way);
+					if (dupe) {
+						DEBUG("WAY(%d) - duplicate of %d\n", id, dupe->id);
+						count_dupe_way++;
+						free(way->values);
+						free(way->wkt);
+						free(way);
+					}
+				} 
+				if (!dupe) {
+					printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,fieldNames,osm_id,values,wkt);
+					count_way++;	
+				}
 			}
-        	} while (segs->next);
+        	} while (listHasData(&segs));
 		resetList(&keys);
 		resetList(&tags);
 		resetList(&segs);
 		free(values);
-	} else if (!strcmp(name, "seg")) {
+	} else if (xmlStrEqual(name, BAD_CAST "seg")) {
 		/* ignore */
-	} else if (!strcmp(name, "osm")) {
+	} else if (xmlStrEqual(name, BAD_CAST "osm")) {
 		/* ignore */
 	} else {
 		fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
@@ -428,53 +583,109 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 }
 
 static void processNode(xmlTextReaderPtr reader) {
-    xmlChar *name, *value;
-    name = xmlTextReaderName(reader);
-    if (name == NULL)
-        name = xmlStrdup(BAD_CAST "--");
-
-   switch(xmlTextReaderNodeType(reader)) {
-   case XML_READER_TYPE_ELEMENT:
-	StartElement(reader, name);	
-	if (xmlTextReaderIsEmptyElement(reader))
-		EndElement(reader, name); /* No end_element for self closing tags! */
-	break;
-   case XML_READER_TYPE_END_ELEMENT:
-	EndElement(reader, name);
-	break;
-   case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
-	/* Ignore */
-	break;
-   default:
-	fprintf(stderr, "Unknown node type %d\n", xmlTextReaderNodeType(reader));
-	break;
-   }
-
-
-   xmlFree(name);
+	xmlChar *name;
+	name = xmlTextReaderName(reader);
+	if (name == NULL)
+		name = xmlStrdup(BAD_CAST "--");
+	
+	switch(xmlTextReaderNodeType(reader)) {
+		case XML_READER_TYPE_ELEMENT:
+			StartElement(reader, name);	
+			if (xmlTextReaderIsEmptyElement(reader))
+				EndElement(reader, name); /* No end_element for self closing tags! */
+			break;
+		case XML_READER_TYPE_END_ELEMENT:
+			EndElement(reader, name);
+			break;
+		case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
+			/* Ignore */
+			break;
+		default:
+			fprintf(stderr, "Unknown node type %d\n", xmlTextReaderNodeType(reader));
+			break;
+	}
+	
+	xmlFree(name);
 }
 
-int streamFile(char *filename) {
-    xmlTextReaderPtr reader;
-    int ret;
+void streamFile(char *filename) {
+	xmlTextReaderPtr reader;
+	int ret;
+	
+	reader = xmlNewTextReaderFilename(filename);
+	if (reader != NULL) {
+		ret = xmlTextReaderRead(reader);
+		while (ret == 1) {
+			processNode(reader);
+			ret = xmlTextReaderRead(reader);
+		}
+	
+		if (ret != 0) {
+			fprintf(stderr, "%s : failed to parse\n", filename);
+			return;
+		}
+	
+		xmlFreeTextReader(reader);
+	} else {
+		fprintf(stderr, "Unable to open %s\n", filename);
+	}
+}
 
-    reader = xmlNewTextReaderFilename(filename);
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            processNode(reader);
-            ret = xmlTextReaderRead(reader);
-        }
+int compare_node(const void *bst_a, const void *bst_b, void *bst_param)
+{
+	const struct osmNode *nA = bst_a;
+	const struct osmNode *nB = bst_b;
 
-        if (ret != 0) {
-            fprintf(stderr, "%s : failed to parse\n", filename);
-		return;
-        }
+	if (nA == nB) return 0;
+	if (nA->id == nB->id) return 0;
 
-        xmlFreeTextReader(reader);
-    } else {
-        fprintf(stderr, "Unable to open %s\n", filename);
-    }
+	if (nA->lon < nB->lon)
+		return -1;
+	else if (nA->lon > nB->lon)
+		return +1;
+	
+	if (nA->lat < nB->lat)
+		return -1;
+	else if (nA->lat > nB->lat)
+		return +1;
+
+	return 0; 
+}
+
+int compare_segment(const void *avl_a, const void *avl_b, void *avl_param)
+{
+	const struct osmSegment *sA = avl_a;
+	const struct osmSegment *sB = avl_b;
+
+	if (sA == sB) return 0;
+	if (sA->id == sB->id) return 0;
+
+	if (sA->from < sB->from)
+		return -1;
+	else if (sA->from > sB->from)
+		return +1;
+
+	if (sA->to < sB->to)
+		return -1;
+	else if (sA->to > sB->to)
+		return +1;
+	return 0;
+}
+
+int compare_way(const void *avl_a, const void *avl_b, void *avl_param)
+{
+	const struct osmWay *wA = avl_a;
+	const struct osmWay *wB = avl_b;
+	int c;
+
+	if (wA == wB) return 0;
+	if (wA->id == wB->id) return 0;
+
+	// TODO: Maybe keeping a hash of WKT would be better?
+	c = strcmp(wA->wkt, wB->wkt);
+	if (c) return c;
+
+	return strcmp(wA->values, wB->values);
 }
 
 
@@ -487,41 +698,56 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
  
-    /*
-     * this initialize the library and check potential ABI mismatches
-     * between the version it was compiled for and the actual shared
-     * library used.
-     */
-    LIBXML_TEST_VERSION
+	node_positions = bst_create(compare_node, NULL, NULL);
+	assert(node_positions);
+	segment_unique = avl_create(compare_segment, NULL, NULL);
+	assert(segment_unique);
+	way_tree = avl_create(compare_way, NULL, NULL);
+	assert(way_tree);
 
-    printf("drop table %s ;\n", table_name);
-    printf("create table %s ( osm_id int4",table_name);
-    fieldNames[0] = '\0';
-    for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
-	char tmp[32];
-	sprintf(tmp, i?",%s":"%s", exportTags[i].name);
-	strcat(fieldNames, tmp);
-	printf(",%s %s", exportTags[i].name, exportTags[i].type);
-    }	
-    printf(" );\n");
-    printf("select AddGeometryColumn('%s', 'way', 4326, 'GEOMETRY', 2 );\n", table_name);
-    printf("begin;\n");
+	initList(&keys);
+	initList(&tags);
+	initList(&segs);
 
-    streamFile(argv[1]);
+	LIBXML_TEST_VERSION
+	
+	printf("drop table %s ;\n", table_name);
+	printf("create table %s ( osm_id int4",table_name);
+	fieldNames[0] = '\0';
+	for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
+		char tmp[32];
+		sprintf(tmp, i?",\"%s\"":"\"%s\"", exportTags[i].name);
+		strcat(fieldNames, tmp);
+		printf(",\"%s\" %s", exportTags[i].name, exportTags[i].type);
+	}	
+	printf(" );\n");
+	printf("select AddGeometryColumn('%s', 'way', 4326, 'GEOMETRY', 2 );\n", table_name);
+	printf("begin;\n");
+	
+	streamFile(argv[1]);
+	
+	printf("commit;\n");
+	printf("vacuum analyze %s;\n", table_name);
+	printf("CREATE INDEX way_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name);
+	printf("vacuum analyze %s;\n", table_name);
+	
+	xmlCleanupParser();
+	xmlMemoryDump();
+	
+	fprintf(stderr, "\n");
+	
+	if (count_all_node) {
+	fprintf(stderr, "Node stats: out(%d), dupe(%d) (%.1f%%), total(%d)\n",
+		count_node, count_dupe_node, 100.0 * count_dupe_node / count_all_node, count_all_node);
+	}
+	if (count_all_segment) {
+	fprintf(stderr, "Segment stats: out(%d), dupe(%d) (%.1f%%), total(%d)\n",
+		count_segment, count_dupe_segment, 100.0 * count_dupe_segment / count_all_segment, count_all_segment);
+	}
+	if (count_all_way) {
+	fprintf(stderr, "Way stats: out(%d), dupe(%d) (%.1f%%), total(%d)\n",
+		count_way, count_dupe_way, 100.0 * count_dupe_way / count_all_way, count_all_way);
+	}
 
-    printf("commit;\n");
-    printf("vacuum analyze %s;\n", table_name);
-    printf("CREATE INDEX way_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name);
-    printf("vacuum analyze %s;\n", table_name);
-
-    /*
-     * Cleanup function for the XML library.
-     */
-    xmlCleanupParser();
-    /*
-     * this is to debug memory for regression tests
-     */
-    xmlMemoryDump();
-
-    return 0;
+	return 0;
 }
