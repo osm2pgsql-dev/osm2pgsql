@@ -69,8 +69,8 @@ static struct tagDesc exportTags[] = {
 static const char *table_name = "planet_osm";
 char fieldNames[128];
 
-#define MAX_ID_NODE (25000000)
-#define MAX_ID_SEGMENT (25000000)
+#define MAX_ID_NODE (35000000)
+#define MAX_ID_SEGMENT (35000000)
 
 struct osmNode {
 	unsigned int id;
