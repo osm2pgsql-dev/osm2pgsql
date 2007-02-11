@@ -100,6 +100,7 @@ struct avl_table *way_tree;
 static int count_node, count_all_node, count_dupe_node;
 static int count_segment, count_all_segment, count_dupe_segment;
 static int count_way, count_all_way, count_dupe_way;
+static int count_way_seg;
 
 // Enable this to suppress duplicate ways in the output
 // This is useful on the planet-061128.osm dump and earlier
@@ -194,14 +195,28 @@ void pushItem(struct keyval *head, struct keyval *item)
 	head->prev = item;
 }	
 
-void addItem(struct keyval *head, const char *name, const char *value)
+int addItem(struct keyval *head, const char *name, const char *value, int noDupe)
 {
-	struct keyval *item = malloc(sizeof(struct keyval));
+	struct keyval *item;
 	
+	if (noDupe) {
+		item = head->next;
+		while (item != head) {
+			if (!strcmp(item->value, value) && !strcmp(item->key, name)) {
+ 				//fprintf(stderr, "Discarded %s=%s\n", name, value);
+				return 1;
+			}
+			item = item->next;
+		}
+	}
+	
+	item = malloc(sizeof(struct keyval));
+		
 	if (!item) {
 		fprintf(stderr, "Error allocating keyval\n");
-		return;
+		return 2;
 	}
+
 	item->key   = strdup(name);
 	item->value = strdup(value);
 
@@ -209,6 +224,8 @@ void addItem(struct keyval *head, const char *name, const char *value)
 	item->prev = head;
 	head->next->prev = item;
 	head->next = item;
+
+	return 0;
 }
 
 void resetList(struct keyval *head) 
@@ -333,7 +350,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 			count_dupe_node++;
 			DEBUG("NODE(%d) %f %f - dupe %d\n", id, lon, lat, dupe->id);
 		}
-		addItem(&keys, "id", (char *)xid);
+		addItem(&keys, "id", (char *)xid, 0);
 
 		xmlFree(xid);
 		xmlFree(xlon);
@@ -399,7 +416,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 			*p = '_';
 		while ((p = strchr(k, ' ')))
 			*p = '_';
-		addItem(&tags, k, (char *)xv);
+		addItem(&tags, k, (char *)xv, 0);
 		DEBUG("\t%s = %s\n", xk, xv);
 		xmlFree(k);
 		xmlFree(xk);
@@ -407,7 +424,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 	} else if (xmlStrEqual(name, BAD_CAST "way")) {
 		xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
 		assert(xid);
-		addItem(&keys, "id", (char *)xid);
+		addItem(&keys, "id", (char *)xid, 0);
 		DEBUG("WAY(%s)\n", xid);
 
 		if (count_all_way == 0)
@@ -431,7 +448,12 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 			// Find unique segment
 			id = segments[id].id;
 			asprintf(&tmp, "%d", id);
-			addItem(&segs, "id", tmp);
+			if (addItem(&segs, "id", tmp, 1)) {
+				const char *way_id = getItem(&keys, "id");
+				if (!way_id) way_id = "???";
+				//fprintf(stderr, "Way %s with duplicate segment id %d\n", way_id, id);
+				count_way_seg++;
+			}
 			DEBUG("\tSEG(%s)\n", xid);
 			free(tmp);
 		}
@@ -749,6 +771,7 @@ int main(int argc, char *argv[])
 	fprintf(stderr, "Way stats: out(%d), dupe(%d) (%.1f%%), total(%d)\n",
 		count_way, count_dupe_way, 100.0 * count_dupe_way / count_all_way, count_all_way);
 	}
+	fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
 
 	return 0;
 }
