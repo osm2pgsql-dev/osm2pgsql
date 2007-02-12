@@ -303,9 +303,10 @@ void WKT(char *wkt, int polygon)
 
 	if (strlen(wkt)) {
 		strcpy(tmpwkt, wkt);
-		if (polygon) 
+		// Only generate a polygon for a closed area
+		if (polygon && (start_x == end_x) && (start_y == end_y))
 			snprintf(wkt, WKT_MAX-1, "POLYGON((%s,%.15g %.15g))", tmpwkt, start_x, start_y);
-		else 
+		else
 			snprintf(wkt, WKT_MAX-1, "LINESTRING(%s)", tmpwkt);
 	}
 
