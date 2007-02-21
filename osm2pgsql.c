@@ -49,25 +49,25 @@
 struct tagDesc {
 	const char *name;
 	const char *type;
+	const int polygon;
 }; 
 
 static struct tagDesc exportTags[] = {
-	{"name","text"},
-	{"place","text"},
-	{"landuse","text"},
-	{"leisure","text"},
-	{"natural","text"},
-	{"man_made","text"},
-	{"waterway","text"},
-	{"highway","text"},
-	{"railway","text"},
-	{"amenity","text"},
-	{"tourism","text"},
-	{"learning","text"}
+	{"name",    "text", 0},
+	{"place",   "text", 0},
+	{"landuse", "text", 1},
+	{"leisure", "text", 1},
+	{"natural", "text", 1},
+	{"man_made","text", 0},
+	{"waterway","text", 0},
+	{"highway", "text", 0},
+	{"railway", "text", 0},
+	{"amenity", "text", 1},
+	{"tourism", "text", 0},
+	{"learning","text", 0}
 };
 
 static const char *table_name = "planet_osm";
-char fieldNames[128];
 
 #define MAX_ID_NODE (35000000)
 #define MAX_ID_SEGMENT (35000000)
@@ -469,13 +469,12 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
 	unsigned int id;
-	char *v;
 
 	DEBUG("%s: %s\n", __FUNCTION__, name);
 
 	if (xmlStrEqual(name, BAD_CAST "node")) {
-		int i, count = 0; 
-		char *values = NULL;
+		int i;
+		char *values = NULL, *names = NULL;
 		char *osm_id = getItem(&keys, "id");
 		if (!osm_id) {
 			fprintf(stderr, "%s: Node ID not in keys\n", __FUNCTION__);
@@ -495,38 +494,39 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 		}
 #endif
 		for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
-			char *oldval = values;
-			int width = strcmp(exportTags[i].name, "name")?32:64;
-			if ((v = getItem(&tags, exportTags[i].name)))
-				count++;
-			else
-				v = "";
-
-			if (oldval)				
-				asprintf(&values, "%s,$$%.*s$$", oldval, width, v);
-			else
-				asprintf(&values, "$$%.*s$$", width, v);
-
-			free(oldval);
+			char *v;
+			if ((v = getItem(&tags, exportTags[i].name))) {
+				if (values) {
+					char *oldval = values, *oldnam = names;
+					asprintf(&names,  "%s,\"%s\"", oldnam, exportTags[i].name);
+					asprintf(&values, "%s,$$%s$$", oldval, v);
+					free(oldnam);
+					free(oldval);
+				} else {
+					asprintf(&names,  "\"%s\"", exportTags[i].name);
+					asprintf(&values, "$$%s$$", v);
+				}
+			}
 		}
-		if (count) {
+		if (values) {
 			char wkt[WKT_MAX];
 			count_node++;
 			snprintf(wkt, sizeof(wkt)-1, 
 				"POINT(%.15g %.15g)", nodes[id].lon, nodes[id].lat);
 			wkt[sizeof(wkt)-1] = '\0';
-			printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,fieldNames,osm_id,values,wkt);
+			printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,names,osm_id,values,wkt);
 		}
 		resetList(&keys);
 		resetList(&tags);
 		free(values);
+		free(names);
 	} else if (xmlStrEqual(name, BAD_CAST "segment")) {
 		resetList(&tags);
 	} else if (xmlStrEqual(name, BAD_CAST "tag")) {
 		/* Separate tag list so tag stack unused */
 	} else if (xmlStrEqual(name, BAD_CAST "way")) {
 		int i, polygon = 0; 
-		char *values = NULL;
+		char *values = NULL, *names = NULL;
 		char wkt[WKT_MAX];
 		char *osm_id = getItem(&keys, "id");
 
@@ -548,55 +548,57 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 		id  = strtoul(osm_id, NULL, 10);
 
 		for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
-			char *oldval = values;
-			const char *name = exportTags[i].name;
-			if ((v = getItem(&tags, name))) {
-				if (!strcmp(name, "landuse") || !strcmp(name, "leisure")
-				   || !strcmp(name, "amenity") || !strcmp(name, "natural"))
-					polygon = 1;
-			} else
-				v = "";			
-
-			if (oldval)				
-				asprintf(&values, "%s,$$%s$$", oldval, v);
-			else
-				asprintf(&values, "$$%s$$", v);
-
-			free(oldval);
+			char *v;
+			if ((v = getItem(&tags, exportTags[i].name))) {
+				if (values) {
+					char *oldval = values, *oldnam = names;
+					asprintf(&names,  "%s,\"%s\"", oldnam, exportTags[i].name);
+					asprintf(&values, "%s,$$%s$$", oldval, v);
+					free(oldnam);
+					free(oldval);
+				} else {
+					asprintf(&names,  "\"%s\"", exportTags[i].name);
+					asprintf(&values, "$$%s$$", v);
+				}
+				polygon |= exportTags[i].polygon;
+			}
 		}
 
-		do {
-			WKT(wkt, polygon); 
-			if (strlen(wkt)) {
-				struct osmWay *dupe = NULL;
-
-				if (suppress_dupes) {
-					struct osmWay *way = malloc(sizeof(struct osmWay));
-					assert(way);
-					way->id = id;
-					way->values = strdup(values);
-					way->wkt    = strdup(wkt);
-					assert(way->values);
-					assert(way->wkt);
-					dupe = avl_insert(way_tree, (void *)way);
-					if (dupe) {
-						DEBUG("WAY(%d) - duplicate of %d\n", id, dupe->id);
-						count_dupe_way++;
-						free(way->values);
-						free(way->wkt);
-						free(way);
+		if (values) {
+			do {
+				WKT(wkt, polygon); 
+				if (strlen(wkt)) {
+					struct osmWay *dupe = NULL;
+	
+					if (suppress_dupes) {
+						struct osmWay *way = malloc(sizeof(struct osmWay));
+						assert(way);
+						way->id = id;
+						way->values = strdup(values);
+						way->wkt    = strdup(wkt);
+						assert(way->values);
+						assert(way->wkt);
+						dupe = avl_insert(way_tree, (void *)way);
+						if (dupe) {
+							DEBUG("WAY(%d) - duplicate of %d\n", id, dupe->id);
+							count_dupe_way++;
+							free(way->values);
+							free(way->wkt);
+							free(way);
+						}
+					} 
+					if (!dupe) {
+						printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,names,osm_id,values,wkt);
+						count_way++;	
 					}
-				} 
-				if (!dupe) {
-					printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,fieldNames,osm_id,values,wkt);
-					count_way++;	
 				}
-			}
-        	} while (listHasData(&segs));
+			} while (listHasData(&segs));
+		}
 		resetList(&keys);
 		resetList(&tags);
 		resetList(&segs);
 		free(values);
+		free(names);
 	} else if (xmlStrEqual(name, BAD_CAST "seg")) {
 		/* ignore */
 	} else if (xmlStrEqual(name, BAD_CAST "osm")) {
@@ -737,13 +739,8 @@ int main(int argc, char *argv[])
 	
 	printf("drop table %s ;\n", table_name);
 	printf("create table %s ( osm_id int4",table_name);
-	fieldNames[0] = '\0';
-	for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
-		char tmp[32];
-		sprintf(tmp, i?",\"%s\"":"\"%s\"", exportTags[i].name);
-		strcat(fieldNames, tmp);
+	for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++)
 		printf(",\"%s\" %s", exportTags[i].name, exportTags[i].type);
-	}	
 	printf(" );\n");
 	printf("select AddGeometryColumn('%s', 'way', 4326, 'GEOMETRY', 2 );\n", table_name);
 	printf("begin;\n");
