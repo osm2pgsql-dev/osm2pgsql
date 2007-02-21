@@ -4,7 +4,7 @@
 # compatible output suitable to be rendered by mapnik
 # Use: osm2pgsql planet.osm > planet.sql
 #-----------------------------------------------------------------------------
-# Original Python implementation by unnkown author
+# Original Python implementation by Artem Pavlenko
 # Re-implementation by Jon Burgess, Copyright 2006
 #
 # This program is free software; you can redistribute it and/or
