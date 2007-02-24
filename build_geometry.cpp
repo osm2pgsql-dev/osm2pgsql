@@ -90,7 +90,7 @@ size_t build_geometry(int polygon)
 
    while (pos != end)
    {
-      if (pos->x0 != pos->x1 && pos->y0 != pos->y1)
+      if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
       {
          std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
          coords->add(Coordinate(pos->x0,pos->y0));
