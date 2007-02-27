@@ -65,7 +65,10 @@ static struct tagDesc exportTags[] = {
    {"railway", "text", 0},
    {"amenity", "text", 1},
    {"tourism", "text", 0},
-   {"learning","text", 0}
+   {"learning","text", 0},
+   {"building","text", 1},
+   {"bridge",  "boolean",0},
+   {"layer",   "integer",0}
 };
 
 static const char *table_name = "planet_osm";
