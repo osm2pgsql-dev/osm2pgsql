@@ -21,6 +21,8 @@
 */
 
 #include <iostream>
+#if 0
+/* geos trunk (3.0.0rc) */
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
@@ -31,12 +33,23 @@
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
 #include <geos/opLinemerge.h>
+#else
+/* geos-2.2.3 */
+#include <geos/geom.h>
+#include <geos/io.h>
+#include <geos/opLinemerge.h>
+#endif
 
 #include "build_geometry.h"
 
+#if 0
 using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::operation::linemerge;
+#else
+using namespace geos;
+#endif
+
 
 struct Segment
 {
@@ -56,8 +69,8 @@ typedef std::auto_ptr<Geometry> geom_ptr;
 
 int is_simple(const char* wkt)
 {
-   geos::geom::GeometryFactory factory;
-   geos::io::WKTReader reader(&factory);   
+   GeometryFactory factory;
+   WKTReader reader(&factory);
    geom_ptr geom(reader.read(wkt));
    if (geom->isSimple()) return 1;
    return 0;
@@ -81,7 +94,7 @@ void clear_wkts()
 size_t build_geometry(int polygon)
 {
    size_t wkt_size = 0;
-   geos::geom::GeometryFactory factory;
+   GeometryFactory factory;
    geom_ptr segment(0);
    std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
    std::vector<Segment>::const_iterator pos=segs.begin();
