@@ -1,8 +1,10 @@
 CFLAGS += -g 
 CFLAGS += -O2 -Wall
 CFLAGS += $(shell xml2-config --cflags)
-CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE -I/opt/geos/include
-LDFLAGS += $(shell xml2-config --libs) -L/opt/geos/lib -lgeos
+CFLAGS += $(shell geos-config --cflags)
+CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE 
+LDFLAGS += $(shell xml2-config --libs) 
+LDFLAGS += $(shell geos-config --libs) 
 
 APPS:=osm2pgsql
 
