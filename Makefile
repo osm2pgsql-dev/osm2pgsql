@@ -11,7 +11,6 @@ APPS:=osm2pgsql
 all: $(APPS)
 
 clean: 
-	rm -f  $(APPS) osm2pgsql.o bst.o avl.o build_geometry.o
+	rm -f  $(APPS) osm2pgsql.o build_geometry.o
 
-osm2pgsql: osm2pgsql.o bst.o avl.o build_geometry.o
-
+osm2pgsql: osm2pgsql.o build_geometry.o
