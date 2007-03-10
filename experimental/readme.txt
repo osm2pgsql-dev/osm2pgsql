@@ -1,3 +1,54 @@
+Experimental osm2pgsql version 
+==============================
+
+svn.openstreetmap.org/utils/osm2pgsql/experimental
+
+This version uses a direct database connection and generates 
+a couple of temporary tables to store all the node and segment
+data during the import. This keeps the memory usage at a roughly
+constant 60MB during the whole procedure.
+
+The database connrction parameters are hardcoded. It connects
+to localhost with your current user name to the database "gis".
+Change the "conninfo" string if you need to change this.
+
+The tables used:
+
+- tmp_nodes.
+- tmp_segments.
+Both these tables are created and destroyed automatically during 
+the import
+
+- planet_osm. Stores the output of the planet data in a form
+suitable for mapnik.
+
+Pros:
+- Lower ram usage. On my machine 60MB for osm2pgsql, 120MB for
+postmaster (the original osm2pgsql used > 1GB).
+- No hard coded node/segment ID limits. Negative IDs too.
+- Direct import into DB, no intermediate SQL file.
+
+Cons:
+- Slower. Currently takes 2 hours to convert the data instead of
+around 20 minutes for the original osm2pgsql.
+- Need to have postgres running during import
+- Requires Postgesql C library 'libpq' 
+('yum install postgresql-devel' or similar)
+
+I'm working to see whether the speed can be improved. The postgres
+docs suggest that COPY is the fastest import method. It will take some
+further changes to implement this.
+
+There is also a chance that the final version may have switches
+to enable the old RAM storage + SQL output behaviours. I would also
+like to support processing of OSM files stored in "way+segment+node"
+order as produced by planetosm-excerpt-area.pl (currently osm2pgsql
+relies on the OSM file being in "node+segment+way" order).
+
+
+--- The readme.txt for the original version follows below ---
+
+
 osm2pgsql
 =========
 
