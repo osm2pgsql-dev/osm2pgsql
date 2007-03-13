@@ -59,14 +59,20 @@ static struct tagDesc exportTags[] = {
    {"highway", "text", 0},
    {"railway", "text", 0},
    {"amenity", "text", 1},
-   {"tourism", "text", 0},
+   {"tourism", "text", 1},
    {"learning","text", 0},
    {"building","text", 1},
    {"bridge",  "text", 0},
-   {"layer",   "text", 0}
+   {"layer",   "text", 0},
+   {"junction","text", 0},
+   {"sport",   "text", 1},
+   {"route",   "text", 0},
+   {"aeroway", "text", 0}
 };
 
-static const char *table_name = "planet_osm";
+static const char *table_name_point = "planet_osm_point";
+static const char *table_name_line = "planet_osm_line";
+static const char *table_name_polygon = "planet_osm_polygon";
 
 #define MAX_ID_NODE (35000000)
 #define MAX_ID_SEGMENT (35000000)
@@ -401,7 +407,7 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
          return;
       }
       id = strtoul(osm_id, NULL, 10);
-      assert(nodes[id].lat && nodes[id].lon);
+      //assert(nodes[id].lat && nodes[id].lon);
       for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
          char *v;
          if ((v = getItem(&tags, exportTags[i].name))) {
@@ -421,7 +427,7 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
          count_node++;
          printf("insert into %s (osm_id,%s,way) values "
 		"(%s,%s,GeomFromText('POINT(%.15g %.15g)',4326));\n", 
-		table_name,names,osm_id,values,nodes[id].lon, nodes[id].lat);
+		table_name_point,names,osm_id,values,nodes[id].lon, nodes[id].lat);
       }
       resetList(&keys);
       resetList(&tags);
@@ -479,8 +485,13 @@ void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
             {
                const char * wkt = get_wkt(i);
                if (strlen(wkt)) {
-                     printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name,names,osm_id,values,wkt);
-                     count_way++;	
+		 if (polygon) {
+                     printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name_polygon,names,osm_id,values,wkt);
+		 }
+		 else {
+		   printf("insert into %s (osm_id,%s,way) values (%s,%s,GeomFromText('%s',4326));\n", table_name_line,names,osm_id,values,wkt);
+		 }
+		 count_way++;	
                }
             }
             clear_wkts();
@@ -567,22 +578,50 @@ int main(int argc, char *argv[])
 
    LIBXML_TEST_VERSION
 
-   printf("drop table %s ;\n", table_name);
-   printf("create table %s ( osm_id int4",table_name);
+   printf("drop table %s ;\n", table_name_point);
+   printf("create table %s ( osm_id int4",table_name_point);
    for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++)
       printf(",\"%s\" %s", exportTags[i].name, exportTags[i].type);
    printf(" );\n");
-   printf("select AddGeometryColumn('%s', 'way', 4326, 'GEOMETRY', 2 );\n", table_name);
+   printf("select AddGeometryColumn('%s', 'way', 4326, 'POINT', 2 );\n", table_name_point);
+   
+   printf("drop table %s ;\n", table_name_line);
+   printf("create table %s ( osm_id int4",table_name_line);
+   for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++)
+      printf(",\"%s\" %s", exportTags[i].name, exportTags[i].type);
+   printf(" );\n");
+   printf("select AddGeometryColumn('%s', 'way', 4326, 'LINESTRING', 2 );\n", table_name_line);
+   
+   printf("drop table %s ;\n", table_name_polygon);
+   printf("create table %s ( osm_id int4",table_name_polygon);
+   for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++)
+      printf(",\"%s\" %s", exportTags[i].name, exportTags[i].type);
+   printf(" );\n");
+   printf("select AddGeometryColumn('%s', 'way', 4326, 'GEOMETRY', 2 );\n", table_name_polygon);
+   
    printf("begin;\n");
-
    streamFile(argv[1]);
-
    printf("commit;\n");
-   printf("vacuum analyze %s;\n", table_name);
-   printf("CREATE INDEX way_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name);
-   printf("ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n",table_name);
-   printf("CLUSTER way_index on %s;\n",table_name);
-   printf("vacuum analyze %s;\n", table_name);
+   
+   printf("vacuum analyze %s;\n", table_name_point);
+   printf("vacuum analyze %s;\n", table_name_line);
+   printf("vacuum analyze %s;\n", table_name_polygon);
+   
+   printf("CREATE INDEX way_index0 ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name_point);
+   printf("ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n",table_name_point);
+   printf("CLUSTER way_index0 on %s;\n",table_name_point);
+   printf("vacuum analyze %s;\n", table_name_point);
+   
+   printf("CREATE INDEX way_index1 ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name_line);
+   printf("ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n",table_name_line);
+   printf("ALTER TABLE %s ADD COLUMN z_order int4 default 0;\n",table_name_line);
+   printf("CLUSTER way_index1 on %s;\n",table_name_line);
+   printf("vacuum analyze %s;\n", table_name_line);
+   
+   printf("CREATE INDEX way_index2 ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table_name_polygon);
+   printf("ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n",table_name_polygon);
+   printf("CLUSTER way_index2 on %s;\n",table_name_polygon);
+   printf("vacuum analyze %s;\n", table_name_polygon);
 
    xmlCleanupParser();
    xmlMemoryDump();
