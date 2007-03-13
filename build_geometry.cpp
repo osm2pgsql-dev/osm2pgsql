@@ -21,7 +21,7 @@
 */
 
 #include <iostream>
-#if 0
+#if 1
 /* geos trunk (3.0.0rc) */
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
@@ -42,7 +42,7 @@
 
 #include "build_geometry.h"
 
-#if 0
+#if 1
 using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::operation::linemerge;
@@ -100,61 +100,66 @@ size_t build_geometry(int polygon)
    std::vector<Segment>::const_iterator pos=segs.begin();
    std::vector<Segment>::const_iterator end=segs.end();
    bool first=true;
-
-   while (pos != end)
-   {
-      if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
-      {
-         std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
-         coords->add(Coordinate(pos->x0,pos->y0));
-         coords->add(Coordinate(pos->x1,pos->y1));
-         geom_ptr linestring(factory.createLineString(coords.release()));
-         if (first)
-         {
-            segment = linestring;
-            first=false;
-         }
-         else
-         {
-            lines->push_back(linestring.release());
-         }
-      }
-      ++pos;
+   try  {
+     while (pos != end)
+       {
+	 if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
+	   {
+	     std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
+	     coords->add(Coordinate(pos->x0,pos->y0));
+	     coords->add(Coordinate(pos->x1,pos->y1));
+	     geom_ptr linestring(factory.createLineString(coords.release()));
+	     if (first)
+	       {
+		 segment = linestring;
+		 first=false;
+	       }
+	     else
+	       {
+		 lines->push_back(linestring.release());
+	       }
+	   }
+	 ++pos;
+       }
+     
+     segs.clear();
+     
+     if (segment.get())
+       {
+	 geom_ptr mline (factory.createMultiLineString(lines.release()));
+	 geom_ptr noded (segment->Union(mline.get()));
+	 LineMerger merger;
+	 merger.add(noded.get());
+	 std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
+	 WKTWriter writer;
+	 
+	 for (unsigned i=0 ;i < merged->size(); ++i)
+	   {
+	     std::auto_ptr<LineString> pline ((*merged ) [i]);
+	     
+	     if (polygon == 1 && pline->getNumPoints() > 3 && pline->isClosed())
+	       {
+		 std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
+		 geom_ptr poly(factory.createPolygon(ring.release(),0));
+		 std::string text = writer.write(poly.get());
+		 
+		 wkts.push_back(text);
+		 ++wkt_size;
+	       }
+	     else
+	       {
+		 std::string text = writer.write(pline.get());
+		 wkts.push_back(text);
+		 ++wkt_size;
+	       }
+	   }
+       }
    }
-   
-   segs.clear();
-   
-   if (segment.get())
-   {
-      geom_ptr mline (factory.createMultiLineString(lines.release()));
-      geom_ptr noded (segment->Union(mline.get()));
-      LineMerger merger;
-      merger.add(noded.get());
-      std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
-      WKTWriter writer;
-      
-      for (unsigned i=0 ;i < merged->size(); ++i)
-      {
-         std::auto_ptr<LineString> pline ((*merged ) [i]);
-         
-         if (polygon == 1 && pline->getNumPoints() > 3 && pline->isClosed())
-         {
-            std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
-            geom_ptr poly(factory.createPolygon(ring.release(),0));
-            std::string text = writer.write(poly.get());
-
-            wkts.push_back(text);
-            ++wkt_size;
-         }
-         else
-         {
-            std::string text = writer.write(pline.get());
-            wkts.push_back(text);
-            ++wkt_size;
-         }
-      }
-   }
-   
+   catch (...)
+     {
+       std::cerr << "excepton caught \n";
+       wkt_size = 0;
+     }
    return wkt_size;
 }
 
