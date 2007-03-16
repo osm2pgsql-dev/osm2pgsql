@@ -21,7 +21,7 @@
 */
 
 #include <iostream>
-#if 1
+#ifndef GEOS_TWO
 /* geos trunk (3.0.0rc) */
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
@@ -42,7 +42,7 @@
 
 #include "build_geometry.h"
 
-#if 1
+#ifndef GEOS_TWO
 using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::operation::linemerge;
