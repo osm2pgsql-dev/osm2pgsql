@@ -245,12 +245,14 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
 static int pgsql_nodes_get(struct osmNode *out, int id)
 {
     PGresult   *res;
-    char *paramValues[1];
+    char tmp[16];
+    char const *paramValues[1];
     PGconn *sql_conn = sql_conns[t_node];
 
-    asprintf(&paramValues[0], "%d", id);
-
-    res = PQexecPrepared(sql_conn, "get_node", 1, (const char * const *)paramValues, NULL, NULL, 0);
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
+ 
+    res = PQexecPrepared(sql_conn, "get_node", 1, paramValues, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         fprintf(stderr, "get_node failed: %s(%d)\n", PQerrorMessage(sql_conn), PQresultStatus(res));
         PQclear(res);
@@ -259,14 +261,12 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
 
     if (PQntuples(res) != 1) {
         PQclear(res);
-        free(paramValues[0]);
         return 1;
     } 
 
     out->lat = strtod(PQgetvalue(res, 0, 0), NULL);
     out->lon = strtod(PQgetvalue(res, 0, 1), NULL);
     PQclear(res);
-    free(paramValues[0]);
     return 0;
 }
 
@@ -290,12 +290,14 @@ static int pgsql_segments_set(int id, int from, int to, struct keyval *tags)
 static int pgsql_segments_get(struct osmSegment *out, int id)
 {
     PGresult   *res;
-    char *paramValues[1];
+    char tmp[16];
+    char const *paramValues[1];
     PGconn *sql_conn = sql_conns[t_segment];
 
-    asprintf(&paramValues[0], "%d", id);
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
 
-    res = PQexecPrepared(sql_conn, "get_segment", 1, (const char * const *)paramValues, NULL, NULL, 0);
+    res = PQexecPrepared(sql_conn, "get_segment", 1, paramValues, NULL, NULL, 0);
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         fprintf(stderr, "get_segment failed: %s(%d)\n", PQerrorMessage(sql_conn), PQresultStatus(res));
         PQclear(res);
@@ -304,14 +306,12 @@ static int pgsql_segments_get(struct osmSegment *out, int id)
 
     if (PQntuples(res) != 1) {
         PQclear(res);
-        free(paramValues[0]);
         return 1;
     }
 
     out->from = strtol(PQgetvalue(res, 0, 0), NULL, 10);
     out->to   = strtol(PQgetvalue(res, 0, 1), NULL, 10);
     PQclear(res);
-    free(paramValues[0]);
     return 0;
 }
 
@@ -391,7 +391,7 @@ static void pgsql_iterate_nodes(int (*callback)(int id, struct keyval *tags, dou
 
         paramValues[0] = xid;
 
-        res_tags = PQexecPrepared(sql_conn_tags, "get_node_tag", 1, (const char * const *)paramValues, NULL, NULL, 0);
+        res_tags = PQexecPrepared(sql_conn_tags, "get_node_tag", 1, paramValues, NULL, NULL, 0);
         if (PQresultStatus(res_tags) != PGRES_TUPLES_OK) {
             fprintf(stderr, "get_node_tag failed: %s(%d)\n", PQerrorMessage(sql_conn_tags), PQresultStatus(res_tags));
             PQclear(res_tags);
@@ -414,6 +414,7 @@ static void pgsql_iterate_nodes(int (*callback)(int id, struct keyval *tags, dou
     fprintf(stderr, "\n");
 }
 
+#if 0
 static struct osmSegLL *getSegLL(struct keyval *segs, int *segCount)
 {
     struct keyval *p;
@@ -454,17 +455,20 @@ static struct osmSegLL *getSegLL(struct keyval *segs, int *segCount)
     *segCount = count;
     return segll;
 }
+#endif
 
 void getTags(int id, struct keyval *tags)
 {
     PGconn *sql_conn_tags = sql_conns[t_way_tag];
     PGresult   *res_tags;
-    char *paramValues[1];
+    char tmp[16];
+    const char *paramValues[1];
     int j;
 
-    asprintf(&paramValues[0], "%d", id);
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
 
-    res_tags = PQexecPrepared(sql_conn_tags, "get_way_tag", 1, (const char * const *)paramValues, NULL, NULL, 0);
+    res_tags = PQexecPrepared(sql_conn_tags, "get_way_tag", 1, paramValues, NULL, NULL, 0);
     if (PQresultStatus(res_tags) != PGRES_TUPLES_OK) {
         fprintf(stderr, "get_way_tag failed: %s(%d)\n", PQerrorMessage(sql_conn_tags), PQresultStatus(res_tags));
         PQclear(res_tags);
@@ -476,9 +480,7 @@ void getTags(int id, struct keyval *tags)
         const char *value = PQgetvalue(res_tags, j, 1);
         addItem(tags, key, value, 0);
     }
-    free(paramValues[0]);
     PQclear(res_tags);
-
 }
 
 

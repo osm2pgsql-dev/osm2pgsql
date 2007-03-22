@@ -22,9 +22,9 @@
 
 #include "output-pgsql.h"
 
-#define MAX_ID_NODE (27000000)
-#define MAX_ID_SEGMENT (23000000)
-#define MAX_ID_WAY (4500000)
+#define MAX_ID_NODE (30000000)
+#define MAX_ID_SEGMENT (25000000)
+#define MAX_ID_WAY (4800000)
 
 /* Store +-180 lattitude/longittude as fixed point number */
 /* Scale is chosen such that 360 * SCALE < 2^32          */
