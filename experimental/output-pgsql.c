@@ -234,7 +234,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         }
     }
 
-    sprintf(sql, "SRID=4326;POINT(%f %f)", node_lon, node_lat);
+    sprintf(sql, "SRID=4326;POINT(%.15g %.15g)", node_lon, node_lat);
     r = PQputCopyData(sql_conn, sql, strlen(sql));
     if (r != 1) {
         fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
@@ -242,7 +242,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     }
 #if 0
 //    sprintf(sql, "POINT(%.15g %.15g)", node_lon, node_lat);
-    sprintf(sql, "POINT(%f %f)", node_lon, node_lat);
+    sprintf(sql, "POINT(%.15g %.15g)", node_lon, node_lat);
     tmp = get_point_wkb(sql, &len);
     
     if (id == 17959841) fprintf(stderr, "\n%d %s ", id, sql);

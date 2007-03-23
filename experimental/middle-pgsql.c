@@ -211,7 +211,7 @@ static int pgsql_nodes_set_pos(int id, double lat, double lon)
     char sql[128];
     int r;
 
-    sprintf(sql, "%d\t%f\t%f\n", id, lat, lon);
+    sprintf(sql, "%d\t%.15g\t%.15g\n", id, lat, lon);
     r = PQputCopyData(sql_conn, sql, strlen(sql));
     if (r != 1) {
         fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
