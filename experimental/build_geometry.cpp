@@ -21,7 +21,10 @@
 */
 
 #include <iostream>
-#ifndef GEOS_TWO
+
+#include <geos_c.h>
+
+#if (GEOS_VERSION_MAJOR==3)
 /* geos trunk (3.0.0rc) */
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
@@ -33,23 +36,18 @@
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
 #include <geos/opLinemerge.h>
+using namespace geos::geom;
+using namespace geos::io;
+using namespace geos::operation::linemerge;
 #else
 /* geos-2.2.3 */
 #include <geos/geom.h>
 #include <geos/io.h>
 #include <geos/opLinemerge.h>
-#endif
-
-#include "build_geometry.h"
-
-#ifndef GEOS_TWO
-using namespace geos::geom;
-using namespace geos::io;
-using namespace geos::operation::linemerge;
-#else
 using namespace geos;
 #endif
 
+#include "build_geometry.h"
 
 struct Segment
 {
