@@ -5,8 +5,6 @@
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
 */
- 
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <unistd.h>
@@ -240,27 +238,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
         exit_nicely();
     }
-#if 0
-//    sprintf(sql, "POINT(%.15g %.15g)", node_lon, node_lat);
-    sprintf(sql, "POINT(%.15g %.15g)", node_lon, node_lat);
-    tmp = get_point_wkb(sql, &len);
-    
-    if (id == 17959841) fprintf(stderr, "\n%d %s ", id, sql);
-    for(i=0; i<len && (i<<1)< sizeof(sql)-1; i++)
-        sprintf(&sql[i<<1], "%02u", tmp[i]);
-    sql[i<<1] = '\0';
-    if (id == 17959841) fprintf(stderr, "%s\n",sql);
 
-    if (i != len)
-           fprintf(stderr, "truncated - %d not %zd", i, len);
-    r = PQputCopyData(sql_conn, sql, i<<1);
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-    free(tmp);
-    //fprintf(stderr, "%s\n", sql);
-#endif
     sprintf(sql, "\n");
     r = PQputCopyData(sql_conn, sql, strlen(sql));
     if (r != 1) {
@@ -289,59 +267,53 @@ static size_t WKT(struct osmSegLL *segll, int count, int polygon)
 }
 
 
-static void write_wkts(int id, struct keyval *tags, size_t wkt_size, PGconn *sql_conn)
+static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql_conn)
 {
-    unsigned int i, j, r;
+    unsigned int j, r;
     char sql[2048];
     const char*v;
 
-    for (i=0;i<wkt_size;i++)
-    {
-        char *wkt = get_wkt(i);
-        if (strlen(wkt)) {
-            sprintf(sql, "%d\t", id);
-            r = PQputCopyData(sql_conn, sql, strlen(sql));
-            if (r != 1) {
-                fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-                exit_nicely();
-            }
-            for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
-                if ((v = getItem(tags, exportTags[j].name)))
-                    escape(sql, sizeof(sql), v);
-                else
-                    sprintf(sql, "\\N");
+    sprintf(sql, "%d\t", id);
+    r = PQputCopyData(sql_conn, sql, strlen(sql));
+    if (r != 1) {
+	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
+	    exit_nicely();
+    }
 
-                r = PQputCopyData(sql_conn, sql, strlen(sql));
-                if (r != 1) {
-                    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-                    exit_nicely();
-                }
-                r = PQputCopyData(sql_conn, "\t", 1);
-                if (r != 1) {
-                    fprintf(stderr, "%s - bad result %d, tab\n", __FUNCTION__, r);
-                    exit_nicely();
-                }
-            }
+    for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
+	    if ((v = getItem(tags, exportTags[j].name)))
+		    escape(sql, sizeof(sql), v);
+	    else
+		    sprintf(sql, "\\N");
 
-            sprintf(sql, "SRID=4326;");
-            r = PQputCopyData(sql_conn, sql, strlen(sql));
-            if (r != 1) {
-                fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-                exit_nicely();
-            }
-            r = PQputCopyData(sql_conn, wkt, strlen(wkt));
-            if (r != 1) {
-                fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, wkt);
-                exit_nicely();
-            }
-            sprintf(sql, "\n");
-            r = PQputCopyData(sql_conn, sql, strlen(sql));
-            if (r != 1) {
-                fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-                exit_nicely();
-            }
-        }
-        free(wkt);
+	    r = PQputCopyData(sql_conn, sql, strlen(sql));
+	    if (r != 1) {
+		    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
+		    exit_nicely();
+	    }
+	    r = PQputCopyData(sql_conn, "\t", 1);
+	    if (r != 1) {
+		    fprintf(stderr, "%s - bad result %d, tab\n", __FUNCTION__, r);
+		    exit_nicely();
+	    }
+    }
+
+    sprintf(sql, "SRID=4326;");
+    r = PQputCopyData(sql_conn, sql, strlen(sql));
+    if (r != 1) {
+	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
+	    exit_nicely();
+    }
+    r = PQputCopyData(sql_conn, wkt, strlen(wkt));
+    if (r != 1) {
+	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, wkt);
+	    exit_nicely();
+    }
+    sprintf(sql, "\n");
+    r = PQputCopyData(sql_conn, sql, strlen(sql));
+    if (r != 1) {
+	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
+	    exit_nicely();
     }
 }
 
@@ -369,18 +341,29 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
     }
 
     if (!export)
-         return 0;
+        return 0;
 
     if (add_z_order(tags, polygon, &roads))
-         return 0;
+        return 0;
 
     wkt_size = WKT(segll, count, polygon); 
 
-    write_wkts(id, tags, wkt_size, sql_conns[polygon?t_poly:t_line]);
-
-    if (roads)
-        write_wkts(id, tags, wkt_size, sql_conns[t_roads]);
-
+    for (i=0;i<wkt_size;i++)
+    {
+        char *wkt = get_wkt(i);
+        if (strlen(wkt)) {
+            /* FIXME: there should be a better way... */
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) 
+                write_wkts(id, tags, wkt, sql_conns[t_poly]);
+            else {
+                write_wkts(id, tags, wkt, sql_conns[t_line]);
+                if (roads)
+                    write_wkts(id, tags, wkt, sql_conns[t_roads]);
+            }
+        }
+        free(wkt);
+    }
+	
     clear_wkts();
     return 0;
 }
