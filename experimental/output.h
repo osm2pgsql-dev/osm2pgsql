@@ -14,7 +14,7 @@
 #include "middle.h"
 
 struct output_t {
-    int (*start)(void);
+    int (*start)(int dropcreate);
     void (*stop)(void);
     void (*cleanup)(void);
     void (*process)(struct middle_t *mid);

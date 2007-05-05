@@ -23,8 +23,6 @@
 #-----------------------------------------------------------------------------
 */
 
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -40,17 +38,11 @@
 #include "middle-pgsql.h"
 #include "middle-ram.h"
 #include "output-pgsql.h"
+#include "sanitizer.h"
 
-#if 0
-#define DEBUG printf
-#else
-#define DEBUG(x, ...)
-#endif
-
-
-static int count_node,    count_all_node,    max_node;
-static int count_segment, count_all_segment, max_segment;
-static int count_way,     count_all_way,     max_way;
+static int count_node,    max_node;
+static int count_segment, max_segment;
+static int count_way,     max_way;
 static int count_way_seg;
 
 struct middle_t *mid;
@@ -64,6 +56,8 @@ static double node_lon, node_lat;
 static int seg_to, seg_from;
 static struct keyval tags, segs;
 static int osm_id;
+
+static int update;
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
@@ -83,9 +77,9 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (osm_id > max_node) 
             max_node = osm_id;
 
-        count_all_node++;
-        if (count_all_node%10000 == 0) 
-            fprintf(stderr, "\rProcessing: Node(%dk)", count_all_node/1000);
+        count_node++;
+        if (count_node%10000 == 0) 
+            fprintf(stderr, "\rProcessing: Node(%dk)", count_node/1000);
 
         xmlFree(xid);
         xmlFree(xlon);
@@ -102,12 +96,12 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (osm_id > max_segment) 
             max_segment = osm_id;
 
-        if (count_all_segment == 0) 
+        if (count_segment == 0) 
             fprintf(stderr, "\n");
 
-        count_all_segment++;
-        if (count_all_segment%10000 == 0) 
-            fprintf(stderr, "\rProcessing: Segment(%dk)", count_all_segment/1000);
+        count_segment++;
+        if (count_segment%10000 == 0) 
+            fprintf(stderr, "\rProcessing: Segment(%dk)", count_segment/1000);
 
         xmlFree(xid);
         xmlFree(xfrom);
@@ -128,7 +122,6 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
                 *p = '_';
 
             addItem(&tags, k, (char *)xv, 0);
-            DEBUG("\t%s = %s\n", xk, xv);
             xmlFree(k);
             xmlFree(xv);
         }
@@ -137,17 +130,16 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
         osm_id   = strtol((char *)xid, NULL, 10);
-        DEBUG("WAY(%s)\n", xid);
 
         if (osm_id > max_way)
             max_way = osm_id;
 
-        if (count_all_way == 0)
+        if (count_way == 0)
             fprintf(stderr, "\n");
 
-        count_all_way++;
-        if (count_all_way%1000 == 0) 
-            fprintf(stderr, "\rProcessing: Way(%dk)", count_all_way/1000);
+        count_way++;
+        if (count_way%1000 == 0) 
+            fprintf(stderr, "\rProcessing: Way(%dk)", count_way/1000);
 
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "seg")) {
@@ -157,7 +149,6 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (addItem(&segs, "id", (char *)xid, 1))
             count_way_seg++;
 
-        DEBUG("\tSEG(%s)\n", xid);
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         /* ignore */
@@ -168,8 +159,6 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 
 void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
-    DEBUG("%s: %s\n", __FUNCTION__, name);
-
     if (xmlStrEqual(name, BAD_CAST "node")) {
         mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
@@ -221,7 +210,9 @@ static int streamFile(char *filename) {
     xmlTextReaderPtr reader;
     int ret = 0;
 
-    reader = xmlNewTextReaderFilename(filename);
+//    reader = xmlNewTextReaderFilename(filename);
+    reader = sanitizerOpen(filename);
+
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
         while (ret == 1) {
@@ -263,6 +254,9 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    // use getopt
+    update = 0;
+ 
     initList(&tags);
     initList(&segs);
 
@@ -272,8 +266,8 @@ int main(int argc, char *argv[])
     mid = &mid_ram;
     out = &out_pgsql;
 
-    mid->start(1);
-    out->start();
+    mid->start(!update);
+    out->start(!update);
 
     if (streamFile(argv[1]) != 0)
         exit_nicely();
@@ -282,9 +276,9 @@ int main(int argc, char *argv[])
     xmlMemoryDump();
 
     fprintf(stderr, "\n");
-    fprintf(stderr, "Node stats: out(%d), total(%d), max(%d)\n", count_node, count_all_node, max_node);
-    fprintf(stderr, "Segment stats: out(%d), total(%d), max(%d)\n", count_segment, count_all_segment, max_segment);
-    fprintf(stderr, "Way stats: out(%d), total(%d), max(%d)\n", count_way, count_all_way, max_way);
+    fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
+    fprintf(stderr, "Segment stats: total(%d), max(%d)\n", count_segment, max_segment);
+    fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
     fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
 
     fprintf(stderr, "\n\nEnding data import\n");

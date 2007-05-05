@@ -6,8 +6,6 @@
  * emit the final geometry-enabled output formats
 */
  
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
