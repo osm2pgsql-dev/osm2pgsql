@@ -7,6 +7,7 @@ CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs) 
 LDFLAGS += -lpq -g
+LDFLAGS += -lbz2
 
 SRCS:=$(wildcard *.c) $(wildcard *.cpp)
 OBJS:=$(SRCS:.c=.o)
@@ -30,5 +31,5 @@ clean:
 
 -include $(DEPS)
 
-osm2pgsql: osm2pgsql.o build_geometry.o middle-pgsql.o keyvals.o output-pgsql.o middle-ram.o
+osm2pgsql: osm2pgsql.o build_geometry.o middle-pgsql.o keyvals.o output-pgsql.o middle-ram.o input.o UTF8sanitizer.o
 

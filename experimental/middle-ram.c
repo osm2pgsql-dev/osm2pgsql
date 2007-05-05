@@ -5,8 +5,6 @@
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
 */
- 
-#define _GNU_SOURCE
 
 #include <stdio.h>
 #include <unistd.h>
@@ -22,14 +20,16 @@
 
 #include "output-pgsql.h"
 
+/* Note: these are based on a current planet.osm file + 10%, increase them if needed */
 #define MAX_ID_NODE (30000000)
 #define MAX_ID_SEGMENT (25000000)
 #define MAX_ID_WAY (4800000)
 
-/* Store +-180 lattitude/longittude as fixed point number */
+/* Store +-180 lattitude/longittude as fixed point 32bit number with maximum precision */
 /* Scale is chosen such that 360 * SCALE < 2^32          */
+/* scale = 1e7 is more 'human readable',  (1<<23) is better for computers, take your pick :-) */
 #define FIXED_POINT 
-#define SCALE (1<<23)
+#define SCALE 10000000
 #define DOUBLE_TO_FIX(x) ((x) * SCALE)
 #define FIX_TO_DOUBLE(x) (((double)x) / SCALE)
 
@@ -83,7 +83,7 @@ static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags)
     while ((p = popItem(tags)) != NULL)
         pushItem(&nodes[id].tags, p);
 #else
-    /* FIXME: This is a performance hack which interferse with a clean middle / output separation */
+    /* FIXME: This is a performance hack which interferes with a clean middle / output separation */
     out_pgsql.node(id, tags, lat, lon);
     resetList(tags);
 #endif
@@ -141,7 +141,7 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
     struct keyval *p;
     int *segids;
     int segCount, i;
-    
+
     if (id <= 0)
         return 1;
 
@@ -192,20 +192,6 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
 
     return 0;
 }
-
-
-#if 0
-static int *ram_ways_get(int id)
-{
-    /* unused */
-    return NULL;
-}
-
-static void ram_iterate_nodes(int (*callback)(int id, struct keyval *tags, double node_lat, double node_lon))
-{
-    /* unused */
-}
-#endif
 
 static struct osmSegLL *getSegLL(int *segids, int *segCount)
 {
@@ -294,7 +280,7 @@ static void ram_end(void)
     /* No need */
 }
 
-static int ram_start()
+static int ram_start(int dropcreate)
 {
 //    int i;
 
