@@ -125,16 +125,16 @@ static int add_z_order_line(struct keyval *tags, int *roads)
     int l;
     unsigned int i;
     char z[13];
-    
+
     l = layer ? strtol(layer, NULL, 10) : 0;
     z_order = 10 * l;
     *roads = 0;
-    
+
     if (highway) {
         for (i=0; i<nLayers; i++) {
             if (!strcmp(layers[i].highway, highway)) {
                 z_order += layers[i].offset;
-                *roads    = layers[i].roads;
+                *roads   = layers[i].roads;
                 break;
             }
         }
@@ -250,6 +250,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 }
 
 
+
 static size_t WKT(struct osmSegLL *segll, int count, int polygon)
 {
     double x0, y0, x1, y1;
@@ -317,6 +318,31 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
     }
 }
 
+void add_parking_node(int id, struct keyval *tags, size_t index)
+{
+// insert into planet_osm_point(osm_id,name,amenity,way) select osm_id,name,amenity,centroid(way) from planet_osm_polygon where amenity='parking';
+	const char *amenity = getItem(tags, "amenity");
+	const char *name    = getItem(tags, "name");
+	struct keyval nodeTags;
+	double node_lat = 0, node_lon = 0;
+	
+	if (!amenity || strcmp(amenity, "parking"))
+		return;
+
+	initList(&nodeTags);
+	addItem(&nodeTags, "amenity", amenity, 0);
+	if (name)
+		addItem(&nodeTags, "name",    name,    0);
+	
+	get_centroid(index, &node_lat, &node_lon);
+	
+	//fprintf(stderr, "Parking node: %s\t%f,%f\n", name ? name : "no_name", node_lat, node_lon);
+	
+	pgsql_out_node(id, &nodeTags, node_lat, node_lon);
+	resetList(&nodeTags);
+}
+
+
 /*
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
 ilding, bridge, layer, way) FROM stdin;
@@ -352,15 +378,16 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
     {
         char *wkt = get_wkt(i);
         if (strlen(wkt)) {
-            /* FIXME: there should be a better way... */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) 
+            /* FIXME: there should be a better way to detect polygons */
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
                 write_wkts(id, tags, wkt, sql_conns[t_poly]);
-            else {
+		add_parking_node(id, tags, i);
+	    } else {
                 write_wkts(id, tags, wkt, sql_conns[t_line]);
                 if (roads)
                     write_wkts(id, tags, wkt, sql_conns[t_roads]);
             }
-        }
+	}
         free(wkt);
     }
 	
@@ -369,13 +396,13 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 }
 
 
-static int pgsql_out_start()
+static int pgsql_out_start(int dropcreate)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
     unsigned int i,j;
 
-    /* We use a connection per table to enable the use of COPY */
+    /* We use a connection per table to enable the use of COPY_IN */
     sql_conns = calloc(num_tables, sizeof(PGconn *));
     assert(sql_conns);
 
@@ -392,11 +419,13 @@ static int pgsql_out_start()
         }
         sql_conns[i] = sql_conn;
 
-        sql[0] = '\0';
-        strcat(sql, "DROP TABLE ");
-        strcat(sql, tables[i].name);
-        res = PQexec(sql_conn, sql);
-        PQclear(res); /* Will be an error if table does not exist */
+        if (dropcreate) {
+            sql[0] = '\0';
+            strcat(sql, "DROP TABLE ");
+            strcat(sql, tables[i].name);
+            res = PQexec(sql_conn, sql);
+            PQclear(res); /* Will be an error if table does not exist */
+        }
 
         res = PQexec(sql_conn, "BEGIN");
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -406,28 +435,30 @@ static int pgsql_out_start()
         }
         PQclear(res);
 
-        sql[0] = '\0';
-        strcat(sql, "CREATE TABLE ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " ( osm_id int4");
-        for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
-            sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
-            strcat(sql, tmp);
-        }
-        strcat(sql, " );\n");
-        strcat(sql, "SELECT AddGeometryColumn('");
-        strcat(sql, tables[i].name);
-        strcat(sql, "', 'way', 4326, '");
-        strcat(sql, tables[i].type);
-        strcat(sql, "', 2 );\n");
+        if (dropcreate) {
+            sql[0] = '\0';
+            strcat(sql, "CREATE TABLE ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " ( osm_id int4");
+            for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
+                sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
+                strcat(sql, tmp);
+            }
+            strcat(sql, " );\n");
+            strcat(sql, "SELECT AddGeometryColumn('");
+            strcat(sql, tables[i].name);
+            strcat(sql, "', 'way', 4326, '");
+            strcat(sql, tables[i].type);
+            strcat(sql, "', 2 );\n");
 
-        res = PQexec(sql_conn, sql);
-        if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-            fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
+            res = PQexec(sql_conn, sql);
+            if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+                fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
+                PQclear(res);
+                exit_nicely();
+            }
             PQclear(res);
-            exit_nicely();
         }
-        PQclear(res);
 
         sql[0] = '\0';
         strcat(sql, "COPY ");
