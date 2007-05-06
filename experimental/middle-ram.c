@@ -21,9 +21,9 @@
 #include "output-pgsql.h"
 
 /* Note: these are based on a current planet.osm file + 10%, increase them if needed */
-#define MAX_ID_NODE (30000000)
-#define MAX_ID_SEGMENT (25000000)
-#define MAX_ID_WAY (4800000)
+#define MAX_ID_NODE (31000000)
+#define MAX_ID_SEGMENT (27000000)
+#define MAX_ID_WAY (5000000)
 
 /* Store +-180 lattitude/longittude as fixed point 32bit number with maximum precision */
 /* Scale is chosen such that 360 * SCALE < 2^32          */
