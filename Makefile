@@ -1,10 +1,21 @@
-CFLAGS += -g 
-CFLAGS += -O2 -Wall
+CFLAGS += -O2 -Wall -Wextra -Wsign-compare -Wpointer-sign
 CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
-CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE 
+CFLAGS += -I$(shell pg_config --includedir)
+
+CXXFLAGS += -O2 -Wall -DGEOS_INLINE
+
 LDFLAGS += $(shell xml2-config --libs) 
-LDFLAGS += $(shell geos-config --libs) 
+LDFLAGS += $(shell geos-config --libs)
+LDFLAGS += -L$(shell pg_config --libdir) -lpq
+LDFLAGS += -lbz2
+LDFLAGS += -lproj
+
+SRCS:=$(wildcard *.c) $(wildcard *.cpp)
+OBJS:=$(SRCS:.c=.o)
+OBJS:=$(OBJS:.cpp=.o)
+DEPS:=$(SRCS:.c=.d)
+DEPS:=$(DEPS:.cpp=.d)
 
 APPS:=osm2pgsql
 
@@ -13,6 +24,15 @@ APPS:=osm2pgsql
 all: $(APPS)
 
 clean: 
-	rm -f  $(APPS) osm2pgsql.o build_geometry.o
+	rm -f  $(APPS) $(OBJS) $(DEPS)
 
-osm2pgsql: osm2pgsql.o build_geometry.o
+%.d: %.c
+	@set -e; rm -f $@; \
+	$(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
+	rm -f $@.$$$$
+
+-include $(DEPS)
+	
+osm2pgsql: osm2pgsql.o build_geometry.o middle-pgsql.o keyvals.o output-pgsql.o middle-ram.o input.o UTF8sanitizer.o reprojection.o
+
