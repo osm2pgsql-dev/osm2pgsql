@@ -1,12 +1,13 @@
-CFLAGS += -g -O2 -Wall -Wextra -Wsign-compare -Wpointer-sign 
+CFLAGS += -O2 -Wall -Wextra -Wsign-compare -Wpointer-sign
 CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
+CFLAGS += -I$(shell pg_config --includedir)
 
-CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE
+CXXFLAGS += -O2 -Wall -DGEOS_INLINE
 
 LDFLAGS += $(shell xml2-config --libs) 
-LDFLAGS += $(shell geos-config --libs) 
-LDFLAGS += -lpq -g
+LDFLAGS += $(shell geos-config --libs)
+LDFLAGS += -L$(shell pg_config --libdir) -lpq
 LDFLAGS += -lbz2
 LDFLAGS += -lproj
 
