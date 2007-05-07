@@ -29,7 +29,8 @@
 /* Scale is chosen such that 360 * SCALE < 2^32          */
 /* scale = 1e7 is more 'human readable',  (1<<23) is better for computers, take your pick :-) */
 #define FIXED_POINT 
-#define SCALE 10000000
+//#define SCALE 10000000
+#define SCALE 100
 #define DOUBLE_TO_FIX(x) ((x) * SCALE)
 #define FIX_TO_DOUBLE(x) (((double)x) / SCALE)
 
