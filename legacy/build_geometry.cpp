@@ -21,7 +21,6 @@
 */
 
 #include <iostream>
-
 #include <geos_c.h>
 
 #if (GEOS_VERSION_MAJOR==3)
@@ -33,7 +32,6 @@
 #include <geos/geom/LinearRing.h>
 #include <geos/geom/MultiLineString.h>
 #include <geos/geom/Polygon.h>
-#include <geos/geom/Point.h>
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
 #include <geos/opLinemerge.h>
@@ -41,7 +39,7 @@ using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::operation::linemerge;
 #else
-/* geos-2.2.3 */
+/* geos-2.2 */
 #include <geos/geom.h>
 #include <geos/io.h>
 #include <geos/opLinemerge.h>
@@ -50,37 +48,22 @@ using namespace geos;
 
 #include "build_geometry.h"
 
-typedef std::auto_ptr<Geometry> geom_ptr;
 
 struct Segment
 {
       Segment(double x0_,double y0_,double x1_,double y1_)
          :x0(x0_),y0(y0_),x1(x1_),y1(y1_) {}
-
+      
       double x0;
       double y0;
       double x1;
       double y1;
 };
 
-struct Centroid
-{
-	Centroid(double x_, double y_)
-	  : x(x_), y(y_) {}
-
-	Centroid(Geometry *geom) {
-		Point * pt = geom->getCentroid();
-		x = pt->getX();
-		y = pt->getY();
-		//cout << "Center: " << x << "," << y << endl;
-	}
-	double x, y;
-};
-
 static std::vector<Segment> segs;
 static std::vector<std::string> wkts;
-static std::vector<Centroid> centroids;
 
+typedef std::auto_ptr<Geometry> geom_ptr;
 
 int is_simple(const char* wkt)
 {
@@ -96,24 +79,14 @@ void add_segment(double x0,double y0,double x1,double y1)
    segs.push_back(Segment(x0,y0,x1,y1));
 }
 
-char * get_wkt(size_t index)
+const char * get_wkt(size_t index)
 {
-//   return wkts[index].c_str();
-	char *result;
-	result = (char*) std::malloc( wkts[index].length() + 1);
-	std::strcpy(result, wkts[index].c_str() );
-	return result;
+   return wkts[index].c_str();
 }
 
-void get_centroid(size_t index, double *y, double *x)
-{
-	*x = centroids[index].x;
-	*y = centroids[index].y;
-}
 void clear_wkts()
 {
    wkts.clear();
-   centroids.clear();
 }
 
 size_t build_geometry(int polygon)
@@ -167,16 +140,14 @@ size_t build_geometry(int polygon)
 		 std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
 		 geom_ptr poly(factory.createPolygon(ring.release(),0));
 		 std::string text = writer.write(poly.get());
-
+		 
 		 wkts.push_back(text);
-		 centroids.push_back(Centroid(poly.get()));
 		 ++wkt_size;
 	       }
 	     else
 	       {
 		 std::string text = writer.write(pline.get());
 		 wkts.push_back(text);
-		 centroids.push_back(Centroid(0,0));
 		 ++wkt_size;
 	       }
 	   }

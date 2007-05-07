@@ -29,7 +29,8 @@ extern "C" {
 
 int is_simple(const char* wkt);
 void add_segment(double x0,double y0,double x1, double y1);
-const char* get_wkt(size_t index);
+char* get_wkt(size_t index);
+void get_centroid(size_t index, double *y, double *x);
 size_t build_geometry(int polygon);
 void clear_wkts();
 
