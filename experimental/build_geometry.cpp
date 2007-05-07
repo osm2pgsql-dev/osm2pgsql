@@ -33,6 +33,7 @@
 #include <geos/geom/LinearRing.h>
 #include <geos/geom/MultiLineString.h>
 #include <geos/geom/Polygon.h>
+#include <geos/geom/Point.h>
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
 #include <geos/opLinemerge.h>
@@ -68,12 +69,9 @@ struct Centroid
 	  : x(x_), y(y_) {}
 
 	Centroid(Geometry *geom) {
-		Coordinate *center;
-		CentroidArea area;
-		area.add(geom);
-		center = area.getCentroid();
-		x = center->x;
-		y = center->y;
+		Point * pt = geom->getCentroid();
+		x = pt->getX();
+		y = pt->getY();
 		//cout << "Center: " << x << "," << y << endl;
 	}
 	double x, y;
