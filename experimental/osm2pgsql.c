@@ -39,6 +39,7 @@
 #include "middle-ram.h"
 #include "output-pgsql.h"
 #include "sanitizer.h"
+#include "reprojection.h"
 
 static int count_node,    max_node;
 static int count_segment, max_segment;
@@ -160,7 +161,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-        mid->nodes_set(osm_id, node_lat, node_lon, &tags);
+       reproject(&node_lat, &node_lon);
+       mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "segment")) {
         mid->segments_set(osm_id, seg_from, seg_to, &tags);
@@ -262,6 +264,8 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION
 
+    project_init();
+		    
     //mid = &mid_pgsql;
     mid = &mid_ram;
     out = &out_pgsql;
@@ -295,6 +299,8 @@ int main(int argc, char *argv[])
     //out->process(mid);
     mid->stop();
     out->stop();
+
+    project_exit();
 
     fprintf(stderr, "\n");
 
