@@ -49,21 +49,40 @@ using namespace geos;
 
 #include "build_geometry.h"
 
+typedef std::auto_ptr<Geometry> geom_ptr;
+
 struct Segment
 {
       Segment(double x0_,double y0_,double x1_,double y1_)
          :x0(x0_),y0(y0_),x1(x1_),y1(y1_) {}
-      
+
       double x0;
       double y0;
       double x1;
       double y1;
 };
 
+struct Centroid
+{
+	Centroid(double x_, double y_)
+	  : x(x_), y(y_) {}
+
+	Centroid(Geometry *geom) {
+		Coordinate *center;
+		CentroidArea area;
+		area.add(geom);
+		center = area.getCentroid();
+		x = center->x;
+		y = center->y;
+		//cout << "Center: " << x << "," << y << endl;
+	}
+	double x, y;
+};
+
 static std::vector<Segment> segs;
 static std::vector<std::string> wkts;
+static std::vector<Centroid> centroids;
 
-typedef std::auto_ptr<Geometry> geom_ptr;
 
 int is_simple(const char* wkt)
 {
@@ -88,9 +107,15 @@ char * get_wkt(size_t index)
 	return result;
 }
 
+void get_centroid(size_t index, double *y, double *x)
+{
+	*x = centroids[index].x;
+	*y = centroids[index].y;
+}
 void clear_wkts()
 {
    wkts.clear();
+   centroids.clear();
 }
 
 size_t build_geometry(int polygon)
@@ -144,14 +169,16 @@ size_t build_geometry(int polygon)
 		 std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
 		 geom_ptr poly(factory.createPolygon(ring.release(),0));
 		 std::string text = writer.write(poly.get());
-		 
+
 		 wkts.push_back(text);
+		 centroids.push_back(Centroid(poly.get()));
 		 ++wkt_size;
 	       }
 	     else
 	       {
 		 std::string text = writer.write(pline.get());
 		 wkts.push_back(text);
+		 centroids.push_back(Centroid(0,0));
 		 ++wkt_size;
 	       }
 	   }
