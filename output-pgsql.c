@@ -104,12 +104,21 @@ static PGconn **sql_conns;
 
 static int add_z_order_polygon(struct keyval *tags, int *roads)
 {
-    /* Discard polygons with the tag natural=coastline */
     const char *natural = getItem(tags, "natural");
-    *roads = 0;
+    const char *layer   = getItem(tags, "layer");
+    int z_order, l;
+    char z[13];
 
+    /* Discard polygons with the tag natural=coastline */
     if (natural && !strcmp(natural, "coastline"))
         return 1;
+
+    l = layer ? strtol(layer, NULL, 10) : 0;
+    z_order = 10 * l;
+    *roads = 0;
+
+    snprintf(z, sizeof(z), "%d", z_order);
+    addItem(tags, "z_order", z, 0);
 
     return 0;
 }
