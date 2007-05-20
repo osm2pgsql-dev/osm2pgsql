@@ -70,6 +70,7 @@ static struct {
     {"sport",   "text", 1},
     {"route",   "text", 0},
     {"aeroway", "text", 0},
+    {"ref",     "text", 0},
     {"z_order", "int4", 0}
 };
 static const unsigned int numTags = sizeof(exportTags) / sizeof(*exportTags);
@@ -106,6 +107,7 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
 {
     const char *natural = getItem(tags, "natural");
     const char *layer   = getItem(tags, "layer");
+    const char *landuse = getItem(tags, "landuse");
     int z_order, l;
     char z[13];
 
@@ -116,6 +118,10 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
     l = layer ? strtol(layer, NULL, 10) : 0;
     z_order = 10 * l;
     *roads = 0;
+
+    /* landuse tends to cover large areas and we want it under other polygons */
+    if (landuse)
+        z_order -= 1;
 
     snprintf(z, sizeof(z), "%d", z_order);
     addItem(tags, "z_order", z, 0);
@@ -166,6 +172,21 @@ static int add_z_order_line(struct keyval *tags, int *roads)
 static int add_z_order(struct keyval* tags, int polygon, int *roads)
 {
     return polygon ? add_z_order_polygon(tags, roads) : add_z_order_line(tags, roads);
+}
+
+
+static void fix_motorway_shields(struct keyval *tags)
+{
+    const char *highway = getItem(tags, "highway");
+    const char *name    = getItem(tags, "name");
+    const char *ref     = getItem(tags, "ref");
+
+    /* The current mapnik style uses ref= for motorway shields but some data just has name= */
+    if (!highway || strcmp(highway, "motorway"))
+        return;
+
+    if (name && !ref)
+        addItem(tags, "ref", name, 0);
 }
 
 
@@ -381,6 +402,8 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
     if (add_z_order(tags, polygon, &roads))
         return 0;
 
+    fix_motorway_shields(tags);
+
     wkt_size = WKT(segll, count, polygon); 
 
     for (i=0;i<wkt_size;i++)
@@ -554,10 +577,14 @@ static void pgsql_out_stop(void)
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
+        strcat(sql, "GRANT SELECT ON ");
+        strcat(sql, tables[i].name);
+        strcat(sql, " TO PUBLIC;\n");
+
         strcat(sql, "VACUUM ANALYZE ");
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
-        
+
         res = PQexec(sql_conn, sql);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
             fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
