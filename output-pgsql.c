@@ -71,6 +71,7 @@ static struct {
     {"route",   "text", 0},
     {"aeroway", "text", 0},
     {"ref",     "text", 0},
+    {"oneway",  "text", 0},
     {"z_order", "int4", 0}
 };
 static const unsigned int numTags = sizeof(exportTags) / sizeof(*exportTags);
