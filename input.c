@@ -88,7 +88,11 @@ void *inputOpen(const char *name)
         return NULL;
 
     memset(ctx, 0, sizeof(*ctx));
+
     ctx->name = strdup(name);
+
+    if (!strcmp(name, "-"))
+        name = "/dev/stdin";
 
     if (ext && !strcmp(ext, ".gz")) {
         ctx->fileHandle = (void *)gzopen(name, "rb");

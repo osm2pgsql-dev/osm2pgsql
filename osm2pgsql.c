@@ -117,8 +117,6 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
             xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
             assert(xv);
             k  = (char *)xmlStrdup(xk);
-            while ((p = strchr(k, ':')))
-                *p = '_';
             while ((p = strchr(k, ' ')))
                 *p = '_';
 
@@ -246,7 +244,8 @@ void exit_nicely(void)
 static void usage(const char *arg0)
 {
     fprintf(stderr, "Usage error:\n\t%s planet.osm\n", arg0);
-    fprintf(stderr, "or\n\tgzip -dc planet.osm.gz | %s -\n", arg0);
+    fprintf(stderr, "\nor read a .bzip2 or .gz file directly\n\t%s planet.osm.bz2\n", arg0);
+    fprintf(stderr, "\nor use 7za to decompress and pipe the data in\n\t7za x -so ~/osm/planet/planet-070516.osm.7z | %s -\n", arg0);
 }
 
 int main(int argc, char *argv[])
