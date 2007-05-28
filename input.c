@@ -1,3 +1,5 @@
+#define _LARGEFILE64_SOURCE
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -97,7 +99,7 @@ void *inputOpen(const char *name)
     } else {
         int *pfd = malloc(sizeof(pfd));
         if (pfd) {
-            *pfd = open(name, O_RDONLY);
+            *pfd = open(name, O_RDONLY | O_LARGEFILE);
             if (*pfd < 0) {
                 free(pfd);
                 pfd = NULL;
@@ -123,6 +125,7 @@ int inputClose(void *context)
     switch(ctx->type) {
         case plainFile:
             close(*(int *)f);
+            free(f);
             break;
         case gzipFile:
             gzclose((gzFile)f);
