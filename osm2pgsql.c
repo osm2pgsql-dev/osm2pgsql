@@ -156,7 +156,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
     }
 }
 
-void EndElement(xmlTextReaderPtr reader, const xmlChar *name)
+void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
        reproject(&node_lat, &node_lon);
@@ -190,10 +190,10 @@ static void processNode(xmlTextReaderPtr reader) {
         case XML_READER_TYPE_ELEMENT:
             StartElement(reader, name);	
             if (xmlTextReaderIsEmptyElement(reader))
-                EndElement(reader, name); /* No end_element for self closing tags! */
+                EndElement(name); /* No end_element for self closing tags! */
             break;
         case XML_READER_TYPE_END_ELEMENT:
-            EndElement(reader, name);
+            EndElement(name);
             break;
         case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
             /* Ignore */

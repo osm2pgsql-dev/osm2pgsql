@@ -73,6 +73,60 @@ char *getItem(struct keyval *head, const char *name)
     return NULL;
 }	
 
+/* Pulls all items from list which match this prefix
+ * note: they are removed from the original list an returned in a new one
+ */
+struct keyval *getMatches(struct keyval *head, const char *name)
+{
+    struct keyval *out = NULL;
+    struct keyval *p;
+
+    if (!head) 
+        return NULL;
+
+    out = malloc(sizeof(struct keyval));
+    if (!out)
+        return NULL;
+
+    initList(out);
+    p = head->next;
+    while(p != head) {
+        struct keyval *next = p->next;
+        if (!strncmp(p->key, name, strlen(name))) {
+            //printf("match: %s=%s\n", p->key, p->value);
+            p->next->prev = p->prev;
+            p->prev->next = p->next;
+            pushItem(out, p);
+        }
+        p = next;
+    }
+
+    if (listHasData(out))
+        return out;
+
+    free(out);
+    return NULL;
+}
+
+void updateItem(struct keyval *head, const char *name, const char *value)
+{
+    struct keyval *item;
+
+    if (!head) 
+        return;
+
+    item = head->next;
+    while(item != head) {
+        if (!strcmp(item->key, name)) {
+            free(item->value);
+            item->value = strdup(value);
+            return;
+        }
+        item = item->next;
+    }
+    addItem(head, name, value, 0);
+}
+
 
 struct keyval *popItem(struct keyval *head)
 {
