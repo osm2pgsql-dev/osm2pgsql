@@ -24,5 +24,7 @@ struct keyval *popItem(struct keyval *head);
 void pushItem(struct keyval *head, struct keyval *item);
 int addItem(struct keyval *head, const char *name, const char *value, int noDupe);
 void resetList(struct keyval *head);
+struct keyval *getMatches(struct keyval *head, const char *name);
+void updateItem(struct keyval *head, const char *name, const char *value);
 
 #endif

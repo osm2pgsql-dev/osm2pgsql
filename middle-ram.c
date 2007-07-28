@@ -285,6 +285,8 @@ static int ram_start(int dropcreate)
 {
 //    int i;
 
+   fprintf(stderr, "passed dropcreate=%d (ignored)\n", dropcreate);
+
     fprintf(stderr, "Allocating memory for RAM storage\n");
     if (!nodes) {
         fprintf(stderr, "\tnodes(%zuMb)\n", (MAX_ID_NODE+1) * sizeof(struct ramNode) / 1000000);

@@ -103,6 +103,16 @@ static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 static PGconn **sql_conns;
 
 
+void sql_out(PGconn *sql_conn, const char *sql, int len)
+{
+    unsigned int r;
+
+    r = PQputCopyData(sql_conn, sql, len);
+    if (r != 1) {
+        fprintf(stderr, "bad result %d, line '%.*s'\n", r, len, sql);
+        exit_nicely();
+    }
+}
 
 static int add_z_order_polygon(struct keyval *tags, int *roads)
 {
@@ -160,7 +170,7 @@ static int add_z_order_line(struct keyval *tags, int *roads)
         z_order += 5;
         *roads = 1;
     }
- 
+
     if (bridge && (!strcmp(bridge, "true") || !strcmp(bridge, "yes") || !strcmp(bridge, "1")))
         z_order += 10;
 
@@ -182,13 +192,55 @@ static void fix_motorway_shields(struct keyval *tags)
     const char *name    = getItem(tags, "name");
     const char *ref     = getItem(tags, "ref");
 
-    /* The current mapnik style uses ref= for motorway shields but some data just has name= */
+    /* The current mapnik style uses ref= for motorway shields but some roads just have name= */
     if (!highway || strcmp(highway, "motorway"))
         return;
 
     if (name && !ref)
         addItem(tags, "ref", name, 0);
 }
+
+
+/* Append all alternate name:xx on to the name tag with space sepatators.
+ * name= always comes first, the alternates are in no particular order
+ * Note: A new line may be better but this does not work with Mapnik
+ * 
+ *    <tag k="name" v="Ben Nevis" />
+ *    <tag k="name:gd" v="Ben Nibheis" />
+ * becomes:
+ *    <tag k="name" v="Ben Nevis Ben Nibheis" />
+ */
+void compress_tag_name(struct keyval *tags)
+{
+    const char *name = getItem(tags, "name");
+    struct keyval *name_ext = getMatches(tags, "name:");
+    struct keyval *p;
+    char out[2048];
+
+    if (!name_ext)
+        return;
+
+    out[0] = '\0';
+    if (name) {
+        strncat(out, name, sizeof(out)-1);
+        strncat(out, " ", sizeof(out)-1);
+    }
+    while((p = popItem(name_ext)) != NULL) {
+        /* Exclude name:source = "dicataphone" and duplicates */
+        if (strcmp(p->key, "name:source") && !strstr(out, p->value)) {
+            strncat(out, p->value, sizeof(out)-1);
+            strncat(out, " ", sizeof(out)-1);
+        }
+        freeItem(p);
+    }
+    free(name_ext);
+
+    // Remove trailing space
+    out[strlen(out)-1] = '\0';
+    //fprintf(stderr, "*** New name: %s\n", out);
+    updateItem(tags, "name", out);
+}
+
 
 
 static void pgsql_out_cleanup(void)
@@ -225,25 +277,23 @@ Workaround - output SRID=4326;<WKB>
 static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
     char sql[2048], *v;
-//    char *tmp;
-//    size_t len;
-    unsigned int i, r, export = 0;
+    unsigned int i, export = 0;
     PGconn *sql_conn = sql_conns[t_point];
 
     for (i=0; i < numTags; i++) {
-        if ((v = getItem(tags, exportTags[i].name)))
-            export = 1; 
+        if ((v = getItem(tags, exportTags[i].name))) {
+            export = 1;
+            break;
+        }
     }
 
     if (!export)
        return 0;
 
+    //compress_tag_name(tags);
+
     sprintf(sql, "%d\t", id);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
+    sql_out(sql_conn, sql, strlen(sql));
 
     for (i=0; i < numTags; i++) {
         if ((v = getItem(tags, exportTags[i].name)))
@@ -251,32 +301,14 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         else
             sprintf(sql, "\\N");
 
-        r = PQputCopyData(sql_conn, sql, strlen(sql));
-        if (r != 1) {
-            fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-            exit_nicely();
-        }
-        r = PQputCopyData(sql_conn, "\t", 1);
-        if (r != 1) {
-            fprintf(stderr, "%s - bad result %d, tab\n", __FUNCTION__, r);
-            exit_nicely();
-        }
+        sql_out(sql_conn, sql, strlen(sql));
+        sql_out(sql_conn, "\t", 1);
     }
 
     sprintf(sql, "SRID=4326;POINT(%.15g %.15g)", node_lon, node_lat);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
+    sql_out(sql_conn, sql, strlen(sql));
+    sql_out(sql_conn, "\n", 1);
 
-    sprintf(sql, "\n");
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
- 
     return 0;
 }
 
@@ -301,52 +333,27 @@ static size_t WKT(struct osmSegLL *segll, int count, int polygon)
 
 static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql_conn)
 {
-    unsigned int j, r;
+    unsigned int j;
     char sql[2048];
     const char*v;
 
     sprintf(sql, "%d\t", id);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-	    exit_nicely();
-    }
+    sql_out(sql_conn, sql, strlen(sql));
 
-    for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
+    for (j=0; j < numTags; j++) {
 	    if ((v = getItem(tags, exportTags[j].name)))
 		    escape(sql, sizeof(sql), v);
 	    else
 		    sprintf(sql, "\\N");
 
-	    r = PQputCopyData(sql_conn, sql, strlen(sql));
-	    if (r != 1) {
-		    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-		    exit_nicely();
-	    }
-	    r = PQputCopyData(sql_conn, "\t", 1);
-	    if (r != 1) {
-		    fprintf(stderr, "%s - bad result %d, tab\n", __FUNCTION__, r);
-		    exit_nicely();
-	    }
+	    sql_out(sql_conn, sql, strlen(sql));
+	    sql_out(sql_conn, "\t", 1);
     }
 
     sprintf(sql, "SRID=4326;");
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-	    exit_nicely();
-    }
-    r = PQputCopyData(sql_conn, wkt, strlen(wkt));
-    if (r != 1) {
-	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, wkt);
-	    exit_nicely();
-    }
-    sprintf(sql, "\n");
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-	    fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-	    exit_nicely();
-    }
+    sql_out(sql_conn, sql, strlen(sql));
+    sql_out(sql_conn, wkt, strlen(wkt));
+    sql_out(sql_conn, "\n", 1);
 }
 
 void add_parking_node(int id, struct keyval *tags, size_t index)
@@ -390,10 +397,12 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
     int polygon = 0, export = 0;
     int roads = 0;
 
-    for (i=0; i < sizeof(exportTags) / sizeof(exportTags[0]); i++) {
+    for (i=0; i < numTags; i++) {
         if ((v = getItem(tags, exportTags[i].name))) {
-            polygon |= exportTags[i].polygon;
             export = 1;
+            polygon |= exportTags[i].polygon;
+            if (polygon)
+                break;
         }
     }
 
@@ -402,6 +411,8 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 
     if (add_z_order(tags, polygon, &roads))
         return 0;
+
+    //compress_tag_name(tags);
 
     fix_motorway_shields(tags);
 
@@ -473,7 +484,7 @@ static int pgsql_out_start(int dropcreate)
             strcat(sql, "CREATE TABLE ");
             strcat(sql, tables[i].name);
             strcat(sql, " ( osm_id int4");
-            for (j=0; j < sizeof(exportTags) / sizeof(exportTags[0]); j++) {
+            for (j=0; j < numTags; j++) {
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 strcat(sql, tmp);
             }
