@@ -458,7 +458,7 @@ static int pgsql_out_start(int dropcreate)
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s", PQerrorMessage(sql_conn));
+            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             exit_nicely();
         }
         sql_conns[i] = sql_conn;
@@ -473,7 +473,7 @@ static int pgsql_out_start(int dropcreate)
 
         res = PQexec(sql_conn, "BEGIN");
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "BEGIN %s failed: %s", tables[i].name, PQerrorMessage(sql_conn));
+            fprintf(stderr, "BEGIN %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
             PQclear(res);
             exit_nicely();
         }
@@ -497,7 +497,7 @@ static int pgsql_out_start(int dropcreate)
 
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -511,7 +511,7 @@ static int pgsql_out_start(int dropcreate)
 
         res = PQexec(sql_conn, sql);
         if (PQresultStatus(res) != PGRES_COPY_IN) {
-            fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
+            fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
             PQclear(res);
             exit_nicely();
         }
@@ -533,13 +533,13 @@ static void pgsql_out_stop(void)
         /* Terminate any pending COPY */
         int stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
-            fprintf(stderr, "COPY_END for %s failed: %s", tables[i].name, PQerrorMessage(sql_conn));
+            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
             exit_nicely();
         }
 
         res = PQgetResult(sql_conn);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COPY_END for %s failed: %s", tables[i].name, PQerrorMessage(sql_conn));
+            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
             PQclear(res);
             exit_nicely();
         }
@@ -548,7 +548,7 @@ static void pgsql_out_stop(void)
         // Commit transaction
         res = PQexec(sql_conn, "COMMIT");
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COMMIT %s failed: %s", tables[i].name, PQerrorMessage(sql_conn));
+            fprintf(stderr, "COMMIT %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
             PQclear(res);
             exit_nicely();
         }
@@ -599,7 +599,7 @@ static void pgsql_out_stop(void)
 
         res = PQexec(sql_conn, sql);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "%s failed: %s", sql, PQerrorMessage(sql_conn));
+            fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
             PQclear(res);
             exit_nicely();
         }

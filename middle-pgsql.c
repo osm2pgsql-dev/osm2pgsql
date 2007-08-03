@@ -372,7 +372,7 @@ static void pgsql_iterate_nodes(int (*callback)(int id, struct keyval *tags, dou
 
     res_nodes = PQexec(sql_conn_nodes, "SELECT * FROM nodes");
     if (PQresultStatus(res_nodes) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "%s failed: %s", __FUNCTION__, PQerrorMessage(sql_conn_nodes));
+        fprintf(stderr, "%s failed: %s\n", __FUNCTION__, PQerrorMessage(sql_conn_nodes));
         PQclear(res_nodes);
         exit_nicely();
     }
@@ -506,7 +506,7 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
 
     res_ways = PQexec(sql_conn_segs, "SELECT id from way_seg GROUP BY id");
     if (PQresultStatus(res_ways) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "%s(%d) failed: %s", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
+        fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
         PQclear(res_ways);
         exit_nicely();
     }
@@ -527,7 +527,7 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
 
         res_nodes = PQexec(sql_conn_segs, sql);
         if (PQresultStatus(res_nodes) != PGRES_TUPLES_OK) {
-            fprintf(stderr, "%s(%d) failed: %s", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
+            fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
             PQclear(res_nodes);
             exit_nicely();
         }
@@ -565,7 +565,7 @@ static void pgsql_analyze(void)
         if (tables[i].analyze) {
             res = PQexec(sql_conn, tables[i].analyze);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].analyze, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].analyze, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -586,13 +586,13 @@ static void pgsql_end(void)
          if (tables[i].copy) {
             int stop = PQputCopyEnd(sql_conn, NULL);
             if (stop != 1) {
-                fprintf(stderr, "COPY_END for %s failed: %s", tables[i].copy, PQerrorMessage(sql_conn));
+                fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
                 exit_nicely();
             }
 
             res = PQgetResult(sql_conn);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "COPY_END for %s failed: %s", tables[i].copy, PQerrorMessage(sql_conn));
+                fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -603,7 +603,7 @@ static void pgsql_end(void)
         if (tables[i].stop) {
             res = PQexec(sql_conn, tables[i].stop);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].stop, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].stop, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -631,7 +631,7 @@ static int pgsql_start(int dropcreate)
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s", PQerrorMessage(sql_conn));
+            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             exit_nicely();
         }
         sql_conns[i] = sql_conn;
@@ -647,7 +647,7 @@ static int pgsql_start(int dropcreate)
         if (tables[i].start) {
             res = PQexec(sql_conn, tables[i].start);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].start, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].start, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -657,7 +657,7 @@ static int pgsql_start(int dropcreate)
         if (dropcreate && tables[i].create) {
             res = PQexec(sql_conn, tables[i].create);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].create, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].create, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -667,7 +667,7 @@ static int pgsql_start(int dropcreate)
         if (tables[i].prepare) {
             res = PQexec(sql_conn, tables[i].prepare);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].prepare, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].prepare, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -677,7 +677,7 @@ static int pgsql_start(int dropcreate)
         if (tables[i].copy) {
             res = PQexec(sql_conn, tables[i].copy);
             if (PQresultStatus(res) != PGRES_COPY_IN) {
-                fprintf(stderr, "%s failed: %s", tables[i].copy, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
@@ -701,7 +701,7 @@ static void pgsql_stop(void)
         if (tables[i].stop) {
             res = PQexec(sql_conn, tables[i].stop);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s", tables[i].stop, PQerrorMessage(sql_conn));
+                fprintf(stderr, "%s failed: %s\n", tables[i].stop, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
             }
