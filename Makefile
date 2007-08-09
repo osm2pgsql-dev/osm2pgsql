@@ -1,4 +1,4 @@
-CFLAGS += -O2 -Wall -Wextra -Wsign-compare -Wpointer-sign
+CFLAGS += -O2 -Wall -Wextra
 CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
@@ -33,6 +33,6 @@ clean:
 	rm -f $@.$$$$
 
 -include $(DEPS)
-	
+
 osm2pgsql: osm2pgsql.o build_geometry.o middle-pgsql.o keyvals.o output-pgsql.o middle-ram.o input.o UTF8sanitizer.o reprojection.o
 
