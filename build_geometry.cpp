@@ -63,13 +63,13 @@ struct Segment
       double y1;
 };
 
-struct Centroid
+struct Interior
 {
-	Centroid(double x_, double y_)
+	Interior(double x_, double y_)
 	  : x(x_), y(y_) {}
 
-	Centroid(Geometry *geom) {
-		Point * pt = geom->getCentroid();
+	Interior(Geometry *geom) {
+		Point * pt = geom->getInteriorPoint();
 		x = pt->getX();
 		y = pt->getY();
 		//cout << "Center: " << x << "," << y << endl;
@@ -79,7 +79,7 @@ struct Centroid
 
 static std::vector<Segment> segs;
 static std::vector<std::string> wkts;
-static std::vector<Centroid> centroids;
+static std::vector<Interior> interiors;
 
 
 int is_simple(const char* wkt)
@@ -105,15 +105,15 @@ char * get_wkt(size_t index)
 	return result;
 }
 
-void get_centroid(size_t index, double *y, double *x)
+void get_interior(size_t index, double *y, double *x)
 {
-	*x = centroids[index].x;
-	*y = centroids[index].y;
+	*x = interiors[index].x;
+	*y = interiors[index].y;
 }
 void clear_wkts()
 {
    wkts.clear();
-   centroids.clear();
+   interiors.clear();
 }
 
 size_t build_geometry(int polygon)
@@ -169,14 +169,14 @@ size_t build_geometry(int polygon)
 		 std::string text = writer.write(poly.get());
 
 		 wkts.push_back(text);
-		 centroids.push_back(Centroid(poly.get()));
+		 interiors.push_back(Interior(poly.get()));
 		 ++wkt_size;
 	       }
 	     else
 	       {
 		 std::string text = writer.write(pline.get());
 		 wkts.push_back(text);
-		 centroids.push_back(Centroid(0,0));
+		 interiors.push_back(Interior(0,0));
 		 ++wkt_size;
 	       }
 	   }

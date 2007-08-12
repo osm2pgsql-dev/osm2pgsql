@@ -250,6 +250,8 @@ static void usage(const char *arg0)
 
 int main(int argc, char *argv[])
 {
+    fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
+
     if (argc != 2) {
         usage(argv[0]);
         exit(1);
@@ -264,7 +266,7 @@ int main(int argc, char *argv[])
     LIBXML_TEST_VERSION
 
     project_init();
-		    
+
     //mid = &mid_pgsql;
     mid = &mid_ram;
     out = &out_pgsql;

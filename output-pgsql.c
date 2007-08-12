@@ -372,7 +372,7 @@ void add_parking_node(int id, struct keyval *tags, size_t index)
 	if (name)
 		addItem(&nodeTags, "name",    name,    0);
 	
-	get_centroid(index, &node_lat, &node_lon);
+	get_interior(index, &node_lat, &node_lon);
 	
 	//fprintf(stderr, "Parking node: %s\t%f,%f\n", name ? name : "no_name", node_lat, node_lon);
 	
