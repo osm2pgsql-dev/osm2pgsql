@@ -1,0 +1,71 @@
+
+%define svn @SVN@
+
+Summary: Imports map data from www.OpenStreetMap.org to a PostgresSQL database
+Name: 	 @PACKAGE@
+Group:	 Applications/Text
+Version: @VERSION@
+Release: 1.%{svn}%{?dist}
+
+License: GPL
+URL:     http://svn.openstreetmap.org/applications/utils/export/osm2pgsql
+Source0: %{name}-%{version}-%{svn}.tar.bz2
+Source1: osm2pgsql-svn.sh
+BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
+
+BuildRequires: geos-devel
+BuildRequires: libxml2-devel
+BuildRequires: postgresql-devel
+BuildRequires: bzip2-devel
+BuildRequires: proj-devel
+
+%description
+Processes the planet file from the communtiy mapping project at
+http://www.openstreetmap.org. The map data is converted from XML to a
+database stored in PostgreSQL with PostGIS geospatial extentions. This
+database may then be used to render maps with Mapnik or for other
+geospatial analysis.
+
+%prep
+%setup -q  -n %{name}
+
+
+%build
+
+export CFLAGS="$RPM_OPT_FLAGS"
+export CXXFLAGS="$RPM_OPT_FLAGS"
+
+make all
+
+
+%install
+rm -rf $RPM_BUILD_ROOT
+install -D -p osm2pgsql $RPM_BUILD_ROOT/usr/bin/osm2pgsql
+
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+
+%files
+%defattr(-,root,root)
+%doc readme.txt
+%{_bindir}/osm2pgsql
+
+
+%changelog
+* Sun Aug 12 2007 Jon Burgess <jburgess777@googlemail.com> - 0.2-1.20070812
+- Added rpm build target to SVN osm2pgsql source
+- Enhanced middle-ram to remove hard coded maximum IDs 
+- Support negative IDs in middle-ram
+- Replace centroid with interior to cope with unusual pareking polygons
+ 
+* Tue Jul 31 2007 Keith Sharp <kms@passback.co.uk> 0.1-2.20070728svn
+- Fixed BuidlRequires so that Mock builds work.
+
+* Sat Jul 28 2007 Keith Sharp <kms@passback.co.uk> 0.1-1.20070728svn
+- Updated to latest SVN, now includes UTF8Sanitize functioanlity
+- Building on F7 now has latest GEOS
+
+* Fri Mar 16 2007 Keith Sharp <kms@passback.co.uk> 0.1-1.20070316svn
+- Inital build
