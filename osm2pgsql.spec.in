@@ -54,6 +54,10 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Aug 19 2007 Jon Burgess <jburgess777@googlemail.com> - 0.3-1.20070812
+- Handle polygons with holes properly
+- Export a couple more keys
+
 * Sun Aug 12 2007 Jon Burgess <jburgess777@googlemail.com> - 0.2-1.20070812
 - Added rpm build target to SVN osm2pgsql source
 - Enhanced middle-ram to remove hard coded maximum IDs 

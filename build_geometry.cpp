@@ -69,10 +69,9 @@ struct Interior
 	  : x(x_), y(y_) {}
 
 	Interior(Geometry *geom) {
-		Point * pt = geom->getInteriorPoint();
+		std::auto_ptr<Point> pt(geom->getInteriorPoint());
 		x = pt->getX();
 		y = pt->getY();
-		//cout << "Center: " << x << "," << y << endl;
 	}
 	double x, y;
 };
@@ -118,75 +117,100 @@ void clear_wkts()
 
 size_t build_geometry(int polygon)
 {
-   size_t wkt_size = 0;
-   GeometryFactory factory;
-   geom_ptr segment(0);
-   std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
-   std::vector<Segment>::const_iterator pos=segs.begin();
-   std::vector<Segment>::const_iterator end=segs.end();
-   bool first=true;
-   try  {
-     while (pos != end)
-       {
-	 if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
-	   {
-	     std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
-	     coords->add(Coordinate(pos->x0,pos->y0));
-	     coords->add(Coordinate(pos->x1,pos->y1));
-	     geom_ptr linestring(factory.createLineString(coords.release()));
-	     if (first)
-	       {
-		 segment = linestring;
-		 first=false;
-	       }
-	     else
-	       {
-		 lines->push_back(linestring.release());
-	       }
-	   }
-	 ++pos;
-       }
-     
-     segs.clear();
-     
-     if (segment.get())
-       {
-	 geom_ptr mline (factory.createMultiLineString(lines.release()));
-	 geom_ptr noded (segment->Union(mline.get()));
-	 LineMerger merger;
-	 merger.add(noded.get());
-	 std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
-	 WKTWriter writer;
-	 
-	 for (unsigned i=0 ;i < merged->size(); ++i)
-	   {
-	     std::auto_ptr<LineString> pline ((*merged ) [i]);
-	     
-	     if (polygon == 1 && pline->getNumPoints() > 3 && pline->isClosed())
-	       {
-		 std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
-		 geom_ptr poly(factory.createPolygon(ring.release(),0));
-		 std::string text = writer.write(poly.get());
+    size_t wkt_size = 0;
+    GeometryFactory factory;
+    geom_ptr segment(0);
+    std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
+    std::vector<Segment>::const_iterator pos=segs.begin();
+    std::vector<Segment>::const_iterator end=segs.end();
+    bool first=true;
+    try  {
+        while (pos != end)
+        {
+            if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
+            {
+                std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
+                coords->add(Coordinate(pos->x0,pos->y0));
+                coords->add(Coordinate(pos->x1,pos->y1));
+                geom_ptr linestring(factory.createLineString(coords.release()));
+                if (first)
+                {
+                    segment = linestring;
+                    first=false;
+                }
+                else
+                {
+                    lines->push_back(linestring.release());
+                }
+            }
+            ++pos;
+        }
 
-		 wkts.push_back(text);
-		 interiors.push_back(Interior(poly.get()));
-		 ++wkt_size;
-	       }
-	     else
-	       {
-		 std::string text = writer.write(pline.get());
-		 wkts.push_back(text);
-		 interiors.push_back(Interior(0,0));
-		 ++wkt_size;
-	       }
-	   }
-       }
-   }
-   catch (...)
-     {
-       std::cerr << "excepton caught \n";
-       wkt_size = 0;
-     }
-   return wkt_size;
+        segs.clear();
+
+        if (segment.get())
+        {
+            geom_ptr mline (factory.createMultiLineString(lines.release()));
+            geom_ptr noded (segment->Union(mline.get()));
+            LineMerger merger;
+            merger.add(noded.get());
+            std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
+            WKTWriter writer;
+
+            if (polygon)
+            {
+                std::auto_ptr<LinearRing> exterior;
+                std::auto_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
+                double area = 0.0;
+                for (unsigned i=0 ;i < merged->size(); ++i)
+                {
+                    std::auto_ptr<LineString> pline ((*merged ) [i]);
+                    if (pline->getNumPoints() > 3 && pline->isClosed())
+                    {
+                        std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
+                        std::auto_ptr<Polygon> poly(factory.createPolygon(factory.createLinearRing(pline->getCoordinates()),0));
+
+                        if (wkt_size == 0) {
+                            area = poly->getArea();
+                            exterior = ring;
+                            wkt_size = 1;
+                        //std::cerr << "Found first ring, area(" << area << ") " << writer.write(poly.get()) << std::endl;
+                        } else if (poly->getArea() > area) {
+                            interior->push_back(exterior.release());
+                            area = poly->getArea();
+                            exterior = ring;
+                        //std::cerr << "Found bigger ring, area(" << area << ") " << writer.write(poly.get()) << std::endl;
+                        } else {
+                            interior->push_back(ring.release());
+                        //std::cerr << "Found inner ring, area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
+                        }
+                    }
+                }
+
+                if (wkt_size) {
+                    std::auto_ptr<Polygon> poly(factory.createPolygon(exterior.release(), interior.release()));
+                    std::string text = writer.write(poly.get());
+                    wkts.push_back(text);
+                    interiors.push_back(Interior(poly.get()));
+                    //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
+                }
+            } else {
+                for (unsigned i=0 ;i < merged->size(); ++i)
+                {
+                    std::auto_ptr<LineString> pline ((*merged ) [i]);
+                    std::string text = writer.write(pline.get());
+                    wkts.push_back(text);
+                    interiors.push_back(Interior(0,0));
+                    ++wkt_size;
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        std::cerr << "excepton caught \n";
+        wkt_size = 0;
+    }
+    return wkt_size;
 }
 
