@@ -40,6 +40,7 @@
 #include "output-pgsql.h"
 #include "sanitizer.h"
 #include "reprojection.h"
+#include "text-tree.h"
 
 static int count_node,    max_node;
 static int count_segment, max_segment;
@@ -111,8 +112,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
         assert(xk);
 
-        /* 'created_by' is very common and not interesting to mapnik renderer */
-        if (strcmp((char *)xk, "created_by")) {
+        /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
+        if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
             char *p;
             xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
             assert(xv);
@@ -259,7 +260,8 @@ int main(int argc, char *argv[])
 
     // use getopt
     update = 0;
- 
+
+    text_init();
     initList(&tags);
     initList(&segs);
 
