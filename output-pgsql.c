@@ -121,6 +121,7 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
     const char *natural = getItem(tags, "natural");
     const char *layer   = getItem(tags, "layer");
     const char *landuse = getItem(tags, "landuse");
+    const char *leisure = getItem(tags, "leisure");
     int z_order, l;
     char z[13];
 
@@ -132,9 +133,9 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
     z_order = 10 * l;
     *roads = 0;
 
-    /* landuse tends to cover large areas and we want it under other polygons */
-    if (landuse)
-        z_order -= 1;
+    /* landuse & leisure tend to cover large areas and we want them under other polygons */
+    if (landuse) z_order -= 2;
+    if (leisure) z_order -= 1;
 
     snprintf(z, sizeof(z), "%d", z_order);
     addItem(tags, "z_order", z, 0);
@@ -316,7 +317,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
 
 
-static size_t WKT(struct osmSegLL *segll, int count, int polygon)
+static size_t WKT(struct osmSegLL *segll, int count, int polygon, int osm_id)
 {
     double x0, y0, x1, y1;
     int i;
@@ -329,7 +330,7 @@ static size_t WKT(struct osmSegLL *segll, int count, int polygon)
         add_segment(x0,y0,x1,y1);
     }
 
-    return  build_geometry(polygon);
+    return  build_geometry(polygon, osm_id);
 }
 
 
@@ -418,7 +419,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 
     fix_motorway_shields(tags);
 
-    wkt_size = WKT(segll, count, polygon); 
+    wkt_size = WKT(segll, count, polygon, id); 
 
     for (i=0;i<wkt_size;i++)
     {

@@ -50,11 +50,11 @@ struct ramWay {
 
 /* Object storage now uses 2 levels of storage arrays.
  *
- * - Low level storage of 2^20 (~1M) objects in an indexed array
+ * - Low level storage of 2^16 (~65k) objects in an indexed array
  *   These are allocated dynamically when we need to first store data with
  *   an ID in this block
  *
- * - Fixed array of 2^(32 - 20) = 4096 pointers to the dynamically allocated arrays.
+ * - Fixed array of 2^(32 - 16) = 65k pointers to the dynamically allocated arrays.
  *
  * This allows memory usage to be efficient and scale dynamically without needing to
  * hard code maximum IDs. We now support an ID  range of -2^31 to +2^31.
@@ -62,7 +62,7 @@ struct ramWay {
  *
  */
 
-#define BLOCK_SHIFT 20
+#define BLOCK_SHIFT 16
 #define PER_BLOCK  (1 << BLOCK_SHIFT)
 #define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
 

@@ -4,12 +4,17 @@
  * tags, segment lists etc 
  *
  */
+#define USE_TREE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include "keyvals.h"
 
+#ifdef USE_TREE
+#include "text-tree.h"
+#endif
 
 void initList(struct keyval *head)
 {
@@ -26,8 +31,13 @@ void freeItem(struct keyval *p)
     if (!p) 
         return;
 
+#ifdef USE_TREE
+    text_release(tree_ctx, p->key);
+    text_release(tree_ctx, p->value);
+#else
     free(p->key);
     free(p->value);
+#endif
     free(p);
 }
 
@@ -118,8 +128,13 @@ void updateItem(struct keyval *head, const char *name, const char *value)
     item = head->next;
     while(item != head) {
         if (!strcmp(item->key, name)) {
+#ifdef USE_TREE
+            text_release(tree_ctx, item->value);
+            item->value = (char *)text_get(tree_ctx,value);
+#else
             free(item->value);
             item->value = strdup(value);
+#endif
             return;
         }
         item = item->next;
@@ -184,9 +199,14 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
         return 2;
     }
 
+#ifdef USE_TREE
+    item->key   = (char *)text_get(tree_ctx,name);
+    item->value = (char *)text_get(tree_ctx,value);
+#else
     item->key   = strdup(name);
     item->value = strdup(value);
-
+#endif
+    
     item->next = head->next;
     item->prev = head;
     head->next->prev = item;

@@ -54,6 +54,15 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Sun Aug 19 2007 Jon Burgess <jburgess777@googlemail.com> - 0.04-1.20070812
+- Allow polygon data types to appear as linestring if not closed (was broken by previous change)
+- Handle exception when finding an interior point of a complex polygon geometry
+- Add in a text cache for key/value pairs
+- Switch to 65k blocks for object store
+- Exclude source= during import
+- The above changes save around 10% memory usage during a planet import
+- Push leisure= polygons down to improve rendering
+
 * Sun Aug 19 2007 Jon Burgess <jburgess777@googlemail.com> - 0.3-1.20070812
 - Handle polygons with holes properly
 - Export a couple more keys

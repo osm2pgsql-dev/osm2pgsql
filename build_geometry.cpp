@@ -69,10 +69,16 @@ struct Interior
 	  : x(x_), y(y_) {}
 
 	Interior(Geometry *geom) {
-		std::auto_ptr<Point> pt(geom->getInteriorPoint());
-		x = pt->getX();
-		y = pt->getY();
-	}
+            try {
+                std::auto_ptr<Point> pt(geom->getInteriorPoint());
+                x = pt->getX();
+                y = pt->getY();
+            } catch (...) {
+                // This happens on some unusual polygons, we'll ignore them for now
+                //std::cerr << std::endl << "Exception finding interior point" << std::endl;
+                x=y=0.0;
+            }
+        }
 	double x, y;
 };
 
@@ -115,7 +121,7 @@ void clear_wkts()
    interiors.clear();
 }
 
-size_t build_geometry(int polygon)
+size_t build_geometry(int polygon, int osm_id)
 {
     size_t wkt_size = 0;
     GeometryFactory factory;
@@ -161,7 +167,7 @@ size_t build_geometry(int polygon)
             {
                 std::auto_ptr<LinearRing> exterior;
                 std::auto_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
-                double area = 0.0;
+                double ext_area = 0.0;
                 for (unsigned i=0 ;i < merged->size(); ++i)
                 {
                     std::auto_ptr<LineString> pline ((*merged ) [i]);
@@ -170,29 +176,32 @@ size_t build_geometry(int polygon)
                         std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
                         std::auto_ptr<Polygon> poly(factory.createPolygon(factory.createLinearRing(pline->getCoordinates()),0));
 
-                        if (wkt_size == 0) {
-                            area = poly->getArea();
+                        if (poly->getArea() > ext_area) {
+                            if (ext_area > 0.0)
+                                interior->push_back(exterior.release());
+                            ext_area = poly->getArea();
                             exterior = ring;
-                            wkt_size = 1;
-                        //std::cerr << "Found first ring, area(" << area << ") " << writer.write(poly.get()) << std::endl;
-                        } else if (poly->getArea() > area) {
-                            interior->push_back(exterior.release());
-                            area = poly->getArea();
-                            exterior = ring;
-                        //std::cerr << "Found bigger ring, area(" << area << ") " << writer.write(poly.get()) << std::endl;
+                        //std::cerr << "Found bigger ring, area(" << ext_area << ") " << writer.write(poly.get()) << std::endl;
                         } else {
                             interior->push_back(ring.release());
                         //std::cerr << "Found inner ring, area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
                         }
+                    } else {
+                        //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
+                        std::string text = writer.write(pline.get());
+                        wkts.push_back(text);
+                        interiors.push_back(Interior(0,0));
+                        ++wkt_size;
                     }
                 }
 
-                if (wkt_size) {
+                if (ext_area > 0.0) {
                     std::auto_ptr<Polygon> poly(factory.createPolygon(exterior.release(), interior.release()));
                     std::string text = writer.write(poly.get());
                     wkts.push_back(text);
                     interiors.push_back(Interior(poly.get()));
                     //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
+                    wkt_size++;
                 }
             } else {
                 for (unsigned i=0 ;i < merged->size(); ++i)
@@ -208,7 +217,7 @@ size_t build_geometry(int polygon)
     }
     catch (...)
     {
-        std::cerr << "excepton caught \n";
+        std::cerr << std::endl << "excepton caught processing way id=" << osm_id << std::endl;
         wkt_size = 0;
     }
     return wkt_size;
