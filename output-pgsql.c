@@ -120,8 +120,10 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
 {
     const char *natural = getItem(tags, "natural");
     const char *layer   = getItem(tags, "layer");
+#if 0
     const char *landuse = getItem(tags, "landuse");
     const char *leisure = getItem(tags, "leisure");
+#endif
     int z_order, l;
     char z[13];
 
@@ -132,11 +134,13 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
     l = layer ? strtol(layer, NULL, 10) : 0;
     z_order = 10 * l;
     *roads = 0;
+#if 0
+    /* - New scheme uses layer + way area to control render order, not tags */
 
     /* landuse & leisure tend to cover large areas and we want them under other polygons */
     if (landuse) z_order -= 2;
     if (leisure) z_order -= 1;
-
+#endif
     snprintf(z, sizeof(z), "%d", z_order);
     addItem(tags, "z_order", z, 0);
 
@@ -578,12 +582,15 @@ static void pgsql_out_stop(void)
         strcat(sql, "ALTER TABLE ");
         strcat(sql, tables[i].name);
         strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
-#if 0
-        // z_order is now exported as a normal key column on all tables
-        if (i == t_line) {
+#if 1
+        if (i == t_poly) {
             strcat(sql, "ALTER TABLE ");
             strcat(sql, tables[i].name);
-            strcat(sql, " ADD COLUMN z_order int4 default 0;\n");
+            strcat(sql, " ADD COLUMN way_area real;\n");
+
+            strcat(sql, "UPDATE ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " SET way_area=area(way);\n");
         }
 #endif
         strcat(sql, "CLUSTER way_index");
