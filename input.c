@@ -104,7 +104,7 @@ void *inputOpen(const char *name)
         int *pfd = malloc(sizeof(pfd));
         if (pfd) {
             int flags = O_RDONLY;
-#ifndef O_LARGEFILE
+#ifdef O_LARGEFILE
             flags |= O_LARGEFILE;
 #endif
             *pfd = open(name, flags);
