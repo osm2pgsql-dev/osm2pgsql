@@ -103,7 +103,11 @@ void *inputOpen(const char *name)
     } else {
         int *pfd = malloc(sizeof(pfd));
         if (pfd) {
-            *pfd = open(name, O_RDONLY | O_LARGEFILE);
+            int flags = O_RDONLY;
+#ifndef O_LARGEFILE
+            flags |= O_LARGEFILE;
+#endif
+            *pfd = open(name, flags);
             if (*pfd < 0) {
                 free(pfd);
                 pfd = NULL;
