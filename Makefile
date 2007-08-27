@@ -8,7 +8,7 @@ CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 
-CXXFLAGS += -O2 -Wall -DGEOS_INLINE
+CXXFLAGS += -O2 -Wall -DGEOS_INLINE $(CFLAGS)
 
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)
@@ -34,13 +34,14 @@ clean:
 
 %.d: %.c
 	@set -e; rm -f $@; \
-	$(CC) -MM $(CPPFLAGS) $< > $@.$$$$; \
+	$(CC) -MM $(CFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 
 -include $(DEPS)
 
 osm2pgsql: $(OBJS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 $(PACKAGE).spec: $(PACKAGE).spec.in
 	sed -e "s/@PACKAGE@/$(PACKAGE)/g; s/@VERSION@/$(VERSION)/g; s/@SVN@/$(SVN)/g;" $^ > $@
