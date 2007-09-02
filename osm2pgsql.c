@@ -174,7 +174,7 @@ void EndElement(const xmlChar *name)
     } else if (xmlStrEqual(name, BAD_CAST "seg")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
-        /* ignore */
+        printStatus();
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
@@ -285,7 +285,6 @@ int main(int argc, char *argv[])
         //mid->iterate_nodes(out->node);
         mid->iterate_ways(out->way);
         mid->stop();
-        fprintf(stderr, "\n");
     }
 
     xmlCleanupParser();
