@@ -322,6 +322,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
             }
         }
     }
+    fprintf(stderr, "\rWriting way(%uk)\n", count/1000);
 }
 
 static void ram_analyze(void)
