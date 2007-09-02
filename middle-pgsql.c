@@ -613,11 +613,12 @@ static void pgsql_end(void)
     }
 }
 
-static int pgsql_start(int dropcreate)
+static int pgsql_start(void)
 {
     char sql[2048];
     PGresult   *res;
     int i;
+    int dropcreate = 1;
 
     /* We use a connection per table to enable the use of COPY */
     sql_conns = calloc(num_tables, sizeof(PGconn *));

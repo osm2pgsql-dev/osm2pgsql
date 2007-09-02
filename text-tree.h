@@ -15,7 +15,7 @@ struct text_node {
 };
 
 struct tree_context *text_init(void);
-void text_exit(struct tree_context *context);
+void text_exit(void);
 const char *text_get(struct tree_context *context, const char *text);
 void text_release(struct tree_context *context, const char *text);
 #endif

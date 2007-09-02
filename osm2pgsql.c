@@ -59,7 +59,12 @@ static int seg_to, seg_from;
 static struct keyval tags, segs;
 static int osm_id;
 
-static int update;
+static void printStatus(void)
+{
+            fprintf(stderr, "\rProcessing: Node(%dk) Segment(%dk) Way(%dk)",
+                    count_node/1000, count_segment/1000, count_way/1000);
+}
+
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
@@ -80,8 +85,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
             max_node = osm_id;
 
         count_node++;
-        if (count_node%10000 == 0) 
-            fprintf(stderr, "\rProcessing: Node(%dk)", count_node/1000);
+        if (count_node%10000 == 0)
+            printStatus();
 
         xmlFree(xid);
         xmlFree(xlon);
@@ -98,13 +103,10 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (osm_id > max_segment) 
             max_segment = osm_id;
 
-        if (count_segment == 0) 
-            fprintf(stderr, "\n");
-
         count_segment++;
-        if (count_segment%10000 == 0) 
-            fprintf(stderr, "\rProcessing: Segment(%dk)", count_segment/1000);
-
+        if (count_segment%10000 == 0)
+            printStatus();
+ 
         xmlFree(xid);
         xmlFree(xfrom);
         xmlFree(xto);
@@ -134,12 +136,9 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (osm_id > max_way)
             max_way = osm_id;
 
-        if (count_way == 0)
-            fprintf(stderr, "\n");
-
         count_way++;
         if (count_way%1000 == 0) 
-            fprintf(stderr, "\rProcessing: Way(%dk)", count_way/1000);
+            printStatus();
 
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "seg")) {
@@ -246,20 +245,19 @@ static void usage(const char *arg0)
 {
     fprintf(stderr, "Usage error:\n\t%s planet.osm\n", arg0);
     fprintf(stderr, "\nor read a .bzip2 or .gz file directly\n\t%s planet.osm.bz2\n", arg0);
-    fprintf(stderr, "\nor use 7za to decompress and pipe the data in\n\t7za x -so ~/osm/planet/planet-070516.osm.7z | %s -\n", arg0);
+    fprintf(stderr, "\nor use 7za to decompress and pipe the data in\n\t7za x -so planet-070516.osm.7z | %s -\n", arg0);
+    fprintf(stderr, "\nor read multiple files simultaneously\n\t%s tiger/AZ/*.gz\n", arg0);
 }
 
 int main(int argc, char *argv[])
 {
+    int i;
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
 
-    if (argc != 2) {
+    if (argc < 2) {
         usage(argv[0]);
         exit(1);
     }
-
-    // use getopt
-    update = 0;
 
     text_init();
     initList(&tags);
@@ -273,11 +271,22 @@ int main(int argc, char *argv[])
     mid = &mid_ram;
     out = &out_pgsql;
 
-    mid->start(!update);
-    out->start(!update);
+    out->start();
 
-    if (streamFile(argv[1]) != 0)
-        exit_nicely();
+    for (i=1; i<argc; i++) {
+        fprintf(stderr, "Reading in file: %s\n", argv[i]);
+        mid->start();
+        if (streamFile(argv[i]) != 0)
+            exit_nicely();
+        mid->end();
+        mid->analyze();
+
+        //fprintf(stderr, "\nOutput processing\n");
+        //mid->iterate_nodes(out->node);
+        mid->iterate_ways(out->way);
+        mid->stop();
+        fprintf(stderr, "\n");
+    }
 
     xmlCleanupParser();
     xmlMemoryDump();
@@ -288,23 +297,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
     fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
 
-    fprintf(stderr, "\n\nEnding data import\n");
-    mid->end();
-
-    fprintf(stderr, "\n\nRunning analysis on intermediate data\n");
-    mid->analyze();
-
-    fprintf(stderr, "\n\nOutput processing\n");
-
-    //mid->iterate_nodes(out->node);
-    mid->iterate_ways(out->way);
-
+    //fprintf(stderr, "\n\nEnding data import\n");
     //out->process(mid);
-    mid->stop();
     out->stop();
 
     project_exit();
-
+    text_exit();
     fprintf(stderr, "\n");
 
     return 0;

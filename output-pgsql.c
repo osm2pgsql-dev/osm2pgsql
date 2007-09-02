@@ -447,11 +447,12 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 }
 
 
-static int pgsql_out_start(int dropcreate)
+static int pgsql_out_start(void)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
     unsigned int i,j;
+    int dropcreate = 1;
 
     /* We use a connection per table to enable the use of COPY_IN */
     sql_conns = calloc(num_tables, sizeof(PGconn *));

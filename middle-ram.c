@@ -334,9 +334,8 @@ static void ram_end(void)
     /* No need */
 }
 
-static int ram_start(int dropcreate)
+static int ram_start(void)
 {
-    fprintf(stderr, "passed dropcreate=%d (ignored)\n", dropcreate);
     return 0;
 }
 

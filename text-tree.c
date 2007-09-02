@@ -18,8 +18,6 @@ int text_compare(const void *pa, const void *pb, void *rb_param)
     struct text_node *b = (struct text_node *)pb;
 
     rb_param = NULL;
-    //if (! (a->str ^ a->str))
-    //    return 0;
     return strcmp(a->str, b->str);
 }
 
@@ -86,10 +84,12 @@ void text_release(struct tree_context *context, const char *text)
     }
 }
 
-void text_exit(struct tree_context *context)
+void text_exit(void)
 {
+    struct tree_context *context = tree_ctx;
     rb_destroy(context->table, text_free);
     free(context);
+    tree_ctx = NULL;
 }
 #if 0
 int main(int argc, char **argv)
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
     text_release(ctx,"Hello");
     text_release(ctx,"World");
     text_release(ctx,"Hello");
-    
+
     text_exit(ctx);
     return 0;
 }
