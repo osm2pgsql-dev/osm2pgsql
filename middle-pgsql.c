@@ -21,7 +21,7 @@
 #include "output-pgsql.h"
 
 /* Postgres database parameters */
-static const char *conninfo = "dbname = gis";
+static char conninfo[256];
 
 enum table_id {
     t_node, t_segment, t_node_tag, t_way_tag, t_way_seg
@@ -511,7 +511,7 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
         exit_nicely();
     }
 
-    fprintf(stderr, "\nIterating ways\n");
+    //fprintf(stderr, "\nIterating ways\n");
     for (i = 0; i < PQntuples(res_ways); i++) {
         int id = strtol(PQgetvalue(res_ways, i, 0), NULL, 10);
         int segCount;
@@ -613,12 +613,14 @@ static void pgsql_end(void)
     }
 }
 
-static int pgsql_start(void)
+static int pgsql_start(const char *db)
 {
     char sql[2048];
     PGresult   *res;
     int i;
     int dropcreate = 1;
+
+    snprintf(conninfo, sizeof(conninfo), "dbname = %s", db);
 
     /* We use a connection per table to enable the use of COPY */
     sql_conns = calloc(num_tables, sizeof(PGconn *));

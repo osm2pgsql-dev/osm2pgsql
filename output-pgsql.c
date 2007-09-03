@@ -21,7 +21,7 @@
 #include "middle-pgsql.h"
 
 /* Postgres database parameters */
-static const char *conninfo = "dbname = gis";
+static char conninfo[256];
 
 enum table_id {
     t_point, t_line, t_poly, t_roads
@@ -447,12 +447,13 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 }
 
 
-static int pgsql_out_start(void)
+static int pgsql_out_start(const char *db, int append)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
     unsigned int i,j;
-    int dropcreate = 1;
+
+    snprintf(conninfo, sizeof(conninfo), "dbname = %s", db);
 
     /* We use a connection per table to enable the use of COPY_IN */
     sql_conns = calloc(num_tables, sizeof(PGconn *));
@@ -471,7 +472,7 @@ static int pgsql_out_start(void)
         }
         sql_conns[i] = sql_conn;
 
-        if (dropcreate) {
+        if (!append) {
             sql[0] = '\0';
             strcat(sql, "DROP TABLE ");
             strcat(sql, tables[i].name);
@@ -487,7 +488,7 @@ static int pgsql_out_start(void)
         }
         PQclear(res);
 
-        if (dropcreate) {
+        if (!append) {
             sql[0] = '\0';
             strcat(sql, "CREATE TABLE ");
             strcat(sql, tables[i].name);
@@ -510,6 +511,21 @@ static int pgsql_out_start(void)
                 exit_nicely();
             }
             PQclear(res);
+        } else {
+            if (i == t_poly) {
+                sql[0] = '\0';
+                strcat(sql, "ALTER TABLE ");
+                strcat(sql, tables[i].name);
+                strcat(sql, " DROP COLUMN way_area;\n");
+
+                res = PQexec(sql_conn, sql);
+                if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+                    fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
+                    PQclear(res);
+                    exit_nicely();
+                }
+                PQclear(res);
+            }
         }
 
         sql[0] = '\0';
@@ -529,7 +545,7 @@ static int pgsql_out_start(void)
     return 0;
 }
 
-static void pgsql_out_stop(void)
+static void pgsql_out_stop(int append)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
@@ -537,7 +553,9 @@ static void pgsql_out_stop(void)
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = sql_conns[i];
- 
+
+        sprintf(tmp, "%d", i);
+
         /* Terminate any pending COPY */
         int stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
@@ -567,23 +585,25 @@ static void pgsql_out_stop(void)
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
-        strcat(sql, "CREATE INDEX way_index");
-        sprintf(tmp, "%d", i);
-        strcat(sql, tmp);
-        strcat(sql, " ON ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
+        if (!append) {
+            strcat(sql, "CREATE INDEX way_index");
+            strcat(sql, tmp);
+            strcat(sql, " ON ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
 
-        strcat(sql, "CREATE INDEX z_index");
-        strcat(sql, tmp);
-        strcat(sql, " ON ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " (z_order);\n");
+            strcat(sql, "CREATE INDEX z_index");
+            strcat(sql, tmp);
+            strcat(sql, " ON ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " (z_order);\n");
 
-        strcat(sql, "ALTER TABLE ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
-#if 1
+            strcat(sql, "ALTER TABLE ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
+
+        }
+
         if (i == t_poly) {
             strcat(sql, "ALTER TABLE ");
             strcat(sql, tables[i].name);
@@ -593,7 +613,7 @@ static void pgsql_out_stop(void)
             strcat(sql, tables[i].name);
             strcat(sql, " SET way_area=area(way);\n");
         }
-#endif
+
         strcat(sql, "CLUSTER way_index");
         strcat(sql, tmp);
         strcat(sql, " ON ");

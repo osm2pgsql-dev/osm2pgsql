@@ -54,6 +54,13 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
+* Mon Sep  3 2007 Jon Burgess <jburgess777@googlemail.com> - 0.06-1.20070903
+- Add several command line options and help text
+- "--append" mode which imports extra data into the DB
+- "--database" to specify the Postgresql DB name
+- "--slim" to select the middle_ram code
+- Multiple files can be read sequentially, e.g. lots of tiger county.osm files
+
 * Sun Aug 19 2007 Jon Burgess <jburgess777@googlemail.com> - 0.04-1.20070812
 - Allow polygon data types to appear as linestring if not closed (was broken by previous change)
 - Handle exception when finding an interior point of a complex polygon geometry

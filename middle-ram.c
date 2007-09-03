@@ -72,6 +72,8 @@ static struct ramWay     *ways[NUM_BLOCKS];
 
 static int node_blocks, segment_blocks, way_blocks;
 
+static int way_out_count;
+
 static inline int id2block(int id)
 {
     // + NUM_BLOCKS/2 allows for negative IDs
@@ -288,7 +290,7 @@ static struct osmSegLL *getSegLL(int *segids, int *segCount)
 
 static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmSegLL *segll, int count))
 {
-    int block, offset, count = 0, segCount = 0;
+    int block, offset, segCount = 0;
     struct osmSegLL *segll;
 
     fprintf(stderr, "\n");
@@ -298,9 +300,9 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
 
         for (offset=0; offset < PER_BLOCK; offset++) {
             if (ways[block][offset].segids) {
-                count++;
-                if (count % 1000 == 0)
-                    fprintf(stderr, "\rWriting way(%uk)", count/1000);
+                way_out_count++;
+                if (way_out_count % 1000 == 0)
+                    fprintf(stderr, "\rWriting way(%uk)", way_out_count/1000);
 
                 segll = getSegLL(ways[block][offset].segids, &segCount);
 
@@ -322,7 +324,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
             }
         }
     }
-    fprintf(stderr, "\rWriting way(%uk)\n", count/1000);
+    fprintf(stderr, "\rWriting way(%uk)\n", way_out_count/1000);
 }
 
 static void ram_analyze(void)
@@ -335,7 +337,8 @@ static void ram_end(void)
     /* No need */
 }
 
-static int ram_start(void)
+#define __unused  __attribute__ ((unused))
+static int ram_start(const char * db __unused)
 {
     return 0;
 }
