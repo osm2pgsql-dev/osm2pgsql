@@ -1,5 +1,5 @@
 PACKAGE:=osm2pgsql
-VERSION:=0.05
+VERSION:=0.06
 SVN:=$(shell date +%Y%m%d)
 
 CFLAGS += -O2 -Wall -Wextra

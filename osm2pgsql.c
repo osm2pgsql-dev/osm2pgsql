@@ -11,23 +11,25 @@
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #-----------------------------------------------------------------------------
 */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <getopt.h>
 
 #include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
@@ -59,10 +61,12 @@ static int seg_to, seg_from;
 static struct keyval tags, segs;
 static int osm_id;
 
+int verbose;
+
 static void printStatus(void)
 {
-            fprintf(stderr, "\rProcessing: Node(%dk) Segment(%dk) Way(%dk)",
-                    count_node/1000, count_segment/1000, count_way/1000);
+    fprintf(stderr, "\rProcessing: Node(%dk) Segment(%dk) Way(%dk)",
+            count_node/1000, count_segment/1000, count_way/1000);
 }
 
 
@@ -81,7 +85,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         node_lon = strtod((char *)xlon, NULL);
         node_lat = strtod((char *)xlat, NULL);
 
-        if (osm_id > max_node) 
+        if (osm_id > max_node)
             max_node = osm_id;
 
         count_node++;
@@ -100,7 +104,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         seg_from = strtol((char *)xfrom, NULL, 10);
         seg_to   = strtol((char *)xto, NULL, 10);
 
-        if (osm_id > max_segment) 
+        if (osm_id > max_segment)
             max_segment = osm_id;
 
         count_segment++;
@@ -137,7 +141,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
             max_way = osm_id;
 
         count_way++;
-        if (count_way%1000 == 0) 
+        if (count_way%1000 == 0)
             printStatus();
 
         xmlFree(xid);
@@ -151,6 +155,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "bound")) {
+        /* ignore */
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
@@ -159,8 +165,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-       reproject(&node_lat, &node_lon);
-       mid->nodes_set(osm_id, node_lat, node_lon, &tags);
+        reproject(&node_lat, &node_lon);
+        mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "segment")) {
         mid->segments_set(osm_id, seg_from, seg_to, &tags);
@@ -175,6 +181,8 @@ void EndElement(const xmlChar *name)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         printStatus();
+    } else if (xmlStrEqual(name, BAD_CAST "bound")) {
+        /* ignore */
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
@@ -188,7 +196,7 @@ static void processNode(xmlTextReaderPtr reader) {
 	
     switch(xmlTextReaderNodeType(reader)) {
         case XML_READER_TYPE_ELEMENT:
-            StartElement(reader, name);	
+            StartElement(reader, name);
             if (xmlTextReaderIsEmptyElement(reader))
                 EndElement(name); /* No end_element for self closing tags! */
             break;
@@ -243,20 +251,76 @@ void exit_nicely(void)
  
 static void usage(const char *arg0)
 {
-    fprintf(stderr, "Usage error:\n\t%s planet.osm\n", arg0);
-    fprintf(stderr, "\nor read a .bzip2 or .gz file directly\n\t%s planet.osm.bz2\n", arg0);
-    fprintf(stderr, "\nor use 7za to decompress and pipe the data in\n\t7za x -so planet-070516.osm.7z | %s -\n", arg0);
-    fprintf(stderr, "\nor read multiple files simultaneously\n\t%s tiger/AZ/*.gz\n", arg0);
+    const char *name = basename(arg0);
+
+    fprintf(stderr, "Usage:\n");
+    fprintf(stderr, "\t%s [options] planet.osm\n", name);
+    fprintf(stderr, "\t%s [options[ planet.osm.{gz,bz2}\n", name);
+    fprintf(stderr, "\t%s [options] file1.osm file2.osm file3.osm\n", name);
+    fprintf(stderr, "\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
+    fprintf(stderr, "suitable for use by the Mapnik renderer\n");
+    fprintf(stderr, "\nOptions:\n");
+    fprintf(stderr, "   -a   --append\tAdd the OSM file into the database without removing\n");
+    fprintf(stderr, "                \texisting data.\n");
+    fprintf(stderr, "   -c   --create\tRemove existing data from the database. This is the \n");
+    fprintf(stderr, "                \tdefault if --append is not specified.\n");
+    fprintf(stderr, "   -d   --database\tThe name of the PostgreSQL database to connect\n");
+    fprintf(stderr, "                  \tto (default: gis).\n");
+    fprintf(stderr, "   -s   --slim\t\tStore temporary data in the database. This greatly\n");
+    fprintf(stderr, "              \t\treduces the RAM usage but is much slower.\n");
+    fprintf(stderr, "   -h   --help\t\tHelp information.\n");
+    fprintf(stderr, "   -v   --verbose\tVerbose output.\n");
+    fprintf(stderr, "\n");
 }
 
 int main(int argc, char *argv[])
 {
-    int i;
+    int append=0;
+    int create=0;
+    int slim=0;
+    const char *db = "gis";
+
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
 
     if (argc < 2) {
         usage(argv[0]);
-        exit(1);
+        exit(EXIT_FAILURE);
+    }
+
+    while (1) {
+        int c, option_index = 0;
+        static struct option long_options[] = {
+            {"append",   0, 0, 'a'},
+            {"create",   0, 0, 'c'},
+            {"database", 1, 0, 'd'},
+            {"verbose",  0, 0, 'v'},
+            {"slim",     0, 0, 's'},
+            {"help",     0, 0, 'h'},
+            {0, 0, 0, 0}
+        };
+
+        c = getopt_long (argc, argv, "acd:hsv", long_options, &option_index);
+        if (c == -1)
+            break;
+
+        switch (c) {
+            case 'a': append=1;  break;
+            case 'c': create=1;  break;
+            case 'v': verbose=1; break;
+            case 's': slim=1;    break;
+            case 'd': db=optarg; break;
+
+            case 'h':
+            case '?':
+            default:
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+        }
+    }
+
+    if (append && create) {
+        fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
+        exit(EXIT_FAILURE);
     }
 
     text_init();
@@ -267,38 +331,38 @@ int main(int argc, char *argv[])
 
     project_init();
 
-    //mid = &mid_pgsql;
-    mid = &mid_ram;
+    mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;
 
-    out->start();
+    out->start(db, append);
 
-    for (i=1; i<argc; i++) {
-        fprintf(stderr, "Reading in file: %s\n", argv[i]);
-        mid->start();
-        if (streamFile(argv[i]) != 0)
+    while (optind < argc) {
+        fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
+        mid->start(db);
+        if (streamFile(argv[optind]) != 0)
             exit_nicely();
         mid->end();
         mid->analyze();
 
-        //fprintf(stderr, "\nOutput processing\n");
         //mid->iterate_nodes(out->node);
         mid->iterate_ways(out->way);
         mid->stop();
+        optind++;
     }
 
     xmlCleanupParser();
     xmlMemoryDump();
 
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
-    fprintf(stderr, "Segment stats: total(%d), max(%d)\n", count_segment, max_segment);
-    fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
-    fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
-
+    if (count_node || count_segment || count_way) {
+        fprintf(stderr, "\n");
+        fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
+        fprintf(stderr, "Segment stats: total(%d), max(%d)\n", count_segment, max_segment);
+        fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
+        //fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
+    }
     //fprintf(stderr, "\n\nEnding data import\n");
     //out->process(mid);
-    out->stop();
+    out->stop(append);
 
     project_exit();
     text_exit();

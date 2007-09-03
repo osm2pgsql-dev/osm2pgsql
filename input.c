@@ -91,9 +91,6 @@ void *inputOpen(const char *name)
 
     ctx->name = strdup(name);
 
-    if (!strcmp(name, "-"))
-        name = "/dev/stdin";
-
     if (ext && !strcmp(ext, ".gz")) {
         ctx->fileHandle = (void *)gzopen(name, "rb");
         ctx->type = gzipFile;
@@ -103,14 +100,18 @@ void *inputOpen(const char *name)
     } else {
         int *pfd = malloc(sizeof(pfd));
         if (pfd) {
-            int flags = O_RDONLY;
+            if (!strcmp(name, "-")) {
+                *pfd = STDIN_FILENO;
+            } else {
+                int flags = O_RDONLY;
 #ifdef O_LARGEFILE
-            flags |= O_LARGEFILE;
+                flags |= O_LARGEFILE;
 #endif
-            *pfd = open(name, flags);
-            if (*pfd < 0) {
-                free(pfd);
-                pfd = NULL;
+                *pfd = open(name, flags);
+                if (*pfd < 0) {
+                    free(pfd);
+                    pfd = NULL;
+                }
             }
         }
         ctx->fileHandle = (void *)pfd;

@@ -14,8 +14,8 @@
 #include "middle.h"
 
 struct output_t {
-    int (*start)(void);
-    void (*stop)(void);
+    int (*start)(const char *db, int append);
+    void (*stop)(int append);
     void (*cleanup)(void);
     void (*process)(struct middle_t *mid);
     int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
