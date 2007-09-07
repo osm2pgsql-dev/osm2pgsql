@@ -43,6 +43,7 @@
 #include "sanitizer.h"
 #include "reprojection.h"
 #include "text-tree.h"
+#include "input.h"
 
 static int count_node,    max_node;
 static int count_segment, max_segment;
@@ -62,6 +63,7 @@ static struct keyval tags, segs;
 static int osm_id;
 
 int verbose;
+int latlong;
 
 static void printStatus(void)
 {
@@ -165,7 +167,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-        reproject(&node_lat, &node_lon);
+        if (!latlong)
+            reproject(&node_lat, &node_lon);
         mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "segment")) {
@@ -214,12 +217,14 @@ static void processNode(xmlTextReaderPtr reader) {
     xmlFree(name);
 }
 
-static int streamFile(char *filename) {
+static int streamFile(char *filename, int sanitize) {
     xmlTextReaderPtr reader;
     int ret = 0;
 
-//    reader = xmlNewTextReaderFilename(filename);
-    reader = sanitizerOpen(filename);
+    if (sanitize)
+        reader = sanitizerOpen(filename);
+    else
+        reader = inputUTF8(filename);
 
     if (reader != NULL) {
         ret = xmlTextReaderRead(reader);
@@ -260,16 +265,19 @@ static void usage(const char *arg0)
     fprintf(stderr, "\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
     fprintf(stderr, "suitable for use by the Mapnik renderer\n");
     fprintf(stderr, "\nOptions:\n");
-    fprintf(stderr, "   -a   --append\tAdd the OSM file into the database without removing\n");
-    fprintf(stderr, "                \texisting data.\n");
-    fprintf(stderr, "   -c   --create\tRemove existing data from the database. This is the \n");
-    fprintf(stderr, "                \tdefault if --append is not specified.\n");
-    fprintf(stderr, "   -d   --database\tThe name of the PostgreSQL database to connect\n");
-    fprintf(stderr, "                  \tto (default: gis).\n");
-    fprintf(stderr, "   -s   --slim\t\tStore temporary data in the database. This greatly\n");
-    fprintf(stderr, "              \t\treduces the RAM usage but is much slower.\n");
-    fprintf(stderr, "   -h   --help\t\tHelp information.\n");
-    fprintf(stderr, "   -v   --verbose\tVerbose output.\n");
+    fprintf(stderr, "   -a|--append\t\tAdd the OSM file into the database without removing\n");
+    fprintf(stderr, "              \t\texisting data.\n");
+    fprintf(stderr, "   -c|--create\t\tRemove existing data from the database. This is the \n");
+    fprintf(stderr, "              \t\tdefault if --append is not specified.\n");
+    fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
+    fprintf(stderr, "                \tto (default: gis).\n");
+    fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
+    fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
+    fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
+    fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
+    fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+    fprintf(stderr, "   -h|--help\t\tHelp information.\n");
+    fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
 }
 
@@ -278,6 +286,7 @@ int main(int argc, char *argv[])
     int append=0;
     int create=0;
     int slim=0;
+    int sanitize=0;
     const char *db = "gis";
 
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
@@ -293,22 +302,26 @@ int main(int argc, char *argv[])
             {"append",   0, 0, 'a'},
             {"create",   0, 0, 'c'},
             {"database", 1, 0, 'd'},
+            {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
             {"slim",     0, 0, 's'},
+            {"utf8-sanitize", 0, 0, 'u'},
             {"help",     0, 0, 'h'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "acd:hsv", long_options, &option_index);
+        c = getopt_long (argc, argv, "acd:hlsuv", long_options, &option_index);
         if (c == -1)
             break;
 
         switch (c) {
-            case 'a': append=1;  break;
-            case 'c': create=1;  break;
-            case 'v': verbose=1; break;
-            case 's': slim=1;    break;
-            case 'd': db=optarg; break;
+            case 'a': append=1;   break;
+            case 'c': create=1;   break;
+            case 'v': verbose=1;  break;
+            case 's': slim=1;     break;
+            case 'u': sanitize=1; break;
+            case 'l': latlong=1;  break;
+            case 'd': db=optarg;  break;
 
             case 'h':
             case '?':
@@ -338,8 +351,8 @@ int main(int argc, char *argv[])
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        mid->start(db);
-        if (streamFile(argv[optind]) != 0)
+        mid->start(db, latlong);
+        if (streamFile(argv[optind], sanitize) != 0)
             exit_nicely();
         mid->end();
         mid->analyze();

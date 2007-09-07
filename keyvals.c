@@ -206,7 +206,7 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
     item->key   = strdup(name);
     item->value = strdup(value);
 #endif
-    
+
     item->next = head->next;
     item->prev = head;
     head->next->prev = item;

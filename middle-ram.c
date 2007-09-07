@@ -23,10 +23,10 @@
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
-//#define SCALE 10000000
-#define SCALE 100
-#define DOUBLE_TO_FIX(x) ((x) * SCALE)
-#define FIX_TO_DOUBLE(x) (((double)x) / SCALE)
+
+static int scale = 100;
+#define DOUBLE_TO_FIX(x) ((x) * scale)
+#define FIX_TO_DOUBLE(x) (((double)x) / scale)
 
 struct ramNode {
 #ifdef FIXED_POINT
@@ -338,8 +338,13 @@ static void ram_end(void)
 }
 
 #define __unused  __attribute__ ((unused))
-static int ram_start(const char * db __unused)
+static int ram_start(const char * db __unused, int latlong)
 {
+    // latlong has a range of +-180, mercator +-20000
+    // The fixed poing scaling needs adjusting accordingly to
+    // be stored accurately in an int
+    scale = latlong ? 10000000 : 100;
+
     return 0;
 }
 

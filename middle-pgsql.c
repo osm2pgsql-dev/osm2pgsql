@@ -613,7 +613,8 @@ static void pgsql_end(void)
     }
 }
 
-static int pgsql_start(const char *db)
+#define __unused  __attribute__ ((unused))
+static int pgsql_start(const char *db, int latlong __unused)
 {
     char sql[2048];
     PGresult   *res;

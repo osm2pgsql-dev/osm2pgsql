@@ -31,6 +31,7 @@ int is_simple(const char* wkt);
 void add_segment(double x0,double y0,double x1, double y1);
 char* get_wkt(size_t index);
 void get_interior(size_t index, double *y, double *x);
+double get_area(size_t index);
 size_t build_geometry(int polygon, int osm_id);
 void clear_wkts();
 
