@@ -85,6 +85,7 @@ struct Interior
 static std::vector<Segment> segs;
 static std::vector<std::string> wkts;
 static std::vector<Interior> interiors;
+static std::vector<double> areas;
 
 
 int is_simple(const char* wkt)
@@ -115,10 +116,17 @@ void get_interior(size_t index, double *y, double *x)
 	*x = interiors[index].x;
 	*y = interiors[index].y;
 }
+
+double get_area(size_t index)
+{
+    return areas[index];
+}
+
 void clear_wkts()
 {
    wkts.clear();
    interiors.clear();
+   areas.clear();
 }
 
 size_t build_geometry(int polygon, int osm_id)
@@ -175,11 +183,11 @@ size_t build_geometry(int polygon, int osm_id)
                     {
                         std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
                         std::auto_ptr<Polygon> poly(factory.createPolygon(factory.createLinearRing(pline->getCoordinates()),0));
-
-                        if (poly->getArea() > ext_area) {
+                        double poly_area = poly->getArea();
+                        if (poly_area > ext_area) {
                             if (ext_area > 0.0)
                                 interior->push_back(exterior.release());
-                            ext_area = poly->getArea();
+                            ext_area = poly_area;
                             exterior = ring;
                         //std::cerr << "Found bigger ring, area(" << ext_area << ") " << writer.write(poly.get()) << std::endl;
                         } else {
@@ -191,16 +199,18 @@ size_t build_geometry(int polygon, int osm_id)
                         std::string text = writer.write(pline.get());
                         wkts.push_back(text);
                         interiors.push_back(Interior(0,0));
-                        ++wkt_size;
+                        areas.push_back(0.0);
+                        wkt_size++;
                     }
                 }
 
                 if (ext_area > 0.0) {
                     std::auto_ptr<Polygon> poly(factory.createPolygon(exterior.release(), interior.release()));
                     std::string text = writer.write(poly.get());
+                    //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
                     wkts.push_back(text);
                     interiors.push_back(Interior(poly.get()));
-                    //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
+                    areas.push_back(ext_area);
                     wkt_size++;
                 }
             } else {
@@ -210,6 +220,7 @@ size_t build_geometry(int polygon, int osm_id)
                     std::string text = writer.write(pline.get());
                     wkts.push_back(text);
                     interiors.push_back(Interior(0,0));
+                    areas.push_back(0.0);
                     ++wkt_size;
                 }
             }

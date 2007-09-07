@@ -151,3 +151,15 @@ int inputClose(void *context)
     free(ctx);
     return 0;
 }
+
+xmlTextReaderPtr inputUTF8(const char *name)
+{
+    void *ctx = inputOpen(name);
+
+    if (!ctx) {
+        fprintf(stderr, "Input reader create failed for: %s\n", name);
+        return NULL;
+    }
+
+    return xmlReaderForIO(readFile, inputClose, (void *)ctx, NULL, NULL, 0);
+}

@@ -10,7 +10,7 @@
 #include "keyvals.h"
 
 struct middle_t {
-    int (*start)(const char *db);
+    int (*start)(const char *db, int latlong);
     void (*stop)(void);
     void (*cleanup)(void);
     void (*analyze)(void);

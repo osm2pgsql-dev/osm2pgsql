@@ -74,7 +74,8 @@ static struct {
     {"tourism",  "text", 1},
     {"tunnel",   "text", 0},
     {"waterway", "text", 0},
-    {"z_order",  "int4", 0}
+    {"z_order",  "int4", 0},
+    {"way_area", "real", 0}
 };
 static const unsigned int numTags = sizeof(exportTags) / sizeof(*exportTags);
 
@@ -428,9 +429,16 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
     for (i=0;i<wkt_size;i++)
     {
         char *wkt = get_wkt(i);
+
         if (strlen(wkt)) {
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+                double area = get_area(i);
+                if (area > 0.0) {
+                    char tmp[32];
+                    snprintf(tmp, sizeof(tmp), "%f", area);
+                    addItem(tags, "way_area", tmp, 0);
+                }
                 write_wkts(id, tags, wkt, sql_conns[t_poly]);
 		add_parking_node(id, tags, i);
 	    } else {
@@ -511,21 +519,6 @@ static int pgsql_out_start(const char *db, int append)
                 exit_nicely();
             }
             PQclear(res);
-        } else {
-            if (i == t_poly) {
-                sql[0] = '\0';
-                strcat(sql, "ALTER TABLE ");
-                strcat(sql, tables[i].name);
-                strcat(sql, " DROP COLUMN way_area;\n");
-
-                res = PQexec(sql_conn, sql);
-                if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                    fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
-                    PQclear(res);
-                    exit_nicely();
-                }
-                PQclear(res);
-            }
         }
 
         sql[0] = '\0';
@@ -586,6 +579,10 @@ static void pgsql_out_stop(int append)
         strcat(sql, ";\n");
 
         if (!append) {
+            strcat(sql, "ALTER TABLE ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
+
             strcat(sql, "CREATE INDEX way_index");
             strcat(sql, tmp);
             strcat(sql, " ON ");
@@ -597,23 +594,7 @@ static void pgsql_out_stop(int append)
             strcat(sql, " ON ");
             strcat(sql, tables[i].name);
             strcat(sql, " (z_order);\n");
-
-            strcat(sql, "ALTER TABLE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
-
         }
-
-        if (i == t_poly) {
-            strcat(sql, "ALTER TABLE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " ADD COLUMN way_area real;\n");
-
-            strcat(sql, "UPDATE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " SET way_area=area(way);\n");
-        }
-
         strcat(sql, "CLUSTER way_index");
         strcat(sql, tmp);
         strcat(sql, " ON ");
