@@ -70,9 +70,14 @@ static struct ramNode    *nodes[NUM_BLOCKS];
 static struct ramSegment *segments[NUM_BLOCKS];
 static struct ramWay     *ways[NUM_BLOCKS];
 
-static int node_blocks, segment_blocks, way_blocks;
+static int node_blocks, segment_blocks;
+#ifdef USE_CLEAN
+static int way_blocks;
+#endif
 
 static int way_out_count;
+
+static struct osmSegLL *getSegLL(int *segids, int *segCount);
 
 static inline int id2block(int id)
 {
@@ -188,9 +193,14 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
     struct keyval *p;
     int *segids;
     int segCount, i;
+#ifdef USE_CLEAN
     int block  = id2block(id);
     int offset = id2offset(id);
+#else
+    struct osmSegLL *segll;
+#endif
 
+#ifdef USE_CLEAN
     if (!ways[block]) {
         ways[block] = calloc(PER_BLOCK, sizeof(struct ramWay));
         if (!ways[block]) {
@@ -201,14 +211,15 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
         //fprintf(stderr, "\tways(%zuMb)\n", way_blocks * sizeof(struct ramWay) * PER_BLOCK / 1000000);
     }
 
-    segCount = countList(segs);
-    if (!segCount)
-        return 1;
-
     if (ways[block][offset].segids) {
         free(ways[block][offset].segids);
         ways[block][offset].segids = NULL;
     }
+#endif
+
+    segCount = countList(segs);
+    if (!segCount)
+        return 1;
 
     segids = malloc(sizeof(int) * (segCount+1));
     if (!segids) {
@@ -216,7 +227,9 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
         exit_nicely();
     }
 
+#ifdef USE_CLEAN
     ways[block][offset].segids = segids;
+#endif
     i = 0;
     while ((p = popItem(segs)) != NULL) {
         int seg_id = strtol(p->value, NULL, 10);
@@ -225,7 +238,7 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
             segids[i++] = seg_id;
     }
     segids[i] = 0;
-
+#ifdef USE_CLEAN
     if (!ways[block][offset].tags) {
         p = malloc(sizeof(struct keyval));
         if (p) {
@@ -240,8 +253,16 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
 
         while ((p = popItem(tags)) != NULL)
             pushItem(ways[block][offset].tags, p);
+#else
+    segll = getSegLL(segids, &segCount);
+    free(segids);
 
-        return 0;
+    if (segll) {
+        out_pgsql.way(id, tags, segll, segCount);
+        free(segll);
+    }
+#endif
+    return 0;
 }
 
 static struct osmSegLL *getSegLL(int *segids, int *segCount)
