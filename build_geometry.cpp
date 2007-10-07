@@ -36,9 +36,11 @@
 #include <geos/geom/Point.h>
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
+#include <geos/util/GEOSException.h>
 #include <geos/opLinemerge.h>
 using namespace geos::geom;
 using namespace geos::io;
+using namespace geos::util;
 using namespace geos::operation::linemerge;
 #else
 /* geos-2.2.3 */
@@ -50,187 +52,39 @@ using namespace geos;
 
 #include "build_geometry.h"
 
-typedef std::auto_ptr<Geometry> geom_ptr;
+using namespace std;
 
-struct Segment
-{
-      Segment(double x0_,double y0_,double x1_,double y1_)
-         :x0(x0_),y0(y0_),x1(x1_),y1(y1_) {}
+char *get_wkt(osmNode *nodes, int count, int polygon, double *area) {
+  GeometryFactory gf;
 
-      double x0;
-      double y0;
-      double x1;
-      double y1;
-};
+  auto_ptr<CoordinateSequence> coords(
+    gf.getCoordinateSequenceFactory()->create(0, 2));
+  for (int i = 0; i < count; i++) {
+    Coordinate c;
+    c.x = nodes[i].lon;
+    c.y = nodes[i].lat;
+    coords->add(c, i);
+  }
 
-struct Interior
-{
-	Interior(double x_, double y_)
-	  : x(x_), y(y_) {}
-
-	Interior(Geometry *geom) {
-            try {
-                std::auto_ptr<Point> pt(geom->getInteriorPoint());
-                x = pt->getX();
-                y = pt->getY();
-            } catch (...) {
-                // This happens on some unusual polygons, we'll ignore them for now
-                //std::cerr << std::endl << "Exception finding interior point" << std::endl;
-                x=y=0.0;
-            }
-        }
-	double x, y;
-};
-
-static std::vector<Segment> segs;
-static std::vector<std::string> wkts;
-static std::vector<Interior> interiors;
-static std::vector<double> areas;
-
-
-int is_simple(const char* wkt)
-{
-   GeometryFactory factory;
-   WKTReader reader(&factory);
-   geom_ptr geom(reader.read(wkt));
-   if (geom->isSimple()) return 1;
-   return 0;
-}
-
-void add_segment(double x0,double y0,double x1,double y1)
-{
-   segs.push_back(Segment(x0,y0,x1,y1));
-}
-
-char * get_wkt(size_t index)
-{
-//   return wkts[index].c_str();
-	char *result;
-	result = (char*) std::malloc( wkts[index].length() + 1);
-	std::strcpy(result, wkts[index].c_str() );
-	return result;
-}
-
-void get_interior(size_t index, double *y, double *x)
-{
-	*x = interiors[index].x;
-	*y = interiors[index].y;
-}
-
-double get_area(size_t index)
-{
-    return areas[index];
-}
-
-void clear_wkts()
-{
-   wkts.clear();
-   interiors.clear();
-   areas.clear();
-}
-
-size_t build_geometry(int polygon, int osm_id)
-{
-    size_t wkt_size = 0;
-    GeometryFactory factory;
-    geom_ptr segment(0);
-    std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
-    std::vector<Segment>::const_iterator pos=segs.begin();
-    std::vector<Segment>::const_iterator end=segs.end();
-    bool first=true;
-    try  {
-        while (pos != end)
-        {
-            if (pos->x0 != pos->x1 || pos->y0 != pos->y1)
-            {
-                std::auto_ptr<CoordinateSequence> coords(factory.getCoordinateSequenceFactory()->create(0,2));
-                coords->add(Coordinate(pos->x0,pos->y0));
-                coords->add(Coordinate(pos->x1,pos->y1));
-                geom_ptr linestring(factory.createLineString(coords.release()));
-                if (first)
-                {
-                    segment = linestring;
-                    first=false;
-                }
-                else
-                {
-                    lines->push_back(linestring.release());
-                }
-            }
-            ++pos;
-        }
-
-        segs.clear();
-
-        if (segment.get())
-        {
-            geom_ptr mline (factory.createMultiLineString(lines.release()));
-            geom_ptr noded (segment->Union(mline.get()));
-            LineMerger merger;
-            merger.add(noded.get());
-            std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
-            WKTWriter writer;
-
-            if (polygon)
-            {
-                std::auto_ptr<LinearRing> exterior;
-                std::auto_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
-                double ext_area = 0.0;
-                for (unsigned i=0 ;i < merged->size(); ++i)
-                {
-                    std::auto_ptr<LineString> pline ((*merged ) [i]);
-                    if (pline->getNumPoints() > 3 && pline->isClosed())
-                    {
-                        std::auto_ptr<LinearRing> ring(factory.createLinearRing(pline->getCoordinates()));
-                        std::auto_ptr<Polygon> poly(factory.createPolygon(factory.createLinearRing(pline->getCoordinates()),0));
-                        double poly_area = poly->getArea();
-                        if (poly_area > ext_area) {
-                            if (ext_area > 0.0)
-                                interior->push_back(exterior.release());
-                            ext_area = poly_area;
-                            exterior = ring;
-                        //std::cerr << "Found bigger ring, area(" << ext_area << ") " << writer.write(poly.get()) << std::endl;
-                        } else {
-                            interior->push_back(ring.release());
-                        //std::cerr << "Found inner ring, area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
-                        }
-                    } else {
-                        //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
-                        std::string text = writer.write(pline.get());
-                        wkts.push_back(text);
-                        interiors.push_back(Interior(0,0));
-                        areas.push_back(0.0);
-                        wkt_size++;
-                    }
-                }
-
-                if (ext_area > 0.0) {
-                    std::auto_ptr<Polygon> poly(factory.createPolygon(exterior.release(), interior.release()));
-                    std::string text = writer.write(poly.get());
-                    //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
-                    wkts.push_back(text);
-                    interiors.push_back(Interior(poly.get()));
-                    areas.push_back(ext_area);
-                    wkt_size++;
-                }
-            } else {
-                for (unsigned i=0 ;i < merged->size(); ++i)
-                {
-                    std::auto_ptr<LineString> pline ((*merged ) [i]);
-                    std::string text = writer.write(pline.get());
-                    wkts.push_back(text);
-                    interiors.push_back(Interior(0,0));
-                    areas.push_back(0.0);
-                    ++wkt_size;
-                }
-            }
-        }
+  auto_ptr<Geometry> geom;
+  if (polygon) {
+    if (coords->getSize() < 4 ||
+	!coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0))) {
+      return 0;
     }
-    catch (...)
-    {
-        std::cerr << std::endl << "excepton caught processing way id=" << osm_id << std::endl;
-        wkt_size = 0;
+    auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+    geom = auto_ptr<Geometry>(gf.createPolygon(shell.release(),
+      new vector<Geometry *>));
+    *area = geom->getArea();
+  } else {
+    if (coords->getSize() < 2) {
+      return 0;
     }
-    return wkt_size;
-}
+    geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+    *area = 0;
+  }
 
+  WKTWriter wktw;
+  string wkt = wktw.write(geom.get());
+  return strdup(wkt.c_str());
+}

@@ -46,20 +46,18 @@
 #include "input.h"
 
 static int count_node,    max_node;
-static int count_segment, max_segment;
 static int count_way,     max_way;
-static int count_way_seg;
+static int count_rel,     max_rel;
 
 struct middle_t *mid;
 struct output_t *out;
 
-/* Since {node,segment,way} elements are not nested we can guarantee the 
+/* Since {node,way} elements are not nested we can guarantee the 
    values in an end tag must match those of the corresponding 
    start tag and can therefore be cached.
 */
 static double node_lon, node_lat;
-static int seg_to, seg_from;
-static struct keyval tags, segs;
+static struct keyval tags, nds, members;
 static int osm_id;
 
 int verbose;
@@ -67,14 +65,15 @@ int latlong;
 
 static void printStatus(void)
 {
-    fprintf(stderr, "\rProcessing: Node(%dk) Segment(%dk) Way(%dk)",
-            count_node/1000, count_segment/1000, count_way/1000);
+    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%dk)",
+            count_node/1000, count_way/1000, count_rel/1000);
 }
 
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
-    xmlChar *xid, *xlat, *xlon, *xfrom, *xto, *xk, *xv;
+    xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
+    char membtmp[32];
     char *k;
 
     if (xmlStrEqual(name, BAD_CAST "node")) {
@@ -97,25 +96,6 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xmlFree(xid);
         xmlFree(xlon);
         xmlFree(xlat);
-    } else if (xmlStrEqual(name, BAD_CAST "segment")) {
-        xid   = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        xfrom = xmlTextReaderGetAttribute(reader, BAD_CAST "from");
-        xto   = xmlTextReaderGetAttribute(reader, BAD_CAST "to");
-        assert(xid); assert(xfrom); assert(xto);
-        osm_id = strtol((char *)xid, NULL, 10);
-        seg_from = strtol((char *)xfrom, NULL, 10);
-        seg_to   = strtol((char *)xto, NULL, 10);
-
-        if (osm_id > max_segment)
-            max_segment = osm_id;
-
-        count_segment++;
-        if (count_segment%10000 == 0)
-            printStatus();
- 
-        xmlFree(xid);
-        xmlFree(xfrom);
-        xmlFree(xto);
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
         assert(xk);
@@ -147,14 +127,61 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
             printStatus();
 
         xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "seg")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
+        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-        if (addItem(&segs, "id", (char *)xid, 1))
-            count_way_seg++;
+        addItem(&nds, "id", (char *)xid, 0);
 
         xmlFree(xid);
+    } else if (xmlStrEqual(name, BAD_CAST "relation")) {
+        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+        assert(xid);
+        osm_id   = strtol((char *)xid, NULL, 10);
+
+        if (osm_id > max_rel)
+            max_rel = osm_id;
+
+        count_rel++;
+        if (count_rel%1000 == 0)
+            printStatus();
+
+        xmlFree(xid);
+    } else if (xmlStrEqual(name, BAD_CAST "member")) {
+	xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
+	assert(xrole);
+
+	xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
+	assert(xtype);
+
+        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
+        assert(xid);
+
+	/* The value we insert into the members keyval will be of the form [nwr]$id,
+	 * that way we don't have another data structure and we can switch on the
+	 * first char to figure out the type of the member. */
+
+	if (xmlStrEqual(xtype, BAD_CAST "node")) {
+	    membtmp[0] = 'n';
+	} else if (xmlStrEqual(xtype, BAD_CAST "way")) {
+	    membtmp[0] = 'w';
+	} else if (xmlStrEqual(xtype, BAD_CAST "relation")) {
+	    membtmp[0] = 'r';
+	} else {
+	    fprintf(stderr, "%s: Unknown member type: %s\n",
+		__FUNCTION__, xtype);
+	    membtmp[0] = 0;
+	}
+
+	if (membtmp[0]) {
+	    strncpy(membtmp + 1, (char *) xid, sizeof(membtmp) - 1);
+	    assert(membtmp[sizeof(membtmp) - 1] == 0);
+	    addItem(&members, (char *) xrole, membtmp, 0);
+	}
+
+        xmlFree(xid);
+        xmlFree(xrole);
+        xmlFree(xtype);
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
@@ -171,17 +198,20 @@ void EndElement(const xmlChar *name)
             reproject(&node_lat, &node_lon);
         mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
-    } else if (xmlStrEqual(name, BAD_CAST "segment")) {
-        mid->segments_set(osm_id, seg_from, seg_to, &tags);
-        resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
-        mid->ways_set(osm_id, &segs, &tags);
+        mid->ways_set(osm_id, &nds, &tags);
         resetList(&tags);
-        resetList(&segs);
+        resetList(&nds);
+    } else if (xmlStrEqual(name, BAD_CAST "relation")) {
+        /* mid->relations_set(osm_id, &members, &tags); */
+        resetList(&tags);
+        resetList(&members);
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "seg")) {
+    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "member")) {
+	/* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         printStatus();
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
@@ -338,7 +368,12 @@ int main(int argc, char *argv[])
 
     text_init();
     initList(&tags);
-    initList(&segs);
+    initList(&nds);
+    initList(&members);
+
+    count_node = max_node = 0;
+    count_way = max_way = 0;
+    count_rel = max_rel = 0;
 
     LIBXML_TEST_VERSION
 
@@ -366,12 +401,11 @@ int main(int argc, char *argv[])
     xmlCleanupParser();
     xmlMemoryDump();
 
-    if (count_node || count_segment || count_way) {
+    if (count_node || count_way || count_rel) {
         fprintf(stderr, "\n");
         fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
-        fprintf(stderr, "Segment stats: total(%d), max(%d)\n", count_segment, max_segment);
         fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
-        //fprintf(stderr, "Way stats: duplicate segments in ways %d\n", count_way_seg);
+        fprintf(stderr, "Relation stats: total(%d), max(%d)\n", count_rel, max_rel);
     }
     //fprintf(stderr, "\n\nEnding data import\n");
     //out->process(mid);

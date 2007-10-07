@@ -24,7 +24,7 @@
 static char conninfo[256];
 
 enum table_id {
-    t_node, t_segment, t_node_tag, t_way_tag, t_way_seg
+    t_node, t_node_tag, t_way_tag, t_way_nd
 } ;
 
 struct table_desc {
@@ -48,17 +48,6 @@ static struct table_desc tables [] = {
                "PREPARE get_node (int4) AS SELECT \"lat\",\"lon\" FROM nodes WHERE \"id\" = $1 LIMIT 1;\n",
          copy: "COPY nodes FROM STDIN;\n",
       analyze: "ANALYZE nodes;\n",
-         stop: "COMMIT;\n"
-    },
-    {
-        //table: t_segment,
-         name: "segments",
-        start: "BEGIN;\n",
-       create: "CREATE  TABLE segments (\"id\" int4 PRIMARY KEY,\"from\" int4,\"to\" int4);\n",
-      prepare: "PREPARE insert_segment (int4, int4, int4) AS INSERT INTO segments VALUES ($1,$2,$3);\n"
-               "PREPARE get_segment (int4) AS SELECT \"from\",\"to\" FROM segments WHERE \"id\" = $1 LIMIT 1;\n",
-         copy: "COPY segments FROM STDIN;\n",
-      analyze: "ANALYZE segments;\n",
          stop: "COMMIT;\n"
     },
     { 
@@ -88,15 +77,15 @@ static struct table_desc tables [] = {
          stop:  "COMMIT;\n"
     },
     { 
-        //table: t_way_seg,
-         name: "way_seg",
+        //table: t_way_nd,
+         name: "way_nd",
         start: "BEGIN;\n",
-       create: "CREATE  TABLE way_seg (\"id\" int4 NOT NULL, \"seg_id\" int4);\n"
-               "CREATE INDEX way_seg_idx ON way_seg (\"id\");\n",
-      prepare: "PREPARE insert_way_seg (int4, int4) AS INSERT INTO way_seg VALUES ($1,$2);\n"
-               "PREPARE get_way_seg (int4) AS SELECT \"seg_id\" FROM way_seg WHERE \"id\" = $1;\n",
-         copy: "COPY way_seg FROM STDIN;\n",
-      analyze: "ANALYZE way_seg;\n",
+       create: "CREATE  TABLE way_nd (\"id\" int4 NOT NULL, \"nd_id\" int4);\n"
+               "CREATE INDEX way_nd_idx ON way_nd (\"id\");\n",
+      prepare: "PREPARE insert_way_nd (int4, int4) AS INSERT INTO way_nd VALUES ($1,$2);\n"
+               "PREPARE get_way_nd (int4) AS SELECT \"nd_id\" FROM way_nd WHERE \"id\" = $1;\n",
+         copy: "COPY way_nd FROM STDIN;\n",
+      analyze: "ANALYZE way_nd;\n",
          stop: "COMMIT;\n"
     }
 };
@@ -268,59 +257,13 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
     return 0;
 }
 
-static int pgsql_segments_set(int id, int from, int to, struct keyval *tags)
+static void psql_add_way_nd(int way_id, int nd_id)
 {
-    PGconn *sql_conn = sql_conns[t_segment];
+    PGconn *sql_conn = sql_conns[t_way_nd];
     char sql[128];
     int r;
 
-    sprintf(sql, "%d\t%d\t%d\n", id, from, to);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-    resetList(tags);
-
-    return 0;
-}
-
-static int pgsql_segments_get(struct osmSegment *out, int id)
-{
-    PGresult   *res;
-    char tmp[16];
-    char const *paramValues[1];
-    PGconn *sql_conn = sql_conns[t_segment];
-
-    snprintf(tmp, sizeof(tmp), "%d", id);
-    paramValues[0] = tmp;
-
-    res = PQexecPrepared(sql_conn, "get_segment", 1, paramValues, NULL, NULL, 0);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "get_segment failed: %s(%d)\n", PQerrorMessage(sql_conn), PQresultStatus(res));
-        PQclear(res);
-        exit_nicely();
-    }
-
-    if (PQntuples(res) != 1) {
-        PQclear(res);
-        return 1;
-    }
-
-    out->from = strtol(PQgetvalue(res, 0, 0), NULL, 10);
-    out->to   = strtol(PQgetvalue(res, 0, 1), NULL, 10);
-    PQclear(res);
-    return 0;
-}
-
-
-static void psql_add_way_seg(int way_id, int seg_id)
-{
-    PGconn *sql_conn = sql_conns[t_way_seg];
-    char sql[128];
-    int r;
-
-    sprintf(sql, "%d\t%d\n", way_id, seg_id);
+    sprintf(sql, "%d\t%d\n", way_id, nd_id);
     r = PQputCopyData(sql_conn, sql, strlen(sql));
     if (r != 1) {
         fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
@@ -329,14 +272,14 @@ static void psql_add_way_seg(int way_id, int seg_id)
 }
 
 
-static int pgsql_ways_set(int way_id, struct keyval *segs, struct keyval *tags)
+static int pgsql_ways_set(int way_id, struct keyval *nds, struct keyval *tags)
 {
 #if 1
     struct keyval *p;
 
-    while((p = popItem(segs)) != NULL) {
-        int seg_id = strtol(p->value, NULL, 10);
-        psql_add_way_seg(way_id, seg_id);
+    while((p = popItem(nds)) != NULL) {
+        int nd_id = strtol(p->value, NULL, 10);
+        psql_add_way_nd(way_id, nd_id);
         freeItem(p);
     }
 
@@ -346,9 +289,9 @@ static int pgsql_ways_set(int way_id, struct keyval *segs, struct keyval *tags)
     }
 #else
     // FIXME: Performance hack - output ways directly. Doesn't work in COPY model
-   out_pgsql.way(&mid_pgsql, way_id, tags, segs);
+   out_pgsql.way(&mid_pgsql, way_id, tags, nds);
    resetList(tags);
-   resetList(segs);
+   resetList(nds);
 #endif
     return 0;
 }
@@ -412,49 +355,6 @@ static void pgsql_iterate_nodes(int (*callback)(int id, struct keyval *tags, dou
     fprintf(stderr, "\n");
 }
 
-#if 0
-static struct osmSegLL *getSegLL(struct keyval *segs, int *segCount)
-{
-    struct keyval *p;
-    struct osmSegment segment;
-    struct osmNode node;
-    int id;
-    int count = 0;
-    struct osmSegLL *segll = malloc(countList(segs) * sizeof(struct osmSegLL));
-
-    if (!segll) {
-        resetList(segs);
-        *segCount = 0;
-        return NULL;
-    }
-
-    while ((p = popItem(segs)) != NULL)
-    {
-        id = strtol(p->value, NULL, 10);
-        freeItem(p);
-
-        if (pgsql_segments_get(&segment, id))
-            continue;
-
-        if (pgsql_nodes_get(&node, segment.from))
-            continue;
-
-        segll[count].lon0 = node.lon;
-        segll[count].lat0 = node.lat;
-
-        if (pgsql_nodes_get(&node, segment.to))
-            continue;
-
-        segll[count].lon1 = node.lon;
-        segll[count].lat1 = node.lat;
-
-        count++;
-    }
-    *segCount = count;
-    return segll;
-}
-#endif
-
 void getTags(int id, struct keyval *tags)
 {
     PGconn *sql_conn_tags = sql_conns[t_way_tag];
@@ -482,14 +382,14 @@ void getTags(int id, struct keyval *tags)
 }
 
 
-static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmSegLL *segll, int count))
+static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
 {
     char sql[2048];
     PGresult   *res_ways, *res_nodes;
     int i, j, count = 0;
     struct keyval tags;
-    struct osmSegLL *segll;
-    PGconn *sql_conn_segs = sql_conns[t_way_seg];
+    struct osmNode *nodes;
+    PGconn *sql_conn_nds = sql_conns[t_way_nd];
 
     initList(&tags);
 
@@ -504,9 +404,9 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
  3186577 | 10872310 | 51.721258 | -0.359137 | 51.720979 | -0.360532
 */
 
-    res_ways = PQexec(sql_conn_segs, "SELECT id from way_seg GROUP BY id");
+    res_ways = PQexec(sql_conn_nds, "SELECT id from way_nd GROUP BY id");
     if (PQresultStatus(res_ways) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
+        fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_nds));
         PQclear(res_ways);
         exit_nicely();
     }
@@ -514,36 +414,33 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
     //fprintf(stderr, "\nIterating ways\n");
     for (i = 0; i < PQntuples(res_ways); i++) {
         int id = strtol(PQgetvalue(res_ways, i, 0), NULL, 10);
-        int segCount;
+        int ndCount;
 
         if (count++ %1000 == 0)
                 fprintf(stderr, "\rprocessing way (%dk)", count/1000);
 
         getTags(id, &tags);
 
-        sprintf(sql,"SELECT nf.lat,nf.lon,nt.lat,nt.lon "
-                    "FROM way_seg AS w,nodes AS nf, nodes AS nt, segments AS s "
-                    "WHERE w.seg_id=s.id AND nf.id=s.from AND nt.id=s.to AND w.id=%d", id);
+        sprintf(sql,"SELECT n.lat, n.lon FROM way_nd AS w, nodes AS n "
+                    "WHERE w.nd_id = n.id AND w.id=%d", id);
 
-        res_nodes = PQexec(sql_conn_segs, sql);
+        res_nodes = PQexec(sql_conn_nds, sql);
         if (PQresultStatus(res_nodes) != PGRES_TUPLES_OK) {
-            fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_segs));
+            fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_nds));
             PQclear(res_nodes);
             exit_nicely();
         }
 
-        segCount = PQntuples(res_nodes);
-        segll = malloc(segCount * sizeof(struct osmSegLL));
+        ndCount = PQntuples(res_nodes);
+        nodes = malloc(ndCount * sizeof(struct osmNode));
 
-        if (segll) {
-            for (j=0; j<segCount; j++) {
-                segll[j].lat0 = strtod(PQgetvalue(res_nodes, j, 0), NULL);
-                segll[j].lon0 = strtod(PQgetvalue(res_nodes, j, 1), NULL);
-                segll[j].lat1 = strtod(PQgetvalue(res_nodes, j, 2), NULL);
-                segll[j].lon1 = strtod(PQgetvalue(res_nodes, j, 3), NULL);
+        if (nodes) {
+            for (j=0; j<ndCount; j++) {
+                nodes[j].lat = strtod(PQgetvalue(res_nodes, j, 0), NULL);
+                nodes[j].lon = strtod(PQgetvalue(res_nodes, j, 1), NULL);
             }
-            callback(id, &tags, segll, segCount);
-            free(segll);
+            callback(id, &tags, nodes, ndCount);
+            free(nodes);
         }
         PQclear(res_nodes);
         resetList(&tags);
@@ -725,8 +622,6 @@ struct middle_t mid_pgsql = {
         cleanup:        pgsql_cleanup,
         analyze:        pgsql_analyze,
         end:            pgsql_end,
-        segments_set:   pgsql_segments_set,
-        segments_get:   pgsql_segments_get,
         nodes_set:      pgsql_nodes_set,
         nodes_get:      pgsql_nodes_get,
         ways_set:       pgsql_ways_set,
