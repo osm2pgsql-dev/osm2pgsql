@@ -322,23 +322,6 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
 
 
-static size_t WKT(struct osmSegLL *segll, int count, int polygon, int osm_id)
-{
-    double x0, y0, x1, y1;
-    int i;
-
-    for(i=0; i<count; i++) {
-        x0 = segll[i].lon0;
-        y0 = segll[i].lat0;
-        x1 = segll[i].lon1;
-        y1 = segll[i].lat1;
-        add_segment(x0,y0,x1,y1);
-    }
-
-    return  build_geometry(polygon, osm_id);
-}
-
-
 static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql_conn)
 {
     unsigned int j;
@@ -364,7 +347,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
     sql_out(sql_conn, "\n", 1);
 }
 
-void add_parking_node(int id, struct keyval *tags, size_t index)
+void add_parking_node(int id, struct keyval *tags)
 {
 // insert into planet_osm_point(osm_id,name,amenity,way) select osm_id,name,amenity,centroid(way) from planet_osm_polygon where amenity='parking';
 	const char *amenity = getItem(tags, "amenity");
@@ -379,8 +362,6 @@ void add_parking_node(int id, struct keyval *tags, size_t index)
 	addItem(&nodeTags, "amenity", amenity, 0);
 	if (name)
 		addItem(&nodeTags, "name",    name,    0);
-	
-	get_interior(index, &node_lat, &node_lon);
 	
 	//fprintf(stderr, "Parking node: %s\t%f,%f\n", name ? name : "no_name", node_lat, node_lon);
 	
@@ -397,13 +378,14 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, int count)
+static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count)
 {
     const char *v;
     unsigned int i;
-    size_t wkt_size;
     int polygon = 0, export = 0;
     int roads = 0;
+    char *wkt;
+    double area;
 
     for (i=0; i < numTags; i++) {
         if ((v = getItem(tags, exportTags[i].name))) {
@@ -424,33 +406,25 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmSegLL *segll, in
 
     fix_motorway_shields(tags);
 
-    wkt_size = WKT(segll, count, polygon, id); 
-
-    for (i=0;i<wkt_size;i++)
-    {
-        char *wkt = get_wkt(i);
-
-        if (strlen(wkt)) {
-            /* FIXME: there should be a better way to detect polygons */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
-                double area = get_area(i);
-                if (area > 0.0) {
-                    char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%f", area);
-                    addItem(tags, "way_area", tmp, 0);
-                }
-                write_wkts(id, tags, wkt, sql_conns[t_poly]);
-		add_parking_node(id, tags, i);
-	    } else {
-                write_wkts(id, tags, wkt, sql_conns[t_line]);
-                if (roads)
-                    write_wkts(id, tags, wkt, sql_conns[t_roads]);
-            }
+    wkt = get_wkt(nodes, count, polygon, &area);
+    if (wkt && strlen(wkt)) {
+	/* FIXME: there should be a better way to detect polygons */
+	if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+	    if (area > 0.0) {
+		char tmp[32];
+		snprintf(tmp, sizeof(tmp), "%f", area);
+		addItem(tags, "way_area", tmp, 0);
+	    }
+	    write_wkts(id, tags, wkt, sql_conns[t_poly]);
+	    add_parking_node(id, tags);
+	} else {
+	    write_wkts(id, tags, wkt, sql_conns[t_line]);
+	    if (roads)
+		write_wkts(id, tags, wkt, sql_conns[t_roads]);
 	}
-        free(wkt);
     }
+    free(wkt);
 	
-    clear_wkts();
     return 0;
 }
 

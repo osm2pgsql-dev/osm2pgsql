@@ -19,7 +19,7 @@ struct output_t {
     void (*cleanup)(void);
     void (*process)(struct middle_t *mid);
     int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
-    int (*way)(int id, struct keyval *tags, struct osmSegLL *segll, int count);
+    int (*way)(int id, struct keyval *tags, struct osmNode *nodes, int count);
 };
 
 #endif

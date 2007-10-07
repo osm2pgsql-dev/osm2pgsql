@@ -38,14 +38,9 @@ struct ramNode {
 #endif
 };
 
-struct ramSegment {
-    int from;
-    int to;
-};
-
 struct ramWay {
     struct keyval *tags;
-    int *segids;
+    int *ndids;
 };
 
 /* Object storage now uses 2 levels of storage arrays.
@@ -67,17 +62,16 @@ struct ramWay {
 #define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
 
 static struct ramNode    *nodes[NUM_BLOCKS];
-static struct ramSegment *segments[NUM_BLOCKS];
 static struct ramWay     *ways[NUM_BLOCKS];
 
-static int node_blocks, segment_blocks;
+static int node_blocks;
 #ifdef USE_CLEAN
 static int way_blocks;
 #endif
 
 static int way_out_count;
 
-static struct osmSegLL *getSegLL(int *segids, int *segCount);
+static struct osmNode *getNodes(int *ndids, int *ndCount);
 
 static inline int id2block(int id)
 {
@@ -151,53 +145,16 @@ static int ram_nodes_get(struct osmNode *out, int id)
     return 0;
 }
 
-static int ram_segments_set(int id, int from, int to, struct keyval *tags)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-
-    if (!segments[block]) {
-        segments[block] = calloc(PER_BLOCK, sizeof(struct ramSegment));
-        if (!segments[block]) {
-            fprintf(stderr, "Error allocating segments\n");
-            exit_nicely();
-        }
-        segment_blocks++;
-        //fprintf(stderr, "\tsegments(%zuMb)\n", segment_blocks * sizeof(struct ramSegment) * PER_BLOCK / 1000000);
-    }
-
-    segments[block][offset].from = from;
-    segments[block][offset].to   = to;
-    resetList(tags);
-    return 0;
-}
-
-static int ram_segments_get(struct osmSegment *out, int id)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-
-    if (!segments[block])
-        return 1;
-
-    if (!segments[block][offset].from && !segments[block][offset].to)
-        return 1;
-
-    out->from = segments[block][offset].from;
-    out->to   = segments[block][offset].to;
-    return 0;
-}
-
-static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
+static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
 {
     struct keyval *p;
-    int *segids;
-    int segCount, i;
+    int *ndids;
+    int ndCount, i;
 #ifdef USE_CLEAN
     int block  = id2block(id);
     int offset = id2offset(id);
 #else
-    struct osmSegLL *segll;
+    struct osmNode *nodes;
 #endif
 
 #ifdef USE_CLEAN
@@ -211,33 +168,37 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
         //fprintf(stderr, "\tways(%zuMb)\n", way_blocks * sizeof(struct ramWay) * PER_BLOCK / 1000000);
     }
 
-    if (ways[block][offset].segids) {
-        free(ways[block][offset].segids);
-        ways[block][offset].segids = NULL;
+    ndCount = countList(nds);
+    if (!ndCount)
+        return 1;
+
+    if (ways[block][offset].ndids) {
+        free(ways[block][offset].ndids);
+        ways[block][offset].ndids = NULL;
     }
 #endif
 
-    segCount = countList(segs);
-    if (!segCount)
+    ndCount = countList(nds);
+    if (!ndCount)
         return 1;
 
-    segids = malloc(sizeof(int) * (segCount+1));
-    if (!segids) {
+    ndids = malloc(sizeof(int) * (ndCount+1));
+    if (!ndids) {
         fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
         exit_nicely();
     }
 
 #ifdef USE_CLEAN
-    ways[block][offset].segids = segids;
+    ways[block][offset].ndids = ndids;
 #endif
     i = 0;
-    while ((p = popItem(segs)) != NULL) {
-        int seg_id = strtol(p->value, NULL, 10);
+    while ((p = popItem(nds)) != NULL) {
+        int nd_id = strtol(p->value, NULL, 10);
         freeItem(p);
-        if (seg_id) /* id = 0 is used as list terminator */
-            segids[i++] = seg_id;
+        if (nd_id) /* id = 0 is used as list terminator */
+            ndids[i++] = nd_id;
     }
-    segids[i] = 0;
+    ndids[i] = 0;
 #ifdef USE_CLEAN
     if (!ways[block][offset].tags) {
         p = malloc(sizeof(struct keyval));
@@ -254,65 +215,51 @@ static int ram_ways_set(int id, struct keyval *segs, struct keyval *tags)
         while ((p = popItem(tags)) != NULL)
             pushItem(ways[block][offset].tags, p);
 #else
-    segll = getSegLL(segids, &segCount);
-    free(segids);
+    nodes = getNodes(ndids, &ndCount);
+    free(ndids);
 
-    if (segll) {
-        out_pgsql.way(id, tags, segll, segCount);
-        free(segll);
+    if (nodes) {
+        out_pgsql.way(id, tags, nodes, ndCount);
+        free(nodes);
     }
 #endif
     return 0;
 }
 
-static struct osmSegLL *getSegLL(int *segids, int *segCount)
+static struct osmNode *getNodes(int *ndids, int *ndCount)
 {
-    struct osmSegment segment;
-    struct osmNode node;
     int id;
     int i, count = 0;
-    struct osmSegLL *segll;
+    struct osmNode *nodes;
 
-    while(segids[count])
+    while(ndids[count])
         count++;
 
-    segll = malloc(count * sizeof(struct osmSegLL));
+    nodes = malloc(count * sizeof(struct osmNode));
 
-    if (!segll) {
-        *segCount = 0;
+    if (!nodes) {
+        *ndCount = 0;
         return NULL;
     }
 
     count = 0;
     i = 0;
-    while ((id = segids[i++]) != 0)
+    while ((id = ndids[i++]) != 0)
     {
-        if (ram_segments_get(&segment, id))
+        if (ram_nodes_get(&nodes[count], id))
             continue;
-
-        if (ram_nodes_get(&node, segment.from))
-            continue;
-
-        segll[count].lon0 = node.lon;
-        segll[count].lat0 = node.lat;
-
-        if (ram_nodes_get(&node, segment.to))
-            continue;
-
-        segll[count].lon1 = node.lon;
-        segll[count].lat1 = node.lat;
 
         count++;
     }
-    *segCount = count;
-    return segll;
+    *ndCount = count;
+    return nodes;
 }
 
 
-static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmSegLL *segll, int count))
+static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
 {
-    int block, offset, segCount = 0;
-    struct osmSegLL *segll;
+    int block, offset, ndCount = 0;
+    struct osmNode *nodes;
 
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
@@ -320,17 +267,17 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
             continue;
 
         for (offset=0; offset < PER_BLOCK; offset++) {
-            if (ways[block][offset].segids) {
+            if (ways[block][offset].ndids) {
                 way_out_count++;
                 if (way_out_count % 1000 == 0)
                     fprintf(stderr, "\rWriting way(%uk)", way_out_count/1000);
 
-                segll = getSegLL(ways[block][offset].segids, &segCount);
+                nodes = getNodes(ways[block][offset].ndids, &ndCount);
 
-                if (segll) {
+                if (nodes) {
                     int id = block2id(block, offset);
-                    callback(id, ways[block][offset].tags, segll, segCount);
-                    free(segll);
+                    callback(id, ways[block][offset].tags, nodes, ndCount);
+                    free(nodes);
                 }
 
                 if (ways[block][offset].tags) {
@@ -338,9 +285,9 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
                     free(ways[block][offset].tags);
                     ways[block][offset].tags = NULL;
                 }
-                if (ways[block][offset].segids) {
-                    free(ways[block][offset].segids);
-                    ways[block][offset].segids = NULL;
+                if (ways[block][offset].ndids) {
+                    free(ways[block][offset].ndids);
+                    ways[block][offset].ndids = NULL;
                 }
             }
         }
@@ -378,18 +325,14 @@ static void ram_stop(void)
             free(nodes[i]);
             nodes[i] = NULL;
         }
-        if (segments[i]) {
-            free(segments[i]);
-            segments[i] = NULL;
-        }
         if (ways[i]) {
             for (j=0; j<PER_BLOCK; j++) {
                 if (ways[i][j].tags) {
                     resetList(ways[i][j].tags);
                     free(ways[i][j].tags);
                 }
-                if (ways[i][j].segids)
-                    free(ways[i][j].segids);
+                if (ways[i][j].ndids)
+                    free(ways[i][j].ndids);
             }
             free(ways[i]);
             ways[i] = NULL;
@@ -403,8 +346,6 @@ struct middle_t mid_ram = {
     end:            ram_end,
     cleanup:        ram_stop,
     analyze:        ram_analyze,
-    segments_set:   ram_segments_set,
-    segments_get:   ram_segments_get,
     nodes_set:      ram_nodes_set,
     nodes_get:      ram_nodes_get,
     ways_set:       ram_ways_set,
