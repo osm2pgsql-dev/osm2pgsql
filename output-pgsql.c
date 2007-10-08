@@ -347,13 +347,12 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
     sql_out(sql_conn, "\n", 1);
 }
 
-void add_parking_node(int id, struct keyval *tags)
+void add_parking_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
 // insert into planet_osm_point(osm_id,name,amenity,way) select osm_id,name,amenity,centroid(way) from planet_osm_polygon where amenity='parking';
 	const char *amenity = getItem(tags, "amenity");
 	const char *name    = getItem(tags, "name");
 	struct keyval nodeTags;
-	double node_lat = 0, node_lon = 0;
 	
 	if (!amenity || strcmp(amenity, "parking"))
 		return;
@@ -385,7 +384,12 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     int polygon = 0, export = 0;
     int roads = 0;
     char *wkt;
-    double area;
+    double area, interior_lat, interior_lon;
+    const char *multipolygon = getItem(tags, "multipolygon");
+
+    // If the way has been part of a multipolygon then skip
+    if (multipolygon)
+        return 0;
 
     for (i=0; i < numTags; i++) {
         if ((v = getItem(tags, exportTags[i].name))) {
@@ -406,7 +410,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 
     fix_motorway_shields(tags);
 
-    wkt = get_wkt(nodes, count, polygon, &area);
+    wkt = get_wkt_simple(nodes, count, polygon, &area, &interior_lat, &interior_lon);
     if (wkt && strlen(wkt)) {
 	/* FIXME: there should be a better way to detect polygons */
 	if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
@@ -416,7 +420,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 		addItem(tags, "way_area", tmp, 0);
 	    }
 	    write_wkts(id, tags, wkt, sql_conns[t_poly]);
-	    add_parking_node(id, tags);
+	    add_parking_node(id, tags, interior_lat, interior_lon);
 	} else {
 	    write_wkts(id, tags, wkt, sql_conns[t_line]);
 	    if (roads)
@@ -428,6 +432,89 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     return 0;
 }
 
+static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+{
+    unsigned int i, num, wkt_size;
+    double interior_lat, interior_lon;
+    int export = 0, polygon = 0;
+    int roads = 0;
+    const char *v;
+    struct keyval tags, *p;
+    fprintf(stderr, "Got relation with counts:");
+    for (num=0; xcount[num]; num++)
+        fprintf(stderr, " %d", xcount[num]);
+    fprintf(stderr, "\n");
+
+    // Aggregate tags from all polygons with the relation,
+    // no idea is this is a good way to deal with differing tags across the ways or not
+    initList(&tags);
+    p = rel_tags->next;
+    while (p != rel_tags) {
+        addItem(&tags, p->key, p->value, 1);
+        p = p->next;
+    }
+    for (i=0; xtags[i]; i++) {
+        p = xtags[i]->next;
+        while (p != xtags[i]) {
+            addItem(&tags, p->key, p->value, 1);
+            p = p->next;
+        }
+    }
+
+    for (i=0; i < numTags; i++) {
+        if ((v = getItem(&tags, exportTags[i].name))) {
+            export = 1;
+            polygon |= exportTags[i].polygon;
+            if (polygon)
+                break;
+        }
+    }
+
+    if (!export)
+        return 0;
+
+    if (add_z_order(&tags, polygon, &roads))
+        return 0;
+
+    // TODO: Need to join all the ways into one polygon with holes!
+    wkt_size = build_geometry(id, xnodes, xcount);
+
+    if (!wkt_size)
+        return 0;
+
+    for (i=0;i<wkt_size;i++)
+    {
+        char *wkt = get_wkt(i);
+
+        if (strlen(wkt)) {
+            /* FIXME: there should be a better way to detect polygons */
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+                double area = get_area(i);
+                if (area > 0.0) {
+                    char tmp[32];
+                    snprintf(tmp, sizeof(tmp), "%f", area);
+                    addItem(&tags, "way_area", tmp, 0);
+                }
+                write_wkts(id, &tags, wkt, sql_conns[t_poly]);
+                get_interior(i, &interior_lat, &interior_lon);
+                add_parking_node(id, &tags, interior_lat, interior_lon);
+	    } else {
+                write_wkts(id, &tags, wkt, sql_conns[t_line]);
+                if (roads)
+                    write_wkts(id, &tags, wkt, sql_conns[t_roads]);
+            }
+	}
+        free(wkt);
+    }
+	
+    clear_wkts();
+
+    // Mark each member so that we can skip them during iterate_ways
+    for (i=0; xcount[i]; i++)
+        addItem(xtags[i], "multipolygon", "1", 0);
+
+    return 0;
+}
 
 static int pgsql_out_start(const char *db, int append)
 {
@@ -601,5 +688,6 @@ struct output_t out_pgsql = {
         stop:      pgsql_out_stop,
         cleanup:   pgsql_out_cleanup,
         node:      pgsql_out_node,
-        way:       pgsql_out_way
+        way:       pgsql_out_way,
+        relation:  pgsql_out_relation
 };

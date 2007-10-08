@@ -20,6 +20,7 @@ struct output_t {
     void (*process)(struct middle_t *mid);
     int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
     int (*way)(int id, struct keyval *tags, struct osmNode *nodes, int count);
+    int (*relation)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
 };
 
 #endif

@@ -24,6 +24,9 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
 
+// Need clean mode so that we can handle polygons with holes
+#define USE_CLEAN
+
 static int scale = 100;
 #define DOUBLE_TO_FIX(x) ((x) * scale)
 #define FIX_TO_DOUBLE(x) (((double)x) / scale)
@@ -41,6 +44,11 @@ struct ramNode {
 struct ramWay {
     struct keyval *tags;
     int *ndids;
+};
+
+struct ramRel {
+    struct keyval *tags;
+    struct keyval *members;
 };
 
 /* Object storage now uses 2 levels of storage arrays.
@@ -63,13 +71,14 @@ struct ramWay {
 
 static struct ramNode    *nodes[NUM_BLOCKS];
 static struct ramWay     *ways[NUM_BLOCKS];
+static struct ramRel     *rels[NUM_BLOCKS];
 
 static int node_blocks;
 #ifdef USE_CLEAN
 static int way_blocks;
 #endif
 
-static int way_out_count;
+static int way_out_count, rel_out_count;
 
 static struct osmNode *getNodes(int *ndids, int *ndCount);
 
@@ -226,6 +235,54 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
     return 0;
 }
 
+static int ram_relations_set(int id, struct keyval *members, struct keyval *tags)
+{
+    struct keyval *p;
+    int block  = id2block(id);
+    int offset = id2offset(id);
+
+    if (!rels[block]) {
+        rels[block] = calloc(PER_BLOCK, sizeof(struct ramRel));
+        if (!rels[block]) {
+            fprintf(stderr, "Error allocating rels\n");
+            exit_nicely();
+        }
+    }
+
+    if (!rels[block][offset].tags) {
+        p = malloc(sizeof(struct keyval));
+        if (p) {
+            initList(p);
+            rels[block][offset].tags = p;
+        } else {
+            fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
+            exit_nicely();
+        }
+    } else
+        resetList(rels[block][offset].tags);
+
+    while ((p = popItem(tags)) != NULL)
+        pushItem(rels[block][offset].tags, p);
+
+    if (!rels[block][offset].members) {
+        p = malloc(sizeof(struct keyval));
+        if (p) {
+            initList(p);
+            rels[block][offset].members = p;
+        } else {
+            fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
+            exit_nicely();
+        }
+    } else
+        resetList(rels[block][offset].members);
+
+    while ((p = popItem(members)) != NULL)
+        pushItem(rels[block][offset].members, p);
+
+    return 0;
+    //return out_pgsql.relation(id, tags, nodes, ndCount)
+}
+
 static struct osmNode *getNodes(int *ndids, int *ndCount)
 {
     int id;
@@ -253,6 +310,91 @@ static struct osmNode *getNodes(int *ndids, int *ndCount)
     }
     *ndCount = count;
     return nodes;
+}
+
+static struct osmNode **getRelNodes(struct keyval *members, struct keyval ***pway_tags, int **pndCount)
+{
+    // Gather all ways referenced by a relation
+    struct keyval *m = members->next;
+    int count = countList(members)+1;
+    struct osmNode **relNodes = calloc(count, sizeof(struct osmNode *));
+    struct keyval **way_tags = calloc(count, sizeof(struct keyval *));
+    int i = 0;
+    int *ndCount;
+
+    assert(pndCount);
+    assert(relNodes);
+    assert(way_tags);
+    assert(pway_tags);
+    ndCount = calloc(count, sizeof(int));
+    assert(ndCount);
+    *pndCount = ndCount;
+    *pway_tags = way_tags;
+
+    while (m != members) {
+        int way_id = atoi(m->value);
+        if (way_id) {
+            int block  = id2block(way_id);
+            int offset = id2offset(way_id);
+            if (ways[block] && ways[block][offset].ndids) {
+                relNodes[i] = getNodes(ways[block][offset].ndids, &ndCount[i]);
+                way_tags[i] = ways[block][offset].tags;
+                if (relNodes[i]) 
+                    i++;
+            }
+        }
+        m = m->next;
+    }
+    relNodes[i] = NULL;
+    ndCount[i] = 0;
+    way_tags[i] = NULL;
+    return relNodes;
+}
+
+static void ram_iterate_relations(int (*callback)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count))
+{
+    int block, offset, *ndCount = NULL;
+    struct osmNode **nodes;
+    struct keyval **way_tags;
+
+    fprintf(stderr, "\n");
+    for(block=NUM_BLOCKS-1; block>=0; block--) {
+        if (!rels[block])
+            continue;
+
+        for (offset=0; offset < PER_BLOCK; offset++) {
+            if (rels[block][offset].members) {
+                rel_out_count++;
+                if (rel_out_count % 1000 == 0)
+                    fprintf(stderr, "\rWriting rel(%uk)", rel_out_count/1000);
+
+                nodes = getRelNodes(rels[block][offset].members, &way_tags, &ndCount);
+
+                if (nodes) {
+                    int i, id = block2id(block, offset);
+                    callback(id, rels[block][offset].tags, nodes, way_tags, ndCount);
+                    for (i=0; nodes[i]; i++)
+                        free(nodes[i]);
+                    free(nodes);
+                    free(ndCount);
+                    free(way_tags);
+                    nodes = NULL;
+                    ndCount = NULL;
+                    way_tags = NULL;
+                }
+            }
+            resetList(rels[block][offset].members);
+            free(rels[block][offset].members);
+            rels[block][offset].members = NULL;
+            resetList(rels[block][offset].tags);
+            free(rels[block][offset].tags);
+            rels[block][offset].tags=NULL;
+        }
+        free(rels[block]);
+        rels[block] = NULL;
+    }
+
+    fprintf(stderr, "\rWriting rel(%uk)\n", rel_out_count/1000);
 }
 
 
@@ -349,7 +491,9 @@ struct middle_t mid_ram = {
     nodes_set:      ram_nodes_set,
     nodes_get:      ram_nodes_get,
     ways_set:       ram_ways_set,
+    relations_set:  ram_relations_set,
 //        ways_get:       ram_ways_get,
 //        iterate_nodes:  ram_iterate_nodes,
-    iterate_ways:   ram_iterate_ways
+    iterate_ways:   ram_iterate_ways,
+    iterate_relations: ram_iterate_relations
 };

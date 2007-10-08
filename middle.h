@@ -19,8 +19,10 @@ struct middle_t {
     int (*nodes_get)(struct osmNode *out, int id);
     int (*ways_set)(int id, struct keyval *segs, struct keyval *tags);
     int *(*ways_get)(int id);
+    int (*relations_set)(int id, struct keyval *members, struct keyval *tags);
     void (*iterate_nodes)(int (*callback)(int id, struct keyval *tags, double node_lat, double node_lon));
     void (*iterate_ways)(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count));
+    void (*iterate_relations)(int (*callback)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count));
 };
 
 #endif
