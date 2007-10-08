@@ -410,7 +410,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 
     fix_motorway_shields(tags);
 
-    wkt = get_wkt_simple(nodes, count, polygon, &area, &interior_lat, &interior_lon);
+    wkt = get_wkt_simple(nodes, count, polygon, &area, &interior_lon, &interior_lat);
     if (wkt && strlen(wkt)) {
 	/* FIXME: there should be a better way to detect polygons */
 	if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
