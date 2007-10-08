@@ -434,17 +434,18 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 
 static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
 {
-    unsigned int i, num, wkt_size;
+    unsigned int i, wkt_size;
     double interior_lat, interior_lon;
     int export = 0, polygon = 0;
     int roads = 0;
     const char *v;
     struct keyval tags, *p;
+#if 0
     fprintf(stderr, "Got relation with counts:");
-    for (num=0; xcount[num]; num++)
-        fprintf(stderr, " %d", xcount[num]);
+    for (i=0; xcount[i]; i++)
+        fprintf(stderr, " %d", xcount[i]);
     fprintf(stderr, "\n");
-
+#endif
     // Aggregate tags from all polygons with the relation,
     // no idea is this is a good way to deal with differing tags across the ways or not
     initList(&tags);
@@ -470,17 +471,23 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         }
     }
 
-    if (!export)
+    if (!export) {
+        resetList(&tags);
         return 0;
+    }
 
-    if (add_z_order(&tags, polygon, &roads))
+    if (add_z_order(&tags, polygon, &roads)) {
+        resetList(&tags);
         return 0;
+    }
 
     // TODO: Need to join all the ways into one polygon with holes!
     wkt_size = build_geometry(id, xnodes, xcount);
 
-    if (!wkt_size)
+    if (!wkt_size) {
+        resetList(&tags);
         return 0;
+    }
 
     for (i=0;i<wkt_size;i++)
     {
@@ -513,6 +520,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     for (i=0; xcount[i]; i++)
         addItem(xtags[i], "multipolygon", "1", 0);
 
+    resetList(&tags);
     return 0;
 }
 
