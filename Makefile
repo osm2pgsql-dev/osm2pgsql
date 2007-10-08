@@ -1,20 +1,20 @@
 PACKAGE:=osm2pgsql
-VERSION:=0.08
+VERSION:=0.50
 SVN:=$(shell date +%Y%m%d)
 
-CFLAGS += -O2 -Wall -Wextra
+CFLAGS += -g -O2 -Wall -Wextra
 CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 
-CXXFLAGS += -O2 -Wall -DGEOS_INLINE $(CFLAGS)
+CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE $(CFLAGS)
 
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)
 LDFLAGS += -L$(shell pg_config --libdir) -lpq
 LDFLAGS += -lbz2
-LDFLAGS += -lproj
+LDFLAGS += -g -lproj
 
 SRCS:=$(wildcard *.c) $(wildcard *.cpp)
 OBJS:=$(SRCS:.c=.o)

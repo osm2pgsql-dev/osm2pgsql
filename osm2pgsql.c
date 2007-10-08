@@ -73,7 +73,6 @@ static void printStatus(void)
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
     xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
-    char membtmp[32];
     char *k;
 
     if (xmlStrEqual(name, BAD_CAST "node")) {
@@ -157,27 +156,9 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-	/* The value we insert into the members keyval will be of the form [nwr]$id,
-	 * that way we don't have another data structure and we can switch on the
-	 * first char to figure out the type of the member. */
-
-	if (xmlStrEqual(xtype, BAD_CAST "node")) {
-	    membtmp[0] = 'n';
-	} else if (xmlStrEqual(xtype, BAD_CAST "way")) {
-	    membtmp[0] = 'w';
-	} else if (xmlStrEqual(xtype, BAD_CAST "relation")) {
-	    membtmp[0] = 'r';
-	} else {
-	    fprintf(stderr, "%s: Unknown member type: %s\n",
-		__FUNCTION__, xtype);
-	    membtmp[0] = 0;
-	}
-
-	if (membtmp[0]) {
-	    strncpy(membtmp + 1, (char *) xid, sizeof(membtmp) - 1);
-	    assert(membtmp[sizeof(membtmp) - 1] == 0);
-	    addItem(&members, (char *) xrole, membtmp, 0);
-	}
+        /* Currently we are only interested in 'way' members since these form polygons with holes */
+	if (xmlStrEqual(xtype, BAD_CAST "way"))
+	    addItem(&members, (char *)xrole, (char *)xid, 0);
 
         xmlFree(xid);
         xmlFree(xrole);
@@ -203,7 +184,7 @@ void EndElement(const xmlChar *name)
         resetList(&tags);
         resetList(&nds);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-        /* mid->relations_set(osm_id, &members, &tags); */
+        mid->relations_set(osm_id, &members, &tags);
         resetList(&tags);
         resetList(&members);
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
@@ -393,6 +374,7 @@ int main(int argc, char *argv[])
         mid->analyze();
 
         //mid->iterate_nodes(out->node);
+        mid->iterate_relations(out->relation);
         mid->iterate_ways(out->way);
         mid->stop();
         optind++;

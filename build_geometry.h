@@ -29,7 +29,13 @@ extern "C" {
 
 #include "osmtypes.h"
 
-char *get_wkt(struct osmNode *, int count, int polygon, double *area);
+char *get_wkt_simple(struct osmNode *, int count, int polygon, double *area, double *int_x, double *int_y);
+
+char* get_wkt(size_t index);
+void get_interior(size_t index, double *y, double *x);
+double get_area(size_t index);
+size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount);
+void clear_wkts();
 
 #ifdef __cplusplus
 }
