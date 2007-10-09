@@ -55,43 +55,51 @@ using namespace geos;
 using namespace std;
 
 char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, double *int_x, double *int_y) {
-  GeometryFactory gf;
+    GeometryFactory gf;
+    auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
 
-  auto_ptr<CoordinateSequence> coords(
-    gf.getCoordinateSequenceFactory()->create(0, 2));
-  for (int i = 0; i < count; i++) {
-    Coordinate c;
-    c.x = nodes[i].lon;
-    c.y = nodes[i].lat;
-    coords->add(c, i);
-  }
+    try
+    {
+        for (int i = 0; i < count; i++) {
+            Coordinate c;
+            c.x = nodes[i].lon;
+            c.y = nodes[i].lat;
+            coords->add(c, i);
+        }
 
-  auto_ptr<Geometry> geom;
-  if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-    auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-    geom = auto_ptr<Geometry>(gf.createPolygon(shell.release(),
-      new vector<Geometry *>));
-    *area = geom->getArea();
-    try {
-        std::auto_ptr<Point> pt(geom->getInteriorPoint());
-        *int_x = pt->getX();
-        *int_y = pt->getY();
-    } catch (...) {
+        auto_ptr<Geometry> geom;
+        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
+            auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+            geom = auto_ptr<Geometry>(gf.createPolygon(shell.release(),
+                                      new vector<Geometry *>));
+            *area = geom->getArea();
+            try {
+                std::auto_ptr<Point> pt(geom->getInteriorPoint());
+                *int_x = pt->getX();
+                *int_y = pt->getY();
+            } catch (...) {
        // This happens on some unusual polygons, we'll ignore them for now
        //std::cerr << std::endl << "Exception finding interior point" << std::endl;
-       *int_x = *int_y = 0.0;
-    }
-  } else {
-    *area = 0;
-    *int_x = *int_y = 0;
-    if (coords->getSize() < 2)
-      return NULL;
-    geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
-  }
+                *int_x = *int_y = 0.0;
+            }
+        } else {
+            *area = 0;
+            *int_x = *int_y = 0;
+            if (coords->getSize() < 2)
+                return NULL;
+            geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+        }
 
-  WKTWriter wktw;
-  string wkt = wktw.write(geom.get());
-  return strdup(wkt.c_str());
+        WKTWriter wktw;
+        string wkt = wktw.write(geom.get());
+        return strdup(wkt.c_str());
+    }
+    catch (...)
+    {
+        std::cerr << std::endl << "excepton caught processing way" << std::endl;
+        return NULL;
+    }
+
 }
 
 
@@ -165,22 +173,22 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount) {
     GeometryFactory gf;
     auto_ptr<Geometry> geom;
 
-    for (int c=0; xnodes[c]; c++) {
-        auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
-        for (int i = 0; i < xcount[c]; i++) {
-            struct osmNode *nodes = xnodes[c];
-            Coordinate c;
-            c.x = nodes[i].lon;
-            c.y = nodes[i].lat;
-            coords->add(c, i);
-        }
-        geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
-        lines->push_back(geom.release());
-    }
-
     try
     {
-        geom_ptr segment(0);
+        for (int c=0; xnodes[c]; c++) {
+            auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
+            for (int i = 0; i < xcount[c]; i++) {
+                struct osmNode *nodes = xnodes[c];
+                Coordinate c;
+                c.x = nodes[i].lon;
+                c.y = nodes[i].lat;
+                coords->add(c, i);
+            }
+            geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+            lines->push_back(geom.release());
+        }
+
+        //geom_ptr segment(0);
         geom_ptr mline (gf.createMultiLineString(lines.release()));
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
