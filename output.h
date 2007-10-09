@@ -23,4 +23,6 @@ struct output_t {
     int (*relation)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
 };
 
+unsigned int pgsql_filter_tags(struct keyval *tags, int *polygon);
+
 #endif
