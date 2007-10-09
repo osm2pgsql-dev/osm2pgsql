@@ -24,9 +24,6 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
 
-// Need clean mode so that we can handle polygons with holes
-#define USE_CLEAN
-
 static int scale = 100;
 #define DOUBLE_TO_FIX(x) ((x) * scale)
 #define FIX_TO_DOUBLE(x) (((double)x) / scale)
@@ -74,9 +71,7 @@ static struct ramWay     *ways[NUM_BLOCKS];
 static struct ramRel     *rels[NUM_BLOCKS];
 
 static int node_blocks;
-#ifdef USE_CLEAN
 static int way_blocks;
-#endif
 
 static int way_out_count, rel_out_count;
 
@@ -159,33 +154,13 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
     struct keyval *p;
     int *ndids;
     int ndCount, i;
-#ifdef USE_CLEAN
     int block  = id2block(id);
     int offset = id2offset(id);
-#else
-    struct osmNode *nodes;
-#endif
+    int polygon = 0;
 
-#ifdef USE_CLEAN
-    if (!ways[block]) {
-        ways[block] = calloc(PER_BLOCK, sizeof(struct ramWay));
-        if (!ways[block]) {
-            fprintf(stderr, "Error allocating ways\n");
-            exit_nicely();
-        }
-        way_blocks++;
-        //fprintf(stderr, "\tways(%zuMb)\n", way_blocks * sizeof(struct ramWay) * PER_BLOCK / 1000000);
-    }
-
-    ndCount = countList(nds);
-    if (!ndCount)
+    // Check with output layer whether the way is: (1) Exportable, (2) Maybe a polygon
+    if (pgsql_filter_tags(tags, &polygon))
         return 1;
-
-    if (ways[block][offset].ndids) {
-        free(ways[block][offset].ndids);
-        ways[block][offset].ndids = NULL;
-    }
-#endif
 
     ndCount = countList(nds);
     if (!ndCount)
@@ -197,9 +172,6 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
         exit_nicely();
     }
 
-#ifdef USE_CLEAN
-    ways[block][offset].ndids = ndids;
-#endif
     i = 0;
     while ((p = popItem(nds)) != NULL) {
         int nd_id = strtol(p->value, NULL, 10);
@@ -208,7 +180,42 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
             ndids[i++] = nd_id;
     }
     ndids[i] = 0;
-#ifdef USE_CLEAN
+
+    if (i == 0) {
+        free(ndids);
+        return 1;
+    }
+
+    // Memory saving hack:-
+    // If this isn't a polygon then it can not be part of a multipolygon
+    // Hence we can write out the way now and discard it.
+    if (!polygon) {
+        struct osmNode *nodes = getNodes(ndids, &ndCount);
+        if (nodes) {
+            out_pgsql.way(id, tags, nodes, ndCount);
+            free(nodes);
+        }
+        free(ndids);
+        return 0;
+    }
+
+    if (!ways[block]) {
+        ways[block] = calloc(PER_BLOCK, sizeof(struct ramWay));
+        if (!ways[block]) {
+            fprintf(stderr, "Error allocating ways\n");
+            exit_nicely();
+        }
+        way_blocks++;
+        //fprintf(stderr, "\tways(%zuMb)\n", way_blocks * sizeof(struct ramWay) * PER_BLOCK / 1000000);
+    }
+
+    if (ways[block][offset].ndids) {
+        free(ways[block][offset].ndids);
+        ways[block][offset].ndids = NULL;
+    }
+
+    ways[block][offset].ndids = ndids;
+
     if (!ways[block][offset].tags) {
         p = malloc(sizeof(struct keyval));
         if (p) {
@@ -221,17 +228,9 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
     } else
         resetList(ways[block][offset].tags);
 
-        while ((p = popItem(tags)) != NULL)
-            pushItem(ways[block][offset].tags, p);
-#else
-    nodes = getNodes(ndids, &ndCount);
-    free(ndids);
+    while ((p = popItem(tags)) != NULL)
+        pushItem(ways[block][offset].tags, p);
 
-    if (nodes) {
-        out_pgsql.way(id, tags, nodes, ndCount);
-        free(nodes);
-    }
-#endif
     return 0;
 }
 
@@ -240,6 +239,10 @@ static int ram_relations_set(int id, struct keyval *members, struct keyval *tags
     struct keyval *p;
     int block  = id2block(id);
     int offset = id2offset(id);
+
+    // Currently we are only interested in processing multipolygons
+    if (!getItem(tags, "multipolygon"))
+        return 0;
 
     if (!rels[block]) {
         rels[block] = calloc(PER_BLOCK, sizeof(struct ramRel));

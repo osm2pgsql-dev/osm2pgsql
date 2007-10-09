@@ -369,6 +369,25 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 }
 
 
+unsigned int pgsql_filter_tags(struct keyval *tags, int *polygon)
+{
+    const char *v;
+    unsigned int i, filter = 1;
+
+    *polygon = 0;
+
+    for (i=0; i < numTags; i++) {
+        if ((v = getItem(tags, exportTags[i].name))) {
+            filter = 0;
+            *polygon |= exportTags[i].polygon;
+            if (*polygon)
+                break;
+        }
+    }
+
+    return filter;
+}
+
 /*
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
 ilding, bridge, layer, way) FROM stdin;
@@ -379,10 +398,7 @@ E4C1421D5BF24D06053E7DF4940
 */
 static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count)
 {
-    const char *v;
-    unsigned int i;
-    int polygon = 0, export = 0;
-    int roads = 0;
+    int polygon = 0, roads = 0;
     char *wkt;
     double area, interior_lat, interior_lon;
     const char *multipolygon = getItem(tags, "multipolygon");
@@ -391,19 +407,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     if (multipolygon)
         return 0;
 
-    for (i=0; i < numTags; i++) {
-        if ((v = getItem(tags, exportTags[i].name))) {
-            export = 1;
-            polygon |= exportTags[i].polygon;
-            if (polygon)
-                break;
-        }
-    }
-
-    if (!export)
-        return 0;
-
-    if (add_z_order(tags, polygon, &roads))
+    if (pgsql_filter_tags(tags, &polygon) || add_z_order(tags, polygon, &roads))
         return 0;
 
     //compress_tag_name(tags);
@@ -436,9 +440,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
 {
     unsigned int i, wkt_size;
     double interior_lat, interior_lon;
-    int export = 0, polygon = 0;
-    int roads = 0;
-    const char *v;
+    int polygon = 0, roads = 0;
     struct keyval tags, *p;
 #if 0
     fprintf(stderr, "Got relation with counts:");
@@ -462,26 +464,11 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         }
     }
 
-    for (i=0; i < numTags; i++) {
-        if ((v = getItem(&tags, exportTags[i].name))) {
-            export = 1;
-            polygon |= exportTags[i].polygon;
-            if (polygon)
-                break;
-        }
-    }
-
-    if (!export) {
+    if (pgsql_filter_tags(&tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
         resetList(&tags);
         return 0;
     }
 
-    if (add_z_order(&tags, polygon, &roads)) {
-        resetList(&tags);
-        return 0;
-    }
-
-    // TODO: Need to join all the ways into one polygon with holes!
     wkt_size = build_geometry(id, xnodes, xcount);
 
     if (!wkt_size) {
