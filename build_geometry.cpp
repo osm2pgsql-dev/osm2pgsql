@@ -64,7 +64,7 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, doubl
             Coordinate c;
             c.x = nodes[i].lon;
             c.y = nodes[i].lat;
-            coords->add(c, i);
+            coords->add(c, 0);
         }
 
         auto_ptr<Geometry> geom;
@@ -182,10 +182,12 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount) {
                 Coordinate c;
                 c.x = nodes[i].lon;
                 c.y = nodes[i].lat;
-                coords->add(c, i);
+                coords->add(c, 0);
             }
-            geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
-            lines->push_back(geom.release());
+            if (coords->getSize() > 1) {
+                geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+                lines->push_back(geom.release());
+            }
         }
 
         //geom_ptr segment(0);
