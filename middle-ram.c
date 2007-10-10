@@ -239,9 +239,10 @@ static int ram_relations_set(int id, struct keyval *members, struct keyval *tags
     struct keyval *p;
     int block  = id2block(id);
     int offset = id2offset(id);
+    const char *type = getItem(tags, "type");
 
     // Currently we are only interested in processing multipolygons
-    if (!getItem(tags, "multipolygon"))
+    if (strcmp(type, "multipolygon"))
         return 0;
 
     if (!rels[block]) {
