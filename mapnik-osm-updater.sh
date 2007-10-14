@@ -8,6 +8,10 @@ export sql_dump="$planet_dir/planet.osm.sql.bz2"
 export osm2pgsql_cmd=`which osm2pgsql`
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
+osm_planet_mirror_cmd='../../planet-mirror/planet-mirror.pl'
+test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="$HOME/svn.openstreetmap.org/applications/utils/planet-mirror/planet-mirror.pl"
+test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd=`which osm-planet-mirror`
+
 test -n "$1" || help=1
 quiet=" -q "
 verbose=1
@@ -258,7 +262,11 @@ fi
 ############################################
 if [ -n "$mirror" ] ; then
     test -n "$verbose" && echo "----- Mirroring planet File"
-    if ! sudo -u "$osm_username" osm-planet-mirror -v -v --planet-dir=$planet_dir ; then 
+    if ! [ -x "$osm_planet_mirror_cmd" ]; then
+	echo "Cannot execute '$osm_planet_mirror_cmd'" 1>&2
+	exit -1
+    fi
+    if ! sudo -u "$osm_username" $osm_planet_mirror_cmd -v -v --planet-dir=$planet_dir ; then 
 	echo "Cannot Mirror Planet File" 1>&2
 	exit 1
     fi
