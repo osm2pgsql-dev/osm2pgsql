@@ -25,7 +25,8 @@ for arg in "$@" ; do
 	    create_db_users=${create_db_users:-*}
 	    ;;
 
-	--all-from-dump) #	Do all the creation steps listed below from planet-dump file
+	--all-from-dump) #	Do all the creation steps listed below
+		    #	from planet-dump file
 		#	!!! all-from-dump is not completely tested yet
 	    create_osm_user=1
 	    mirror_dump=1
@@ -37,8 +38,8 @@ for arg in "$@" ; do
 	    fill_from_dump="$sql_dump"
 	    ;;
 
-	--all-create) #		Do all the creation steps listed below only no data import
-		      #	and no planet mirroring
+	--all-create) #		Do all the creation steps listed below only no data
+		      #	import and no planet mirroring
 	    create_osm_user=1
 	    drop=1
 	    create_db=1
@@ -53,7 +54,7 @@ for arg in "$@" ; do
 	    create_osm_user=1
 	    ;;
 	
-	--mirror) #		mirror the planet File from http://planet.openstreetmap.org/
+	--mirror) #		mirror planet File (http://planet.openstreetmap.org/)
 	    mirror=1
 	    ;;
 
@@ -62,7 +63,8 @@ for arg in "$@" ; do
 	    ;;
 
 	--create_db) #		create the database (gis)
-		     #	with this command only the database is created, but no tables inside it
+	    #		with this command only the database is created, 
+	    #		but no tables inside it
 	    create_db=1
 	    ;;
 	
@@ -75,12 +77,14 @@ for arg in "$@" ; do
 	    ;;
 
 	--create_db_users=*) #Create a Database user for all users specified.
-	    #		To use all available on the system specify *. (Except root)
+	    #		To create a db-user for all available system-user
+	    #		specify *. (Except root))
 	    create_db_users=${arg#*=}
 	    ;;
 	
-	--grant_db_users=*) #	Grant database-users all rights (including write, ...) to the gis Database
-		    #	!!! This has to be changed in the future, normally only the osm user needs update rights
+	--grant_db_users=*) #	Grant database-users all rights (including write, ...)
+	    #		to the gis Database !!! This has to be changed in the
+	    #		future, normally only the osm user needs update rights
 	    grant_db_users=${arg#*=}
 	    ;;
 
@@ -96,7 +100,7 @@ for arg in "$@" ; do
 	    fill_from_dump=${arg#*=}
 	    ;;
 
-	--postgis_mapnik_dump=*) #	Dump Content of Mapnik postgis Database to a file File (*.sql or *.sql.bz)
+	--mapnik_dump=*) #	Dump Content of Mapnik Database to a File (.sql|.sql.bz))
 	    postgis_mapnik_dump=${arg#*=}
 	    ;;
 	
@@ -104,7 +108,8 @@ for arg in "$@" ; do
 	    db_table_create=1
 	    ;;
 
-	--count_db) # Count entries in Database
+	--count_db) #		Count entries in Database. This is to check
+	    # 		if the database really contains entries
 	    count_db=1
 	    ;;
 
@@ -146,23 +151,42 @@ for arg in "$@" ; do
 	    planet_file=${arg#*=}
 	    ;;
 	
-	--osm_username=*) #	Define username to use for DB creation and planet download
-		#	You shouldn't use your username as the download and install user. 
-		#	This username is the download and install user. (normally osm) 
-		#	The osm-user normally only should have the planet files in his
-		#	home directory and nothing else. By default the osm-username is 'osm'
+	--osm_username=*) #	Define username to use for DB creation and planet
+	    #		download
+	    #		!! You shouldn't use your username or root as the
+	    #		!! download and install user. 
+	    #		This username is the download and install user.
+	    #		The osm-user normally only should have the planet files
+	    #		in hishome directory and nothing else. By default 
+	    #		the osm-username is 'osm'
 	    osm_username=${arg#*=}
+
+	    if [ "$osm_username" = "$USER" ] ; then
+		echo 
+		echo "!!! Don't use your own login account as the osm_username!!" 1>&2
+		echo 
+		exit 1
+	    fi
+
+	    if [ "$osm_username" = "root" ] ; then
+		echo 
+		echo "!!! Don't use the root account as the osm_username!!" 1>&2
+		echo 
+		exit 1
+	    fi
+
 	    planet_dir="/home/$osm_username/osm/planet"
 	    planet_file="$planet_dir/planet.osm.bz2"
 	    ;;
 	
 	--osm2pgsql_cmd=*) #	The path to the osm2pgsql command
-	    	#	It can be found at svn.openstreetmap.org/applications/utils/export/osm2pgsql/
-	    	#	and has to be compiled. Alternatively you can install the Debian Package
-	    	#	openstreetmap-utils
+	    #		It can be found at
+	    #		svn.openstreetmap.org/applications/utils/export/osm2pgsql/
+	    #		and has to be compiled. Alternatively you can install
+	    #		the Debian Package openstreetmap-utils
 	    osm2pgsql_cmd=${arg#*=}
 		if ! [ -x "$osm2pgsql_cmd" ]; then
-		    echo "Cannot execute '$osm2pgsql_cmd'"
+		    echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
 		    exit -1
 		fi
 		;;
@@ -189,7 +213,7 @@ if [ -n "$help" ] ; then
 !!! Warning: This Script is for now a quick hack to make setting up
 !!! Warning: My databases easier. Please check if it really works for you!!
 !!! Warning: Especially when using different Database names or username, ...
-!!! Warning: not every combination of changing values from the default is tested.
+!!! Warning: not every combination of values except the default is tested.
 
     This script tries to install the mapnik database.
     For this it first creates a new user osm on the system
@@ -235,8 +259,8 @@ fi
 if [ -n "$mirror" ] ; then
     test -n "$verbose" && echo "----- Mirroring planet File"
     if ! sudo -u "$osm_username" osm-planet-mirror -v -v --planet-dir=$planet_dir ; then 
-	echo "Cannot Mirror Planet File"
-	exit
+	echo "Cannot Mirror Planet File" 1>&2
+	exit 1
     fi
 fi
 
@@ -331,7 +355,7 @@ fi
 ############################################
 if [ -n "$db_table_create" ] ; then
     if ! [ -x "$osm2pgsql_cmd" ]; then
-	echo "Cannot execute '$osm2pgsql_cmd'"
+	echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
 	exit -1
     fi
     echo ""
@@ -344,7 +368,7 @@ fi
 ############################################
 if [ -n "$planet_fill" ] ; then
     if ! [ -x "$osm2pgsql_cmd" ]; then
-	echo "Cannot execute '$osm2pgsql_cmd'"
+	echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
 	exit -1
     fi
     echo ""
