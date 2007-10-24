@@ -35,7 +35,7 @@ static struct {
 } tables [] = {
     { name: "planet_osm_point",   type: "POINT"     },
     { name: "planet_osm_line",    type: "LINESTRING"},
-    { name: "planet_osm_polygon", type: "GEOMETRY"  },
+    { name: "planet_osm_polygon", type: "POLYGON"  },
     { name: "planet_osm_roads",   type: "LINESTRING"}
 };
 static const unsigned int num_tables = sizeof(tables)/sizeof(*tables);
@@ -568,8 +568,12 @@ static int pgsql_out_start(const char *db, int append)
             strcat(sql, tables[i].type);
             strcat(sql, "', 2 );\n");
 
+            strcat(sql, "ALTER TABLE ");
+            strcat(sql, tables[i].name);
+            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
+
             res = PQexec(sql_conn, sql);
-            if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
                 fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
                 PQclear(res);
                 exit_nicely();
@@ -630,38 +634,33 @@ static void pgsql_out_stop(int append)
         PQclear(res);
 
         sql[0] = '\0';
-        strcat(sql, "VACUUM ANALYZE ");
+        strcat(sql, "ANALYZE ");
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
-        if (!append) {
-            strcat(sql, "ALTER TABLE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
+        strcat(sql, "CREATE TABLE tmp AS SELECT * FROM ");
+        strcat(sql, tables[i].name);
+        strcat(sql, " ORDER BY way;\n");
 
-            strcat(sql, "CREATE INDEX way_index");
-            strcat(sql, tmp);
-            strcat(sql, " ON ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
+        strcat(sql, "DROP TABLE ");
+        strcat(sql, tables[i].name);
+        strcat(sql, ";\n");
 
-            strcat(sql, "CREATE INDEX z_index");
-            strcat(sql, tmp);
-            strcat(sql, " ON ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " (z_order);\n");
-        }
-        strcat(sql, "CLUSTER way_index");
+        strcat(sql, "ALTER TABLE tmp RENAME TO ");
+        strcat(sql, tables[i].name);
+        strcat(sql, ";\n");
+
+        strcat(sql, "CREATE INDEX way_index");
         strcat(sql, tmp);
         strcat(sql, " ON ");
         strcat(sql, tables[i].name);
-        strcat(sql, ";\n");
+        strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
 
         strcat(sql, "GRANT SELECT ON ");
         strcat(sql, tables[i].name);
         strcat(sql, " TO PUBLIC;\n");
 
-        strcat(sql, "VACUUM ANALYZE ");
+        strcat(sql, "ANALYZE ");
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
