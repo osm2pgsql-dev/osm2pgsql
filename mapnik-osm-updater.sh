@@ -6,6 +6,7 @@ export planet_dir="/home/$osm_username/osm/planet"
 export planet_file="$planet_dir/planet.osm.bz2"
 export sql_dump="$planet_dir/planet.osm.sql.bz2"
 export osm2pgsql_cmd=`which osm2pgsql`
+export log_dir=/var/log
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
 osm_planet_mirror_cmd='../../planet-mirror/planet-mirror.pl'
@@ -18,19 +19,21 @@ verbose=1
 
 for arg in "$@" ; do
     case $arg in
-	--all-planet) #		Do all the creation steps listed below from planet file
+	--all-planet-update) #	Do all the creation steps listed below from planet file
 	    create_osm_user=1
 	    mirror=1
+	    check_newer_planet=1
 	    drop=1
 	    create_db=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
 	    create_db_users=${create_db_users:-*}
+	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
 	--all-from-dump) #	Do all the creation steps listed below
-		    #	from planet-dump file
+    		#	from planet-dump file
 		#	!!! all-from-dump is not completely tested yet
 	    create_osm_user=1
 	    mirror_dump=1
@@ -40,6 +43,7 @@ for arg in "$@" ; do
 	    grant_all_rights_to_user_osm=1
 	    create_db_users=${create_db_users:-*}
 	    fill_from_dump="$sql_dump"
+	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
 	--all-create) #		Do all the creation steps listed below only no data
@@ -50,9 +54,10 @@ for arg in "$@" ; do
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    create_db_users=${create_db_users:-*}
+	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
-	--create_osm_user) #	create the osm-user needed
+	--create-osm-user) #	create the osm-user needed
 		#	This means creating a user 'osm' and his home directory
 		#	with useradd, mkdir, chmod and chown
 	    create_osm_user=1
@@ -62,58 +67,73 @@ for arg in "$@" ; do
 	    mirror=1
 	    ;;
 
+	--no-mirror) #		do not mirror planet File
+	    mirror=
+	    ;;
+
+	--check-newer-planet) #	Check if Planet File is newer then stampfile. 
+	    #		If yes: Continue
+	    check_newer_planet=1
+	    ;;
+
 	--drop) #		drop the old Database (gis) and Database-user (osm)
 	    drop=1
 	    ;;
 
-	--create_db) #		create the database (gis)
+	--create-db) #		create the database (gis)
 	    #		with this command only the database is created, 
 	    #		but no tables inside it
 	    create_db=1
 	    ;;
 	
-	--create_db_user) #	create the database-user (osm)
+	--create-db-user) #	create the database-user (osm)
 	    create_db_user=1
 	    ;;
 	
-	--grant_all2osm_user) #	grant all rights for the database to the DB-User osm
+	--grant-all2osm-user) #	grant all rights for the database to the DB-User osm
 	    grant_all_rights_to_user_osm=1
 	    ;;
 
-	--create_db_users=*) #Create a Database user for all users specified.
+	--create-db-users=*) #Create a Database user for all users specified.
 	    #		To create a db-user for all available system-user
 	    #		specify *. (Except root))
 	    create_db_users=${arg#*=}
 	    ;;
 	
-	--grant_db_users=*) #	Grant database-users all rights (including write, ...)
+	--grant-db-users=*) #	Grant database-users all rights (including write, ...)
 	    #		to the gis Database !!! This has to be changed in the
 	    #		future, normally only the osm user needs update rights
 	    grant_db_users=${arg#*=}
 	    ;;
 
-	--planet_fill) #	fill database from planet File
+	--planet-fill) #	fill database from planet File
 	    planet_fill=1
 	    ;;
 
-	--mirror_dump) #	mirror the planet.sql dump File
+	--mirror-dump) #	mirror the planet.sql dump File
 	    mirror_dump=1
 	    ;;
 
-	--fill_from_dump=*) #	fill database from Dump File
+	--no-mirror-dump) #	Do not mirror the planet.sql dump File
+	    mirror_dump=
+	    ;;
+
+	--fill-from-dump=*) #	fill database from Dump File
 	    fill_from_dump=${arg#*=}
 	    ;;
 
-	--mapnik_dump=*) #	Dump Content of Mapnik Database to a File (.sql|.sql.bz))
+	--mapnik-dump=*) #	Dump Content of Mapnik Database to a File (.sql|.sql.bz))
 	    postgis_mapnik_dump=${arg#*=}
 	    ;;
 	
-	--db_table_create) #	Create tables in Database with osm2pgsql
+	--db-table-create) #	Create tables in Database with osm2pgsql
 	    db_table_create=1
 	    ;;
 
-	--count_db) #		Count entries in Database. This is to check
+	--count-db) #		Count entries in Database. This is to check
 	    # 		if the database really contains entries
+	    #		if you set an  empty user with the option osm_username=''
+	    #		the current user is used
 	    count_db=1
 	    ;;
 
@@ -146,16 +166,16 @@ for arg in "$@" ; do
 	    verbose=''
 	    ;;
 
-	--planet_dir=*) #	define Directory for Planet-File
+	--planet-dir=*) #	define Directory for Planet-File
 	    planet_dir=${arg#*=}
 	    planet_file="$planet_dir/planet.osm.bz2"
 	    ;;
 
-	--planet_file=*) #	define Planet-File including Directory
+	--planet-file=*) #	define Planet-File including Directory
 	    planet_file=${arg#*=}
 	    ;;
 	
-	--osm_username=*) #	Define username to use for DB creation and planet
+	--osm-username=*) #	Define username to use for DB creation and planet
 	    #		download
 	    #		!! You shouldn't use your username or root as the
 	    #		!! download and install user. 
@@ -183,7 +203,7 @@ for arg in "$@" ; do
 	    planet_file="$planet_dir/planet.osm.bz2"
 	    ;;
 	
-	--osm2pgsql_cmd=*) #	The path to the osm2pgsql command
+	--osm2pgsql-cmd=*) #	The path to the osm2pgsql command
 	    #		It can be found at
 	    #		svn.openstreetmap.org/applications/utils/export/osm2pgsql/
 	    #		and has to be compiled. Alternatively you can install
@@ -195,7 +215,7 @@ for arg in "$@" ; do
 		fi
 		;;
 
-	--database_name=*) #	use this name for the database default is 'gis'
+	--database-name=*) #	use this name for the database default is 'gis'
 	    database_name=${arg#*=}
 	    ;;
 
@@ -233,6 +253,23 @@ if [ -n "$help" ] ; then
     exit;
 fi
 
+
+if [ -n "$osm_username" ] ; then
+    sudo_cmd="sudo -u $osm_username"
+else
+    sudo_cmd=''
+fi
+
+export import_stamp_file=${log_dir}/osm2pgsql_postgis-$database_name.stamp
+export import_log=${log_dir}/osm2pgsql_postgis-$database_name.log
+
+
+if [ -n "$debug" ] ; then
+        echo "Planet File: `ls -l $planet_file`"
+        echo "Import Stamp : `ls -l $import_stamp_file`"
+fi
+
+
 ############################################
 # Create a user on the system
 ############################################
@@ -266,9 +303,32 @@ if [ -n "$mirror" ] ; then
 	echo "Cannot execute '$osm_planet_mirror_cmd'" 1>&2
 	exit -1
     fi
-    if ! sudo -u "$osm_username" $osm_planet_mirror_cmd -v -v --planet-dir=$planet_dir ; then 
+    if ! $sudo_cmd $osm_planet_mirror_cmd -v -v --planet-dir=$planet_dir ; then 
 	echo "Cannot Mirror Planet File" 1>&2
 	exit 1
+    fi
+    if ! [ -s $planet_file ] ; then
+        echo "File $planet_file is missing"
+        exit -1
+    fi
+
+
+fi
+
+############################################
+# Check if Planet File is newer than import Stamp
+############################################
+if [ -n "$check_newer_planet" ] ; then
+    if [ "$planet_file" -nt "$import_stamp_file" ] ; then
+	if [ -n "$verbose" ] ; then
+	    echo "----- New File needs updating"
+            echo "Planet File: `ls -l $planet_file`"
+            echo "Import Stamp : `ls -l $import_stamp_file`"
+	fi
+    else
+	echo "Postgis Database already Up To Date"
+	echo "`ls -l $import_stamp_file`"
+	exit 0
     fi
 fi
 
@@ -288,9 +348,19 @@ fi
 if [ -n "$create_db" ] ; then
     test -n "$verbose" && echo
     test -n "$verbose" && echo "----- Create Database '$database_name'"
-    sudo -u postgres createdb -Upostgres  $quiet  -EUTF8 "$database_name"  || exit -1 
-    sudo -u postgres createlang plpgsql "$database_name"  || exit -1 
-    sudo -u postgres psql $quiet -Upostgres "$database_name" </usr/share/postgresql-8.2-postgis/lwpostgis.sql 
+    if ! sudo -u postgres createdb -Upostgres  $quiet  -EUTF8 "$database_name"; then
+        echo "Creation Failed"
+        exit -1
+    fi
+    if ! sudo -u postgres createlang plpgsql "$database_name"; then
+        echo "Creation Failed"
+        exit -1
+    fi
+
+    if ! sudo -u postgres psql $quiet -Upostgres "$database_name" </usr/share/postgresql-8.2-postgis/lwpostgis.sql ; then
+        echo "Creation Failed"
+        exit -1
+    fi
 fi
 
 ############################################
@@ -318,7 +388,7 @@ fi
 if [ -n "$create_db_users" ] ; then
 
     if [ "$create_db_users" = "*" ] ; then
-        echo "GRANT Rights to every USER"
+        echo "Create DB User for every USER"
         create_db_users=''
         for user in `users|grep -v -e root` ; do 
             create_db_users="$create_db_users $user"
@@ -353,6 +423,8 @@ if [ -n "$grant_db_users" ] ; then
             echo "GRANT ALL on geometry_columns TO \"$user\";"
             echo "GRANT ALL ON SCHEMA PUBLIC TO \"$user\";"
             echo "GRANT ALL on spatial_ref_sys TO \"$user\";"
+            echo "GRANT ALL on TABLE planet_osm_line TO \"$user\";"
+            echo "GRANT ALL on TABLE planet_osm_point TO \"$user\";"
             )| sudo -u postgres psql $quiet -Upostgres "$database_name" || true
     done
 fi
@@ -368,7 +440,7 @@ if [ -n "$db_table_create" ] ; then
     fi
     echo ""
     echo "--------- Unpack and import $planet_file"
-    sudo -u "$osm_username" $osm2pgsql_cmd --create "$database_name"
+    $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
 ############################################
@@ -381,7 +453,19 @@ if [ -n "$planet_fill" ] ; then
     fi
     echo ""
     echo "--------- Unpack and import $planet_file"
-    sudo -u "$osm_username" $osm2pgsql_cmd --database "$database_name" $planet_file
+    echo "Import started: `date`" >>"$import_log"
+    $sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file
+    echo "`date`: Import Done: `ls -l $planet_file` import --> $rc" >> "$import_log"
+    if [ $? ]; then
+	echo "!!!!!!!! ERROR while running '$osm2pgsql_cmd --database "$database_name" $planet_file'"
+        echo "Creation with for Database "$database_name" from planet-file '$planet_file' with '$osm2pgsql_cmd' Failed"
+        echo "see Logfile for more Information:"
+        echo "less $import_log"
+	exit -1
+    fi
+    echo "`date`: `ls -l $planet_file` import --> $rc" >>$import_stamp_file
+    touch --reference=$planet_file $import_stamp_file
+
 fi
 
 
@@ -394,10 +478,10 @@ if [ -n "$postgis_mapnik_dump" ] ; then
 	mkdir -p "$postgis_mapnik_dump_dir"
 	case "$postgis_mapnik_dump" in
 	    *.gz)
-		sudo -u "$osm_username" pg_dump --data-only -U "$osm_username" "$database_name" | gzip >"$postgis_mapnik_dump"
+		$sudo_cmd pg_dump --data-only -U "$osm_username" "$database_name" | gzip >"$postgis_mapnik_dump"
 		;;
 	    *)
-		sudo -u "$osm_username" pg_dump --data-only -U "$osm_username" "$database_name" >"$postgis_mapnik_dump"
+		$sudo_cmd pg_dump --data-only -U "$osm_username" "$database_name" >"$postgis_mapnik_dump"
 		;;
 	esac
 fi
@@ -421,11 +505,11 @@ if [ -n "$fill_from_dump" ] ; then
 	case "$fill_from_dump" in
 	    *.gz)
 		test -n "$verbose" && echo "Uncompress File ..."
-		gzip -dc "$fill_from_dump" | sudo -u "$osm_username" psql $quiet "$database_name"
+		gzip -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
 		;;
 	    *)
 		test -n "$verbose" && echo "Import uncompressed File ..."
-		sudo -u "$osm_username" psql $quiet "$database_name" <"$fill_from_dump"
+		$sudo_cmd psql $quiet "$database_name" <"$fill_from_dump"
 		;;
 	esac
 fi
@@ -436,17 +520,20 @@ fi
 ############################################
 if [ -n "$count_db" ] ; then
     echo ""
-    echo "--------- Check Number of lines in Database"
+    echo "--------- Check Number of lines in Database '$database_name'"
 
     # Get the Table names
-    table_names=`echo "SELECT tablename from pg_catalog.pg_tables where schemaname = 'public' AND tableowner ='$osm_username';" | \
-	  sudo -u "$osm_username" psql  gis -h /var/run/postgresql | grep -E -e '^ planet'`
+    if [ -n "$osm_username" ]; then
+	table_owner=" AND tableowner ='$osm_username' ";
+    fi
+    table_names=`echo "SELECT tablename from pg_catalog.pg_tables where schemaname = 'public' $tableowner;" | \
+	$sudo_cmd psql   "$database_name" -h /var/run/postgresql | grep -E -e '^ planet'`
 
-    # Count entries in all Tables
+    echo "Counting entries in all Tables (" $table_names ")"
     for table in $table_names; do 
-	echo -n "SELECT COUNT(*) from $table;	= "
+	echo -n "Table $table	= "
 	echo "SELECT COUNT(*) from $table;" | \
-	    sudo -u "$osm_username" psql  gis -h /var/run/postgresql | grep -v -e count -e '------' -e '1 row' | head -1
+	    $sudo_cmd psql  gis -h /var/run/postgresql | grep -v -e count -e '------' -e '1 row' | head -1
     done
 fi
 
