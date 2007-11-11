@@ -23,6 +23,10 @@
 /* Postgres database parameters */
 static char conninfo[256];
 
+/* Set if the output is in lat/lon */
+extern int latlong;
+#define SRID (latlong ? 4326 : 3395)
+
 enum table_id {
     t_point, t_line, t_poly, t_roads
 };
@@ -313,7 +317,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         sql_out(sql_conn, "\t", 1);
     }
 
-    sprintf(sql, "SRID=4326;POINT(%.15g %.15g)", node_lon, node_lat);
+    sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
     sql_out(sql_conn, sql, strlen(sql));
     sql_out(sql_conn, "\n", 1);
 
@@ -341,7 +345,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
 	    sql_out(sql_conn, "\t", 1);
     }
 
-    sprintf(sql, "SRID=4326;");
+    sprintf(sql, "SRID=%d;", SRID);
     sql_out(sql_conn, sql, strlen(sql));
     sql_out(sql_conn, wkt, strlen(wkt));
     sql_out(sql_conn, "\n", 1);
@@ -537,9 +541,7 @@ static int pgsql_out_start(const char *db, int append)
         sql_conns[i] = sql_conn;
 
         if (!append) {
-            sql[0] = '\0';
-            strcat(sql, "DROP TABLE ");
-            strcat(sql, tables[i].name);
+            sprintf( sql, "DROP TABLE %s;", tables[i].name);
             res = PQexec(sql_conn, sql);
             PQclear(res); /* Will be an error if table does not exist */
         }
@@ -553,24 +555,16 @@ static int pgsql_out_start(const char *db, int append)
         PQclear(res);
 
         if (!append) {
-            sql[0] = '\0';
-            strcat(sql, "CREATE TABLE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " ( osm_id int4");
+            sprintf(sql, "CREATE TABLE %s ( osm_id int4", tables[i].name );
             for (j=0; j < numTags; j++) {
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 strcat(sql, tmp);
             }
             strcat(sql, " );\n");
-            strcat(sql, "SELECT AddGeometryColumn('");
-            strcat(sql, tables[i].name);
-            strcat(sql, "', 'way', 4326, '");
-            strcat(sql, tables[i].type);
-            strcat(sql, "', 2 );\n");
+            sprintf( sql + strlen(sql), "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
+                        tables[i].name, SRID, tables[i].type );
 
-            strcat(sql, "ALTER TABLE ");
-            strcat(sql, tables[i].name);
-            strcat(sql, " ALTER COLUMN way SET NOT NULL;\n");
+            sprintf( sql + strlen(sql), "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
 
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -582,9 +576,7 @@ static int pgsql_out_start(const char *db, int append)
         }
 
         sql[0] = '\0';
-        strcat(sql, "COPY ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " FROM STDIN");
+        sprintf(sql, "COPY %s FROM STDIN", tables[i].name);
 
         res = PQexec(sql_conn, sql);
         if (PQresultStatus(res) != PGRES_COPY_IN) {
