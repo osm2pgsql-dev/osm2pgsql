@@ -92,6 +92,16 @@ as per http://wiki.openstreetmap.org/index.php/Mapnik
 
 7) Indexes are added to speed up the queries by Mapnik.
 
+A quick note on projections
+===========================
+
+Depending on the command-line switches you can select which projection you
+want the database in. You have two choices:
+
+3395: The mercator projection, used in the tile output
+4326: The standard lat/long coordinates
+
+Depending on what you're using one or the other is appropriate
 
 Database Access Examples
 ========================
