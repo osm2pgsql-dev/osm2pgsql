@@ -490,6 +490,9 @@ if [ -n "$postgis_mapnik_dump" ] ; then
     postgis_mapnik_dump_dir=`dirname $postgis_mapnik_dump`
 	mkdir -p "$postgis_mapnik_dump_dir"
 	case "$postgis_mapnik_dump" in
+	    *.bz2)
+		$sudo_cmd pg_dump --data-only -U "$osm_username" "$database_name" | bzip2 >"$postgis_mapnik_dump"
+		;;
 	    *.gz)
 		$sudo_cmd pg_dump --data-only -U "$osm_username" "$database_name" | gzip >"$postgis_mapnik_dump"
 		;;
@@ -516,6 +519,10 @@ if [ -n "$fill_from_dump" ] ; then
     echo ""
     echo "--------- Import from Dump '$fill_from_dump'"
 	case "$fill_from_dump" in
+	    *.bz2)
+		test -n "$verbose" && echo "Uncompress File ..."
+		bzip2 -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
+		;;
 	    *.gz)
 		test -n "$verbose" && echo "Uncompress File ..."
 		gzip -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
