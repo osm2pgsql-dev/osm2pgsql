@@ -19,7 +19,20 @@ verbose=1
 
 for arg in "$@" ; do
     case $arg in
-	--all-planet-update) #	Do all the creation steps listed below from planet file
+	--all-planet) #	Do all the creation steps listed below from planet file
+	    create_osm_user=1
+	    mirror=1
+	    check_newer_planet=
+	    drop=1
+	    create_db=1
+	    create_db_user=1
+	    grant_all_rights_to_user_osm=1
+	    planet_fill=1
+	    create_db_users=${create_db_users:-*}
+	    grant_db_users=${grant_db_users:-*}
+	    ;;
+
+	--all-planet-update) #	Do all the creation steps listed below from planet file with up to date cheching
 	    create_osm_user=1
 	    mirror=1
 	    check_newer_planet=1
