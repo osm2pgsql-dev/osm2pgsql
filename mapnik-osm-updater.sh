@@ -468,17 +468,17 @@ if [ -n "$planet_fill" ] ; then
     echo "--------- Unpack and import $planet_file"
     echo "Import started: `date`" >>"$import_log"
     $sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file
-    echo "`date`: Import Done: `ls -l $planet_file` import --> $rc" >> "$import_log"
-    if [ $? ]; then
+    if [ "$?" -gt "0" ]; then
+	echo "`date`: Import With Error $?: `ls -l $planet_file` import --> $rc" >> "$import_log"
 	echo "!!!!!!!! ERROR while running '$osm2pgsql_cmd --database "$database_name" $planet_file'"
         echo "Creation with for Database "$database_name" from planet-file '$planet_file' with '$osm2pgsql_cmd' Failed"
         echo "see Logfile for more Information:"
         echo "less $import_log"
 	exit -1
     fi
+    echo "`date`: Import Done: `ls -l $planet_file` import --> $rc" >> "$import_log"
     echo "`date`: `ls -l $planet_file` import --> $rc" >>$import_stamp_file
     touch --reference=$planet_file $import_stamp_file
-
 fi
 
 
@@ -500,6 +500,9 @@ if [ -n "$postgis_mapnik_dump" ] ; then
 		$sudo_cmd pg_dump --data-only -U "$osm_username" "$database_name" >"$postgis_mapnik_dump"
 		;;
 	esac
+    if [ "$?" -gt "0" ]; then
+	echo "Error While dumping Database"
+    fi
 fi
 
 ############################################
@@ -532,6 +535,9 @@ if [ -n "$fill_from_dump" ] ; then
 		$sudo_cmd psql $quiet "$database_name" <"$fill_from_dump"
 		;;
 	esac
+    if [ "$?" -gt "0" ]; then
+	echo "Error While reding Dump into Database"
+    fi
 fi
 
 
@@ -550,7 +556,7 @@ if [ -n "$count_db" ] ; then
 	$sudo_cmd psql   "$database_name" -h /var/run/postgresql | grep -E -e '^ planet'`
 
     echo "Counting entries in all Tables (" $table_names ")"
-    for table in $table_names; do 
+    for table in $table_names; do
 	echo -n "Table $table	= "
 	echo "SELECT COUNT(*) from $table;" | \
 	    $sudo_cmd psql  gis -h /var/run/postgresql | grep -v -e count -e '------' -e '1 row' | head -1
