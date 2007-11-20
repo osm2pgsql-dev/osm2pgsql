@@ -16,6 +16,7 @@
 
 #include "osmtypes.h"
 #include "output.h"
+#include "reprojection.h"
 #include "output-pgsql.h"
 #include "build_geometry.h"
 #include "middle-pgsql.h"
@@ -24,8 +25,7 @@
 static char conninfo[256];
 
 /* Set if the output is in lat/lon */
-extern int latlong;
-#define SRID (latlong ? 4326 : 3395)
+#define SRID (project_getprojinfo()->srs)
 
 enum table_id {
     t_point, t_line, t_poly, t_roads

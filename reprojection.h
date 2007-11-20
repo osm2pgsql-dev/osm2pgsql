@@ -7,7 +7,20 @@
 
 #ifndef REPROJECTION_H
 #define REPROJECTION_H
-void project_init(void);
+
+struct Projection_Info {
+  char *descr;
+  char *proj4text;
+  int srs;
+  char *option;
+};
+
+enum Projection { PROJ_LATLONG = 0, PROJ_MERC, PROJ_SPHERE_MERC,   PROJ_COUNT };
+void project_init(enum Projection);
 void project_exit(void);
+struct Projection_Info const* project_getprojinfo(void);
 void reproject(double *lat, double *lon);
+
+extern const struct Projection_Info Projection_Info[];
+
 #endif

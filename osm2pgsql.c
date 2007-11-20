@@ -61,7 +61,6 @@ static struct keyval tags, nds, members;
 static int osm_id;
 
 int verbose;
-int latlong;
 
 static void printStatus(void)
 {
@@ -175,8 +174,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-        if (!latlong)
-            reproject(&node_lat, &node_lon);
+        reproject(&node_lat, &node_lon);
         mid->nodes_set(osm_id, node_lat, node_lon, &tags);
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
@@ -267,6 +265,7 @@ void exit_nicely(void)
  
 static void usage(const char *arg0)
 {
+    int i;
     const char *name = basename(arg0);
 
     fprintf(stderr, "Usage:\n");
@@ -283,6 +282,7 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
     fprintf(stderr, "                \tto (default: gis).\n");
     fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
+    fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator, not OSM merc\n");
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
@@ -290,6 +290,17 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
+    if(!verbose)
+        fprintf(stderr, "Add -v to display supported projections.\n" );
+    else
+    {
+        fprintf(stderr, "Supported projections:\n" );
+        for(i=0; i<PROJ_COUNT; i++ )
+        {
+            fprintf( stderr, "%-20s(%2s) SRS:%6d %s\n", 
+                    Projection_Info[i].descr, Projection_Info[i].option, Projection_Info[i].srs, Projection_Info[i].proj4text);
+        }
+    }
 }
 
 int main(int argc, char *argv[])
@@ -298,14 +309,10 @@ int main(int argc, char *argv[])
     int create=0;
     int slim=0;
     int sanitize=0;
+    int latlong = 0, sphere_merc = 0;
     const char *db = "gis";
 
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
-
-    if (argc < 2) {
-        usage(argv[0]);
-        exit(EXIT_FAILURE);
-    }
 
     while (1) {
         int c, option_index = 0;
@@ -316,12 +323,13 @@ int main(int argc, char *argv[])
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
             {"slim",     0, 0, 's'},
+            {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
             {"help",     0, 0, 'h'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "acd:hlsuv", long_options, &option_index);
+        c = getopt_long (argc, argv, "acd:hlmsuv", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -332,6 +340,7 @@ int main(int argc, char *argv[])
             case 's': slim=1;     break;
             case 'u': sanitize=1; break;
             case 'l': latlong=1;  break;
+            case 'm': sphere_merc=1; break;
             case 'd': db=optarg;  break;
 
             case 'h':
@@ -340,6 +349,11 @@ int main(int argc, char *argv[])
                 usage(argv[0]);
                 exit(EXIT_FAILURE);
         }
+    }
+
+    if (argc == optind) {  // No non-switch arguments
+        usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     if (append && create) {
@@ -358,7 +372,14 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION
 
-    project_init();
+    if( latlong && sphere_merc )
+    {
+        fprintf(stderr, "Error: --latlong and --merc are mutually exclusive\n" );
+        exit(EXIT_FAILURE);
+    }
+    project_init(latlong ? PROJ_LATLONG : sphere_merc ? PROJ_SPHERE_MERC : PROJ_MERC );
+    fprintf(stderr, "Using projection SRS %d (%s)\n", 
+        project_getprojinfo()->srs, project_getprojinfo()->descr );
 
     mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;

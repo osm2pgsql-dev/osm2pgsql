@@ -3,7 +3,7 @@
  * Storage of reference counted text strings
  * used by keyvals.c to store the key/value strings
  */
-
+#define _GNU_SOURCE
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
