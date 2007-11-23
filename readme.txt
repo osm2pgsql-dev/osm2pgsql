@@ -29,6 +29,8 @@ and changes over the previous code:
 - Geometries are now stored in mercator projection
 - Introduction of databased backed middle-layer for
   systems with low RAM (normally disabled).
+- Support the choice of a few different projections
+- Configurable table names
 
 Requirements
 ============
@@ -66,6 +68,8 @@ as per http://wiki.openstreetmap.org/index.php/Mapnik
    - planet_osm_line
    - planet_osm_roads
    - planet_osm_polygon
+The prefix "planet_osm" can be changed with the --prefix option, 
+the above is the default.
 
 2) Runs an XML parser on the input file (typically planet.osm) 
  and processes the nodes, segments and ways.
@@ -96,12 +100,19 @@ A quick note on projections
 ===========================
 
 Depending on the command-line switches you can select which projection you
-want the database in. You have two choices:
+want the database in. You have three choices:
 
-3395: The mercator projection, used in the tile output
+3395: The WGS84 mercator projection, used in the tile output
 4326: The standard lat/long coordinates
+900913: The spherical mercator projection, used by TileCache, Google Earth etc.
 
-Depending on what you're using one or the other is appropriate
+Depending on what you're using one or the other is appropriate. Most of the
+current Mapnik tools and style sheets are configured for 3395 and reproject
+to 900913 on the fly. But if you like you can project it correctly in one
+step, but don't forget to change the Mapnik config to match.
+
+Combining the -v and -h switches will tell about the exact definitions of
+the projections.
 
 Database Access Examples
 ========================
