@@ -14,7 +14,7 @@
 #include "middle.h"
 
 struct output_t {
-    int (*start)(const char *db, int append);
+    int (*start)(const char *db, const char *prefix, int append);
     void (*stop)(int append);
     void (*cleanup)(void);
     void (*process)(struct middle_t *mid);

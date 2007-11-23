@@ -285,6 +285,7 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator, not OSM merc\n");
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
+    fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
@@ -311,6 +312,7 @@ int main(int argc, char *argv[])
     int sanitize=0;
     int latlong = 0, sphere_merc = 0;
     const char *db = "gis";
+    const char *prefix = "planet_osm";
 
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
 
@@ -323,13 +325,14 @@ int main(int argc, char *argv[])
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
             {"slim",     0, 0, 's'},
+            {"prefix",   1, 0, 'p'},
             {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
             {"help",     0, 0, 'h'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "acd:hlmsuv", long_options, &option_index);
+        c = getopt_long (argc, argv, "acd:hlmp:suv", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -341,6 +344,7 @@ int main(int argc, char *argv[])
             case 'u': sanitize=1; break;
             case 'l': latlong=1;  break;
             case 'm': sphere_merc=1; break;
+            case 'p': prefix=optarg; break;
             case 'd': db=optarg;  break;
 
             case 'h':
@@ -384,7 +388,7 @@ int main(int argc, char *argv[])
     mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;
 
-    out->start(db, append);
+    out->start(db, prefix, append);
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);

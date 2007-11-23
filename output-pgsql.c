@@ -37,10 +37,10 @@ static struct {
     const char *name;
     const char *type;
 } tables [] = {
-    { name: "planet_osm_point",   type: "POINT"     },
-    { name: "planet_osm_line",    type: "LINESTRING"},
-    { name: "planet_osm_polygon", type: "POLYGON"  },
-    { name: "planet_osm_roads",   type: "LINESTRING"}
+    { name: "%s_point",   type: "POINT"     },
+    { name: "%s_line",    type: "LINESTRING"},
+    { name: "%s_polygon", type: "POLYGON"  },
+    { name: "%s_roads",   type: "LINESTRING"}
 };
 static const unsigned int num_tables = sizeof(tables)/sizeof(*tables);
 
@@ -515,7 +515,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     return 0;
 }
 
-static int pgsql_out_start(const char *db, int append)
+static int pgsql_out_start(const char *db, const char *prefix, int append)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
@@ -530,6 +530,12 @@ static int pgsql_out_start(const char *db, int append)
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
 
+        /* Substitute prefix into name of table */
+        {
+            char *temp = malloc( strlen(prefix) + strlen(tables[i].name) + 1 );
+            sprintf( temp, tables[i].name, prefix );
+            tables[i].name = temp;
+        }
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(conninfo);
 
@@ -642,9 +648,9 @@ static void pgsql_out_stop(int append)
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
-        strcat(sql, "CREATE INDEX way_index");
-        strcat(sql, tmp);
-        strcat(sql, " ON ");
+        strcat(sql, "CREATE INDEX ");
+        strcat(sql, tables[i].name);
+        strcat(sql, "_index ON ");
         strcat(sql, tables[i].name);
         strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
 
