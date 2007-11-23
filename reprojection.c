@@ -20,7 +20,7 @@ const struct Projection_Info Projection_Info[] = {
      srs:4326, 
      option: "-l" },
   [PROJ_MERC]    = { 
-     descr: "OSM (false) Mercator", 
+     descr: "WGS84 Mercator", 
      proj4text: "+proj=merc +datum=WGS84  +k=1.0 +units=m +over +no_defs", 
      srs:3395, 
      option: "" },
