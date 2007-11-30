@@ -158,6 +158,7 @@ static int add_z_order_line(struct keyval *tags, int *roads)
     const char *layer   = getItem(tags, "layer");
     const char *highway = getItem(tags, "highway");
     const char *bridge  = getItem(tags, "bridge");
+    const char *tunnel  = getItem(tags, "tunnel");
     const char *railway = getItem(tags, "railway");
     int z_order = 0;
     int l;
@@ -185,6 +186,9 @@ static int add_z_order_line(struct keyval *tags, int *roads)
 
     if (bridge && (!strcmp(bridge, "true") || !strcmp(bridge, "yes") || !strcmp(bridge, "1")))
         z_order += 10;
+
+    if (tunnel && (!strcmp(tunnel, "true") || !strcmp(tunnel, "yes") || !strcmp(tunnel, "1")))
+        z_order -= 10;
 
     snprintf(z, sizeof(z), "%d", z_order);
     addItem(tags, "z_order", z, 0);
