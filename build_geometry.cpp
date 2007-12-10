@@ -21,6 +21,7 @@
 */
 
 #include <iostream>
+#include <cstring>
 
 #include <geos_c.h>
 
