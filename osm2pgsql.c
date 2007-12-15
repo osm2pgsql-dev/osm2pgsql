@@ -270,7 +270,7 @@ static void usage(const char *arg0)
 
     fprintf(stderr, "Usage:\n");
     fprintf(stderr, "\t%s [options] planet.osm\n", name);
-    fprintf(stderr, "\t%s [options[ planet.osm.{gz,bz2}\n", name);
+    fprintf(stderr, "\t%s [options] planet.osm.{gz,bz2}\n", name);
     fprintf(stderr, "\t%s [options] file1.osm file2.osm file3.osm\n", name);
     fprintf(stderr, "\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
     fprintf(stderr, "suitable for use by the Mapnik renderer\n");
