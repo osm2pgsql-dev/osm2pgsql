@@ -50,12 +50,15 @@ static struct {
     const char *type;
     const int polygon;
 } exportTags[] = {
+    {"admin_level", "text", 0},
     {"aeroway",  "text", 1},
     {"amenity",  "text", 1},
     {"bicycle",  "text", 0},
     {"bridge",   "text", 0},
     {"boundary", "text", 1},
     {"building", "text", 1},
+    {"cutting",  "text", 0},
+    {"embankment","text", 0},
     {"foot",     "text", 0},
     {"highway",  "text", 0},
     {"horse",    "text", 0},
@@ -65,6 +68,7 @@ static struct {
     {"learning", "text", 0},
     {"leisure",  "text", 1},
     {"man_made", "text", 0},
+    {"military", "text", 1},
     {"motorcar", "text", 0},
     {"name",     "text", 0},
     {"natural",  "text", 1},
