@@ -286,8 +286,10 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
+#ifdef BROKEN_SLIM
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+#endif
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -324,7 +326,9 @@ int main(int argc, char *argv[])
             {"database", 1, 0, 'd'},
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
+#ifdef BROKEN_SLIM
             {"slim",     0, 0, 's'},
+#endif
             {"prefix",   1, 0, 'p'},
             {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
@@ -340,7 +344,9 @@ int main(int argc, char *argv[])
             case 'a': append=1;   break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
+#ifdef BROKEN_SLIM
             case 's': slim=1;     break;
+#endif
             case 'u': sanitize=1; break;
             case 'l': latlong=1;  break;
             case 'm': sphere_merc=1; break;
