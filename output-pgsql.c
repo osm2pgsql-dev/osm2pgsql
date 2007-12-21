@@ -50,6 +50,7 @@ static struct {
     const char *type;
     const int polygon;
 } exportTags[] = {
+    {"access", "text", 0},
     {"admin_level", "text", 0},
     {"aeroway",  "text", 1},
     {"amenity",  "text", 1},
@@ -363,6 +364,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
 void add_parking_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
 // insert into planet_osm_point(osm_id,name,amenity,way) select osm_id,name,amenity,centroid(way) from planet_osm_polygon where amenity='parking';
+	const char *access  = getItem(tags, "access");
 	const char *amenity = getItem(tags, "amenity");
 	const char *name    = getItem(tags, "name");
 	struct keyval nodeTags;
@@ -370,12 +372,16 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 	if (!amenity || strcmp(amenity, "parking"))
 		return;
 
+	// Do not add a 'P' symbol if access is defined and something other than public.
+	if (access && strcmp(access, "public"))
+		return;
+
 	initList(&nodeTags);
 	addItem(&nodeTags, "amenity", amenity, 0);
 	if (name)
 		addItem(&nodeTags, "name",    name,    0);
-	
-	//fprintf(stderr, "Parking node: %s\t%f,%f\n", name ? name : "no_name", node_lat, node_lon);
+	if (access)
+		addItem(&nodeTags, "access",  access,    0);
 	
 	pgsql_out_node(id, &nodeTags, node_lat, node_lon);
 	resetList(&nodeTags);
@@ -605,7 +611,8 @@ static int pgsql_out_start(const char *db, const char *prefix, int append)
     return 0;
 }
 
-static void pgsql_out_stop(int append)
+#define __unused  __attribute__ ((unused))
+static void pgsql_out_stop(__unused int append)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
