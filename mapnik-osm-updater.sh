@@ -32,6 +32,21 @@ for arg in "$@" ; do
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
+	--all-planet-europe) #	Use Europe Extract from Frederics Page as planet File and import
+	    planet_file="$planet_dir/europe.osm.bz2"
+	    mirror_europe=true
+	    create_osm_user=1
+	    mirror=
+	    check_newer_planet=
+	    drop=1
+	    create_db=1
+	    create_db_user=1
+	    grant_all_rights_to_user_osm=1
+	    planet_fill=1
+	    create_db_users=${create_db_users:-*}
+	    grant_db_users=${grant_db_users:-*}
+	    ;;
+
 	--all-planet-update) #	Do all the creation steps listed below from planet file with up to date cheching
 	    create_osm_user=1
 	    mirror=1
@@ -308,7 +323,18 @@ fi
 
 
 ############################################
-# Mirror the planet File from planet.openstreetmao.org
+# Mirror the planet-dump File for Europe
+############################################
+if [ -n "$mirror_europe" ] ; then
+    planet_source_file="http://download.geofabrik.de/osm/europe.osm.bz2"
+    test -n "$verbose" && echo "----- Mirroring planet File $planet_source_file"
+    wget -v --mirror "$planet_source_file" \
+	--no-directories --directory-prefix=$planet_dir/
+fi
+
+
+############################################
+# Mirror the newest planet File from planet.openstreetmap.org
 ############################################
 if [ -n "$mirror" ] ; then
     test -n "$verbose" && echo "----- Mirroring planet File"
@@ -521,20 +547,21 @@ fi
 if [ -n "$fill_from_dump" ] ; then
     echo ""
     echo "--------- Import from Dump '$fill_from_dump'"
-	case "$fill_from_dump" in
-	    *.bz2)
-		test -n "$verbose" && echo "Uncompress File ..."
-		bzip2 -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
-		;;
-	    *.gz)
-		test -n "$verbose" && echo "Uncompress File ..."
-		gzip -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
-		;;
-	    *)
-		test -n "$verbose" && echo "Import uncompressed File ..."
-		$sudo_cmd psql $quiet "$database_name" <"$fill_from_dump"
-		;;
-	esac
+    sudo -u postgres createdb -T template0 $database_name
+    case "$fill_from_dump" in
+	*.bz2)
+	    test -n "$verbose" && echo "Uncompress File ..."
+	    bzip2 -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
+	    ;;
+	*.gz)
+	    test -n "$verbose" && echo "Uncompress File ..."
+	    gzip -dc "$fill_from_dump" | $sudo_cmd psql $quiet "$database_name"
+	    ;;
+	*)
+	    test -n "$verbose" && echo "Import uncompressed File ..."
+	    $sudo_cmd psql $quiet "$database_name" <"$fill_from_dump"
+	    ;;
+    esac
     if [ "$?" -gt "0" ]; then
 	echo "Error While reding Dump into Database"
     fi
