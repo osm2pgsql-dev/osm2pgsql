@@ -32,9 +32,13 @@ for arg in "$@" ; do
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
-	--all-planet-europe) #	Use Europe Extract from Frederics Page as planet File and import
-	    planet_file="$planet_dir/europe.osm.bz2"
-	    mirror_europe=true
+	--all-planet-geofabrik=*) #	Use Planet Extract from Frederics GeoFabrik.de Page as planet File and import
+		# 		Use ? for a list of possible files
+		# 		Example: europe/germany/baden-wuerttemberg
+	    dir_country=${arg#*=}
+	    country=`basename $dir_country`
+	    planet_file="$planet_dir/${country}.osm.bz2"
+	    mirror_geofabrik=${dir_country}
 	    create_osm_user=1
 	    mirror=
 	    check_newer_planet=
@@ -325,8 +329,17 @@ fi
 ############################################
 # Mirror the planet-dump File for Europe
 ############################################
-if [ -n "$mirror_europe" ] ; then
-    planet_source_file="http://download.geofabrik.de/osm/europe.osm.bz2"
+if [ -n "$mirror_geofabrik" ] ; then
+    geofabrik_basedir="http://download.geofabrik.de/osm"
+    if [ "$mirror_geofabrik" = "?" ]; then
+	echo "Possible Values are:"
+	for sub_dir in "" "europe/" "europe/germany/"; do
+	    wget -q  --level=0 -O - "$geofabrik_basedir/$sub_dir" | grep 'OpenStreetMap data' | \
+		perl -ne 'm/.*href="([^"]+)\.osm.bz2"/;print "	'$sub_dir'$1\n"'
+	done
+	exit 1 
+    fi
+    planet_source_file="${geofabrik_basedir}/${mirror_geofabrik}.osm.bz2"
     test -n "$verbose" && echo "----- Mirroring planet File $planet_source_file"
     wget -v --mirror "$planet_source_file" \
 	--no-directories --directory-prefix=$planet_dir/
