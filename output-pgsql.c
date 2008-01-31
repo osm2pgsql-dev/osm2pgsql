@@ -74,6 +74,7 @@ static struct {
     {"name",     "text", 0},
     {"natural",  "text", 1},
     {"oneway",   "text", 0},
+    {"power",    "text", 0},
     {"place",    "text", 0},
     {"railway",  "text", 0},
     {"ref",      "text", 0},
