@@ -88,4 +88,4 @@ rm -rf $RPM_BUILD_ROOT
 - Building on F7 now has latest GEOS
 
 * Fri Mar 16 2007 Keith Sharp <kms@passback.co.uk> 0.1-1.20070316svn
-- Inital build
+- Initial build
