@@ -62,12 +62,51 @@ static int osm_id;
 
 int verbose;
 
+// Bounding box to filter imported data
+const char *bbox = NULL;
+static double minlon, minlat, maxlon, maxlat;
+
 static void printStatus(void)
 {
     fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%dk)",
             count_node/1000, count_way/1000, count_rel/1000);
 }
 
+static int parse_bbox(void)
+{
+    int n;
+
+    if (!bbox)
+        return 0;
+
+    n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minlon, &minlat, &maxlon, &maxlat);
+    if (n != 4) {
+        fprintf(stderr, "Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
+        return 1;
+    }
+    if (maxlon <= minlon) {
+        fprintf(stderr, "Bounding box failed due to maxlon <= minlon\n");
+        return 1;
+    }
+    if (maxlat <= minlat) {
+        fprintf(stderr, "Bounding box failed due to maxlat <= minlat\n");
+        return 1;
+    }
+    printf("Applying Bounding box: %f,%f to %f,%f\n", minlon,minlat,maxlon,maxlat);
+    return 0;
+}
+
+static int node_wanted(double lat, double lon)
+{
+    if (!bbox)
+        return 1;
+
+    if (lat < minlat || lat > maxlat)
+        return 0;
+    if (lon < minlon || lon > maxlon)
+        return 0;
+    return 1;
+}
 
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
@@ -174,8 +213,10 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-        reproject(&node_lat, &node_lon);
-        mid->nodes_set(osm_id, node_lat, node_lon, &tags);
+        if (node_wanted(node_lat, node_lon)) {
+            reproject(&node_lat, &node_lon);
+            mid->nodes_set(osm_id, node_lat, node_lon, &tags);
+        }
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
         mid->ways_set(osm_id, &nds, &tags);
@@ -277,6 +318,9 @@ static void usage(const char *arg0)
     fprintf(stderr, "\nOptions:\n");
     fprintf(stderr, "   -a|--append\t\tAdd the OSM file into the database without removing\n");
     fprintf(stderr, "              \t\texisting data.\n");
+    fprintf(stderr, "   -b|--bbox\t\tApply a bounding box filter on the imported data\n");
+    fprintf(stderr, "              \t\tMust be specified as: minlon,minlat,maxlon,maxlat\n");
+    fprintf(stderr, "              \t\te.g. --bbox -0.5,51.25,0.5,51.75\n");
     fprintf(stderr, "   -c|--create\t\tRemove existing data from the database. This is the \n");
     fprintf(stderr, "              \t\tdefault if --append is not specified.\n");
     fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
@@ -322,6 +366,7 @@ int main(int argc, char *argv[])
         int c, option_index = 0;
         static struct option long_options[] = {
             {"append",   0, 0, 'a'},
+            {"bbox",     1, 0, 'b'},
             {"create",   0, 0, 'c'},
             {"database", 1, 0, 'd'},
             {"latlong",  0, 0, 'l'},
@@ -336,12 +381,13 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "acd:hlmp:suv", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmp:suv", long_options, &option_index);
         if (c == -1)
             break;
 
         switch (c) {
             case 'a': append=1;   break;
+            case 'b': bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
 #ifdef BROKEN_SLIM
@@ -390,6 +436,9 @@ int main(int argc, char *argv[])
     project_init(latlong ? PROJ_LATLONG : sphere_merc ? PROJ_SPHERE_MERC : PROJ_MERC );
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
         project_getprojinfo()->srs, project_getprojinfo()->descr );
+
+    if (parse_bbox())
+        return 1;
 
     mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;
