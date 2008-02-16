@@ -56,7 +56,7 @@ static struct {
     {"amenity",  "text", 1},
     {"bicycle",  "text", 0},
     {"bridge",   "text", 0},
-    {"boundary", "text", 1},
+    {"boundary", "text", 0},
     {"building", "text", 1},
     {"cutting",  "text", 0},
     {"embankment","text", 0},
