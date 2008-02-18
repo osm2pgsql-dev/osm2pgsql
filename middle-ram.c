@@ -192,7 +192,8 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
     if (!polygon) {
         struct osmNode *nodes = getNodes(ndids, &ndCount);
         if (nodes) {
-            out_pgsql.way(id, tags, nodes, ndCount);
+            if (ndCount)
+                out_pgsql.way(id, tags, nodes, ndCount);
             free(nodes);
         }
         free(ndids);

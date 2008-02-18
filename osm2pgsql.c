@@ -31,6 +31,8 @@
 #include <assert.h>
 #include <getopt.h>
 
+#include <libpq-fe.h>
+
 #include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
 
@@ -44,6 +46,7 @@
 #include "reprojection.h"
 #include "text-tree.h"
 #include "input.h"
+#include "sprompt.h"
 
 static int count_node,    max_node;
 static int count_way,     max_way;
@@ -334,6 +337,10 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
 #endif
+    fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
+    fprintf(stderr, "   -W|--password\tForce password prompt.\n");
+    fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
+    fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -350,15 +357,55 @@ static void usage(const char *arg0)
     }
 }
 
+const char *build_conninfo(const char *db, const char *username, const char *password, const char *host, const char *port)
+{
+    static char conninfo[1024];
+
+    conninfo[0]='\0';
+    strcat(conninfo, "dbname='");
+    strcat(conninfo, db);
+    strcat(conninfo, "'");
+
+    if (username) {
+        strcat(conninfo, " user='");
+        strcat(conninfo, username);
+        strcat(conninfo, "'");
+    }
+    if (password) {
+        strcat(conninfo, " password='");
+        strcat(conninfo, password);
+        strcat(conninfo, "'");
+    }
+    if (host) {
+        strcat(conninfo, " host='");
+        strcat(conninfo, host);
+        strcat(conninfo, "'");
+    }
+    if (port) {
+        strcat(conninfo, " port='");
+        strcat(conninfo, port);
+        strcat(conninfo, "'");
+    }
+
+    return conninfo;
+}
+
 int main(int argc, char *argv[])
 {
     int append=0;
     int create=0;
     int slim=0;
     int sanitize=0;
+    int pass_prompt=0;
     int latlong = 0, sphere_merc = 0;
     const char *db = "gis";
+    const char *username=NULL;
+    const char *host=NULL;
+    const char *password=NULL;
+    const char *port = "5432";
+    const char *conninfo = NULL;
     const char *prefix = "planet_osm";
+    PGconn *sql_conn;
 
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
 
@@ -377,11 +424,15 @@ int main(int argc, char *argv[])
             {"prefix",   1, 0, 'p'},
             {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
+            {"username", 1, 0, 'U'},
+            {"password", 0, 0, 'W'},
+            {"host",     1, 0, 'H'},
+            {"port",     1, 0, 'P'},
             {"help",     0, 0, 'h'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmp:suv", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -398,6 +449,10 @@ int main(int argc, char *argv[])
             case 'm': sphere_merc=1; break;
             case 'p': prefix=optarg; break;
             case 'd': db=optarg;  break;
+            case 'U': username=optarg; break;
+            case 'W': pass_prompt=1; break;
+            case 'H': host=optarg; break;
+            case 'P': port=optarg; break;
 
             case 'h':
             case '?':
@@ -416,6 +471,17 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
         exit(EXIT_FAILURE);
     }
+
+    if (username || pass_prompt)
+        password = simple_prompt("Password:", 100, 0);
+
+    conninfo = build_conninfo(db, username, password, host, port);
+    sql_conn = PQconnectdb(conninfo);
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+        exit(EXIT_FAILURE);
+    }
+    PQfinish(sql_conn);
 
     text_init();
     initList(&tags);
@@ -443,11 +509,11 @@ int main(int argc, char *argv[])
     mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;
 
-    out->start(db, prefix, append);
+    out->start(conninfo, prefix, append);
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        mid->start(db, latlong);
+        mid->start(conninfo, latlong);
         if (streamFile(argv[optind], sanitize) != 0)
             exit_nicely();
         mid->end();
