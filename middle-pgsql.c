@@ -20,9 +20,6 @@
 
 #include "output-pgsql.h"
 
-/* Postgres database parameters */
-static char conninfo[256];
-
 enum table_id {
     t_node, t_node_tag, t_way_tag, t_way_nd
 } ;
@@ -511,14 +508,12 @@ static void pgsql_end(void)
 }
 
 #define __unused  __attribute__ ((unused))
-static int pgsql_start(const char *db, int latlong __unused)
+static int pgsql_start(const char *conninfo, int latlong __unused)
 {
     char sql[2048];
     PGresult   *res;
     int i;
     int dropcreate = 1;
-
-    snprintf(conninfo, sizeof(conninfo), "dbname = %s", db);
 
     /* We use a connection per table to enable the use of COPY */
     sql_conns = calloc(num_tables, sizeof(PGconn *));

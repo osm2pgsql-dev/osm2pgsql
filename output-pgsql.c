@@ -21,9 +21,6 @@
 #include "build_geometry.h"
 #include "middle-pgsql.h"
 
-/* Postgres database parameters */
-static char conninfo[256];
-
 /* Set if the output is in lat/lon */
 #define SRID (project_getprojinfo()->srs)
 
@@ -531,13 +528,11 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     return 0;
 }
 
-static int pgsql_out_start(const char *db, const char *prefix, int append)
+static int pgsql_out_start(const char *conninfo, const char *prefix, int append)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
     unsigned int i,j;
-
-    snprintf(conninfo, sizeof(conninfo), "dbname = %s", db);
 
     /* We use a connection per table to enable the use of COPY_IN */
     sql_conns = calloc(num_tables, sizeof(PGconn *));
