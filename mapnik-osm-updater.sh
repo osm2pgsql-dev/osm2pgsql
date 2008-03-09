@@ -6,6 +6,7 @@ export planet_dir="/home/$osm_username/osm/planet"
 export planet_file="$planet_dir/planet.osm.bz2"
 export sql_dump="$planet_dir/planet.osm.sql.bz2"
 export osm2pgsql_cmd=`which osm2pgsql`
+export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-poitypes.pl`
 export log_dir=/var/log
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
@@ -136,6 +137,10 @@ for arg in "$@" ; do
 	    #		to the gis Database !!! This has to be changed in the
 	    #		future, normally only the osm user needs update rights
 	    grant_db_users=${arg#*=}
+	    ;;
+
+	--add-gpsdrive-types) #	add GpsDrive POI-Types to points table
+	    db_add_gpsdrive_poitypes=1
 	    ;;
 
 	--planet-fill) #	fill database from planet File
@@ -495,6 +500,7 @@ if [ -n "$db_table_create" ] ; then
     $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
+
 ############################################
 # Fill Database from planet File
 ############################################
@@ -518,6 +524,20 @@ if [ -n "$planet_fill" ] ; then
     echo "`date`: Import Done: `ls -l $planet_file` import --> $rc" >> "$import_log"
     echo "`date`: `ls -l $planet_file` import --> $rc" >>$import_stamp_file
     touch --reference=$planet_file $import_stamp_file
+fi
+
+
+############################################
+# Add GpsDrive POI-Types to points Table
+############################################
+if [ -n "$db_add_gpsdrive_poitypes" ] ; then
+    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
+	echo "Cannot execute '$gpsdrive_poitypes_cmd'" 1>&2
+	exit -1
+    fi
+    echo ""
+    echo "--------- Adding GpsDrive POI-Types to Database"
+    sudo -u postgres $gpsdrive_poitypes_cmd
 fi
 
 
