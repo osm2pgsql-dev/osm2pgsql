@@ -29,6 +29,7 @@ for arg in "$@" ; do
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
+	    db_add_gpsdrive_poitypes=1
 	    create_db_users=${create_db_users:-*}
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
@@ -48,6 +49,7 @@ for arg in "$@" ; do
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
+	    db_add_gpsdrive_poitypes=1
 	    create_db_users=${create_db_users:-*}
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
@@ -61,6 +63,7 @@ for arg in "$@" ; do
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
+	    db_add_gpsdrive_poitypes=1
 	    create_db_users=${create_db_users:-*}
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
@@ -77,6 +80,7 @@ for arg in "$@" ; do
 	    create_db_users=${create_db_users:-*}
 	    fill_from_dump="$sql_dump"
 	    grant_db_users=${grant_db_users:-*}
+	    db_add_gpsdrive_poitypes=1
 	    ;;
 
 	--all-create) #		Do all the creation steps listed below only no data
