@@ -82,6 +82,7 @@ static struct {
     {"tourism",  "text", 1},
     {"tunnel",   "text", 0},
     {"waterway", "text", 0},
+    {"width",    "text", 0},
     {"wood",     "text", 0},
     {"z_order",  "int4", 0},
     {"way_area", "real", 0}
