@@ -6,13 +6,14 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <proj_api.h>
 
 #include "reprojection.h"
 
 static projPJ pj_ll, pj_merc;
-static enum Projection Proj;
+static int Proj;
 const struct Projection_Info Projection_Info[] = {
   [PROJ_LATLONG] = { 
      descr: "Latlong", 
@@ -30,21 +31,45 @@ const struct Projection_Info Projection_Info[] = {
      srs:900913, 
      option: "-m" }
 };
+static struct Projection_Info custom_projection;
 
-void project_init(enum Projection proj)
+// Positive numbers refer the to the table above, negative numbers are
+// assumed to refer to EPSG codes and it uses the proj4 to find those.
+void project_init(int proj)
 {
+	char buffer[16];
 	Proj = proj;
 	
 	if( proj == PROJ_LATLONG )
 		return;
 		
 	pj_ll   = pj_init_plus("+proj=latlong +ellps=GRS80 +no_defs");
-	pj_merc = pj_init_plus( Projection_Info[proj].proj4text );
+	if( proj >= 0 && proj < PROJ_COUNT )
+		pj_merc = pj_init_plus( Projection_Info[proj].proj4text );
+	else if( proj < 0 )
+	{
+		sprintf( buffer, "+init=epsg:%d", -proj );
+		pj_merc = pj_init_plus( buffer );
+		if( !pj_merc )
+		{
+			fprintf( stderr, "Couldn't read EPSG definition (do you have /usr/share/proj/epsg?)\n" );
+			exit(1);
+		}
+	}
 			
 	if (!pj_ll || !pj_merc) {
 		fprintf(stderr, "Projection code failed to initialise\n");
 		exit(1);
 	}
+	
+	if( proj >= 0 )
+		return;
+	custom_projection.srs = -proj;
+	custom_projection.proj4text = pj_get_def( pj_merc, 0 );
+	sprintf( buffer, "EPSG:%d", -proj );
+	custom_projection.descr = strdup(buffer);
+	custom_projection.option = "-E";
+	return;
 }
 
 void project_exit(void)
@@ -60,7 +85,10 @@ void project_exit(void)
 
 struct Projection_Info const *project_getprojinfo(void)
 {
-  return &Projection_Info[Proj];
+  if( Proj >= 0 )
+    return &Projection_Info[Proj];
+  else
+    return &custom_projection;
 }
 
 void reproject(double *lat, double *lon)

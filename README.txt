@@ -114,6 +114,12 @@ step, but don't forget to change the Mapnik config to match.
 Combining the -v and -h switches will tell about the exact definitions of
 the projections.
 
+In case you want to use some completely different projection there is the -E
+option. It will initialise the projection as +init=epsg:<num>. This allows
+you to use any projection recognised by proj4, which is useful if you want
+to make a map in a different projection. These projections are usually
+defined in /usr/share/proj/epsg.
+
 Database Access Examples
 ========================
 If you wish to access the data from the database then the
