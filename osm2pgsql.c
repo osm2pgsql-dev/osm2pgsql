@@ -330,6 +330,7 @@ static void usage(const char *arg0)
     fprintf(stderr, "                \tto (default: gis).\n");
     fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
     fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator, not OSM merc\n");
+    fprintf(stderr, "   -E|--proj num\tUse projection EPSG:num\n");
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
@@ -345,7 +346,10 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
     if(!verbose)
-        fprintf(stderr, "Add -v to display supported projections.\n" );
+    {
+        fprintf(stderr, "Add -v to display supported projections.\n");
+        fprintf(stderr, "Use -E to access any espg projections (usually in /usr/share/proj/epsg)\n" );
+    }
     else
     {
         fprintf(stderr, "Supported projections:\n" );
@@ -397,7 +401,7 @@ int main(int argc, char *argv[])
     int slim=0;
     int sanitize=0;
     int pass_prompt=0;
-    int latlong = 0, sphere_merc = 0;
+    int projection = PROJ_MERC;
     const char *db = "gis";
     const char *username=NULL;
     const char *host=NULL;
@@ -422,6 +426,7 @@ int main(int argc, char *argv[])
             {"slim",     0, 0, 's'},
 #endif
             {"prefix",   1, 0, 'p'},
+            {"proj",     1, 0, 'E'},
             {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
             {"username", 1, 0, 'U'},
@@ -432,7 +437,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:E:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -445,8 +450,9 @@ int main(int argc, char *argv[])
             case 's': slim=1;     break;
 #endif
             case 'u': sanitize=1; break;
-            case 'l': latlong=1;  break;
-            case 'm': sphere_merc=1; break;
+            case 'l': projection=PROJ_LATLONG;  break;
+            case 'm': projection=PROJ_SPHERE_MERC; break;
+            case 'E': projection=-atoi(optarg); break;
             case 'p': prefix=optarg; break;
             case 'd': db=optarg;  break;
             case 'U': username=optarg; break;
@@ -494,12 +500,7 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION
 
-    if( latlong && sphere_merc )
-    {
-        fprintf(stderr, "Error: --latlong and --merc are mutually exclusive\n" );
-        exit(EXIT_FAILURE);
-    }
-    project_init(latlong ? PROJ_LATLONG : sphere_merc ? PROJ_SPHERE_MERC : PROJ_MERC );
+    project_init(projection);
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
         project_getprojinfo()->srs, project_getprojinfo()->descr );
 
@@ -513,7 +514,7 @@ int main(int argc, char *argv[])
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        mid->start(conninfo, latlong);
+        mid->start(conninfo, projection==PROJ_LATLONG);
         if (streamFile(argv[optind], sanitize) != 0)
             exit_nicely();
         mid->end();
