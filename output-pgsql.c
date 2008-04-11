@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 
 #include <libpq-fe.h>
 
@@ -21,12 +22,15 @@
 #include "build_geometry.h"
 #include "middle-pgsql.h"
 
-/* Set if the output is in lat/lon */
 #define SRID (project_getprojinfo()->srs)
+
+#define MAX_STYLES 100
 
 enum table_id {
     t_point, t_line, t_poly, t_roads
 };
+
+static const struct output_options *Options;
 
 /* Tables to output */
 static struct {
@@ -39,55 +43,18 @@ static struct {
     { name: "%s_polygon", type: "POLYGON"  },
     { name: "%s_roads",   type: "LINESTRING"}
 };
-static const unsigned int num_tables = sizeof(tables)/sizeof(*tables);
+static const int num_tables = sizeof(tables)/sizeof(*tables);
 
 /* Table columns, representing key= tags */
-static struct {
-    const char *name;
-    const char *type;
-    const int polygon;
-} exportTags[] = {
-    {"access", "text", 0},
-    {"admin_level", "text", 0},
-    {"aeroway",  "text", 1},
-    {"amenity",  "text", 1},
-    {"bicycle",  "text", 0},
-    {"bridge",   "text", 0},
-    {"boundary", "text", 0},
-    {"building", "text", 1},
-    {"cutting",  "text", 0},
-    {"embankment","text", 0},
-    {"foot",     "text", 0},
-    {"highway",  "text", 0},
-    {"horse",    "text", 0},
-    {"junction", "text", 0},
-    {"landuse",  "text", 1},
-    {"layer",    "text", 0},
-    {"learning", "text", 0},
-    {"leisure",  "text", 1},
-    {"man_made", "text", 1},
-    {"military", "text", 1},
-    {"motorcar", "text", 0},
-    {"name",     "text", 0},
-    {"natural",  "text", 1},
-    {"oneway",   "text", 0},
-    {"power",    "text", 1},
-    {"place",    "text", 0},
-    {"railway",  "text", 0},
-    {"ref",      "text", 0},
-    {"religion", "text", 0},
-    {"residence","text", 0},
-    {"route",    "text", 0},
-    {"sport",    "text", 1},
-    {"tourism",  "text", 1},
-    {"tunnel",   "text", 0},
-    {"waterway", "text", 0},
-    {"width",    "text", 0},
-    {"wood",     "text", 0},
-    {"z_order",  "int4", 0},
-    {"way_area", "real", 0}
+struct taginfo {
+    char *name;
+    char *type;
+    int polygon;
+    int count;
 };
-static const unsigned int numTags = sizeof(exportTags) / sizeof(*exportTags);
+
+static struct taginfo *exportList[4]; /* Indexed by enum table_id */
+static int exportListCount[4];
 
 /* Data to generate z-order column and road table */
 static struct {
@@ -114,6 +81,71 @@ static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 
 static PGconn **sql_conns;
+
+void read_style_file( char *filename )
+{
+  FILE *in;
+  int lineno = 0;
+  
+  exportList[OSMTYPE_NODE] = malloc( sizeof(struct taginfo) * MAX_STYLES );
+  exportList[OSMTYPE_WAY]  = malloc( sizeof(struct taginfo) * MAX_STYLES );
+  
+  in = fopen( filename, "rt" );
+  if( !in )
+  {
+    fprintf( stderr, "Couldn't open style file '%s': %s\n", filename, strerror(errno) );
+    exit_nicely();
+  }
+  
+  char buffer[1024];
+  while( fgets( buffer, sizeof(buffer), in) != NULL )
+  {
+    lineno++;
+    
+    char osmtype[24];
+    char tag[24];
+    char datatype[24];
+    int offset = 0;
+
+    if( buffer[0] == '#' )
+      continue;
+      
+    int fields = sscanf( buffer, "%s %s %s %n", osmtype, tag, datatype, &offset );
+    if( fields <= 0 )  /* Blank line */
+      continue;
+    if( fields < 3 )
+    {
+      fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
+      exit_nicely();
+    }
+    struct taginfo temp;
+    temp.name = strdup( tag );
+    temp.type = strdup(datatype);
+    temp.polygon = ( strstr( buffer+offset, "polygon" ) != NULL );
+    temp.count = 0;
+//    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset );
+    
+    int flag = 0;
+    if( strstr( osmtype, "node" ) )
+    {
+      memcpy( &exportList[ OSMTYPE_NODE ][ exportListCount[ OSMTYPE_NODE ] ], &temp, sizeof(temp) );
+      exportListCount[ OSMTYPE_NODE ]++;
+      flag = 1;
+    }
+    if( strstr( osmtype, "way" ) )
+    {
+      memcpy( &exportList[ OSMTYPE_WAY ][ exportListCount[ OSMTYPE_WAY ] ], &temp, sizeof(temp) );
+      exportListCount[ OSMTYPE_WAY ]++;
+      flag = 1;
+    }
+    if( !flag )
+    {
+      fprintf( stderr, "Weird style line %d\n", lineno );
+      exit_nicely();
+    }
+  }
+  fclose(in);
+}
 
 
 void sql_out(PGconn *sql_conn, const char *sql, int len)
@@ -267,7 +299,7 @@ void compress_tag_name(struct keyval *tags)
 
 static void pgsql_out_cleanup(void)
 {
-    unsigned int i;
+    int i;
 
     if (!sql_conns)
            return;
@@ -299,11 +331,11 @@ Workaround - output SRID=4326;<WKB>
 static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
     char sql[2048], *v;
-    unsigned int i, export = 0;
+    int i, export = 0;
     PGconn *sql_conn = sql_conns[t_point];
 
-    for (i=0; i < numTags; i++) {
-        if ((v = getItem(tags, exportTags[i].name))) {
+    for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
+        if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name))) {
             export = 1;
             break;
         }
@@ -317,9 +349,12 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     sprintf(sql, "%d\t", id);
     sql_out(sql_conn, sql, strlen(sql));
 
-    for (i=0; i < numTags; i++) {
-        if ((v = getItem(tags, exportTags[i].name)))
+    for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
+        if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
+        {
             escape(sql, sizeof(sql), v);
+            exportList[OSMTYPE_NODE][i].count++;
+        }
         else
             sprintf(sql, "\\N");
 
@@ -338,16 +373,19 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
 static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql_conn)
 {
-    unsigned int j;
+    int j;
     char sql[2048];
     const char*v;
 
     sprintf(sql, "%d\t", id);
     sql_out(sql_conn, sql, strlen(sql));
 
-    for (j=0; j < numTags; j++) {
-	    if ((v = getItem(tags, exportTags[j].name)))
+    for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
+	    if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
+	    {
+	            exportList[OSMTYPE_WAY][j].count++;
 		    escape(sql, sizeof(sql), v);
+            }
 	    else
 		    sprintf(sql, "\\N");
 
@@ -388,17 +426,17 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 }
 
 
-unsigned int pgsql_filter_tags(struct keyval *tags, int *polygon)
+unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon)
 {
     const char *v;
-    unsigned int i, filter = 1;
+    int i, filter = 1;
 
     *polygon = 0;
 
-    for (i=0; i < numTags; i++) {
-        if ((v = getItem(tags, exportTags[i].name))) {
+    for (i=0; i < exportListCount[type]; i++) {
+        if ((v = getItem(tags, exportList[type][i].name))) {
             filter = 0;
-            *polygon |= exportTags[i].polygon;
+            *polygon |= exportList[type][i].polygon;
             if (*polygon)
                 break;
         }
@@ -420,13 +458,8 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     int polygon = 0, roads = 0;
     char *wkt;
     double area, interior_lat, interior_lon;
-    const char *multipolygon = getItem(tags, "multipolygon");
 
-    // If the way has been part of a multipolygon then skip
-    if (multipolygon)
-        return 0;
-
-    if (pgsql_filter_tags(tags, &polygon) || add_z_order(tags, polygon, &roads))
+    if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, polygon, &roads))
         return 0;
 
     //compress_tag_name(tags);
@@ -455,9 +488,9 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     return 0;
 }
 
-static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+static int pgsql_out_relation(int id, struct member *members, int member_count, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount)
 {
-    unsigned int i, wkt_size;
+    int i, wkt_size;
     double interior_lat, interior_lon;
     int polygon = 0, roads = 0;
     struct keyval tags, *p;
@@ -475,15 +508,15 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         addItem(&tags, p->key, p->value, 1);
         p = p->next;
     }
-    for (i=0; xtags[i]; i++) {
-        p = xtags[i]->next;
-        while (p != xtags[i]) {
+    for (i=0; xcount[i]; i++) {
+        p = xtags[i].next;
+        while (p != &(xtags[i])) {
             addItem(&tags, p->key, p->value, 1);
             p = p->next;
         }
     }
 
-    if (pgsql_filter_tags(&tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
+    if (pgsql_filter_tags(OSMTYPE_WAY, &tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
         resetList(&tags);
         return 0;
     }
@@ -523,34 +556,38 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     clear_wkts();
 
     // Mark each member so that we can skip them during iterate_ways
-    for (i=0; xcount[i]; i++)
-        addItem(xtags[i], "multipolygon", "1", 0);
+    for (i=0; i<member_count; i++)
+        if( members[i].type == OSMTYPE_WAY )
+            Options->mid->ways_done(members[i].id);
 
     resetList(&tags);
     return 0;
 }
 
-static int pgsql_out_start(const char *conninfo, const char *prefix, int append)
+static int pgsql_out_start(const struct output_options *options)
 {
     char sql[1024], tmp[128];
     PGresult   *res;
-    unsigned int i,j;
+    int i,j;
 
+    Options = options;
     /* We use a connection per table to enable the use of COPY_IN */
     sql_conns = calloc(num_tables, sizeof(PGconn *));
     assert(sql_conns);
+    
+    read_style_file( "default.style" );
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
 
         /* Substitute prefix into name of table */
         {
-            char *temp = malloc( strlen(prefix) + strlen(tables[i].name) + 1 );
-            sprintf( temp, tables[i].name, prefix );
+            char *temp = malloc( strlen(options->prefix) + strlen(tables[i].name) + 1 );
+            sprintf( temp, tables[i].name, options->prefix );
             tables[i].name = temp;
         }
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(conninfo);
+        sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -559,7 +596,7 @@ static int pgsql_out_start(const char *conninfo, const char *prefix, int append)
         }
         sql_conns[i] = sql_conn;
 
-        if (!append) {
+        if (!options->append) {
             sprintf( sql, "DROP TABLE %s;", tables[i].name);
             res = PQexec(sql_conn, sql);
             PQclear(res); /* Will be an error if table does not exist */
@@ -573,7 +610,10 @@ static int pgsql_out_start(const char *conninfo, const char *prefix, int append)
         }
         PQclear(res);
 
-        if (!append) {
+        enum OsmType type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
+        int numTags = exportListCount[type];
+        struct taginfo *exportTags = exportList[type];
+        if (!options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id int4", tables[i].name );
             for (j=0; j < numTags; j++) {
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
@@ -605,16 +645,19 @@ static int pgsql_out_start(const char *conninfo, const char *prefix, int append)
         }
         PQclear(res);
     }
+    
+    options->mid->start(options);
 
     return 0;
 }
 
-#define __unused  __attribute__ ((unused))
-static void pgsql_out_stop(__unused int append)
+static void pgsql_out_stop()
 {
     char sql[1024], tmp[128];
     PGresult   *res;
-    unsigned int i;
+    int i;
+    
+    Options->mid->iterate_ways( pgsql_out_way );
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = sql_conns[i];
@@ -683,17 +726,111 @@ static void pgsql_out_stop(__unused int append)
             exit_nicely();
         }
         PQclear(res);
+        free( (void*) tables[i].name);
+    }
+#if 0    
+    for( i=0; i<exportListCount[OSMTYPE_NODE]; i++ )
+    {
+      if( exportList[OSMTYPE_NODE][i].count == 0 )
+        printf( "Unused: node %s\n", exportList[OSMTYPE_NODE][i].name );
     }
 
+    for( i=0; i<exportListCount[OSMTYPE_WAY]; i++ )
+    {
+      if( exportList[OSMTYPE_WAY][i].count == 0 )
+        printf( "Unused: way %s\n", exportList[OSMTYPE_WAY][i].name );
+    }
+#endif
     pgsql_out_cleanup();
+    
+    Options->mid->stop();
 }
 
- 
+static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags) 
+{
+  Options->mid->nodes_set(id, lat, lon, tags);
+  pgsql_out_node(id, tags, lat, lon);
+  return 0; 
+}
+
+static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags) 
+{
+  int polygon = 0;
+
+  // Check whether the way is: (1) Exportable, (2) Maybe a polygon
+  int filter = pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon);
+
+  // Memory saving hack:-
+  // If we're not in slim mode and it's not wanted, we can quit right away */
+  if( !Options->slim && filter ) 
+    return 1;
+    
+  // If this isn't a polygon then it can not be part of a multipolygon
+  // Hence only polygons are "pending"
+  Options->mid->ways_set(id, nds, nd_count, tags, (!filter && polygon) ? 1 : 0);
+
+  if( !polygon && !filter )
+  {
+    /* Get actual node data and generate output */
+    struct osmNode *nodes = malloc( sizeof(struct osmNode) * nd_count );
+    int count = Options->mid->nodes_get_list( nodes, nds, nd_count );
+    pgsql_out_way(id, tags, nodes, count);
+    free(nodes);
+  }
+  return 0; 
+}
+
+static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags) 
+{
+  const char *type = getItem(tags, "type");
+
+  // Currently we are only interested in processing multipolygons
+  if (!type || strcmp(type, "multipolygon"))
+      return 0;
+
+  /* At this moment, why bother remembering relations at all?*/
+  if(0)
+    Options->mid->relations_set(id, members, member_count, tags);
+  // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+  int i, count;
+  int *xcount = malloc( (member_count+1) * sizeof(int) );
+  struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
+  struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+  
+  count = 0;
+  for( i=0; i<member_count; i++ )
+  {
+    /* Need to handle more than just ways... */
+    if( members[i].type != OSMTYPE_WAY )
+      continue;
+
+    initList(&(xtags[count]));
+    if( Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count]) ) )
+      continue;
+    count++;
+  }
+  xnodes[count] = NULL;
+  xcount[count] = 0;
+  
+  // At some point we might want to consider storing the retreived data in the members, rather than as seperate arrays
+  pgsql_out_relation(id, members, member_count, tags, xnodes, xtags, xcount);
+  
+  for( i=0; i<count; i++ )
+  {
+    resetList( &(xtags[i]) );
+    free( xnodes[i] );
+  }
+    
+  free(xcount);
+  free(xtags);
+  free(xnodes);
+  return 0; 
+}
 struct output_t out_pgsql = {
         start:     pgsql_out_start,
         stop:      pgsql_out_stop,
         cleanup:   pgsql_out_cleanup,
-        node:      pgsql_out_node,
-        way:       pgsql_out_way,
-        relation:  pgsql_out_relation
+        node_add:      pgsql_add_node,
+        way_add:       pgsql_add_way,
+        relation_add:  pgsql_add_relation
 };

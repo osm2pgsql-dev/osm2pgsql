@@ -10,6 +10,8 @@ CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
+CC=gcc
+CXX=g++
 
 CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE $(CFLAGS)
 CXXFLAGS += $(shell geos-config --cflags)
@@ -54,7 +56,7 @@ $(PACKAGE).spec: $(PACKAGE).spec.in
 $(PACKAGE)-$(VERSION)-$(SVN).tar.bz2: $(PACKAGE).spec
 	rm -fR tmp
 	mkdir -p tmp/osm2pgsql
-	cp -p Makefile *.[ch] *.cpp readme.txt osm2pgsql.spec* osm2pgsql-svn.sh tmp/osm2pgsql
+	cp -p Makefile *.[ch] *.cpp readme.txt osm2pgsql-svn.sh tmp/osm2pgsql
 	cp -p osm2pgsql.spec tmp/
 	tar cjf $@ -C tmp .
 	rm -fR tmp

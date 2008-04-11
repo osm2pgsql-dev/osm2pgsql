@@ -17,11 +17,11 @@
 #include "osmtypes.h"
 #include "middle.h"
 #include "middle-pgsql.h"
-
 #include "output-pgsql.h"
+#include "pgsql.h"
 
 enum table_id {
-    t_node, t_node_tag, t_way_tag, t_way_nd
+    t_node, t_way
 } ;
 
 struct table_desc {
@@ -33,61 +33,39 @@ struct table_desc {
     const char *copy;
     const char *analyze;
     const char *stop;
+
+    int copyMode;    /* True if we are in copy mode */
 };
 
 static struct table_desc tables [] = {
     { 
         //table: t_node,
-         name: "nodes",
+         name: "%s_nodes",
         start: "BEGIN;\n",
-       create: "CREATE  TABLE nodes (\"id\" int4 PRIMARY KEY, \"lat\" double precision, \"lon\" double precision);\n",
-      prepare: "PREPARE insert_node (int4, double precision, double precision) AS INSERT INTO nodes VALUES ($1,$2,$3);\n"
-               "PREPARE get_node (int4) AS SELECT \"lat\",\"lon\" FROM nodes WHERE \"id\" = $1 LIMIT 1;\n",
-         copy: "COPY nodes FROM STDIN;\n",
-      analyze: "ANALYZE nodes;\n",
+       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision, lon double precision, tags text[]);\n",
+      prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3);\n"
+               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n",
+         copy: "COPY %s_nodes FROM STDIN;\n",
+      analyze: "ANALYZE %s_nodes;\n",
          stop: "COMMIT;\n"
     },
     { 
-        //table: t_node_tag,
-         name: "node_tag",
+        //table: t_way,
+         name: "%s_ways",
         start: "BEGIN;\n",
-       create: "CREATE  TABLE node_tag (\"id\" int4 NOT NULL, \"key\" text, \"value\" text);\n"
-               "CREATE INDEX node_tag_idx ON node_tag (\"id\");\n",
-      prepare: "PREPARE insert_node_tag (int4, text, text) AS INSERT INTO node_tag VALUES ($1,$2,$3);\n"
-               "PREPARE get_node_tag_key (int4, text) AS SELECT \"value\" FROM node_tag WHERE \"id\" = $1 AND \"key\" = $2 LIMIT 1;\n"
-               "PREPARE get_node_tag (int4) AS SELECT \"key\",\"value\" FROM node_tag WHERE \"id\" = $1;\n",
-         copy: "COPY node_tag FROM STDIN;\n",
-      analyze: "ANALYZE node_tag;\n",
-         stop: "COMMIT;\n"
-    },
-    { 
-        //table: t_way_tag,
-         name: "way_tag",
-        start: "BEGIN;\n",
-       create: "CREATE  TABLE way_tag (\"id\" int4 NOT NULL, \"key\" text, \"value\" text);\n"
-               "CREATE INDEX way_tag_idx ON way_tag (\"id\");\n",
-      prepare: "PREPARE insert_way_tag (int4, text, text) AS INSERT INTO way_tag VALUES ($1,$2,$3);\n"
-               "PREPARE get_way_tag_key (int4, text) AS SELECT \"value\" FROM way_tag WHERE \"id\" = $1 AND \"key\" = $2 LIMIT 1;\n"
-               "PREPARE get_way_tag (int4) AS SELECT \"key\",\"value\" FROM way_tag WHERE \"id\" = $1;\n",
-         copy: "COPY way_tag FROM STDIN;\n",
-      analyze: "ANALYZE way_tag;\n",
+       create: "CREATE TABLE %s_ways (id int4 NOT NULL, nodes int4[] not null, tags text[] not null, pending boolean);\n"
+               "CREATE INDEX %s_ways_idx ON %s_ways (id);\n",
+      prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
+               "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
+               "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n",
+         copy: "COPY %s_ways FROM STDIN;\n",
+      analyze: "ANALYZE %s_ways;\n",
          stop:  "COMMIT;\n"
-    },
-    { 
-        //table: t_way_nd,
-         name: "way_nd",
-        start: "BEGIN;\n",
-       create: "CREATE  TABLE way_nd (\"id\" int4 NOT NULL, \"nd_id\" int4);\n"
-               "CREATE INDEX way_nd_idx ON way_nd (\"id\");\n",
-      prepare: "PREPARE insert_way_nd (int4, int4) AS INSERT INTO way_nd VALUES ($1,$2);\n"
-               "PREPARE get_way_nd (int4) AS SELECT \"nd_id\" FROM way_nd WHERE \"id\" = $1;\n",
-         copy: "COPY way_nd FROM STDIN;\n",
-      analyze: "ANALYZE way_nd;\n",
-         stop: "COMMIT;\n"
     }
 };
 
-static int num_tables = sizeof(tables)/sizeof(*tables);
+static int num_tables = sizeof(tables)/sizeof(tables[0]);
 static PGconn **sql_conns;
 
 static void pgsql_cleanup(void)
@@ -105,123 +83,254 @@ static void pgsql_cleanup(void)
     }
 }
 
-void escape(char *out, int len, const char *in)
-{ 
-    /* Apply escaping of TEXT COPY data
-    Escape: backslash itself, newline, carriage return, and the current delimiter character (tab)
-    file:///usr/share/doc/postgresql-8.1.8/html/sql-copy.html
-    */
-    int count = 0; 
-    const char *old_in = in, *old_out = out;
+char *pgsql_store_nodes(int *nds, int nd_count)
+{
+  static char *buffer;
+  static int buflen;
 
-    if (!len)
-        return;
+  char *ptr;
+  int i, first;
+    
+  if( buflen <= nd_count * 10 )
+  {
+    buflen = ((nd_count * 10) | 4095) + 1;  /* Round up to next page */
+    buffer = realloc( buffer, buflen );
+  }
+_restart:
 
-    while(*in && count < len-3) { 
-        switch(*in) {
-            case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
-      //    case    8: *out++ = '\\'; *out++ = '\b'; count+= 2; break;
-      //    case   12: *out++ = '\\'; *out++ = '\f'; count+= 2; break;
-            case '\n': *out++ = '\\'; *out++ = '\n'; count+= 2; break;
-            case '\r': *out++ = '\\'; *out++ = '\r'; count+= 2; break;
-            case '\t': *out++ = '\\'; *out++ = '\t'; count+= 2; break;
-      //    case   11: *out++ = '\\'; *out++ = '\v'; count+= 2; break;
-            default:   *out++ = *in; count++; break;
+  ptr = buffer;
+  first = 1;
+  *ptr++ = '{';
+  for( i=0; i<nd_count; i++ )
+  {
+    if( !first ) *ptr++ = ',';
+    ptr += sprintf( ptr, "%d", nds[i] );
+    
+    if( (ptr-buffer) > (buflen-20) ) /* Almost overflowed? */
+    {
+      buflen <<= 1;
+      buffer = realloc( buffer, buflen );
+      
+      goto _restart;
+    }
+    first = 0;
+  }
+  
+  *ptr++ = '}';
+  *ptr++ = 0;
+  
+  return buffer;
+}
+
+/* Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
+static inline char *escape_tag( char *ptr, const char *in )
+{
+  while( *in )
+  {
+    switch(*in)
+    {
+      case '"':
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = '"';
+        break;
+      case '\\':
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        break;
+      case '\n':
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = 'n';
+        break;
+      case '\t':
+        *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = 't';
+        break;
+      default:
+        *ptr++ = *in;
+        break;
+    }
+    in++;
+  }
+  return ptr;
+}
+
+char *pgsql_store_tags(struct keyval *tags)
+{
+  static char *buffer;
+  static int buflen;
+
+  char *ptr;
+  struct keyval *i;
+  int first;
+    
+  int countlist = countList(tags);
+  if( buflen <= countlist * 24 ) /* LE so 0 always matches */
+  {
+    buflen = ((countlist * 24) | 4095) + 1;  /* Round up to next page */
+    buffer = realloc( buffer, buflen );
+  }
+_restart:
+
+  ptr = buffer;
+  first = 1;
+  *ptr++ = '{';
+  /* The lists are circular, exit when we reach the head again */
+  for( i=tags->next; i->key; i = i->next )
+  {
+    int maxlen = (strlen(i->key) + strlen(i->value)) * 4;
+    if( (ptr+maxlen-buffer) > (buflen-20) ) /* Almost overflowed? */
+    {
+      buflen <<= 1;
+      buffer = realloc( buffer, buflen );
+      
+      goto _restart;
+    }
+    if( !first ) *ptr++ = ',';
+    *ptr++ = '"';
+    ptr = escape_tag( ptr, i->key );
+    *ptr++ = '"';
+    *ptr++ = ',';
+    *ptr++ = '"';
+    ptr = escape_tag( ptr, i->value );
+    *ptr++ = '"';
+    
+    first=0;
+  }
+  
+  *ptr++ = '}';
+  *ptr++ = 0;
+  
+  return buffer;
+}
+
+/* Decodes a portion of an array literal from postgres */
+/* Argument should point to beginning of literal, on return points to delimiter */
+static const char *decode_upto( const char *src, char *dst )
+{
+  int quoted = (*src == '"');
+  if( quoted ) src++;
+  
+  while( quoted ? (*src != '"') : (*src != ',' && *src != '}') )
+  {
+    if( *src == '\\' )
+    {
+      switch( src[1] )
+      {
+        case 'n': *dst++ = '\n'; break;
+        case 't': *dst++ = '\t'; break;
+        default: *dst++ = src[1]; break;
+      }
+      src+=2;
+    }
+    else
+      *dst++ = *src++;
+  }
+  if( quoted ) src++;
+  *dst = 0;
+  return src;
+}
+
+static void pgsql_parse_tags( const char *string, struct keyval *tags )
+{
+  char key[1024];
+  char val[1024];
+  
+//  fprintf( stderr, "Parsing: %s\n", string );
+  if( *string++ != '{' )
+    return;
+  while( *string != '}' )
+  {
+    string = decode_upto( string, key );
+    /* String points to the comma */
+    string++;
+    string = decode_upto( string, val );
+    /* String points to the comma or closing '}' */
+    addItem( tags, key, val, 0 );
+//    fprintf( stderr, "Extracted item: %s=%s\n", key, val );
+    if( *string == ',' )
+      string++;
+  }
+}
+
+/* Parses an array of integers */
+static void pgsql_parse_nodes( const char *src, int *nds, int nd_count )
+{
+  int count = 0;
+  const char *string = src;
+  
+  if( *string++ != '{' )
+    return;
+  while( *string != '}' )
+  {
+    char *ptr;
+    nds[count] = strtol( string, &ptr, 10 );
+    string = ptr;
+    if( *string == ',' )
+      string++;
+    count++;
+  }
+  if( count != nd_count )
+  {
+    fprintf( stderr, "parse_nodes problem: '%s' expected %d got %d\n", src, nd_count, count );
+    exit_nicely();
+  }
+}
+
+int pgsql_endCopy( enum table_id i )
+{
+    /* Terminate any pending COPY */
+     if (tables[i].copyMode) {
+        PGconn *sql_conn = sql_conns[i];
+        int stop = PQputCopyEnd(sql_conn, NULL);
+        if (stop != 1) {
+            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
+            exit_nicely();
         }
-        in++;
+
+        PGresult *res = PQgetResult(sql_conn);
+        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
+            PQclear(res);
+            exit_nicely();
+        }
+        PQclear(res);
+        if (tables[i].analyze) {
+            pgsql_exec(sql_conn, tables[i].analyze, PGRES_COMMAND_OK);
+        }
+        tables[i].copyMode = 0;
     }
-    *out = '\0';
-
-    if (*in)
-        fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
-}
-
-static void psql_add_tag_generic(PGconn *sql_conn, int id, const char *key, const char *value)
-{
-    char sql[256];
-    int r;
-    /* TODO: 
-    * Also watch for buffer overflow on long tag / value!
-    */
-    //sprintf(sql, "%d\t%s\t%s\n", node_id, key, value);
-    sprintf(sql, "%d\t", id);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-    escape(sql, sizeof(sql), key);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-    r = PQputCopyData(sql_conn, "\t", 1);
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, tab\n", __FUNCTION__, r);
-        exit_nicely();
-    }
-
-    escape(sql, sizeof(sql), value);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-
-    r = PQputCopyData(sql_conn, "\n", 1);
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, newline\n", __FUNCTION__, r);
-        exit_nicely();
-    }
-}
-
-#if 0
-static void psql_add_node_tag(int id, const char *key, const char *value)
-{
-    PGconn *sql_conn = sql_conns[t_node_tag];
-    psql_add_tag_generic(sql_conn, id, key, value);
-}
-#endif
-static void psql_add_way_tag(int id, const char *key, const char *value)
-{
-    PGconn *sql_conn = sql_conns[t_way_tag];
-    psql_add_tag_generic(sql_conn, id, key, value);
-}
-
-static int pgsql_nodes_set_pos(int id, double lat, double lon)
-{
-    PGconn *sql_conn = sql_conns[t_node];
-    char sql[128];
-    int r;
-
-    sprintf(sql, "%d\t%.15g\t%.15g\n", id, lat, lon);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
-    }
-
     return 0;
 }
 
 static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
 {
-//    struct keyval *p;
-    int r = pgsql_nodes_set_pos(id, lat,  lon);
+    /* Four params: id, lat, lon, tags */
+    char *paramValues[4];
+    char *buffer;
 
-    if (r) return r;
-
-#if 1
-    /* FIXME: This is a performance hack which interferes with a clean middle / output separation */
-    out_pgsql.node(id, tags, lat, lon);
-    resetList(tags);
-#else
-    while((p = popItem(tags)) != NULL) {
-        psql_add_node_tag(id, p->key, p->value);
-        freeItem(p);
+    if( tables[t_node].copyMode )
+    {
+      char *tag_buf = pgsql_store_tags(tags);
+      int length = strlen(tag_buf) + 64;
+      buffer = alloca( length );
+      
+      if( snprintf( buffer, length, "%d\t%.10f\t%.10f\t%s\n", id, lat, lon, pgsql_store_tags(tags) ) > (length-10) )
+      { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
+      return pgsql_CopyData(__FUNCTION__, sql_conns[t_node], buffer);
     }
-#endif
+    buffer = alloca(64);
+    paramValues[0] = buffer;
+    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%d", id ) + 1;
+    paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%.10f", lat ) + 1;
+    sprintf( paramValues[2], "%.10f", lon );
+
+    paramValues[3] = pgsql_store_tags(tags);
+    pgsql_execPrepared(sql_conns[t_node], "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
 
@@ -233,15 +342,13 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
     char const *paramValues[1];
     PGconn *sql_conn = sql_conns[t_node];
 
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_node );
+
     snprintf(tmp, sizeof(tmp), "%d", id);
     paramValues[0] = tmp;
  
-    res = PQexecPrepared(sql_conn, "get_node", 1, paramValues, NULL, NULL, 0);
-    if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "get_node failed: %s(%d)\n", PQerrorMessage(sql_conn), PQresultStatus(res));
-        PQclear(res);
-        exit_nicely();
-    }
+    res = pgsql_execPrepared(sql_conn, "get_node", 1, paramValues, PGRES_TUPLES_OK);
 
     if (PQntuples(res) != 1) {
         PQclear(res);
@@ -254,192 +361,121 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
     return 0;
 }
 
-static void psql_add_way_nd(int way_id, int nd_id)
+/* This should be made more efficient by using an IN(ARRAY[]) construct */
+static int pgsql_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
 {
-    PGconn *sql_conn = sql_conns[t_way_nd];
-    char sql[128];
-    int r;
-
-    sprintf(sql, "%d\t%d\n", way_id, nd_id);
-    r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result %d, line %s\n", __FUNCTION__, r, sql);
-        exit_nicely();
+    int count = 0, i;
+    for( i=0; i<nd_count; i++ )
+    {
+      if( pgsql_nodes_get( &nodes[count], ndids[i] ) == 0 )
+        count++;
     }
+    return count;
 }
 
-
-static int pgsql_ways_set(int way_id, struct keyval *nds, struct keyval *tags)
+static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tags, int pending)
 {
-#if 1
-    struct keyval *p;
+    /* Three params: id, nodes, tags, pending */
+    char *paramValues[4];
+    char *buffer;
 
-    while((p = popItem(nds)) != NULL) {
-        int nd_id = strtol(p->value, NULL, 10);
-        psql_add_way_nd(way_id, nd_id);
-        freeItem(p);
+    if( tables[t_way].copyMode )
+    {
+      char *tag_buf = pgsql_store_tags(tags);
+      char *node_buf = pgsql_store_nodes(nds, nd_count);
+      int length = strlen(tag_buf) + strlen(node_buf) + 64;
+      buffer = alloca(length);
+      if( snprintf( buffer, length, "%d\t%s\t%s\t%c\n", 
+              way_id, pgsql_store_nodes(nds, nd_count), pgsql_store_tags(tags), pending?'t':'f' ) > (length-10) )
+      { fprintf( stderr, "buffer overflow way id %d\n", way_id); return 1; }
+      return pgsql_CopyData(__FUNCTION__, sql_conns[t_way], buffer);
     }
-
-    while((p = popItem(tags)) != NULL) {
-        psql_add_way_tag(way_id, p->key, p->value);
-        freeItem(p);
-    }
-#else
-    // FIXME: Performance hack - output ways directly. Doesn't work in COPY model
-   out_pgsql.way(&mid_pgsql, way_id, tags, nds);
-   resetList(tags);
-   resetList(nds);
-#endif
+    buffer = alloca(64);
+    paramValues[0] = buffer;
+    paramValues[3] = paramValues[0] + sprintf( paramValues[0], "%d", way_id ) + 1;
+    sprintf( paramValues[3], "%c", pending?'t':'f' );
+    paramValues[1] = pgsql_store_nodes(nds, nd_count);
+    paramValues[2] = pgsql_store_tags(tags);
+    pgsql_execPrepared(sql_conns[t_way], "insert_way", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
 
-static int *pgsql_ways_get(int id)
+/* Caller is responsible for freeing nodesptr & resetList(tags) */
+static int pgsql_ways_get(int id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
 {
-    fprintf(stderr, "TODO: %s %d\n", __FUNCTION__, id);
-    return NULL;
-}
-
-
-static void pgsql_iterate_nodes(int (*callback)(int id, struct keyval *tags, double node_lat, double node_lon))
-{
-    PGresult   *res_nodes, *res_tags;
-    PGconn *sql_conn_nodes = sql_conns[t_node];
-    PGconn *sql_conn_tags = sql_conns[t_node_tag];
-    int i, j;
-    struct keyval tags;
-
-    initList(&tags);
-
-    res_nodes = PQexec(sql_conn_nodes, "SELECT * FROM nodes");
-    if (PQresultStatus(res_nodes) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "%s failed: %s\n", __FUNCTION__, PQerrorMessage(sql_conn_nodes));
-        PQclear(res_nodes);
-        exit_nicely();
-    }
-
-    for (i = 0; i < PQntuples(res_nodes); i++) {
-        const char *paramValues[1];
-        const char *xid = PQgetvalue(res_nodes, i, 0);
-        int          id = strtol(xid, NULL, 10);
-        double node_lat = strtod(PQgetvalue(res_nodes, i, 1), NULL);
-        double node_lon = strtod(PQgetvalue(res_nodes, i, 2), NULL);
-
-        if (i %10000 == 0)
-            fprintf(stderr, "\rprocessing node (%dk)", i/1000);
-
-        paramValues[0] = xid;
-
-        res_tags = PQexecPrepared(sql_conn_tags, "get_node_tag", 1, paramValues, NULL, NULL, 0);
-        if (PQresultStatus(res_tags) != PGRES_TUPLES_OK) {
-            fprintf(stderr, "get_node_tag failed: %s(%d)\n", PQerrorMessage(sql_conn_tags), PQresultStatus(res_tags));
-            PQclear(res_tags);
-            exit_nicely();
-        }
-
-        for (j=0; j<PQntuples(res_tags); j++) {
-            const char *key   = PQgetvalue(res_tags, j, 0);
-            const char *value = PQgetvalue(res_tags, j, 1);
-            addItem(&tags, key, value, 0);
-        }
-
-        callback(id, &tags, node_lat, node_lon);
-
-        PQclear(res_tags);
-        resetList(&tags);
-    }
-
-    PQclear(res_nodes);
-    fprintf(stderr, "\n");
-}
-
-void getTags(int id, struct keyval *tags)
-{
-    PGconn *sql_conn_tags = sql_conns[t_way_tag];
-    PGresult   *res_tags;
+    PGresult   *res;
     char tmp[16];
-    const char *paramValues[1];
-    int j;
+    char const *paramValues[1];
+    PGconn *sql_conn = sql_conns[t_way];
+
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_way );
 
     snprintf(tmp, sizeof(tmp), "%d", id);
     paramValues[0] = tmp;
+ 
+    res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
 
-    res_tags = PQexecPrepared(sql_conn_tags, "get_way_tag", 1, paramValues, NULL, NULL, 0);
-    if (PQresultStatus(res_tags) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "get_way_tag failed: %s(%d)\n", PQerrorMessage(sql_conn_tags), PQresultStatus(res_tags));
-        PQclear(res_tags);
-        exit_nicely();
-    }
+    if (PQntuples(res) != 1) {
+        PQclear(res);
+        return 1;
+    } 
 
-    for (j=0; j<PQntuples(res_tags); j++) {
-        const char *key   = PQgetvalue(res_tags, j, 0);
-        const char *value = PQgetvalue(res_tags, j, 1);
-        addItem(tags, key, value, 0);
-    }
-    PQclear(res_tags);
+    pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
+
+    int num_nodes = strtol(PQgetvalue(res, 0, 2), NULL, 10);
+    int *list = alloca( sizeof(int)*num_nodes );
+    *nodes_ptr = malloc( sizeof(struct osmNode) * num_nodes );
+    pgsql_parse_nodes( PQgetvalue(res, 0, 0), list, num_nodes);
+    
+    *count_ptr = pgsql_nodes_get_list( *nodes_ptr, list, num_nodes);
+    PQclear(res);
+    return 0;
 }
 
+static int pgsql_ways_done(int id)
+{
+    char tmp[16];
+    char const *paramValues[1];
+    PGconn *sql_conn = sql_conns[t_way];
+
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_way );
+
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
+ 
+    pgsql_execPrepared(sql_conn, "way_done", 1, paramValues, PGRES_COMMAND_OK);
+
+    return 0;
+}
 
 static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
 {
-    char sql[2048];
-    PGresult   *res_ways, *res_nodes;
-    int i, j, count = 0;
-    struct keyval tags;
-    struct osmNode *nodes;
-    PGconn *sql_conn_nds = sql_conns[t_way_nd];
-
-    initList(&tags);
+    PGresult   *res_ways;
+    int i, count = 0;
 
     fprintf(stderr, "\nRetrieving way list\n");
 
-/*
-gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf, nodes as nt, segments as s where w.seg_id=s.id and nf.id=s.from and nt.id=s.to limit 10;
-   id    |    id    |    lat    |    lon    |    lat    |    lon
----------+----------+-----------+-----------+-----------+-----------
- 3186577 | 10872312 | 51.720753 | -0.362055 | 51.720567 | -0.364115
- 3186577 | 10872311 | 51.720979 | -0.360532 | 51.720753 | -0.362055
- 3186577 | 10872310 | 51.721258 | -0.359137 | 51.720979 | -0.360532
-*/
-
-    res_ways = PQexec(sql_conn_nds, "SELECT id from way_nd GROUP BY id");
-    if (PQresultStatus(res_ways) != PGRES_TUPLES_OK) {
-        fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_nds));
-        PQclear(res_ways);
-        exit_nicely();
-    }
+    res_ways = pgsql_execPrepared(sql_conns[t_way], "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
     //fprintf(stderr, "\nIterating ways\n");
     for (i = 0; i < PQntuples(res_ways); i++) {
         int id = strtol(PQgetvalue(res_ways, i, 0), NULL, 10);
-        int ndCount;
+        struct keyval tags;
+        struct osmNode *nodes;
+        int nd_count;
 
         if (count++ %1000 == 0)
                 fprintf(stderr, "\rprocessing way (%dk)", count/1000);
 
-        getTags(id, &tags);
+        initList(&tags);
+        if( pgsql_ways_get(id, &tags, &nodes, &nd_count) )
+          continue;
+          
+        callback(id, &tags, nodes, nd_count);
 
-        sprintf(sql,"SELECT n.lat, n.lon FROM way_nd AS w, nodes AS n "
-                    "WHERE w.nd_id = n.id AND w.id=%d", id);
-
-        res_nodes = PQexec(sql_conn_nds, sql);
-        if (PQresultStatus(res_nodes) != PGRES_TUPLES_OK) {
-            fprintf(stderr, "%s(%d) failed: %s\n", __FUNCTION__, __LINE__, PQerrorMessage(sql_conn_nds));
-            PQclear(res_nodes);
-            exit_nicely();
-        }
-
-        ndCount = PQntuples(res_nodes);
-        nodes = malloc(ndCount * sizeof(struct osmNode));
-
-        if (nodes) {
-            for (j=0; j<ndCount; j++) {
-                nodes[j].lat = strtod(PQgetvalue(res_nodes, j, 0), NULL);
-                nodes[j].lon = strtod(PQgetvalue(res_nodes, j, 1), NULL);
-            }
-            callback(id, &tags, nodes, ndCount);
-            free(nodes);
-        }
-        PQclear(res_nodes);
+        free(nodes);
         resetList(&tags);
     }
 
@@ -447,68 +483,44 @@ gis=> select w.id,s.id,nf.lat,nf.lon,nt.lat,nt.lon from way_seg as w,nodes as nf
     fprintf(stderr, "\n");
 }
 
-
 static void pgsql_analyze(void)
 {
-    PGresult   *res;
     int i;
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = sql_conns[i];
  
         if (tables[i].analyze) {
-            res = PQexec(sql_conn, tables[i].analyze);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].analyze, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].analyze, PGRES_COMMAND_OK );
         }
     }
 }
 
 static void pgsql_end(void)
 {
-    PGresult   *res;
     int i;
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = sql_conns[i];
  
-        /* Terminate any pending COPY */
-         if (tables[i].copy) {
-            int stop = PQputCopyEnd(sql_conn, NULL);
-            if (stop != 1) {
-                fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
-                exit_nicely();
-            }
-
-            res = PQgetResult(sql_conn);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
-        }
 
         // Commit transaction
         if (tables[i].stop) {
-            res = PQexec(sql_conn, tables[i].stop);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].stop, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].stop, PGRES_COMMAND_OK);
         }
 
     }
 }
 
-#define __unused  __attribute__ ((unused))
-static int pgsql_start(const char *conninfo, int latlong __unused)
+/* Replace %s with prefix */
+static inline void set_prefix( const char *prefix, const char **string )
+{
+  char buffer[1024];
+  sprintf( buffer, *string, prefix, prefix, prefix, prefix );
+  *string = strdup( buffer );
+}
+
+static int pgsql_start(const struct output_options *options)
 {
     char sql[2048];
     PGresult   *res;
@@ -521,9 +533,17 @@ static int pgsql_start(const char *conninfo, int latlong __unused)
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
+                        
+        set_prefix( options->prefix, &(tables[i].name) );
+        set_prefix( options->prefix, &(tables[i].start) );
+        set_prefix( options->prefix, &(tables[i].create) );
+        set_prefix( options->prefix, &(tables[i].prepare) );
+        set_prefix( options->prefix, &(tables[i].copy) );
+        set_prefix( options->prefix, &(tables[i].analyze) );
+        set_prefix( options->prefix, &(tables[i].stop) );
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(conninfo);
+        sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -541,43 +561,20 @@ static int pgsql_start(const char *conninfo, int latlong __unused)
         }
 
         if (tables[i].start) {
-            res = PQexec(sql_conn, tables[i].start);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].start, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].start, PGRES_COMMAND_OK);
         }
 
         if (dropcreate && tables[i].create) {
-            res = PQexec(sql_conn, tables[i].create);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].create, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].create, PGRES_COMMAND_OK);
         }
 
         if (tables[i].prepare) {
-            res = PQexec(sql_conn, tables[i].prepare);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].prepare, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].prepare, PGRES_COMMAND_OK);
         }
 
         if (tables[i].copy) {
-            res = PQexec(sql_conn, tables[i].copy);
-            if (PQresultStatus(res) != PGRES_COPY_IN) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].copy, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].copy, PGRES_COPY_IN);
+            tables[i].copyMode = 1;
         }
     }
 
@@ -586,24 +583,16 @@ static int pgsql_start(const char *conninfo, int latlong __unused)
 
 static void pgsql_stop(void)
 {
-    //PGresult   *res;
     PGconn *sql_conn;
     int i;
 
    for (i=0; i<num_tables; i++) {
         //fprintf(stderr, "Stopping table: %s\n", tables[i].name);
+        pgsql_endCopy(i);
         sql_conn = sql_conns[i];
-#if 0
         if (tables[i].stop) {
-            res = PQexec(sql_conn, tables[i].stop);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", tables[i].stop, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, tables[i].stop, PGRES_COMMAND_OK);
         }
-#endif
         PQfinish(sql_conn);
         sql_conns[i] = NULL;
     }
@@ -618,9 +607,11 @@ struct middle_t mid_pgsql = {
         analyze:        pgsql_analyze,
         end:            pgsql_end,
         nodes_set:      pgsql_nodes_set,
-        nodes_get:      pgsql_nodes_get,
+//        nodes_get:      pgsql_nodes_get,
+        nodes_get_list:      pgsql_nodes_get_list,
         ways_set:       pgsql_ways_set,
         ways_get:       pgsql_ways_get,
-        iterate_nodes:  pgsql_iterate_nodes,
+        ways_done:      pgsql_ways_done,
+//        iterate_nodes:  pgsql_iterate_nodes,
         iterate_ways:   pgsql_iterate_ways
 };
