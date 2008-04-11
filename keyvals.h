@@ -15,6 +15,14 @@ struct keyval {
     struct keyval *prev;
 };
 
+enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
+
+struct member {
+  enum OsmType type;
+  int id;
+  char *role;
+};
+      
 void initList(struct keyval *head);
 void freeItem(struct keyval *p);
 unsigned int countList(struct keyval *head);
@@ -26,5 +34,5 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
 void resetList(struct keyval *head);
 struct keyval *getMatches(struct keyval *head, const char *name);
 void updateItem(struct keyval *head, const char *name, const char *value);
-
+void cloneList( struct keyval *target, struct keyval *source );
 #endif

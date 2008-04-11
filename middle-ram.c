@@ -45,7 +45,8 @@ struct ramWay {
 
 struct ramRel {
     struct keyval *tags;
-    struct keyval *members;
+    struct member *members;
+    int member_count;
 };
 
 /* Object storage now uses 2 levels of storage arrays.
@@ -62,7 +63,7 @@ struct ramRel {
  *
  */
 
-#define BLOCK_SHIFT 16
+#define BLOCK_SHIFT 14
 #define PER_BLOCK  (1 << BLOCK_SHIFT)
 #define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
 
@@ -73,9 +74,10 @@ static struct ramRel     *rels[NUM_BLOCKS];
 static int node_blocks;
 static int way_blocks;
 
-static int way_out_count, rel_out_count;
-
-static struct osmNode *getNodes(int *ndids, int *ndCount);
+static int way_out_count;
+#if 0
+static int rel_out_count;
+#endif
 
 static inline int id2block(int id)
 {
@@ -93,7 +95,8 @@ static inline int block2id(int block, int offset)
     return ((block - NUM_BLOCKS/2) << BLOCK_SHIFT) + offset;
 }
 
-static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags)
+#define __unused  __attribute__ ((unused))
+static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags __unused)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -114,15 +117,6 @@ static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags)
 #else
     nodes[block][offset].lat = lat;
     nodes[block][offset].lon = lon;
-#endif
-
-#if 0
-    while ((p = popItem(tags)) != NULL)
-    pushItem(&nodes[block][offset].tags, p);
-#else
-    /* FIXME: This is a performance hack which interferes with a clean middle / output separation */
-    out_pgsql.node(id, tags, lat, lon);
-    resetList(tags);
 #endif
     return 0;
 }
@@ -149,57 +143,15 @@ static int ram_nodes_get(struct osmNode *out, int id)
     return 0;
 }
 
-static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
+static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int pending)
 {
-    struct keyval *p;
-    int *ndids;
-    int ndCount, i;
     int block  = id2block(id);
     int offset = id2offset(id);
-    int polygon = 0;
-
-    // Check with output layer whether the way is: (1) Exportable, (2) Maybe a polygon
-    if (pgsql_filter_tags(tags, &polygon))
-        return 1;
-
-    ndCount = countList(nds);
-    if (!ndCount)
-        return 1;
-
-    ndids = malloc(sizeof(int) * (ndCount+1));
-    if (!ndids) {
-        fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-        exit_nicely();
-    }
-
-    i = 0;
-    while ((p = popItem(nds)) != NULL) {
-        int nd_id = strtol(p->value, NULL, 10);
-        freeItem(p);
-        if (nd_id) /* id = 0 is used as list terminator */
-            ndids[i++] = nd_id;
-    }
-    ndids[i] = 0;
-
-    if (i == 0) {
-        free(ndids);
-        return 1;
-    }
-
-    // Memory saving hack:-
-    // If this isn't a polygon then it can not be part of a multipolygon
-    // Hence we can write out the way now and discard it.
-    if (!polygon) {
-        struct osmNode *nodes = getNodes(ndids, &ndCount);
-        if (nodes) {
-            if (ndCount)
-                out_pgsql.way(id, tags, nodes, ndCount);
-            free(nodes);
-        }
-        free(ndids);
-        return 0;
-    }
-
+    struct keyval *p;
+    
+    if( !pending ) /* If it's not still to be done, don't bother storing it at all */
+      return 0;
+    
     if (!ways[block]) {
         ways[block] = calloc(PER_BLOCK, sizeof(struct ramWay));
         if (!ways[block]) {
@@ -215,7 +167,10 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
         ways[block][offset].ndids = NULL;
     }
 
-    ways[block][offset].ndids = ndids;
+    /* Copy into length prefixed array */
+    ways[block][offset].ndids = malloc( (nd_count+1)*sizeof(int) );
+    memcpy( ways[block][offset].ndids+1, nds, nd_count*sizeof(int) );
+    ways[block][offset].ndids[0] = nd_count;
 
     if (!ways[block][offset].tags) {
         p = malloc(sizeof(struct keyval));
@@ -235,17 +190,11 @@ static int ram_ways_set(int id, struct keyval *nds, struct keyval *tags)
     return 0;
 }
 
-static int ram_relations_set(int id, struct keyval *members, struct keyval *tags)
+static int ram_relations_set(int id, struct member *members, int member_count, struct keyval *tags)
 {
     struct keyval *p;
     int block  = id2block(id);
     int offset = id2offset(id);
-    const char *type = getItem(tags, "type");
-
-    // Currently we are only interested in processing multipolygons
-    if (!type || strcmp(type, "multipolygon"))
-        return 0;
-
     if (!rels[block]) {
         rels[block] = calloc(PER_BLOCK, sizeof(struct ramRel));
         if (!rels[block]) {
@@ -269,93 +218,39 @@ static int ram_relations_set(int id, struct keyval *members, struct keyval *tags
     while ((p = popItem(tags)) != NULL)
         pushItem(rels[block][offset].tags, p);
 
-    if (!rels[block][offset].members) {
-        p = malloc(sizeof(struct keyval));
-        if (p) {
-            initList(p);
-            rels[block][offset].members = p;
-        } else {
-            fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-            exit_nicely();
-        }
-    } else
-        resetList(rels[block][offset].members);
+    if (!rels[block][offset].members)
+      free( rels[block][offset].members );
 
-    while ((p = popItem(members)) != NULL)
-        pushItem(rels[block][offset].members, p);
+    struct member *ptr = malloc(sizeof(struct member) * member_count);
+    if (ptr) {
+        memcpy( ptr, members, sizeof(struct member) * member_count );
+        rels[block][offset].member_count = member_count;
+        rels[block][offset].members = ptr;
+    } else {
+        fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
+        exit_nicely();
+    }
 
     return 0;
     //return out_pgsql.relation(id, tags, nodes, ndCount)
 }
 
-static struct osmNode *getNodes(int *ndids, int *ndCount)
+static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
 {
-    int id;
-    int i, count = 0;
-    struct osmNode *nodes;
-
-    while(ndids[count])
-        count++;
-
-    nodes = malloc(count * sizeof(struct osmNode));
-
-    if (!nodes) {
-        *ndCount = 0;
-        return NULL;
-    }
+    int i, count;
 
     count = 0;
-    i = 0;
-    while ((id = ndids[i++]) != 0)
+    for( i=0; i<nd_count; i++ )
     {
-        if (ram_nodes_get(&nodes[count], id))
+        if (ram_nodes_get(&nodes[count], ndids[i]))
             continue;
 
         count++;
     }
-    *ndCount = count;
-    return nodes;
+    return count;
 }
 
-static struct osmNode **getRelNodes(struct keyval *members, struct keyval ***pway_tags, int **pndCount)
-{
-    // Gather all ways referenced by a relation
-    struct keyval *m = members->next;
-    int count = countList(members)+1;
-    struct osmNode **relNodes = calloc(count, sizeof(struct osmNode *));
-    struct keyval **way_tags = calloc(count, sizeof(struct keyval *));
-    int i = 0;
-    int *ndCount;
-
-    assert(pndCount);
-    assert(relNodes);
-    assert(way_tags);
-    assert(pway_tags);
-    ndCount = calloc(count, sizeof(int));
-    assert(ndCount);
-    *pndCount = ndCount;
-    *pway_tags = way_tags;
-
-    while (m != members) {
-        int way_id = atoi(m->value);
-        if (way_id) {
-            int block  = id2block(way_id);
-            int offset = id2offset(way_id);
-            if (ways[block] && ways[block][offset].ndids) {
-                relNodes[i] = getNodes(ways[block][offset].ndids, &ndCount[i]);
-                way_tags[i] = ways[block][offset].tags;
-                if (relNodes[i]) 
-                    i++;
-            }
-        }
-        m = m->next;
-    }
-    relNodes[i] = NULL;
-    ndCount[i] = 0;
-    way_tags[i] = NULL;
-    return relNodes;
-}
-
+#if 0
 static void ram_iterate_relations(int (*callback)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count))
 {
     int block, offset, *ndCount = NULL;
@@ -401,7 +296,7 @@ static void ram_iterate_relations(int (*callback)(int id, struct keyval *rel_tag
 
     fprintf(stderr, "\rWriting rel(%uk)\n", rel_out_count/1000);
 }
-
+#endif
 
 static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
 {
@@ -419,7 +314,13 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
                 if (way_out_count % 1000 == 0)
                     fprintf(stderr, "\rWriting way(%uk)", way_out_count/1000);
 
-                nodes = getNodes(ways[block][offset].ndids, &ndCount);
+                if (ways[block][offset].tags) 
+                    if( getItem( ways[block][offset].tags, "multipolygon" ) )
+                        continue;
+                        
+                /* First element contains number of nodes */
+                nodes = malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
+                ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
                 if (nodes) {
                     int id = block2id(block, offset);
@@ -442,6 +343,44 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
     fprintf(stderr, "\rWriting way(%uk)\n", way_out_count/1000);
 }
 
+/* Caller must free nodes_ptr and resetList(tags_ptr) */
+static int ram_ways_get( int id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
+{
+    int block = id2block(id), offset = id2offset(id), ndCount = 0;
+    struct osmNode *nodes;
+
+    if (!ways[block])
+        return 1;
+
+    if (ways[block][offset].ndids) {
+        /* First element contains number of nodes */
+        nodes = malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
+        ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
+
+        if (ndCount) {
+            cloneList( tags_ptr, ways[block][offset].tags );
+            *nodes_ptr = nodes;
+            *count_ptr = ndCount;
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// Makrs the way so that iterate ways skips it
+static int ram_ways_done( int id )
+{
+    int block = id2block(id), offset = id2offset(id);
+
+    if (!ways[block])
+        return 1;
+
+    if( ways[block][offset].tags )
+        addItem( ways[block][offset].tags, "multipolygon", "1", 1 );
+
+    return 0;
+}
+
 static void ram_analyze(void)
 {
     /* No need */
@@ -452,13 +391,12 @@ static void ram_end(void)
     /* No need */
 }
 
-#define __unused  __attribute__ ((unused))
-static int ram_start(const char * db __unused, int latlong)
+static int ram_start(const struct output_options *options)
 {
     // latlong has a range of +-180, mercator +-20000
     // The fixed poing scaling needs adjusting accordingly to
     // be stored accurately in an int
-    scale = latlong ? 10000000 : 100;
+    scale = options->scale;
 
     return 0;
 }
@@ -494,11 +432,13 @@ struct middle_t mid_ram = {
     cleanup:        ram_stop,
     analyze:        ram_analyze,
     nodes_set:      ram_nodes_set,
-    nodes_get:      ram_nodes_get,
+//    nodes_get:      ram_nodes_get,
+    nodes_get_list: ram_nodes_get_list,
     ways_set:       ram_ways_set,
     relations_set:  ram_relations_set,
-//        ways_get:       ram_ways_get,
+    ways_get:       ram_ways_get,
+    ways_done:      ram_ways_done,
 //        iterate_nodes:  ram_iterate_nodes,
     iterate_ways:   ram_iterate_ways,
-    iterate_relations: ram_iterate_relations
+//    iterate_relations: ram_iterate_relations
 };

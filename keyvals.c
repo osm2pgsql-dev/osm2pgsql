@@ -231,3 +231,9 @@ void resetList(struct keyval *head)
         freeItem(item);
 }
 
+void cloneList( struct keyval *target, struct keyval *source )
+{
+  struct keyval *ptr;
+  for( ptr = source->next; ptr != source; ptr=ptr->next )
+    addItem( target, ptr->key, ptr->value, 0 );
+}

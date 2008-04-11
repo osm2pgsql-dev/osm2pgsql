@@ -1,0 +1,65 @@
+# This is the style file that matches the old version of osm2pgsql, which
+# did not make distinctions between tags for nodes and for ways. There are a
+# number of optimisations that can be applied here. Firstly, certain tags
+# only apply to only nodes or only ways. By fixing this we reduce the amount
+# of useless data loaded into the DB, which is a good thing. Possible
+# optimisations for the future:
+
+# 1. Generate this file directly from the mapnik XML config, so it's always
+# optimal
+
+# 2. Extend it so it can understand that highway=tertiary is for ways and
+# highway=bus_stop is for nodes
+
+# Flags field isn't used much yet, expect if it contains the text "polygon"
+# it indicates the shape is candidate for the polygon table. In the future I
+# would like to be able to add directives like "nocache" which tells
+# osm2pgsql that it is unlikely this node will be used by a way and so it
+# doesn't need to be stored (eg coastline nodes). While in essence an
+# optimisation hack, for --slim mode it doesn't matter if you're wrong, but
+# in non-slim you might break something!
+
+# Also possibly an ignore flag, for things like "note" and "source" which
+# can simply be deleted. (In slim mode this is, does not apply to non-slim
+# obviously)
+
+# OsmType  Tag          DataType     Flags
+node,way   access       text         linear
+way,node   admin_level  int4         linear
+node,way   aeroway      text         polygon
+node,way   amenity      text         nocache,polygon
+node,way   bicycle      text         nocache
+way,node   bridge       text         linear
+way,node   boundary     text         linear
+way,node   building     text         polygon
+way,node   cutting      text         linear
+way,node   embankment   text         linear
+way,node   foot         text         linear
+way,node   highway      text         linear
+way,node   horse        text         linear
+way,node   junction     text         linear
+way,node   landuse      text         polygon
+way,node   layer        text         linear
+way,node   learning     text         linear
+way,node   leisure      text         polygon
+way,node   man_made     text         maybepolygon
+way,node   military     text         maybepolygon
+way,node   motorcar     text         linear
+way,node   name         text         linear
+way,node   natural      text         polygon
+way,node   oneway       text         linear
+way,node   power        text         polygon
+node,way   place        text         linear
+node,way   railway      text         linear
+node,way   ref          text         linear
+node,way   religion     text         nocache
+way,node   residence    text         linear
+way,node   route        text         linear
+way,node   sport        text         polygon
+way,node   tourism      text         polygon
+way,node   tunnel       text         linear
+way,node   waterway     text         linear
+way,node   width        text         linear
+way,node   wood         text         linear
+way,node   z_order      int4         linear
+way        way_area     real         

@@ -52,7 +52,6 @@ static int count_node,    max_node;
 static int count_way,     max_way;
 static int count_rel,     max_rel;
 
-struct middle_t *mid;
 struct output_t *out;
 
 /* Since {node,way} elements are not nested we can guarantee the 
@@ -60,10 +59,19 @@ struct output_t *out;
    start tag and can therefore be cached.
 */
 static double node_lon, node_lat;
-static struct keyval tags, nds, members;
+static struct keyval tags;
+static int *nds;
+static int nd_count, nd_max;
+static struct member *members;
+static int member_count, member_max;
 static int osm_id;
 
+#define INIT_MAX_MEMBERS 64
+#define INIT_MAX_NODES  4096
+
 int verbose;
+static void realloc_nodes();
+static void realloc_members();
 
 // Bounding box to filter imported data
 const char *bbox = NULL;
@@ -166,13 +174,16 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (count_way%1000 == 0)
             printStatus();
 
+        nd_count = 0;
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "nd")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-        addItem(&nds, "id", (char *)xid, 0);
+        nds[nd_count++] = strtol( (char *)xid, NULL, 10 );
 
+        if( nd_count >= nd_max )
+          realloc_nodes();
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
@@ -186,6 +197,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         if (count_rel%1000 == 0)
             printStatus();
 
+        member_count = 0;
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "member")) {
 	xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
@@ -197,10 +209,20 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
+        members[member_count].id   = strtol( (char *)xid, NULL, 0 );
+        members[member_count].role = strdup( (char *)xrole );
+        
         /* Currently we are only interested in 'way' members since these form polygons with holes */
 	if (xmlStrEqual(xtype, BAD_CAST "way"))
-	    addItem(&members, (char *)xrole, (char *)xid, 0);
+	    members[member_count].type = OSMTYPE_WAY;
+	if (xmlStrEqual(xtype, BAD_CAST "node"))
+	    members[member_count].type = OSMTYPE_NODE;
+	if (xmlStrEqual(xtype, BAD_CAST "relation"))
+	    members[member_count].type = OSMTYPE_RELATION;
+        member_count++;
 
+        if( member_count >= member_max )
+          realloc_members();
         xmlFree(xid);
         xmlFree(xrole);
         xmlFree(xtype);
@@ -213,22 +235,28 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
     }
 }
 
+static void resetMembers()
+{
+  int i;
+  for(i=0; i<member_count; i++ )
+    free( members[i].role );
+}
+
 void EndElement(const xmlChar *name)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
         if (node_wanted(node_lat, node_lon)) {
             reproject(&node_lat, &node_lon);
-            mid->nodes_set(osm_id, node_lat, node_lon, &tags);
+            out->node_add(osm_id, node_lat, node_lon, &tags);
         }
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
-        mid->ways_set(osm_id, &nds, &tags);
+        out->way_add(osm_id, nds, nd_count, &tags );
         resetList(&tags);
-        resetList(&nds);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-        mid->relations_set(osm_id, &members, &tags);
+        out->relation_add(osm_id, members, member_count, &tags);
         resetList(&tags);
-        resetList(&members);
+        resetMembers();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "nd")) {
@@ -303,7 +331,6 @@ void exit_nicely(void)
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
     out->cleanup();
-    mid->cleanup();
     exit(1);
 }
  
@@ -334,10 +361,10 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
-#ifdef BROKEN_SLIM
+//#ifdef BROKEN_SLIM
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
-#endif
+//#endif
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
     fprintf(stderr, "   -W|--password\tForce password prompt.\n");
     fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
@@ -394,6 +421,36 @@ const char *build_conninfo(const char *db, const char *username, const char *pas
     return conninfo;
 }
 
+static void realloc_nodes()
+{
+  if( nd_max == 0 )
+    nd_max = INIT_MAX_NODES;
+  else
+    nd_max <<= 1;
+    
+  nds = realloc( nds, nd_max * sizeof( nds[0] ) );
+  if( !nds )
+  {
+    fprintf( stderr, "Failed to expand node list to %d\n", nd_max );
+    exit_nicely();
+  }
+}
+
+static void realloc_members()
+{
+  if( member_max == 0 )
+    member_max = INIT_MAX_NODES;
+  else
+    member_max <<= 1;
+    
+  members = realloc( members, member_max * sizeof( members[0] ) );
+  if( !members )
+  {
+    fprintf( stderr, "Failed to expand member list to %d\n", member_max );
+    exit_nicely();
+  }
+}
+
 int main(int argc, char *argv[])
 {
     int append=0;
@@ -409,6 +466,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
+    struct output_options options;
     PGconn *sql_conn;
 
     fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
@@ -422,9 +480,9 @@ int main(int argc, char *argv[])
             {"database", 1, 0, 'd'},
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
-#ifdef BROKEN_SLIM
+//#ifdef BROKEN_SLIM
             {"slim",     0, 0, 's'},
-#endif
+//#endif
             {"prefix",   1, 0, 'p'},
             {"proj",     1, 0, 'E'},
             {"merc",     0, 0, 'm'},
@@ -446,9 +504,9 @@ int main(int argc, char *argv[])
             case 'b': bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
-#ifdef BROKEN_SLIM
+//#ifdef BROKEN_SLIM
             case 's': slim=1;     break;
-#endif
+//#endif
             case 'u': sanitize=1; break;
             case 'l': projection=PROJ_LATLONG;  break;
             case 'm': projection=PROJ_SPHERE_MERC; break;
@@ -491,8 +549,6 @@ int main(int argc, char *argv[])
 
     text_init();
     initList(&tags);
-    initList(&nds);
-    initList(&members);
 
     count_node = max_node = 0;
     count_way = max_way = 0;
@@ -507,38 +563,40 @@ int main(int argc, char *argv[])
     if (parse_bbox())
         return 1;
 
-    mid = slim ? &mid_pgsql : &mid_ram;
+    options.conninfo = conninfo;
+    options.prefix = prefix;
+    options.append = append;
+    options.slim = slim;
+    options.projection = project_getprojinfo()->srs;
+    options.scale = (projection==PROJ_LATLONG)?10000000:100;
+    options.mid = slim ? &mid_pgsql : &mid_ram;
     out = &out_pgsql;
 
-    out->start(conninfo, prefix, append);
+    out->start(&options);
+
+    realloc_nodes();
+    realloc_members();
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        mid->start(conninfo, projection==PROJ_LATLONG);
         if (streamFile(argv[optind], sanitize) != 0)
             exit_nicely();
-        mid->end();
-        mid->analyze();
-
-        //mid->iterate_nodes(out->node);
-        mid->iterate_relations(out->relation);
-        mid->iterate_ways(out->way);
-        mid->stop();
         optind++;
     }
 
     xmlCleanupParser();
     xmlMemoryDump();
-
+    
     if (count_node || count_way || count_rel) {
         fprintf(stderr, "\n");
         fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
         fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
         fprintf(stderr, "Relation stats: total(%d), max(%d)\n", count_rel, max_rel);
     }
-    //fprintf(stderr, "\n\nEnding data import\n");
-    //out->process(mid);
-    out->stop(append);
+    out->stop();
+    
+    free(nds);
+    free(members);
 
     project_exit();
     text_exit();

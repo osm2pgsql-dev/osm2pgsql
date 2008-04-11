@@ -13,16 +13,30 @@
 #include "keyvals.h"
 #include "middle.h"
 
-struct output_t {
-    int (*start)(const char *db, const char *prefix, int append);
-    void (*stop)(int append);
-    void (*cleanup)(void);
-    void (*process)(struct middle_t *mid);
-    int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
-    int (*way)(int id, struct keyval *tags, struct osmNode *nodes, int count);
-    int (*relation)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
+struct output_options {
+  const char *conninfo;  /* Connection info string */
+  const char *prefix;    /* prefix for table names */
+  int scale;       /* scale for converting coordinates to fixed point */
+  int projection;  /* SRS of projection */
+  int append;      /* Append to existing data */
+  int slim;        /* In slim mode */
+  struct middle_t *mid;  /* Mid storage to use */
 };
 
-unsigned int pgsql_filter_tags(struct keyval *tags, int *polygon);
+struct output_t {
+    int (*start)(const struct output_options *options);
+    void (*stop)();
+    void (*cleanup)(void);
+//    void (*process)(struct middle_t *mid);
+//    int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
+//    int (*way)(int id, struct keyval *tags, struct osmNode *nodes, int count);
+//    int (*relation)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
+
+    int (*node_add)(int id, double lat, double lon, struct keyval *tags);
+    int (*way_add)(int id, int *nodes, int node_count, struct keyval *tags);
+    int (*relation_add)(int id, struct member *members, int member_count, struct keyval *tags);
+};
+
+unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon);
 
 #endif
