@@ -9,8 +9,6 @@
 #ifndef MIDDLE_RAM_H
 #define MIDDLE_RAM_H
 
-#include "middle.h"
-
-struct middle_t mid_ram;
+extern struct middle_t mid_ram;
 
 #endif
