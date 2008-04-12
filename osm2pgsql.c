@@ -364,6 +364,8 @@ static void usage(const char *arg0)
 //#ifdef BROKEN_SLIM
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+    fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
+    fprintf(stderr, "             \t\tDefault is 800\n");
 //#endif
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
     fprintf(stderr, "   -W|--password\tForce password prompt.\n");
@@ -466,6 +468,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
+    int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
 
@@ -487,6 +490,7 @@ int main(int argc, char *argv[])
             {"proj",     1, 0, 'E'},
             {"merc",     0, 0, 'm'},
             {"utf8-sanitize", 0, 0, 'u'},
+            {"cache",    1, 0, 'C'},
             {"username", 1, 0, 'U'},
             {"password", 0, 0, 'W'},
             {"host",     1, 0, 'H'},
@@ -513,6 +517,7 @@ int main(int argc, char *argv[])
             case 'E': projection=-atoi(optarg); break;
             case 'p': prefix=optarg; break;
             case 'd': db=optarg;  break;
+            case 'C': cache = atoi(optarg); break;
             case 'U': username=optarg; break;
             case 'W': pass_prompt=1; break;
             case 'H': host=optarg; break;
@@ -535,6 +540,8 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
         exit(EXIT_FAILURE);
     }
+    
+    if( cache < 0 ) cache = 0;
 
     if (username || pass_prompt)
         password = simple_prompt("Password:", 100, 0);
@@ -570,6 +577,7 @@ int main(int argc, char *argv[])
     options.projection = project_getprojinfo()->srs;
     options.scale = (projection==PROJ_LATLONG)?10000000:100;
     options.mid = slim ? &mid_pgsql : &mid_ram;
+    options.cache = cache;
     out = &out_pgsql;
 
     out->start(&options);

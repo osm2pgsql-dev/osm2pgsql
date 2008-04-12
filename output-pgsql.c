@@ -20,7 +20,8 @@
 #include "reprojection.h"
 #include "output-pgsql.h"
 #include "build_geometry.h"
-#include "middle-pgsql.h"
+#include "middle.h"
+#include "pgsql.h"
 
 #define SRID (project_getprojinfo()->srs)
 

@@ -9,9 +9,6 @@
 #ifndef MIDDLE_PGSQL_H
 #define MIDDLE_PGSQL_H
 
-#include "middle.h"
-
-struct middle_t mid_pgsql;
-void escape(char *out, int len, const char *in);
+extern struct middle_t mid_pgsql;
 
 #endif

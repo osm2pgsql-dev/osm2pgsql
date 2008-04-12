@@ -11,7 +11,6 @@
 #define OUTPUT_H
 
 #include "keyvals.h"
-#include "middle.h"
 
 struct output_options {
   const char *conninfo;  /* Connection info string */
@@ -20,6 +19,7 @@ struct output_options {
   int projection;  /* SRS of projection */
   int append;      /* Append to existing data */
   int slim;        /* In slim mode */
+  int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
 };
 
