@@ -315,6 +315,25 @@ static void pgsql_out_cleanup(void)
     sql_conns = NULL;
 }
 
+/* Escape data appropriate to the type */
+static void escape_type(char *sql, int len, const char *value, const char *type) {
+    int items, from, to;
+
+    if ( !strcmp(type, "int4") ) {
+        /* For integers we take the first number, or the average if it's a-b */
+        items = sscanf(value, "%d-%d", &from, &to);
+        if ( items == 1 ) {
+            sprintf(sql, "%d", from);
+        } else if ( items == 2 ) {
+            sprintf(sql, "%d", (from + to) / 2);
+        } else {
+            sprintf(sql, "\\N");
+        }
+    } else {
+        escape(sql, len, value);
+    }
+}
+
 
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
@@ -353,7 +372,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
         {
-            escape(sql, sizeof(sql), v);
+            escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_NODE][i].type);
             exportList[OSMTYPE_NODE][i].count++;
         }
         else
@@ -385,7 +404,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
 	    if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
 	    {
 	            exportList[OSMTYPE_WAY][j].count++;
-		    escape(sql, sizeof(sql), v);
+		    escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_WAY][j].type);
             }
 	    else
 		    sprintf(sql, "\\N");
