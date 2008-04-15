@@ -46,11 +46,26 @@ static struct {
 };
 static const int num_tables = sizeof(tables)/sizeof(*tables);
 
+#define FLAG_POLYGON 1    /* For polygon table */
+#define FLAG_LINEAR  2    /* For lines table */
+#define FLAG_NOCACHE 4    /* Optimisation: don't bother remembering this one */
+#define FLAG_DELETE  8    /* These tags should be simply deleted on sight */
+static struct flagsname {
+    char *name;
+    int flag;
+} tagflags[] = {
+    { name: "polygon",    flag: FLAG_POLYGON },
+    { name: "linear",     flag: FLAG_LINEAR },
+    { name: "nocache",    flag: FLAG_NOCACHE },
+    { name: "delete",     flag: FLAG_DELETE }
+};
+#define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
+
 /* Table columns, representing key= tags */
 struct taginfo {
     char *name;
     char *type;
-    int polygon;
+    int flags;
     int count;
 };
 
@@ -106,12 +121,15 @@ void read_style_file( char *filename )
     char osmtype[24];
     char tag[24];
     char datatype[24];
-    int offset = 0;
+    char flags[128];
+    int i;
+    char *str;
 
-    if( buffer[0] == '#' )
-      continue;
+    str = strchr( buffer, '#' );
+    if( str )
+      *str = '\0';
       
-    int fields = sscanf( buffer, "%s %s %s %n", osmtype, tag, datatype, &offset );
+    int fields = sscanf( buffer, "%23s %23s %23s %127s", osmtype, tag, datatype, flags );
     if( fields <= 0 )  /* Blank line */
       continue;
     if( fields < 3 )
@@ -120,9 +138,23 @@ void read_style_file( char *filename )
       exit_nicely();
     }
     struct taginfo temp;
-    temp.name = strdup( tag );
+    temp.name = strdup(tag);
     temp.type = strdup(datatype);
-    temp.polygon = ( strstr( buffer+offset, "polygon" ) != NULL );
+    
+    temp.flags = 0;
+    for( str = strtok( flags, ",\r\n" ); str; str = strtok(NULL, ",\r\n") )
+    {
+      for( i=0; i<NUM_FLAGS; i++ )
+      {
+        if( strcmp( tagflags[i].name, str ) == 0 )
+        {
+          temp.flags |= tagflags[i].flag;
+          break;
+        }
+      }
+      if( i == NUM_FLAGS )
+        fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
+    }
     temp.count = 0;
 //    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset );
     
@@ -355,6 +387,8 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     PGconn *sql_conn = sql_conns[t_point];
 
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
+        if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
+            continue;
         if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name))) {
             export = 1;
             break;
@@ -370,6 +404,8 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     sql_out(sql_conn, sql, strlen(sql));
 
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
+        if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
+            continue;
         if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
         {
             escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_NODE][i].type);
@@ -401,6 +437,8 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
     sql_out(sql_conn, sql, strlen(sql));
 
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
+            if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
+                continue;
 	    if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
 	    {
 	            exportList[OSMTYPE_WAY][j].count++;
@@ -445,22 +483,51 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 	resetList(&nodeTags);
 }
 
-
+/* Go through the given tags and determine the union of flags. Also remove
+ * any tags from the list that we don't knwo about */
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon)
 {
-    const char *v;
     int i, filter = 1;
+    int flags = 0;
+    
+    struct keyval *item;
+    struct keyval temp;
+    initList(&temp);
 
-    *polygon = 0;
-
-    for (i=0; i < exportListCount[type]; i++) {
-        if ((v = getItem(tags, exportList[type][i].name))) {
-            filter = 0;
-            *polygon |= exportList[type][i].polygon;
-            if (*polygon)
+    /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
+    while( (item = popItem(tags)) != NULL )
+    {
+        for (i=0; i < exportListCount[type]; i++) 
+        {
+            if( strcmp( exportList[type][i].name, item->key ) == 0 )
+            {
+                if( exportList[type][i].flags & FLAG_DELETE )
+                {
+                    freeItem( item );
+                    item = NULL;
+                    break;
+                }
+                    
+                filter = 0;
+                flags |= exportList[type][i].flags;
+            
+                pushItem( &temp, item );
+                item = NULL;
                 break;
+            }
+        }
+        if( i == exportListCount[type] )
+        {
+            freeItem( item );
+            item = NULL;
         }
     }
+    
+    /* Move from temp list back to original list */
+    while( (item = popItem(&temp)) != NULL )
+        pushItem( tags, item );
+    
+    *polygon = flags & FLAG_POLYGON;
 
     return filter;
 }
@@ -636,6 +703,8 @@ static int pgsql_out_start(const struct output_options *options)
         if (!options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id int4", tables[i].name );
             for (j=0; j < numTags; j++) {
+                if( exportTags[j].flags & FLAG_DELETE )
+                    continue;
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 strcat(sql, tmp);
             }

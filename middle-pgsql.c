@@ -768,8 +768,10 @@ static int pgsql_start(const struct output_options *options)
     scale = options->scale;
     
     /* How much we can fit, and make sure it's odd */
-    maxBlocks = (((options->cache*1024*1024)-sizeof(blocks)) / (PER_BLOCK*sizeof(struct ramNode))) | 1;
+    maxBlocks = (((options->cache*1024*1024)) / (PER_BLOCK*sizeof(struct ramNode))) | 1;
     queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );    
+    
+    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%d\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) ); 
     
     /* We use a connection per table to enable the use of COPY */
     sql_conns = calloc(num_tables, sizeof(PGconn *));

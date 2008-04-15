@@ -24,6 +24,9 @@
 # obviously)
 
 # OsmType  Tag          DataType     Flags
+node,way   note         text         delete   # These tags can be long but are useless for rendering
+node,way   source       text         delete   # This indicates that we shouldn't store them
+
 node,way   access       text         linear
 way,node   admin_level  int4         linear
 node,way   aeroway      text         polygon
@@ -42,8 +45,8 @@ way,node   landuse      text         polygon
 way,node   layer        text         linear
 way,node   learning     text         linear
 way,node   leisure      text         polygon
-way,node   man_made     text         maybepolygon
-way,node   military     text         maybepolygon
+way,node   man_made     text         polygon
+way,node   military     text         polygon
 way,node   motorcar     text         linear
 way,node   name         text         linear
 way,node   natural      text         polygon
