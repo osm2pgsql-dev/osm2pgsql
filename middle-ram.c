@@ -397,6 +397,8 @@ static int ram_start(const struct output_options *options)
     // The fixed poing scaling needs adjusting accordingly to
     // be stored accurately in an int
     scale = options->scale;
+    
+    fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
 
     return 0;
 }
