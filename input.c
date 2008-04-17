@@ -1,3 +1,4 @@
+#define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE
 
 #include <stdio.h>
