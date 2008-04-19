@@ -38,6 +38,9 @@ static struct {
     //enum table_id table;
     const char *name;
     const char *type;
+    
+    char buffer[1024];
+    unsigned int buflen;
 } tables [] = {
     { name: "%s_point",   type: "POINT"     },
     { name: "%s_line",    type: "LINESTRING"},
@@ -180,16 +183,48 @@ void read_style_file( char *filename )
   fclose(in);
 }
 
-
-void sql_out(PGconn *sql_conn, const char *sql, int len)
+/* Handles copying out, but coalesces the data into large chunks for
+ * efficiency. PostgreSQL doesn't actually need this, but each time you send
+ * a block of data you get 5 bytes of overhead. Since we go column by column
+ * with most empty and one byte delimiters, without this optimisation we
+ * transfer three times the amount of data necessary.
+ */
+void copy_to_table(enum table_id table, const char *sql)
 {
-    unsigned int r;
+    PGconn *sql_conn = sql_conns[table];
+    unsigned int len = strlen(sql);
+    unsigned int buflen = tables[table].buflen;
+    char *buffer = tables[table].buffer;
+    
+    /* If the combination of old and new data is too big, flush old data */
+    if( (unsigned)(buflen + len) > sizeof( tables[table].buffer )-10 )
+    {
+      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      buflen = 0;
 
-    r = PQputCopyData(sql_conn, sql, len);
-    if (r != 1) {
-        fprintf(stderr, "bad result %d, line '%.*s'\n", r, len, sql);
-        exit_nicely();
+      /* If new data by itself is also too big, output it immediatly */
+      if( (unsigned)len > sizeof( tables[table].buffer )-10 )
+      {
+        pgsql_CopyData(tables[table].name, sql_conn, sql);
+        len = 0;
+      }
     }
+    /* Normal case, just append to buffer */
+    if( len > 0 )
+    {
+      strcpy( buffer+buflen, sql );
+      buflen += len;
+      len = 0;
+    }
+
+    /* If we have completed a line, output it */
+    if( buflen > 0 && buffer[buflen-1] == '\n' )
+    {
+      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      buflen = 0;
+    }
+    
+    tables[table].buflen = buflen;
 }
 
 static int add_z_order_polygon(struct keyval *tags, int *roads)
@@ -384,10 +419,9 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 {
     char sql[2048], *v;
     int i;
-    PGconn *sql_conn = sql_conns[t_point];
 
     sprintf(sql, "%d\t", id);
-    sql_out(sql_conn, sql, strlen(sql));
+    copy_to_table(t_point, sql);
 
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
@@ -400,27 +434,27 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         else
             sprintf(sql, "\\N");
 
-        sql_out(sql_conn, sql, strlen(sql));
-        sql_out(sql_conn, "\t", 1);
+        copy_to_table(t_point, sql);
+        copy_to_table(t_point, "\t");
     }
 
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
-    sql_out(sql_conn, sql, strlen(sql));
-    sql_out(sql_conn, "\n", 1);
+    copy_to_table(t_point, sql);
+    copy_to_table(t_point, "\n");
 
     return 0;
 }
 
 
 
-static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql_conn)
+static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_id table)
 {
     int j;
     char sql[2048];
     const char*v;
 
     sprintf(sql, "%d\t", id);
-    sql_out(sql_conn, sql, strlen(sql));
+    copy_to_table(table, sql);
 
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
             if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
@@ -433,14 +467,14 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, PGconn *sql
 	    else
 		    sprintf(sql, "\\N");
 
-	    sql_out(sql_conn, sql, strlen(sql));
-	    sql_out(sql_conn, "\t", 1);
+	    copy_to_table(table, sql);
+	    copy_to_table(table, "\t");
     }
 
     sprintf(sql, "SRID=%d;", SRID);
-    sql_out(sql_conn, sql, strlen(sql));
-    sql_out(sql_conn, wkt, strlen(wkt));
-    sql_out(sql_conn, "\n", 1);
+    copy_to_table(table, sql);
+    copy_to_table(table, wkt);
+    copy_to_table(table, "\n");
 }
 
 void add_parking_node(int id, struct keyval *tags, double node_lat, double node_lon)
@@ -548,12 +582,12 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 		snprintf(tmp, sizeof(tmp), "%f", area);
 		addItem(tags, "way_area", tmp, 0);
 	    }
-	    write_wkts(id, tags, wkt, sql_conns[t_poly]);
+	    write_wkts(id, tags, wkt, t_poly);
 	    add_parking_node(id, tags, interior_lat, interior_lon);
 	} else {
-	    write_wkts(id, tags, wkt, sql_conns[t_line]);
+	    write_wkts(id, tags, wkt, t_line);
 	    if (roads)
-		write_wkts(id, tags, wkt, sql_conns[t_roads]);
+		write_wkts(id, tags, wkt, t_roads);
 	}
     }
     free(wkt);
@@ -614,13 +648,13 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
                     snprintf(tmp, sizeof(tmp), "%f", area);
                     addItem(&tags, "way_area", tmp, 0);
                 }
-                write_wkts(id, &tags, wkt, sql_conns[t_poly]);
+                write_wkts(id, &tags, wkt, t_poly);
                 get_interior(i, &interior_lat, &interior_lon);
                 add_parking_node(id, &tags, interior_lat, interior_lon);
 	    } else {
-                write_wkts(id, &tags, wkt, sql_conns[t_line]);
+                write_wkts(id, &tags, wkt, t_line);
                 if (roads)
-                    write_wkts(id, &tags, wkt, sql_conns[t_roads]);
+                    write_wkts(id, &tags, wkt, t_roads);
             }
 	}
         free(wkt);
@@ -675,13 +709,7 @@ static int pgsql_out_start(const struct output_options *options)
             PQclear(res); /* Will be an error if table does not exist */
         }
 
-        res = PQexec(sql_conn, "BEGIN");
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "BEGIN %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
-            PQclear(res);
-            exit_nicely();
-        }
-        PQclear(res);
+        pgsql_exec(sql_conn, "BEGIN", PGRES_COMMAND_OK);
 
         enum OsmType type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
         int numTags = exportListCount[type];
@@ -698,35 +726,13 @@ static int pgsql_out_start(const struct output_options *options)
             sprintf( sql + strlen(sql), "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
 
-            res = PQexec(sql_conn, sql);
-            if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
-
+            pgsql_exec(sql_conn, sql, PGRES_TUPLES_OK);
             sprintf( sql, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
-
-            res = PQexec(sql_conn, sql);
-            if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-                fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
-                PQclear(res);
-                exit_nicely();
-            }
-            PQclear(res);
+            pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
         }
 
-        sql[0] = '\0';
         sprintf(sql, "COPY %s FROM STDIN", tables[i].name);
-
-        res = PQexec(sql_conn, sql);
-        if (PQresultStatus(res) != PGRES_COPY_IN) {
-            fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
-            PQclear(res);
-            exit_nicely();
-        }
-        PQclear(res);
+        pgsql_exec(sql_conn, sql, PGRES_COPY_IN);
     }
     
     options->mid->start(options);
@@ -736,16 +742,21 @@ static int pgsql_out_start(const struct output_options *options)
 
 static void pgsql_out_stop()
 {
-    char sql[1024], tmp[128];
+    char sql[1024];
     PGresult   *res;
     int i;
     
+    /* Processing any remaing to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
 
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = sql_conns[i];
-
-        sprintf(tmp, "%d", i);
+        
+        if( tables[i].buflen != 0 )
+        {
+            fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", tables[i].name, tables[i].buflen );
+            exit_nicely();
+        }
 
         /* Terminate any pending COPY */
         int stop = PQputCopyEnd(sql_conn, NULL);
@@ -763,13 +774,7 @@ static void pgsql_out_stop()
         PQclear(res);
 
         // Commit transaction
-        res = PQexec(sql_conn, "COMMIT");
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COMMIT %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
-            PQclear(res);
-            exit_nicely();
-        }
-        PQclear(res);
+        pgsql_exec(sql_conn, "COMMIT", PGRES_COMMAND_OK);
 
         sql[0] = '\0';
         strcat(sql, "ANALYZE ");
@@ -802,13 +807,7 @@ static void pgsql_out_stop()
         strcat(sql, tables[i].name);
         strcat(sql, ";\n");
 
-        res = PQexec(sql_conn, sql);
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
-            PQclear(res);
-            exit_nicely();
-        }
-        PQclear(res);
+        pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
         free( (void*) tables[i].name);
     }
 #if 0    
