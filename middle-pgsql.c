@@ -42,7 +42,7 @@ static struct table_desc tables [] = {
         //table: t_node,
          name: "%s_nodes",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision, lon double precision, tags text[]);\n",
+       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
       prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3);\n"
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n",
          copy: "COPY %s_nodes FROM STDIN;\n",
@@ -53,7 +53,7 @@ static struct table_desc tables [] = {
         //table: t_way,
          name: "%s_ways",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[] not null, pending boolean);\n"
+       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n"
                "CREATE INDEX %s_ways_idx ON %s_ways (id);\n",
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
@@ -402,6 +402,9 @@ char *pgsql_store_tags(struct keyval *tags)
   int first;
     
   int countlist = countList(tags);
+  if( countlist == 0 )
+    return "\\N";
+    
   if( buflen <= countlist * 24 ) /* LE so 0 always matches */
   {
     buflen = ((countlist * 24) | 4095) + 1;  /* Round up to next page */
@@ -473,6 +476,9 @@ static void pgsql_parse_tags( const char *string, struct keyval *tags )
   char key[1024];
   char val[1024];
   
+  if( *string == '\0' )
+    return;
+    
 //  fprintf( stderr, "Parsing: %s\n", string );
   if( *string++ != '{' )
     return;
