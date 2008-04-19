@@ -383,22 +383,8 @@ Workaround - output SRID=4326;<WKB>
 static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
     char sql[2048], *v;
-    int i, export = 0;
+    int i;
     PGconn *sql_conn = sql_conns[t_point];
-
-    for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
-        if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
-            continue;
-        if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name))) {
-            export = 1;
-            break;
-        }
-    }
-
-    if (!export)
-       return 0;
-
-    //compress_tag_name(tags);
 
     sprintf(sql, "%d\t", id);
     sql_out(sql_conn, sql, strlen(sql));
@@ -712,7 +698,15 @@ static int pgsql_out_start(const struct output_options *options)
             sprintf( sql + strlen(sql), "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
 
-            sprintf( sql + strlen(sql), "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
+            res = PQexec(sql_conn, sql);
+            if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+                fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
+                PQclear(res);
+                exit_nicely();
+            }
+            PQclear(res);
+
+            sprintf( sql, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
 
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_COMMAND_OK) {
@@ -837,8 +831,12 @@ static void pgsql_out_stop()
 
 static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags) 
 {
+  int polygon;
+  int filter = pgsql_filter_tags(OSMTYPE_NODE, tags, &polygon);
+  
   Options->mid->nodes_set(id, lat, lon, tags);
-  pgsql_out_node(id, tags, lat, lon);
+  if( !filter ) 
+      pgsql_out_node(id, tags, lat, lon);
   return 0; 
 }
 
