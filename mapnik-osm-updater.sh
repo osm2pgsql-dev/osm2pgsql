@@ -451,12 +451,17 @@ if [ -n "$create_db_users" ] ; then
     if [ "$create_db_users" = "*" ] ; then
         echo "Create DB User for every USER"
         create_db_users=''
-        for user in `users|grep -v -e root` ; do 
-            create_db_users="$create_db_users $user"
+	# try to see if all users above uid=1000 are interesting
+	all_users=`cat /etc/passwd | sed 's/:/ /g' | while read user pwd uid rest ; do test "$uid" -ge "1000" || continue; echo $user; done`
+        for user in $all_users ; do 
+	    echo $user | grep -q -e root && continue
+	    echo "$create_db_users" | grep -q  " $user " && continue
+            create_db_users=" $create_db_users $user "
         done
     fi
 
     for user in $create_db_users; do
+            echo "	Create DB User for $user"
         sudo -u postgres createuser $quiet -Upostgres --no-superuser --no-createdb --no-createrole "$user"
     done
 fi
@@ -501,6 +506,7 @@ if [ -n "$db_table_create" ] ; then
     fi
     echo ""
     echo "--------- Unpack and import $planet_file"
+    cd /usr/bin/
     $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
@@ -517,9 +523,11 @@ if [ -n "$planet_fill" ] ; then
     echo "--------- Unpack and import $planet_file"
     echo "Import started: `date`" >>"$import_log"
     $sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file
-    if [ "$?" -gt "0" ]; then
-	echo "`date`: Import With Error $?: `ls -l $planet_file` import --> $rc" >> "$import_log"
-	echo "!!!!!!!! ERROR while running '$osm2pgsql_cmd --database "$database_name" $planet_file'"
+    rc=$?
+    if [ "$rc" -gt "0" ]; then
+	echo "`date`: Import With Error $rc:" >> "$import_log"
+	echo "`ls -l $planet_file` import --> rc($rc)" >> "$import_log"
+	echo "!!!!!!!! ERROR while running '$sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file'"
         echo "Creation with for Database "$database_name" from planet-file '$planet_file' with '$osm2pgsql_cmd' Failed"
         echo "see Logfile for more Information:"
         echo "less $import_log"
