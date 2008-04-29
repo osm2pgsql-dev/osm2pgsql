@@ -506,7 +506,7 @@ if [ -n "$db_table_create" ] ; then
     fi
     echo ""
     echo "--------- Unpack and import $planet_file"
-    cd /usr/bin/
+    cd /usr/share/openstreetmap-utils/
     $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
