@@ -522,6 +522,7 @@ if [ -n "$planet_fill" ] ; then
     echo ""
     echo "--------- Unpack and import $planet_file"
     echo "Import started: `date`" >>"$import_log"
+    cd /usr/share/openstreetmap-utils/
     $sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file
     rc=$?
     if [ "$rc" -gt "0" ]; then
