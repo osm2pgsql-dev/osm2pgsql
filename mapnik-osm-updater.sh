@@ -515,7 +515,7 @@ if [ -n "$db_table_create" ] ; then
     fi
     echo ""
     echo "--------- Unpack and import $planet_file"
-    cd /usr/share/openstreetmap-utils/
+    cd /usr/share/openstreetmap/
     $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
@@ -531,7 +531,7 @@ if [ -n "$planet_fill" ] ; then
     echo ""
     echo "--------- Unpack and import $planet_file"
     echo "Import started: `date`" >>"$import_log"
-    cd /usr/share/openstreetmap-utils/
+    cd /usr/share/openstreetmap/
     $sudo_cmd $osm2pgsql_cmd --database "$database_name" $planet_file
     rc=$?
     if [ "$rc" -gt "0" ]; then
