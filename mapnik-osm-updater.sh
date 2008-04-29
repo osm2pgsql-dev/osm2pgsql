@@ -448,6 +448,13 @@ fi
 ############################################
 if [ -n "$create_db_users" ] ; then
 
+# This is not good; this probably broke my postgres installation
+# dpkg  --purge postgresql-8.2 
+# Stopping PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
+# apt-get -f install postgresql-8.2
+# Starting PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
+
+if false ; then 
     if [ "$create_db_users" = "*" ] ; then
         echo "Create DB User for every USER"
         create_db_users=''
@@ -464,6 +471,8 @@ if [ -n "$create_db_users" ] ; then
             echo "	Create DB User for $user"
         sudo -u postgres createuser $quiet -Upostgres --no-superuser --no-createdb --no-createrole "$user"
     done
+fi
+
 fi
 
 ############################################
