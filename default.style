@@ -66,3 +66,4 @@ way,node   width        text         linear
 way,node   wood         text         linear
 way,node   z_order      int4         linear
 way        way_area     real         
+node       poi          text
