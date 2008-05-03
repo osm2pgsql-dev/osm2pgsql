@@ -61,7 +61,7 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, doubl
 
     try
     {
-        for (int i = count-1; i>=0 ; i--) {
+        for (int i = 0; i < count ; i++) {
             Coordinate c;
             c.x = nodes[i].lon;
             c.y = nodes[i].lat;
