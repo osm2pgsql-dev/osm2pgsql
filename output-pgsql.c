@@ -773,13 +773,13 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
                     snprintf(tmp, sizeof(tmp), "%f", area);
                     addItem(&tags, "way_area", tmp, 0);
                 }
-                write_wkts(id, &tags, wkt, t_poly);
+                write_wkts(-id, &tags, wkt, t_poly);
                 get_interior(i, &interior_lat, &interior_lon);
-                add_parking_node(id, &tags, interior_lat, interior_lon);
+                add_parking_node(-id, &tags, interior_lat, interior_lon);
         } else {
-                write_wkts(id, &tags, wkt, t_line);
+                write_wkts(-id, &tags, wkt, t_line);
                 if (roads)
-                    write_wkts(id, &tags, wkt, t_roads);
+                    write_wkts(-id, &tags, wkt, t_roads);
             }
     }
         free(wkt);
