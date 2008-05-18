@@ -66,3 +66,21 @@ way,node   width        text         linear
 way,node   wood         text         linear
 way,node   z_order      int4         linear
 way        way_area     real         
+
+# If you're interested in bicycle routes, you may want the following fields
+# To make these work you need slim mode or the necessary data won't be remembered.
+#way       lcn_ref      text     linear
+#way       rcn_ref      text     linear
+#way       ncn_ref      text     linear
+#way       lcn          text     linear
+#way       rcn          text     linear
+#way       ncn          text     linear
+#way       lwn_ref      text     linear
+#way       rwn_ref      text     linear
+#way       nwn_ref          text     linear
+#way       lwn              text     linear
+#way       rwn              text     linear
+#way       nwn              text     linear
+#way       route_pref_color text     linear
+#way       route_name       text     linear
+

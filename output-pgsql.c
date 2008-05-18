@@ -600,13 +600,20 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     int i, wkt_size;
     double interior_lat, interior_lon;
     int polygon = 0, roads = 0;
+    int make_polygon = 0;
     struct keyval tags, *p;
+    char *type;
 #if 0
     fprintf(stderr, "Got relation with counts:");
     for (i=0; xcount[i]; i++)
         fprintf(stderr, " %d", xcount[i]);
     fprintf(stderr, "\n");
 #endif
+    /* Get the type, if there's no type we don't care */
+    type = getItem(rel_tags, "type");
+    if( !type )
+        return 0;
+        
     // Aggregate tags from all polygons with the relation,
     // no idea is this is a good way to deal with differing tags across the ways or not
     initList(&tags);
@@ -615,12 +622,130 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
         addItem(&tags, p->key, p->value, 1);
         p = p->next;
     }
-    for (i=0; xcount[i]; i++) {
-        p = xtags[i].next;
-        while (p != &(xtags[i])) {
-            addItem(&tags, p->key, p->value, 1);
-            p = p->next;
+
+    if( strcmp(type, "route") == 0 )
+    {
+	make_polygon = 0;
+	char *state = getItem(rel_tags, "state");
+	if (state == NULL) {
+	    state = "";
+	}
+
+	int networknr = -1;
+
+	if (getItem(rel_tags, "network") != NULL) {
+	    char *netw = getItem(rel_tags, "network");
+
+	    if (strcmp(netw, "lcn") == 0) {
+                networknr = 10;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "lcn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "lcn", "connection", 1);
+                } else {
+                    addItem(&tags, "lcn", "yes", 1);
+                }
+            } else if (strcmp(netw, "rcn") == 0) {
+                networknr = 11;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "rcn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "rcn", "connection", 1);
+                } else {
+                    addItem(&tags, "rcn", "yes", 1);
+                }
+            } else if (strcmp(netw, "ncn") == 0) {
+                networknr = 12;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "ncn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "ncn", "connection", 1);
+                } else {
+                    addItem(&tags, "ncn", "yes", 1);
+                }
+
+
+            } else if (strcmp(netw, "lwn") == 0) {
+                networknr = 20;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "lwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "lwn", "connection", 1);
+                } else {
+                    addItem(&tags, "lwn", "yes", 1);
+                }
+            } else if (strcmp(netw, "rwn") == 0) {
+                networknr = 21;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "rwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "rwn", "connection", 1);
+                } else {
+                    addItem(&tags, "rwn", "yes", 1);
+                }
+            } else if (strcmp(netw, "nwn") == 0) {
+                networknr = 22;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "nwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "nwn", "connection", 1);
+                } else {
+                    addItem(&tags, "nwn", "yes", 1);
+                }
+            }
         }
+        
+        if (getItem(rel_tags, "preferred_color") != NULL) {
+            char *a = getItem(rel_tags, "preferred_color");
+            if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0 || strcmp(a, "2") == 0 || strcmp(a, "3") == 0 || strcmp(a, "4") == 0) {
+                addItem(&tags, "route_pref_color", a, 1);
+            } else {
+                addItem(&tags, "route_pref_color", "0", 1);
+            }
+        } else {
+            addItem(&tags, "route_pref_color", "0", 1);
+        }
+
+        if (getItem(rel_tags, "name") != NULL) {
+            addItem(&tags, "route_name", getItem(rel_tags, "name"), 1);
+        }
+
+        if (getItem(rel_tags, "ref") != NULL) {
+            if (networknr == 10) {
+                addItem(&tags, "lcn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 11) {
+                addItem(&tags, "rcn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 12) {
+                addItem(&tags, "ncn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 20) {
+                addItem(&tags, "lwn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 21) {
+                addItem(&tags, "rwn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 22) {
+                addItem(&tags, "nwn_ref", getItem(rel_tags, "ref"), 1);
+            }
+        }
+    }
+    else if( strcmp( type, "multipolygon" ) == 0 )
+    {
+        make_polygon = 1;
+        /* For multipolygons we adds the tags on any non-inner rings */
+        for (i=0; xcount[i]; i++) {
+//            if( xtags[i].role && strcmp(xtags[i].role, "inner") == 0 )
+//                continue;
+                
+            p = xtags[i].next;
+            while (p != &(xtags[i])) {
+                addItem(&tags, p->key, p->value, 1);
+                p = p->next;
+            }
+        }
+    }
+    else
+    {
+        /* Unknown type, just exit */
+        resetList(&tags);
+        return 0;
     }
 
     if (pgsql_filter_tags(OSMTYPE_WAY, &tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
@@ -628,7 +753,7 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
         return 0;
     }
 
-    wkt_size = build_geometry(id, xnodes, xcount);
+    wkt_size = build_geometry(id, xnodes, xcount, make_polygon);
 
     if (!wkt_size) {
         resetList(&tags);
@@ -651,15 +776,15 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
                 write_wkts(id, &tags, wkt, t_poly);
                 get_interior(i, &interior_lat, &interior_lon);
                 add_parking_node(id, &tags, interior_lat, interior_lon);
-	    } else {
+        } else {
                 write_wkts(id, &tags, wkt, t_line);
                 if (roads)
                     write_wkts(id, &tags, wkt, t_roads);
             }
-	}
+    }
         free(wkt);
     }
-	
+    
     clear_wkts();
 
     // Mark each member so that we can skip them during iterate_ways
@@ -870,8 +995,8 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
 {
   const char *type = getItem(tags, "type");
 
-  // Currently we are only interested in processing multipolygons
-  if (!type || strcmp(type, "multipolygon"))
+  // Must have a type field or we ignore it
+  if (!type)
       return 0;
 
   /* At this moment, why bother remembering relations at all?*/
