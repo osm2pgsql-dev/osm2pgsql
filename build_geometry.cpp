@@ -168,7 +168,7 @@ void clear_wkts()
    areas.clear();
 }
 
-size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount) {
+size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
@@ -206,7 +206,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount) {
         for (unsigned i=0 ;i < merged->size(); ++i)
         {
             std::auto_ptr<LineString> pline ((*merged ) [i]);
-            if (pline->getNumPoints() > 3 && pline->isClosed())
+            if (make_polygon && pline->getNumPoints() > 3 && pline->isClosed())
             {
                 std::auto_ptr<LinearRing> ring(gf.createLinearRing(pline->getCoordinates()));
                 std::auto_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
