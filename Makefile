@@ -10,6 +10,7 @@ CFLAGS += $(shell xml2-config --cflags)
 CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
+CFLAGS += -DHAVE_PTHREAD
 CC=gcc
 CXX=g++
 
@@ -22,6 +23,7 @@ LDFLAGS += -L$(shell pg_config --libdir) -lpq
 LDFLAGS += -lbz2
 LDFLAGS += -g -lproj
 LDFLAGS += -lstdc++
+LDFLAGS += -lpthread
 
 SRCS:=$(wildcard *.c) $(wildcard *.cpp)
 OBJS:=$(SRCS:.c=.o)

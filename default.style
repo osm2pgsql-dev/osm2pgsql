@@ -28,44 +28,44 @@ node,way   note         text         delete   # These tags can be long but are u
 node,way   source       text         delete   # This indicates that we shouldn't store them
 
 node,way   access       text         linear
-way,node   admin_level  int4         linear
+node,way   admin_level  text         linear
 node,way   aeroway      text         polygon
 node,way   amenity      text         nocache,polygon
 node,way   bicycle      text         nocache
-way,node   bridge       text         linear
-way,node   boundary     text         linear
-way,node   building     text         polygon
-way,node   cutting      text         linear
-way,node   embankment   text         linear
-way,node   foot         text         linear
-way,node   highway      text         linear
-way,node   horse        text         linear
-way,node   junction     text         linear
-way,node   landuse      text         polygon
-way,node   layer        text         linear
-way,node   learning     text         linear
-way,node   leisure      text         polygon
-way,node   man_made     text         polygon
-way,node   military     text         polygon
-way,node   motorcar     text         linear
-way,node   name         text         linear
-way,node   natural      text         polygon
-way,node   oneway       text         linear
-way,node   power        text         polygon
+node,way   bridge       text         linear
+node,way   boundary     text         linear
+node,way   building     text         polygon
+node,way   cutting      text         linear
+node,way   embankment   text         linear
+node,way   foot         text         linear
+node,way   highway      text         linear
+node,way   horse        text         linear
+node,way   junction     text         linear
+node,way   landuse      text         polygon
+node,way   layer        text         linear
+node,way   learning     text         linear
+node,way   leisure      text         polygon
+node,way   man_made     text         polygon
+node,way   military     text         polygon
+node,way   motorcar     text         linear
+node,way   name         text         linear
+node,way   natural      text         polygon
+node,way   oneway       text         linear
+node,way   power        text         polygon
 node,way   place        text         linear
 node,way   railway      text         linear
 node,way   ref          text         linear
 node,way   religion     text         nocache
-way,node   residence    text         linear
-way,node   route        text         linear
-way,node   sport        text         polygon
-way,node   tourism      text         polygon
-way,node   tunnel       text         linear
-way,node   waterway     text         linear
-way,node   width        text         linear
-way,node   wood         text         linear
-way,node   z_order      int4         linear
-way        way_area     real         
+node,way   residence    text         linear
+node,way   route        text         linear
+node,way   sport        text         polygon
+node,way   tourism      text         polygon
+node,way   tunnel       text         linear
+node,way   waterway     text         linear
+node,way   width        text         linear
+node,way   wood         text         linear
+node,way   z_order      int4         linear
+way        way_area     real
 
 # If you're interested in bicycle routes, you may want the following fields
 # To make these work you need slim mode or the necessary data won't be remembered.
