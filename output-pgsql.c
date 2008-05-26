@@ -13,6 +13,10 @@
 #include <assert.h>
 #include <errno.h>
 
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
+
 #include <libpq-fe.h>
 
 #include "osmtypes.h"
@@ -34,11 +38,11 @@ enum table_id {
 static const struct output_options *Options;
 
 /* Tables to output */
-static struct {
+static struct s_table {
     //enum table_id table;
-    const char *name;
+    char *name;
     const char *type;
-    
+    PGconn *sql_conn;
     char buffer[1024];
     unsigned int buflen;
 } tables [] = {
@@ -47,7 +51,7 @@ static struct {
     { name: "%s_polygon", type: "POLYGON"  },
     { name: "%s_roads",   type: "LINESTRING"}
 };
-static const int num_tables = sizeof(tables)/sizeof(*tables);
+#define NUM_TABLES ((signed)(sizeof(tables) / sizeof(tables[0])))
 
 #define FLAG_POLYGON 1    /* For polygon table */
 #define FLAG_LINEAR  2    /* For lines table */
@@ -75,7 +79,11 @@ struct taginfo {
 static struct taginfo *exportList[4]; /* Indexed by enum table_id */
 static int exportListCount[4];
 
-/* Data to generate z-order column and road table */
+/* Data to generate z-order column and road table
+ * The name of the roads table is misleading, this table
+ * is used for any feature to be shown at low zoom.
+ * This includes railways and administrative boundaries too
+ */
 static struct {
     int offset;
     const char *highway;
@@ -99,16 +107,14 @@ static struct {
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 
-static PGconn **sql_conns;
-
 void read_style_file( char *filename )
 {
   FILE *in;
   int lineno = 0;
-  
+
   exportList[OSMTYPE_NODE] = malloc( sizeof(struct taginfo) * MAX_STYLES );
   exportList[OSMTYPE_WAY]  = malloc( sizeof(struct taginfo) * MAX_STYLES );
-  
+
   in = fopen( filename, "rt" );
   if( !in )
   {
@@ -183,6 +189,37 @@ void read_style_file( char *filename )
   fclose(in);
 }
 
+static void free_style_refs(const char *name, const char *type)
+{
+    // Find and remove any other references to these pointers
+    // This would be way easier if we kept a single list of styles
+    // Currently this scales with n^2 number of styles
+    int i,j;
+
+    for (i=0; i<NUM_TABLES; i++) {
+        for(j=0; j<exportListCount[i]; j++) {
+            if (exportList[i][j].name == name)
+                exportList[i][j].name = NULL;
+            if (exportList[i][j].type == type)
+                exportList[i][j].type = NULL;
+        }
+    }
+}
+
+static void free_style(void)
+{
+    int i, j;
+    for (i=0; i<NUM_TABLES; i++) {
+        for(j=0; j<exportListCount[i]; j++) {
+            free(exportList[i][j].name);
+            free(exportList[i][j].type);
+            free_style_refs(exportList[i][j].name, exportList[i][j].type);
+        }
+    }
+    for (i=0; i<NUM_TABLES; i++)
+        free(exportList[i]);
+}
+
 /* Handles copying out, but coalesces the data into large chunks for
  * efficiency. PostgreSQL doesn't actually need this, but each time you send
  * a block of data you get 5 bytes of overhead. Since we go column by column
@@ -191,18 +228,18 @@ void read_style_file( char *filename )
  */
 void copy_to_table(enum table_id table, const char *sql)
 {
-    PGconn *sql_conn = sql_conns[table];
+    PGconn *sql_conn = tables[table].sql_conn;
     unsigned int len = strlen(sql);
     unsigned int buflen = tables[table].buflen;
     char *buffer = tables[table].buffer;
-    
+
     /* If the combination of old and new data is too big, flush old data */
     if( (unsigned)(buflen + len) > sizeof( tables[table].buffer )-10 )
     {
       pgsql_CopyData(tables[table].name, sql_conn, buffer);
       buflen = 0;
 
-      /* If new data by itself is also too big, output it immediatly */
+      /* If new data by itself is also too big, output it immediately */
       if( (unsigned)len > sizeof( tables[table].buffer )-10 )
       {
         pgsql_CopyData(tables[table].name, sql_conn, sql);
@@ -223,7 +260,7 @@ void copy_to_table(enum table_id table, const char *sql)
       pgsql_CopyData(tables[table].name, sql_conn, buffer);
       buflen = 0;
     }
-    
+
     tables[table].buflen = buflen;
 }
 
@@ -231,10 +268,7 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
 {
     const char *natural = getItem(tags, "natural");
     const char *layer   = getItem(tags, "layer");
-#if 0
-    const char *landuse = getItem(tags, "landuse");
-    const char *leisure = getItem(tags, "leisure");
-#endif
+
     int z_order, l;
     char z[13];
 
@@ -245,13 +279,7 @@ static int add_z_order_polygon(struct keyval *tags, int *roads)
     l = layer ? strtol(layer, NULL, 10) : 0;
     z_order = 10 * l;
     *roads = 0;
-#if 0
-    /* - New scheme uses layer + way area to control render order, not tags */
 
-    /* landuse & leisure tend to cover large areas and we want them under other polygons */
-    if (landuse) z_order -= 2;
-    if (leisure) z_order -= 1;
-#endif
     snprintf(z, sizeof(z), "%d", z_order);
     addItem(tags, "z_order", z, 0);
 
@@ -266,6 +294,7 @@ static int add_z_order_line(struct keyval *tags, int *roads)
     const char *bridge  = getItem(tags, "bridge");
     const char *tunnel  = getItem(tags, "tunnel");
     const char *railway = getItem(tags, "railway");
+    const char *boundary= getItem(tags, "boundary");
     int z_order = 0;
     int l;
     unsigned int i;
@@ -289,6 +318,9 @@ static int add_z_order_line(struct keyval *tags, int *roads)
         z_order += 5;
         *roads = 1;
     }
+    // Administrative boundaries are rendered at low zooms so we prefer to use the roads table
+    if (boundary && !strcmp(boundary, "administrative"))
+        *roads = 1;
 
     if (bridge && (!strcmp(bridge, "true") || !strcmp(bridge, "yes") || !strcmp(bridge, "1")))
         z_order += 10;
@@ -326,7 +358,7 @@ static void fix_motorway_shields(struct keyval *tags)
 /* Append all alternate name:xx on to the name tag with space sepatators.
  * name= always comes first, the alternates are in no particular order
  * Note: A new line may be better but this does not work with Mapnik
- * 
+ *
  *    <tag k="name" v="Ben Nevis" />
  *    <tag k="name:gd" v="Ben Nibheis" />
  * becomes:
@@ -369,17 +401,12 @@ static void pgsql_out_cleanup(void)
 {
     int i;
 
-    if (!sql_conns)
-           return;
-
-    for (i=0; i<num_tables; i++) {
-        if (sql_conns[i]) {
-            PQfinish(sql_conns[i]);
-            sql_conns[i] = NULL;
+    for (i=0; i<NUM_TABLES; i++) {
+        if (tables[i].sql_conn) {
+            PQfinish(tables[i].sql_conn);
+            tables[i].sql_conn = NULL;
         }
     }
-    free(sql_conns);
-    sql_conns = NULL;
 }
 
 /* Escape data appropriate to the type */
@@ -459,16 +486,16 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
             if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
                 continue;
-	    if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
-	    {
-	            exportList[OSMTYPE_WAY][j].count++;
-		    escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_WAY][j].type);
+            if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
+            {
+                exportList[OSMTYPE_WAY][j].count++;
+                escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_WAY][j].type);
             }
-	    else
-		    sprintf(sql, "\\N");
+            else
+                sprintf(sql, "\\N");
 
-	    copy_to_table(table, sql);
-	    copy_to_table(table, "\t");
+            copy_to_table(table, sql);
+            copy_to_table(table, "\t");
     }
 
     sprintf(sql, "SRID=%d;", SRID);
@@ -509,7 +536,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
 {
     int i, filter = 1;
     int flags = 0;
-    
+
     struct keyval *item;
     struct keyval temp;
     initList(&temp);
@@ -517,7 +544,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
     while( (item = popItem(tags)) != NULL )
     {
-        for (i=0; i < exportListCount[type]; i++) 
+        for (i=0; i < exportListCount[type]; i++)
         {
             if( strcmp( exportList[type][i].name, item->key ) == 0 )
             {
@@ -803,13 +830,10 @@ static int pgsql_out_start(const struct output_options *options)
     int i,j;
 
     Options = options;
-    /* We use a connection per table to enable the use of COPY_IN */
-    sql_conns = calloc(num_tables, sizeof(PGconn *));
-    assert(sql_conns);
-    
+
     read_style_file( "default.style" );
 
-    for (i=0; i<num_tables; i++) {
+    for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
 
         /* Substitute prefix into name of table */
@@ -826,7 +850,7 @@ static int pgsql_out_start(const struct output_options *options)
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             exit_nicely();
         }
-        sql_conns[i] = sql_conn;
+        tables[i].sql_conn = sql_conn;
 
         if (!options->append) {
             sprintf( sql, "DROP TABLE %s;", tables[i].name);
@@ -865,106 +889,120 @@ static int pgsql_out_start(const struct output_options *options)
     return 0;
 }
 
-static void pgsql_out_stop()
+static void *pgsql_out_stop_one(void *arg)
 {
     char sql[1024];
     PGresult   *res;
+    struct s_table *table = arg;
+    PGconn *sql_conn = table->sql_conn;
+
+    if( table->buflen != 0 )
+    {
+       fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", table->name, table->buflen );
+       exit_nicely();
+    }
+
+    /* Terminate any pending COPY */
+    int stop = PQputCopyEnd(sql_conn, NULL);
+    if (stop != 1) {
+       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(sql_conn));
+       exit_nicely();
+    }
+
+    res = PQgetResult(sql_conn);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(sql_conn));
+       PQclear(res);
+       exit_nicely();
+    }
+    PQclear(res);
+
+    // Commit transaction
+    pgsql_exec(sql_conn, "COMMIT", PGRES_COMMAND_OK);
+
+    sql[0] = '\0';
+    strcat(sql, "ANALYZE ");
+    strcat(sql, table->name);
+    strcat(sql, ";\n");
+
+    strcat(sql, "CREATE TABLE tmp AS SELECT * FROM ");
+    strcat(sql, table->name);
+    strcat(sql, " ORDER BY way;\n");
+
+    strcat(sql, "DROP TABLE ");
+    strcat(sql, table->name);
+    strcat(sql, ";\n");
+
+    strcat(sql, "ALTER TABLE tmp RENAME TO ");
+    strcat(sql, table->name);
+    strcat(sql, ";\n");
+
+    strcat(sql, "CREATE INDEX ");
+    strcat(sql, table->name);
+    strcat(sql, "_index ON ");
+    strcat(sql, table->name);
+    strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
+
+    strcat(sql, "GRANT SELECT ON ");
+    strcat(sql, table->name);
+    strcat(sql, " TO PUBLIC;\n");
+
+    strcat(sql, "ANALYZE ");
+    strcat(sql, table->name);
+    strcat(sql, ";\n");
+
+    pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
+    free(table->name);
+    return NULL;
+}
+static void pgsql_out_stop()
+{
     int i;
-    
+#ifdef HAVE_PTHREAD
+    pthread_t threads[NUM_TABLES];
+#endif
+
     /* Processing any remaing to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
-
-    for (i=0; i<num_tables; i++) {
-        PGconn *sql_conn = sql_conns[i];
-        
-        if( tables[i].buflen != 0 )
-        {
-            fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", tables[i].name, tables[i].buflen );
-            exit_nicely();
-        }
-
-        /* Terminate any pending COPY */
-        int stop = PQputCopyEnd(sql_conn, NULL);
-        if (stop != 1) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
-            exit_nicely();
-        }
-
-        res = PQgetResult(sql_conn);
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", tables[i].name, PQerrorMessage(sql_conn));
-            PQclear(res);
-            exit_nicely();
-        }
-        PQclear(res);
-
-        // Commit transaction
-        pgsql_exec(sql_conn, "COMMIT", PGRES_COMMAND_OK);
-
-        sql[0] = '\0';
-        strcat(sql, "ANALYZE ");
-        strcat(sql, tables[i].name);
-        strcat(sql, ";\n");
-
-        strcat(sql, "CREATE TABLE tmp AS SELECT * FROM ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " ORDER BY way;\n");
-
-        strcat(sql, "DROP TABLE ");
-        strcat(sql, tables[i].name);
-        strcat(sql, ";\n");
-
-        strcat(sql, "ALTER TABLE tmp RENAME TO ");
-        strcat(sql, tables[i].name);
-        strcat(sql, ";\n");
-
-        strcat(sql, "CREATE INDEX ");
-        strcat(sql, tables[i].name);
-        strcat(sql, "_index ON ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
-
-        strcat(sql, "GRANT SELECT ON ");
-        strcat(sql, tables[i].name);
-        strcat(sql, " TO PUBLIC;\n");
-
-        strcat(sql, "ANALYZE ");
-        strcat(sql, tables[i].name);
-        strcat(sql, ";\n");
-
-        pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
-        free( (void*) tables[i].name);
-    }
-#if 0    
-    for( i=0; i<exportListCount[OSMTYPE_NODE]; i++ )
-    {
-      if( exportList[OSMTYPE_NODE][i].count == 0 )
-        printf( "Unused: node %s\n", exportList[OSMTYPE_NODE][i].name );
-    }
-
-    for( i=0; i<exportListCount[OSMTYPE_WAY]; i++ )
-    {
-      if( exportList[OSMTYPE_WAY][i].count == 0 )
-        printf( "Unused: way %s\n", exportList[OSMTYPE_WAY][i].name );
-    }
-#endif
-    pgsql_out_cleanup();
-    
+    /* No longer need to access middle layer -- release memory */
     Options->mid->stop();
+
+#ifdef HAVE_PTHREAD
+    for (i=0; i<NUM_TABLES; i++) {
+        int ret = pthread_create(&threads[i], NULL, pgsql_out_stop_one, &tables[i]);
+        if (ret) {
+            fprintf(stderr, "pthread_create() returned an error (%d)", ret);
+            exit_nicely();
+        }
+    }
+    for (i=0; i<NUM_TABLES; i++) {
+        int ret = pthread_join(threads[i], NULL);
+        if (ret) {
+            fprintf(stderr, "pthread_join() returned an error (%d)", ret);
+            exit_nicely();
+        }
+    }
+#else
+    for (i=0; i<NUM_TABLES; i++)
+        pgsql_out_stop_one(&tables[i]);
+#endif
+
+    pgsql_out_cleanup();
+    free_style();
 }
 
-static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags) 
+static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags)
 {
   int polygon;
   int filter = pgsql_filter_tags(OSMTYPE_NODE, tags, &polygon);
   
   Options->mid->nodes_set(id, lat, lon, tags);
-  if( !filter ) 
+  if( !filter )
       pgsql_out_node(id, tags, lat, lon);
-  return 0; 
+  return 0;
 }
 
-static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags) 
+static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
 {
   int polygon = 0;
 
@@ -973,7 +1011,7 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
 
   // Memory saving hack:-
   // If we're not in slim mode and it's not wanted, we can quit right away */
-  if( !Options->slim && filter ) 
+  if( !Options->slim && filter )
     return 1;
     
   // If this isn't a polygon then it can not be part of a multipolygon
@@ -988,10 +1026,10 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
     pgsql_out_way(id, tags, nodes, count);
     free(nodes);
   }
-  return 0; 
+  return 0;
 }
 
-static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags) 
+static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
 {
   const char *type = getItem(tags, "type");
 
@@ -1035,7 +1073,7 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
   free(xcount);
   free(xtags);
   free(xnodes);
-  return 0; 
+  return 0;
 }
 struct output_t out_pgsql = {
         start:     pgsql_out_start,
