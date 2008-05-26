@@ -531,12 +531,13 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 }
 
 /* Go through the given tags and determine the union of flags. Also remove
- * any tags from the list that we don't knwo about */
+ * any tags from the list that we don't know about */
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon)
 {
     int i, filter = 1;
     int flags = 0;
 
+    const char *area;
     struct keyval *item;
     struct keyval temp;
     initList(&temp);
@@ -554,10 +555,10 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                     item = NULL;
                     break;
                 }
-                    
+
                 filter = 0;
                 flags |= exportList[type][i].flags;
-            
+
                 pushItem( &temp, item );
                 item = NULL;
                 break;
@@ -569,12 +570,20 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
             item = NULL;
         }
     }
-    
+
     /* Move from temp list back to original list */
     while( (item = popItem(&temp)) != NULL )
         pushItem( tags, item );
-    
+
     *polygon = flags & FLAG_POLYGON;
+
+    /* Special case allowing area= to override anything else */
+    if ((area = getItem(tags, "area"))) {
+        if (!strcmp(area, "yes") || !strcmp(area, "true") ||!strcmp(area, "1"))
+            *polygon = 1;
+        else if (!strcmp(area, "no") || !strcmp(area, "false") || !strcmp(area, "0"))
+            *polygon = 0;
+    }
 
     return filter;
 }
