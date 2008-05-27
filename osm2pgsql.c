@@ -361,12 +361,10 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
-//#ifdef BROKEN_SLIM
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
-//#endif
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
     fprintf(stderr, "   -W|--password\tForce password prompt.\n");
     fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
@@ -483,9 +481,7 @@ int main(int argc, char *argv[])
             {"database", 1, 0, 'd'},
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
-//#ifdef BROKEN_SLIM
             {"slim",     0, 0, 's'},
-//#endif
             {"prefix",   1, 0, 'p'},
             {"proj",     1, 0, 'E'},
             {"merc",     0, 0, 'm'},
@@ -499,7 +495,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:E:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:E:C:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -508,9 +504,7 @@ int main(int argc, char *argv[])
             case 'b': bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
-//#ifdef BROKEN_SLIM
             case 's': slim=1;     break;
-//#endif
             case 'u': sanitize=1; break;
             case 'l': projection=PROJ_LATLONG;  break;
             case 'm': projection=PROJ_SPHERE_MERC; break;
