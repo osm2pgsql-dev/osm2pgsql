@@ -23,7 +23,7 @@
 #include <iostream>
 #include <cstring>
 
-#include <geos_c.h>
+#include <geos.h>
 
 #if (GEOS_VERSION_MAJOR==3)
 /* geos trunk (3.0.0rc) */
