@@ -1,5 +1,5 @@
 PACKAGE:=osm2pgsql
-VERSION:=0.53
+VERSION:=0.54
 SVN:=$(shell date +%Y%m%d)
 
 CC = gcc
@@ -20,7 +20,7 @@ CXXFLAGS += $(shell geos-config --cflags)
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)
 LDFLAGS += -L$(shell pg_config --libdir) -lpq
-LDFLAGS += -lbz2
+LDFLAGS += -lbz2 -lz
 LDFLAGS += -g -lproj
 LDFLAGS += -lstdc++
 LDFLAGS += -lpthread

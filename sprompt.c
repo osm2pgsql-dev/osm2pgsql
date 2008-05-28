@@ -52,7 +52,6 @@
  * Returns a malloc()'ed string with the input (w/o trailing newline).
  */
 
-#define HAVE_TERMIOS_H
 #define DEVTTY "/dev/tty"
 
 #include <stdio.h>
@@ -63,9 +62,11 @@
 
 #include <libpq-fe.h>
 
-
-#ifdef HAVE_TERMIOS_H
-#include <termios.h>
+#ifdef __MINGW_H
+# include <windows.h>
+#else
+# define HAVE_TERMIOS_H
+# include <termios.h>
 #endif
 
 extern char *simple_prompt(const char *prompt, int maxlen, int echo);
