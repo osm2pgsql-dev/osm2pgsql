@@ -539,7 +539,7 @@ int pgsql_endCopy( enum table_id i )
         }
         PQclear(res);
         if (tables[i].analyze) {
-            pgsql_exec(sql_conn, tables[i].analyze, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
         }
         tables[i].copyMode = 0;
     }
@@ -736,7 +736,7 @@ static void pgsql_analyze(void)
         PGconn *sql_conn = sql_conns[i];
  
         if (tables[i].analyze) {
-            pgsql_exec(sql_conn, tables[i].analyze, PGRES_COMMAND_OK );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
         }
     }
 }
@@ -750,7 +750,7 @@ static void pgsql_end(void)
  
         // Commit transaction
         if (tables[i].stop) {
-            pgsql_exec(sql_conn, tables[i].stop, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
         }
 
     }
@@ -813,19 +813,19 @@ static int pgsql_start(const struct output_options *options)
         }
 
         if (tables[i].start) {
-            pgsql_exec(sql_conn, tables[i].start, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start);
         }
 
         if (dropcreate && tables[i].create) {
-            pgsql_exec(sql_conn, tables[i].create, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
         }
 
         if (tables[i].prepare) {
-            pgsql_exec(sql_conn, tables[i].prepare, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
 
         if (tables[i].copy) {
-            pgsql_exec(sql_conn, tables[i].copy, PGRES_COPY_IN);
+            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
             tables[i].copyMode = 1;
         }
     }
@@ -854,7 +854,7 @@ static void pgsql_stop(void)
         pgsql_endCopy(i);
         sql_conn = sql_conns[i];
         if (tables[i].stop) {
-            pgsql_exec(sql_conn, tables[i].stop, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
         }
         PQfinish(sql_conn);
         sql_conns[i] = NULL;

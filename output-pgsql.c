@@ -867,7 +867,7 @@ static int pgsql_out_start(const struct output_options *options)
             PQclear(res); /* Will be an error if table does not exist */
         }
 
-        pgsql_exec(sql_conn, "BEGIN", PGRES_COMMAND_OK);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
         enum OsmType type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
         int numTags = exportListCount[type];
@@ -881,18 +881,15 @@ static int pgsql_out_start(const struct output_options *options)
                 strcat(sql, tmp);
             }
             strcat(sql, " );\n");
-            sprintf( sql + strlen(sql), "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, sql);
+            pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
-
-            pgsql_exec(sql_conn, sql, PGRES_TUPLES_OK);
-            sprintf( sql, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
-            pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
         }
 
-        sprintf(sql, "COPY %s FROM STDIN", tables[i].name);
-        pgsql_exec(sql_conn, sql, PGRES_COPY_IN);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
     }
-    
+
     options->mid->start(options);
 
     return 0;
@@ -900,7 +897,6 @@ static int pgsql_out_start(const struct output_options *options)
 
 static void *pgsql_out_stop_one(void *arg)
 {
-    char sql[1024];
     PGresult   *res;
     struct s_table *table = arg;
     PGconn *sql_conn = table->sql_conn;
@@ -927,40 +923,15 @@ static void *pgsql_out_stop_one(void *arg)
     PQclear(res);
 
     // Commit transaction
-    pgsql_exec(sql_conn, "COMMIT", PGRES_COMMAND_OK);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
 
-    sql[0] = '\0';
-    strcat(sql, "ANALYZE ");
-    strcat(sql, table->name);
-    strcat(sql, ";\n");
-
-    strcat(sql, "CREATE TABLE tmp AS SELECT * FROM ");
-    strcat(sql, table->name);
-    strcat(sql, " ORDER BY way;\n");
-
-    strcat(sql, "DROP TABLE ");
-    strcat(sql, table->name);
-    strcat(sql, ";\n");
-
-    strcat(sql, "ALTER TABLE tmp RENAME TO ");
-    strcat(sql, table->name);
-    strcat(sql, ";\n");
-
-    strcat(sql, "CREATE INDEX ");
-    strcat(sql, table->name);
-    strcat(sql, "_index ON ");
-    strcat(sql, table->name);
-    strcat(sql, " USING GIST (way GIST_GEOMETRY_OPS);\n");
-
-    strcat(sql, "GRANT SELECT ON ");
-    strcat(sql, table->name);
-    strcat(sql, " TO PUBLIC;\n");
-
-    strcat(sql, "ANALYZE ");
-    strcat(sql, table->name);
-    strcat(sql, ";\n");
-
-    pgsql_exec(sql_conn, sql, PGRES_COMMAND_OK);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table->name, table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
     free(table->name);
     return NULL;
 }
