@@ -1,9 +1,10 @@
 /* Helper functions for the postgresql connections */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include <libpq-fe.h>
-
 #include "osmtypes.h" // For exit_nicely()
 #include "pgsql.h"
 
@@ -38,18 +39,54 @@ void escape(char *out, int len, const char *in)
         fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
 }
 
-int pgsql_exec(PGconn *sql_conn, const char *sql, ExecStatusType expect)
+int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
 {
     PGresult   *res;
+    va_list ap;
+    char *sql, *nsql;
+    int n, size = 100;
+
+    /* Based on vprintf manual page */
+    /* Guess we need no more than 100 bytes. */
+
+    if ((sql = malloc(size)) == NULL) {
+        fprintf(stderr, "Memory allocation failed\n");
+        exit_nicely();
+    }
+
+    while (1) {
+        /* Try to print in the allocated space. */
+        va_start(ap, fmt);
+        n = vsnprintf(sql, size, fmt, ap);
+        va_end(ap);
+        /* If that worked, return the string. */
+        if (n > -1 && n < size)
+            break;
+        /* Else try again with more space. */
+        if (n > -1)    /* glibc 2.1 */
+            size = n+1; /* precisely what is needed */
+        else           /* glibc 2.0 */
+            size *= 2;  /* twice the old size */
+        if ((nsql = realloc (sql, size)) == NULL) {
+            free(sql);
+            fprintf(stderr, "Memory re-allocation failed\n");
+            exit_nicely();
+        } else {
+            sql = nsql;
+        }
+    }
+
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "Executing: %s\n", sql );
 #endif
     res = PQexec(sql_conn, sql);
     if (PQresultStatus(res) != expect) {
         fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
+        free(sql);
         PQclear(res);
         exit_nicely();
     }
+    free(sql);
     PQclear(res);
     return 0;
 }
