@@ -102,6 +102,7 @@ static struct {
     { 4, "tertiary_link", 0 },
     { 3, "residential",   0 },
     { 3, "unclassified",  0 },
+    { 3, "road",          0 },
     { 3, "minor",         0 }
 };
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
