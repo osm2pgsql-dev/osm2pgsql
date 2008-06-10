@@ -290,7 +290,8 @@ if [ -n "$help" ] ; then
     have to start the script as root. The users needed will be postgres and osm
     "
     # extract options + description from case commands above
-    grep -E  -e esac -e '--.*\).*#' -e '^[\t\s 	]*#' $0 | grep -v /bin/bash | sed '/esac/,$d;s/.*--/  --/;s/=\*)/=val/;s/)//;s/#//;' 
+    grep -E  -e esac -e '--.*\).*#' -e '^[\t\s 	]+#' $0 | \
+	grep -v /bin/bash | sed '/esac/,$d;s/.*--/  --/;s/=\*)/=val/;s/)//;s/#//;' 
     exit;
 fi
 
@@ -448,30 +449,32 @@ fi
 ############################################
 if [ -n "$create_db_users" ] ; then
 
-# This is not good; this probably broke my postgres installation
-# dpkg  --purge postgresql-8.2 
-# Stopping PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
-# apt-get -f install postgresql-8.2
-# Starting PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
-
-if false ; then 
     if [ "$create_db_users" = "*" ] ; then
         echo "Create DB User for every USER"
         create_db_users=''
 	# try to see if all users above uid=1000 are interesting
 	all_users=`cat /etc/passwd | sed 's/:/ /g' | while read user pwd uid rest ; do test "$uid" -ge "1000" || continue; echo $user; done`
+	echo "all_users: $all_users"
         for user in $all_users ; do 
 	    echo $user | grep -q -e root && continue
+	    echo $user | grep -q -e "$osm_username" && continue
+	    echo $user | grep -q -e "nobody" && continue
 	    echo "$create_db_users" | grep -q  " $user " && continue
             create_db_users=" $create_db_users $user "
         done
     fi
 
+# This is not good; this probably broke my postgres installation
+# dpkg  --purge postgresql-8.2 
+# Stopping PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
+# apt-get -f install postgresql-8.2
+# Starting PostgreSQL 8.2 database server: main* Error: The cluster is owned by user id 107 which does not exist any more
+#if false ; then 
     for user in $create_db_users; do
             echo "	Create DB User for $user"
         sudo -u postgres createuser $quiet -Upostgres --no-superuser --no-createdb --no-createrole "$user"
     done
-fi
+#fi
 
 fi
 
@@ -481,7 +484,7 @@ fi
 if [ -n "$grant_db_users" ] ; then
 
     if [ "$grant_db_users" = "*" ] ; then
-        echo "GRANT Rights to every USER"
+        echo "-------- GRANT Rights to every USER"
         grant_db_users=''
         for user in `users` ; do 
 	    echo "$user" | grep -q "root" && continue
