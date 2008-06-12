@@ -562,7 +562,7 @@ if [ -n "$db_add_gpsdrive_poitypes" ] ; then
     fi
     echo ""
     echo "--------- Adding GpsDrive POI-Types to Database"
-    sudo -u postgres $gpsdrive_poitypes_cmd
+    sudo -u postgres $gpsdrive_poitypes_cmd -n
 fi
 
 
