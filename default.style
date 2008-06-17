@@ -52,7 +52,7 @@ node,way   motorcar     text         linear
 node,way   name         text         linear
 node,way   natural      text         polygon
 node,way   oneway       text         linear
-node       poi          text         
+node       poi          text
 node,way   power        text         polygon
 node,way   place        text         linear
 node,way   railway      text         linear
@@ -62,6 +62,7 @@ node,way   residence    text         linear
 node,way   route        text         linear
 node,way   sport        text         polygon
 node,way   tourism      text         polygon
+way        tracktype    text         linear
 node,way   tunnel       text         linear
 node,way   waterway     text         linear
 node,way   width        text         linear
