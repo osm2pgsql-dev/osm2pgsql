@@ -23,7 +23,14 @@
 #include <iostream>
 #include <cstring>
 
-#include <geos.h>
+/*
+  # the only reason we include this C header is to obtain the GEOS_VERSION_MAJOR
+  # definition to work out which headers we _really_ want. This version
+  # number is not present in any of the C++ headers (or at least it wasn't
+  # when I originally added those lines, probably 12+ months ago). This
+  # seemed the only easy way to support both geos versions.
+*/
+#include <geos_c.h>
 
 #if (GEOS_VERSION_MAJOR==3)
 /* geos trunk (3.0.0rc) */
