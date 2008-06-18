@@ -356,7 +356,8 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
     fprintf(stderr, "                \tto (default: gis).\n");
     fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
-    fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator, not OSM merc\n");
+    fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
+    fprintf(stderr, "   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
     fprintf(stderr, "   -E|--proj num\tUse projection EPSG:num\n");
     fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
     fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
@@ -458,7 +459,7 @@ int main(int argc, char *argv[])
     int slim=0;
     int sanitize=0;
     int pass_prompt=0;
-    int projection = PROJ_MERC;
+    int projection = PROJ_SPHERE_MERC;
     const char *db = "gis";
     const char *username=NULL;
     const char *host=NULL;
@@ -485,6 +486,7 @@ int main(int argc, char *argv[])
             {"prefix",   1, 0, 'p'},
             {"proj",     1, 0, 'E'},
             {"merc",     0, 0, 'm'},
+            {"oldmerc",  0, 0, 'M'},
             {"utf8-sanitize", 0, 0, 'u'},
             {"cache",    1, 0, 'C'},
             {"username", 1, 0, 'U'},
@@ -495,7 +497,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmp:suvU:WH:P:E:C:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -508,6 +510,7 @@ int main(int argc, char *argv[])
             case 'u': sanitize=1; break;
             case 'l': projection=PROJ_LATLONG;  break;
             case 'm': projection=PROJ_SPHERE_MERC; break;
+            case 'M': projection=PROJ_MERC; break;
             case 'E': projection=-atoi(optarg); break;
             case 'p': prefix=optarg; break;
             case 'd': db=optarg;  break;
