@@ -298,7 +298,7 @@ static void ram_iterate_relations(int (*callback)(int id, struct keyval *rel_tag
 }
 #endif
 
-static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
+static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     int block, offset, ndCount = 0;
     struct osmNode *nodes;
@@ -324,7 +324,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
 
                 if (nodes) {
                     int id = block2id(block, offset);
-                    callback(id, ways[block][offset].tags, nodes, ndCount);
+                    callback(id, ways[block][offset].tags, nodes, ndCount, 0);
                     free(nodes);
                 }
 
