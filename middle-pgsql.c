@@ -44,7 +44,8 @@ static struct table_desc tables [] = {
         start: "BEGIN;\n",
        create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
       prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3);\n"
-               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n",
+               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
+               "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
          copy: "COPY %s_nodes FROM STDIN;\n",
       analyze: "ANALYZE %s_nodes;\n",
          stop: "COMMIT;\n"
@@ -58,7 +59,8 @@ static struct table_desc tables [] = {
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n",
+               "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
+               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
          copy: "COPY %s_ways FROM STDIN;\n",
       analyze: "ANALYZE %s_ways;\n",
          stop:  "COMMIT;\n"
@@ -520,7 +522,7 @@ static void pgsql_parse_nodes( const char *src, int *nds, int nd_count )
   }
 }
 
-int pgsql_endCopy( enum table_id i )
+static int pgsql_endCopy( enum table_id i )
 {
     /* Terminate any pending COPY */
      if (tables[i].copyMode) {
@@ -617,6 +619,19 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
     return count;
 }
 
+static int pgsql_nodes_delete(int osm_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_node );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_node], "delete_node", 1, paramValues, PGRES_COMMAND_OK );
+    return 0;
+}
+
 static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tags, int pending)
 {
     /* Three params: id, nodes, tags, pending */
@@ -694,6 +709,19 @@ static int pgsql_ways_done(int id)
     return 0;
 }
 
+static int pgsql_ways_delete(int osm_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_way );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_way], "delete_way", 1, paramValues, PGRES_COMMAND_OK );
+    return 0;
+}
+
 static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
 {
     PGresult   *res_ways;
@@ -701,6 +729,9 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
 
     fprintf(stderr, "\nGoing over pending ways\n");
 
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_way );
+    
     res_ways = pgsql_execPrepared(sql_conns[t_way], "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
     //fprintf(stderr, "\nIterating ways\n");
@@ -760,7 +791,7 @@ static void pgsql_end(void)
 static inline void set_prefix( const char *prefix, const char **string )
 {
   char buffer[1024];
-  sprintf( buffer, *string, prefix, prefix, prefix, prefix );
+  sprintf( buffer, *string, prefix, prefix, prefix, prefix, prefix );
   *string = strdup( buffer );
 }
 
@@ -872,9 +903,11 @@ struct middle_t mid_pgsql = {
         nodes_set:      pgsql_nodes_set,
 //        nodes_get:      pgsql_nodes_get,
         nodes_get_list:      pgsql_nodes_get_list,
+        nodes_delete:	pgsql_nodes_delete,
         ways_set:       pgsql_ways_set,
         ways_get:       pgsql_ways_get,
         ways_done:      pgsql_ways_done,
+        ways_delete:    pgsql_ways_delete,
 //        iterate_nodes:  pgsql_iterate_nodes,
         iterate_ways:   pgsql_iterate_ways
 };
