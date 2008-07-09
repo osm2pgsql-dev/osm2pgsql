@@ -33,6 +33,7 @@ struct table_desc {
     const char *copy;
     const char *analyze;
     const char *stop;
+    const char *array_indexes;
 
     int copyMode;    /* True if we are in copy mode */
 };
@@ -54,8 +55,8 @@ static struct table_desc tables [] = {
         //table: t_way,
          name: "%s_ways",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n"
-               "CREATE INDEX %s_ways_idx ON %s_ways (id);\n",
+       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
+array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__intbig_ops);\n",
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
@@ -791,9 +792,13 @@ static void pgsql_end(void)
 static inline void set_prefix( const char *prefix, const char **string )
 {
   char buffer[1024];
+  if( *string == NULL )
+      return;
   sprintf( buffer, *string, prefix, prefix, prefix, prefix, prefix );
   *string = strdup( buffer );
 }
+
+static int build_indexes;
 
 static int pgsql_start(const struct output_options *options)
 {
@@ -824,6 +829,7 @@ static int pgsql_start(const struct output_options *options)
         set_prefix( options->prefix, &(tables[i].copy) );
         set_prefix( options->prefix, &(tables[i].analyze) );
         set_prefix( options->prefix, &(tables[i].stop) );
+        set_prefix( options->prefix, &(tables[i].array_indexes) );
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);
@@ -835,6 +841,19 @@ static int pgsql_start(const struct output_options *options)
         }
         sql_conns[i] = sql_conn;
 
+        /* Not really the right place for this test, but we need a live
+         * connection that not used for anything else yet, and we'd like to
+         * warn users *before* we start doing mountains of work */
+        if (i==0)
+        {
+            /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
+            res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
+            if( PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1 )
+                build_indexes = 1;
+            else
+                fprintf( stderr, "*** WARNING: intarray contrib module not installed\n*** The resulting database will not be usable for applying diffs.\n" );
+            PQclear(res);
+        }
         if (dropcreate) {
             sql[0] = '\0';
             strcat(sql, "DROP TABLE ");
@@ -887,6 +906,8 @@ static void pgsql_stop(void)
         if (tables[i].stop) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
         }
+        if( build_indexes && tables[i].array_indexes )
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].array_indexes);
         PQfinish(sql_conn);
         sql_conns[i] = NULL;
     }
