@@ -769,7 +769,7 @@ static int pgsql_start(const struct output_options *options)
     char sql[2048];
     PGresult   *res;
     int i;
-    int dropcreate = 1;
+    int dropcreate = !options->append;
 
     scale = options->scale;
     

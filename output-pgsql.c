@@ -1056,11 +1056,70 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
   free(xnodes);
   return 0;
 }
+
+#define __unused  __attribute__ ((unused))
+
+static int pgsql_unsupported_delete(int osm_id __unused)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    fprintf( stderr, "Deleting not yet supported\n" );
+    exit_nicely();
+    return 0;
+}
+
+static int pgsql_unsupported_modify_node(int osm_id __unused, double lat __unused, double lon __unused, struct keyval *tags __unused)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    fprintf( stderr, "Modify node not yet supported\n" );
+    exit_nicely();
+    return 0;
+}
+
+static int pgsql_unsupported_modify_way(int osm_id __unused, int *nodes __unused, int node_count __unused, struct keyval *tags __unused)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    fprintf( stderr, "Modify way not yet supported\n" );
+    exit_nicely();
+    return 0;
+}
+
+static int pgsql_unsupported_modify_relation(int osm_id __unused, struct member *members __unused, int member_count __unused, struct keyval *tags __unused)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    fprintf( stderr, "Modify relation not yet supported\n" );
+    exit_nicely();
+    return 0;
+}
+
 struct output_t out_pgsql = {
         start:     pgsql_out_start,
         stop:      pgsql_out_stop,
         cleanup:   pgsql_out_cleanup,
         node_add:      pgsql_add_node,
         way_add:       pgsql_add_way,
-        relation_add:  pgsql_add_relation
+        relation_add:  pgsql_add_relation,
+        
+        node_modify: pgsql_unsupported_modify_node,
+        way_modify: pgsql_unsupported_modify_way,
+        relation_modify: pgsql_unsupported_modify_relation,
+
+        node_delete: pgsql_unsupported_delete,
+        way_delete: pgsql_unsupported_delete,
+        relation_delete: pgsql_unsupported_delete
 };
