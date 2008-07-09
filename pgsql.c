@@ -112,6 +112,14 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, int nParam
     PGresult *res = PQexecPrepared(sql_conn, stmtName, nParams, paramValues, NULL, NULL, 0);
     if (PQresultStatus(res) != expect) {
         fprintf(stderr, "%s failed: %s(%d)\n", stmtName, PQerrorMessage(sql_conn), PQresultStatus(res));
+        if( nParams )
+        {
+            int i;
+            fprintf( stderr, "Arguments were: " );
+            for( i=0; i<nParams; i++  )
+                fprintf( stderr, "%s, ", paramValues[i] );
+            fprintf( stderr,  "\n");
+        }
         PQclear(res);
         exit_nicely();
     }
