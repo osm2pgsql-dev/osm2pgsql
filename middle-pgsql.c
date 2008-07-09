@@ -44,7 +44,7 @@ static struct table_desc tables [] = {
          name: "%s_nodes",
         start: "BEGIN;\n",
        create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
-      prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3);\n"
+      prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
          copy: "COPY %s_nodes FROM STDIN;\n",
@@ -55,13 +55,15 @@ static struct table_desc tables [] = {
         //table: t_way,
          name: "%s_ways",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
+       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n"
+               "CREATE INDEX %s_ways_idx ON %s_ways (id) WHERE pending;\n",
 array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__intbig_ops);\n",
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
-               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
+               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n"
+               "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
          copy: "COPY %s_ways FROM STDIN;\n",
       analyze: "ANALYZE %s_ways;\n",
          stop:  "COMMIT;\n"
@@ -142,6 +144,8 @@ static int maxBlocks = 0;
 static struct ramNodeBlock **queue;
 static int storedNodes, totalNodes;
 int nodesCacheHits, nodesCacheLookups;
+
+static int Append;
 
 static inline int id2block(int id)
 {
@@ -359,30 +363,30 @@ _restart:
 }
 
 /* Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
-static inline char *escape_tag( char *ptr, const char *in )
+static inline char *escape_tag( char *ptr, const char *in, int escape )
 {
   while( *in )
   {
     switch(*in)
     {
       case '"':
-        *ptr++ = '\\';
+        if( escape ) *ptr++ = '\\';
         *ptr++ = '\\';
         *ptr++ = '"';
         break;
       case '\\':
-        *ptr++ = '\\';
-        *ptr++ = '\\';
+        if( escape ) *ptr++ = '\\';
+        if( escape ) *ptr++ = '\\';
         *ptr++ = '\\';
         *ptr++ = '\\';
         break;
       case '\n':
-        *ptr++ = '\\';
+        if( escape ) *ptr++ = '\\';
         *ptr++ = '\\';
         *ptr++ = 'n';
         break;
       case '\t':
-        *ptr++ = '\\';
+        if( escape ) *ptr++ = '\\';
         *ptr++ = '\\';
         *ptr++ = 't';
         break;
@@ -395,7 +399,8 @@ static inline char *escape_tag( char *ptr, const char *in )
   return ptr;
 }
 
-char *pgsql_store_tags(struct keyval *tags)
+/* escape means we return '\N' for copy mode, otherwise we return just NULL */
+char *pgsql_store_tags(struct keyval *tags, int escape)
 {
   static char *buffer;
   static int buflen;
@@ -406,7 +411,12 @@ char *pgsql_store_tags(struct keyval *tags)
     
   int countlist = countList(tags);
   if( countlist == 0 )
-    return "\\N";
+  {
+    if( escape )
+      return "\\N";
+    else
+      return NULL;
+  }
     
   if( buflen <= countlist * 24 ) /* LE so 0 always matches */
   {
@@ -431,11 +441,11 @@ _restart:
     }
     if( !first ) *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->key );
+    ptr = escape_tag( ptr, i->key, escape );
     *ptr++ = '"';
     *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->value );
+    ptr = escape_tag( ptr, i->value, escape );
     *ptr++ = '"';
     
     first=0;
@@ -558,11 +568,11 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
     pgsql_ram_nodes_set( id, lat, lon, tags );
     if( tables[t_node].copyMode )
     {
-      char *tag_buf = pgsql_store_tags(tags);
+      char *tag_buf = pgsql_store_tags(tags,1);
       int length = strlen(tag_buf) + 64;
       buffer = alloca( length );
       
-      if( snprintf( buffer, length, "%d\t%.10f\t%.10f\t%s\n", id, lat, lon, pgsql_store_tags(tags) ) > (length-10) )
+      if( snprintf( buffer, length, "%d\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
       return pgsql_CopyData(__FUNCTION__, sql_conns[t_node], buffer);
     }
@@ -572,7 +582,7 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
     paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%.10f", lat ) + 1;
     sprintf( paramValues[2], "%.10f", lon );
 
-    paramValues[3] = pgsql_store_tags(tags);
+    paramValues[3] = pgsql_store_tags(tags,0);
     pgsql_execPrepared(sql_conns[t_node], "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
@@ -633,6 +643,19 @@ static int pgsql_nodes_delete(int osm_id)
     return 0;
 }
 
+static int pgsql_node_changed(int osm_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_way );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_way], "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+    return 0;
+}
+
 static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tags, int pending)
 {
     /* Three params: id, nodes, tags, pending */
@@ -641,12 +664,12 @@ static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tag
 
     if( tables[t_way].copyMode )
     {
-      char *tag_buf = pgsql_store_tags(tags);
+      char *tag_buf = pgsql_store_tags(tags,1);
       char *node_buf = pgsql_store_nodes(nds, nd_count);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = alloca(length);
       if( snprintf( buffer, length, "%d\t%s\t%s\t%c\n", 
-              way_id, pgsql_store_nodes(nds, nd_count), pgsql_store_tags(tags), pending?'t':'f' ) > (length-10) )
+              way_id, node_buf, tag_buf, pending?'t':'f' ) > (length-10) )
       { fprintf( stderr, "buffer overflow way id %d\n", way_id); return 1; }
       return pgsql_CopyData(__FUNCTION__, sql_conns[t_way], buffer);
     }
@@ -655,7 +678,7 @@ static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tag
     paramValues[3] = paramValues[0] + sprintf( paramValues[0], "%d", way_id ) + 1;
     sprintf( paramValues[3], "%c", pending?'t':'f' );
     paramValues[1] = pgsql_store_nodes(nds, nd_count);
-    paramValues[2] = pgsql_store_tags(tags);
+    paramValues[2] = pgsql_store_tags(tags,0);
     pgsql_execPrepared(sql_conns[t_way], "insert_way", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
@@ -723,10 +746,12 @@ static int pgsql_ways_delete(int osm_id)
     return 0;
 }
 
-static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count))
+static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     PGresult   *res_ways;
     int i, count = 0;
+    /* The flag we pass to indicate that the way in question might exist already in the database */
+    int exists = Append;
 
     fprintf(stderr, "\nGoing over pending ways\n");
 
@@ -749,7 +774,7 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
         if( pgsql_ways_get(id, &tags, &nodes, &nd_count) )
           continue;
           
-        callback(id, &tags, nodes, nd_count);
+        callback(id, &tags, nodes, nd_count, exists);
         pgsql_ways_done( id );
 
         free(nodes);
@@ -759,6 +784,22 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
     PQclear(res_ways);
     fprintf(stderr, "\n");
 }
+
+static int pgsql_way_changed(int osm_id __unused)
+{
+#if WHEN_RELATIONS_WORK
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_relation );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_node], "relation_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+#endif
+    return 0;
+}
+
 
 static void pgsql_analyze(void)
 {
@@ -794,7 +835,7 @@ static inline void set_prefix( const char *prefix, const char **string )
   char buffer[1024];
   if( *string == NULL )
       return;
-  sprintf( buffer, *string, prefix, prefix, prefix, prefix, prefix );
+  sprintf( buffer, *string, prefix, prefix, prefix, prefix, prefix, prefix );
   *string = strdup( buffer );
 }
 
@@ -808,6 +849,7 @@ static int pgsql_start(const struct output_options *options)
     int dropcreate = !options->append;
 
     scale = options->scale;
+    Append = options->append;
     
     /* How much we can fit, and make sure it's odd */
     maxBlocks = (((options->cache*1024*1024)) / (PER_BLOCK*sizeof(struct ramNode))) | 1;
@@ -844,7 +886,7 @@ static int pgsql_start(const struct output_options *options)
         /* Not really the right place for this test, but we need a live
          * connection that not used for anything else yet, and we'd like to
          * warn users *before* we start doing mountains of work */
-        if (i==0)
+        if (i==0 && !options->append)
         {
             /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
             res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
@@ -925,10 +967,12 @@ struct middle_t mid_pgsql = {
 //        nodes_get:      pgsql_nodes_get,
         nodes_get_list:      pgsql_nodes_get_list,
         nodes_delete:	pgsql_nodes_delete,
+        node_changed:   pgsql_node_changed,
         ways_set:       pgsql_ways_set,
         ways_get:       pgsql_ways_get,
         ways_done:      pgsql_ways_done,
         ways_delete:    pgsql_ways_delete,
+        way_changed:    pgsql_way_changed,
 //        iterate_nodes:  pgsql_iterate_nodes,
         iterate_ways:   pgsql_iterate_ways
 };

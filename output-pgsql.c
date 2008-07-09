@@ -108,6 +108,7 @@ static struct {
 };
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
+static int pgsql_delete_way_from_output(int osm_id);
 
 void read_style_file( char *filename )
 {
@@ -604,11 +605,15 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count)
+static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
     char *wkt;
     double area, interior_lat, interior_lon;
+    
+    /* If the flag says this object may exist already, delete it first */
+    if(exists)
+        pgsql_delete_way_from_output(id);
 
     if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, polygon, &roads))
         return 0;
@@ -893,6 +898,9 @@ static int pgsql_out_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
+            /* slim mode needs this to be able to apply diffs */
+            if( Options->slim )
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", tables[i].name, tables[i].name);
         }
 
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
@@ -1023,7 +1031,7 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
     /* Get actual node data and generate output */
     struct osmNode *nodes = malloc( sizeof(struct osmNode) * nd_count );
     int count = Options->mid->nodes_get_list( nodes, nds, nd_count );
-    pgsql_out_way(id, tags, nodes, count);
+    pgsql_out_way(id, tags, nodes, count, 0);
     free(nodes);
   }
   return 0;
@@ -1094,7 +1102,35 @@ static int pgsql_delete_node(int osm_id)
     return 0;
 }
 
+/* Seperated out because we use it elsewhere */
+static int pgsql_delete_way_from_output(int osm_id)
+{
+    /* Optimisation: we only need this is slim mode */
+    if( !Options->slim )
+        return 0;
+    pgsql_pause_copy(&tables[t_roads]);
+    pgsql_pause_copy(&tables[t_line]);
+    pgsql_pause_copy(&tables[t_poly]);
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, osm_id );
+    return 0;
+}
+
 static int pgsql_delete_way(int osm_id)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    pgsql_delete_way_from_output(osm_id);
+    Options->mid->ways_delete(osm_id);
+    return 0;
+}
+
+/* Relations are identified by using negative IDs */
+static int pgsql_delete_relation(int osm_id)
 {
     if( !Options->slim )
     {
@@ -1104,58 +1140,54 @@ static int pgsql_delete_way(int osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, osm_id );
-    Options->mid->ways_delete(osm_id);
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, -osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, -osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, -osm_id );
+    /* Enable this when the support is available */
+    // Options->mid->relations_delete(osm_id);
     return 0;
 }
 
-static int pgsql_unsupported_delete(int osm_id __unused)
+/* Modify is slightly trickier. The basic idea is we simply delete the
+ * object and create it with the new parameters. Then we need to mark the
+ * objects that depend on this one */
+static int pgsql_modify_node(int osm_id, double lat, double lon, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    fprintf( stderr, "Deleting not yet supported\n" );
-    exit_nicely();
+    pgsql_delete_node(osm_id);
+    pgsql_add_node(osm_id, lat, lon, tags);
+    Options->mid->node_changed(osm_id);
     return 0;
 }
 
-static int pgsql_unsupported_modify_node(int osm_id __unused, double lat __unused, double lon __unused, struct keyval *tags __unused)
+static int pgsql_modify_way(int osm_id, int *nodes, int node_count, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    fprintf( stderr, "Modify node not yet supported\n" );
-    exit_nicely();
+    pgsql_delete_way(osm_id);
+    pgsql_add_way(osm_id, nodes, node_count, tags);
+    Options->mid->way_changed(osm_id);
     return 0;
 }
 
-static int pgsql_unsupported_modify_way(int osm_id __unused, int *nodes __unused, int node_count __unused, struct keyval *tags __unused)
+static int pgsql_modify_relation(int osm_id, struct member *members, int member_count, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    fprintf( stderr, "Modify way not yet supported\n" );
-    exit_nicely();
-    return 0;
-}
-
-static int pgsql_unsupported_modify_relation(int osm_id __unused, struct member *members __unused, int member_count __unused, struct keyval *tags __unused)
-{
-    if( !Options->slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
-    }
-    fprintf( stderr, "Modify relation not yet supported\n" );
-    exit_nicely();
+    pgsql_delete_relation(osm_id);
+    pgsql_add_relation(osm_id, members, member_count, tags);
+    /* Enable when support is available */
+    // Options->mid->relation_changed(osm_id);
     return 0;
 }
 
@@ -1167,11 +1199,11 @@ struct output_t out_pgsql = {
         way_add:       pgsql_add_way,
         relation_add:  pgsql_add_relation,
         
-        node_modify: pgsql_unsupported_modify_node,
-        way_modify: pgsql_unsupported_modify_way,
-        relation_modify: pgsql_unsupported_modify_relation,
+        node_modify: pgsql_modify_node,
+        way_modify: pgsql_modify_way,
+        relation_modify: pgsql_modify_relation,
 
         node_delete: pgsql_delete_node,
         way_delete: pgsql_delete_way,
-        relation_delete: pgsql_unsupported_delete
+        relation_delete: pgsql_delete_relation
 };
