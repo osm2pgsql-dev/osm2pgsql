@@ -45,6 +45,7 @@ static struct s_table {
     PGconn *sql_conn;
     char buffer[1024];
     unsigned int buflen;
+    int copyMode;
 } tables [] = {
     { name: "%s_point",   type: "POINT"     },
     { name: "%s_line",    type: "LINESTRING"},
@@ -234,6 +235,12 @@ void copy_to_table(enum table_id table, const char *sql)
     unsigned int buflen = tables[table].buflen;
     char *buffer = tables[table].buffer;
 
+    /* Return to copy mode if we dropped out */
+    if( !tables[table].copyMode )
+    {
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[table].name);
+        tables[table].copyMode = 1;
+    }
     /* If the combination of old and new data is too big, flush old data */
     if( (unsigned)(buflen + len) > sizeof( tables[table].buffer )-10 )
     {
@@ -889,6 +896,7 @@ static int pgsql_out_start(const struct output_options *options)
         }
 
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
+        tables[i].copyMode = 1;
     }
 
     options->mid->start(options);
@@ -896,9 +904,31 @@ static int pgsql_out_start(const struct output_options *options)
     return 0;
 }
 
-static void *pgsql_out_stop_one(void *arg)
+static void pgsql_pause_copy(struct s_table *table)
 {
     PGresult   *res;
+    if( !table->copyMode )
+        return;
+        
+    /* Terminate any pending COPY */
+    int stop = PQputCopyEnd(table->sql_conn, NULL);
+    if (stop != 1) {
+       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       exit_nicely();
+    }
+
+    res = PQgetResult(table->sql_conn);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       PQclear(res);
+       exit_nicely();
+    }
+    PQclear(res);
+    table->copyMode = 0;
+}
+
+static void *pgsql_out_stop_one(void *arg)
+{
     struct s_table *table = arg;
     PGconn *sql_conn = table->sql_conn;
 
@@ -908,21 +938,7 @@ static void *pgsql_out_stop_one(void *arg)
        exit_nicely();
     }
 
-    /* Terminate any pending COPY */
-    int stop = PQputCopyEnd(sql_conn, NULL);
-    if (stop != 1) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(sql_conn));
-       exit_nicely();
-    }
-
-    res = PQgetResult(sql_conn);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(sql_conn));
-       PQclear(res);
-       exit_nicely();
-    }
-    PQclear(res);
-
+    pgsql_pause_copy(table);
     // Commit transaction
     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
 
@@ -1059,6 +1075,39 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
 
 #define __unused  __attribute__ ((unused))
 
+/* Delete is easy, just remove all traces of this object. We don't need to
+ * worry about finding objects that depend on it, since the same diff must
+ * contain the change for that also. */
+static int pgsql_delete_node(int osm_id)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    pgsql_pause_copy(&tables[t_point]);
+    pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_point].name, osm_id );
+    Options->mid->nodes_delete(osm_id);
+    return 0;
+}
+
+static int pgsql_delete_way(int osm_id)
+{
+    if( !Options->slim )
+    {
+        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+        exit_nicely();
+    }
+    pgsql_pause_copy(&tables[t_roads]);
+    pgsql_pause_copy(&tables[t_line]);
+    pgsql_pause_copy(&tables[t_poly]);
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, osm_id );
+    Options->mid->ways_delete(osm_id);
+    return 0;
+}
+
 static int pgsql_unsupported_delete(int osm_id __unused)
 {
     if( !Options->slim )
@@ -1119,7 +1168,7 @@ struct output_t out_pgsql = {
         way_modify: pgsql_unsupported_modify_way,
         relation_modify: pgsql_unsupported_modify_relation,
 
-        node_delete: pgsql_unsupported_delete,
-        way_delete: pgsql_unsupported_delete,
+        node_delete: pgsql_delete_node,
+        way_delete: pgsql_delete_way,
         relation_delete: pgsql_unsupported_delete
 };
