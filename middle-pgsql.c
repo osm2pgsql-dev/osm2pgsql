@@ -62,8 +62,7 @@ array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__in
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
-               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n"
-               "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
+               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
          copy: "COPY %s_ways FROM STDIN;\n",
       analyze: "ANALYZE %s_ways;\n",
          stop:  "COMMIT;\n"
@@ -886,15 +885,24 @@ static int pgsql_start(const struct output_options *options)
         /* Not really the right place for this test, but we need a live
          * connection that not used for anything else yet, and we'd like to
          * warn users *before* we start doing mountains of work */
-        if (i==0 && !options->append)
+        if (i == t_way)
         {
+            int have_intarray = 0;
             /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
             res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
             if( PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1 )
-                build_indexes = 1;
+                have_intarray = 1;
             else
                 fprintf( stderr, "*** WARNING: intarray contrib module not installed\n*** The resulting database will not be usable for applying diffs.\n" );
             PQclear(res);
+            
+            if( have_intarray )
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
+                    "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
+                        tables[i].name );
+                        
+           if( have_intarray && !options->append )
+               build_indexes = 1;
         }
         if (dropcreate) {
             sql[0] = '\0';
