@@ -48,6 +48,9 @@
 #include "input.h"
 #include "sprompt.h"
 
+typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE } filetypes_t;
+typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
+
 static int count_node,    max_node;
 static int count_way,     max_way;
 static int count_rel,     max_rel;
@@ -119,11 +122,55 @@ static int node_wanted(double lat, double lon)
     return 1;
 }
 
+static filetypes_t filetype = FILETYPE_NONE;
+static actions_t action = ACTION_NONE;
+
+/* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
+static actions_t ParseAction( xmlTextReaderPtr reader )
+{
+    if( filetype == FILETYPE_OSMCHANGE )
+        return action;
+    actions_t new_action = ACTION_NONE;
+    xmlChar *action = xmlTextReaderGetAttribute( reader, BAD_CAST "action" );
+    if( action == NULL )
+        new_action = ACTION_CREATE;
+    else if( strcmp((char *)action, "modify") == 0 )
+        new_action = ACTION_MODIFY;
+    else if( strcmp((char *)action, "delete") == 0 )
+        new_action = ACTION_DELETE;
+    else
+    {
+        fprintf( stderr, "Unknown value for action: %s\n", (char*)action );
+        exit_nicely();
+    }
+    return new_action;
+}
+
 void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
 {
     xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
     char *k;
 
+    if (filetype == FILETYPE_NONE)
+    {
+        if (xmlStrEqual(name, BAD_CAST "osm"))
+        {
+            filetype = FILETYPE_OSM;
+            action = ACTION_CREATE;
+        }
+        else if (xmlStrEqual(name, BAD_CAST "osmChange"))
+        {
+            filetype = FILETYPE_OSMCHANGE;
+            action = ACTION_NONE;
+        }
+        else
+        {
+            fprintf( stderr, "Unknown XML document type: %s\n", name );
+            exit_nicely();
+        }
+        return;
+    }
+    
     if (xmlStrEqual(name, BAD_CAST "node")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
@@ -133,6 +180,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         osm_id  = strtol((char *)xid, NULL, 10);
         node_lon = strtod((char *)xlon, NULL);
         node_lat = strtod((char *)xlat, NULL);
+        action = ParseAction( reader );
 
         if (osm_id > max_node)
             max_node = osm_id;
@@ -166,6 +214,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
         osm_id   = strtol((char *)xid, NULL, 10);
+        action = ParseAction( reader );
 
         if (osm_id > max_way)
             max_way = osm_id;
@@ -189,6 +238,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
         osm_id   = strtol((char *)xid, NULL, 10);
+        action = ParseAction( reader );
 
         if (osm_id > max_rel)
             max_rel = osm_id;
@@ -226,8 +276,12 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xmlFree(xid);
         xmlFree(xrole);
         xmlFree(xtype);
-    } else if (xmlStrEqual(name, BAD_CAST "osm")) {
-        /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "create")) {
+        action = ACTION_CREATE;
+    } else if (xmlStrEqual(name, BAD_CAST "modify")) {
+        action = ACTION_MODIFY;
+    } else if (xmlStrEqual(name, BAD_CAST "delete")) {
+        action = ACTION_DELETE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
     } else {
@@ -247,14 +301,44 @@ void EndElement(const xmlChar *name)
     if (xmlStrEqual(name, BAD_CAST "node")) {
         if (node_wanted(node_lat, node_lon)) {
             reproject(&node_lat, &node_lon);
-            out->node_add(osm_id, node_lat, node_lon, &tags);
+            if( action == ACTION_CREATE )
+                out->node_add(osm_id, node_lat, node_lon, &tags);
+            else if( action == ACTION_MODIFY )
+                out->node_modify(osm_id, node_lat, node_lon, &tags);
+            else if( action == ACTION_DELETE )
+                out->node_delete(osm_id);
+            else
+            {
+                fprintf( stderr, "Don't know action for node %d\n", osm_id );
+                exit_nicely();
+            }
         }
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
-        out->way_add(osm_id, nds, nd_count, &tags );
+        if( action == ACTION_CREATE )
+            out->way_add(osm_id, nds, nd_count, &tags );
+        else if( action == ACTION_MODIFY )
+            out->way_modify(osm_id, nds, nd_count, &tags );
+        else if( action == ACTION_DELETE )
+            out->way_delete(osm_id);
+        else
+        {
+            fprintf( stderr, "Don't know action for way %d\n", osm_id );
+            exit_nicely();
+        }
         resetList(&tags);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-        out->relation_add(osm_id, members, member_count, &tags);
+        if( action == ACTION_CREATE )
+            out->relation_add(osm_id, members, member_count, &tags);
+        else if( action == ACTION_MODIFY )
+            out->relation_modify(osm_id, members, member_count, &tags);
+        else if( action == ACTION_DELETE )
+            out->relation_delete(osm_id);
+        else
+        {
+            fprintf( stderr, "Don't know action for relation %d\n", osm_id );
+            exit_nicely();
+        }
         resetList(&tags);
         resetMembers();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
@@ -265,8 +349,18 @@ void EndElement(const xmlChar *name)
 	/* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
         printStatus();
+        filetype = FILETYPE_NONE;
+    } else if (xmlStrEqual(name, BAD_CAST "osmChange")) {
+        printStatus();
+        filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "create")) {
+        action = ACTION_NONE;
+    } else if (xmlStrEqual(name, BAD_CAST "modify")) {
+        action = ACTION_NONE;
+    } else if (xmlStrEqual(name, BAD_CAST "delete")) {
+        action = ACTION_NONE;
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }

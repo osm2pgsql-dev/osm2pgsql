@@ -35,6 +35,14 @@ struct output_t {
     int (*node_add)(int id, double lat, double lon, struct keyval *tags);
     int (*way_add)(int id, int *nodes, int node_count, struct keyval *tags);
     int (*relation_add)(int id, struct member *members, int member_count, struct keyval *tags);
+
+    int (*node_modify)(int id, double lat, double lon, struct keyval *tags);
+    int (*way_modify)(int id, int *nodes, int node_count, struct keyval *tags);
+    int (*relation_modify)(int id, struct member *members, int member_count, struct keyval *tags);
+
+    int (*node_delete)(int id);
+    int (*way_delete)(int id);
+    int (*relation_delete)(int id);
 };
 
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon);
