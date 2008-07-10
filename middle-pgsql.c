@@ -845,6 +845,7 @@ static int pgsql_start(const struct output_options *options)
     char sql[2048];
     PGresult   *res;
     int i;
+    int have_intarray = 0;
     int dropcreate = !options->append;
 
     scale = options->scale;
@@ -887,7 +888,6 @@ static int pgsql_start(const struct output_options *options)
          * warn users *before* we start doing mountains of work */
         if (i == t_way)
         {
-            int have_intarray = 0;
             /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
             res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
             if( PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1 )
@@ -896,13 +896,8 @@ static int pgsql_start(const struct output_options *options)
                 fprintf( stderr, "*** WARNING: intarray contrib module not installed\n*** The resulting database will not be usable for applying diffs.\n" );
             PQclear(res);
             
-            if( have_intarray )
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                    "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
-                        tables[i].name );
-                        
-           if( have_intarray && !options->append )
-               build_indexes = 1;
+            if( have_intarray && !options->append )
+                build_indexes = 1;
         }
         if (dropcreate) {
             sql[0] = '\0';
@@ -924,6 +919,11 @@ static int pgsql_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
 
+        if( i == t_way && have_intarray )
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
+                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
+                    tables[i].name );
+                    
         if (tables[i].copy) {
             pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
             tables[i].copyMode = 1;
