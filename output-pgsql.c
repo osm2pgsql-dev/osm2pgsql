@@ -109,6 +109,8 @@ static struct {
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 static int pgsql_delete_way_from_output(int osm_id);
+static int pgsql_delete_relation_from_output(int osm_id);
+static int pgsql_process_relation(int id, struct member *members, int member_count, struct keyval *tags, int exists);
 
 void read_style_file( char *filename )
 {
@@ -972,6 +974,7 @@ static void pgsql_out_stop()
 
     /* Processing any remaing to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
+    Options->mid->iterate_relations( pgsql_process_relation );
     /* No longer need to access middle layer -- release memory */
     Options->mid->stop();
 
@@ -1037,19 +1040,16 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
   return 0;
 }
 
-static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
+/* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
+static int pgsql_process_relation(int id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
-  const char *type = getItem(tags, "type");
-
-  // Must have a type field or we ignore it
-  if (!type)
-      return 0;
-
-  /* At this moment, why bother remembering relations at all?*/
-  if(0)
-    Options->mid->relations_set(id, members, member_count, tags);
   // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
   int i, count;
+
+  /* If the flag says this object may exist already, delete it first */
+  if(exists)
+      pgsql_delete_relation_from_output(id);
+
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
   struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
@@ -1084,6 +1084,21 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
   return 0;
 }
 
+static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
+{
+  const char *type = getItem(tags, "type");
+
+  // Must have a type field or we ignore it
+  if (!type)
+      return 0;
+
+  /* In slim mode we remember these*/
+  if(Options->mid->relations_set)
+    Options->mid->relations_set(id, members, member_count, tags);
+  // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+
+  return pgsql_process_relation(id, members, member_count, tags, 0);
+}
 #define __unused  __attribute__ ((unused))
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -1130,6 +1145,17 @@ static int pgsql_delete_way(int osm_id)
 }
 
 /* Relations are identified by using negative IDs */
+static int pgsql_delete_relation_from_output(int osm_id)
+{
+    pgsql_pause_copy(&tables[t_roads]);
+    pgsql_pause_copy(&tables[t_line]);
+    pgsql_pause_copy(&tables[t_poly]);
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, -osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, -osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, -osm_id );
+    return 0;
+}
+
 static int pgsql_delete_relation(int osm_id)
 {
     if( !Options->slim )
@@ -1137,14 +1163,8 @@ static int pgsql_delete_relation(int osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_pause_copy(&tables[t_roads]);
-    pgsql_pause_copy(&tables[t_line]);
-    pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, -osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, -osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, -osm_id );
-    /* Enable this when the support is available */
-    // Options->mid->relations_delete(osm_id);
+    pgsql_delete_relation_from_output(osm_id);
+    Options->mid->relations_delete(osm_id);
     return 0;
 }
 
@@ -1186,8 +1206,7 @@ static int pgsql_modify_relation(int osm_id, struct member *members, int member_
     }
     pgsql_delete_relation(osm_id);
     pgsql_add_relation(osm_id, members, member_count, tags);
-    /* Enable when support is available */
-    // Options->mid->relation_changed(osm_id);
+    Options->mid->relation_changed(osm_id);
     return 0;
 }
 

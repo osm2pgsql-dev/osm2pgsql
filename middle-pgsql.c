@@ -21,7 +21,7 @@
 #include "pgsql.h"
 
 enum table_id {
-    t_node, t_way
+    t_node, t_way, t_rel
 } ;
 
 struct table_desc {
@@ -65,6 +65,22 @@ array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__in
                "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
          copy: "COPY %s_ways FROM STDIN;\n",
       analyze: "ANALYZE %s_ways;\n",
+         stop:  "COMMIT;\n"
+    },
+    { 
+        //table: t_rel,
+         name: "%s_rels",
+        start: "BEGIN;\n",
+       create: "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n"
+               "CREATE INDEX %s_rels_idx ON %s_rels (id) WHERE pending;\n",
+array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gist (parts gist__intbig_ops);\n",
+      prepare: "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+               "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %s_rels WHERE id = $1;\n"
+               "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_rels AS SELECT id FROM %s_rels WHERE pending;\n"
+               "PREPARE delete_rel(int4) AS DELETE FROM %s_rels WHERE id = $1;\n",
+         copy: "COPY %s_rels FROM STDIN;\n",
+      analyze: "ANALYZE %s_rels;\n",
          stop:  "COMMIT;\n"
     }
 };
@@ -648,10 +664,12 @@ static int pgsql_node_changed(int osm_id)
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( t_way );
+    pgsql_endCopy( t_rel );
     
     sprintf( buffer, "%d", osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(sql_conns[t_way], "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+    pgsql_execPrepared(sql_conns[t_rel], "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
@@ -784,21 +802,215 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
     fprintf(stderr, "\n");
 }
 
-static int pgsql_way_changed(int osm_id __unused)
+static int pgsql_way_changed(int osm_id)
 {
-#if WHEN_RELATIONS_WORK
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
-    pgsql_endCopy( t_relation );
+    pgsql_endCopy( t_rel );
     
     sprintf( buffer, "%d", osm_id );
     paramValues[0] = buffer;
-    pgsql_execPrepared(sql_conns[t_node], "relation_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
-#endif
+    pgsql_execPrepared(sql_conns[t_rel], "way_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
+static int pgsql_rels_set(int id, struct member *members, int member_count, struct keyval *tags)
+{
+    /* Params: id, way_off, rel_off, parts, members, tags */
+    char *paramValues[6];
+    char *buffer;
+    int i;
+    struct keyval member_list;
+    
+    int node_parts[member_count], node_count = 0,
+        ways_parts[member_count], ways_count = 0,
+        rels_parts[member_count], rels_count = 0;
+    
+    int all_parts[member_count], all_count = 0;
+    initList( &member_list );    
+    for( i=0; i<member_count; i++ )
+    {
+      char tag = 0;
+      switch( members[i].type )
+      {
+        case OSMTYPE_NODE:     node_parts[node_count++] = members[i].id; tag = 'n'; break;
+        case OSMTYPE_WAY:      ways_parts[ways_count++] = members[i].id; tag = 'w'; break;
+        case OSMTYPE_RELATION: rels_parts[rels_count++] = members[i].id; tag = 'r'; break;
+        default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); exit_nicely();
+      }
+      char buf[64];
+      sprintf( buf, "%c%d", tag, members[i].id );
+      addItem( &member_list, buf, members[i].role, 0 );
+    }
+    memcpy( all_parts+all_count, node_parts, node_count*sizeof(int) ); all_count+=node_count;
+    memcpy( all_parts+all_count, ways_parts, ways_count*sizeof(int) ); all_count+=ways_count;
+    memcpy( all_parts+all_count, rels_parts, rels_count*sizeof(int) ); all_count+=rels_count;
+  
+    if( tables[t_rel].copyMode )
+    {
+      char *tag_buf = strdup(pgsql_store_tags(tags,1));
+      char *member_buf = pgsql_store_tags(&member_list,1);
+      char *parts_buf = pgsql_store_nodes(all_parts, all_count);
+      int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
+      buffer = alloca(length);
+      if( snprintf( buffer, length, "%d\t%d\t%d\t%s\t%s\t%s\tf\n", 
+              id, node_count, node_count+ways_count, parts_buf, member_buf, tag_buf ) > (length-10) )
+      { fprintf( stderr, "buffer overflow relation id %d\n", id); return 1; }
+      free(tag_buf);
+      resetList(&member_list);
+      return pgsql_CopyData(__FUNCTION__, sql_conns[t_rel], buffer);
+    }
+    buffer = alloca(64);
+    paramValues[0] = buffer;
+    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%d", id ) + 1;
+    paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%d", node_count ) + 1;
+    sprintf( paramValues[2], "%d", node_count+ways_count );
+    paramValues[3] = pgsql_store_nodes(all_parts, all_count);
+    paramValues[4] = pgsql_store_tags(&member_list,0);
+    if( paramValues[4] )
+        paramValues[4] = strdup(paramValues[4]);
+    paramValues[5] = pgsql_store_tags(tags,0);
+    pgsql_execPrepared(sql_conns[t_rel], "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
+    if( paramValues[4] )
+        free(paramValues[4]);
+    resetList(&member_list);
+    return 0;
+}
+
+/* Caller is responsible for freeing members & resetList(tags) */
+static int pgsql_rels_get(int id, struct member **members, int *member_count, struct keyval *tags)
+{
+    PGresult   *res;
+    char tmp[16];
+    char const *paramValues[1];
+    PGconn *sql_conn = sql_conns[t_rel];
+    struct keyval member_temp;
+
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_rel );
+
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
+ 
+    res = pgsql_execPrepared(sql_conn, "get_rel", 1, paramValues, PGRES_TUPLES_OK);
+    /* Fields are: members, tags, member_count */
+
+    if (PQntuples(res) != 1) {
+        PQclear(res);
+        return 1;
+    } 
+
+    pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
+    initList(&member_temp);
+    pgsql_parse_tags( PQgetvalue(res, 0, 0), &member_temp );
+
+    int num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);
+    struct member *list = malloc( sizeof(struct member)*num_members );
+    
+    int i=0;
+    struct keyval *item;
+    while( (item = popItem(&member_temp)) )
+    {
+        if( i >= num_members )
+        {
+            fprintf( stderr, "Unexpected member_count reading relation %d\n", id );
+            exit_nicely();
+        }
+        char tag = item->key[0];
+        list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:-1;
+        list[i].id = strtol(item->key+1, NULL, 10 );
+        list[i].role = strdup( item->value );
+        freeItem(item);
+        i++;
+    }
+    *members = list;
+    *member_count = num_members;
+    PQclear(res);
+    return 0;
+}
+
+static int pgsql_rels_done(int id)
+{
+    char tmp[16];
+    char const *paramValues[1];
+    PGconn *sql_conn = sql_conns[t_rel];
+
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_rel );
+
+    snprintf(tmp, sizeof(tmp), "%d", id);
+    paramValues[0] = tmp;
+ 
+    pgsql_execPrepared(sql_conn, "rel_done", 1, paramValues, PGRES_COMMAND_OK);
+
+    return 0;
+}
+
+static int pgsql_rels_delete(int osm_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_rel );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_rel], "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
+    return 0;
+}
+
+static void pgsql_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int exists))
+{
+    PGresult   *res_rels;
+    int i, count = 0;
+    /* The flag we pass to indicate that the way in question might exist already in the database */
+    int exists = Append;
+
+    fprintf(stderr, "\nGoing over pending relations\n");
+
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_rel );
+    
+    res_rels = pgsql_execPrepared(sql_conns[t_rel], "pending_rels", 0, NULL, PGRES_TUPLES_OK);
+
+    //fprintf(stderr, "\nIterating ways\n");
+    for (i = 0; i < PQntuples(res_rels); i++) {
+        int id = strtol(PQgetvalue(res_rels, i, 0), NULL, 10);
+        struct keyval tags;
+        struct member *members;
+        int member_count;
+
+        if (count++ %1000 == 0)
+                fprintf(stderr, "\rprocessing relation (%dk)", count/1000);
+
+        initList(&tags);
+        if( pgsql_rels_get(id, &members, &member_count, &tags) )
+          continue;
+          
+        callback(id, members, member_count, &tags, exists);
+        pgsql_rels_done( id );
+
+        free(members);
+        resetList(&tags);
+    }
+
+    PQclear(res_rels);
+    fprintf(stderr, "\n");
+}
+
+static int pgsql_rel_changed(int osm_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( t_rel );
+    
+    sprintf( buffer, "%d", osm_id );
+    paramValues[0] = buffer;
+    pgsql_execPrepared(sql_conns[t_rel], "rel_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+    return 0;
+}
 
 static void pgsql_analyze(void)
 {
@@ -920,9 +1132,25 @@ static int pgsql_start(const struct output_options *options)
         }
 
         if( i == t_way && have_intarray )
+        {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
                 "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
                     tables[i].name );
+        }
+        if( i == t_rel && have_intarray )
+        {
+            /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
+                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND parts[1:way_off] @ ARRAY[$1] AND NOT pending;\n",
+                    tables[i].name );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
+                "PREPARE way_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND parts[way_off+1:rel_off] @ ARRAY[$1] AND NOT pending;\n",
+                    tables[i].name );
+            /* For this it works fine */
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
+                "PREPARE rel_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND subarray(parts,rel_off+1) @ ARRAY[$1] AND NOT pending;\n",
+                    tables[i].name );
+        }
                     
         if (tables[i].copy) {
             pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
@@ -982,5 +1210,13 @@ struct middle_t mid_pgsql = {
         ways_delete:    pgsql_ways_delete,
         way_changed:    pgsql_way_changed,
 //        iterate_nodes:  pgsql_iterate_nodes,
-        iterate_ways:   pgsql_iterate_ways
+        iterate_ways:   pgsql_iterate_ways,
+        
+        relations_set:  pgsql_rels_set,
+        relations_get:  pgsql_rels_get,
+        relations_done:  pgsql_rels_done,
+        relations_delete:  pgsql_rels_delete,
+        relation_changed:  pgsql_rel_changed,
+        
+        iterate_relations: pgsql_iterate_relations
 };
