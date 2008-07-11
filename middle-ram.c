@@ -250,53 +250,10 @@ static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
     return count;
 }
 
-#if 0
-static void ram_iterate_relations(int (*callback)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count))
+static void ram_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int) __unused)
 {
-    int block, offset, *ndCount = NULL;
-    struct osmNode **nodes;
-    struct keyval **way_tags;
-
-    fprintf(stderr, "\n");
-    for(block=NUM_BLOCKS-1; block>=0; block--) {
-        if (!rels[block])
-            continue;
-
-        for (offset=0; offset < PER_BLOCK; offset++) {
-            if (rels[block][offset].members) {
-                rel_out_count++;
-                if (rel_out_count % 1000 == 0)
-                    fprintf(stderr, "\rWriting rel(%uk)", rel_out_count/1000);
-
-                nodes = getRelNodes(rels[block][offset].members, &way_tags, &ndCount);
-
-                if (nodes) {
-                    int i, id = block2id(block, offset);
-                    callback(id, rels[block][offset].tags, nodes, way_tags, ndCount);
-                    for (i=0; nodes[i]; i++)
-                        free(nodes[i]);
-                    free(nodes);
-                    free(ndCount);
-                    free(way_tags);
-                    nodes = NULL;
-                    ndCount = NULL;
-                    way_tags = NULL;
-                }
-            }
-            resetList(rels[block][offset].members);
-            free(rels[block][offset].members);
-            rels[block][offset].members = NULL;
-            resetList(rels[block][offset].tags);
-            free(rels[block][offset].tags);
-            rels[block][offset].tags=NULL;
-        }
-        free(rels[block]);
-        rels[block] = NULL;
-    }
-
-    fprintf(stderr, "\rWriting rel(%uk)\n", rel_out_count/1000);
+  /* Void */
 }
-#endif
 
 static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
@@ -442,5 +399,5 @@ struct middle_t mid_ram = {
     ways_done:      ram_ways_done,
 //        iterate_nodes:  ram_iterate_nodes,
     iterate_ways:   ram_iterate_ways,
-//    iterate_relations: ram_iterate_relations
+    iterate_relations: ram_iterate_relations
 };

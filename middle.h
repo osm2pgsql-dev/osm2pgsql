@@ -28,9 +28,13 @@ struct middle_t {
     int (*ways_delete)(int id);
     int (*way_changed)(int id);
     int (*relations_set)(int id, struct member *members, int member_count, struct keyval *tags);
+    int (*relations_get)(int id, struct member **members, int *member_count, struct keyval *tags);
+    int (*relations_done)(int id);
+    int (*relations_delete)(int id);
+    int (*relation_changed)(int id);
 //    void (*iterate_nodes)(int (*callback)(int id, struct keyval *tags, double node_lat, double node_lon));
     void (*iterate_ways)(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists));
-//    void (*iterate_relations)(int (*callback)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count));
+    void (*iterate_relations)(int (*callback)(int id, struct member *, int member_count, struct keyval *rel_tags, int exists));
 };
 
 #endif
