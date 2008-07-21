@@ -634,7 +634,7 @@ int main(int argc, char *argv[])
     
     if( cache < 0 ) cache = 0;
 
-    if (username || pass_prompt)
+    if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
 
     conninfo = build_conninfo(db, username, password, host, port);
