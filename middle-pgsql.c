@@ -87,6 +87,7 @@ array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gist (parts gist__in
 
 static int num_tables = sizeof(tables)/sizeof(tables[0]);
 static PGconn **sql_conns;
+static int warn_node_order;
 
 /* Here we use a similar storage structure as middle-ram, except we allow
  * the array to be lossy so we can cap the total memory usage. Hence it is a
@@ -282,7 +283,10 @@ static int pgsql_ram_nodes_set(int id, double lat, double lon, struct keyval *ta
         
       if( queue[expectedpos] != &blocks[block] )
       {
-        fprintf( stderr, "Out of order node %d (%d,%d)\n", id, block, offset );
+        if (!warn_node_order) {
+            fprintf( stderr, "WARNING: Found Out of order node %d (%d,%d) - this will impact the cache efficiency\n", id, block, offset );
+            warn_node_order++;
+        }
         return 1;
       }
     }
