@@ -541,6 +541,17 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 	resetList(&nodeTags);
 }
 
+static int tag_indicates_polygon(enum OsmType type, const char *key)
+{
+    int i;
+
+    for (i=0; i < exportListCount[type]; i++) {
+        if( strcmp( exportList[type][i].name, key ) == 0 )
+            return exportList[type][i].flags & FLAG_POLYGON;
+    }
+    return 0;
+}
+
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon)
@@ -652,7 +663,7 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     double interior_lat, interior_lon;
     int polygon = 0, roads = 0;
     int make_polygon = 0;
-    struct keyval tags, *p;
+    struct keyval tags, *p, poly_tags;
     char *type;
 #if 0
     fprintf(stderr, "Got relation with counts:");
@@ -664,10 +675,10 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     type = getItem(rel_tags, "type");
     if( !type )
         return 0;
-        
-    // Aggregate tags from all polygons with the relation,
-    // no idea is this is a good way to deal with differing tags across the ways or not
+
     initList(&tags);
+    initList(&poly_tags);
+
     p = rel_tags->next;
     while (p != rel_tags) {
         addItem(&tags, p->key, p->value, 1);
@@ -676,18 +687,18 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
 
     if( strcmp(type, "route") == 0 )
     {
-	make_polygon = 0;
-	char *state = getItem(rel_tags, "state");
-	if (state == NULL) {
-	    state = "";
-	}
+        make_polygon = 0;
+        char *state = getItem(rel_tags, "state");
+        if (state == NULL) {
+            state = "";
+        }
 
-	int networknr = -1;
+        int networknr = -1;
 
-	if (getItem(rel_tags, "network") != NULL) {
-	    char *netw = getItem(rel_tags, "network");
+        if (getItem(rel_tags, "network") != NULL) {
+            char *netw = getItem(rel_tags, "network");
 
-	    if (strcmp(netw, "lcn") == 0) {
+            if (strcmp(netw, "lcn") == 0) {
                 networknr = 10;
                 if (strcmp(state, "alternate") == 0) {
                     addItem(&tags, "lcn", "alternate", 1);
@@ -745,7 +756,7 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
                 }
             }
         }
-        
+
         if (getItem(rel_tags, "preferred_color") != NULL) {
             char *a = getItem(rel_tags, "preferred_color");
             if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0 || strcmp(a, "2") == 0 || strcmp(a, "3") == 0 || strcmp(a, "4") == 0) {
@@ -780,14 +791,22 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     else if( strcmp( type, "multipolygon" ) == 0 )
     {
         make_polygon = 1;
-        /* For multipolygons we adds the tags on any non-inner rings */
+        /* For multipolygons we add the tags on any non-inner rings */
         for (i=0; xcount[i]; i++) {
-//            if( xtags[i].role && strcmp(xtags[i].role, "inner") == 0 )
-//                continue;
-                
+            if (members[i].type != OSMTYPE_WAY)
+                continue;
+            if (members[i].role && strcmp(members[i].role, "inner") == 0)
+                continue;
+
             p = xtags[i].next;
             while (p != &(xtags[i])) {
                 addItem(&tags, p->key, p->value, 1);
+                // Collect a list of polygon-like tags, these are later used to
+                // identify if an inner rings looks like it should be rendered seperately
+                if (tag_indicates_polygon(members[i].type, p->key)) {
+                    addItem(&poly_tags, p->key, p->value, 1);
+                    //fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
+                }
                 p = p->next;
             }
         }
@@ -796,11 +815,13 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     {
         /* Unknown type, just exit */
         resetList(&tags);
+        resetList(&poly_tags);
         return 0;
     }
 
     if (pgsql_filter_tags(OSMTYPE_WAY, &tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
         resetList(&tags);
+        resetList(&poly_tags);
         return 0;
     }
 
@@ -808,6 +829,7 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
 
     if (!wkt_size) {
         resetList(&tags);
+        resetList(&poly_tags);
         return 0;
     }
 
@@ -835,15 +857,35 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     }
         free(wkt);
     }
-    
+
     clear_wkts();
 
-    // Mark each member so that we can skip them during iterate_ways
-    for (i=0; i<member_count; i++)
-        if( members[i].type == OSMTYPE_WAY )
-            Options->mid->ways_done(members[i].id);
+    // If we are creating a multipolygon then we
+    // mark each member so that we can skip them during iterate_ways
+    // but only if the polygon-tags look the same as the outer ring
+    if (make_polygon) {
+        for (i=0; i<member_count; i++)
+            if( members[i].type == OSMTYPE_WAY ) {
+                int match = 1;
+                struct keyval *p = poly_tags.next;
+                while (p != &poly_tags) {
+                    const char *v = getItem(&xtags[i], p->key);
+                    //fprintf(stderr, "compare polygon tag: %s=%s vs %s\n", p->key, p->value, v ? v : "null");
+                    if (!v || strcmp(v, p->value)) {
+                        match = 0;
+                        break;
+                    }
+                    p = p->next;
+                }
+                if (match) {
+                    //fprintf(stderr, "match\n");
+                    Options->mid->ways_done(members[i].id);
+                }
+            }
+    }
 
     resetList(&tags);
+    resetList(&poly_tags);
     return 0;
 }
 
