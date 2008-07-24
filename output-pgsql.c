@@ -803,7 +803,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
                 // identify if an inner rings looks like it should be rendered seperately
                 if (tag_indicates_polygon(OSMTYPE_WAY, p->key)) {
                     addItem(&poly_tags, p->key, p->value, 1);
-                    fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
+                    //fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
                 }
                 p = p->next;
             }
@@ -867,7 +867,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             struct keyval *p = poly_tags.next;
             while (p != &poly_tags) {
                 const char *v = getItem(&xtags[i], p->key);
-                fprintf(stderr, "compare polygon tag: %s=%s vs %s\n", p->key, p->value, v ? v : "null");
+                //fprintf(stderr, "compare polygon tag: %s=%s vs %s\n", p->key, p->value, v ? v : "null");
                 if (!v || strcmp(v, p->value)) {
                     match = 0;
                     break;
@@ -875,7 +875,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
                 p = p->next;
             }
             if (match) {
-                fprintf(stderr, "match for %d\n", xid[i]);
+                //fprintf(stderr, "match for %d\n", xid[i]);
                 Options->mid->ways_done(xid[i]);
             }
         }
