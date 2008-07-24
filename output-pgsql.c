@@ -657,7 +657,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     return 0;
 }
 
-static int pgsql_out_relation(int id, struct member *members, int member_count, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount)
+static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, int *xid, const char **xrole)
 {
     int i, wkt_size;
     double interior_lat, interior_lon;
@@ -793,9 +793,7 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
         make_polygon = 1;
         /* For multipolygons we add the tags on any non-inner rings */
         for (i=0; xcount[i]; i++) {
-            if (members[i].type != OSMTYPE_WAY)
-                continue;
-            if (members[i].role && strcmp(members[i].role, "inner") == 0)
+            if (xrole[i] && !strcmp(xrole[i], "inner"))
                 continue;
 
             p = xtags[i].next;
@@ -803,9 +801,9 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
                 addItem(&tags, p->key, p->value, 1);
                 // Collect a list of polygon-like tags, these are later used to
                 // identify if an inner rings looks like it should be rendered seperately
-                if (tag_indicates_polygon(members[i].type, p->key)) {
+                if (tag_indicates_polygon(OSMTYPE_WAY, p->key)) {
                     addItem(&poly_tags, p->key, p->value, 1);
-                    //fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
+                    fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
                 }
                 p = p->next;
             }
@@ -864,24 +862,23 @@ static int pgsql_out_relation(int id, struct member *members, int member_count, 
     // mark each member so that we can skip them during iterate_ways
     // but only if the polygon-tags look the same as the outer ring
     if (make_polygon) {
-        for (i=0; i<member_count; i++)
-            if( members[i].type == OSMTYPE_WAY ) {
-                int match = 1;
-                struct keyval *p = poly_tags.next;
-                while (p != &poly_tags) {
-                    const char *v = getItem(&xtags[i], p->key);
-                    //fprintf(stderr, "compare polygon tag: %s=%s vs %s\n", p->key, p->value, v ? v : "null");
-                    if (!v || strcmp(v, p->value)) {
-                        match = 0;
-                        break;
-                    }
-                    p = p->next;
+        for (i=0; xcount[i]; i++) {
+            int match = 1;
+            struct keyval *p = poly_tags.next;
+            while (p != &poly_tags) {
+                const char *v = getItem(&xtags[i], p->key);
+                fprintf(stderr, "compare polygon tag: %s=%s vs %s\n", p->key, p->value, v ? v : "null");
+                if (!v || strcmp(v, p->value)) {
+                    match = 0;
+                    break;
                 }
-                if (match) {
-                    //fprintf(stderr, "match\n");
-                    Options->mid->ways_done(members[i].id);
-                }
+                p = p->next;
             }
+            if (match) {
+                fprintf(stderr, "match for %d\n", xid[i]);
+                Options->mid->ways_done(xid[i]);
+            }
+        }
     }
 
     resetList(&tags);
@@ -1087,39 +1084,46 @@ static int pgsql_process_relation(int id, struct member *members, int member_cou
 {
   // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
   int i, count;
+  int *xid = malloc( (member_count+1) * sizeof(int) );
+  const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
+  int *xcount = malloc( (member_count+1) * sizeof(int) );
+  struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
+  struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
 
   /* If the flag says this object may exist already, delete it first */
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  int *xcount = malloc( (member_count+1) * sizeof(int) );
-  struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
-  struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
-  
   count = 0;
   for( i=0; i<member_count; i++ )
   {
     /* Need to handle more than just ways... */
     if( members[i].type != OSMTYPE_WAY )
-      continue;
+        continue;
 
     initList(&(xtags[count]));
     if( Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count]) ) )
       continue;
+    xid[count] = members[i].id;
+    xrole[count] = members[i].role;
     count++;
   }
   xnodes[count] = NULL;
   xcount[count] = 0;
-  
+  xid[count] = 0;
+  xrole[count] = NULL;
+
   // At some point we might want to consider storing the retreived data in the members, rather than as seperate arrays
-  pgsql_out_relation(id, members, member_count, tags, xnodes, xtags, xcount);
-  
+  pgsql_out_relation(id, tags, xnodes, xtags, xcount, xid, xrole);
+
   for( i=0; i<count; i++ )
   {
     resetList( &(xtags[i]) );
     free( xnodes[i] );
   }
-    
+
+  free(xid);
+  free(xrole);
   free(xcount);
   free(xtags);
   free(xnodes);
