@@ -15,14 +15,6 @@ struct keyval {
     struct keyval *prev;
 };
 
-enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
-
-struct member {
-  enum OsmType type;
-  int id;
-  char *role;
-};
-      
 void initList(struct keyval *head);
 void freeItem(struct keyval *p);
 unsigned int countList(struct keyval *head);
