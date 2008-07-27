@@ -917,9 +917,17 @@ static int pgsql_out_start(const struct output_options *options)
 
         if (!options->append) {
             sprintf( sql, "DROP TABLE %s;", tables[i].name);
+            /* Will be an error if table does not exist and will abort a transaction
+             * DROP TABLE IF EXISTS is not present until PostgreSQL-8.2
+             */
             res = PQexec(sql_conn, sql);
-            PQclear(res); /* Will be an error if table does not exist */
+            PQclear(res);
         }
+
+        /* These _tmp tables can be left behind if we run out of disk space */
+        sprintf( sql, "DROP TABLE %s_tmp;", tables[i].name);
+        res = PQexec(sql_conn, sql);
+        PQclear(res);
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
