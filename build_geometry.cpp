@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 
 /*
   # the only reason we include this C header is to obtain the GEOS_VERSION_MAJOR
