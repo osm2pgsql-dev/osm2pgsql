@@ -57,7 +57,7 @@ static struct table_desc tables [] = {
         start: "BEGIN;\n",
        create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n"
                "CREATE INDEX %s_ways_idx ON %s_ways (id) WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__intbig_ops);\n",
+array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gin__int_ops);\n",
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
@@ -73,7 +73,7 @@ array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gist (nodes gist__in
         start: "BEGIN;\n",
        create: "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n"
                "CREATE INDEX %s_rels_idx ON %s_rels (id) WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gist (parts gist__intbig_ops);\n",
+array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gist (parts gin__int_ops);\n",
       prepare: "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
                "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %s_rels WHERE id = $1;\n"
                "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
@@ -570,9 +570,6 @@ static int pgsql_endCopy( enum table_id i )
             exit_nicely();
         }
         PQclear(res);
-        if (tables[i].analyze) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
-        }
         tables[i].copyMode = 0;
     }
     return 0;
@@ -1138,21 +1135,21 @@ static int pgsql_start(const struct output_options *options)
         if( i == t_way && have_intarray )
         {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes @ ARRAY[$1] AND NOT pending;\n",
+                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
                     tables[i].name );
         }
         if( i == t_rel && have_intarray )
         {
             /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND parts[1:way_off] @ ARRAY[$1] AND NOT pending;\n",
+                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n",
                     tables[i].name );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE way_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND parts[way_off+1:rel_off] @ ARRAY[$1] AND NOT pending;\n",
+                "PREPARE way_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n",
                     tables[i].name );
             /* For this it works fine */
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE rel_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts @ ARRAY[$1] AND subarray(parts,rel_off+1) @ ARRAY[$1] AND NOT pending;\n",
+                "PREPARE rel_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
                     tables[i].name );
         }
                     
