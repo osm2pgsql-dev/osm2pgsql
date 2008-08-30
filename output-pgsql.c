@@ -112,7 +112,7 @@ static int pgsql_delete_way_from_output(int osm_id);
 static int pgsql_delete_relation_from_output(int osm_id);
 static int pgsql_process_relation(int id, struct member *members, int member_count, struct keyval *tags, int exists);
 
-void read_style_file( char *filename )
+void read_style_file( const char *filename )
 {
   FILE *in;
   int lineno = 0;
@@ -894,7 +894,7 @@ static int pgsql_out_start(const struct output_options *options)
 
     Options = options;
 
-    read_style_file( "default.style" );
+    read_style_file( options->style );
 
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
