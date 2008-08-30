@@ -458,6 +458,7 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to ./default.style\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
@@ -561,6 +562,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
+    const char *style = "./default.style";
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -588,10 +590,11 @@ int main(int argc, char *argv[])
             {"host",     1, 0, 'H'},
             {"port",     1, 0, 'P'},
             {"help",     0, 0, 'h'},
+            {"style",    1, 0, 'S'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -613,6 +616,7 @@ int main(int argc, char *argv[])
             case 'W': pass_prompt=1; break;
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
+            case 'S': style=optarg; break;
 
             case 'h':
             case '?':
@@ -669,6 +673,7 @@ int main(int argc, char *argv[])
     options.scale = (projection==PROJ_LATLONG)?10000000:100;
     options.mid = slim ? &mid_pgsql : &mid_ram;
     options.cache = cache;
+    options.style = style;
     out = &out_pgsql;
 
     out->start(&options);

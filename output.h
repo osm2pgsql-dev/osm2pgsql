@@ -21,6 +21,7 @@ struct output_options {
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
+  const char *style;     /* style file to use */
 };
 
 struct output_t {
