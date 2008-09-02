@@ -30,6 +30,7 @@ struct table_desc {
     const char *start;
     const char *create;
     const char *prepare;
+    const char *prepare_intarray;
     const char *copy;
     const char *analyze;
     const char *stop;
@@ -47,6 +48,11 @@ static struct table_desc tables [] = {
       prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
+prepare_intarray: // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
+                  // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
+                  //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %s_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
+               "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
+                                               "(select * from planet_osm_nodes where id = ANY($1)) y where l_id=id order by i;\n",
          copy: "COPY %s_nodes FROM STDIN;\n",
       analyze: "ANALYZE %s_nodes;\n",
          stop: "COMMIT;\n"
@@ -63,6 +69,7 @@ array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
                "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
+prepare_intarray: "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
          copy: "COPY %s_ways FROM STDIN;\n",
       analyze: "ANALYZE %s_ways;\n",
          stop:  "COMMIT;\n"
@@ -79,6 +86,11 @@ array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_
                "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
                "PREPARE pending_rels AS SELECT id FROM %s_rels WHERE pending;\n"
                "PREPARE delete_rel(int4) AS DELETE FROM %s_rels WHERE id = $1;\n",
+prepare_intarray: /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
+                "PREPARE node_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE way_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
+                  /* For this it works fine */
+                "PREPARE rel_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
          copy: "COPY %s_rels FROM STDIN;\n",
       analyze: "ANALYZE %s_rels;\n",
          stop:  "COMMIT;\n"
@@ -1081,6 +1093,7 @@ static int pgsql_start(const struct output_options *options)
         set_prefix( options->prefix, &(tables[i].start) );
         set_prefix( options->prefix, &(tables[i].create) );
         set_prefix( options->prefix, &(tables[i].prepare) );
+        set_prefix( options->prefix, &(tables[i].prepare_intarray) );
         set_prefix( options->prefix, &(tables[i].copy) );
         set_prefix( options->prefix, &(tables[i].analyze) );
         set_prefix( options->prefix, &(tables[i].stop) );
@@ -1099,7 +1112,7 @@ static int pgsql_start(const struct output_options *options)
         /* Not really the right place for this test, but we need a live
          * connection that not used for anything else yet, and we'd like to
          * warn users *before* we start doing mountains of work */
-        if (i == t_way)
+        if (i == t_node)
         {
             /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
             res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
@@ -1132,27 +1145,10 @@ static int pgsql_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
 
-        if( i == t_way && have_intarray )
-        {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
-                    tables[i].name );
+        if (have_intarray && tables[i].prepare_intarray) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
         }
-        if( i == t_rel && have_intarray )
-        {
-            /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE node_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n",
-                    tables[i].name );
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE way_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n",
-                    tables[i].name );
-            /* For this it works fine */
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, 
-                "PREPARE rel_changed_mark(int4) AS UPDATE %s SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
-                    tables[i].name );
-        }
-                    
+
         if (tables[i].copy) {
             pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
             tables[i].copyMode = 1;
