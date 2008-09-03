@@ -278,6 +278,7 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xmlFree(xtype);
     } else if (xmlStrEqual(name, BAD_CAST "create")) {
         action = ACTION_CREATE;
+        action = ACTION_MODIFY; // Turns all creates into modifies, makes it resiliant against inconsistant snapshots.
     } else if (xmlStrEqual(name, BAD_CAST "modify")) {
         action = ACTION_MODIFY;
     } else if (xmlStrEqual(name, BAD_CAST "delete")) {
