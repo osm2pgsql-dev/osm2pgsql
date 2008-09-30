@@ -66,7 +66,7 @@ node,way   sport        text         polygon
 node,way   tourism      text         polygon
 way        tracktype    text         linear
 node,way   tunnel       text         linear
-node,way   waterway     text         linear
+node,way   waterway     text         polygon
 node,way   width        text         linear
 node,way   wood         text         linear
 node,way   z_order      int4         linear
