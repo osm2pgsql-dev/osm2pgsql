@@ -416,6 +416,11 @@ static inline char *escape_tag( char *ptr, const char *in, int escape )
         *ptr++ = '\\';
         *ptr++ = 'n';
         break;
+      case '\r':
+        if( escape ) *ptr++ = '\\';
+        *ptr++ = '\\';
+        *ptr++ = 'r';
+        break;
       case '\t':
         if( escape ) *ptr++ = '\\';
         *ptr++ = '\\';
