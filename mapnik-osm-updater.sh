@@ -5,14 +5,18 @@ export database_name="gis"
 export planet_dir="/home/$osm_username/osm/planet"
 export planet_file="$planet_dir/planet.osm.bz2"
 export sql_dump="$planet_dir/planet.osm.sql.bz2"
-export osm2pgsql_cmd=`which osm2pgsql`
-export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-db`
 export log_dir=/var/log
+
+export osm2pgsql_cmd=`which osm2pgsql`
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
-osm_planet_mirror_cmd='../../planet-mirror/planet-mirror.pl'
+export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-db`
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
+
+osm_planet_mirror_cmd=`which osm-planet-mirror`
+test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname $0`/../../planet-mirror/planet-mirror.pl"
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="$HOME/svn.openstreetmap.org/applications/utils/planet-mirror/planet-mirror.pl"
-test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd=`which osm-planet-mirror`
+test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname ../../planet-mirror/planet-mirror.pl"
 
 test -n "$1" || help=1
 quiet=" -q "
@@ -557,7 +561,7 @@ fi
 ############################################
 if [ -n "$db_add_gpsdrive_poitypes" ] ; then
     if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
-	echo "Cannot execute '$gpsdrive_poitypes_cmd'" 1>&2
+	echo "Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
 	exit -1
     fi
     echo ""
