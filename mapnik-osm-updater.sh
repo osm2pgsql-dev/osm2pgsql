@@ -11,6 +11,8 @@ export osm2pgsql_cmd=`which osm2pgsql`
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
 export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-db`
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-poitypes`
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
 test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
 
 osm_planet_mirror_cmd=`which osm-planet-mirror`
