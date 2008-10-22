@@ -52,7 +52,7 @@ node,way   man_made     text         polygon
 node,way   military     text         polygon
 node,way   motorcar     text         linear
 node,way   name         text         linear
-node,way   natural      text         polygon
+node,way   natural      text         polygon  # natural=coastline tags are discarded by a hard coded rule in osm2pgsql
 node,way   oneway       text         linear
 node       poi          text
 node,way   power        text         polygon
@@ -70,8 +70,8 @@ node,way   tunnel       text         linear
 node,way   waterway     text         polygon
 node,way   width        text         linear
 node,way   wood         text         linear
-node,way   z_order      int4         linear
-way        way_area     real
+node,way   z_order      int4         linear # This is calculated during import
+way        way_area     real                # This is calculated during import
 
 # If you're interested in bicycle routes, you may want the following fields
 # To make these work you need slim mode or the necessary data won't be remembered.

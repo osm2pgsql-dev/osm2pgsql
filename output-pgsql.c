@@ -90,21 +90,21 @@ static struct {
     const char *highway;
     int roads;
 } layers[] = {
-    { 9, "motorway",      1 },
-    { 9, "motorway_link", 1 },
-    { 8, "trunk",         1 },
-    { 8, "trunk_link",    1 },
-    { 7, "primary",       1 },
-    { 7, "primary_link",  1 },
-    { 6, "secondary",     1 },
-    { 6, "secondary_link",1 },
-   // 5 = railway
-    { 4, "tertiary",      0 },
-    { 4, "tertiary_link", 0 },
-    { 3, "residential",   0 },
-    { 3, "unclassified",  0 },
+    { 3, "minor",         0 },
     { 3, "road",          0 },
-    { 3, "minor",         0 }
+    { 3, "unclassified",  0 },
+    { 3, "residential",   0 },
+    { 4, "tertiary_link", 0 },
+    { 4, "tertiary",      0 },
+   // 5 = railway
+    { 6, "secondary_link",1 },
+    { 6, "secondary",     1 },
+    { 7, "primary_link",  1 },
+    { 7, "primary",       1 },
+    { 8, "trunk_link",    1 },
+    { 8, "trunk",         1 },
+    { 9, "motorway_link", 1 },
+    { 9, "motorway",      1 }
 };
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
@@ -275,30 +275,7 @@ void copy_to_table(enum table_id table, const char *sql)
     tables[table].buflen = buflen;
 }
 
-static int add_z_order_polygon(struct keyval *tags, int *roads)
-{
-    const char *natural = getItem(tags, "natural");
-    const char *layer   = getItem(tags, "layer");
-
-    int z_order, l;
-    char z[13];
-
-    /* Discard polygons with the tag natural=coastline */
-    if (natural && !strcmp(natural, "coastline"))
-        return 1;
-
-    l = layer ? strtol(layer, NULL, 10) : 0;
-    z_order = 10 * l;
-    *roads = 0;
-
-    snprintf(z, sizeof(z), "%d", z_order);
-    addItem(tags, "z_order", z, 0);
-
-    return 0;
-}
-
-
-static int add_z_order_line(struct keyval *tags, int *roads)
+static int add_z_order(struct keyval *tags, int *roads)
 {
     const char *layer   = getItem(tags, "layer");
     const char *highway = getItem(tags, "highway");
@@ -306,6 +283,7 @@ static int add_z_order_line(struct keyval *tags, int *roads)
     const char *tunnel  = getItem(tags, "tunnel");
     const char *railway = getItem(tags, "railway");
     const char *boundary= getItem(tags, "boundary");
+
     int z_order = 0;
     int l;
     unsigned int i;
@@ -343,11 +321,6 @@ static int add_z_order_line(struct keyval *tags, int *roads)
     addItem(tags, "z_order", z, 0);
 
     return 0;
-}
-
-static int add_z_order(struct keyval* tags, int polygon, int *roads)
-{
-    return polygon ? add_z_order_polygon(tags, roads) : add_z_order_line(tags, roads);
 }
 
 
@@ -558,6 +531,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
 {
     int i, filter = 1;
     int flags = 0;
+    int add_area_tag = 0;
 
     const char *area;
     struct keyval *item;
@@ -567,6 +541,15 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
     while( (item = popItem(tags)) != NULL )
     {
+        /* Discard natural=coastline tags (we render these from a shapefile instead) */
+        if (!strcmp("natural",item->key) && !strcmp("coastline",item->value))
+        {		
+            freeItem( item );
+            item = NULL;
+            add_area_tag = 1; /* Allow named islands to appear as polygons */
+            continue;
+        }    
+
         for (i=0; i < exportListCount[type]; i++)
         {
             if( strcmp( exportList[type][i].name, item->key ) == 0 )
@@ -605,6 +588,12 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
             *polygon = 1;
         else if (!strcmp(area, "no") || !strcmp(area, "false") || !strcmp(area, "0"))
             *polygon = 0;
+    } else {
+        /* If we need to force this as a polygon, append an area tag */
+        if (add_area_tag) {
+            addItem(tags, "area", "yes", 0);
+            *polygon = 1;
+        }
     }
 
     return filter;
@@ -628,7 +617,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     if(exists)
         pgsql_delete_way_from_output(id);
 
-    if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, polygon, &roads))
+    if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, &roads))
         return 0;
 
     //compress_tag_name(tags);
@@ -817,7 +806,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         return 0;
     }
 
-    if (pgsql_filter_tags(OSMTYPE_WAY, &tags, &polygon) || add_z_order(&tags, polygon, &roads)) {
+    if (pgsql_filter_tags(OSMTYPE_WAY, &tags, &polygon) || add_z_order(&tags, &roads)) {
         resetList(&tags);
         resetList(&poly_tags);
         return 0;
