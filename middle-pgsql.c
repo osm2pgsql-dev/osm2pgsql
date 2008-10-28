@@ -52,7 +52,7 @@ prepare_intarray: // This is to fetch lots of nodes simultaneously, in order inc
                   // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
                   //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %s_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
                "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
-                                               "(select * from planet_osm_nodes where id = ANY($1)) y where l_id=id order by i;\n",
+                                               "(select * from %s_nodes where id = ANY($1)) y where l_id=id order by i;\n",
          copy: "COPY %s_nodes FROM STDIN;\n",
       analyze: "ANALYZE %s_nodes;\n",
          stop: "COMMIT;\n"
