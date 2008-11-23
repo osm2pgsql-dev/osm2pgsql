@@ -49,11 +49,16 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc readme.txt
+%doc README.txt
 %{_bindir}/osm2pgsql
 
 
 %changelog
+* Sun Nov 23 2008 Keith Sharp <kms@passback.co.uk> - 0.55-1.20081123
+- Fixed case of README.txt filename in Makefile
+- Fixed case of README.txt filename in osm2pgsql.spec.in
+- Fixed make clean to remove generated osm2pgsql.spec file
+
 * Mon Sep  3 2007 Jon Burgess <jburgess777@googlemail.com> - 0.06-1.20070903
 - Add several command line options and help text
 - "--append" mode which imports extra data into the DB
