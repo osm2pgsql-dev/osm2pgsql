@@ -425,7 +425,9 @@ if [ -n "$create_db" ] ; then
         exit -1
     fi
 
-    if ! sudo -u postgres psql $quiet -Upostgres "$database_name" </usr/share/postgresql-8.2-postgis/lwpostgis.sql ; then
+    lwpostgis="/usr/share/postgresql-8.2-postgis/lwpostgis.sql"
+    test -s $ || lwpostgis="/usr/share/postgresql-*-postgis/lwpostgis.sql"
+    if ! sudo -u postgres psql $quiet -Upostgres "$database_name" <${lwpostgis} ; then
         echo "Creation Failed"
         exit -1
     fi
