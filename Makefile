@@ -40,6 +40,7 @@ all: $(APPS)
 clean: 
 	rm -f $(APPS) $(OBJS) $(DEPS)
 	rm -f $(PACKAGE)-*.tar.bz2
+	rm -f osm2pgsql.spec
 
 %.d: %.c
 	@set -e; rm -f $@; \
@@ -58,7 +59,7 @@ $(PACKAGE).spec: $(PACKAGE).spec.in
 $(PACKAGE)-$(VERSION)-$(SVN).tar.bz2: $(PACKAGE).spec
 	rm -fR tmp
 	mkdir -p tmp/osm2pgsql
-	cp -p Makefile *.[ch] *.cpp readme.txt osm2pgsql-svn.sh tmp/osm2pgsql
+	cp -p Makefile *.[ch] *.cpp README.txt osm2pgsql-svn.sh tmp/osm2pgsql
 	cp -p osm2pgsql.spec tmp/
 	tar cjf $@ -C tmp .
 	rm -fR tmp
