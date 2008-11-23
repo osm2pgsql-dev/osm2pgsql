@@ -18,7 +18,7 @@ test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gp
 osm_planet_mirror_cmd=`which osm-planet-mirror`
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname $0`/../../planet-mirror/planet-mirror.pl"
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="$HOME/svn.openstreetmap.org/applications/utils/planet-mirror/planet-mirror.pl"
-test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname ../../planet-mirror/planet-mirror.pl"
+test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname ../../planet-mirror/planet-mirror.pl`"
 
 test -n "$1" || help=1
 quiet=" -q "
