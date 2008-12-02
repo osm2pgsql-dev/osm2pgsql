@@ -42,6 +42,7 @@ node,way   disused      text         linear
 node,way   embankment   text         linear
 node,way   foot         text         linear
 node,way   highway      text         linear
+node,way   historic     text         polygon
 node,way   horse        text         linear
 node,way   junction     text         linear
 node,way   landuse      text         polygon
