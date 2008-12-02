@@ -32,6 +32,8 @@ for arg in "$@" ; do
 	    check_newer_planet=
 	    drop=1
 	    create_db=1
+	    db_table_create=1
+	    create_db=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
@@ -52,6 +54,8 @@ for arg in "$@" ; do
 	    check_newer_planet=
 	    drop=1
 	    create_db=1
+	    db_table_create=1
+	    db_add_900913=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
@@ -177,6 +181,10 @@ for arg in "$@" ; do
 	    db_table_create=1
 	    ;;
 
+	--db-add-srid-900913) #	Add SRID 900913
+	    db_add_900913=1
+	    ;;
+
 	--count-db) #		Count entries in Database. This is to check
 	    # 		if the database really contains entries
 	    #		if you set an  empty user with the option osm_username=''
@@ -234,14 +242,14 @@ for arg in "$@" ; do
 
 	    if [ "$osm_username" = "$USER" ] ; then
 		echo 
-		echo "!!! Don't use your own login account as the osm_username!!" 1>&2
+		echo "!!!!!! ERROR: Don't use your own login account as the osm_username!!" 1>&2
 		echo 
 		exit 1
 	    fi
 
 	    if [ "$osm_username" = "root" ] ; then
 		echo 
-		echo "!!! Don't use the root account as the osm_username!!" 1>&2
+		echo "!!!!!! ERROR: Don't use the root account as the osm_username!!" 1>&2
 		echo 
 		exit 1
 	    fi
@@ -257,7 +265,7 @@ for arg in "$@" ; do
 	    #		the Debian Package openstreetmap-utils
 	    osm2pgsql_cmd=${arg#*=}
 		if ! [ -x "$osm2pgsql_cmd" ]; then
-		    echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
+		    echo "!!!!!! ERROR: Cannot execute '$osm2pgsql_cmd'" 1>&2
 		    exit -1
 		fi
 		;;
@@ -368,15 +376,15 @@ fi
 if [ -n "$mirror" ] ; then
     test -n "$verbose" && echo "----- Mirroring planet File"
     if ! [ -x "$osm_planet_mirror_cmd" ]; then
-	echo "Cannot execute '$osm_planet_mirror_cmd'" 1>&2
+	echo "!!!!!! ERROR: Cannot execute '$osm_planet_mirror_cmd'" 1>&2
 	exit -1
     fi
     if ! $sudo_cmd $osm_planet_mirror_cmd -v -v --planet-dir=$planet_dir ; then 
-	echo "Cannot Mirror Planet File" 1>&2
+	echo "!!!!!! ERROR: Cannot Mirror Planet File" 1>&2
 	exit 1
     fi
     if ! [ -s $planet_file ] ; then
-        echo "File $planet_file is missing"
+        echo "!!!!!! ERROR: File $planet_file is missing"
         exit -1
     fi
 
@@ -417,18 +425,24 @@ if [ -n "$create_db" ] ; then
     test -n "$verbose" && echo
     test -n "$verbose" && echo "----- Create Database '$database_name'"
     if ! sudo -u postgres createdb -Upostgres  $quiet  -EUTF8 "$database_name"; then
-        echo "Creation Failed"
+        echo "!!!!!! ERROR: Creation of '$database_name' Failed"
         exit -1
     fi
     if ! sudo -u postgres createlang plpgsql "$database_name"; then
-        echo "Creation Failed"
+        echo "!!!!!! ERROR: Creation Failed"
         exit -1
     fi
 
     lwpostgis="/usr/share/postgresql-8.2-postgis/lwpostgis.sql"
-    test -s $ || lwpostgis="/usr/share/postgresql-*-postgis/lwpostgis.sql"
-    if ! sudo -u postgres psql $quiet -Upostgres "$database_name" <${lwpostgis} ; then
-        echo "Creation Failed"
+    test -s $lwpostgis || lwpostgis="/usr/share/postgresql-*-postgis/lwpostgis.sql"
+    if [ ! -s $lwpostgis ] ; then
+        echo "!!!!!! ERROR: Cannot find $lwpostgis"
+        exit -1
+    fi
+    if sudo -u postgres psql $quiet -Upostgres "$database_name" <${lwpostgis} ; then
+        echo "Enabling spacial Extentions done with '$lwpostgis'"
+    else
+        echo "!!!!!! ERROR: Creation with '$lwpostgis' Failed"
         exit -1
     fi
 fi
@@ -487,6 +501,41 @@ if [ -n "$create_db_users" ] ; then
 fi
 
 ############################################
+# Create Database tables with osm2pgsql
+############################################
+if [ -n "$db_table_create" ] ; then
+    if ! [ -x "$osm2pgsql_cmd" ]; then
+	echo "!!!!!! ERROR: Cannot execute '$osm2pgsql_cmd'" 1>&2
+	exit -1
+    fi
+    echo ""
+    echo "--------- Unpack and import $planet_file"
+    cd /usr/share/openstreetmap/
+    $sudo_cmd $osm2pgsql_cmd --create "$database_name"
+fi
+
+############################################
+# Add SRID 900913
+############################################
+if [ -n "$db_add_900913" ] ; then
+
+    test -s "$srid_900913" || srid_900913="`dirname $0`/900913.sql"
+    test -s "$srid_900913" || srid_900913="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/900913.sql"
+    test -s "$srid_900913" || srid_900913="/usr/share/mapnik/900913.sql"
+    if [ ! -s $srid_900913 ] ; then
+        echo "!!!!!! ERROR: Cannot find $srid_900913"
+        exit -1
+    fi
+    if sudo -u postgres psql $quiet -Upostgres "$database_name" <${srid_900913} ; then
+        echo "Adding  '$srid_900913'"
+    else
+        echo "!!!!!! ERROR: Creation Failed"
+        exit -1
+    fi
+fi
+
+
+############################################
 # Grant all rights on the gis Database to all system users or selected users in the system
 ############################################
 if [ -n "$grant_db_users" ] ; then
@@ -511,23 +560,10 @@ if [ -n "$grant_db_users" ] ; then
             echo "GRANT ALL on spatial_ref_sys TO \"$user\";"
             echo "GRANT ALL on TABLE planet_osm_line TO \"$user\";"
             echo "GRANT ALL on TABLE planet_osm_point TO \"$user\";"
+            echo "GRANT ALL on TABLE planet_osm_roads TO \"$user\";"
+            echo "GRANT ALL on TABLE planet_osm_polygon TO \"$user\";"
             )| sudo -u postgres psql $quiet -Upostgres "$database_name" || true
     done
-fi
-
-
-############################################
-# Create Database tables with osm2pgsql
-############################################
-if [ -n "$db_table_create" ] ; then
-    if ! [ -x "$osm2pgsql_cmd" ]; then
-	echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
-	exit -1
-    fi
-    echo ""
-    echo "--------- Unpack and import $planet_file"
-    cd /usr/share/openstreetmap/
-    $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
 
 
@@ -536,7 +572,7 @@ fi
 ############################################
 if [ -n "$planet_fill" ] ; then
     if ! [ -x "$osm2pgsql_cmd" ]; then
-	echo "Cannot execute '$osm2pgsql_cmd'" 1>&2
+	echo "!!!!!! ERROR: Cannot execute '$osm2pgsql_cmd'" 1>&2
 	exit -1
     fi
     echo ""
@@ -565,12 +601,17 @@ fi
 ############################################
 if [ -n "$db_add_gpsdrive_poitypes" ] ; then
     if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
-	echo "Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
+	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
 	exit -1
     fi
     echo ""
     echo "--------- Adding GpsDrive POI-Types to Database"
     sudo -u postgres $gpsdrive_poitypes_cmd
+    rc=$?
+    if [ "$rc" -gt "0" ]; then
+        echo "!!!!!!! ERROR: cannot add poi types"
+	exit -1
+    fi
 fi
 
 
