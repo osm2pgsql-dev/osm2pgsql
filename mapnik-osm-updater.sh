@@ -12,7 +12,7 @@ test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applicati
 
 export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-db`
 test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-poitypes`
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/gpsdrive-update-mapnik-poitypes"
 test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
 
 osm_planet_mirror_cmd=`which osm-planet-mirror`
@@ -35,6 +35,8 @@ for arg in "$@" ; do
 	    db_table_create=1
 	    create_db=1
 	    create_db_user=1
+	    db_add_900913=1
+	    db_add_spatial_ref_sys=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
 	    db_add_gpsdrive_poitypes=1
@@ -56,6 +58,7 @@ for arg in "$@" ; do
 	    create_db=1
 	    db_table_create=1
 	    db_add_900913=1
+	    db_add_spatial_ref_sys=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
@@ -183,6 +186,10 @@ for arg in "$@" ; do
 
 	--db-add-srid-900913) #	Add SRID 900913
 	    db_add_900913=1
+	    ;;
+
+	--db-add-spatial_ref_sys) #	Add SRIDs to spatial_ref_sys
+	    db_add_spatial_ref_sys=1
 	    ;;
 
 	--count-db) #		Count entries in Database. This is to check
@@ -433,8 +440,10 @@ if [ -n "$create_db" ] ; then
         exit -1
     fi
 
-    lwpostgis="/usr/share/postgresql-8.2-postgis/lwpostgis.sql"
-    test -s $lwpostgis || lwpostgis="/usr/share/postgresql-*-postgis/lwpostgis.sql"
+    lwpostgis="/usr/share/postgresql-8.4-postgis/lwpostgis.sql"
+    test -s $lwpostgis || lwpostgis="/usr/share/postgresql-8.3-postgis/lwpostgis.sql"
+    test -s $lwpostgis || lwpostgis="/usr/share/postgresql-8.2-postgis/lwpostgis.sql"
+    test -s $lwpostgis || lwpostgis="`ls /usr/share/postgresql-*-postgis/lwpostgis.sql| sort -n | head 1`"
     if [ ! -s $lwpostgis ] ; then
         echo "!!!!!! ERROR: Cannot find $lwpostgis"
         exit -1
@@ -513,6 +522,29 @@ if [ -n "$db_table_create" ] ; then
     cd /usr/share/openstreetmap/
     $sudo_cmd $osm2pgsql_cmd --create "$database_name"
 fi
+
+
+############################################
+# Add SRID spatial_ref_sys
+############################################
+if [ -n "$db_add_spatial_ref_sys" ] ; then
+    test -s "$srid_spatial_ref_sys" || srid_spatial_ref_sys="/usr/share/postgresql-8.4-postgis/spatial_ref_sys.sql"
+    test -s "$srid_spatial_ref_sys" || srid_spatial_ref_sys="/usr/share/postgresql-8.3-postgis/spatial_ref_sys.sql"
+    test -s "$srid_spatial_ref_sys" || srid_spatial_ref_sys="/usr/share/postgresql-8.2-postgis/spatial_ref_sys.sql"
+    test -s "$srid_spatial_ref_sys" || srid_spatial_ref_sys="/usr/share/postgresql-8.*-postgis/spatial_ref_sys.sql"
+    test -s "$srid_spatial_ref_sys" || srid_spatial_ref_sys="/usr/share/postgresql-*-postgis/spatial_ref_sys.sql"
+    if [ ! -s $srid_spatial_ref_sys ] ; then
+        echo "!!!!!! ERROR: Cannot find $srid_spatial_ref_sys"
+        exit -1
+    fi
+    if sudo -u postgres psql $quiet -Upostgres "$database_name" <${srid_spatial_ref_sys} ; then
+        echo "Adding  '$srid_spatial_ref_sys'"
+    else
+        echo "!!!!!! ERROR: Creation Failed"
+        exit -1
+    fi
+fi
+
 
 ############################################
 # Add SRID 900913
