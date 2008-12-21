@@ -67,12 +67,14 @@ for arg in "$@" ; do
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
-	--all-planet-update) #	Do all the creation steps listed below from planet file with up to date cheching
+	--all-planet-update) #	Do all the creation steps listed below from planet file with up to date checking
 	    create_osm_user=1
 	    mirror=1
 	    check_newer_planet=1
 	    drop=1
 	    create_db=1
+	    db_add_900913=1
+	    db_add_spatial_ref_sys=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    planet_fill=1
@@ -88,6 +90,8 @@ for arg in "$@" ; do
 	    mirror_dump=1
 	    drop=1
 	    create_db=1
+	    db_add_900913=1
+	    db_add_spatial_ref_sys=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    create_db_users=${create_db_users:-*}
@@ -101,6 +105,8 @@ for arg in "$@" ; do
 	    create_osm_user=1
 	    drop=1
 	    create_db=1
+	    db_add_900913=1
+	    db_add_spatial_ref_sys=1
 	    create_db_user=1
 	    grant_all_rights_to_user_osm=1
 	    create_db_users=${create_db_users:-*}
