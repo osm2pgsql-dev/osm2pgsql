@@ -44,6 +44,15 @@ for arg in "$@" ; do
 	    grant_db_users=${grant_db_users:-*}
 	    ;;
 
+	--all-planet-geofabrik=\?) #	Use Planet Extract from Frederics GeoFabrik.de Page as planet File and import
+		# 		Use ? for a list of possible files
+	    dir_country=${arg#*=}
+	    country=`basename $dir_country`
+	    planet_file="$planet_dir/${country}.osm.bz2"
+	    mirror_geofabrik=${dir_country}
+	    mirror=
+	    ;;
+
 	--all-planet-geofabrik=*) #	Use Planet Extract from Frederics GeoFabrik.de Page as planet File and import
 		# 		Use ? for a list of possible files
 		# 		Example: europe/germany/baden-wuerttemberg
@@ -369,10 +378,29 @@ fi
 if [ -n "$mirror_geofabrik" ] ; then
     geofabrik_basedir="http://download.geofabrik.de/osm"
     if [ "$mirror_geofabrik" = "?" ]; then
+
+	# Find all Subdirs in the first 3 levels
+	wget_out=`wget --no-convert-links -q  --level=0 -O - "http://download.geofabrik.de/osm" | grep DIR | grep -v -i Parent `
+	sub_dirs=`echo "$wget_out" | perl -ne 'm,href="(.*)/",;print "$1 "'`
+
+	for level in 1 2 3; do 
+	    for sub_dir in $sub_dirs ; do
+		#echo "Get dirs in Subdir: $sub_dir"
+		wget_out=`wget -q  --level=0 -O - "$geofabrik_basedir/$sub_dir" | grep 'DIR' | grep -v Parent `
+		new_dirs="$new_dirs `echo "$wget_out" | perl -ne 'm,href="(.*)/", && print "'$sub_dir'/$1 "'`"
+                # echo "WGET: '$wget_out'"
+	    done
+	    sub_dirs="$sub_dirs $new_dirs"
+	done
+	sub_dirs=`for dir in $sub_dirs; do echo $dir; done | sort -u`
+
+
+	# Printout content of all $sub_dirs
+
 	echo "Possible Values are:"
-	for sub_dir in "" "europe/" "europe/germany/"; do
+	for sub_dir in "" $sub_dirs ; do
 	    wget -q  --level=0 -O - "$geofabrik_basedir/$sub_dir" | grep 'OpenStreetMap data' | \
-		perl -ne 'm/.*href="([^"]+)\.osm.bz2"/;print "	'$sub_dir'$1\n"'
+		perl -ne 'm/.*href="([^"]+)\.osm.bz2"/;print "	'$sub_dir/'$1\n"'
 	done
 	exit 1 
     fi
