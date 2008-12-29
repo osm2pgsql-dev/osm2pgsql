@@ -10,10 +10,10 @@ export log_dir=/var/log
 export osm2pgsql_cmd=`which osm2pgsql`
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
-export gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-db`
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd=`which gpsdrive-update-mapnik-poitypes`
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/gpsdrive-update-mapnik-poitypes"
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-mapnik-poitypes.pl"
+export gpsdrive_poitypes_cmd=`which gpsdrive-update-osm-poi-db`
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd=`which gpsdrive-update-osm-poi-db`
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/gpsdrive-update-osm-poi-db"
+test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-osm-poi-db"
 
 osm_planet_mirror_cmd=`which osm-planet-mirror`
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname $0`/../../planet-mirror/planet-mirror.pl"
@@ -666,18 +666,23 @@ fi
 # Add GpsDrive POI-Types to points Table
 ############################################
 if [ -n "$db_add_gpsdrive_poitypes" ] ; then
-    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
-	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
-	exit -1
-    fi
+#    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
+#	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
+#	exit -1
+#    fi
     echo ""
-    echo "--------- Adding GpsDrive POI-Types to Database"
-    sudo -u postgres $gpsdrive_poitypes_cmd
-    rc=$?
-    if [ "$rc" -gt "0" ]; then
-        echo "!!!!!!! ERROR: cannot add poi types"
-	exit -1
-    fi
+    echo "--------- Create GpsDrive POI-Database"
+#    sudo -u postgres $gpsdrive_poitypes_cmd
+#    rc=$?
+#    if [ "$rc" -gt "0" ]; then
+#        echo "!!!!!!! ERROR: cannot add poi types"
+#	exit -1
+#    fi
+#
+#TODO: do this automatically...
+    echo "If you want to use GpsDrive with POI-Data from OpenStreetMap,"
+    echo "please create the database file with gpsdrive-update-osm-poi-db!"
+
 fi
 
 
