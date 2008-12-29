@@ -7,6 +7,9 @@ export planet_file="$planet_dir/planet.osm.bz2"
 export sql_dump="$planet_dir/planet.osm.sql.bz2"
 export log_dir=/var/log
 
+export geoinfodb_file="/usr/share/gpsdrive/geoinfo.db"
+export osmdb_file="/usr/share/gpsdrive/osm.db"
+
 export osm2pgsql_cmd=`which osm2pgsql`
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
 
@@ -250,6 +253,14 @@ for arg in "$@" ; do
 
 	--planet-file=*) #	define Planet-File including Directory
 	    planet_file=${arg#*=}
+	    ;;
+	
+	--poi-file=*) #		define POI Database file including Directory
+	    osmdb_file=${arg#*=}
+	    ;;
+	
+	--geoinfo-file=*) #	define geoinfo database file containing poi-types
+	    geoinfodb_file=${arg#*=}
 	    ;;
 	
 	--osm-username=*) #	Define username to use for DB creation and planet
@@ -663,26 +674,21 @@ fi
 
 
 ############################################
-# Add GpsDrive POI-Types to points Table
+# Create GpsDrive POI-Database
 ############################################
 if [ -n "$db_add_gpsdrive_poitypes" ] ; then
-#    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
-#	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
-#	exit -1
-#    fi
+    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
+	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
+	exit -1
+    fi
     echo ""
     echo "--------- Create GpsDrive POI-Database"
-#    sudo -u postgres $gpsdrive_poitypes_cmd
-#    rc=$?
-#    if [ "$rc" -gt "0" ]; then
-#        echo "!!!!!!! ERROR: cannot add poi types"
-#	exit -1
-#    fi
-#
-#TODO: do this automatically...
-    echo "If you want to use GpsDrive with POI-Data from OpenStreetMap,"
-    echo "please create the database file with gpsdrive-update-osm-poi-db!"
-
+    bunzip2 -c $planet_file | $sudo_cmd $gpsdrive_poitypes_cmd -w -f $geoinfodb_file -o $osmdb_file STDIN
+    rc=$?
+    if [ "$rc" -gt "0" ]; then
+        echo "!!!!!!! ERROR: cannot create POI Database"
+	exit -1
+    fi
 fi
 
 
