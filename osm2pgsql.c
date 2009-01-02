@@ -41,14 +41,14 @@
 #include "keyvals.h"
 #include "middle-pgsql.h"
 #include "middle-ram.h"
-#include "output-pgsql.h"
+#include "output-gazetteer.h"
 #include "sanitizer.h"
 #include "reprojection.h"
 #include "text-tree.h"
 #include "input.h"
 #include "sprompt.h"
 
-typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE } filetypes_t;
+typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
 static int count_node,    max_node;
@@ -128,7 +128,7 @@ static actions_t action = ACTION_NONE;
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
 static actions_t ParseAction( xmlTextReaderPtr reader )
 {
-    if( filetype == FILETYPE_OSMCHANGE )
+    if( filetype == FILETYPE_OSMCHANGE || filetype == FILETYPE_PLANETDIFF )
         return action;
     actions_t new_action = ACTION_NONE;
     xmlChar *action = xmlTextReaderGetAttribute( reader, BAD_CAST "action" );
@@ -161,6 +161,11 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         else if (xmlStrEqual(name, BAD_CAST "osmChange"))
         {
             filetype = FILETYPE_OSMCHANGE;
+            action = ACTION_NONE;
+        }
+        else if (xmlStrEqual(name, BAD_CAST "planetdiff"))
+        {
+            filetype = FILETYPE_PLANETDIFF;
             action = ACTION_NONE;
         }
         else
@@ -276,7 +281,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         xmlFree(xid);
         xmlFree(xrole);
         xmlFree(xtype);
-    } else if (xmlStrEqual(name, BAD_CAST "create")) {
+    } else if (xmlStrEqual(name, BAD_CAST "add") ||
+               xmlStrEqual(name, BAD_CAST "create")) {
         action = ACTION_CREATE;
         action = ACTION_MODIFY; // Turns all creates into modifies, makes it resiliant against inconsistant snapshots.
     } else if (xmlStrEqual(name, BAD_CAST "modify")) {
@@ -354,8 +360,13 @@ void EndElement(const xmlChar *name)
     } else if (xmlStrEqual(name, BAD_CAST "osmChange")) {
         printStatus();
         filetype = FILETYPE_NONE;
+    } else if (xmlStrEqual(name, BAD_CAST "planetdiff")) {
+        printStatus();
+        filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "add")) {
+        action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "create")) {
         action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "modify")) {
