@@ -41,7 +41,7 @@
 #include "keyvals.h"
 #include "middle-pgsql.h"
 #include "middle-ram.h"
-#include "output-gazetteer.h"
+#include "output-pgsql.h"
 #include "sanitizer.h"
 #include "reprojection.h"
 #include "text-tree.h"
