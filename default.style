@@ -33,6 +33,7 @@ node,way   aerialway    text         linear
 node,way   aeroway      text         polygon
 node,way   amenity      text         nocache,polygon
 node,way   area         text         # hard coded support for area=1/yes => polygon is in osm2pgsql
+node,way   barrier      text         linear
 node,way   bicycle      text         nocache
 node,way   bridge       text         linear
 node,way   boundary     text         linear
