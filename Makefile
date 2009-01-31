@@ -1,5 +1,5 @@
 PACKAGE:=osm2pgsql
-VERSION:=0.55
+VERSION:=0.60
 SVN:=$(shell date +%Y%m%d)
 
 CC = gcc

@@ -1058,11 +1058,6 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
   // Check whether the way is: (1) Exportable, (2) Maybe a polygon
   int filter = pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon);
 
-  // Memory saving hack:-
-  // If we're not in slim mode and it's not wanted, we can quit right away */
-  if( !Options->slim && filter )
-    return 1;
-    
   // If this isn't a polygon then it can not be part of a multipolygon
   // Hence only polygons are "pending"
   Options->mid->ways_set(id, nds, nd_count, tags, (!filter && polygon) ? 1 : 0);
