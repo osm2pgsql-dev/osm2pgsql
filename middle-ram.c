@@ -41,6 +41,7 @@ struct ramNode {
 struct ramWay {
     struct keyval *tags;
     int *ndids;
+    int pending;
 };
 
 struct ramRel {
@@ -75,9 +76,7 @@ static int node_blocks;
 static int way_blocks;
 
 static int way_out_count;
-#if 0
 static int rel_out_count;
-#endif
 
 static inline int id2block(int id)
 {
@@ -148,10 +147,7 @@ static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int
     int block  = id2block(id);
     int offset = id2offset(id);
     struct keyval *p;
-    
-    if( !pending ) /* If it's not still to be done, don't bother storing it at all */
-      return 0;
-    
+
     if (!ways[block]) {
         ways[block] = calloc(PER_BLOCK, sizeof(struct ramWay));
         if (!ways[block]) {
@@ -171,6 +167,7 @@ static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int
     ways[block][offset].ndids = malloc( (nd_count+1)*sizeof(int) );
     memcpy( ways[block][offset].ndids+1, nds, nd_count*sizeof(int) );
     ways[block][offset].ndids[0] = nd_count;
+    ways[block][offset].pending = pending;
 
     if (!ways[block][offset].tags) {
         p = malloc(sizeof(struct keyval));
@@ -184,8 +181,7 @@ static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int
     } else
         resetList(ways[block][offset].tags);
 
-    while ((p = popItem(tags)) != NULL)
-        pushItem(ways[block][offset].tags, p);
+    cloneList(ways[block][offset].tags, tags);
 
     return 0;
 }
@@ -215,8 +211,7 @@ static int ram_relations_set(int id, struct member *members, int member_count, s
     } else
         resetList(rels[block][offset].tags);
 
-    while ((p = popItem(tags)) != NULL)
-        pushItem(rels[block][offset].tags, p);
+    cloneList(rels[block][offset].tags, tags);
 
     if (!rels[block][offset].members)
       free( rels[block][offset].members );
@@ -232,7 +227,6 @@ static int ram_relations_set(int id, struct member *members, int member_count, s
     }
 
     return 0;
-    //return out_pgsql.relation(id, tags, nodes, ndCount)
 }
 
 static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
@@ -250,9 +244,35 @@ static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
     return count;
 }
 
-static void ram_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int) __unused)
+static void ram_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int))
 {
-  /* Void */
+    int block, offset;
+
+    fprintf(stderr, "\n");
+    for(block=NUM_BLOCKS-1; block>=0; block--) {
+        if (!rels[block])
+            continue;
+
+        for (offset=0; offset < PER_BLOCK; offset++) {
+            if (rels[block][offset].members) {
+                int id = block2id(block, offset);
+                rel_out_count++;
+                if (rel_out_count % 1000 == 0)
+                    fprintf(stderr, "\rWriting rel(%uk)", rel_out_count/1000);
+
+                callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
+            }
+            free(rels[block][offset].members);
+            rels[block][offset].members = NULL;
+            resetList(rels[block][offset].tags);
+            free(rels[block][offset].tags);
+            rels[block][offset].tags=NULL;
+        }
+        free(rels[block]);
+        rels[block] = NULL;
+    }
+
+    fprintf(stderr, "\rWriting rel(%uk)\n", rel_out_count/1000);
 }
 
 static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
@@ -271,18 +291,18 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
                 if (way_out_count % 1000 == 0)
                     fprintf(stderr, "\rWriting way(%uk)", way_out_count/1000);
 
-                if (ways[block][offset].tags) 
-                    if( getItem( ways[block][offset].tags, "multipolygon" ) )
-                        continue;
-                        
-                /* First element contains number of nodes */
-                nodes = malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
-                ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
+                if (ways[block][offset].pending) {
+                    /* First element contains number of nodes */
+                    nodes = malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
+                    ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
-                if (nodes) {
-                    int id = block2id(block, offset);
-                    callback(id, ways[block][offset].tags, nodes, ndCount, 0);
-                    free(nodes);
+                    if (nodes) {
+                        int id = block2id(block, offset);
+                        callback(id, ways[block][offset].tags, nodes, ndCount, 0);
+                        free(nodes);
+                    }
+
+                    ways[block][offset].pending = 0;
                 }
 
                 if (ways[block][offset].tags) {
@@ -324,7 +344,7 @@ static int ram_ways_get( int id, struct keyval *tags_ptr, struct osmNode **nodes
     return 1;
 }
 
-// Makrs the way so that iterate ways skips it
+// Marks the way so that iterate ways skips it
 static int ram_ways_done( int id )
 {
     int block = id2block(id), offset = id2offset(id);
@@ -332,9 +352,7 @@ static int ram_ways_done( int id )
     if (!ways[block])
         return 1;
 
-    if( ways[block][offset].tags )
-        addItem( ways[block][offset].tags, "multipolygon", "1", 1 );
-
+    ways[block][offset].pending = 0;
     return 0;
 }
 
@@ -394,10 +412,13 @@ struct middle_t mid_ram = {
 //    nodes_get:      ram_nodes_get,
     nodes_get_list: ram_nodes_get_list,
     ways_set:       ram_ways_set,
-    relations_set:  ram_relations_set,
     ways_get:       ram_ways_get,
     ways_done:      ram_ways_done,
-//        iterate_nodes:  ram_iterate_nodes,
+
+    relations_set:  ram_relations_set,
+
+//    iterate_nodes:  ram_iterate_nodes,
     iterate_ways:   ram_iterate_ways,
     iterate_relations: ram_iterate_relations
 };
+

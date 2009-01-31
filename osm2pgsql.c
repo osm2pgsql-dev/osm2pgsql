@@ -291,6 +291,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         action = ACTION_DELETE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
+        /* ignore */
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
@@ -364,6 +366,8 @@ void EndElement(const xmlChar *name)
         printStatus();
         filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
+        /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;

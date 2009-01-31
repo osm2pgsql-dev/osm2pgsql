@@ -1201,24 +1201,26 @@ struct middle_t mid_pgsql = {
         cleanup:        pgsql_cleanup,
         analyze:        pgsql_analyze,
         end:            pgsql_end,
+
         nodes_set:      pgsql_nodes_set,
 //        nodes_get:      pgsql_nodes_get,
         nodes_get_list:      pgsql_nodes_get_list,
         nodes_delete:	pgsql_nodes_delete,
         node_changed:   pgsql_node_changed,
+
         ways_set:       pgsql_ways_set,
         ways_get:       pgsql_ways_get,
         ways_done:      pgsql_ways_done,
         ways_delete:    pgsql_ways_delete,
         way_changed:    pgsql_way_changed,
-//        iterate_nodes:  pgsql_iterate_nodes,
-        iterate_ways:   pgsql_iterate_ways,
-        
+
         relations_set:  pgsql_rels_set,
-        relations_get:  pgsql_rels_get,
+//        relations_get:  pgsql_rels_get,
         relations_done:  pgsql_rels_done,
         relations_delete:  pgsql_rels_delete,
         relation_changed:  pgsql_rel_changed,
-        
+
+//        iterate_nodes:  pgsql_iterate_nodes,
+        iterate_ways:   pgsql_iterate_ways,
         iterate_relations: pgsql_iterate_relations
 };
