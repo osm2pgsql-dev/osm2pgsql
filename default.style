@@ -28,6 +28,9 @@ node,way   note         text         delete   # These tags can be long but are u
 node,way   source       text         delete   # This indicates that we shouldn't store them
 
 node,way   access       text         linear
+node,way   addr:flats   text         polygon
+node,way   addr:housenumber    text  linear
+node,way   addr:interpolation  text  linear 
 node,way   admin_level  text         linear
 node,way   aerialway    text         linear
 node,way   aeroway      text         polygon
