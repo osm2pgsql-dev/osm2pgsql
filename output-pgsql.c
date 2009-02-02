@@ -498,7 +498,7 @@ void add_parking_node(int id, struct keyval *tags, double node_lat, double node_
 	
 	if (!amenity || strcmp(amenity, "parking"))
 		return;
-
+        
 	// Do not add a 'P' symbol if access is defined and something other than public.
 	if (access && strcmp(access, "public"))
 		return;
@@ -668,9 +668,11 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     initList(&tags);
     initList(&poly_tags);
 
+    /* Clone tags from relation, dropping 'type' */
     p = rel_tags->next;
     while (p != rel_tags) {
-        addItem(&tags, p->key, p->value, 1);
+        if (strcmp(p->key, "type"))
+            addItem(&tags, p->key, p->value, 1);
         p = p->next;
     }
 
@@ -780,22 +782,30 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     else if( strcmp( type, "multipolygon" ) == 0 )
     {
         make_polygon = 1;
-        /* For multipolygons we add the tags on any non-inner rings */
-        for (i=0; xcount[i]; i++) {
-            if (xrole[i] && !strcmp(xrole[i], "inner"))
-                continue;
 
-            p = xtags[i].next;
-            while (p != &(xtags[i])) {
-                addItem(&tags, p->key, p->value, 1);
-                // Collect a list of polygon-like tags, these are later used to
-                // identify if an inner rings looks like it should be rendered seperately
-                if (tag_indicates_polygon(OSMTYPE_WAY, p->key)) {
-                    addItem(&poly_tags, p->key, p->value, 1);
-                    //fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
+        /* Copy the tags from the outer way(s) if the relation is untagged */
+        if (!listHasData(&tags)) {
+            for (i=0; xcount[i]; i++) {
+                if (xrole[i] && !strcmp(xrole[i], "inner"))
+                    continue;
+
+                p = xtags[i].next;
+                while (p != &(xtags[i])) {
+                    addItem(&tags, p->key, p->value, 1);
+                    p = p->next;
                 }
-                p = p->next;
             }
+        }
+
+        // Collect a list of polygon-like tags, these are used later to
+        // identify if an inner rings looks like it should be rendered seperately
+        p = tags.next;
+        while (p != &tags) {
+            if (tag_indicates_polygon(OSMTYPE_WAY, p->key)) {
+                addItem(&poly_tags, p->key, p->value, 1);
+                //fprintf(stderr, "found a polygon tag: %s=%s\n", p->key, p->value);
+            }
+            p = p->next;
         }
     }
     else
@@ -852,7 +862,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     // but only if the polygon-tags look the same as the outer ring
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
-            int match = 1;
+            int match = 0;
             struct keyval *p = poly_tags.next;
             while (p != &poly_tags) {
                 const char *v = getItem(&xtags[i], p->key);
@@ -861,6 +871,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
                     match = 0;
                     break;
                 }
+                match = 1;
                 p = p->next;
             }
             if (match) {
