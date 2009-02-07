@@ -94,8 +94,8 @@ static inline int block2id(int block, int offset)
     return ((block - NUM_BLOCKS/2) << BLOCK_SHIFT) + offset;
 }
 
-#define __unused  __attribute__ ((unused))
-static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags __unused)
+#define UNUSED  __attribute__ ((unused))
+static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags UNUSED)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
