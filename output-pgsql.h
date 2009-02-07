@@ -8,6 +8,6 @@
 
 #include "output.h"
 
-struct output_t out_pgsql;
+extern struct output_t out_pgsql;
 
 #endif

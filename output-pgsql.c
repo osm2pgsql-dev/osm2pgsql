@@ -1150,7 +1150,7 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
 
   return pgsql_process_relation(id, members, member_count, tags, 0);
 }
-#define __unused  __attribute__ ((unused))
+#define UNUSED  __attribute__ ((unused))
 
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
