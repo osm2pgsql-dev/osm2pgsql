@@ -41,6 +41,7 @@ node,way   bicycle      text         nocache
 node,way   bridge       text         linear
 node,way   boundary     text         linear
 node,way   building     text         polygon
+node	     capital      text         linear
 node,way   cutting      text         linear
 node,way   disused      text         linear
 node       ele          text         linear
@@ -54,6 +55,7 @@ node,way   landuse      text         polygon
 node,way   layer        text         linear
 node,way   learning     text         linear
 node,way   leisure      text         polygon
+node,way   lock         text         linear
 node,way   man_made     text         polygon
 node,way   military     text         polygon
 node,way   motorcar     text         linear
