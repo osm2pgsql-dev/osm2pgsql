@@ -24,17 +24,11 @@
 #include <cstring>
 #include <cstdlib>
 
-/*
-  # the only reason we include this C header is to obtain the GEOS_VERSION_MAJOR
-  # definition to work out which headers we _really_ want. This version
-  # number is not present in any of the C++ headers (or at least it wasn't
-  # when I originally added those lines, probably 12+ months ago). This
-  # seemed the only easy way to support both geos versions.
-*/
-#include <geos_c.h>
+/* Need to know which geos version we have to work out which headers to include */
+#include <geos/version.h>
 
 #if (GEOS_VERSION_MAJOR==3)
-/* geos trunk (3.0.0rc) */
+/* geos trunk (3.0.0+) */
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
@@ -208,14 +202,14 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
         geometry = reader.read(wkt_string);
         switch (geometry->getGeometryTypeId()) {
             // Single geometries
-            case geos::GEOS_POLYGON:
+            case GEOS_POLYGON:
                 // Drop through
-            case geos::GEOS_LINEARRING:
+            case GEOS_LINEARRING:
                 *polygon = 1;
                 // Drop through
-            case geos::GEOS_POINT:
+            case GEOS_POINT:
                 // Drop through
-            case geos::GEOS_LINESTRING:
+            case GEOS_LINESTRING:
                 *xnodes = (struct osmNode **) malloc(2 * sizeof(struct osmNode *));
                 *xcount = (int *) malloc(sizeof(int));
                 coords = geometry->getCoordinates();
@@ -224,12 +218,12 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
                 delete coords;
                 break;
             // Geometry collections
-            case geos::GEOS_MULTIPOLYGON:
+            case GEOS_MULTIPOLYGON:
                 *polygon = 1;
                 // Drop through
-            case geos::GEOS_MULTIPOINT:
+            case GEOS_MULTIPOINT:
                 // Drop through
-            case geos::GEOS_MULTILINESTRING:
+            case GEOS_MULTILINESTRING:
                 gc = (GeometryCollection *) geometry;
                 num_geometries = gc->getNumGeometries();
                 *xnodes = (struct osmNode **) malloc((num_geometries + 1) * sizeof(struct osmNode *));
