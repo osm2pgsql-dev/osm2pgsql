@@ -29,6 +29,8 @@ extern "C" {
 
 #include "osmtypes.h"
 
+int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
+
 char *get_wkt_simple(struct osmNode *, int count, int polygon, double *area, double *int_x, double *int_y);
 
 char* get_wkt(size_t index);
