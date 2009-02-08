@@ -2,6 +2,10 @@
  * Dirty tile list generation
  *
  * Steve Hill <steve@nexusuk.org>
+ *
+ * Please refer to the OpenPisteMap expire_tiles.py script for a demonstration
+ * of how to make use of the output:
+ * https://subversion.nexusuk.org/trac/browser/openpistemap/trunk/scripts/expire_tiles.py
  */
 
 #include <libpq-fe.h>
