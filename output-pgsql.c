@@ -26,6 +26,7 @@
 #include "build_geometry.h"
 #include "middle.h"
 #include "pgsql.h"
+#include "expire-tiles.h"
 
 #define SRID (project_getprojinfo()->srs)
 
@@ -431,6 +432,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     char sql[2048], *v;
     int i;
 
+    expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
     sprintf(sql, "%d\t", id);
     copy_to_table(t_point, sql);
 
@@ -628,6 +630,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     if (wkt && strlen(wkt)) {
 	/* FIXME: there should be a better way to detect polygons */
 	if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+            expire_tiles_from_nodes_poly(nodes, count, id);
 	    if (area > 0.0) {
 		char tmp[32];
 		snprintf(tmp, sizeof(tmp), "%f", area);
@@ -636,6 +639,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 	    write_wkts(id, tags, wkt, t_poly);
 	    add_parking_node(id, tags, interior_lat, interior_lon);
 	} else {
+            expire_tiles_from_nodes_line(nodes, count);
 	    write_wkts(id, tags, wkt, t_line);
 	    if (roads)
 		write_wkts(id, tags, wkt, t_roads);
@@ -835,6 +839,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         char *wkt = get_wkt(i);
 
         if (strlen(wkt)) {
+            expire_tiles_from_wkt(wkt, -id);
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
                 double area = get_area(i);
@@ -951,10 +956,13 @@ static int pgsql_out_start(const struct output_options *options)
             if( Options->slim )
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", tables[i].name, tables[i].name);
         }
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (int4) AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
 
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
         tables[i].copyMode = 1;
     }
+
+    expire_tiles_init(options);
 
     options->mid->start(options);
 
@@ -1049,6 +1057,8 @@ static void pgsql_out_stop()
 
     pgsql_out_cleanup();
     free_style();
+
+    expire_tiles_stop();
 }
 
 static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags)
@@ -1163,6 +1173,7 @@ static int pgsql_delete_node(int osm_id)
         exit_nicely();
     }
     pgsql_pause_copy(&tables[t_point]);
+    expire_tiles_from_db(tables[t_point].sql_conn, osm_id);
     pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_point].name, osm_id );
     Options->mid->nodes_delete(osm_id);
     return 0;
@@ -1177,6 +1188,9 @@ static int pgsql_delete_way_from_output(int osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
+    expire_tiles_from_db(tables[t_roads].sql_conn, osm_id);
+    expire_tiles_from_db(tables[t_line].sql_conn, osm_id);
+    expire_tiles_from_db(tables[t_poly].sql_conn, osm_id);
     pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, osm_id );
     pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, osm_id );
     pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, osm_id );
@@ -1201,6 +1215,9 @@ static int pgsql_delete_relation_from_output(int osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
+    expire_tiles_from_db(tables[t_roads].sql_conn, -osm_id);
+    expire_tiles_from_db(tables[t_line].sql_conn, -osm_id);
+    expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id);
     pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, -osm_id );
     pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, -osm_id );
     pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, -osm_id );

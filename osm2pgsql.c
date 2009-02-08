@@ -481,6 +481,8 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -W|--password\tForce password prompt.\n");
     fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
     fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
+    fprintf(stderr, "   -e|--expire-tiles zoom\tCreate a tile expiry list for a zoom level.\n");
+    fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -571,6 +573,8 @@ int main(int argc, char *argv[])
     int sanitize=0;
     int pass_prompt=0;
     int projection = PROJ_SPHERE_MERC;
+    int expire_tiles_zoom = -1;
+    const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
     const char *host=NULL;
@@ -607,10 +611,12 @@ int main(int argc, char *argv[])
             {"port",     1, 0, 'P'},
             {"help",     0, 0, 'h'},
             {"style",    1, 0, 'S'},
+            {"expire-tiles", 1, 0, 'e'},
+            {"expire-output", 1, 0, 'o'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -633,6 +639,8 @@ int main(int argc, char *argv[])
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
             case 'S': style=optarg; break;
+            case 'e': expire_tiles_zoom=atoi(optarg); break;
+            case 'o': expire_tiles_filename=optarg; break;
 
             case 'h':
             case '?':
@@ -649,6 +657,11 @@ int main(int argc, char *argv[])
 
     if (append && create) {
         fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((expire_tiles_zoom >= 0) && (projection != PROJ_SPHERE_MERC)) {
+        fprintf(stderr, "Error: --expire-tiles can only be used with spherical mercator projection!\n");
         exit(EXIT_FAILURE);
     }
     
@@ -690,6 +703,8 @@ int main(int argc, char *argv[])
     options.mid = slim ? &mid_pgsql : &mid_ram;
     options.cache = cache;
     options.style = style;
+    options.expire_tiles_zoom = expire_tiles_zoom;
+    options.expire_tiles_filename = expire_tiles_filename;
     out = &out_pgsql;
 
     out->start(&options);

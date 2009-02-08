@@ -10,6 +10,7 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
+#include "middle.h"
 #include "keyvals.h"
 
 struct output_options {
@@ -22,6 +23,8 @@ struct output_options {
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
   const char *style;     /* style file to use */
+  int expire_tiles_zoom;	/* Zoom level for tile expiry list */
+  const char *expire_tiles_filename;	/* File name to output expired tiles list to */
 };
 
 struct output_t {

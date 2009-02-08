@@ -7,6 +7,8 @@
 #ifndef MIDDLE_H
 #define MIDDLE_H
 
+#include "osmtypes.h"
+
 struct keyval;
 struct member;
 struct output_options;

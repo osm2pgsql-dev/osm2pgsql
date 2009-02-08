@@ -176,6 +176,85 @@ void clear_wkts()
    areas.clear();
 }
 
+static int coords2nodes(CoordinateSequence * coords, struct osmNode ** nodes) {
+    size_t			num_coords;
+    size_t			i;
+    Coordinate		coord;
+
+    num_coords = coords->getSize();
+    *nodes = (struct osmNode *) malloc(num_coords * sizeof(struct osmNode));
+
+    for (i = 0; i < num_coords; i++) {
+        coord = coords->getAt(i);
+        (*nodes)[i].lon = coord.x;
+        (*nodes)[i].lat = coord.y;
+    }
+    return num_coords;
+}
+
+int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
+    GeometryFactory		gf;
+    WKTReader		reader(&gf);
+    std::string		wkt_string(wkt);
+    Geometry *		geometry;
+    const Geometry *	subgeometry;
+    GeometryCollection *	gc;
+    CoordinateSequence *	coords;
+    size_t			num_geometries;
+    size_t			i;
+	
+    *polygon = 0;
+    try {
+        geometry = reader.read(wkt_string);
+        switch (geometry->getGeometryTypeId()) {
+            // Single geometries
+            case geos::GEOS_POLYGON:
+                // Drop through
+            case geos::GEOS_LINEARRING:
+                *polygon = 1;
+                // Drop through
+            case geos::GEOS_POINT:
+                // Drop through
+            case geos::GEOS_LINESTRING:
+                *xnodes = (struct osmNode **) malloc(2 * sizeof(struct osmNode *));
+                *xcount = (int *) malloc(sizeof(int));
+                coords = geometry->getCoordinates();
+                (*xcount)[0] = coords2nodes(coords, &((*xnodes)[0]));
+                (*xnodes)[1] = NULL;
+                delete coords;
+                break;
+            // Geometry collections
+            case geos::GEOS_MULTIPOLYGON:
+                *polygon = 1;
+                // Drop through
+            case geos::GEOS_MULTIPOINT:
+                // Drop through
+            case geos::GEOS_MULTILINESTRING:
+                gc = (GeometryCollection *) geometry;
+                num_geometries = gc->getNumGeometries();
+                *xnodes = (struct osmNode **) malloc((num_geometries + 1) * sizeof(struct osmNode *));
+                *xcount = (int *) malloc(num_geometries * sizeof(int));
+                for (i = 0; i < num_geometries; i++) {
+                    subgeometry = gc->getGeometryN(i);
+                    coords = subgeometry->getCoordinates();
+                    (*xcount)[0] = coords2nodes(coords, &((*xnodes)[i]));
+                    delete coords;
+                }
+                (*xnodes)[i] = NULL;
+                break;
+            default:
+                std::cerr << std::endl << "unexpected object type while processing PostGIS data" << std::endl;
+                delete geometry;
+                return -1;
+        }
+        delete geometry;
+    } catch (...) {
+        std::cerr << std::endl << "excepton caught parsing PostGIS data" << std::endl;
+        return -1;
+    }
+    return 0;
+}
+
 size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
