@@ -21,82 +21,156 @@
 #define TILE_EXPIRY_LEEWAY		0.5		// How many tiles worth of space to leave either side of a changed feature
 #define EXPIRE_TILES_MAX_BBOX		30000		// Maximum width or height of a bounding box (metres)
 
-struct tile_subtree {
-	struct tile_subtree *	less;
-	struct tile_subtree *	greater;
-	int			y;
-};
-
-struct tile_tree {
-	struct tile_tree *	less;
-	struct tile_tree *	greater;
-	int			x;
-	struct tile_subtree *	subtree;
+struct tile {
+	int		complete[2][2];	// Flags
+	struct tile *	subtiles[2][2];
 };
 
 static int				map_width;
 static double				tile_width;
 static const struct output_options *	Options;
-static struct tile_tree *		dirty = NULL;
+static struct tile *			dirty = NULL;
 static int				outcount;
 
 /*
- * We store the dirty tiles in an in-memory binary tree during runtime
+ * We store the dirty tiles in an in-memory tree during runtime
  * and dump them out to a file at the end.  This allows us to easilly drop
  * duplicate tiles from the output.
  *
- * This consists of a binary tree of the X coordinate of each dirty tile, with
- * each node containing a binary tree of the Y coordinate.
+ * This data structure consists of a node, representing a tile at zoom level 0,
+ * which contains 4 pointers to nodes representing each of the child tiles at
+ * zoom level 1, and so on down the the zoom level specified in
+ * Options->expire_tiles_zoom.
  *
  * The memory allowed to this structure is not capped, but daily deltas
  * generally produce a few hundred thousand expired tiles at zoom level 17,
  * which are easilly accommodated.
  */
-static void add_to_subtree(struct tile_subtree ** tree, int y) {
-	while (*tree) {
-		if (y < (*tree)->y) tree = &((*tree)->less);
-		else if (y > (*tree)->y) tree = &((*tree)->greater);
-		else return;	// Already in the tree
-	}
-	*tree = calloc(1, sizeof(**tree));
-	(*tree)->y = y;
+
+static int calc_complete(struct tile * tile) {
+	int	c;
+
+	c = tile->complete[0][0];
+	c += tile->complete[0][1];
+	c += tile->complete[1][0];
+	c += tile->complete[1][1];
+	return c;
 }
 
-static void add_to_tree(struct tile_tree ** tree, int x, int y) {
-	while (*tree) {
-		if (x < (*tree)->x) tree = &((*tree)->less);
-		else if (x > (*tree)->x) tree = &((*tree)->greater);
-		else {
-			add_to_subtree(&((*tree)->subtree), y);
-			return;
+static void destroy_tree(struct tile * tree) {
+	if (! tree) return;
+	if (tree->subtiles[0][0]) destroy_tree(tree->subtiles[0][0]);
+	if (tree->subtiles[0][1]) destroy_tree(tree->subtiles[0][1]);
+	if (tree->subtiles[1][0]) destroy_tree(tree->subtiles[1][0]);
+	if (tree->subtiles[1][1]) destroy_tree(tree->subtiles[1][1]);
+	free(tree);
+}
+
+/*
+ * Mark a tile as dirty.
+ * Returns the number of subtiles which have all their children marked as dirty.
+ */
+static int _mark_tile(struct tile ** tree, int x, int y, int zoom, int this_zoom) {
+	int	zoom_diff = zoom - this_zoom;
+	int	rel_x;
+	int	rel_y;
+	int	complete;
+
+	if (! *tree) *tree = calloc(1, sizeof(**tree));
+	zoom_diff = (zoom - this_zoom) - 1;
+	rel_x = (x >> zoom_diff) & 1;
+	rel_y = (y >> zoom_diff) & 1;
+	if (! (*tree)->complete[rel_x][rel_y]) {
+		if (zoom_diff <= 0) {
+			(*tree)->complete[rel_x][rel_y] = 1;
+		} else {
+			complete = _mark_tile(&((*tree)->subtiles[rel_x][rel_y]), x, y, zoom, this_zoom + 1);
+			if (complete >= 4) {
+				(*tree)->complete[rel_x][rel_y] = 1;
+				// We can destroy the subtree to save memory now all the children are dirty
+				destroy_tree((*tree)->subtiles[rel_x][rel_y]);
+				(*tree)->subtiles[rel_x][rel_y] = NULL;
+			}
 		}
 	}
-	*tree = calloc(1, sizeof(**tree));
-	(*tree)->x = x;
-	add_to_subtree(&((*tree)->subtree), y);
+	return calc_complete(*tree);
 }
 
-static void output_and_destroy_subtree(FILE * outfile, struct tile_subtree ** tree, int x) {
-	if (! *tree) return;
-	output_and_destroy_subtree(outfile, &((*tree)->less), x);
-	if (outfile) {
-		outcount++;
-		if ((outcount <= 1) || (! (outcount % 1000))) {
-			fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
-			fflush(stderr);
+/*
+ * Mark a tile as dirty.
+ * Returns the number of subtiles which have all their children marked as dirty.
+ */
+static int mark_tile(struct tile ** tree_head, int x, int y, int zoom) {
+	return _mark_tile(tree_head, x, y, zoom, 0);
+}
+
+static void output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom) {
+	int	y_min;
+	int	x_iter;
+	int	y_iter;
+	int	x_max;
+	int	y_max;
+	int	out_zoom;
+	int	zoom_diff;
+
+	if (zoom > min_zoom) out_zoom = zoom;
+	else out_zoom = min_zoom;
+	zoom_diff = out_zoom - zoom;
+	y_min = y << zoom_diff;
+	x_max = (x + 1) << zoom_diff;
+	y_max = (y + 1) << zoom_diff;
+	for (x_iter = x << zoom_diff; x_iter < x_max; x_iter++) {
+		for (y_iter = y_min; y_iter < y_max; y_iter++) {
+			outcount++;
+			if ((outcount <= 1) || (! (outcount % 1000))) {
+				fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
+				fflush(stderr);
+			}
+			fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
 		}
-		fprintf(outfile, "%i/%i/%i\n", Options->expire_tiles_zoom, x, (*tree)->y);
 	}
-	output_and_destroy_subtree(outfile, &((*tree)->greater), x);
-	free(*tree);
 }
 
-static void output_and_destroy_tree(FILE * outfile, struct tile_tree ** tree) {
-	if (! *tree) return;
-	output_and_destroy_tree(outfile, &((*tree)->less));
-	output_and_destroy_subtree(outfile, &((*tree)->subtree), (*tree)->x);
-	output_and_destroy_tree(outfile, &((*tree)->greater));
-	free(*tree);
+static void _output_and_destroy_tree(FILE * outfile, struct tile * tree, int x, int y, int this_zoom, int min_zoom) {
+	int	sub_x = x << 1;
+	int	sub_y = y << 1;
+	FILE *	ofile;
+
+	if (! tree) return;
+
+	ofile = outfile;
+	if ((tree->complete[0][0]) && outfile) {
+		output_dirty_tile(outfile, sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
+		ofile = NULL;
+	}
+	if (tree->subtiles[0][0]) _output_and_destroy_tree(ofile, tree->subtiles[0][0], sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
+
+	ofile = outfile;
+	if ((tree->complete[0][1]) && outfile) {
+		output_dirty_tile(outfile, sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
+		ofile = NULL;
+	}
+	if (tree->subtiles[0][1]) _output_and_destroy_tree(ofile, tree->subtiles[0][1], sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
+
+	ofile = outfile;
+	if ((tree->complete[1][0]) && outfile) {
+		output_dirty_tile(outfile, sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
+		ofile = NULL;
+	}
+	if (tree->subtiles[1][0]) _output_and_destroy_tree(ofile, tree->subtiles[1][0], sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
+
+	ofile = outfile;
+	if ((tree->complete[1][1]) && outfile) {
+		output_dirty_tile(outfile, sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
+		ofile = NULL;
+	}
+	if (tree->subtiles[1][1]) _output_and_destroy_tree(ofile, tree->subtiles[1][1], sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
+
+	free(tree);
+}
+
+static void output_and_destroy_tree(FILE * outfile, struct tile * tree) {
+	_output_and_destroy_tree(outfile, tree, 0, 0, 0, Options->expire_tiles_zoom_min);
 }
 
 void expire_tiles_stop(void) {
@@ -105,7 +179,8 @@ void expire_tiles_stop(void) {
 	if (Options->expire_tiles_zoom < 0) return;
 	outcount = 0;
 	outfile = fopen(Options->expire_tiles_filename, "a");
-	output_and_destroy_tree(outfile, &dirty);
+	output_and_destroy_tree(outfile, dirty);
+	dirty = NULL;
 	if (outfile) fclose(outfile);
 	else fprintf(stderr, "Failed to open expired tiles file.  Tile expiry list will now be written!\n");
 }
@@ -113,7 +188,7 @@ void expire_tiles_stop(void) {
 void expire_tiles_init(const struct output_options *options) {
 	Options = options;
 	if (Options->expire_tiles_zoom < 0) return;
-	map_width = pow(2,Options->expire_tiles_zoom);
+	map_width = 1 << Options->expire_tiles_zoom;
 	tile_width = EARTH_CIRCUMFERENCE / map_width;
 }
 
@@ -126,7 +201,7 @@ static double coords_to_tile_y(double lat) {
 }
 
 static void expire_tile(int x, int y) {
-	add_to_tree(&dirty, x, y);
+	mark_tile(&dirty, x, y, Options->expire_tiles_zoom);
 }
 
 static int normalise_tile_x_coord(int x) {
