@@ -30,6 +30,7 @@
 #include <string.h>
 #include <assert.h>
 #include <getopt.h>
+#include <libgen.h>
 
 #include <libpq-fe.h>
 
@@ -444,7 +445,15 @@ void exit_nicely(void)
     exit(1);
 }
  
-static void usage(const char *arg0)
+static void short_usage(char *arg0)
+{
+    const char *name = basename(arg0);
+
+    fprintf(stderr, "Usage error. For further information see:\n");
+    fprintf(stderr, "\t%s -h|--help\n", name);
+}
+
+static void long_usage(char *arg0)
 {
     int i;
     const char *name = basename(arg0);
@@ -589,7 +598,7 @@ int main(int argc, char *argv[])
     struct output_options options;
     PGconn *sql_conn;
 
-    fprintf(stderr, "osm2pgsql SVN version %s $Rev$ \n\n", VERSION);
+    fprintf(stderr, "osm2pgsql SVN version %s\n\n", VERSION);
 
     while (1) {
         int c, option_index = 0;
@@ -650,15 +659,18 @@ int main(int argc, char *argv[])
             case 'o': expire_tiles_filename=optarg; break;
 
             case 'h':
+                long_usage(argv[0]);
+                exit(EXIT_FAILURE);
+
             case '?':
             default:
-                usage(argv[0]);
+                short_usage(argv[0]);
                 exit(EXIT_FAILURE);
         }
     }
 
     if (argc == optind) {  // No non-switch arguments
-        usage(argv[0]);
+        short_usage(argv[0]);
         exit(EXIT_FAILURE);
     }
 
