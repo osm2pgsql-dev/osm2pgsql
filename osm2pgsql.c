@@ -481,7 +481,7 @@ static void usage(const char *arg0)
     fprintf(stderr, "   -W|--password\tForce password prompt.\n");
     fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
     fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
-    fprintf(stderr, "   -e|--expire-tiles zoom\tCreate a tile expiry list for a zoom level.\n");
+    fprintf(stderr, "   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
     fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
@@ -574,6 +574,7 @@ int main(int argc, char *argv[])
     int pass_prompt=0;
     int projection = PROJ_SPHERE_MERC;
     int expire_tiles_zoom = -1;
+    int expire_tiles_zoom_min = -1;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -583,6 +584,7 @@ int main(int argc, char *argv[])
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = "./default.style";
+    const char *temparg;
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -639,7 +641,12 @@ int main(int argc, char *argv[])
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
             case 'S': style=optarg; break;
-            case 'e': expire_tiles_zoom=atoi(optarg); break;
+            case 'e':
+                expire_tiles_zoom_min = atoi(optarg);
+		temparg = strchr(optarg, '-');
+		if (temparg) expire_tiles_zoom = atoi(temparg + 1);
+		if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
+                break;
             case 'o': expire_tiles_filename=optarg; break;
 
             case 'h':
@@ -704,6 +711,7 @@ int main(int argc, char *argv[])
     options.cache = cache;
     options.style = style;
     options.expire_tiles_zoom = expire_tiles_zoom;
+    options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;
     out = &out_pgsql;
 
