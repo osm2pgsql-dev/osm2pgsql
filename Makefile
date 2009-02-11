@@ -56,7 +56,7 @@ osm2pgsql: $(OBJS)
 $(PACKAGE).spec: $(PACKAGE).spec.in
 	sed -e "s/@PACKAGE@/$(PACKAGE)/g; s/@VERSION@/$(VERSION)/g; s/@SVN@/$(SVN)/g;" $^ > $@
 
-$(PACKAGE)-$(VERSION)-$(SVN).tar.bz2: $(PACKAGE).spec
+$(PACKAGE)-$(VERSION).tar.bz2: $(PACKAGE).spec
 	rm -fR tmp
 	mkdir -p tmp/osm2pgsql
 	cp -p Makefile *.[ch] *.cpp README.txt osm2pgsql-svn.sh tmp/osm2pgsql
@@ -64,5 +64,5 @@ $(PACKAGE)-$(VERSION)-$(SVN).tar.bz2: $(PACKAGE).spec
 	tar cjf $@ -C tmp .
 	rm -fR tmp
 
-rpm: $(PACKAGE)-$(VERSION)-$(SVN).tar.bz2
+rpm: $(PACKAGE)-$(VERSION).tar.bz2
 	rpmbuild -ta $^
