@@ -897,13 +897,18 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
 
 static int pgsql_out_start(const struct output_options *options)
 {
-    char sql[1024], tmp[128];
+    char *sql, tmp[128];
     PGresult   *res;
     int i,j;
+    unsigned int sql_len;
 
     Options = options;
 
     read_style_file( options->style );
+
+    sql_len = 1024;
+    sql = malloc(sql_len);
+    assert(sql);
 
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
@@ -949,6 +954,11 @@ static int pgsql_out_start(const struct output_options *options)
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
+                if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
+                    sql_len *= 2;
+                    sql = realloc(sql, sql_len);
+                    assert(sql);
+                }
                 strcat(sql, tmp);
             }
             strcat(sql, " );\n");
@@ -965,6 +975,7 @@ static int pgsql_out_start(const struct output_options *options)
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
         tables[i].copyMode = 1;
     }
+    free(sql);
 
     expire_tiles_init(options);
 
