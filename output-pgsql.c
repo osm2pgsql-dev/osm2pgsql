@@ -970,6 +970,30 @@ static int pgsql_out_start(const struct output_options *options)
             /* slim mode needs this to be able to apply diffs */
             if( Options->slim )
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", tables[i].name, tables[i].name);
+        } else {
+            /* Add any new columns referenced in the default.style */
+            PGresult *res;
+            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", tables[i].name);
+            res = PQexec(sql_conn, sql);
+            if (PQresultStatus(res) != PGRES_TUPLES_OK) {
+                fprintf(stderr, "Error, failed to query table %s\n%s\n", tables[i].name, sql);
+                exit_nicely();
+            }
+            for (j=0; j < numTags; j++) {
+                if( exportTags[j].flags & FLAG_DELETE )
+                    continue;
+                if (PQfnumber(res, exportTags[j].name) < 0) {
+#if 0
+                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, tables[i].name);
+                    exit_nicely();
+#else
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, tables[i].name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", tables[i].name, exportTags[j].name, exportTags[j].type);
+#endif
+                }
+                /* Note: we do not verify the type or delete unused columns */
+            }
+            PQclear(res);
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (int4) AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         
