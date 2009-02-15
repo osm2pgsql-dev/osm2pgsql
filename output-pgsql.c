@@ -47,6 +47,7 @@ static struct s_table {
     char buffer[1024];
     unsigned int buflen;
     int copyMode;
+    char *columns;
 } tables [] = {
     { name: "%s_point",   type: "POINT"     },
     { name: "%s_line",    type: "LINESTRING"},
@@ -242,7 +243,7 @@ void copy_to_table(enum table_id table, const char *sql)
     /* Return to copy mode if we dropped out */
     if( !tables[table].copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[table].name);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[table].name, tables[table].columns);
         tables[table].copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
@@ -971,8 +972,24 @@ static int pgsql_out_start(const struct output_options *options)
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", tables[i].name, tables[i].name);
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (int4) AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        
+        /* Generate column list for COPY */
+        strcpy(sql, "osm_id");
+        for (j=0; j < numTags; j++) {
+            if( exportTags[j].flags & FLAG_DELETE )
+                continue;
+            sprintf(tmp, ",\"%s\"", exportTags[j].name);
 
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s FROM STDIN", tables[i].name);
+            if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
+                sql_len *= 2;
+                sql = realloc(sql, sql_len);
+                assert(sql);
+            }
+            strcat(sql, tmp);
+        }
+        tables[i].columns = strdup(sql);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[i].name, tables[i].columns);
+
         tables[i].copyMode = 1;
     }
     free(sql);
@@ -1035,6 +1052,7 @@ static void *pgsql_out_stop_one(void *arg)
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
     }
     free(table->name);
+    free(table->columns);
     return NULL;
 }
 static void pgsql_out_stop()
