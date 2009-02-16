@@ -53,15 +53,13 @@ Building
 On most Unix-like systems the program can be compiled by
 running 'make'.
 
-Note: the database connection parameters are hard coded to
-connect to Postgres on localhost with the current user to
-the database 'gis'.
-
 Operation
 =========
 
 First you must have setup Postgres with a database named 'gis'
-as per http://wiki.openstreetmap.org/index.php/Mapnik
+as per http://wiki.openstreetmap.org/index.php/Mapnik . (You
+can use a different database name, but 'gis' is the default
+in osm2pgsql.)
 
 1) Connects to database and creates the following 4 tables:
    - planet_osm_point
