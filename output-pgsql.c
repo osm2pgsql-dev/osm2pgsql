@@ -815,7 +815,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     }
     else if( strcmp( type, "boundary" ) == 0 )
     {
-        make_polygon = 1;
+        make_polygon = 0;
     }
     else
     {
