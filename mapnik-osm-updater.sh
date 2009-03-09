@@ -683,7 +683,6 @@ if [ -n "$db_add_gpsdrive_poitypes" ] ; then
     fi
     echo ""
     echo "--------- Create GpsDrive POI-Database"
-    sudo mv $osmdb_file $osmdb_file.bak
     bunzip2 -c $planet_file | sudo $gpsdrive_poitypes_cmd -w -f $geoinfodb_file -o $osmdb_file STDIN
     rc=$?
     if [ "$rc" -gt "0" ]; then
