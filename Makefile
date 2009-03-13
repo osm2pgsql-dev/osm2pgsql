@@ -31,6 +31,8 @@ OBJS:=$(OBJS:.cpp=.o)
 DEPS:=$(SRCS:.c=.d)
 DEPS:=$(DEPS:.cpp=.d)
 
+DESTDIR = /
+
 APPS:=osm2pgsql
 
 .PHONY: all clean $(PACKAGE).spec
@@ -41,6 +43,9 @@ clean:
 	rm -f $(APPS) $(OBJS) $(DEPS)
 	rm -f $(PACKAGE)-*.tar.bz2
 	rm -f osm2pgsql.spec
+
+install: $(APPS)
+	install -o root -g root -m 0755 $(APPS) $(DESTDIR)/usr/bin
 
 %.d: %.c
 	@set -e; rm -f $@; \

@@ -1,0 +1,2 @@
+default.style /usr/share/osm2pgsql
+osm2pgsql /usr/bin/
