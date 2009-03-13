@@ -1,0 +1,28 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 01_style_location.dpatch by  <fred@lochewe>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: Change default location of style file
+
+@DPATCH@
+diff -urNad old/osm2pgsql.c new/osm2pgsql.c
+--- old/osm2pgsql.c	(revision 14063)
++++ new/osm2pgsql.c	(working copy)
+@@ -483,7 +483,7 @@
+     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
+     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
+     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+-    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to ./default.style\n");
++    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to /usr/share/osm2pgsql/default.style\n");
+     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
+     fprintf(stderr, "             \t\tDefault is 800\n");
+     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
+@@ -592,7 +592,7 @@
+     const char *port = "5432";
+     const char *conninfo = NULL;
+     const char *prefix = "planet_osm";
+-    const char *style = "./default.style";
++    const char *style = "/usr/share/osm2pgsql/default.style";
+     const char *temparg;
+     int cache = 800;
+     struct output_options options;

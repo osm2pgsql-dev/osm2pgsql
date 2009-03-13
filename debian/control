@@ -1,0 +1,13 @@
+Source: osm2pgsql
+Section: utils
+Priority: optional
+Maintainer: Frederik Ramm <frederik@remote.org>
+Build-Depends: debhelper (>= 7), libgeos-dev, libxml2-dev, libpq-dev, dpatch, proj, libbz2-dev
+Standards-Version: 3.8.0
+
+Package: osm2pgsql
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgeos-3.0.0, libxml2, libpq5
+Conflicts:  openstreetmap-utils
+Description: Openstreetmap data to PostgreSQL converter
+ osm2pgsql imports OpenStreetMap data into a PostGIS database.

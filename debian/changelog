@@ -1,0 +1,5 @@
+osm2pgsql (0.65) unstable; urgency=low
+
+  * Initial standalone debian package
+
+ -- Frederik Ramm <frederik@remote.org>  Fri, 13 Mar 2009 00:14:15 +0100
