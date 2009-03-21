@@ -11,17 +11,22 @@ export geoinfodb_file="/usr/share/gpsdrive/geoinfo.db"
 export osmdb_file="/usr/share/gpsdrive/osm.db"
 
 export osm2pgsql_cmd=`which osm2pgsql`
+test -x "$osm2pgsql_cmd" || echo "Missing osm2pgsql in PATH"
 test -x "$osm2pgsql_cmd" || osm2pgsql_cmd="$HOME/svn.openstreetmap.org/applications/utils/export/osm2pgsql/osm2pgsql"
+test -x "$osm2pgsql_cmd" || echo "Missing osm2pgsql"
 
-export gpsdrive_poitypes_cmd=`which gpsdrive-update-osm-poi-db`
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd=`which gpsdrive-update-osm-poi-db`
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/gpsdrive-update-osm-poi-db"
-test -x "$gpsdrive_poitypes_cmd" || gpsdrive_poitypes_cmd="`dirname $0`/../../gpsdrive-update-osm-poi-db"
+export cmd_osm2poidb=`which osm2poidb`
+test -x "$cmd_osm2poidb" || echo "Missing osm2poidb in PATH"
+test -x "$cmd_osm2poidb" || cmd_osm2poidb="`dirname $0`/../osm2poidb/build/osm2poidb"
+test -x "$cmd_osm2poidb" || cmd_osm2poidb="$HOME/svn.openstreetmap.org/applications/utils/export/osm2poidb/build/osm2poidb"
+test -x "$cmd_osm2poidb" || echo "Missing osm2poidb"
 
 osm_planet_mirror_cmd=`which osm-planet-mirror`
+test -x "$osm_planet_mirror_cmd" || echo "Missing planet-mirror.pl in PATH"
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname $0`/../../planet-mirror/planet-mirror.pl"
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="$HOME/svn.openstreetmap.org/applications/utils/planet-mirror/planet-mirror.pl"
 test -x "$osm_planet_mirror_cmd" || osm_planet_mirror_cmd="`dirname ../../planet-mirror/planet-mirror.pl`"
+test -x "$osm_planet_mirror_cmd" || echo "Missing planet-mirror.pl"
 
 test -n "$1" || help=1
 quiet=" -q "
@@ -338,7 +343,7 @@ if [ -n "$help" ] ; then
     "
     # extract options + description from case commands above
     grep -E  -e esac -e '--.*\).*#' -e '^[\t\s 	]+#' $0 | \
-	grep -v /bin/bash | sed '/esac/,$d;s/.*--/  --/;s/=\*)/=val/;s/)//;s/#//;' 
+	grep -v /bin/bash | sed '/esac/,$d;s/.*--/  --/;s/=\*)/=val/;s/)//;s/#//;s/\\//;' 
     exit;
 fi
 
@@ -390,6 +395,7 @@ if [ -n "$mirror_geofabrik" ] ; then
     geofabrik_basedir="http://download.geofabrik.de/osm"
     if [ "$mirror_geofabrik" = "?" ]; then
 
+	echo "Retreiving available planet extracts from GeoFabrik ..."
 	# Find all Subdirs in the first 3 levels
 	wget_out=`wget --no-convert-links -q  --level=0 -O - "http://download.geofabrik.de/osm" | grep DIR | grep -v -i Parent `
 	sub_dirs=`echo "$wget_out" | perl -ne 'm,href="(.*)/",;print "$1 "'`
@@ -416,9 +422,11 @@ if [ -n "$mirror_geofabrik" ] ; then
 	exit 1 
     fi
     planet_source_file="${geofabrik_basedir}/${mirror_geofabrik}.osm.bz2"
-    test -n "$verbose" && echo "----- Mirroring planet File $planet_source_file"
-    wget -v --mirror "$planet_source_file" \
-	--no-directories --directory-prefix=$planet_dir/
+    if [ -n "$mirror" ] ; then
+	test -n "$verbose" && echo "----- Mirroring planet File $planet_source_file"
+	wget -v --mirror "$planet_source_file" \
+	    --no-directories --directory-prefix=$planet_dir/
+    fi
 fi
 
 
@@ -677,15 +685,15 @@ fi
 # Create GpsDrive POI-Database
 ############################################
 if [ -n "$db_add_gpsdrive_poitypes" ] ; then
-    if ! [ -x "$gpsdrive_poitypes_cmd" ]; then
-	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$gpsdrive_poitypes_cmd'" 1>&2
+    if ! [ -x "$cmd_osm2poidb" ]; then
+	echo "!!!!!! ERROR: Cannot execute gpsdrive_poitypes: '$cmd_osm2poidb'" 1>&2
 	exit -1
     fi
     echo ""
-    echo "--------- Create GpsDrive POI-Database"
-    bunzip2 -c $planet_file | sudo $gpsdrive_poitypes_cmd -w -f $geoinfodb_file -o $osmdb_file STDIN
+    echo "--------- Create GpsDrive POI-Database $osmdb_file"
+    bunzip2 -c $planet_file | sudo $cmd_osm2poidb -w -f $geoinfodb_file -o $osmdb_file STDIN
     rc=$?
-    if [ "$rc" -gt "0" ]; then
+    if [ "$rc" -ne "0" ]; then
         echo "!!!!!!! ERROR: cannot create POI Database"
 	exit -1
     fi
