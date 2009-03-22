@@ -7,7 +7,7 @@ export planet_file="$planet_dir/planet.osm.bz2"
 export sql_dump="$planet_dir/planet.osm.sql.bz2"
 export log_dir=/var/log
 
-export geoinfodb_file="/usr/share/gpsdrive/geoinfo.db"
+export geoinfodb_file="/usr/share/icons/map-icons/geoinfo.db"
 export osmdb_file="/usr/share/gpsdrive/osm.db"
 
 export osm2pgsql_cmd=`which osm2pgsql`
