@@ -43,6 +43,7 @@
 #include "middle-pgsql.h"
 #include "middle-ram.h"
 #include "output-pgsql.h"
+#include "output-null.h"
 #include "sanitizer.h"
 #include "reprojection.h"
 #include "text-tree.h"
@@ -492,6 +493,9 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
     fprintf(stderr, "   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
     fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
+    fprintf(stderr, "   -O|--output\t\tOutput destination.\n");
+    fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
+    fprintf(stderr, "              \t\tnull  - No output. Useful for testing.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -594,6 +598,7 @@ int main(int argc, char *argv[])
     const char *prefix = "planet_osm";
     const char *style = "./default.style";
     const char *temparg;
+    const char *output_destination = "pgsql";
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -624,10 +629,11 @@ int main(int argc, char *argv[])
             {"style",    1, 0, 'S'},
             {"expire-tiles", 1, 0, 'e'},
             {"expire-output", 1, 0, 'o'},
+	    {"output",   1, 0, 'O'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -657,6 +663,7 @@ int main(int argc, char *argv[])
 		if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
                 break;
             case 'o': expire_tiles_filename=optarg; break;
+	    case 'O': output_destination = optarg; break;
 
             case 'h':
                 long_usage(argv[0]);
@@ -725,7 +732,15 @@ int main(int argc, char *argv[])
     options.expire_tiles_zoom = expire_tiles_zoom;
     options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;
-    out = &out_pgsql;
+
+    if (strcmp("pgsql", output_destination) == 0) {
+      out = &out_pgsql;
+    } else if (strcmp("null", output_destination) == 0) {
+      out = &out_null;
+    } else {
+      fprintf(stderr, "Output destination `%s' not recognised. Should be one of [pgsql, null].\n", output_destination);
+      exit(EXIT_FAILURE);
+    }
 
     out->start(&options);
 
