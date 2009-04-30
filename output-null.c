@@ -13,49 +13,51 @@
 #include "output.h"
 #include "output-null.h"
 
+#define UNUSED  __attribute__ ((unused))
+
 static void null_out_cleanup(void) {
 }
 
-static int null_out_start(const struct output_options *opt) {
+static int null_out_start(const struct output_options *opt UNUSED) {
     return 0;
 }
 
 static void null_out_stop() {
 }
 
-static int null_add_node(int a, double b, double c, struct keyval *k) {
+static int null_add_node(int a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_add_way(int a, int *b, int c, struct keyval *k) {
+static int null_add_way(int a UNUSED, int *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_add_relation(int a, struct member *b, int c, struct keyval *k) {
+static int null_add_relation(int a UNUSED, struct member *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_delete_node(int i) {
+static int null_delete_node(int i UNUSED) {
   return 0;
 }
 
-static int null_delete_way(int i) {
+static int null_delete_way(int i UNUSED) {
   return 0;
 }
 
-static int null_delete_relation(int i) {
+static int null_delete_relation(int i UNUSED) {
   return 0;
 }
 
-static int null_modify_node(int a, double b, double c, struct keyval * k) {
+static int null_modify_node(int a UNUSED, double b UNUSED, double c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
-static int null_modify_way(int a, int * b, int c, struct keyval * k) {
+static int null_modify_way(int a UNUSED, int * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
-static int null_modify_relation(int a, struct member * b, int c, struct keyval * k) {
+static int null_modify_relation(int a UNUSED, struct member * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
