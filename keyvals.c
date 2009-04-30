@@ -83,6 +83,22 @@ char *getItem(struct keyval *head, const char *name)
     return NULL;
 }	
 
+struct keyval *firstItem(struct keyval *head)
+{
+    if (head == NULL || head == head->next)
+        return NULL;
+
+    return head->next;
+}
+
+struct keyval *nextItem(struct keyval *head, struct keyval *item)
+{
+    if (item->next == head)
+        return NULL;
+
+    return item->next;
+}
+
 /* Pulls all items from list which match this prefix
  * note: they are removed from the original list an returned in a new one
  */
