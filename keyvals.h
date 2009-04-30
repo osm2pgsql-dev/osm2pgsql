@@ -20,6 +20,8 @@ void freeItem(struct keyval *p);
 unsigned int countList(struct keyval *head);
 int listHasData(struct keyval *head);
 char *getItem(struct keyval *head, const char *name);
+struct keyval *firstItem(struct keyval *head);
+struct keyval *nextItem(struct keyval *head, struct keyval *item);
 struct keyval *popItem(struct keyval *head);
 void pushItem(struct keyval *head, struct keyval *item);
 int addItem(struct keyval *head, const char *name, const char *value, int noDupe);

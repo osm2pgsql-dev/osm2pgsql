@@ -43,6 +43,7 @@
 #include "middle-pgsql.h"
 #include "middle-ram.h"
 #include "output-pgsql.h"
+#include "output-gazetteer.h"
 #include "output-null.h"
 #include "sanitizer.h"
 #include "reprojection.h"
@@ -735,6 +736,8 @@ int main(int argc, char *argv[])
 
     if (strcmp("pgsql", output_backend) == 0) {
       out = &out_pgsql;
+    } else if (strcmp("gazetteer", output_backend) == 0) {
+      out = &out_gazetteer;
     } else if (strcmp("null", output_backend) == 0) {
       out = &out_null;
     } else {
