@@ -27,34 +27,28 @@ struct Input {
 
 // tries to re-open the bz stream at the next stream start.
 // returns 0 on success, -1 on failure.
-int bzReOpen(struct Input *ctx) {
+int bzReOpen(struct Input *ctx, int *error) {
   // for copying out the last unused part of the block which
   // has an EOS token in it. needed for re-initialising the
   // next stream.
   unsigned char unused[BZ_MAX_UNUSED];
   void *unused_tmp_ptr = NULL;
-  int nUnused, i, error = 0;
-  
-  // is real end-of-file, not just end-of-stream
-  if (feof(ctx->systemHandle)) {
-    ctx->eof = 1;
-    return -1; 
-  }
-	      
-  BZ2_bzReadGetUnused(&error, (BZFILE *)(ctx->fileHandle), &unused_tmp_ptr, &nUnused);
-  if (error != BZ_OK) return -1;
+  int nUnused, i;
+
+  BZ2_bzReadGetUnused(error, (BZFILE *)(ctx->fileHandle), &unused_tmp_ptr, &nUnused);
+  if (*error != BZ_OK) return -1;
 	      
   // when bzReadClose is called the unused buffer is deallocated, 
   // so it needs to be copied somewhere safe first.
   for (i = 0; i < nUnused; ++i)
     unused[i] = ((unsigned char *)unused_tmp_ptr)[i];
   
-  BZ2_bzReadClose(&error, (BZFILE *)(ctx->fileHandle));
-  if (error != BZ_OK) return -1;
+  BZ2_bzReadClose(error, (BZFILE *)(ctx->fileHandle));
+  if (*error != BZ_OK) return -1;
 
   // reassign the file handle
-  ctx->fileHandle = BZ2_bzReadOpen(&error, ctx->systemHandle, 0, 0, unused, nUnused);
-  if (ctx->fileHandle == NULL || error != BZ_OK) return -1;
+  ctx->fileHandle = BZ2_bzReadOpen(error, ctx->systemHandle, 0, 0, unused, nUnused);
+  if (ctx->fileHandle == NULL || *error != BZ_OK) return -1;
 
   return 0;
 }
@@ -84,8 +78,8 @@ int readFile(void *context, char * buffer, int len)
 	  // end means the reader needs to be reset from the original handle.
 	  if (error != BZ_OK) {
 	    // for stream errors, try re-opening the stream before admitting defeat.
-	    if (error != BZ_STREAM_END || bzReOpen(ctx) != 0) {
-	      l = -1;
+	    if (error != BZ_STREAM_END || bzReOpen(ctx, &error) != 0) {
+	      l = 0;
 	      ctx->eof = 1;
 	    }
 	  }
