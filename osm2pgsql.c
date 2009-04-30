@@ -493,7 +493,7 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
     fprintf(stderr, "   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
     fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
-    fprintf(stderr, "   -O|--output\t\tOutput destination.\n");
+    fprintf(stderr, "   -O|--output\t\tOutput backend.\n");
     fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
     fprintf(stderr, "              \t\tnull  - No output. Useful for testing.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
     const char *prefix = "planet_osm";
     const char *style = "./default.style";
     const char *temparg;
-    const char *output_destination = "pgsql";
+    const char *output_backend = "pgsql";
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -663,7 +663,7 @@ int main(int argc, char *argv[])
 		if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
                 break;
             case 'o': expire_tiles_filename=optarg; break;
-	    case 'O': output_destination = optarg; break;
+	    case 'O': output_backend = optarg; break;
 
             case 'h':
                 long_usage(argv[0]);
@@ -733,12 +733,12 @@ int main(int argc, char *argv[])
     options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;
 
-    if (strcmp("pgsql", output_destination) == 0) {
+    if (strcmp("pgsql", output_backend) == 0) {
       out = &out_pgsql;
-    } else if (strcmp("null", output_destination) == 0) {
+    } else if (strcmp("null", output_backend) == 0) {
       out = &out_null;
     } else {
-      fprintf(stderr, "Output destination `%s' not recognised. Should be one of [pgsql, null].\n", output_destination);
+      fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, null].\n", output_backend);
       exit(EXIT_FAILURE);
     }
 
