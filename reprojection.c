@@ -24,7 +24,7 @@ const struct Projection_Info Projection_Info[] = {
      descr: "WGS84 Mercator", 
      proj4text: "+proj=merc +datum=WGS84  +k=1.0 +units=m +over +no_defs", 
      srs:3395, 
-     option: "" },
+     option: "-M" },
   [PROJ_SPHERE_MERC] = { 
      descr: "Spherical Mercator",  
      proj4text: "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over", 
