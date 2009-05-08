@@ -938,6 +938,23 @@ static int pgsql_out_start(const struct output_options *options)
             res = PQexec(sql_conn, sql);
             PQclear(res);
         }
+        else
+        {
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", tables[i].name);
+            res = PQexec(sql_conn, sql);
+            if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
+            {
+                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", tables[i].name);
+                exit_nicely();
+            }
+            int their_srid = atoi(PQgetvalue(res, 0, 0));
+            PQclear(res);
+            if (their_srid != SRID)
+            {
+                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", tables[i].name, their_srid, SRID);
+                exit_nicely();
+            }
+        }
 
         /* These _tmp tables can be left behind if we run out of disk space */
         sprintf( sql, "DROP TABLE %s_tmp;", tables[i].name);
@@ -963,7 +980,7 @@ static int pgsql_out_start(const struct output_options *options)
                 strcat(sql, tmp);
             }
             strcat(sql, " );\n");
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, sql);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
