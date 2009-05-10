@@ -75,6 +75,7 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, doubl
             auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = auto_ptr<Geometry>(gf.createPolygon(shell.release(),
                                       new vector<Geometry *>));
+            geom->normalize(); // Fix direction of ring
             *area = geom->getArea();
             try {
                 std::auto_ptr<Point> pt(geom->getInteriorPoint());
@@ -314,6 +315,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
 
         if (ext_area > 0.0) {
             std::auto_ptr<Polygon> poly(gf.createPolygon(exterior.release(), interior.release()));
+            poly->normalize(); // Fix direction of rings
             std::string text = writer.write(poly.get());
                     //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
             wkts.push_back(text);
