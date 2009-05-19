@@ -674,27 +674,29 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     initList(&tags);
     initList(&poly_tags);
 
-    /* Clone tags from relation, dropping 'type' */
+    /* Clone tags from relation */
     p = rel_tags->next;
     while (p != rel_tags) {
-        if (strcmp(p->key, "type"))
+        // For routes, we convert name to route_name
+        if ((strcmp(type, "route") == 0) && (strcmp(p->key, "name") ==0))
+            addItem(&tags, "route_name", p->value, 1);
+        else if (strcmp(p->key, "type")) // drop type=
             addItem(&tags, p->key, p->value, 1);
         p = p->next;
     }
 
     if( strcmp(type, "route") == 0 )
     {
+        const char *state = getItem(rel_tags, "state");
+        const char *netw = getItem(rel_tags, "network");
+        int networknr = -1;
+
         make_polygon = 0;
-        char *state = getItem(rel_tags, "state");
         if (state == NULL) {
             state = "";
         }
 
-        int networknr = -1;
-
-        if (getItem(rel_tags, "network") != NULL) {
-            char *netw = getItem(rel_tags, "network");
-
+        if (netw != NULL) {
             if (strcmp(netw, "lcn") == 0) {
                 networknr = 10;
                 if (strcmp(state, "alternate") == 0) {
@@ -755,7 +757,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         }
 
         if (getItem(rel_tags, "preferred_color") != NULL) {
-            char *a = getItem(rel_tags, "preferred_color");
+            const char *a = getItem(rel_tags, "preferred_color");
             if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0 || strcmp(a, "2") == 0 || strcmp(a, "3") == 0 || strcmp(a, "4") == 0) {
                 addItem(&tags, "route_pref_color", a, 1);
             } else {
@@ -763,10 +765,6 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             }
         } else {
             addItem(&tags, "route_pref_color", "0", 1);
-        }
-
-        if (getItem(rel_tags, "name") != NULL) {
-            addItem(&tags, "route_name", getItem(rel_tags, "name"), 1);
         }
 
         if (getItem(rel_tags, "ref") != NULL) {
