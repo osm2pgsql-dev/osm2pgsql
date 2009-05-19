@@ -1,5 +1,5 @@
 PACKAGE:=osm2pgsql
-VERSION:=0.65
+VERSION:=0.66
 SVN:=$(shell svnversion)
 
 CC = gcc
@@ -11,8 +11,6 @@ CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 CFLAGS += -DHAVE_PTHREAD
-CC=gcc
-CXX=g++
 
 CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE $(CFLAGS)
 CXXFLAGS += $(shell geos-config --cflags)
