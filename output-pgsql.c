@@ -657,6 +657,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     double interior_lat, interior_lon;
     int polygon = 0, roads = 0;
     int make_polygon = 0;
+    int make_boundary = 0;
     struct keyval tags, *p, poly_tags;
     char *type;
 #if 0
@@ -815,7 +816,11 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     }
     else if( strcmp( type, "boundary" ) == 0 )
     {
-        make_polygon = 0;
+        // Boundaries will get converted into multiple geometries:
+        // - Linear features will end up in the line and roads tables (useful for admin boundaries)
+        // - Polygon features also go into the polygon table (useful for national_forests)
+        // The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately.
+        make_boundary = 1;
     }
     else
     {
@@ -887,8 +892,35 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             if (match) {
                 //fprintf(stderr, "match for %d\n", xid[i]);
                 Options->mid->ways_done(xid[i]);
+                pgsql_delete_way_from_output(xid[i]);
             }
         }
+    }
+
+    // If we are making a boundary then also try adding any relations which form complete rings
+    // The linear variants will have already been processed above
+    if (make_boundary) {
+        wkt_size = build_geometry(id, xnodes, xcount, 1);
+        for (i=0;i<wkt_size;i++)
+        {
+            char *wkt = get_wkt(i);
+
+            if (strlen(wkt)) {
+                expire_tiles_from_wkt(wkt, -id);
+                /* FIXME: there should be a better way to detect polygons */
+                if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+                    double area = get_area(i);
+                    if (area > 0.0) {
+                        char tmp[32];
+                        snprintf(tmp, sizeof(tmp), "%f", area);
+                        addItem(&tags, "way_area", tmp, 0);
+                    }
+                    write_wkts(-id, &tags, wkt, t_poly);
+                }
+            }
+            free(wkt);
+        }
+        clear_wkts();
     }
 
     resetList(&tags);
@@ -1078,9 +1110,11 @@ static void *pgsql_out_stop_one(void *arg)
 
     pgsql_pause_copy(table);
     // Commit transaction
+    fprintf(stderr, "Committing transaction for %s\n", table->name);
     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
     if( !Options->append )
     {
+      fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
@@ -1092,6 +1126,9 @@ static void *pgsql_out_stop_one(void *arg)
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
     }
+    PQfinish(sql_conn);
+    table->sql_conn = NULL;
+    fprintf(stderr, "Completed %s\n", table->name);
     free(table->name);
     free(table->columns);
     return NULL;
@@ -1106,8 +1143,6 @@ static void pgsql_out_stop()
     /* Processing any remaing to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
     Options->mid->iterate_relations( pgsql_process_relation );
-    /* No longer need to access middle layer -- release memory */
-    Options->mid->stop();
 
 #ifdef HAVE_PTHREAD
     for (i=0; i<NUM_TABLES; i++) {
@@ -1117,6 +1152,10 @@ static void pgsql_out_stop()
             exit_nicely();
         }
     }
+
+    /* No longer need to access middle layer -- release memory */
+    Options->mid->stop();
+
     for (i=0; i<NUM_TABLES; i++) {
         int ret = pthread_join(threads[i], NULL);
         if (ret) {
@@ -1125,6 +1164,8 @@ static void pgsql_out_stop()
         }
     }
 #else
+    /* No longer need to access middle layer -- release memory */
+    Options->mid->stop();
     for (i=0; i<NUM_TABLES; i++)
         pgsql_out_stop_one(&tables[i]);
 #endif
