@@ -296,6 +296,8 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
         /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
+        /* ignore */
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
@@ -371,6 +373,8 @@ void EndElement(const xmlChar *name)
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
+        /* ignore */
+    } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;
