@@ -691,7 +691,6 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         const char *netw = getItem(rel_tags, "network");
         int networknr = -1;
 
-        make_polygon = 0;
         if (state == NULL) {
             state = "";
         }
@@ -788,7 +787,8 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         make_polygon = 1;
 
         /* Copy the tags from the outer way(s) if the relation is untagged */
-        if (!listHasData(&tags)) {
+        /* or if there is just a name tag, people seem to like naming relations */
+        if (!listHasData(&tags) || ((countList(&tags)==1) && getItem(&tags, "name"))) {
             for (i=0; xcount[i]; i++) {
                 if (xrole[i] && !strcmp(xrole[i], "inner"))
                     continue;
