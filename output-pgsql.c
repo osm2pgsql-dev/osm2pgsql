@@ -521,10 +521,14 @@ static int tag_indicates_polygon(enum OsmType type, const char *key)
 {
     int i;
 
+    if (!strcmp(key, "area"))
+        return 1;
+
     for (i=0; i < exportListCount[type]; i++) {
         if( strcmp( exportList[type][i].name, key ) == 0 )
             return exportList[type][i].flags & FLAG_POLYGON;
     }
+
     return 0;
 }
 
