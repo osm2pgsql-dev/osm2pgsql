@@ -500,6 +500,7 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
     fprintf(stderr, "   -O|--output\t\tOutput backend.\n");
     fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
+    fprintf(stderr, "              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
     fprintf(stderr, "              \t\tnull  - No output. Useful for testing.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");

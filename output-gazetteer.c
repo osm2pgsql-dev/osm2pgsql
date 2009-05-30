@@ -16,14 +16,68 @@
 
 #define SRID (project_getprojinfo()->srs)
 
+#define CREATE_WORDSCORE_TYPE                   \
+   "CREATE TYPE wordscore AS ("                 \
+   "  word text,"                               \
+   "  score integer"                            \
+   ")"
+
+#define CREATE_STRINGLANGUAGETYPE_TYPE          \
+   "CREATE TYPE stringlanguagetype AS ("        \
+   "  string text,"                             \
+   "  type VARCHAR(10)"                         \
+   ")"
+
+#define CREATE_TRANSLITERATION_FUNCTION                            \
+   "CREATE OR REPLACE FUNCTION transliteration(text)"              \
+   "  RETURNS text"                                                \
+   "  AS 'gazetteer.so', 'transliteration'"                        \
+   "  LANGUAGE c IMMUTABLE STRICT"
+
+#define CREATE_WORDSCORE_FUNCTION                                  \
+   "CREATE OR REPLACE FUNCTION getwordscore"                       \
+   "  (wordscores wordscore[], words text[]) "                     \
+   "  RETURNS integer"                                             \
+   "  AS $$"                                                       \
+   "DECLARE\n"                                                     \
+   "  idxword integer;\n"                                          \
+   "  idxscores integer;\n"                                        \
+   "  result integer;\n"                                            \
+   "BEGIN\n"                                                       \
+   "\n"                                                            \
+   "  IF (wordscores is null OR words is null) THEN\n"             \
+   "    return 0;\n"                                               \
+   "  END IF;\n"                                                   \
+   "\n"                                                            \
+   "  result := 0;\n"                                               \
+   "  FOR idxword in 1 .. array_upper(words, 1) LOOP\n"            \
+   "    FOR idxscores in 1 .. array_upper(wordscores, 1) LOOP\n"   \
+   "      IF wordscores[idxscores].word = words[idxword] THEN\n"   \
+   "        result := result + wordscores[idxscores].score;\n"    \
+   "      END IF;\n"                                               \
+   "    END LOOP;\n"                                               \
+   "  END LOOP;\n"                                                 \
+   "\n"                                                            \
+   "  return result;\n"                                             \
+   "\n"                                                            \
+   "END;\n"                                                        \
+   "$$\n"                                                          \
+   "LANGUAGE plpgsql IMMUTABLE"
+
+
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
    "  osm_type CHAR(1) NOT NULL,"               \
    "  osm_id BIGINT NOT NULL,"                  \
    "  class TEXT NOT NULL,"                     \
    "  type TEXT NOT NULL,"                      \
-   "  name TEXT NOT NULL,"                      \
-   "  rank INTEGER NOT NULL"                    \
+   "  name stringlanguagetype[],"               \
+   "  address stringlanguagetype[][],"          \
+   "  search_name TEXT,"                        \
+   "  search_address TEXT,"                        \
+   "  search_scores wordscore[],"               \
+   "  rank_address INTEGER NOT NULL,"           \
+   "  rank_search INTEGER NOT NULL"             \
    ")"
 
 #define CREATE_PLACE_ID_INDEX \
@@ -32,8 +86,11 @@
 #define CREATE_PLACE_TYPE_INDEX \
    "CREATE INDEX place_type_idx ON place USING BTREE (class, type)"
 
-#define CREATE_PLACE_NAME_INDEX \
-   "CREATE INDEX place_name_idx ON place USING GIN (TO_TSVECTOR('simple', name))"
+#define CREATE_PLACE_SEARCH_NAME_INDEX \
+   "CREATE INDEX place_name_idx ON place USING GIN (TO_TSVECTOR('simple', search_name))"
+
+#define CREATE_PLACE_SEARCH_ADDRESS_INDEX \
+   "CREATE INDEX place_search_name_idx ON place USING GIN (TO_TSVECTOR('simple', search_address))"
 
 #define CREATE_PLACE_GEOMETRY_INDEX \
    "CREATE INDEX place_geometry_idx ON place USING GIST (geometry)"
@@ -47,16 +104,19 @@ static const struct taginfo {
    const char   *value;
    unsigned int flags;
 } taginfo[] = {
-   { "amenity",  NULL,      TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "highway",  NULL,      TAGINFO_WAY                           },
-   { "historic", NULL,      TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "place",    NULL,      TAGINFO_NODE                          },
-   { "railway",  "station", TAGINFO_NODE                          },
-   { "railway",  "halt",    TAGINFO_NODE                          },
-   { "tourism",  NULL,      TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "waterway", NULL,      TAGINFO_WAY                           },
-   { NULL,       NULL,      0                                     }
+   { "amenity",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "highway",  NULL,             TAGINFO_WAY                           },
+   { "historic", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "place",    NULL,             TAGINFO_NODE                          },
+   { "railway",  "station",        TAGINFO_NODE                          },
+   { "railway",  "halt",           TAGINFO_NODE                          },
+   { "tourism",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "waterway", NULL,             TAGINFO_WAY                           },
+   { "boundary", "administrative", TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { NULL,       NULL,             0                                     }
 };
+
+//static int gazetteer_delete_relation(int osm_id);
 
 static const struct output_options *Options = NULL;
 static PGconn *Connection = NULL;
@@ -171,7 +231,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "old_name") == 0 ||
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
-          strncmp(item->key, "name:", 5) == 0)
+          (strncmp(item->key, "name:", 5) == 0 && strlen(item->key) < 15))
       {
          pushItem(names, item);
       }
@@ -204,8 +264,36 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    return area;
 }
 
-static void add_place(char osm_type, int osm_id, const char *class, const char *type, const char *name, int rank, const char *wkt)
+void escape_array_record(char *out, int len, const char *in)
 {
+    int count = 0;
+    const char *old_in = in, *old_out = out;
+
+    if (!len)
+        return;
+
+    while(*in && count < len-3) {
+        switch(*in) {
+            case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
+            case '\n': *out++ = '\\'; *out++ = '\n'; count+= 2; break;
+            case '\r': *out++ = '\\'; *out++ = '\r'; count+= 2; break;
+            case '"': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '"'; count+= 7; break;
+            default:   *out++ = *in; count++; break;
+        }
+        in++;
+    }
+    *out = '\0';
+
+    if (*in)
+        fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
+}
+
+
+static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, int addressrank, int searchrank, const char *wkt)
+{
+   int first = 1;
+   struct keyval *name;
+   char * lang;
    char sql[2048];
 
    /* Output a copy line for this place */
@@ -216,10 +304,44 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
    copy_data("\t");
    escape(sql, sizeof(sql), type);
    copy_data(sql);
+
+   /* start array */
+   copy_data("\t{");
+
+   for (name = firstItem(names); name; name = nextItem(names, name))
+   {
+      if (first) first = 0;
+      else copy_data(",");
+
+      copy_data("\"(\\\\\"");
+
+      escape_array_record(sql, sizeof(sql), name->value);
+      copy_data(sql);
+
+      copy_data("\\\\\",\\\\\"");
+
+      // Length of lang is guaranteed by previous function
+      lang = strrchr(name->key,':');
+      if (lang) lang++; 
+      else lang = name->key;
+      escape_array_record(sql, sizeof(sql), lang);
+      copy_data(sql);
+
+      copy_data("\\\\\")\"");
+   }
+
+   copy_data("}");
+
+//   escape(sql, sizeof(sql), name);
+//   copy_data(sql);
+//   copy_data("\t");
+//   escape(sql, sizeof(sql), language);
+//   copy_data(sql);
+   copy_data("\t{}");
    copy_data("\t");
-   escape(sql, sizeof(sql), name);
-   copy_data(sql);
-   sprintf(sql, "\t%d\tSRID=%d;", rank, SRID);
+   copy_data("\t");
+   copy_data("\t{}");
+   sprintf(sql, "\t%d\t%d\tSRID=%d;", addressrank, searchrank, SRID);
    copy_data(sql);
    copy_data(wkt);
    copy_data("\n");
@@ -261,12 +383,22 @@ static int gazetteer_out_start(const struct output_options *options)
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists wordscore cascade");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists languagestring cascade");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists stringlanguagetype cascade");
+
+      /* Create types and functions */
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_STRINGLANGUAGETYPE_TYPE);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_TRANSLITERATION_FUNCTION);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_FUNCTION);
 
       /* Create the new table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TYPE_INDEX);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_NAME_INDEX);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_NAME_INDEX);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_ADDRESS_INDEX);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX);
@@ -318,29 +450,32 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
    /* Are we interested in this item? */
    if (listHasData(&names) && listHasData(&places))
    {
-      struct keyval *name;
+//      struct keyval *name;
       struct keyval *place;
 
-      for (name = firstItem(&names); name; name = nextItem(&names, name))
+      for (place = firstItem(&places); place; place = nextItem(&places, place))
       {
-         for (place = firstItem(&places); place; place = nextItem(&places, place))
-         {
-            int  rank = 0;
+            int  addressrank = 0;
+            int  searchrank = 0;
             char wkt[128];
 
             if (strcasecmp(place->key, "place") == 0)
             {
-               if (strcasecmp(place->value, "city") == 0) rank = 5;
-               else if (strcasecmp(place->value, "town") == 0) rank = 4;
-               else if (strcasecmp(place->value, "village") == 0) rank = 3;
-               else if (strcasecmp(place->value, "hamlet") == 0) rank = 2;
-               else if (strcasecmp(place->value, "suburb") == 0) rank = 1;
+               if (strcasecmp(place->value, "county") == 0) { addressrank = 7; searchrank = 7; }
+               else if (strcasecmp(place->value, "island") == 0) { addressrank = 7; searchrank = 6; }
+               else if (strcasecmp(place->value, "city") == 0) { addressrank = 7; searchrank = 6; }
+               else if (strcasecmp(place->value, "moor") == 0) { addressrank = 0; searchrank = 5; }
+               else if (strcasecmp(place->value, "town") == 0) { addressrank = 5; searchrank = 5; }
+               else if (strcasecmp(place->value, "islet") == 0) { addressrank = 0; searchrank = 4; }
+               else if (strcasecmp(place->value, "village") == 0) { addressrank = 4; searchrank = 4; }
+               else if (strcasecmp(place->value, "hamlet") == 0) { addressrank = 4; searchrank = 4; }
+               else if (strcasecmp(place->value, "locality") == 0) { addressrank = 0; searchrank = 3; }
+               else if (strcasecmp(place->value, "suburb") == 0) { addressrank = 3; searchrank = 3; }
             }
 
             sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
 
-            add_place('N', id, place->key, place->value, name->value, rank, wkt);
-         }
+            add_place('N', id, place->key, place->value, &names, addressrank, searchrank, wkt);
       }
    }
 
@@ -360,6 +495,9 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    /* Split the tags */
    area = split_tags(tags, TAGINFO_WAY, &names, &places);
 
+   /* Feed this way to the middle layer */
+   Options->mid->ways_set(id, ndv, ndc, tags, 0);
+
    /* Are we interested in this item? */
    if (listHasData(&names) && listHasData(&places))
    {
@@ -368,9 +506,6 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       char *wkt;
       double dummy;
 
-      /* Feed this way to the middle layer */
-      Options->mid->ways_set(id, ndv, ndc, tags, 0);
-
       /* Fetch the node details */
       nodev = malloc(ndc * sizeof(struct osmNode));
       nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
@@ -378,15 +513,10 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       /* Get the geometry of the object */
       if ((wkt = get_wkt_simple(nodev, nodec, area, &dummy, &dummy, &dummy)) != NULL && strlen(wkt) > 0)
       {
-         struct keyval *name;
          struct keyval *place;
-
-         for (name = firstItem(&names); name; name = nextItem(&names, name))
+         for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            for (place = firstItem(&places); place; place = nextItem(&places, place))
-            {
-               add_place('W', id, place->key, place->value, name->value, 0, wkt);
-            }
+            add_place('W', id, place->key, place->value, &names, 0, 0, wkt);
          }
       }
 
@@ -404,8 +534,90 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    return 0;
 }
 
-static int gazetteer_add_relation(int id, struct member *membv, int membc, struct keyval *tags)
+static int gazetteer_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
 {
+   struct keyval names;
+   struct keyval places;
+   int area, wkt_size, addressrank, searchrank;
+   const char *type;
+
+   type = getItem(tags, "type");
+   if (!type || strcmp(type, "boundary"))
+      return 0;
+
+   addressrank = 0;
+   searchrank = 3;
+   type = getItem(tags, "admin_level");
+   if (type)
+   {
+      /* This is just so wrong - but quick and easy */
+      if (!strcmp(type, "11")) { addressrank = 3; searchrank = 3; }
+      else if (!strcmp(type, "10")) { addressrank = 3; searchrank = 3; }
+      else if (!strcmp(type, "9")) { addressrank = 3; searchrank = 3; }
+      else if (!strcmp(type, "8")) { addressrank = 4; searchrank = 4; }
+      else if (!strcmp(type, "7")) { addressrank = 5; searchrank = 5; }
+      else if (!strcmp(type, "6")) { addressrank = 7; searchrank = 6; }
+      else if (!strcmp(type, "5")) { addressrank = 7; searchrank = 7; }
+      else if (!strcmp(type, "4")) { addressrank = 7; searchrank = 7; }
+      else if (!strcmp(type, "3")) { addressrank = 7; searchrank = 7; }
+      else if (!strcmp(type, "2")) { addressrank = 7; searchrank = 8; }
+      else if (!strcmp(type, "1")) { addressrank = 7; searchrank = 7; }
+   }
+
+   area = split_tags(tags, TAGINFO_WAY, &names, &places);
+
+   if (listHasData(&names))
+   {
+      /* get the boundary path (ways) */
+      /* straight copy from pgsql_process_relation with very little understanding */
+
+      int i, count;
+      int *xcount = malloc( (member_count+1) * sizeof(int) );
+      struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
+      struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+
+      count = 0;
+      for (i=0; i<member_count; i++)
+      {
+         /* only interested in ways */
+         if (members[i].type != OSMTYPE_WAY)
+            continue;
+
+         initList(&(xtags[count]));
+         if (Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count])))
+            continue;
+         count++;
+      }
+      xnodes[count] = NULL;
+      xcount[count] = 0;
+
+      wkt_size = build_geometry(id, xnodes, xcount, 1);
+      for (i=0;i<wkt_size;i++)
+      {
+         char *wkt = get_wkt(i);
+         if (strlen(wkt) && !strncmp(wkt, "POLYGON", strlen("POLYGON")))
+         {
+            add_place('R', id, "boundary", "adminitrative", &names, addressrank, searchrank, wkt);
+            free(wkt);
+         }
+      }
+      clear_wkts();
+
+      for( i=0; i<count; i++ )
+      {
+         resetList( &(xtags[i]) );
+         free( xnodes[i] );
+      }
+
+      free(xcount);
+      free(xtags);
+      free(xnodes);
+   }
+
+   /* Free tag lists */
+   resetList(&names);
+   resetList(&places);
+
    return 0;
 }
 
@@ -441,6 +653,9 @@ static int gazetteer_delete_relation(int id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
+
+   /* Delete all references to this relation */
+   delete_place('R', id);
 
    /* Feed this delete to the middle layer */
    Options->mid->relations_delete(id);
@@ -486,6 +701,10 @@ static int gazetteer_modify_relation(int id, struct member *membv, int membc, st
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
+
+   gazetteer_delete_relation(id);
+
+   gazetteer_add_relation(id, membv, membc, tags);
 
    /* Feed this change to the middle layer */
    Options->mid->relation_changed(id);

@@ -149,7 +149,9 @@ char * get_wkt(size_t index)
 //   return wkts[index].c_str();
 	char *result;
 	result = (char*) std::malloc( wkts[index].length() + 1);
-	std::strcpy(result, wkts[index].c_str() );
+        // At least give some idea of why we about to seg fault
+        if (!result) std::cerr << std::endl << "Unable to allocate memory: " << (wkts[index].length() + 1) << std::endl;
+	std::strcpy(result, wkts[index].c_str());
 	return result;
 }
 
@@ -317,7 +319,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
             std::auto_ptr<Polygon> poly(gf.createPolygon(exterior.release(), interior.release()));
             poly->normalize(); // Fix direction of rings
             std::string text = writer.write(poly.get());
-                    //std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
+//                    std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
             wkts.push_back(text);
             interiors.push_back(Interior(poly.get()));
             areas.push_back(ext_area);
@@ -329,5 +331,6 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
         std::cerr << std::endl << "excepton caught processing way id=" << osm_id << std::endl;
         wkt_size = 0;
     }
+
     return wkt_size;
 }
