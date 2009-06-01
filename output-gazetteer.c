@@ -274,9 +274,9 @@ void escape_array_record(char *out, int len, const char *in)
 
     while(*in && count < len-3) {
         switch(*in) {
-            case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
-            case '\n': *out++ = '\\'; *out++ = '\n'; count+= 2; break;
-            case '\r': *out++ = '\\'; *out++ = '\r'; count+= 2; break;
+            case '\\': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; count+= 8; break;
+            case '\n': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = 'n'; count+= 7; break;
+            case '\r': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = 'r'; count+= 7; break;
             case '"': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '"'; count+= 7; break;
             default:   *out++ = *in; count++; break;
         }
