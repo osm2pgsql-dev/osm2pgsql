@@ -16,81 +16,35 @@
 
 #define SRID (project_getprojinfo()->srs)
 
-#define CREATE_WORDSCORE_TYPE                   \
-   "CREATE TYPE wordscore AS ("                 \
-   "  word text,"                               \
-   "  score integer"                            \
+#define CREATE_KEYVALUETYPE_TYPE                \
+   "CREATE TYPE keyvalue AS ("                  \
+   "  key TEXT,"                                \
+   "  value TEXT"                               \
    ")"
-
-#define CREATE_STRINGLANGUAGETYPE_TYPE          \
-   "CREATE TYPE stringlanguagetype AS ("        \
-   "  string text,"                             \
-   "  type VARCHAR(10)"                         \
-   ")"
-
-#define CREATE_TRANSLITERATION_FUNCTION                            \
-   "CREATE OR REPLACE FUNCTION transliteration(text)"              \
-   "  RETURNS text"                                                \
-   "  AS 'gazetteer.so', 'transliteration'"                        \
-   "  LANGUAGE c IMMUTABLE STRICT"
-
-#define CREATE_WORDSCORE_FUNCTION                                  \
-   "CREATE OR REPLACE FUNCTION getwordscore"                       \
-   "  (wordscores wordscore[], words text[]) "                     \
-   "  RETURNS integer"                                             \
-   "  AS $$"                                                       \
-   "DECLARE\n"                                                     \
-   "  idxword integer;\n"                                          \
-   "  idxscores integer;\n"                                        \
-   "  result integer;\n"                                            \
-   "BEGIN\n"                                                       \
-   "\n"                                                            \
-   "  IF (wordscores is null OR words is null) THEN\n"             \
-   "    return 0;\n"                                               \
-   "  END IF;\n"                                                   \
-   "\n"                                                            \
-   "  result := 0;\n"                                               \
-   "  FOR idxword in 1 .. array_upper(words, 1) LOOP\n"            \
-   "    FOR idxscores in 1 .. array_upper(wordscores, 1) LOOP\n"   \
-   "      IF wordscores[idxscores].word = words[idxword] THEN\n"   \
-   "        result := result + wordscores[idxscores].score;\n"    \
-   "      END IF;\n"                                               \
-   "    END LOOP;\n"                                               \
-   "  END LOOP;\n"                                                 \
-   "\n"                                                            \
-   "  return result;\n"                                             \
-   "\n"                                                            \
-   "END;\n"                                                        \
-   "$$\n"                                                          \
-   "LANGUAGE plpgsql IMMUTABLE"
-
 
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
+   "  place_id BIGINT,"                         \
    "  osm_type CHAR(1) NOT NULL,"               \
    "  osm_id BIGINT NOT NULL,"                  \
    "  class TEXT NOT NULL,"                     \
    "  type TEXT NOT NULL,"                      \
-   "  name stringlanguagetype[],"               \
-   "  address stringlanguagetype[][],"          \
-   "  search_name TEXT,"                        \
-   "  search_address TEXT,"                        \
-   "  search_scores wordscore[],"               \
-   "  rank_address INTEGER NOT NULL,"           \
-   "  rank_search INTEGER NOT NULL"             \
+   "  name keyvalue[],"                         \
+   "  admin_level INTEGER,"                     \
+   "  housenumber TEXT,"                        \
+   "  street TEXT,"                             \
+   "  postcode TEXT,"                           \
+   "  country_code VARCHAR(2),"                 \
+   "  street_place_id BIGINT,"                  \
+   "  rank_address INTEGER,"                    \
+   "  rank_search INTEGER,"                     \
+   "  indexed BOOLEAN"                          \
    ")"
+
+#define ADMINLEVEL_NONE 100
 
 #define CREATE_PLACE_ID_INDEX \
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)"
-
-#define CREATE_PLACE_TYPE_INDEX \
-   "CREATE INDEX place_type_idx ON place USING BTREE (class, type)"
-
-#define CREATE_PLACE_SEARCH_NAME_INDEX \
-   "CREATE INDEX place_name_idx ON place USING GIN (TO_TSVECTOR('simple', search_name))"
-
-#define CREATE_PLACE_SEARCH_ADDRESS_INDEX \
-   "CREATE INDEX place_search_name_idx ON place USING GIN (TO_TSVECTOR('simple', search_address))"
 
 #define CREATE_PLACE_GEOMETRY_INDEX \
    "CREATE INDEX place_geometry_idx ON place USING GIST (geometry)"
@@ -105,14 +59,16 @@ static const struct taginfo {
    unsigned int flags;
 } taginfo[] = {
    { "amenity",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "highway",  NULL,             TAGINFO_WAY                           },
+   { "highway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "historic", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "place",    NULL,             TAGINFO_NODE                          },
-   { "railway",  "station",        TAGINFO_NODE                          },
-   { "railway",  "halt",           TAGINFO_NODE                          },
+   { "natural",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "leisure",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "place",    NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "railway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "shop",     NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "tourism",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "waterway", NULL,             TAGINFO_WAY                           },
-   { "boundary", "administrative", TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "waterway", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "landuse",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { NULL,       NULL,             0                                     }
 };
 
@@ -211,10 +167,16 @@ static void stop_copy(void)
    return;
 }
 
-static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places)
+static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, 
+   int* admin_level, char ** housenumber, char ** street, char ** postcode)
 {
    int area = 0;
    struct keyval *item;
+
+   *admin_level = ADMINLEVEL_NONE;
+   *housenumber = 0;
+   *street = 0;
+   *postcode = 0;
 
    /* Initialise the result lists */
    initList(names);
@@ -231,9 +193,38 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "old_name") == 0 ||
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
+          strcmp(item->key, "commonname") == 0 ||
           (strncmp(item->key, "name:", 5) == 0 && strlen(item->key) < 15))
       {
          pushItem(names, item);
+      }
+      else if (strcmp(item->key, "postal_code") == 0 ||
+          strcmp(item->key, "post_code") == 0 ||
+          strcmp(item->key, "postcode") == 0 ||
+          strcmp(item->key, "addr:postcode") == 0)
+      {
+         *postcode = item->value;
+         addItem(places, "place", "postcode", 1);
+      }
+      else if (strcmp(item->key, "addr:street") == 0)
+      {
+         *street = item->value;
+      }
+      else if (strcmp(item->key, "addr:housenumber") == 0)
+      {
+         // house number can be far more complex than just a single house number - leave for postgresql to deal with
+         *housenumber = item->value; 
+         addItem(places, "place", "house", 1);
+      }
+      else if (strcmp(item->key, "addr:interpolation") == 0)
+      {
+         // house number can be far more complex than just a single house number - leave for postgresql to deal with
+         *housenumber = item->value; 
+         addItem(places, "place", "houses", 1);
+      }
+      else if (strcmp(item->key, "admin_level") == 0)
+      {
+         *admin_level = atoi(item->value);
       }
       else
       {
@@ -289,25 +280,28 @@ void escape_array_record(char *out, int len, const char *in)
 }
 
 
-static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, int addressrank, int searchrank, const char *wkt)
+static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+   int adminlevel, const char *housenumber, const char *street, const char *postcode, const char *wkt)
 {
-   int first = 1;
+   int first;
    struct keyval *name;
-   char * lang;
    char sql[2048];
 
    /* Output a copy line for this place */
-   sprintf(sql, "%c\t%d\t", osm_type, osm_id);
+   sprintf(sql, "\\N\t%c\t%d\t", osm_type, osm_id);
    copy_data(sql);
+
    escape(sql, sizeof(sql), class);
    copy_data(sql);
    copy_data("\t");
+
    escape(sql, sizeof(sql), type);
    copy_data(sql);
+   copy_data("\t");
 
-   /* start array */
-   copy_data("\t{");
-
+   /* start name array */
+   copy_data("{");
+   first = 1;
    for (name = firstItem(names); name; name = nextItem(names, name))
    {
       if (first) first = 0;
@@ -315,36 +309,71 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
 
       copy_data("\"(\\\\\"");
 
-      escape_array_record(sql, sizeof(sql), name->value);
+      escape_array_record(sql, sizeof(sql), name->key);
       copy_data(sql);
 
       copy_data("\\\\\",\\\\\"");
 
-      // Length of lang is guaranteed by previous function
-      lang = strrchr(name->key,':');
-      if (lang) lang++; 
-      else lang = name->key;
-      escape_array_record(sql, sizeof(sql), lang);
+      escape_array_record(sql, sizeof(sql), name->value);
       copy_data(sql);
 
       copy_data("\\\\\")\"");
    }
+   copy_data("}\t");
 
-   copy_data("}");
+   sprintf(sql, "%d\t", adminlevel);
+   copy_data(sql);
 
-//   escape(sql, sizeof(sql), name);
-//   copy_data(sql);
-//   copy_data("\t");
-//   escape(sql, sizeof(sql), language);
-//   copy_data(sql);
-   copy_data("\t{}");
-   copy_data("\t");
-   copy_data("\t");
-   copy_data("\t{}");
-   sprintf(sql, "\t%d\t%d\tSRID=%d;", addressrank, searchrank, SRID);
+   if (housenumber)
+   {
+      escape(sql, sizeof(sql), housenumber);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (street)
+   {
+      escape(sql, sizeof(sql), street);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (postcode)
+   {
+      escape(sql, sizeof(sql), postcode);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   copy_data("\\N\t");
+
+   copy_data("\\N\t");
+
+   copy_data("\\N\t");
+
+   copy_data("\\N\t");
+
+   copy_data("\\N\t");
+
+   sprintf(sql, "SRID=%d;", SRID);
    copy_data(sql);
    copy_data(wkt);
+
    copy_data("\n");
+
+//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
 
    return;
 }
@@ -383,22 +412,22 @@ static int gazetteer_out_start(const struct output_options *options)
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists wordscore cascade");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists languagestring cascade");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvalue cascade");
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists languagestring cascade");
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists stringlanguagetype cascade");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvaluetype cascade");
 
       /* Create types and functions */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_STRINGLANGUAGETYPE_TYPE);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_TRANSLITERATION_FUNCTION);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_FUNCTION);
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_TRANSLITERATION_FUNCTION);
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_FUNCTION);
 
       /* Create the new table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TYPE_INDEX);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_NAME_INDEX);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_ADDRESS_INDEX);
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_NAME_INDEX);
+//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_ADDRESS_INDEX);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX);
@@ -440,42 +469,26 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
 {
    struct keyval names;
    struct keyval places;
+   struct keyval *place;
+   int adminlevel;
+   char * housenumber;
+   char * street;
+   char * postcode;
+   char wkt[128];
 
    /* Split the tags */
-   split_tags(tags, TAGINFO_NODE, &names, &places);
+   split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &postcode);
 
    /* Feed this node to the middle layer */
    Options->mid->nodes_set(id, lat, lon, tags);
 
    /* Are we interested in this item? */
-   if (listHasData(&names) && listHasData(&places))
+   if (listHasData(&names) || listHasData(&places))
    {
-//      struct keyval *name;
-      struct keyval *place;
-
+      sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
       for (place = firstItem(&places); place; place = nextItem(&places, place))
       {
-            int  addressrank = 0;
-            int  searchrank = 0;
-            char wkt[128];
-
-            if (strcasecmp(place->key, "place") == 0)
-            {
-               if (strcasecmp(place->value, "county") == 0) { addressrank = 7; searchrank = 7; }
-               else if (strcasecmp(place->value, "island") == 0) { addressrank = 7; searchrank = 6; }
-               else if (strcasecmp(place->value, "city") == 0) { addressrank = 7; searchrank = 6; }
-               else if (strcasecmp(place->value, "moor") == 0) { addressrank = 0; searchrank = 5; }
-               else if (strcasecmp(place->value, "town") == 0) { addressrank = 5; searchrank = 5; }
-               else if (strcasecmp(place->value, "islet") == 0) { addressrank = 0; searchrank = 4; }
-               else if (strcasecmp(place->value, "village") == 0) { addressrank = 4; searchrank = 4; }
-               else if (strcasecmp(place->value, "hamlet") == 0) { addressrank = 4; searchrank = 4; }
-               else if (strcasecmp(place->value, "locality") == 0) { addressrank = 0; searchrank = 3; }
-               else if (strcasecmp(place->value, "suburb") == 0) { addressrank = 3; searchrank = 3; }
-            }
-
-            sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
-
-            add_place('N', id, place->key, place->value, &names, addressrank, searchrank, wkt);
+         add_place('N', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, wkt);
       }
    }
 
@@ -490,22 +503,27 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
 {
    struct keyval names;
    struct keyval places;
+   struct keyval *place;
+   int adminlevel;
+   char * housenumber;
+   char * street;
+   char * postcode;
    int area;
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_WAY, &names, &places);
+   area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &postcode);
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
 
    /* Are we interested in this item? */
-   if (listHasData(&names) && listHasData(&places))
+   if (listHasData(&names) || listHasData(&places))
    {
       struct osmNode *nodev;
       int nodec;
       char *wkt;
       double dummy;
-
+    
       /* Fetch the node details */
       nodev = malloc(ndc * sizeof(struct osmNode));
       nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
@@ -513,10 +531,9 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       /* Get the geometry of the object */
       if ((wkt = get_wkt_simple(nodev, nodec, area, &dummy, &dummy, &dummy)) != NULL && strlen(wkt) > 0)
       {
-         struct keyval *place;
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            add_place('W', id, place->key, place->value, &names, 0, 0, wkt);
+            add_place('W', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, wkt);
          }
       }
 
@@ -538,33 +555,28 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
 {
    struct keyval names;
    struct keyval places;
-   int area, wkt_size, addressrank, searchrank;
+   int adminlevel;
+   char * housenumber;
+   char * street;
+   char * postcode;
+   int area, wkt_size;
    const char *type;
 
    type = getItem(tags, "type");
-   if (!type || strcmp(type, "boundary"))
+   if (!type)
       return 0;
 
-   addressrank = 0;
-   searchrank = 3;
-   type = getItem(tags, "admin_level");
-   if (type)
+   if (!strcmp(type, "associatedStreet") || !strcmp(type, "relatedStreet"))
    {
-      /* This is just so wrong - but quick and easy */
-      if (!strcmp(type, "11")) { addressrank = 3; searchrank = 3; }
-      else if (!strcmp(type, "10")) { addressrank = 3; searchrank = 3; }
-      else if (!strcmp(type, "9")) { addressrank = 3; searchrank = 3; }
-      else if (!strcmp(type, "8")) { addressrank = 4; searchrank = 4; }
-      else if (!strcmp(type, "7")) { addressrank = 5; searchrank = 5; }
-      else if (!strcmp(type, "6")) { addressrank = 7; searchrank = 6; }
-      else if (!strcmp(type, "5")) { addressrank = 7; searchrank = 7; }
-      else if (!strcmp(type, "4")) { addressrank = 7; searchrank = 7; }
-      else if (!strcmp(type, "3")) { addressrank = 7; searchrank = 7; }
-      else if (!strcmp(type, "2")) { addressrank = 7; searchrank = 8; }
-      else if (!strcmp(type, "1")) { addressrank = 7; searchrank = 7; }
+      Options->mid->relations_set(id, members, member_count, tags);
+      return 0;
    }
 
-   area = split_tags(tags, TAGINFO_WAY, &names, &places);
+   if (strcmp(type, "boundary"))
+      return 0;
+
+   /* Split the tags */
+   area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &postcode);
 
    if (listHasData(&names))
    {
@@ -597,7 +609,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
          char *wkt = get_wkt(i);
          if (strlen(wkt) && !strncmp(wkt, "POLYGON", strlen("POLYGON")))
          {
-            add_place('R', id, "boundary", "adminitrative", &names, addressrank, searchrank, wkt);
+            add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, postcode, wkt);
             free(wkt);
          }
       }
