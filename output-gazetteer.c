@@ -33,6 +33,7 @@
    "  admin_level INTEGER,"                     \
    "  housenumber TEXT,"                        \
    "  street TEXT,"                             \
+   "  isin TEXT,"                               \
    "  postcode TEXT,"                           \
    "  country_code VARCHAR(2),"                 \
    "  street_place_id BIGINT,"                  \
@@ -300,26 +301,33 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
    copy_data("\t");
 
    /* start name array */
-   copy_data("{");
-   first = 1;
-   for (name = firstItem(names); name; name = nextItem(names, name))
+   if (listHasData(names))
    {
-      if (first) first = 0;
-      else copy_data(",");
+      copy_data("{");
+      first = 1;
+      for (name = firstItem(names); name; name = nextItem(names, name))
+      {
+         if (first) first = 0;
+         else copy_data(",");
 
-      copy_data("\"(\\\\\"");
+         copy_data("\"(\\\\\"");
 
-      escape_array_record(sql, sizeof(sql), name->key);
-      copy_data(sql);
+         escape_array_record(sql, sizeof(sql), name->key);
+         copy_data(sql);
 
-      copy_data("\\\\\",\\\\\"");
+         copy_data("\\\\\",\\\\\"");
 
-      escape_array_record(sql, sizeof(sql), name->value);
-      copy_data(sql);
+         escape_array_record(sql, sizeof(sql), name->value);
+         copy_data(sql);
 
-      copy_data("\\\\\")\"");
+         copy_data("\\\\\")\"");
+      }
+      copy_data("}\t");
    }
-   copy_data("}\t");
+   else
+   {
+      copy_data("\\N\t");
+   }
 
    sprintf(sql, "%d\t", adminlevel);
    copy_data(sql);
@@ -345,6 +353,8 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
    {
       copy_data("\\N\t");
    }
+
+   copy_data("\\N\t");
 
    if (postcode)
    {
