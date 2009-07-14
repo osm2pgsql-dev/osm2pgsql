@@ -1,10 +1,3 @@
---DROP TRIGGER IF EXISTS place_before_insert on placex;
---DROP TRIGGER IF EXISTS place_before_update on placex;
---CREATE TYPE addresscalculationtype AS (
---  word text,
---  score integer
---);
-
 CREATE OR REPLACE FUNCTION create_tables_location_point() RETURNS BOOLEAN
   AS $$
 DECLARE
@@ -124,7 +117,7 @@ DECLARE
   return_word_id INTEGER;
 BEGIN
   lookup_token := trim(lookup_word);
-  SELECT word_id FROM word WHERE word_token = lookup_token into return_word_id;
+  SELECT word_id FROM word WHERE word_token = lookup_token and class is null and type is null into return_word_id;
   IF return_word_id IS NULL THEN
     return_word_id := nextval('seq_word');
     INSERT INTO word VALUES (return_word_id, lookup_token, lookup_word, null, null, 0, null);
@@ -160,7 +153,7 @@ DECLARE
   return_word_id INTEGER;
 BEGIN
   lookup_token := ' '||trim(lookup_word);
-  SELECT word_id FROM word WHERE word_token = lookup_token into return_word_id;
+  SELECT word_id FROM word WHERE word_token = lookup_token and class is null and type is null into return_word_id;
   IF return_word_id IS NULL THEN
     return_word_id := nextval('seq_word');
     INSERT INTO word VALUES (return_word_id, lookup_token, lookup_word, null, null, 0, null);
@@ -178,7 +171,7 @@ DECLARE
   return_word_id INTEGER;
 BEGIN
   lookup_token := trim(lookup_word);
-  SELECT word_id FROM word WHERE word_token = lookup_token into return_word_id;
+  SELECT word_id FROM word WHERE word_token = lookup_token and class is null and type is null into return_word_id;
   RETURN return_word_id;
 END;
 $$
@@ -192,7 +185,7 @@ DECLARE
   return_word_id INTEGER;
 BEGIN
   lookup_token := ' '||trim(lookup_word);
-  SELECT word_id FROM word WHERE word_token = lookup_token into return_word_id;
+  SELECT word_id FROM word WHERE word_token = lookup_token and class is null and type is null into return_word_id;
   RETURN return_word_id;
 END;
 $$
@@ -363,7 +356,7 @@ BEGIN
       country_code := place_country_code;
     END IF;
 
-    IF (ST_GeometryType(geometry) = 'ST_Polygon' AND ST_IsValid(geometry)) THEN
+    IF (ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(geometry)) THEN
       INSERT INTO location_area values (place_id,country_code,name,keywords,
         rank_search,rank_address,ST_Centroid(geometry),geometry);
     END IF;
@@ -487,9 +480,11 @@ BEGIN
               END IF;
               orginalstartnumber := startnumber;
               originalnumberrange := endnumber - startnumber;
-              IF originalnumberrange > 500 THEN
-                RAISE WARNING 'Number block of % while processing % %', originalnumberrange, nextnode;
-              END IF;
+
+-- Too much broken data worldwide for this test to be worth using
+--              IF originalnumberrange > 500 THEN
+--                RAISE WARNING 'Number block of % while processing % %', originalnumberrange, prevnode, nextnode;
+--              END IF;
 
               IF (interpolationtype = 'odd' AND startnumber%2 = 0) OR (interpolationtype = 'even' AND startnumber%2 = 1) THEN
                 startnumber := startnumber + 1;
@@ -536,11 +531,15 @@ DECLARE
   result BOOLEAN;
   country_code VARCHAR(2);
 BEGIN
---  RAISE WARNING '%',NEW;
 
-  IF ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN
-    RAISE WARNING 'Invalid geometary, rejecting: % %', NEW.osm_type, NEW.osm_id;
-    RETURN NULL;
+  IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
+    -- This operation gives postgis an chance to fix the broken data
+    -- Expensive operation so only do if needed
+    NEW.geometry := ST_buffer(NEW.geometry,0);
+    IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
+      RAISE WARNING 'Invalid geometary, rejecting: % %', NEW.osm_type, NEW.osm_id;
+      RETURN NULL;
+    END IF;
   END IF;
 
   NEW.place_id := nextval('seq_place');
@@ -617,7 +616,8 @@ BEGIN
 
         ELSE
           -- Guess at the postcode format and coverage (!)
-          IF upper(NEW.postcode) ~ '^[A-Z0-9]{1,5}$' THEN -- Probably too short to be very local
+          IF upper(NEW.postcode) ~ '^[A-Z0-9]{1,5}$' THEN 
+            -- Probably too short to be very local
             NEW.name := ARRAY[ROW('ref',NEW.postcode)::keyvalue];
             NEW.rank_search := 21;
             NEW.rank_address := 11;
@@ -656,17 +656,21 @@ BEGIN
       NEW.country_code := get_country_code(NEW.geometry);
       NEW.rank_search := NEW.admin_level * 2;
       NEW.rank_address := NEW.rank_search;
-    ELSEIF NEW.class = 'highway' AND NEW.name is NULL AND NEW.type in ('service','cycleway','footway','bridleway','track','byway') THEN
+    ELSEIF NEW.class = 'highway' AND NEW.name is NULL AND 
+           NEW.type in ('service','cycleway','footway','bridleway','track','byway','motorway_link','primary_link','trunk_link','secondary_link','tertiary_link') THEN
       RETURN NULL;
     ELSEIF NEW.class = 'railway' AND NEW.type in ('rail') THEN
       RETURN NULL;
     ELSEIF NEW.class = 'waterway' AND NEW.name is NULL THEN
       RETURN NULL;
-    ELSEIF NEW.class = 'highway' AND NEW.osm_type != 'N' AND NEW.type in ('cycleway','footway','bridleway') THEN
+    ELSEIF NEW.class = 'highway' AND NEW.osm_type != 'N' AND NEW.type in ('cycleway','footway','bridleway','motorway_link','primary_link','trunk_link','secondary_link','tertiary_link') THEN
       NEW.rank_search := 27;
       NEW.rank_address := NEW.rank_search;
     ELSEIF NEW.class = 'highway' AND NEW.osm_type != 'N' THEN
       NEW.rank_search := 26;
+      NEW.rank_address := NEW.rank_search;
+    ELSEIF NEW.class = 'natural' and NEW.type = 'sea' THEN
+      NEW.rank_search := 4;
       NEW.rank_address := NEW.rank_search;
     END IF;
 
@@ -704,19 +708,20 @@ DECLARE
   search_prevdiameter FLOAT;
   search_maxrank INTEGER;
   address_street_word_id INTEGER;
+  street_place_id_count INTEGER;
 
   name_vector INTEGER[];
   nameaddress_vector INTEGER[];
 
 BEGIN
 
+  IF NEW.class = 'place' AND NEW.type = 'postcodearea' THEN
+    -- Silently do nothing, this is a horrible hack
+    -- TODO: add an extra 'class' of data to tag this properly
+    RETURN NEW;
+  END IF;
+
   IF NEW.indexed and NOT OLD.indexed THEN
-
-    -- Just used to get a progress indicator
-    -- TODO: drop!
-    --i := nextval('seq_progress_updates');
-
---RAISE WARNING 'PROCESSING: % %', NEW.place_id, NEW.name;
 
     search_country_code_conflict := false;
 
@@ -734,7 +739,8 @@ BEGIN
       search_maxdistance[i] := 1;
       search_mindistance[i] := 0.0;
     END LOOP;
-    -- Minimum size to search, can be larger but don't let it shink below this
+    -- Min/Max size to search
+    -- Prevents complete idiocy if it hits broken data
     search_mindistance[14] := 0.2;
     search_mindistance[15] := 0.1;
     search_mindistance[16] := 0.05;
@@ -768,24 +774,20 @@ BEGIN
     place_centroid := ST_Centroid(NEW.geometry);
     place_geometry_text := 'ST_GeomFromText('''||ST_AsText(NEW.geometry)||''','||ST_SRID(NEW.geometry)||')';
 
-    -- copy the building number to the name
-    -- done here rather than on insert to avoid initial indexing
+    -- copy the building number
+    -- done here rather than on insert to avoid initial indexing of house numbers
     IF (NEW.name IS NULL OR array_upper(NEW.name,1) IS NULL) AND NEW.housenumber IS NOT NULL THEN
       NEW.name := ARRAY[ROW('ref',NEW.housenumber)::keyvalue];
-    END IF;
-
-    IF (NEW.name IS NULL OR array_upper(NEW.name,1) IS NULL) AND NEW.type IS NOT NULL THEN
-      NEW.name := ARRAY[ROW('type',NEW.type)::keyvalue];
     END IF;
 
     -- Initialise the name and address vectors using our name
     name_vector := make_keywords(NEW.name);
     nameaddress_vector := name_vector;
 
---RAISE WARNING '% %', NEW.street_place_id, NEW.rank_search;
+--RAISE WARNING '% %', NEW.place_id, NEW.rank_search;
 
     -- For low level elements we inherit from our parent road
-    IF NEW.rank_search > 26 OR (NEW.type = 'postcode' AND NEW.rank_search = 25) THEN
+    IF (NEW.rank_search > 26 OR (NEW.type = 'postcode' AND NEW.rank_search = 25)) THEN
 
 --RAISE WARNING 'finding street for %', NEW;
 
@@ -810,10 +812,13 @@ BEGIN
           END IF;
         END LOOP;      
 
+--RAISE WARNING 'x1';
         -- Is this node part of a way?
+        -- Limit 10 is to work round problem in query plan optimiser
         FOR location IN select * from placex where osm_type = 'W' 
-          and osm_id in (select id from planet_osm_ways where nodes && ARRAY[NEW.osm_id::integer])
+          and osm_id in (select id from planet_osm_ways where nodes && ARRAY[NEW.osm_id::integer] limit 10)
         LOOP
+--RAISE WARNING '%', location;
           -- Way IS a road then we are on it - that must be our road
           IF location.rank_search = 26 AND NEW.street_place_id IS NULL THEN
 --RAISE WARNING 'node in way that is a street %',location;
@@ -858,6 +863,8 @@ BEGIN
                 
       END IF;
 
+--RAISE WARNING 'x2';
+
       IF NEW.street_place_id IS NULL AND NEW.osm_type = 'W' THEN
         -- Is this way part of a relation?
         FOR relation IN select * from planet_osm_rels where parts @> ARRAY[NEW.osm_id::integer] and members @> ARRAY['w'||NEW.osm_id]
@@ -874,6 +881,8 @@ BEGIN
         END LOOP;
       END IF;
       
+--RAISE WARNING 'x3';
+
       IF NEW.street_place_id IS NULL AND NEW.street IS NOT NULL THEN
       	address_street_word_id := getorcreate_name_id(make_standard_name(NEW.street));
         FOR location IN SELECT * FROM search_name WHERE search_name.name_vector @> ARRAY[address_street_word_id]
@@ -890,6 +899,8 @@ BEGIN
         END IF;
       END IF;
 
+--RAISE WARNING 'x4';
+
       IF NEW.street_place_id IS NULL THEN
         FOR location IN SELECT place_id FROM placex
           WHERE ST_DWithin(NEW.geometry, placex.geometry, 0.001) and placex.rank_search = 26
@@ -900,6 +911,8 @@ BEGIN
         END LOOP;
       END IF;
 
+--RAISE WARNING 'x5';
+
       IF NEW.street_place_id IS NULL THEN
         FOR location IN SELECT place_id FROM placex
           WHERE ST_DWithin(NEW.geometry, placex.geometry, 0.01) and placex.rank_search = 26
@@ -909,9 +922,14 @@ BEGIN
           NEW.street_place_id := location.place_id;
         END LOOP;
       END IF;
+
+--RAISE WARNING 'x6';
       
       -- Some unnamed roads won't have been indexed, index now if needed
-      UPDATE placex set indexed = true where indexed = false and place_id = NEW.street_place_id;
+      select count(*) from place_addressline where place_id = NEW.street_place_id INTO street_place_id_count;
+      IF street_place_id_count = 0 THEN
+        UPDATE placex set indexed = true where indexed = false and place_id = NEW.street_place_id;
+      END IF;
       INSERT INTO place_addressline VALUES (NEW.place_id, NEW.street_place_id, true, 0); 
 
       IF NEW.name IS NULL THEN
@@ -919,7 +937,15 @@ BEGIN
         INSERT INTO place_addressline select NEW.place_id, x.address_place_id, x.fromarea, ST_distance(NEW.geometry, placex.geometry) from place_addressline as x join placex on (address_place_id = placex.place_id) where not x.fromarea and  x.place_id = NEW.street_place_id;
         return NEW;
       END IF;
-      
+
+      IF NEW.street_place_id IS NOT NULL THEN
+        select * from placex where place_id = NEW.street_place_id INTO location;
+        IF location.name IS NOT NULL THEN
+          nameaddress_vector := array_merge(nameaddress_vector, make_keywords(location.name));
+--RAISE WARNING '% % %',nameaddress_vector, NEW.street_place_id, location;
+        END IF;
+      END IF;
+
     END IF;
 
 --RAISE WARNING '  INDEXING: %',NEW;
@@ -1105,7 +1131,7 @@ CREATE TABLE location_area (
   rank_address INTEGER NOT NULL
   );
 SELECT AddGeometryColumn('location_area', 'centroid', 4326, 'POINT', 2);
-SELECT AddGeometryColumn('location_area', 'area', 4326, 'POLYGON', 2);
+SELECT AddGeometryColumn('location_area', 'area', 4326, 'GEOMETRY', 2);
 CREATE INDEX idx_location_area_centroid ON location_area USING GIST (centroid);
 CREATE INDEX idx_location_area_area ON location_area USING GIST (area);
 CREATE INDEX idx_location_area_place on location_area USING BTREE (place_id);
@@ -1145,11 +1171,9 @@ CREATE TABLE place_addressline (
   address_place_id bigint,
   fromarea boolean,
   distance float
---  addressline_admin_level integer,
---  addressline_language text,
---  addressline_text text
   );
 CREATE INDEX idx_place_addressline_place_id on place_addressline USING BTREE (place_id);
+CREATE INDEX idx_place_addressline_address_place_id on place_addressline USING BTREE (address_place_id);
 
 -- placex is just a mockup of place to avoid having to re-import for testing
 drop table placex;
@@ -1222,141 +1246,21 @@ GRANT SELECT on location_point_4 to "www-data" ;
 GRANT SELECT on location_point_3 to "www-data" ;
 GRANT SELECT on location_point_2 to "www-data" ;
 GRANT SELECT on location_point_1 to "www-data" ;
+GRANT SELECT on country to "www-data" ;
 
--- insert creates the location tagbles, optionall creates location indexes if indexed == true
+-- insert creates the location tables
 CREATE TRIGGER placex_before_insert BEFORE INSERT ON placex
     FOR EACH ROW EXECUTE PROCEDURE place_insert();
 
--- update insert creates the location tagbles
+-- update populates (or repopulates) the search_name table
 CREATE TRIGGER placex_before_update BEFORE UPDATE ON placex
     FOR EACH ROW EXECUTE PROCEDURE place_update();
-
-
-
---insert into placex select null,osm_type,osm_id,tags,name,admin_level,geometry,null,null,null from place where osm_type = 'N' and osm_id = 271281;
-
---select 'now'::timestamp;
---insert into placex select null,'E',null,'place','county',ARRAY[ROW('name',county)::keyvalue],100,null,null,null,'US',null,null,null,null,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
---insert into placex select null,'E',null,'place','state',ARRAY[ROW('ref',state)::keyvalue],100,null,null,null,'US',null,null,null,null,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
---insert into placex select null,'E',null,'place','state',ARRAY[ROW('name',state)::keyvalue],100,null,null,null,'US',null,null,null,null,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstate;
---insert into placex select null,'E',nextval,'place','postcode','{}',100,null,null,postcode,countrycode,null,null,null,null,geometry from ukpostcodedata;
---insert into placex select null,'E',nextval,'place','postcode','{}',100,null,null,substring(postcode from '^([A-Z][A-Z]?[0-9][0-9A-Z]?) [0-9]$'),countrycode,null,null,null,null,geometry from ukpostcodedata where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
---select 'now'::timestamp;
---insert into placex select * from place
---osm_type = 'N' and osm_id = 271281;
---select 'now'::timestamp;
-
---update placex set indexed = true where indexed = false;
-
---select 'now'::timestamp;
-
---select * from location_point where osm_id = 364698444;
-
--- test data: wig and pen pub, sheffield
---http://www.openstreetmap.org/browse/node/69589585
-
--- word / trigrams
---select now(); create table words as select * from ts_stat('select nameaddress_vector from search_name');select now();
---CREATE INDEX idx_words ON words USING BTREE(word);
---CREATE INDEX idx_words_trigram ON words USING gin(word gin_trgm_ops);
---alter table words add column class text;
---alter table words add column type text;
---GRANT SELECT on words to "www-data" ;
---SELECT word, similarity(word, 'zzzhawkworthroad') AS score FROM words WHERE word % 'word' ORDER BY score DESC, word;
---update words set class='amenity',type='pub' where word = 'zzzpub';
-
-
---select now();
---begin;
---update placex set indexed = true where indexed = false;
---update placex set indexed = true where not indexed;
--- where place_id >= 82463;
---update placex set indexed = true where indexed = false and place_id = 86621;
---abort;
-
---select get_address_by_language(674887, ARRAY['name:en','name','ref']);
---select get_address_by_language(103, ARRAY['name:en','name','ref']);
---select get_address_by_language(1, ARRAY['name:en','name','ref']);
---select now();
-
---grant SELECT on place_addressline to "www-data" ;
---grant SELECT on location_point to "www-data" ;
---GRANT UPDATE ON placex to "www-data" ;
-
---delete from search_name where place_id = 244535;
---update placex set indexed = false where place_id = 244535;
---update placex set indexed = true where place_id = 244535;
---update placex set street_place_id = null where place_id = 244535;
---select get_address_by_language(244535, ARRAY['name','ref']);
-
---delete from search_name where place_id = 320511;
---update placex set indexed = false where place_id = 320511;
---update placex set indexed = true where place_id = 320511;
---update placex set street_place_id = null where place_id = 320511;
---select get_address_by_language(320511, ARRAY['name','ref']);
-TRUNCATE placex;
-TRUNCATE search_name;
-TRUNCATE place_addressline;
-TRUNCATE location_point;
-TRUNCATE location_point_26;
-TRUNCATE location_point_25;
-TRUNCATE location_point_24;
-TRUNCATE location_point_23;
-TRUNCATE location_point_22;
-TRUNCATE location_point_21;
-TRUNCATE location_point_20;
-TRUNCATE location_point_19;
-TRUNCATE location_point_18;
-TRUNCATE location_point_17;
-TRUNCATE location_point_16;
-TRUNCATE location_point_15;
-TRUNCATE location_point_14;
-TRUNCATE location_point_13;
-TRUNCATE location_point_12;
-TRUNCATE location_point_11;
-TRUNCATE location_point_10;
-TRUNCATE location_point_9;
-TRUNCATE location_point_8;
-TRUNCATE location_point_7;
-TRUNCATE location_point_6;
-TRUNCATE location_point_5;
-TRUNCATE location_point_4;
-TRUNCATE location_point_3;
-TRUNCATE location_point_2;
-TRUNCATE location_point_1;
-TRUNCATE location_area;
 
 DROP SEQUENCE seq_place;
 CREATE SEQUENCE seq_place start 1;
 
-DROP SEQUENCE seq_progress_updates;
-CREATE SEQUENCE seq_progress_updates start 1;
-
-
-select 'now'::timestamp;
-insert into placex select null,'E',null,'place','county',ARRAY[ROW('name',county)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
-insert into placex select null,'E',null,'place','state',ARRAY[ROW('ref',state)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
-insert into placex select null,'E',null,'place','state',ARRAY[ROW('name',state)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstate;
-insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,postcode,countrycode,null,null,null,null,geometry from gbpostcodedata;
-insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,substring(postcode from '^([A-Z][A-Z]?[0-9][0-9A-Z]?) [0-9]$'),countrycode,null,null,null,null,geometry from gbpostcodedata where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
-insert into placex select null,'X',nextval,'place','postcodearea',ARRAY[ROW('name',postcodeareaname)::keyvalue],null,null,null,null,null,'GB',null,15,15,false,geometry from gbpostcodedata join gbpostcodearea on (substring(postcode from '^([A-Z][A-Z]?)[0-9][0-9A-Z]? [0-9]$') = postcodeareaid) where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
-
-select 'now'::timestamp;
 insert into placex select * from place where osm_type = 'N';
 insert into placex select * from place where osm_type = 'W';
 insert into placex select * from place where osm_type = 'R';
-select 'now'::timestamp;
 update placex set indexed = true where not indexed and rank_search <= 26 and name is not null;
-select 'now'::timestamp;
 update placex set indexed = true where not indexed and rank_search > 26 and name is not null;
-select 'now'::timestamp;
-
---update placex set indexed = true where place_id = 2;
---select * from placex where place_id = 2;
---select * from place_addressline where place_id = 2;
---select get_address_by_language(2, ARRAY['name','ref']);
---update placex set indexed = true where place_id = 6;
---update placex set indexed = true where not indexed and rank_search < 27;
---select get_address_by_language(47, ARRAY['name','ref']);
---select get_address_by_language(58, ARRAY['name','ref']);
-
