@@ -30,7 +30,10 @@
 
 #define SRID (project_getprojinfo()->srs)
 
-#define MAX_STYLES 100
+/* FIXME: Shouldn't malloc this all to begin with but call realloc()
+   as required. The program will most likely segfault if it reads a
+   style file with more styles than this */
+#define MAX_STYLES 1000
 
 enum table_id {
     t_point, t_line, t_poly, t_roads
