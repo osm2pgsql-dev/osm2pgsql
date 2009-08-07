@@ -195,6 +195,8 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
           strcmp(item->key, "commonname") == 0 ||
+          strcmp(item->key, "common_name") == 0 ||
+          strcmp(item->key, "short_name") == 0 ||
           (strncmp(item->key, "name:", 5) == 0 && strlen(item->key) < 15))
       {
          pushItem(names, item);
