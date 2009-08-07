@@ -1,4 +1,10 @@
 <?php
+	header('Content-type: text/html; charset=utf-8');
+	if (false)
+	{
+		echo "Closed for re-indexing...";
+		exit;
+	}
 
 	if (get_magic_quotes_gpc())
 	{
@@ -7,8 +13,8 @@
 	}
 
 	require_once('DB.php');
-	$oDB =& DB::connect('pgsql://www-data@/gazetteer', false);
-//	$oDB =& DB::connect('pgsql://www-data@/gazetteerworld', false);
+//	$oDB =& DB::connect('pgsql://www-data@/gazetteer', false);
+	$oDB =& DB::connect('pgsql://www-data@/gazetteerworld', false);
 	$oDB->setFetchMode(DB_FETCHMODE_ASSOC);
 	$oDB->query("SET DateStyle TO 'sql,european'");
 	$oDB->query("SET client_encoding TO 'utf-8'");
@@ -16,9 +22,8 @@
 	$bDebug = false;
 
 	// Log
-	if ($_GET['q']) $oDB->query('insert into query_log values (\'now\','.getDBQuoted($_GET['q']).')');
+	if ($_GET['q']) $oDB->query('insert into query_log values (\'now\','.getDBQuoted($_GET['q']).','.getDBQuoted(($_GET["remote-ip"]?$_GET["remote-ip"]:$_SERVER["REMOTE_ADDR"])).')');
 
-	//$_SERVER["HTTP_ACCEPT_LANGUAGE"]
 	if (isset($_GET['accept-language']) && $_GET['accept-language'])
 	{
 		$_SERVER["HTTP_ACCEPT_LANGUAGE"] = $_GET['accept-language'];
@@ -46,10 +51,9 @@
 	}
 
 	// Default possition
-	$fLat = 51.508;
-	$fLon = -0.118;
-	$iZoom = 13;
-
+	$fLat = 20.0;
+	$fLon = 0.0;
+	$iZoom = 2;
 
 	$sQueryOut = '';
 	$aSearchResults = array();
@@ -114,7 +118,6 @@ if ($bDebug) var_Dump($sSQL);
 			}
 
 if ($bDebug) var_Dump($aPhrases, $aValidTokens);			
-
 			// Start the search process
 			$aResultPlaceIDs = array();
 
@@ -197,12 +200,14 @@ if ($bDebug) var_Dump($sSQL);
 							$fTotalLat += $aPostcode['lat'] * $fFac;
 							$fTotalLon += $aPostcode['lon'] * $fFac;
 						}
-						$fLat = $fTotalLat / $fTotalFac;
-						$fLon = $fTotalLon / $fTotalFac;
-						$fRadius = 0.1 / $fTotalFac;
-						
-						$aValidTokens[$sToken] = array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => $fRadius));
-		
+						if ($fTotalFac)
+						{
+							$fLat = $fTotalLat / $fTotalFac;
+							$fLon = $fTotalLon / $fTotalFac;
+							$fRadius = 0.1 / $fTotalFac;
+							$aValidTokens[$sToken] = array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => $fRadius));
+						}
+
 						// $fTotalFac is a suprisingly good indicator of accuracy
 						//$iZoom = 18 + round(log($fTotalFac,32));
 						//$iZoom = max(13,min(18,$iZoom));
@@ -221,7 +226,7 @@ if ($bDebug) var_Dump($sSQL);
 
 				// Start with a blank search
 				$aSearches = array(
-					array('iSearchRank' => 0, 'iNamePhrase' => 0, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
+					array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
 					);
 
 				// If an entire phrase is not found			
@@ -247,7 +252,12 @@ if ($bDebug) var_Dump($sSQL);
 									{
 										$aSearch = $aCurrentSearch;
 										$aSearch['iSearchRank']++;
-										if ($aSearchTerm['lat'] !== '' && $aSearchTerm['lat'] !== null)
+										if ($aSearchTerm['country_code'] !== null)
+										{
+											$aSearch['sCountryCode'] = strtoupper($aSearchTerm['country_code']);
+											$aNewWordsetSearches[] = $aSearch;
+										}
+										elseif ($aSearchTerm['lat'] !== '' && $aSearchTerm['lat'] !== null)
 										{
 											if ($aSearch['fLat'] === '')
 											{
@@ -271,7 +281,7 @@ if ($bDebug) var_Dump($sSQL);
 
 												// Fall back to not searching for this item (better than nothing
 												$aSearch = $aCurrentSearch;
-												$aSearch['iSearchRank'] += 100;
+												$aSearch['iSearchRank'] += 10;
 												$aNewWordsetSearches[] = $aSearch;
 										}
 										}
@@ -280,6 +290,13 @@ if ($bDebug) var_Dump($sSQL);
 											$aSearch['aAddress'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
 											if (!sizeof($aSearch['aName']) || $aSearch['iNamePhrase'] == $iPhrase)
 											{
+												// If we already have a name there is the option of NOT
+												// adding this word to the name, just the address
+												if (sizeof($aSearch['aName']))
+												{
+													$aSearch['iNamePhrase'] = -1;
+													$aNewWordsetSearches[] = $aSearch;
+												}
 												$aSearch['aName'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
 												$aSearch['iNamePhrase'] = $iPhrase;
 											}
@@ -306,8 +323,8 @@ if ($bDebug) var_Dump($sSQL);
 								else
 								{
 									// Allow skipping a word - but at EXTREAM cost
-									$aSearch = $aCurrentSearch;
-									$aSearch['iSearchRank']+=100;
+									//$aSearch = $aCurrentSearch;
+									//$aSearch['iSearchRank']+=100;
 									//$aNewWordsetSearches[] = $aSearch;
 								}
 							}
@@ -336,7 +353,7 @@ if ($bDebug) var_Dump($aGroupedSearches);
 				{
 					foreach($aSearches as $aSearch)
 					{
-	if ($bDebug) var_dump($aSearch);
+//	if ($bDebug) var_dump($aSearch);
 						$aPlaceIDs = array();
 						
 						if (sizeof($aSearch['aName']) && $aSearch['fLat'] !== '' && $aSearch['sClass'])
@@ -345,6 +362,7 @@ if ($bDebug) var_Dump($aGroupedSearches);
 							$sSQL .= " name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
 							$sSQL .= " and nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
 							$sSQL .= " and ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].") ";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
 	        		$sSQL .= " order by ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, search_rank ASC limit 10";
 	if ($bDebug)         		var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
@@ -366,6 +384,7 @@ if ($bDebug) var_Dump($aGroupedSearches);
 									$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 									$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
 									if ($aSearch['sHouseNumber']) $sSQL .= "and l.housenumber='".$aSearch['sHouseNumber']."' ";
+									if ($aSearch['sCountryCode']) $sSQL .= " and l.country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
 									$sSQL .= " order by ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC limit 10";
 	if ($bDebug) 	        		var_dump($sSQL);
 									$aPlaceIDs = $oDB->getCol($sSQL);
@@ -378,7 +397,8 @@ if ($bDebug) var_Dump($aGroupedSearches);
 							$sSQL .= " name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
 							$sSQL .= " and nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
 							$sSQL .= " and ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].") ";
-	        		$sSQL .= " order by ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, search_rank ASC limit 10";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
+				        		$sSQL .= " order by ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, search_rank ASC limit 10";
 	if ($bDebug)         		var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -387,15 +407,16 @@ if ($bDebug) var_Dump($aGroupedSearches);
 							$sSQL = "select place_id,search_rank from search_name where ";
 							$sSQL .= " name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
 							$sSQL .= " and nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
-	        		$sSQL .= " order by search_rank ASC limit 10";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
+				        		$sSQL .= " order by search_rank ASC limit 10";
 	if ($bDebug)         		var_dump($sSQL);
 							$aNearPlaceIDs = $oDB->getAssoc($sSQL);
 	
 							if (sizeof($aNearPlaceIDs))
 							{
 								$sPlaceIDs = join(',',array_keys($aNearPlaceIDs));
-		  					$sSQL = "select place_id from placex where place_id in ($sPlaceIDs) and class='".$aSearch['sClass']."' and type='".$aSearch['sType']."'";
-		        		$sSQL .= " order by rank_search asc limit 100";
+			  					$sSQL = "select place_id from placex where place_id in ($sPlaceIDs) and class='".$aSearch['sClass']."' and type='".$aSearch['sType']."'";
+					        		$sSQL .= " order by rank_search asc limit 100";
 	if ($bDebug) 	        		var_dump($sSQL);
 								$aPlaceIDs = $oDB->getCol($sSQL);
 								
@@ -407,6 +428,7 @@ if ($bDebug) var_Dump($aGroupedSearches);
 									$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 									$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
 									if ($aSearch['sHouseNumber']) $sSQL .= "and l.housenumber='".$aSearch['sHouseNumber']."' ";
+									if ($aSearch['sCountryCode']) $sSQL .= " and l.country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
 									$sSQL .= " order by f.rank_search ASC,ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC limit 100";
 	if ($bDebug) 	        		var_dump($sSQL);
 										$aPlaceIDs = $oDB->getCol($sSQL);
@@ -418,7 +440,8 @@ if ($bDebug) var_Dump($aGroupedSearches);
 							$sSQL = "select place_id from placex where ";
 							$sSQL .= " ST_DWithin(geometry, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].") ";
 							$sSQL .= " and class='".$aSearch['sClass']."' and type='".$aSearch['sType'];
-	        		$sSQL .= " order by ST_Distance(geometry, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, rank_search asc limit 10";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
+	        					$sSQL .= " order by ST_Distance(geometry, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, rank_search asc limit 10";
 	if ($bDebug)         		var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -427,7 +450,8 @@ if ($bDebug) var_Dump($aGroupedSearches);
 							$sSQL = "select place_id from search_name where ";
 							$sSQL .= " name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
 							$sSQL .= " and nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
-	        		$sSQL .= " order by search_rank ASC limit 10";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
+	        					$sSQL .= " order by search_rank ASC limit 10";
 	if ($bDebug)         		var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -435,7 +459,8 @@ if ($bDebug) var_Dump($aGroupedSearches);
 						{
 							$sSQL = "select place_id from search_name where search_rank > 25 and ";
 							$sSQL .= " ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].") ";
-	        		$sSQL .= " order by ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, search_rank desc limit 1";
+							if ($aSearch['sCountryCode']) $sSQL .= " and country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
+				        		$sSQL .= " order by ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC, search_rank desc limit 1";
 	if ($bDebug)         		var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -447,20 +472,25 @@ if ($bDebug) var_Dump($aGroupedSearches);
 						{
 							// No search terms
 						}
-	
+if (PEAR::IsError($aPlaceIDs))
+{
+var_dump($sSQL, $aPlaceIDs);					
+exit;
+}
+
 						foreach($aPlaceIDs as $iPlaceID)
 						{
 							$aResultPlaceIDs[$iPlaceID] = $iPlaceID;
 						}
 					}
-					if (sizeof($aPlaceIDs)) break;
+					if (sizeof($aResultPlaceIDs)) break;
 				}
 	
 	//var_dump($aResultPlaceIDs);
 				// Still nothing, You have to be kidding!
 				if (!sizeof($aResultPlaceIDs))
 				{
-					echo "No Matches Found";
+//					echo "No Matches Found";
 	//				var_dump($aValidTokens);
 				}
 				else
@@ -483,12 +513,6 @@ if (PEAR::IsError($aSearchResults))
 var_dump($sSQL, $aSearchResults);					
 exit;
 }
-					if (isset($aSearchResults[0]))
-					{
-						$fLat = $aSearchResults[0]['lat'];
-						$fLon = $aSearchResults[0]['lon'];
-						$iZoom = 16;
-					}
 				}
 			}
 		}
@@ -509,14 +533,43 @@ exit;
 //var_Dump($aSearchResults);
 //exit;
 $sSearchResult = '';
-foreach($aSearchResults as $aResult)
+if (!sizeof($aSearchResults) && $_GET['q'])
 {
+	$sSearchResult = 'No Results Found';
+}
+foreach($aSearchResults as $iResNum => $aResult)
+{
+ $sSQL = 'select ST_X(ST_PointN(ExteriorRing(ST_Box2D(geometry)),3))-ST_X(ST_PointN(ExteriorRing(ST_Box2D(geometry)),1)) as width,';
+ $sSQL .= ' ST_Y(ST_PointN(ExteriorRing(ST_Box2D(geometry)),2))-ST_Y(ST_PointN(ExteriorRing(ST_Box2D(geometry)),4)) as height';
+ $sSQL .= ' from placex where place_id = '.$aResult['place_id'];
+ $aDiameter = $oDB->getRow($sSQL);
+if (!PEAR::IsError($aDiameter))
+{
+//var_Dump($sSQL, $aDiameter);
 
-/*
-$sSQL = 'select ST_X(ST_PointN(ExteriorRing(ST_Box2D(ST_ConvexHull(ST_Collect(geometry)))),3))-ST_X(ST_PointN(ExteriorRing(ST_Box2D(ST_ConvexHull(ST_Collect(geometry)))),1)) as width,ST_Y(ST_PointN(ExteriorRing(ST_Box2D(ST_ConvexHull(ST_Collect(geometry)))),2))-ST_Y(ST_PointN(ExteriorRing(ST_Box2D(ST_ConvexHull(ST_Collect(geometry)))),4)) as height from place_addressline join placex using (place_id) where address_place_id = '.$aResult['place_id'];
-$aDiameter = $oDB->getRow($sSQL);
 $fMaxDiameter = max($aDiameter['width'], $aDiameter['height']);
-if ($fMaxDiameter < 0.005) $aResult['zoom'] = 18;
+//var_Dump($aResult, $fMaxDiameter, $aDiameter);
+if ($fMaxDiameter < 0.0001)
+{
+	$aResult['zoom'] = 17;
+	switch($aResult['class'].':'.$aResult['type'])
+	{
+	case 'place:city':
+		$aResult['zoom'] = 12;
+		break;
+	case 'place:town':
+		$aResult['zoom'] = 14;
+		break;
+	case 'place:village':
+	case 'place:hamlet':
+		$aResult['zoom'] = 15;
+		break;
+	case 'place:house':
+		$aResult['zoom'] = 18;
+		break;
+	}
+}
+elseif ($fMaxDiameter < 0.005) $aResult['zoom'] = 18;
 else if ($fMaxDiameter < 0.01) $aResult['zoom'] = 17;
 else if ($fMaxDiameter < 0.02) $aResult['zoom'] = 16;
 else if ($fMaxDiameter < 0.04) $aResult['zoom'] = 15;
@@ -524,9 +577,16 @@ else if ($fMaxDiameter < 0.08) $aResult['zoom'] = 14;
 else if ($fMaxDiameter < 0.16) $aResult['zoom'] = 13;
 else if ($fMaxDiameter < 0.32) $aResult['zoom'] = 12;
 else if ($fMaxDiameter < 0.64) $aResult['zoom'] = 11;
-else $aResult['zoom'] = 10;
-*/
-
+else if ($fMaxDiameter < 1.28) $aResult['zoom'] = 10;
+else if ($fMaxDiameter < 2.56) $aResult['zoom'] = 9;
+else if ($fMaxDiameter < 5.12) $aResult['zoom'] = 8;
+else if ($fMaxDiameter < 10.24) $aResult['zoom'] = 7;
+else $aResult['zoom'] = 6;
+}
+else
+{
+	$aResult['zoom'] = 14;
+}
 $aResult['name'] = $aResult['langaddress'];
 switch($aResult['class'].':'.$aResult['type'])
 {
@@ -558,16 +618,37 @@ default:
 	break;
 }
 //var_dump($aResult);
-if (isset($aResult['zoom']))
-	$sSearchResult .= '<div class="result" onClick="panToLatLonZoom('.$aResult['lat'].', '.$aResult['lon'].', '.$aResult['zoom'].');">';
+if (isset($_GET['format']) && $_GET['format'] == 'raw')
+{
+	$sSearchResult .= '<div class="result">';
+}
 else
-	$sSearchResult .= '<div class="result" onClick="panToLatLon('.$aResult['lat'].', '.$aResult['lon'].');">';
+{
+	if (isset($aResult['zoom']))
+		$sSearchResult .= '<div class="result" onClick="panToLatLonZoom('.$aResult['lat'].', '.$aResult['lon'].', '.$aResult['zoom'].');">';
+	else
+		$sSearchResult .= '<div class="result" onClick="panToLatLon('.$aResult['lat'].', '.$aResult['lon'].');">';
+}
 $sSearchResult .= $aResult['icon'];
 $sSearchResult .= ' <span class="name">'.$aResult['name'].'</span>';
 $sSearchResult .= ' <span class="latlon">'.round($aResult['lat'],3).','.round($aResult['lat'],3).'</span>';
 $sSearchResult .= ' <span class="place_id">'.$aResult['place_id'].'</span>';
 $sSearchResult .= ' <span class="type">('.ucwords(str_replace('_',' ',$aResult['type'])).')</span>';
+$sSearchResult .= ' <span class="details">(<a href="details.php?place_id='.$aResult['place_id'].'">details</a>)</span>';
 $sSearchResult .= '</div>';
+
+if ($iResNum == 0)
+{
+	$fLat = $aResult['lat'];
+	$fLon = $aResult['lon'];
+	if (isset($aResult['zoom'])) $iZoom = $aResult['zoom'];
+}
+
+}
+if (isset($_GET['format']) && $_GET['format'] == 'raw')
+{
+echo $sSearchResult;
+exit;
 }
 $aLanguageOptions = $oDB->getAll("select languagecode,nativename||case when nativename != englishname then ' ('||englishname||')' ELSE '' END as name from languagedata order by nativename");
 
@@ -695,6 +776,12 @@ body {
   font: normal 9px/10px arial,sans-serif;
   padding-top:4px;
 }
+.result .details, .result .details a{
+  color: #ccc;
+  text-align:center;
+  font: normal 9px/10px arial,sans-serif;
+  padding-top:4px;
+}
 .disclaimer{
   color: #ccc;
   text-align:center;
@@ -728,15 +815,17 @@ form{
 
 	function panToLatLonZoom(lat,lon, zoom) {
             	var lonLat = new OpenLayers.LonLat(lon, lat).transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());
-            	map.panTo(lonLat, zoom);
+		if (zoom != map.getZoom())
+	            	map.setCenter(lonLat, zoom);
+		else
+        	    	map.panTo(lonLat, 10);
 	}
 
 	function mapEventMove() {
 		var proj = new OpenLayers.Projection("EPSG:4326");
-
-		var topleft = map.getLonLatFromViewPortPx(new OpenLayers.Pixel(0,0)).transform(map.getProjectionObject(), proj);
-		var bottomright = map.getLonLatFromViewPortPx(new OpenLayers.Pixel(map.size.w,map.size.h)).transform(map.getProjectionObject(), proj);
-		$('viewbox').value = topleft.lat+','+topleft.lon+','+bottomright.lat+','+bottomright.lon;
+		var bounds = map.getExtent();
+		bounds = bounds.transform(map.getProjectionObject(), proj);
+		$('viewbox').value = bounds.left+','+bounds.top+','+bounds.right+','+bounds.bottom;
 
 		/*
 		var center = map.getCenter();
@@ -798,7 +887,9 @@ form{
 <div id="searchresultsfade1"></div><div id="searchresultsfade2"></div><div id="searchresultsfade3"></div><div id="searchresultsfade4"></div>
 
 <div id="seachheader"><form>
-<table border="0"><tr><td valign="center"><img src="images/logo.gif"></td><td valign="center"><input id="q" name="q" value="<?php echo htmlspecialchars($sQueryOut); ?>"><input type="hidden" id="viewbox" name="viewbox"></td><td><input type="submit" value="Search"></td></tr></table>
+<table border="0"><tr><td valign="center"><img src="images/logo.gif"></td><td valign="center"><input id="q" name="q" value="<?php echo htmlspecialchars($sQueryOut); ?>"><input type="hidden" id="viewbox" name="viewbox"></td><td><input type="submit" value="Search"></td>
+<td valign="top" style="padding-left: 20px;font: normal 10px/12px arial,sans-serif;">Known problems:</td><td valign="top" style="font: normal 10px/12px arial,sans-serif;"> ss does not find &szlig;, requires re-index to fix</td>
+</tr></table>
 </form></div>
 
 <div id="searchresults">
