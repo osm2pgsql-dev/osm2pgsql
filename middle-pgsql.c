@@ -24,6 +24,16 @@
 #include "output-pgsql.h"
 #include "pgsql.h"
 
+/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
+/* Scale is chosen such that 40,000 * SCALE < 2^32          */
+#define FIXED_POINT
+
+static int scale = 100;
+#define DOUBLE_TO_FIX(x) ((int)((x) * scale))
+#define FIX_TO_DOUBLE(x) (((double)x) / scale)
+
+
+
 enum table_id {
     t_node, t_way, t_rel
 } ;
@@ -49,8 +59,13 @@ static struct table_desc tables [] = {
         //table: t_node,
          name: "%s_nodes",
         start: "BEGIN;\n",
+#ifdef FIXED_POINT
+       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat int4 not null, lon int4 not null, tags text[]);\n",
+      prepare: "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+#else
        create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
       prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+#endif
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
 prepare_intarray: // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
@@ -144,14 +159,6 @@ static struct table_desc *rel_table  = &tables[t_rel];
  *  Add new block: O(log usedBlocks)
  *  Reuse old block: O(log maxBlocks)
  */
-
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
-
-static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((x) * scale)
-#define FIX_TO_DOUBLE(x) (((double)x) / scale)
 
 struct ramNode {
 #ifdef FIXED_POINT
@@ -608,17 +615,25 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
       char *tag_buf = pgsql_store_tags(tags,1);
       int length = strlen(tag_buf) + 64;
       buffer = alloca( length );
-      
+#ifdef FIXED_POINT
+      if( snprintf( buffer, length, "%d\t%d\t%d\t%s\n", id, DOUBLE_TO_FIX(lat), DOUBLE_TO_FIX(lon), tag_buf ) > (length-10) )
+      { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
+#else
       if( snprintf( buffer, length, "%d\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
+#endif
       return pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
     }
     buffer = alloca(64);
     paramValues[0] = buffer;
     paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%d", id ) + 1;
+#ifdef FIXED_POINT
+    paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%d", DOUBLE_TO_FIX(lat) ) + 1;
+    sprintf( paramValues[2], "%d", DOUBLE_TO_FIX(lon) );
+#else
     paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%.10f", lat ) + 1;
     sprintf( paramValues[2], "%.10f", lon );
-
+#endif
     paramValues[3] = pgsql_store_tags(tags,0);
     pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
@@ -649,8 +664,13 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
         return 1;
     } 
 
+#ifdef FIXED_POINT
+    out->lat = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 0), NULL, 10));
+    out->lon = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 1), NULL, 10));
+#else
     out->lat = strtod(PQgetvalue(res, 0, 0), NULL);
     out->lon = strtod(PQgetvalue(res, 0, 1), NULL);
+#endif
     PQclear(res);
     return 0;
 }
