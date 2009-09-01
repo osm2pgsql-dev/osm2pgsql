@@ -37,7 +37,7 @@ static struct Projection_Info custom_projection;
 // assumed to refer to EPSG codes and it uses the proj4 to find those.
 void project_init(int proj)
 {
-	char buffer[16];
+	char buffer[32];
 	Proj = proj;
 	
 	if( proj == PROJ_LATLONG )
@@ -48,7 +48,11 @@ void project_init(int proj)
 		pj_merc = pj_init_plus( Projection_Info[proj].proj4text );
 	else if( proj < 0 )
 	{
-		sprintf( buffer, "+init=epsg:%d", -proj );
+	   if( snprintf( buffer, sizeof(buffer), "+init=epsg:%d", -proj ) >= (int)sizeof(buffer) )
+		{
+			fprintf( stderr, "Buffer overflow computing proj4 initialisation string\n" );
+			exit(1);
+		}
 		pj_merc = pj_init_plus( buffer );
 		if( !pj_merc )
 		{
@@ -66,7 +70,11 @@ void project_init(int proj)
 		return;
 	custom_projection.srs = -proj;
 	custom_projection.proj4text = pj_get_def( pj_merc, 0 );
-	sprintf( buffer, "EPSG:%d", -proj );
+	if( snprintf( buffer, sizeof(buffer), "EPSG:%d", -proj ) >= (int)sizeof(buffer) )
+	{
+		fprintf( stderr, "Buffer overflow computing projection description\n" );
+		exit(1);
+	}
 	custom_projection.descr = strdup(buffer);
 	custom_projection.option = "-E";
 	return;
