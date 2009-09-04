@@ -645,7 +645,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 		addItem(tags, "way_area", tmp, 0);
 	    }
 	    write_wkts(id, tags, wkt, t_poly);
-	    add_parking_node(id, tags, interior_lat, interior_lon);
+	    //add_parking_node(id, tags, interior_lat, interior_lon);
 	} else {
             expire_tiles_from_nodes_line(nodes, count);
 	    write_wkts(id, tags, wkt, t_line);
@@ -865,7 +865,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
                 }
                 write_wkts(-id, &tags, wkt, t_poly);
                 get_interior(i, &interior_lat, &interior_lon);
-                add_parking_node(-id, &tags, interior_lat, interior_lon);
+                //add_parking_node(-id, &tags, interior_lat, interior_lon);
         } else {
                 write_wkts(-id, &tags, wkt, t_line);
                 if (roads)
