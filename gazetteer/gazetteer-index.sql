@@ -37,19 +37,23 @@ DROP SEQUENCE seq_progress_updates;
 CREATE SEQUENCE seq_progress_updates start 1;
 
 select 'now'::timestamp;
-insert into placex select null,'E',null,'place','county',ARRAY[ROW('name',county)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
-insert into placex select null,'E',null,'place','state',ARRAY[ROW('ref',state)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstatecounty;
-insert into placex select null,'E',null,'place','state',ARRAY[ROW('name',state)::keyvalue],null,null,null,null,null,'US',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from usstate;
-insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,postcode,countrycode,null,null,null,null,geometry from gbpostcodedata;
-insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,substring(postcode from '^([A-Z][A-Z]?[0-9][0-9A-Z]?) [0-9]$'),countrycode,null,null,null,null,geometry from gbpostcodedata where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
-insert into placex select null,'X',nextval,'place','postcodearea',ARRAY[ROW('name',postcodeareaname)::keyvalue],null,null,null,null,null,'GB',null,15,15,false,geometry from gbpostcodedata join gbpostcodearea on (substring(postcode from '^([A-Z][A-Z]?)[0-9][0-9A-Z]? [0-9]$') = postcodeareaid) where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
+insert into placex select null,'E',null,'place','county',ARRAY[ROW('name',county)::keyvalue],null,null,null,null,null,'us',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from us_statecounty;
+insert into placex select null,'E',null,'place','state',ARRAY[ROW('ref',state)::keyvalue],null,null,null,null,null,'us',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from us_statecounty;
+insert into placex select null,'E',null,'place','state',ARRAY[ROW('name',state)::keyvalue],null,null,null,null,null,'us',null,null,null,false,ST_Transform(geometryn(the_geom, generate_series(1, numgeometries(the_geom))), 4326) from us_state;
+insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,postcode,lower(countrycode),null,null,null,null,geometry from gb_postcode;
+insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,substring(postcode from '^([A-Z][A-Z]?[0-9][0-9A-Z]?) [0-9]$'),lower(countrycode),null,null,null,null,geometry from gb_postcode where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
+insert into placex select null,'X',nextval,'place','postcodearea',ARRAY[ROW('name',postcodeareaname)::keyvalue],null,null,null,null,null,'gb',null,15,23,false,geometry from gb_postcode join gb_postcodearea on (substring(postcode from '^([A-Z][A-Z]?)[0-9][0-9A-Z]? [0-9]$') = postcodeareaid) where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
 
 select 'now'::timestamp;
 insert into placex select * from place where osm_type = 'N';
+select 'now'::timestamp;
 insert into placex select * from place where osm_type = 'W';
+select 'now'::timestamp;
 insert into placex select * from place where osm_type = 'R';
 select 'now'::timestamp;
+
+-- use this to do a simple index - for the full planet use 'reindex.php'
 update placex set indexed = true where not indexed and rank_search <= 26 and name is not null;
-select 'now'::timestamp;
+select 'finished <= 26','now'::timestamp;
 update placex set indexed = true where not indexed and rank_search > 26 and name is not null;
-select 'now'::timestamp;
+select 'finished > 26','now'::timestamp;
