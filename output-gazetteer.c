@@ -22,6 +22,12 @@
    "  value TEXT"                               \
    ")"
 
+#define CREATE_WORDSCORE_TYPE                   \
+   "CREATE TYPE wordscore AS ("                 \
+   "  word TEXT,"                                \
+   "  score FLOAT"                               \
+   ")"
+
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
    "  place_id BIGINT,"                         \
@@ -70,6 +76,7 @@ static const struct taginfo {
    { "tourism",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "waterway", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "landuse",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "building",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { NULL,       NULL,             0                                     }
 };
 
@@ -169,7 +176,7 @@ static void stop_copy(void)
 }
 
 static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, 
-   int* admin_level, char ** housenumber, char ** street, char ** postcode)
+   int* admin_level, char ** housenumber, char ** street, char ** postcode, char ** countrycode)
 {
    int area = 0;
    struct keyval *item;
@@ -178,6 +185,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    *housenumber = 0;
    *street = 0;
    *postcode = 0;
+   *countrycode = 0;
 
    /* Initialise the result lists */
    initList(names);
@@ -190,14 +198,16 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       if (strcmp(item->key, "ref") == 0 ||
           strcmp(item->key, "iata") == 0 ||
           strcmp(item->key, "icao") == 0 ||
-          strcmp(item->key, "name") == 0 ||
           strcmp(item->key, "old_name") == 0 ||
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
           strcmp(item->key, "commonname") == 0 ||
           strcmp(item->key, "common_name") == 0 ||
           strcmp(item->key, "short_name") == 0 ||
-          (strncmp(item->key, "name:", 5) == 0 && strlen(item->key) < 15))
+          strcmp(item->key, "name") == 0 ||
+          strcmp(item->key, "official_name") == 0 ||
+          (strncmp(item->key, "name:", 5) == 0) ||
+          (strncmp(item->key, "official_name:", 14) == 0))
       {
          pushItem(names, item);
       }
@@ -228,6 +238,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "admin_level") == 0)
       {
          *admin_level = atoi(item->value);
+      }
+      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
+                strcmp(item->key, "country_code") == 0 || 
+                strcmp(item->key, "addr:country_code") == 0) 
+                && strlen(item->value) == 2)
+      {
+         *countrycode = item->value;
       }
       else
       {
@@ -284,7 +301,7 @@ void escape_array_record(char *out, int len, const char *in)
 
 
 static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
-   int adminlevel, const char *housenumber, const char *street, const char *postcode, const char *wkt)
+   int adminlevel, const char *housenumber, const char *street, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
    struct keyval *name;
@@ -369,7 +386,16 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
       copy_data("\\N\t");
    }
 
-   copy_data("\\N\t");
+   if (countrycode)
+   {
+      escape(sql, sizeof(sql), countrycode);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+     copy_data("\\N\t");
+   }
 
    copy_data("\\N\t");
 
@@ -425,21 +451,17 @@ static int gazetteer_out_start(const struct output_options *options)
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvalue cascade");
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists languagestring cascade");
+      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists wordscore cascade");
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists stringlanguagetype cascade");
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvaluetype cascade");
 
       /* Create types and functions */
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_TRANSLITERATION_FUNCTION);
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_FUNCTION);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX);
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_NAME_INDEX);
-//      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_SEARCH_ADDRESS_INDEX);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX);
@@ -486,10 +508,11 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
    char * housenumber;
    char * street;
    char * postcode;
+   char * countrycode;
    char wkt[128];
 
    /* Split the tags */
-   split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &postcode);
+   split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &postcode, &countrycode);
 
    /* Feed this node to the middle layer */
    Options->mid->nodes_set(id, lat, lon, tags);
@@ -500,7 +523,7 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
       for (place = firstItem(&places); place; place = nextItem(&places, place))
       {
-         add_place('N', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, wkt);
+         add_place('N', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, countrycode, wkt);
       }
    }
 
@@ -520,10 +543,11 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    char * housenumber;
    char * street;
    char * postcode;
+   char * countrycode;
    int area;
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &postcode);
+   area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &postcode, &countrycode);
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
@@ -545,7 +569,7 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            add_place('W', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, wkt);
+            add_place('W', id, place->key, place->value, &names, adminlevel, housenumber, street, postcode, countrycode, wkt);
          }
       }
 
@@ -571,6 +595,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    char * housenumber;
    char * street;
    char * postcode;
+   char * countrycode;
    int area, wkt_size;
    const char *type;
 
@@ -588,7 +613,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
       return 0;
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &postcode);
+   area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &postcode, &countrycode);
 
    if (listHasData(&names))
    {
@@ -621,7 +646,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
          char *wkt = get_wkt(i);
          if (strlen(wkt) && !strncmp(wkt, "POLYGON", strlen("POLYGON")))
          {
-            add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, postcode, wkt);
+            add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, postcode, countrycode, wkt);
             free(wkt);
          }
       }
