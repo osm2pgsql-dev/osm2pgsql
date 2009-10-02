@@ -624,8 +624,10 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     double area, interior_lat, interior_lon;
     
     /* If the flag says this object may exist already, delete it first */
-    if(exists)
+    if(exists) {
         pgsql_delete_way_from_output(id);
+        Options->mid->way_changed(id);
+    }
 
     if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, &roads))
         return 0;
