@@ -27,7 +27,7 @@ const struct Projection_Info Projection_Info[] = {
      option: "-M" },
   [PROJ_SPHERE_MERC] = { 
      descr: "Spherical Mercator",  
-     proj4text: "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over", 
+     proj4text: "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs", 
      srs:900913, 
      option: "-m" }
 };
@@ -43,7 +43,7 @@ void project_init(int proj)
 	if( proj == PROJ_LATLONG )
 		return;
 		
-	pj_ll   = pj_init_plus("+proj=latlong +ellps=GRS80 +no_defs");
+	pj_ll   = pj_init_plus("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
 	if( proj >= 0 && proj < PROJ_COUNT )
 		pj_merc = pj_init_plus( Projection_Info[proj].proj4text );
 	else if( proj < 0 )
