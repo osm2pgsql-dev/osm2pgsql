@@ -590,6 +590,7 @@ int main(int argc, char *argv[])
     int create=0;
     int slim=0;
     int sanitize=0;
+    int long_usage_bool=0;
     int pass_prompt=0;
     int projection = PROJ_SPHERE_MERC;
     int expire_tiles_zoom = -1;
@@ -670,16 +671,17 @@ int main(int argc, char *argv[])
                 break;
             case 'o': expire_tiles_filename=optarg; break;
 	    case 'O': output_backend = optarg; break;
-
-            case 'h':
-                long_usage(argv[0]);
-                exit(EXIT_FAILURE);
-
+            case 'h': long_usage_bool=1; break;
             case '?':
             default:
                 short_usage(argv[0]);
                 exit(EXIT_FAILURE);
         }
+    }
+
+    if (long_usage_bool) {
+        long_usage(argv[0]);
+        exit(EXIT_FAILURE);
     }
 
     if (argc == optind) {  // No non-switch arguments
