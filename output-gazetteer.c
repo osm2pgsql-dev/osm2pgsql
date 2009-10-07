@@ -558,14 +558,13 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       struct osmNode *nodev;
       int nodec;
       char *wkt;
-      double dummy;
     
       /* Fetch the node details */
       nodev = malloc(ndc * sizeof(struct osmNode));
       nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
 
       /* Get the geometry of the object */
-      if ((wkt = get_wkt_simple(nodev, nodec, area, &dummy, &dummy, &dummy)) != NULL && strlen(wkt) > 0)
+      if ((wkt = get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
@@ -640,7 +639,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = build_geometry(id, xnodes, xcount, 1);
+      wkt_size = build_geometry(id, xnodes, xcount, 1, 1000000);
       for (i=0;i<wkt_size;i++)
       {
          char *wkt = get_wkt(i);

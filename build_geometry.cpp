@@ -55,11 +55,15 @@ using namespace geos;
 
 #include "build_geometry.h"
 
-using namespace std;
+typedef std::auto_ptr<Geometry> geom_ptr;
 
-char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, double *int_x, double *int_y) {
+static std::vector<std::string> wkts;
+static std::vector<double> areas;
+
+
+char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
     GeometryFactory gf;
-    auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
+    std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
 
     try
     {
@@ -70,32 +74,19 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, doubl
             coords->add(c, 0);
         }
 
-        auto_ptr<Geometry> geom;
+        geom_ptr geom;
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-            auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom = auto_ptr<Geometry>(gf.createPolygon(shell.release(),
-                                      new vector<Geometry *>));
+            std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+            geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             geom->normalize(); // Fix direction of ring
-            *area = geom->getArea();
-            try {
-                std::auto_ptr<Point> pt(geom->getInteriorPoint());
-                *int_x = pt->getX();
-                *int_y = pt->getY();
-            } catch (...) {
-       // This happens on some unusual polygons, we'll ignore them for now
-       //std::cerr << std::endl << "Exception finding interior point" << std::endl;
-                *int_x = *int_y = 0.0;
-            }
         } else {
-            *area = 0;
-            *int_x = *int_y = 0;
             if (coords->getSize() < 2)
                 return NULL;
-            geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+            geom = geom_ptr(gf.createLineString(coords.release()));
         }
 
         WKTWriter wktw;
-        string wkt = wktw.write(geom.get());
+        std::string wkt = wktw.write(geom.get());
         return strdup(wkt.c_str());
     }
     catch (...)
@@ -103,45 +94,67 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon, double *area, doubl
         std::cerr << std::endl << "excepton caught processing way" << std::endl;
         return NULL;
     }
-
 }
 
 
-typedef std::auto_ptr<Geometry> geom_ptr;
+size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
+    GeometryFactory gf;
+    std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
+    double area;
+    WKTWriter wktw;
+    size_t wkt_size = 0;
 
-struct Segment
-{
-      Segment(double x0_,double y0_,double x1_,double y1_)
-         :x0(x0_),y0(y0_),x1(x1_),y1(y1_) {}
+    try
+    {
+        for (int i = 0; i < count ; i++) {
+            Coordinate c;
+            c.x = nodes[i].lon;
+            c.y = nodes[i].lat;
+            coords->add(c, 0);
+        }
 
-      double x0;
-      double y0;
-      double x1;
-      double y1;
-};
+        geom_ptr geom;
+        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
+            std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+            geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
+            geom->normalize(); // Fix direction of ring
+            area = geom->getArea();
+            std::string wkt = wktw.write(geom.get());
+            wkts.push_back(wkt);
+            areas.push_back(area);
+            wkt_size++;
+        } else {
+            if (coords->getSize() < 2)
+                return 0;
 
-struct Interior
-{
-	Interior(double x_, double y_)
-	  : x(x_), y(y_) {}
-
-	Interior(Geometry *geom) {
-            try {
-                std::auto_ptr<Point> pt(geom->getInteriorPoint());
-                x = pt->getX();
-                y = pt->getY();
-            } catch (...) {
-                // This happens on some unusual polygons, we'll ignore them for now
-                //std::cerr << std::endl << "Exception finding interior point" << std::endl;
-                x=y=0.0;
+            double distance = 0;
+            std::auto_ptr<CoordinateSequence> segment;
+            segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create(0, 2));
+            segment->add(coords->getAt(0));
+            for(unsigned i=1; i<coords->getSize(); i++) {
+                segment->add(coords->getAt(i));
+                distance += coords->getAt(i).distance(coords->getAt(i-1));
+                if ((distance >= split_at) || (i == coords->getSize()-1)) {
+                    geom = geom_ptr(gf.createLineString(segment.release()));
+                    std::string wkt = wktw.write(geom.get());
+                    wkts.push_back(wkt);
+                    areas.push_back(0);
+                    wkt_size++;
+                    distance=0;
+                    segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create(0, 2));
+                    segment->add(coords->getAt(i));
+                }
             }
         }
-	double x, y;
-};
 
-static std::vector<std::string> wkts;
-static std::vector<Interior> interiors;
-static std::vector<double> areas;
+    }
+    catch (...)
+    {
+        std::cerr << std::endl << "excepton caught processing way" << std::endl;
+        wkt_size = 0;
+    }
+    return wkt_size;
+}
 
 
 char * get_wkt(size_t index)
@@ -155,12 +168,6 @@ char * get_wkt(size_t index)
 	return result;
 }
 
-void get_interior(size_t index, double *y, double *x)
-{
-	*x = interiors[index].x;
-	*y = interiors[index].y;
-}
-
 double get_area(size_t index)
 {
     return areas[index];
@@ -169,7 +176,6 @@ double get_area(size_t index)
 void clear_wkts()
 {
    wkts.clear();
-   interiors.clear();
    areas.clear();
 }
 
@@ -252,16 +258,16 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
     return 0;
 }
 
-size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon) {
+size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, double split_at) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
-    auto_ptr<Geometry> geom;
+    geom_ptr geom;
 
     try
     {
         for (int c=0; xnodes[c]; c++) {
-            auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
+            std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create(0, 2));
             for (int i = 0; i < xcount[c]; i++) {
                 struct osmNode *nodes = xnodes[c];
                 Coordinate c;
@@ -270,7 +276,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
-                geom = auto_ptr<Geometry>(gf.createLineString(coords.release()));
+                geom = geom_ptr(gf.createLineString(coords.release()));
                 lines->push_back(geom.release());
             }
         }
@@ -307,11 +313,28 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
                 }
             } else {
                         //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
-                std::string text = writer.write(pline.get());
-                wkts.push_back(text);
-                interiors.push_back(Interior(0,0));
-                areas.push_back(0.0);
-                wkt_size++;
+                double distance = 0;
+                std::auto_ptr<CoordinateSequence> segment;
+                segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create(0, 2));
+                segment->add(pline->getCoordinateN(0));
+                for(unsigned i=1; i<pline->getNumPoints(); i++) {
+                    segment->add(pline->getCoordinateN(i));
+                    distance += pline->getCoordinateN(i).distance(pline->getCoordinateN(i-1));
+                    if ((distance >= split_at) || (i == pline->getNumPoints()-1)) {
+                        geom = geom_ptr(gf.createLineString(segment.release()));
+                        std::string wkt = writer.write(geom.get());
+                        wkts.push_back(wkt);
+                        areas.push_back(0);
+                        wkt_size++;
+                        distance=0;
+                        segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create(0, 2));
+                        segment->add(pline->getCoordinateN(i));
+                    }
+                }
+                //std::string text = writer.write(pline.get());
+                //wkts.push_back(text);
+                //areas.push_back(0.0);
+                //wkt_size++;
             }
         }
 
@@ -321,7 +344,6 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
             std::string text = writer.write(poly.get());
 //                    std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
             wkts.push_back(text);
-            interiors.push_back(Interior(poly.get()));
             areas.push_back(ext_area);
             wkt_size++;
         }

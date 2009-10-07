@@ -328,7 +328,7 @@ static int add_z_order(struct keyval *tags, int *roads)
     return 0;
 }
 
-
+#if 0
 static void fix_motorway_shields(struct keyval *tags)
 {
     const char *highway = getItem(tags, "highway");
@@ -342,7 +342,7 @@ static void fix_motorway_shields(struct keyval *tags)
     if (name && !ref)
         addItem(tags, "ref", name, 0);
 }
-
+#endif
 
 /* Append all alternate name:xx on to the name tag with space sepatators.
  * name= always comes first, the alternates are in no particular order
@@ -620,9 +620,9 @@ E4C1421D5BF24D06053E7DF4940
 static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
-    char *wkt;
-    double area, interior_lat, interior_lon;
-    
+    int i, wkt_size;
+    double split_at;
+
     /* If the flag says this object may exist already, delete it first */
     if(exists) {
         pgsql_delete_way_from_output(id);
@@ -632,30 +632,39 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     if (pgsql_filter_tags(OSMTYPE_WAY, tags, &polygon) || add_z_order(tags, &roads))
         return 0;
 
-    //compress_tag_name(tags);
+    // Split long ways after around 1 degree or 100km
+    if (Options->projection == PROJ_LATLONG)
+        split_at = 1;
+    else
+        split_at = 100 * 1000;
 
-    fix_motorway_shields(tags);
+    wkt_size = get_wkt_split(nodes, count, polygon, split_at);
 
-    wkt = get_wkt_simple(nodes, count, polygon, &area, &interior_lon, &interior_lat);
-    if (wkt && strlen(wkt)) {
-	/* FIXME: there should be a better way to detect polygons */
-	if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
-            expire_tiles_from_nodes_poly(nodes, count, id);
-	    if (area > 0.0) {
-		char tmp[32];
-		snprintf(tmp, sizeof(tmp), "%f", area);
-		addItem(tags, "way_area", tmp, 0);
-	    }
-	    write_wkts(id, tags, wkt, t_poly);
-	    //add_parking_node(id, tags, interior_lat, interior_lon);
-	} else {
-            expire_tiles_from_nodes_line(nodes, count);
-	    write_wkts(id, tags, wkt, t_line);
-	    if (roads)
-		write_wkts(id, tags, wkt, t_roads);
-	}
+    for (i=0;i<wkt_size;i++)
+    {
+        char *wkt = get_wkt(i);
+
+        if (wkt && strlen(wkt)) {
+            /* FIXME: there should be a better way to detect polygons */
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+                expire_tiles_from_nodes_poly(nodes, count, id);
+                double area = get_area(i);
+                if (area > 0.0) {
+                    char tmp[32];
+                    snprintf(tmp, sizeof(tmp), "%f", area);
+                    addItem(tags, "way_area", tmp, 0);
+                }
+                write_wkts(id, tags, wkt, t_poly);
+            } else {
+                expire_tiles_from_nodes_line(nodes, count);
+                write_wkts(id, tags, wkt, t_line);
+                if (roads)
+                    write_wkts(id, tags, wkt, t_roads);
+            }
+        }
+        free(wkt);
     }
-    free(wkt);
+    clear_wkts();
 	
     return 0;
 }
@@ -663,12 +672,13 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, int *xid, const char **xrole)
 {
     int i, wkt_size;
-    double interior_lat, interior_lon;
     int polygon = 0, roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
     struct keyval tags, *p, poly_tags;
     char *type;
+    double split_at;
+
 #if 0
     fprintf(stderr, "Got relation with counts:");
     for (i=0; xcount[i]; i++)
@@ -843,7 +853,13 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         return 0;
     }
 
-    wkt_size = build_geometry(id, xnodes, xcount, make_polygon);
+    // Split long linear ways after around 1 degree or 100km (polygons not effected)
+    if (Options->projection == PROJ_LATLONG)
+        split_at = 1;
+    else
+        split_at = 100 * 1000;
+
+    wkt_size = build_geometry(id, xnodes, xcount, make_polygon, split_at);
 
     if (!wkt_size) {
         resetList(&tags);
@@ -855,7 +871,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     {
         char *wkt = get_wkt(i);
 
-        if (strlen(wkt)) {
+        if (wkt && strlen(wkt)) {
             expire_tiles_from_wkt(wkt, -id);
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
@@ -866,14 +882,12 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
                     addItem(&tags, "way_area", tmp, 0);
                 }
                 write_wkts(-id, &tags, wkt, t_poly);
-                get_interior(i, &interior_lat, &interior_lon);
-                //add_parking_node(-id, &tags, interior_lat, interior_lon);
-        } else {
+            } else {
                 write_wkts(-id, &tags, wkt, t_line);
                 if (roads)
                     write_wkts(-id, &tags, wkt, t_roads);
             }
-    }
+        }
         free(wkt);
     }
 
@@ -907,7 +921,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
-        wkt_size = build_geometry(id, xnodes, xcount, 1);
+        wkt_size = build_geometry(id, xnodes, xcount, 1, split_at);
         for (i=0;i<wkt_size;i++)
         {
             char *wkt = get_wkt(i);
