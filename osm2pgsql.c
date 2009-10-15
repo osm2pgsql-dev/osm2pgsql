@@ -489,7 +489,7 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
-    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to ./default.style\n");
+    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to /usr/share/osm2pgsql/default.style\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
@@ -603,7 +603,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
-    const char *style = "./default.style";
+    const char *style = "/usr/share/osm2pgsql/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
     int cache = 800;
@@ -748,7 +748,7 @@ int main(int argc, char *argv[])
     } else if (strcmp("null", output_backend) == 0) {
       out = &out_null;
     } else {
-      fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, null].\n", output_backend);
+      fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
       exit(EXIT_FAILURE);
     }
 
