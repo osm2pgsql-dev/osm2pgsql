@@ -1,3 +1,8 @@
+drop table import_status;
+CREATE TABLE import_status (
+  lastimportdate timestamp NOT NULL
+  );
+
 DROP SEQUENCE seq_location;
 CREATE SEQUENCE seq_location start 1;
 
@@ -31,6 +36,7 @@ drop table IF EXISTS word;
 CREATE TABLE word (
   word_id INTEGER,
   word_token text,
+  word_trigram text,
   word text,
   class text,
   type text,
@@ -79,6 +85,7 @@ drop table IF EXISTS search_name;
 CREATE TABLE search_name (
   place_id bigint,
   search_rank integer,
+  address_rank integer,
   country_code varchar(2),
   name_vector integer[],
   nameaddress_vector integer[]
@@ -94,25 +101,38 @@ CREATE TABLE place_addressline (
   place_id bigint,
   address_place_id bigint,
   fromarea boolean,
+  isaddress boolean,
   distance float,
   cached_rank_address integer
   );
 CREATE INDEX idx_place_addressline_place_id on place_addressline USING BTREE (place_id);
 CREATE INDEX idx_place_addressline_address_place_id on place_addressline USING BTREE (address_place_id);
 
-drop table IF EXISTS place_boundingbox;
+drop table IF EXISTS place_boundingbox CASCADE;
 CREATE TABLE place_boundingbox (
   place_id bigint,
   minlat float,
   maxlat float,
   minlon float,
-  maxlon float
+  maxlon float,
+  numfeatures integer,
+  area float
   );
 CREATE INDEX idx_place_boundingbox_place_id on place_boundingbox USING BTREE (place_id);
 SELECT AddGeometryColumn('place_boundingbox', 'outline', 4326, 'GEOMETRY', 2);
 CREATE INDEX idx_place_boundingbox_outline ON place_boundingbox USING GIST (outline);
 GRANT SELECT on place_boundingbox to "www-data" ;
 GRANT INSERT on place_boundingbox to "www-data" ;
+
+drop table IF EXISTS reverse_cache;
+CREATE TABLE reverse_cache (
+  latlonzoomid integer,
+  country_code varchar(2),
+  place_id bigint
+  );
+GRANT SELECT on reverse_cache to "www-data" ;
+GRANT INSERT on reverse_cache to "www-data" ;
+CREATE INDEX idx_reverse_cache_latlonzoomid ON reverse_cache USING BTREE (latlonzoomid);
 
 drop table country;
 CREATE TABLE country (
@@ -153,7 +173,12 @@ CREATE INDEX idx_placex_rank_search ON placex USING BTREE (rank_search);
 CREATE INDEX idx_placex_rank_address ON placex USING BTREE (rank_address);
 CREATE INDEX idx_placex_geometry ON placex USING GIST (geometry);
 CREATE INDEX idx_placex_indexed ON placex USING BTREE (indexed);
-CREATE INDEX idx_placex_postcodesector ON placex USING BTREE (substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$'));
+CREATE INDEX idx_placex_pending ON placex USING BTREE (rank_search) where name IS NOT NULL and indexed = false;
+CREATE INDEX idx_placex_pendingbylatlon ON placex USING BTREE (geometry_index(geometry,indexed,name),rank_search) 
+  where geometry_index(geometry,indexed,name) IS NOT NULL;
+CREATE INDEX idx_placex_street_place_id ON placex USING BTREE (street_place_id) where street_place_id IS NOT NULL;
+CREATE INDEX idx_placex_gb_postcodesector ON placex USING BTREE (substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$'))
+  where country_code = 'gb' and substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$') is not null;
 DROP SEQUENCE seq_place;
 CREATE SEQUENCE seq_place start 1;
 GRANT SELECT on placex to "www-data" ;
@@ -200,18 +225,17 @@ GRANT SELECT on location_point_2 to "www-data" ;
 GRANT SELECT on location_point_1 to "www-data" ;
 GRANT SELECT on country to "www-data" ;
 
--- insert creates the location tagbles, optionall creates location indexes if indexed == true
+-- insert creates the location tagbles, creates location indexes if indexed == true
 CREATE TRIGGER placex_before_insert BEFORE INSERT ON placex
     FOR EACH ROW EXECUTE PROCEDURE placex_insert();
 
--- update insert creates the location tagbles
+-- update insert creates the location tables
 CREATE TRIGGER placex_before_update BEFORE UPDATE ON placex
     FOR EACH ROW EXECUTE PROCEDURE placex_update();
 
 -- diff update triggers
 CREATE TRIGGER placex_before_delete AFTER DELETE ON placex
     FOR EACH ROW EXECUTE PROCEDURE placex_delete();
-
 CREATE TRIGGER place_before_delete BEFORE DELETE ON place
     FOR EACH ROW EXECUTE PROCEDURE place_delete();
 CREATE TRIGGER place_before_insert BEFORE INSERT ON place

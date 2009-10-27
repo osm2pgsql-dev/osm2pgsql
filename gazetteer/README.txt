@@ -20,7 +20,7 @@ createlang plpgsql gazetteer
 cat /usr/share/postgresql/8.3/contrib/_int.sql | psql gazetteer
 cat /usr/share/postgresql-8.3-postgis/lwpostgis.sql | psql gazetteer
 cat /usr/share/postgresql-8.3-postgis/spatial_ref_sys.sql | psql gazetteer
-osm2pgsql -l -O gazetter -d gazetteer planet.osm.bz2
+osm2pgsql -lsc -O gazetteer -d gazetteer planet.osm.bz2
 
 2) Build the transliteration module
 cd gazetter
@@ -39,10 +39,11 @@ createuser -SDR www-data
 5) Add gazetteer functions to database
 cat gazetteer-functions.sql | psql gazetteer
 cat gazetteer-tables.sql | psql gazetteer
+cat gazetteer-functions.sql | psql gazetteer
 
 6) Index the database - this will take a VERY long time!
 cat gazetteer-index.sql | psql gazetteer
-(Or use php -f reindex.php 100 ; php -f reindex.php 1)
+(Or use util.index.php)
 
 7) Various 'special' words for searching - see file for details
 cat import_specialwords.sql | psql gazetteer

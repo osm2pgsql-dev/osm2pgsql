@@ -33,9 +33,13 @@
 		var_dump($aPointDetails);
 		exit;
 	}
+        $aPointDetails['localname'] = $aPointDetails['localname']?$aPointDetails['localname']:$aPointDetails['housenumber'];
 	$fLon = $aPointDetails['lon'];
 	$fLat = $aPointDetails['lat'];
 	$iZoom = 14;
+
+	$aClassType = getClassTypesWithImportance();
+	$aPointDetails['icon'] = $aClassType[$aPointDetails['class'].':'.$aPointDetails['type']]['icon'];
 
 	// Get all alternative names (languages, etc)
 	$aPointDetails['aNames'] = array();
@@ -50,6 +54,11 @@
 	// Get the bounding box and outline polygon
 	$sSQL = "select *,ST_AsText(outline) as outlinestring from get_place_boundingbox($iPlaceID)";
 	$aPointPolygon = $oDB->getRow($sSQL);
+	IF (PEAR::IsError($aPointPolygon))
+	{
+		var_dump($aPointPolygon);
+		exit;
+	}
 	if (preg_match('#POLYGON\\(\\(([- 0-9.,]+)#',$aPointPolygon['outlinestring'],$aMatch))
 	{
 		preg_match_all('/(-?[0-9.]+) (-?[0-9.]+)/',$aMatch[1],$aPolyPoints,PREG_SET_ORDER);
@@ -80,11 +89,11 @@
 	}
 
 	// Address
-	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, admin_level, rank_address, rank_search, get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
+	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
 	$sSQL .= " from place_addressline join placex on (address_place_id = placex.place_id)";
 	$sSQL .= " where place_addressline.place_id = $iPlaceID and (rank_address > 0 OR address_place_id = $iPlaceID) and placex.place_id != $iPlaceID";
-	if ($aPointDetails['country_code']) $sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."')";
+	if ($aPointDetails['country_code']) $sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."' OR rank_address < 4)";
 	$sSQL .= " order by cached_rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc";
 	$aAddressLines = $oDB->getAll($sSQL);
 	IF (PEAR::IsError($aAddressLines))
@@ -95,12 +104,12 @@
 
 	// All places this is a parent of
 	$iMaxRankAddress = $aPointDetails['rank_address']+13;
-	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, admin_level, cached_rank_address, ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') as isarea, distance, ";
+	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, cached_rank_address, ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') as isarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
 	$sSQL .= " from (select * from place_addressline where address_place_id = $iPlaceID and cached_rank_address < $iMaxRankAddress) as place_addressline join placex on (place_addressline.place_id = placex.place_id)";
 	$sSQL .= " where place_addressline.address_place_id = $iPlaceID and placex.rank_address < $iMaxRankAddress and cached_rank_address > 0 and placex.place_id != $iPlaceID";
 	$sSQL .= " and type != 'postcode'";
-	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL)";
+	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL),housenumber";
 	$aParentOfLines = $oDB->getAll($sSQL);
 
 	include('.htlib/output/details-html.php');

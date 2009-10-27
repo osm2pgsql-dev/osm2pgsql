@@ -15,6 +15,10 @@
 	
 	function byImportance($a, $b)
 	{
+		if ($a['aPointPolygon']['numfeatures'] != $b['aPointPolygon']['numfeatures'])
+			return ($a['aPointPolygon']['numfeatures'] > $b['aPointPolygon']['numfeatures']?-1:1);
+		if ($a['aPointPolygon']['area'] != $b['aPointPolygon']['area'])
+			return ($a['aPointPolygon']['area'] > $b['aPointPolygon']['area']?-1:1);
 		return ($a['importance'] == $b['importance']?0:($a['importance'] < $b['importance']?-1:1));
 	}
 
@@ -108,15 +112,23 @@
 		return abs(($aValues[$s1[0]]*21+$aValues[$s1[1]]) - ($aValues[$s2[0]]*21+$aValues[$s2[1]]));
 	}
 	
-	function gbPostcodeCalculate($sPostcode)
+	function gbPostcodeCalculate($sPostcode, &$oDB)
 	{
-		$aNearPostcodes = $oDB->getAll('select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcode.'\'');
+		$sSQL = 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcode.'\'';
+//var_dump($sSQL); exit;
+		$aNearPostcodes = $oDB->getAll($sSQL);
+		if (PEAR::IsError($aNearPostcodes))
+		{
+			var_dump($sSQL, $aNearPostcodes);
+			exit;
+		}
+
 		$fTotalLat = 0;
 		$fTotalLon = 0;
 		$fTotalFac = 0;
 		foreach($aNearPostcodes as $aPostcode)
 		{
-			$iDiff = postcodeAlphaDifference($aData[2], $aPostcode['substring']);
+			$iDiff = gbPostcodeAlphaDifference($aData[2], $aPostcode['substring']);
 			if ($iDiff == 0)
 				$fFac = 1;
 			else
@@ -130,7 +142,7 @@
 		{
 			$fLat = $fTotalLat / $fTotalFac;
 			$fLon = $fTotalLon / $fTotalFac;
-			$fRadius = 0.1 / $fTotalFac;
+			$fRadius = min(0.1 / $fTotalFac, 0.1);
 			return array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => $fRadius));
 		}
 		return false;
@@ -145,10 +157,13 @@
 	function getClassTypes()
 	{
 		return array(
- 'place:country' => array('label'=>'Country','frequency'=>0,'icon'=>'','defzoom'=>6,),
- 'place:state' => array('label'=>'State','frequency'=>0,'icon'=>'','defzoom'=>10,),
  'place:city' => array('label'=>'City','frequency'=>66,'icon'=>'poi_place_city','defzoom'=>12,),
- 'boundary:adminitrative' => array('label'=>'Adminitrative','frequency'=>413,'icon'=>'',),
+ 'place:country' => array('label'=>'Country','frequency'=>0,'icon'=>'poi_boundary_administrative','defzoom'=>6,),
+ 'place:state' => array('label'=>'State','frequency'=>0,'icon'=>'poi_boundary_administrative','defzoom'=>8,),
+ 'place:region' => array('label'=>'State','frequency'=>0,'icon'=>'poi_boundary_administrative','defzoom'=>8,),
+ 'place:island' => array('label'=>'Island','frequency'=>288,'icon'=>'','defzoom'=>11,),
+ 'place:county' => array('label'=>'County','frequency'=>108,'icon'=>'poi_boundary_administrative','defzoom'=>10,),
+ 'boundary:adminitrative' => array('label'=>'Adminitrative','frequency'=>413,'icon'=>'poi_boundary_administrative',),
  'place:town' => array('label'=>'Town','frequency'=>1497,'icon'=>'poi_place_town','defzoom'=>14,),
  'place:village' => array('label'=>'Village','frequency'=>11230,'icon'=>'poi_place_village','defzoom'=>15,),
  'place:hamlet' => array('label'=>'Hamlet','frequency'=>7075,'icon'=>'poi_place_village','defzoom'=>15,),
@@ -169,6 +184,7 @@
  'highway:service' => array('label'=>'Service','frequency'=>9963,'icon'=>'',),
  'highway:track' => array('label'=>'Track','frequency'=>2565,'icon'=>'',),
  'highway:road' => array('label'=>'Road','frequency'=>591,'icon'=>'',),
+ 'highway:byway' => array('label'=>'Byway','frequency'=>346,'icon'=>'',),
  'highway:bridleway' => array('label'=>'Bridleway','frequency'=>1556,'icon'=>'',),
  'highway:cycleway' => array('label'=>'Cycleway','frequency'=>2419,'icon'=>'',),
  'highway:pedestrian' => array('label'=>'Pedestrian','frequency'=>2757,'icon'=>'',),
@@ -176,6 +192,7 @@
  'highway:steps' => array('label'=>'Steps','frequency'=>444,'icon'=>'',),
  'highway:motorway_link' => array('label'=>'Motorway Link','frequency'=>795,'icon'=>'',),
  'highway:trunk_link' => array('label'=>'Trunk Link','frequency'=>1258,'icon'=>'',),
+ 'highway:primary_link' => array('label'=>'Primary Link','frequency'=>313,'icon'=>'',),
 
  'landuse:industrial' => array('label'=>'Industrial','frequency'=>1062,'icon'=>'',),
  'landuse:residential' => array('label'=>'Residential','frequency'=>886,'icon'=>'',),
@@ -191,7 +208,7 @@
  'tourism:museum' => array('label'=>'Museum','frequency'=>543,'icon'=>'tourist_museum',),
  'amenity:arts_centre' => array('label'=>'Arts Centre','frequency'=>136,'icon'=>'tourist_art_gallery2',),
  'tourism:zoo' => array('label'=>'Zoo','frequency'=>47,'icon'=>'tourist_zoo',),
- 'tourism:theme_park' => array('label'=>'Theme Park','frequency'=>24,'icon'=>'',),
+ 'tourism:theme_park' => array('label'=>'Theme Park','frequency'=>24,'icon'=>'poi_point_of_interest',),
  'tourism:attraction' => array('label'=>'Attraction','frequency'=>1463,'icon'=>'poi_point_of_interest',),
  'leisure:golf_course' => array('label'=>'Golf Course','frequency'=>712,'icon'=>'sport_golf',),
  'historic:castle' => array('label'=>'Castle','frequency'=>316,'icon'=>'tourist_castle',),
@@ -202,33 +219,34 @@
  'amenity:library' => array('label'=>'Library','frequency'=>794,'icon'=>'amenity_library',),
  'amenity:townhall' => array('label'=>'Townhall','frequency'=>242,'icon'=>'',),
  'amenity:community_centre' => array('label'=>'Community Centre','frequency'=>157,'icon'=>'',),
- 'amenity:fire_station' => array('label'=>'Fire Station','frequency'=>221,'icon'=>'',),
+ 'amenity:fire_station' => array('label'=>'Fire Station','frequency'=>221,'icon'=>'amenity_firestation3',),
+ 'amenity:police' => array('label'=>'Police','frequency'=>334,'icon'=>'amenity_police2',),
  'amenity:bank' => array('label'=>'Bank','frequency'=>1248,'icon'=>'money_bank2',),
  'amenity:post_office' => array('label'=>'Post Office','frequency'=>859,'icon'=>'amenity_post_office',),
  'leisure:park' => array('label'=>'Park','frequency'=>2378,'icon'=>'',),
  'amenity:park' => array('label'=>'Park','frequency'=>53,'icon'=>'',),
  'landuse:park' => array('label'=>'Park','frequency'=>50,'icon'=>'',),
  'landuse:recreation_ground' => array('label'=>'Recreation Ground','frequency'=>517,'icon'=>'',),
- 'tourism:hotel' => array('label'=>'Hotel','frequency'=>2150,'icon'=>'',),
+ 'tourism:hotel' => array('label'=>'Hotel','frequency'=>2150,'icon'=>'accommodation_hotel2',),
  'tourism:motel' => array('label'=>'Motel','frequency'=>43,'icon'=>'',),
- 'amenity:cinema' => array('label'=>'Cinema','frequency'=>277,'icon'=>'',),
- 'tourism:information' => array('label'=>'Information','frequency'=>224,'icon'=>'',),
+ 'amenity:cinema' => array('label'=>'Cinema','frequency'=>277,'icon'=>'tourist_cinema',),
+ 'tourism:information' => array('label'=>'Information','frequency'=>224,'icon'=>'amenity_information',),
  'tourism:artwork' => array('label'=>'Artwork','frequency'=>171,'icon'=>'art_gallery2',),
- 'historic:archaeological_site' => array('label'=>'Archaeological Site','frequency'=>407,'icon'=>'',),
- 'amenity:doctors' => array('label'=>'Doctors','frequency'=>581,'icon'=>'',),
- 'leisure:sports_centre' => array('label'=>'Sports Centre','frequency'=>767,'icon'=>'',),
- 'leisure:swimming_pool' => array('label'=>'Swimming Pool','frequency'=>24,'icon'=>'',),
+ 'historic:archaeological_site' => array('label'=>'Archaeological Site','frequency'=>407,'icon'=>'tourist_archaeological2',),
+ 'amenity:doctors' => array('label'=>'Doctors','frequency'=>581,'icon'=>'health_doctors',),
+ 'leisure:sports_centre' => array('label'=>'Sports Centre','frequency'=>767,'icon'=>'sport_leisure_centre',),
+ 'leisure:swimming_pool' => array('label'=>'Swimming Pool','frequency'=>24,'icon'=>'sport_swimming_outdoor',),
  'shop:supermarket' => array('label'=>'Supermarket','frequency'=>2673,'icon'=>'shopping_supermarket',),
  'shop:convenience' => array('label'=>'Convenience','frequency'=>1469,'icon'=>'shopping_convenience',),
- 'amenity:restaurant' => array('label'=>'Restaurant','frequency'=>3179,'icon'=>'',),
- 'amenity:fast_food' => array('label'=>'Fast Food','frequency'=>2289,'icon'=>'',),
+ 'amenity:restaurant' => array('label'=>'Restaurant','frequency'=>3179,'icon'=>'food_restaurant',),
+ 'amenity:fast_food' => array('label'=>'Fast Food','frequency'=>2289,'icon'=>'food_fastfood',),
  'amenity:cafe' => array('label'=>'Cafe','frequency'=>1780,'icon'=>'food_cafe',),
- 'tourism:guest_house' => array('label'=>'Guest House','frequency'=>223,'icon'=>'',),
- 'amenity:pharmacy' => array('label'=>'Pharmacy','frequency'=>733,'icon'=>'',),
- 'amenity:fuel' => array('label'=>'Fuel','frequency'=>1308,'icon'=>'',),
+ 'tourism:guest_house' => array('label'=>'Guest House','frequency'=>223,'icon'=>'accommodation_bed_and_breakfast',),
+ 'amenity:pharmacy' => array('label'=>'Pharmacy','frequency'=>733,'icon'=>'health_pharmacy_dispensing',),
+ 'amenity:fuel' => array('label'=>'Fuel','frequency'=>1308,'icon'=>'transport_fuel',),
  'natural:peak' => array('label'=>'Peak','frequency'=>3212,'icon'=>'poi_peak',),
  'waterway:waterfall' => array('label'=>'Waterfall','frequency'=>24,'icon'=>'',),
- 'natural:wood' => array('label'=>'Wood','frequency'=>1845,'icon'=>'',),
+ 'natural:wood' => array('label'=>'Wood','frequency'=>1845,'icon'=>'landuse_coniferous_and_deciduous',),
  'natural:water' => array('label'=>'Water','frequency'=>1790,'icon'=>'',),
  'landuse:forest' => array('label'=>'Forest','frequency'=>467,'icon'=>'',),
  'landuse:cemetery' => array('label'=>'Cemetery','frequency'=>463,'icon'=>'',),
@@ -240,17 +258,17 @@
  'waterway:stream' => array('label'=>'Stream','frequency'=>2684,'icon'=>'',),
  'shop:bicycle' => array('label'=>'Bicycle','frequency'=>349,'icon'=>'shopping_bicycle',),
  'shop:clothes' => array('label'=>'Clothes','frequency'=>315,'icon'=>'shopping_clothes',),
- 'shop:hairdresser' => array('label'=>'Hairdresser','frequency'=>312,'icon'=>'',),
+ 'shop:hairdresser' => array('label'=>'Hairdresser','frequency'=>312,'icon'=>'shopping_hairdresser',),
  'shop:doityourself' => array('label'=>'Doityourself','frequency'=>247,'icon'=>'shopping_diy',),
- 'shop:estate_agent' => array('label'=>'Estate Agent','frequency'=>162,'icon'=>'',),
- 'shop:car' => array('label'=>'Car','frequency'=>159,'icon'=>'',),
+ 'shop:estate_agent' => array('label'=>'Estate Agent','frequency'=>162,'icon'=>'shopping_estateagent2',),
+ 'shop:car' => array('label'=>'Car','frequency'=>159,'icon'=>'shopping_car',),
  'shop:garden_centre' => array('label'=>'Garden Centre','frequency'=>143,'icon'=>'shopping_garden_centre',),
- 'shop:car_repair' => array('label'=>'Car Repair','frequency'=>141,'icon'=>'',),
+ 'shop:car_repair' => array('label'=>'Car Repair','frequency'=>141,'icon'=>'shopping_car_repair',),
  'shop:newsagent' => array('label'=>'Newsagent','frequency'=>132,'icon'=>'',),
- 'shop:bakery' => array('label'=>'Bakery','frequency'=>129,'icon'=>'',),
+ 'shop:bakery' => array('label'=>'Bakery','frequency'=>129,'icon'=>'shopping_bakery',),
  'shop:furniture' => array('label'=>'Furniture','frequency'=>124,'icon'=>'',),
- 'shop:butcher' => array('label'=>'Butcher','frequency'=>105,'icon'=>'',),
- 'shop:apparel' => array('label'=>'Apparel','frequency'=>98,'icon'=>'',),
+ 'shop:butcher' => array('label'=>'Butcher','frequency'=>105,'icon'=>'shopping_butcher',),
+ 'shop:apparel' => array('label'=>'Apparel','frequency'=>98,'icon'=>'shopping_clothes',),
  'shop:electronics' => array('label'=>'Electronics','frequency'=>96,'icon'=>'',),
  'shop:department_store' => array('label'=>'Department Store','frequency'=>86,'icon'=>'',),
  'shop:books' => array('label'=>'Books','frequency'=>85,'icon'=>'',),
@@ -260,19 +278,19 @@
  'shop:florist' => array('label'=>'Florist','frequency'=>61,'icon'=>'',),
  'shop:charity' => array('label'=>'Charity','frequency'=>60,'icon'=>'',),
  'shop:hardware' => array('label'=>'Hardware','frequency'=>59,'icon'=>'',),
- 'shop:laundry' => array('label'=>'Laundry','frequency'=>51,'icon'=>'',),
+ 'shop:laundry' => array('label'=>'Laundry','frequency'=>51,'icon'=>'shopping_laundrette',),
  'shop:shoes' => array('label'=>'Shoes','frequency'=>49,'icon'=>'',),
- 'shop:beverages' => array('label'=>'Beverages','frequency'=>48,'icon'=>'',),
+ 'shop:beverages' => array('label'=>'Beverages','frequency'=>48,'icon'=>'shopping_alcohol',),
  'shop:dry_cleaning' => array('label'=>'Dry Cleaning','frequency'=>46,'icon'=>'',),
  'shop:carpet' => array('label'=>'Carpet','frequency'=>45,'icon'=>'',),
  'shop:computer' => array('label'=>'Computer','frequency'=>44,'icon'=>'',),
- 'shop:alcohol' => array('label'=>'Alcohol','frequency'=>44,'icon'=>'',),
- 'shop:optician' => array('label'=>'Optician','frequency'=>55,'icon'=>'',),
- 'shop:chemist' => array('label'=>'Chemist','frequency'=>42,'icon'=>'',),
- 'shop:gallery' => array('label'=>'Gallery','frequency'=>38,'icon'=>'',),
+ 'shop:alcohol' => array('label'=>'Alcohol','frequency'=>44,'icon'=>'shopping_alcohol',),
+ 'shop:optician' => array('label'=>'Optician','frequency'=>55,'icon'=>'health_opticians',),
+ 'shop:chemist' => array('label'=>'Chemist','frequency'=>42,'icon'=>'health_pharmacy',),
+ 'shop:gallery' => array('label'=>'Gallery','frequency'=>38,'icon'=>'tourist_art_gallery2',),
  'shop:mobile_phone' => array('label'=>'Mobile Phone','frequency'=>37,'icon'=>'',),
  'shop:sports' => array('label'=>'Sports','frequency'=>37,'icon'=>'',),
- 'shop:jewelry' => array('label'=>'Jewelry','frequency'=>32,'icon'=>'',),
+ 'shop:jewelry' => array('label'=>'Jewelry','frequency'=>32,'icon'=>'shopping_jewelry',),
  'shop:pet' => array('label'=>'Pet','frequency'=>29,'icon'=>'',),
  'shop:beauty' => array('label'=>'Beauty','frequency'=>28,'icon'=>'',),
  'shop:stationery' => array('label'=>'Stationery','frequency'=>25,'icon'=>'',),
@@ -293,51 +311,46 @@
 
  'leisure:pitch' => array('label'=>'Pitch','frequency'=>762,'icon'=>'',),
  'highway:unsurfaced' => array('label'=>'Unsurfaced','frequency'=>492,'icon'=>'',),
- 'historic:ruins' => array('label'=>'Ruins','frequency'=>483,'icon'=>'',),
- 'amenity:college' => array('label'=>'College','frequency'=>473,'icon'=>'',),
- 'historic:monument' => array('label'=>'Monument','frequency'=>470,'icon'=>'',),
+ 'historic:ruins' => array('label'=>'Ruins','frequency'=>483,'icon'=>'shopping_jewelry',),
+ 'amenity:college' => array('label'=>'College','frequency'=>473,'icon'=>'education_school',),
+ 'historic:monument' => array('label'=>'Monument','frequency'=>470,'icon'=>'tourist_monument',),
  'railway:subway' => array('label'=>'Subway','frequency'=>385,'icon'=>'',),
- 'historic:memorial' => array('label'=>'Memorial','frequency'=>382,'icon'=>'',),
- 'highway:byway' => array('label'=>'Byway','frequency'=>346,'icon'=>'',),
+ 'historic:memorial' => array('label'=>'Memorial','frequency'=>382,'icon'=>'tourist_monument',),
  'leisure:nature_reserve' => array('label'=>'Nature Reserve','frequency'=>342,'icon'=>'',),
- 'amenity:police' => array('label'=>'Police','frequency'=>334,'icon'=>'',),
  'leisure:common' => array('label'=>'Common','frequency'=>322,'icon'=>'',),
  'waterway:lock_gate' => array('label'=>'Lock Gate','frequency'=>321,'icon'=>'',),
- 'highway:primary_link' => array('label'=>'Primary Link','frequency'=>313,'icon'=>'',),
  'natural:fell' => array('label'=>'Fell','frequency'=>308,'icon'=>'',),
  'amenity:nightclub' => array('label'=>'Nightclub','frequency'=>292,'icon'=>'',),
- 'place:island' => array('label'=>'Island','frequency'=>288,'icon'=>'',),
  'highway:path' => array('label'=>'Path','frequency'=>287,'icon'=>'',),
  'leisure:garden' => array('label'=>'Garden','frequency'=>285,'icon'=>'',),
  'landuse:reservoir' => array('label'=>'Reservoir','frequency'=>276,'icon'=>'',),
  'leisure:playground' => array('label'=>'Playground','frequency'=>264,'icon'=>'',),
  'leisure:stadium' => array('label'=>'Stadium','frequency'=>212,'icon'=>'',),
- 'historic:mine' => array('label'=>'Mine','frequency'=>193,'icon'=>'',),
+ 'historic:mine' => array('label'=>'Mine','frequency'=>193,'icon'=>'poi_mine',),
  'natural:cliff' => array('label'=>'Cliff','frequency'=>193,'icon'=>'',),
- 'tourism:caravan_site' => array('label'=>'Caravan Site','frequency'=>183,'icon'=>'',),
- 'amenity:bus_station' => array('label'=>'Bus Station','frequency'=>181,'icon'=>'',),
+ 'tourism:caravan_site' => array('label'=>'Caravan Site','frequency'=>183,'icon'=>'accommodation_caravan_park',),
+ 'amenity:bus_station' => array('label'=>'Bus Station','frequency'=>181,'icon'=>'transport_bus_station',),
  'amenity:kindergarten' => array('label'=>'Kindergarten','frequency'=>179,'icon'=>'',),
  'highway:construction' => array('label'=>'Construction','frequency'=>176,'icon'=>'',),
- 'amenity:atm' => array('label'=>'Atm','frequency'=>172,'icon'=>'',),
+ 'amenity:atm' => array('label'=>'Atm','frequency'=>172,'icon'=>'money_atm2',),
  'amenity:emergency_phone' => array('label'=>'Emergency Phone','frequency'=>164,'icon'=>'',),
  'waterway:lock' => array('label'=>'Lock','frequency'=>146,'icon'=>'',),
  'waterway:riverbank' => array('label'=>'Riverbank','frequency'=>143,'icon'=>'',),
  'natural:coastline' => array('label'=>'Coastline','frequency'=>142,'icon'=>'',),
- 'tourism:viewpoint' => array('label'=>'Viewpoint','frequency'=>140,'icon'=>'',),
+ 'tourism:viewpoint' => array('label'=>'Viewpoint','frequency'=>140,'icon'=>'tourist_view_point',),
  'tourism:hostel' => array('label'=>'Hostel','frequency'=>140,'icon'=>'',),
- 'tourism:bed_and_breakfast' => array('label'=>'Bed And Breakfast','frequency'=>140,'icon'=>'',),
+ 'tourism:bed_and_breakfast' => array('label'=>'Bed And Breakfast','frequency'=>140,'icon'=>'accommodation_bed_and_breakfast',),
  'railway:halt' => array('label'=>'Halt','frequency'=>135,'icon'=>'',),
  'railway:platform' => array('label'=>'Platform','frequency'=>134,'icon'=>'',),
- 'railway:tram' => array('label'=>'Tram','frequency'=>130,'icon'=>'',),
- 'amenity:courthouse' => array('label'=>'Courthouse','frequency'=>129,'icon'=>'',),
- 'amenity:recycling' => array('label'=>'Recycling','frequency'=>126,'icon'=>'',),
- 'amenity:dentist' => array('label'=>'Dentist','frequency'=>124,'icon'=>'',),
- 'natural:beach' => array('label'=>'Beach','frequency'=>121,'icon'=>'',),
+ 'railway:tram' => array('label'=>'Tram','frequency'=>130,'icon'=>'transport_tram_stop',),
+ 'amenity:courthouse' => array('label'=>'Courthouse','frequency'=>129,'icon'=>'amenity_court',),
+ 'amenity:recycling' => array('label'=>'Recycling','frequency'=>126,'icon'=>'amenity_recycling',),
+ 'amenity:dentist' => array('label'=>'Dentist','frequency'=>124,'icon'=>'health_dentist',),
+ 'natural:beach' => array('label'=>'Beach','frequency'=>121,'icon'=>'tourist_beach',),
  'place:moor' => array('label'=>'Moor','frequency'=>118,'icon'=>'',),
  'amenity:grave_yard' => array('label'=>'Grave Yard','frequency'=>110,'icon'=>'',),
  'waterway:derelict_canal' => array('label'=>'Derelict Canal','frequency'=>109,'icon'=>'',),
  'waterway:drain' => array('label'=>'Drain','frequency'=>108,'icon'=>'',),
- 'place:county' => array('label'=>'County','frequency'=>108,'icon'=>'',),
  'landuse:grass' => array('label'=>'Grass','frequency'=>106,'icon'=>'',),
  'landuse:village_green' => array('label'=>'Village Green','frequency'=>106,'icon'=>'',),
  'natural:bay' => array('label'=>'Bay','frequency'=>102,'icon'=>'',),
@@ -355,7 +368,7 @@
  'leisure:track' => array('label'=>'Track','frequency'=>76,'icon'=>'',),
  'railway:historic_station' => array('label'=>'Historic Station','frequency'=>74,'icon'=>'',),
  'landuse:construction' => array('label'=>'Construction','frequency'=>72,'icon'=>'',),
- 'amenity:prison' => array('label'=>'Prison','frequency'=>71,'icon'=>'',),
+ 'amenity:prison' => array('label'=>'Prison','frequency'=>71,'icon'=>'amenity_prison',),
  'landuse:quarry' => array('label'=>'Quarry','frequency'=>71,'icon'=>'',),
  'amenity:telephone' => array('label'=>'Telephone','frequency'=>70,'icon'=>'',),
  'highway:traffic_signals' => array('label'=>'Traffic Signals','frequency'=>66,'icon'=>'',),
@@ -481,3 +494,54 @@
                 }
         }
 
+	function _debugDumpGroupedSearches($aData, $aTokens)
+	{
+		$aWordsIDs = array();
+		foreach($aTokens as $sToken => $aWords)
+		{
+			foreach($aWords as $aToken)
+			{
+				$aWordsIDs[$aToken['word_id']] = $sToken;
+			}
+		}
+		echo "<table border=\"1\">";
+		foreach($aData as $iRank => $aRankedSet)
+		{
+			foreach($aRankedSet as $aRow)
+			{		
+				echo "<tr>";
+				echo "<td>$iRank</td>";
+
+				echo "<td>";
+				$sSep = '';
+				foreach($aRow['aName'] as $iWordID)
+				{
+					echo $sSep.'#'.$aWordsIDs[$iWordID].'#';
+					$sSep = ', ';
+				}
+				echo "</td>";
+
+				echo "<td>";
+				$sSep = '';
+				foreach($aRow['aAddress'] as $iWordID)
+				{
+					if (!isset($aRow['aName'][$iWordID]))
+					{
+						echo $sSep.'#'.$aWordsIDs[$iWordID].'#';
+						$sSep = ', ';
+					}
+				}
+				echo "</td>";
+
+				echo "<td>".$aRow['sCountryCode']."</td>";
+
+				echo "<td>".$aRow['sClass']."</td>";
+				echo "<td>".$aRow['sType']."</td>";
+
+				echo "<td>".$aRow['sHouseNumber']."</td>";
+	
+				echo "</tr>";
+			}
+		}
+		echo "</table>";
+	}

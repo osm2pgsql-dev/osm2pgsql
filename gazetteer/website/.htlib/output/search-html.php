@@ -3,7 +3,7 @@
 ?>
 <html>
 <head>
-	<title>OpenStreetMap ByName: Search</title>
+	<title>OpenStreetMap Nominatim: Search</title>
 
 	<script src="OpenLayers.js"></script>
 	<script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
@@ -327,7 +327,7 @@ form{
 			echo '<div class="result" onClick="panToLatLon('.$aResult['lat'].', '.$aResult['lon'].');">';
 		}
 
-		echo $aResult['icon'];
+		echo ($aResult['icon']?'<img src="'.$aResult['icon'].'">':'');
 		echo ' <span class="name">'.$aResult['name'].'</span>';
 		echo ' <span class="latlon">'.round($aResult['lat'],3).','.round($aResult['lat'],3).'</span>';
 		echo ' <span class="place_id">'.$aResult['place_id'].'</span>';
@@ -374,7 +374,7 @@ init();
 <?php
 	foreach($aSearchResults as $iResNum => $aResult)
 	{
-		if ($aResult['aPolyPoints'])
+		if ($aResult['aPointPolygon'])
 		{
 			echo 'panToLatLonBoundingBox('.$aResult['lat'].', '.$aResult['lon'];
 			echo ', '.$aResult['aPointPolygon']['minlat'];
