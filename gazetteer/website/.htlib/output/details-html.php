@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>OpenStreetMap ByName: <?php echo $aPointDetails['localname'];?></title>
+    <title>OpenStreetMap Nominatim: <?php echo $aPointDetails['localname'];?></title>
     <style>
 body {
 	margin:0px;
@@ -89,7 +89,12 @@ foreach($aPolyPoints as $aPolyPoint)
   <body onload="init();">
     <div id="map"></div>
 <?php
-	echo '<h1>'.$aPointDetails['localname'].'</h1>';
+	echo '<h1>';
+	if ($aPointDetails['icon'])
+	{
+		echo '<img style="float:right;margin-right:40px;" src="'.'http://katie.openstreetmap.org/~twain/images/mapicons/'.$aPointDetails['icon'].'.n.32.png'.'">';
+	}
+	echo $aPointDetails['localname'].'</h1>';
 	echo '<div class="locationdetails">';
 	echo ' <div>Name: ';
 	foreach($aPointDetails['aNames'] as $sKey => $sValue)
@@ -149,6 +154,7 @@ foreach($aPolyPoints as $aPolyPoint)
 			echo "<h3>$sGroupHeading</h3>";
 		foreach($aParentOfLines as $aAddressLine)
 		{
+			$aAddressLine['localname'] = $aAddressLine['localname']?$aAddressLine['localname']:$aAddressLine['housenumber'];
 			$sOSMType = ($aAddressLine['osm_type'] == 'N'?'node':($aAddressLine['osm_type'] == 'W'?'way':($aAddressLine['osm_type'] == 'R'?'relation':'')));
 	
 			echo '<div class="line">';
