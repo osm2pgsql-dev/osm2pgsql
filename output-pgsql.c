@@ -1052,7 +1052,8 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
-                if (PQfnumber(res, exportTags[j].name) < 0) {
+                sprintf(tmp, "\"%s\"", exportTags[j].name);
+                if (PQfnumber(res, tmp) < 0) {
 #if 0
                     fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, tables[i].name);
                     exit_nicely();
