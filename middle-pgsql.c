@@ -1096,7 +1096,6 @@ static int build_indexes;
 
 static int pgsql_start(const struct output_options *options)
 {
-    char sql[2048];
     PGresult   *res;
     int i;
     int have_intarray = 0;
@@ -1152,11 +1151,7 @@ static int pgsql_start(const struct output_options *options)
                 build_indexes = 1;
         }
         if (dropcreate) {
-            sql[0] = '\0';
-            strcat(sql, "DROP TABLE ");
-            strcat(sql, tables[i].name);
-            res = PQexec(sql_conn, sql);
-            PQclear(res); /* Will be an error if table does not exist */
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
         }
 
         if (tables[i].start) {
