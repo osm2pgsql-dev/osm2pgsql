@@ -329,9 +329,9 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 
 	// Convert the box's Mercator coordinates into tile coordinates
 	min_tile_x = coords_to_tile_x(min_lon) - TILE_EXPIRY_LEEWAY;
-	max_tile_y = coords_to_tile_x(min_lat) + TILE_EXPIRY_LEEWAY;
+	max_tile_y = coords_to_tile_y(min_lat) + TILE_EXPIRY_LEEWAY;
 	max_tile_x = coords_to_tile_x(min_lon) + TILE_EXPIRY_LEEWAY;
-	min_tile_y = coords_to_tile_x(min_lat) - TILE_EXPIRY_LEEWAY;
+	min_tile_y = coords_to_tile_y(min_lat) - TILE_EXPIRY_LEEWAY;
 	if (min_tile_x < 0) min_tile_x = 0;
 	if (min_tile_y < 0) min_tile_y = 0;
 	if (max_tile_x > map_width) max_tile_x = map_width;
