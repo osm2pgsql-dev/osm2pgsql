@@ -694,11 +694,6 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if ((expire_tiles_zoom >= 0) && (projection != PROJ_SPHERE_MERC)) {
-        fprintf(stderr, "Error: --expire-tiles can only be used with spherical mercator projection!\n");
-        exit(EXIT_FAILURE);
-    }
-    
     if( cache < 0 ) cache = 0;
 
     if (pass_prompt)
