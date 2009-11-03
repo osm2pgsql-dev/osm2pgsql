@@ -20,6 +20,7 @@ void project_init(int);
 void project_exit(void);
 struct Projection_Info const* project_getprojinfo(void);
 void reproject(double *lat, double *lon);
+void coords_to_tile(double *tilex, double *tiley, double lon, double lat);
 
 extern const struct Projection_Info Projection_Info[];
 

@@ -11,6 +11,8 @@
 #include <libpq-fe.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include "expire-tiles.h"
 #include "output.h"
 #include "pgsql.h"
@@ -26,7 +28,7 @@ struct tile {
 	struct tile *	subtiles[2][2];
 };
 
-static int				map_width;
+int map_width; /* not "static" since used in reprojection.c! */
 static double				tile_width;
 static const struct output_options *	Options;
 static struct tile *			dirty = NULL;
@@ -178,11 +180,13 @@ void expire_tiles_stop(void) {
 
 	if (Options->expire_tiles_zoom < 0) return;
 	outcount = 0;
-	outfile = fopen(Options->expire_tiles_filename, "a");
-	output_and_destroy_tree(outfile, dirty);
+	if ((outfile = fopen(Options->expire_tiles_filename, "a"))) {
+	    output_and_destroy_tree(outfile, dirty);
+	    fclose(outfile);
+	} else {
+        fprintf(stderr, "Failed to open expired tiles file (%s).  Tile expiry list will not be written!\n", strerror(errno));
+    }
 	dirty = NULL;
-	if (outfile) fclose(outfile);
-	else fprintf(stderr, "Failed to open expired tiles file.  Tile expiry list will now be written!\n");
 }
 
 void expire_tiles_init(const struct output_options *options) {
@@ -190,14 +194,6 @@ void expire_tiles_init(const struct output_options *options) {
 	if (Options->expire_tiles_zoom < 0) return;
 	map_width = 1 << Options->expire_tiles_zoom;
 	tile_width = EARTH_CIRCUMFERENCE / map_width;
-}
-
-static double coords_to_tile_x(double lon) {
-	return map_width * (0.5 + (lon / EARTH_CIRCUMFERENCE));
-}
-
-static double coords_to_tile_y(double lat) {
-	return map_width * (0.5 - (lat / EARTH_CIRCUMFERENCE));
 }
 
 static void expire_tile(int x, int y) {
@@ -234,10 +230,9 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 	int	y;
 	int	norm_x;
 
-	tile_x_a = coords_to_tile_x(lon_a);
-	tile_y_a = coords_to_tile_y(lat_a);
-	tile_x_b = coords_to_tile_x(lon_b);
-	tile_y_b = coords_to_tile_y(lat_b);
+    coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a);
+    coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b);
+
 	if (tile_x_a > tile_x_b) {
 		// We always want the line to go from left to right - swap the ends if it doesn't
 		temp = tile_x_b;
@@ -310,8 +305,13 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	int		iterator_y;
 	int		norm_x;
 	int		ret;
+    double  tmp_x;
+    double  tmp_y;
 
 	if (Options->expire_tiles_zoom < 0) return 0;
+
+    printf("expire_tiles_from_bbox(%f,%f - %f,%f) => ", min_lon, min_lat, max_lon, max_lat);
+
 	width = max_lon - min_lon;
 	height = max_lat - min_lat;
 	if (width > HALF_EARTH_CIRCUMFERENCE + 1) {
@@ -328,10 +328,13 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 //	printf("Expire from bbox (%f,%f)-(%f,%f) %fx%f\n", min_lon, min_lat, min_lon, min_lat, width, height);
 
 	// Convert the box's Mercator coordinates into tile coordinates
-	min_tile_x = coords_to_tile_x(min_lon) - TILE_EXPIRY_LEEWAY;
-	max_tile_y = coords_to_tile_y(min_lat) + TILE_EXPIRY_LEEWAY;
-	max_tile_x = coords_to_tile_x(min_lon) + TILE_EXPIRY_LEEWAY;
-	min_tile_y = coords_to_tile_y(min_lat) - TILE_EXPIRY_LEEWAY;
+    coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat);
+    min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
+    min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
+    coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat);
+    max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
+    max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
+    printf("%d,%d - %d,%d\n", min_tile_x, min_tile_y, max_tile_x, max_tile_y);
 	if (min_tile_x < 0) min_tile_x = 0;
 	if (min_tile_y < 0) min_tile_y = 0;
 	if (max_tile_x > map_width) max_tile_x = map_width;
