@@ -310,8 +310,6 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 
 	if (Options->expire_tiles_zoom < 0) return 0;
 
-    printf("expire_tiles_from_bbox(%f,%f - %f,%f) => ", min_lon, min_lat, max_lon, max_lat);
-
 	width = max_lon - min_lon;
 	height = max_lat - min_lat;
 	if (width > HALF_EARTH_CIRCUMFERENCE + 1) {
@@ -334,7 +332,6 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
     coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat);
     max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
     max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
-    printf("%d,%d - %d,%d\n", min_tile_x, min_tile_y, max_tile_x, max_tile_y);
 	if (min_tile_x < 0) min_tile_x = 0;
 	if (min_tile_y < 0) min_tile_y = 0;
 	if (max_tile_x > map_width) max_tile_x = map_width;
