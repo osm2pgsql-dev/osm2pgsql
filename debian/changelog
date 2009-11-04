@@ -1,3 +1,9 @@
+osm2pgsql (0.69) jaunty; urgency=low
+
+  * v0.69
+
+ -- Frederik Ramm <fred@lambert>  Wed, 04 Nov 2009 09:51:59 +0100
+
 osm2pgsql (0.65) unstable; urgency=low
 
   * Initial standalone debian package
