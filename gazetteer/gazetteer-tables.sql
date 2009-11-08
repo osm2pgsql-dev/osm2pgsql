@@ -46,6 +46,7 @@ CREATE TABLE word (
 SELECT AddGeometryColumn('word', 'location', 4326, 'GEOMETRY', 2);
 CREATE INDEX idx_word_word_id on word USING BTREE (word_id);
 CREATE INDEX idx_word_word_token on word USING BTREE (word_token);
+CREATE INDEX idx_word_trigram ON word USING gin(word_trigram gin_trgm_ops);
 GRANT SELECT ON word TO "www-data" ;
 DROP SEQUENCE seq_word;
 CREATE SEQUENCE seq_word start 1;
@@ -179,6 +180,10 @@ CREATE INDEX idx_placex_pendingbylatlon ON placex USING BTREE (geometry_index(ge
 CREATE INDEX idx_placex_street_place_id ON placex USING BTREE (street_place_id) where street_place_id IS NOT NULL;
 CREATE INDEX idx_placex_gb_postcodesector ON placex USING BTREE (substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$'))
   where country_code = 'gb' and substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$') is not null;
+
+CREATE INDEX idx_placex_sector ON placex USING BTREE (geometry_sector(geometry),rank_address,osm_type,osm_id);
+CLUSTER placex USING idx_placex_sector;
+
 DROP SEQUENCE seq_place;
 CREATE SEQUENCE seq_place start 1;
 GRANT SELECT on placex to "www-data" ;
