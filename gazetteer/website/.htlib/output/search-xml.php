@@ -20,19 +20,22 @@
 			echo " osm_type='$sOSMType'";
 			echo " osm_id='".$aResult['osm_id']."'";
 		}
-		
-		if (isset($aResult['aPointPolygon']) && $bShowPolygons)
+
+		if (isset($aResult['aBoundingBox']))
 		{
 			echo ' boundingbox="';
-			echo $aResult['aPointPolygon']['minlat'];
-			echo ','.$aResult['aPointPolygon']['maxlat'];
-			echo ','.$aResult['aPointPolygon']['minlon'];
-			echo ','.$aResult['aPointPolygon']['maxlon'];
+			echo $aResult['aBoundingBox'][0];
+			echo ','.$aResult['aBoundingBox'][1];
+			echo ','.$aResult['aBoundingBox'][2];
+			echo ','.$aResult['aBoundingBox'][3];
 			echo '"';
 
-			echo ' polygonpoints="';
-			echo javascript_renderData($aResult['aPolyPoints']);
-			echo '"';
+			if ($bShowPolygons)
+			{
+				echo ' polygonpoints="';
+				echo javascript_renderData($aResult['aPolyPoints']);
+				echo '"';
+			}
 		}
 
 		if (isset($aResult['zoom']))
@@ -50,7 +53,24 @@
 		{
 			echo " icon='".htmlspecialchars($aResult['icon'], ENT_QUOTES)."'";
 		}
-		echo "/>";
+
+		if (isset($aResult['address']))
+		{
+			echo ">";
+			foreach($aResult['address'] as $sKey => $sValue)
+			{
+				$sKey = str_replace(' ','',$sKey);
+				echo "<$sKey>";
+				echo htmlspecialchars($sValue);
+				echo "</$sKey>";
+			}
+
+			echo "</place>";
+		}
+		else
+		{
+			echo "/>";
+		}
 	}
 	
 	echo "</searchresults>";

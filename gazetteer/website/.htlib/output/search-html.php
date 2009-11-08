@@ -5,6 +5,8 @@
 <head>
 	<title>OpenStreetMap Nominatim: Search</title>
 
+	<base href="<?php echo CONST_Website_BaseURL;?>" />
+
 	<script src="OpenLayers.js"></script>
 	<script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
 	<script src="prototype-1.6.0.3.js"></script>
@@ -142,13 +144,13 @@ body {
   display: none;
 }
 .result .type{
-  color: #ccc;
+  color: #999;
   text-align:center;
   font: normal 9px/10px arial,sans-serif;
   padding-top:4px;
 }
 .result .details, .result .details a{
-  color: #ccc;
+  color: #999;
   text-align:center;
   font: normal 9px/10px arial,sans-serif;
   padding-top:4px;
@@ -308,13 +310,13 @@ form{
 <?php
 	foreach($aSearchResults as $iResNum => $aResult)
 	{
-		if (isset($aResult['aPointPolygon']))
+		if ($aResult['aBoundingBox'])
 		{
 			echo '<div class="result" onClick="panToLatLonBoundingBox('.$aResult['lat'].', '.$aResult['lon'];
-			echo ', '.$aResult['aPointPolygon']['minlat'];
-			echo ', '.$aResult['aPointPolygon']['maxlat'];
-			echo ', '.$aResult['aPointPolygon']['minlon'];
-			echo ', '.$aResult['aPointPolygon']['maxlon'];
+			echo ', '.$aResult['aBoundingBox'][0];
+			echo ', '.$aResult['aBoundingBox'][1];
+			echo ', '.$aResult['aBoundingBox'][2];
+			echo ', '.$aResult['aBoundingBox'][3];
 			echo ', '.javascript_renderData($aResult['aPolyPoints']);
 			echo ');">';
 		}
@@ -374,13 +376,13 @@ init();
 <?php
 	foreach($aSearchResults as $iResNum => $aResult)
 	{
-		if ($aResult['aPointPolygon'])
+		if ($aResult['aBoundingBox'])
 		{
 			echo 'panToLatLonBoundingBox('.$aResult['lat'].', '.$aResult['lon'];
-			echo ', '.$aResult['aPointPolygon']['minlat'];
-			echo ', '.$aResult['aPointPolygon']['maxlat'];
-			echo ', '.$aResult['aPointPolygon']['minlon'];
-			echo ', '.$aResult['aPointPolygon']['maxlon'];
+			echo ', '.$aResult['aBoundingBox'][0];
+			echo ', '.$aResult['aBoundingBox'][1];
+			echo ', '.$aResult['aBoundingBox'][2];
+			echo ', '.$aResult['aBoundingBox'][3];
 			echo ', '.javascript_renderData($aResult['aPolyPoints']);
 			echo ');'."\n";
 		}
