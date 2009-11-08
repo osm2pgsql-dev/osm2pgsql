@@ -89,11 +89,15 @@
 	}
 
 	// Address
-	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
+	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
+	$sSQL .= "get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
 	$sSQL .= " from place_addressline join placex on (address_place_id = placex.place_id)";
 	$sSQL .= " where place_addressline.place_id = $iPlaceID and (rank_address > 0 OR address_place_id = $iPlaceID) and placex.place_id != $iPlaceID";
-	if ($aPointDetails['country_code']) $sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."' OR rank_address < 4)";
+	if ($aPointDetails['country_code'])
+	{
+		$sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."' OR rank_address < 4)";
+	}
 	$sSQL .= " order by cached_rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc";
 	$aAddressLines = $oDB->getAll($sSQL);
 	IF (PEAR::IsError($aAddressLines))

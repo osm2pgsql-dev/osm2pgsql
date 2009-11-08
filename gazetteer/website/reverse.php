@@ -126,5 +126,58 @@
         $sSQL .= " get_name_by_language(name, ARRAY['ref']) as ref";
         $sSQL .= " from placex where place_id = $iPlaceID ";
 	$aPlace = $oDB->getRow($sSQL);
-	echo $aPlace['langaddress'];
 
+	$aAddress = getAddressDetails($oDB, $sLanguagePrefArraySQL, $iPlaceID, $aPlace['country_code']);
+/*
+        // Address
+        $sSQL = "select country_code, placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
+        $sSQL .= "get_searchrank_label(rank_search) as rank_search_label, fromarea, isaddress, distance, ";
+        $sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
+        $sSQL .= " from place_addressline join placex on (address_place_id = placex.place_id)";
+        $sSQL .= " where place_addressline.place_id = $iPlaceID and (rank_address > 0 OR address_place_id = $iPlaceID) and isaddress";
+        if ($aPointDetails['country_code'])
+        {
+                $sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."' OR rank_address < 4)";
+        }
+        $sSQL .= " order by cached_rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc";
+        $aAddressLines = $oDB->getAll($sSQL);
+        IF (PEAR::IsError($aAddressLines))
+        {
+                var_dump($aAddressLines);
+                exit;
+        }
+
+	$aClassType = getClassTypes();
+
+	$iMinRank = 100;
+	$sCountryCode = false;
+	$aAddress = array();
+	foreach($aAddressLines as $aLine)
+	{
+		if (!$sCountryCode) $sCountryCode = $aLine['country_code'];
+		$aTypeLabel = false;
+		if (isset($aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']];
+		elseif (isset($aClassType[$aLine['class'].':'.$aLine['type']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type']];
+		if ($aTypeLabel)
+		{
+			$sTypeLabel = strtolower(isset($aTypeLabel['simplelabel'])?$aTypeLabel['simplelabel']:$aTypeLabel['label']);
+			$aAddress[$sTypeLabel] = $aLine['localname'];
+		}
+		if ($aLine['rank_address'] < $iMinRank) $iMinRank = $aLine['rank_address'];
+	}
+	if ($iMinRank > 4 && $sCountryCode)
+	{
+		$sSQL = "select get_name_by_language(country_name.name,$sLanguagePrefArraySQL) as name";
+		$sSQL .= " from country_name where country_code = '$sCountryCode'";
+		$sCountryName = $oDB->getOne($sSQL);
+		if ($sCountryName)
+		{
+			$aAddress['country'] = $sCountryName;
+		}
+	}
+	if ($sCountryCode)
+	{
+		$aAddress['country_code'] = $sCountryCode;
+	}
+*/
+	include('.htlib/output/address-xml.php');

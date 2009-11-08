@@ -20,6 +20,9 @@
 	// Show / use polygons
 	$bShowPolygons = isset($_GET['polygon']) && $_GET['polygon'];
 
+	// Show address breakdown
+	$bShowAddressDetails = isset($_GET['addressdetails']) && $_GET['addressdetails'];
+
 	// Prefered language	
 	$aLangPrefOrder = getPrefferedLangauges();
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
@@ -42,6 +45,16 @@
 	
 	// Search query
 	$sQuery = (isset($_GET['q'])?trim($_GET['q']):'');
+	if (!$sQuery && $_SERVER['PATH_INFO'] && $_SERVER['PATH_INFO'][0] == '/')
+	{
+		$sQuery = substr($_SERVER['PATH_INFO'], 1);
+
+		// reverse order of '/' seperated string
+		$aPhrases = explode('/', $sQuery);		
+		$aPhrases = array_reverse($aPhrases); 
+		$sQuery = join(', ',$aPhrases);
+	}
+
 	if ($sQuery)
 	{
 		// Log
@@ -66,14 +79,14 @@
 			if (isset($_GET['viewbox']) && $_GET['viewbox'])
 			{
 				$aCoOrdinates = explode(',',$_GET['viewbox']);
-				$sViewboxSmallSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[1].",".(float)$aCoOrdinates[0]."),ST_Point(".(float)$aCoOrdinates[3].",".(float)$aCoOrdinates[2].")),4326)";
+				$sViewboxSmallSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
 				$fHeight = $aCoOrdinates[0]-$aCoOrdinates[2];
 				$fWidth = $aCoOrdinates[1]-$aCoOrdinates[3];
 				$aCoOrdinates[0] += $fHeight;
 				$aCoOrdinates[2] -= $fHeight;
 				$aCoOrdinates[1] += $fWidth;
 				$aCoOrdinates[3] -= $fWidth;
-				$sViewboxLargeSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[1].",".(float)$aCoOrdinates[0]."),ST_Point(".(float)$aCoOrdinates[3].",".(float)$aCoOrdinates[2].")),4326)";
+				$sViewboxLargeSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
 			}
 
 			//TODO: Most of this code needs moving into the database...
@@ -300,6 +313,7 @@
 
 					foreach($aSearches as $aSearch)
 					{
+						if (CONST_Debug) var_dump($aSearch);
 						$aPlaceIDs = array();
 						
 						// First we need a position, either aName or fLat or both
@@ -314,32 +328,59 @@
 							$aTerms[] = "ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].")";
 							$aOrder[] = "ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC";
 						}
+						if ($sViewboxSmallSQL) $aOrder[] = "ST_Contains($sViewboxSmallSQL, centroid) desc";
+						if ($sViewboxLargeSQL) $aOrder[] = "ST_Contains($sViewboxLargeSQL, centroid) desc";
 						$aOrder[] = "search_rank ASC";
 						
 						if (sizeof($aTerms))
 						{
-							$sSQL = "select place_id from search_name";
+							$sSQL = "select place_id";
+							if ($sViewboxSmallSQL) $sSQL .= ",ST_Contains($sViewboxSmallSQL, centroid) as in_small";
+							else $sSQL .= ",false as in_small";
+							if ($sViewboxLargeSQL) $sSQL .= ",ST_Contains($sViewboxLargeSQL, centroid) as in_large";
+							else $sSQL .= ",false as in_large";
+							$sSQL .= " from search_name";
 							$sSQL .= " where ".join(' and ',$aTerms);
 							$sSQL .= " order by ".join(', ',$aOrder);
 							$sSQL .= " limit 10";
 							if (CONST_Debug) var_dump($sSQL);
-							$aPlaceIDs = $oDB->getCol($sSQL);
+							$aViewBoxPlaceIDs = $oDB->getAll($sSQL);
+							if (PEAR::IsError($aViewBoxPlaceIDs))
+							{
+								var_dump($sSQL, $aViewBoxPlaceIDs);					
+								exit;
+							}
+
+
+							// Did we have an viewbox matches?
+							$aPlaceIDs = array();
+							$bViewBoxMatch = false;
+							foreach($aViewBoxPlaceIDs as $aViewBoxRow)
+							{
+								if ($bViewBoxMatch == 1 && $aViewBoxRow['in_small'] == 'f') break;
+								if ($bViewBoxMatch == 2 && $aViewBoxRow['in_large'] == 'f') break;
+								if ($aViewBoxRow['in_small'] == 't') $bViewBoxMatch = 1;
+								else if ($aViewBoxRow['in_large'] == 't') $bViewBoxMatch = 2;
+								$aPlaceIDs[] = $aViewBoxRow['place_id'];
+							}
 						}
 
 						if ($aSearch['sHouseNumber'] && sizeof($aPlaceIDs))
 						{
 							$sPlaceIDs = join(',',$aPlaceIDs);
 
+							$sHouseNumberRegex = '\\\\m'.str_replace(' ','[-, ]',$aSearch['sHouseNumber']).'\\\\M';
+
 							// Make sure everything nearby is indexed (if we pre-indexed houses this wouldn't be needed!)
 							$sSQL = "update placex set indexed = true from placex as f where placex.indexed = false";
 							$sSQL .= " and f.place_id in (".$sPlaceIDs.") and ST_DWithin(placex.geometry, f.geometry, 0.001)";
-							$sSQL .= " and placex.housenumber='".$aSearch['sHouseNumber']."'";
+							$sSQL .= " and placex.housenumber ~ E'".$sHouseNumberRegex."'";
 							$sSQL .= " and placex.class='place' and placex.type='house'";
 							if (CONST_Debug) var_dump($sSQL);
 							$oDB->query($sSQL);
 							
 							// Now they are indexed look for a house attached to a street we found
-							$sSQL = "select place_id from placex where street_place_id in (".$sPlaceIDs.") and housenumber = '".$aSearch['sHouseNumber']."'";
+							$sSQL = "select place_id from placex where street_place_id in (".$sPlaceIDs.") and housenumber ~ E'".$sHouseNumberRegex."'";
 							if (CONST_Debug) var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -373,6 +414,8 @@
 							exit;
 						}
 
+						if (CONST_Debug) var_Dump($aPlaceIDs);
+
 						foreach($aPlaceIDs as $iPlaceID)
 						{
 							$aResultPlaceIDs[$iPlaceID] = $iPlaceID;
@@ -394,13 +437,13 @@
 						$sOrderSQL .= 'when min(place_id) = '.$iPlaceID.' then '.$iOrder.' ';
 					}
 					$sOrderSQL .= ' ELSE 10000000 END ASC';
-					$sSQL = "select osm_type,osm_id,class,type,rank_search,rank_address,min(place_id) as place_id,";
+					$sSQL = "select osm_type,osm_id,class,type,rank_search,rank_address,min(place_id) as place_id,country_code,";
 					$sSQL .= "get_address_by_language(place_id, $sLanguagePrefArraySQL) as langaddress,";
 					$sSQL .= "get_name_by_language(name, $sLanguagePrefArraySQL) as placename,";
 					$sSQL .= "get_name_by_language(name, ARRAY['ref']) as ref,";
 					$sSQL .= "avg(ST_X(ST_Centroid(geometry))) as lon,avg(ST_Y(ST_Centroid(geometry))) as lat ";
 					$sSQL .= "from placex where place_id in ($sPlaceIDs) ";
-					$sSQL .= "group by osm_type,osm_id,class,type,rank_search,rank_address";
+					$sSQL .= "group by osm_type,osm_id,class,type,rank_search,rank_address,country_code";
 					$sSQL .= ",get_address_by_language(place_id, $sLanguagePrefArraySQL) ";
 					$sSQL .= ",get_name_by_language(name, $sLanguagePrefArraySQL) ";
 					$sSQL .= ",get_name_by_language(name, ARRAY['ref']) ";
@@ -428,38 +471,85 @@
 
 	foreach($aSearchResults as $iResNum => $aResult)
 	{
-		if (CONST_Search_AreaPolygons)
+		if (CONST_Search_AreaPolygons || true)
 		{
-		        // Get the bounding box and outline polygon
-	        	$sSQL = "select place_id,numfeatures,area,outline,";
+			// Get the bounding box and outline polygon
+			$sSQL = "select place_id,numfeatures,area,outline,";
 			$sSQL .= "ST_Y(ST_PointN(ExteriorRing(ST_Box2D(outline)),4)) as minlat,ST_Y(ST_PointN(ExteriorRing(ST_Box2D(outline)),2)) as maxlat,";
 			$sSQL .= "ST_X(ST_PointN(ExteriorRing(ST_Box2D(outline)),1)) as minlon,ST_X(ST_PointN(ExteriorRing(ST_Box2D(outline)),3)) as maxlon,";
-			$sSQL .= "ST_AsText(outline) as outlinestring from get_place_boundingbox(".$aResult['place_id'].")";
+			$sSQL .= "ST_AsText(outline) as outlinestring from get_place_boundingbox_quick(".$aResult['place_id'].")";
 			$aPointPolygon = $oDB->getRow($sSQL);
 			if (PEAR::IsError($aPointPolygon))
 			{
 				var_dump($sSQL, $aPointPolygon);
 				exit;
 			}
-		        if (preg_match('#POLYGON\\(\\(([- 0-9.,]+)#',$aPointPolygon['outlinestring'],$aMatch))
-        		{
-        	        	preg_match_all('/(-?[0-9.]+) (-?[0-9.]+)/',$aMatch[1],$aPolyPoints,PREG_SET_ORDER);
-		        }
-        		elseif (preg_match('#POINT\\((-?[0-9.]+) (-?[0-9.]+)\\)#',$aPointPolygon['outlinestring'],$aMatch))
-		        {
-	        	        $fRadius = 0.01;
-                		$iSteps = ($fRadius * 40000)^2;
-	        	        $fStepSize = (2*pi())/$iSteps;
-        		        $aPolyPoints = array();
-	                	for($f = 0; $f < 2*pi(); $f += $fStepSize)
-	                	{
-	     		                $aPolyPoints[] = array('',$aMatch[1]+($fRadius*sin($f)),$aMatch[2]+($fRadius*cos($f)));
-        		        }
-		                $aPointPolygon['minlat'] = $aPointPolygon['minlat'] - $fRadius;
-        	        	$aPointPolygon['maxlat'] = $aPointPolygon['maxlat'] + $fRadius;
-                		$aPointPolygon['minlon'] = $aPointPolygon['minlon'] - $fRadius;
-		                $aPointPolygon['maxlon'] = $aPointPolygon['maxlon'] + $fRadius;
+			if ($aPointPolygon['place_id'])
+			{
+				// Translate geometary string to point array
+				if (preg_match('#POLYGON\\(\\(([- 0-9.,]+)#',$aPointPolygon['outlinestring'],$aMatch))
+				{
+					preg_match_all('/(-?[0-9.]+) (-?[0-9.]+)/',$aMatch[1],$aPolyPoints,PREG_SET_ORDER);
+				}
+				elseif (preg_match('#POINT\\((-?[0-9.]+) (-?[0-9.]+)\\)#',$aPointPolygon['outlinestring'],$aMatch))
+				{
+					$fRadius = 0.01;
+					$iSteps = ($fRadius * 40000)^2;
+					$fStepSize = (2*pi())/$iSteps;
+					$aPolyPoints = array();
+					for($f = 0; $f < 2*pi(); $f += $fStepSize)
+					{
+						$aPolyPoints[] = array('',$aMatch[1]+($fRadius*sin($f)),$aMatch[2]+($fRadius*cos($f)));
+					}
+					$aPointPolygon['minlat'] = $aPointPolygon['minlat'] - $fRadius;
+					$aPointPolygon['maxlat'] = $aPointPolygon['maxlat'] + $fRadius;
+					$aPointPolygon['minlon'] = $aPointPolygon['minlon'] - $fRadius;
+					$aPointPolygon['maxlon'] = $aPointPolygon['maxlon'] + $fRadius;
+				}
+
+				// Output data suitable for display (points and a bounding box)
+				if ($bShowPolygons)
+				{
+					$aResult['aPolyPoints'] = array();
+					foreach($aPolyPoints as $aPoint)
+					{
+						$aResult['aPolyPoints'][] = array($aPoint[1], $aPoint[2]);
+					}
+				}
+				$aResult['aBoundingBox'] = array($aPointPolygon['minlat'],$aPointPolygon['maxlat'],$aPointPolygon['minlon'],$aPointPolygon['maxlon']);
 			}
+		}
+
+		if (!isset($aResult['aBoundingBox']))
+		{
+			// Default
+			$fDiameter = 0.0001;
+
+			if (isset($aClassType[$aResult['class'].':'.$aResult['type'].':'.$aResult['admin_level']]['defdiameter']) 
+					&& $aClassType[$aResult['class'].':'.$aResult['type'].':'.$aResult['admin_level']]['defdiameter'])
+			{
+				$fDiameter = $aClassType[$aResult['class'].':'.$aResult['type'].':'.$aResult['admin_level']]['defzoom'];
+			}
+			elseif (isset($aClassType[$aResult['class'].':'.$aResult['type']]['defdiameter']) 
+					&& $aClassType[$aResult['class'].':'.$aResult['type']]['defdiameter'])
+			{
+				$fDiameter = $aClassType[$aResult['class'].':'.$aResult['type']]['defdiameter'];
+			}
+			$fRadius = $fDiameter / 2;
+
+			$iSteps = max(8,min(100,$fRadius * 3.14 * 100000));
+			$fStepSize = (2*pi())/$iSteps;
+			$aPolyPoints = array();
+			for($f = 0; $f < 2*pi(); $f += $fStepSize)
+			{
+				$aPolyPoints[] = array('',$aResult['lon']+($fRadius*sin($f)),$aResult['lat']+($fRadius*cos($f)));
+			}
+			$aPointPolygon['minlat'] = $aResult['lat'] - $fRadius;
+			$aPointPolygon['maxlat'] = $aResult['lat'] + $fRadius;
+			$aPointPolygon['minlon'] = $aResult['lon'] - $fRadius;
+			$aPointPolygon['maxlon'] = $aResult['lon'] + $fRadius;
+
+			// Output data suitable for display (points and a bounding box)
 			if ($bShowPolygons)
 			{
 				$aResult['aPolyPoints'] = array();
@@ -468,71 +558,19 @@
 					$aResult['aPolyPoints'][] = array($aPoint[1], $aPoint[2]);
 				}
 			}
-			$aResult['aPointPolygon'] = $aPointPolygon;
-
-			$fMaxDiameter = max($aPointPolygon['maxlon'] - $aPointPolygon['minlon'], $aPointPolygon['maxlat'] - $aPointPolygon['minlat']);
-			if ($fMaxDiameter < 0.0001)
-			{
-				$aResult['zoom'] = 17;
-				if (isset($aClassType[$aResult['class'].':'.$aResult['type']]['defzoom']) 
-					&& $aClassType[$aResult['class'].':'.$aResult['type']]['defzoom'])
-				{
-					$aResult['zoom'] = $aClassType[$aResult['class'].':'.$aResult['type']]['defzoom'];
-				}
-			}
-			elseif ($fMaxDiameter < 0.005) $aResult['zoom'] = 18;
-			elseif ($fMaxDiameter < 0.01) $aResult['zoom'] = 17;
-			elseif ($fMaxDiameter < 0.02) $aResult['zoom'] = 16;
-			elseif ($fMaxDiameter < 0.04) $aResult['zoom'] = 15;
-			elseif ($fMaxDiameter < 0.08) $aResult['zoom'] = 14;
-			elseif ($fMaxDiameter < 0.16) $aResult['zoom'] = 13;
-			elseif ($fMaxDiameter < 0.32) $aResult['zoom'] = 12;
-			elseif ($fMaxDiameter < 0.64) $aResult['zoom'] = 11;
-			elseif ($fMaxDiameter < 1.28) $aResult['zoom'] = 10;
-			elseif ($fMaxDiameter < 2.56) $aResult['zoom'] = 9;
-			elseif ($fMaxDiameter < 5.12) $aResult['zoom'] = 8;
-			elseif ($fMaxDiameter < 10.24) $aResult['zoom'] = 7;
-			else $aResult['zoom'] = 6;
-		}
-		else
-		{
-		$sSQL = 'select ST_X(ST_PointN(ExteriorRing(ST_Box2D(geometry)),3))-ST_X(ST_PointN(ExteriorRing(ST_Box2D(geometry)),1)) as width,';
-		$sSQL .= ' ST_Y(ST_PointN(ExteriorRing(ST_Box2D(geometry)),2))-ST_Y(ST_PointN(ExteriorRing(ST_Box2D(geometry)),4)) as height';
-		$sSQL .= ' from placex where place_id = '.$aResult['place_id'];
-		$aDiameter = $oDB->getRow($sSQL);
-		$aResult['zoom'] = 14;
-		if (!PEAR::IsError($aDiameter))
-		{
-			$fMaxDiameter = max($aDiameter['width'], $aDiameter['height']);
-			if ($fMaxDiameter < 0.0001)
-			{
-				$aResult['zoom'] = 17;
-				if (isset($aClassType[$aResult['class'].':'.$aResult['type']]['defzoom']) 
-					&& $aClassType[$aResult['class'].':'.$aResult['type']]['defzoom'])
-				{
-					$aResult['zoom'] = $aClassType[$aResult['class'].':'.$aResult['type']]['defzoom'];
-				}
-			}
-			elseif ($fMaxDiameter < 0.005) $aResult['zoom'] = 18;
-			elseif ($fMaxDiameter < 0.01) $aResult['zoom'] = 17;
-			elseif ($fMaxDiameter < 0.02) $aResult['zoom'] = 16;
-			elseif ($fMaxDiameter < 0.04) $aResult['zoom'] = 15;
-			elseif ($fMaxDiameter < 0.08) $aResult['zoom'] = 14;
-			elseif ($fMaxDiameter < 0.16) $aResult['zoom'] = 13;
-			elseif ($fMaxDiameter < 0.32) $aResult['zoom'] = 12;
-			elseif ($fMaxDiameter < 0.64) $aResult['zoom'] = 11;
-			elseif ($fMaxDiameter < 1.28) $aResult['zoom'] = 10;
-			elseif ($fMaxDiameter < 2.56) $aResult['zoom'] = 9;
-			elseif ($fMaxDiameter < 5.12) $aResult['zoom'] = 8;
-			elseif ($fMaxDiameter < 10.24) $aResult['zoom'] = 7;
-			else $aResult['zoom'] = 6;
-		}
+			$aResult['aBoundingBox'] = array($aPointPolygon['minlat'],$aPointPolygon['maxlat'],$aPointPolygon['minlon'],$aPointPolygon['maxlon']);
 		}
 
+		// Is there an icon set for this type of result?
 		if (isset($aClassType[$aResult['class'].':'.$aResult['type']]['icon']) 
 			&& $aClassType[$aResult['class'].':'.$aResult['type']]['icon'])
 		{
 			$aResult['icon'] = 'http://katie.openstreetmap.org/~twain/images/mapicons/'.$aClassType[$aResult['class'].':'.$aResult['type']]['icon'].'.p.20.png';
+		}
+
+		if ($bShowAddressDetails)
+		{
+			$aResult['address'] = getAddressDetails($oDB, $sLanguagePrefArraySQL, $aResult['place_id'], $aResult['country_code']);
 		}
 
 		if (isset($aClassType[$aResult['class'].':'.$aResult['type']]['importance']) 
@@ -574,5 +612,7 @@
 			$aSearchResults[] = $aResult;
 		}
 	}
+
+//var_Dump($aSearchResults);exit;
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');
