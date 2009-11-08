@@ -26,9 +26,9 @@ DECLARE
   NEWgeometry geometry;
 BEGIN
   NEWgeometry := place;
-  IF ST_IsEmpty(NEWgeometry) OR NOT ST_IsValid(NEWgeometry) OR ST_X(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') THEN  
+  IF ST_X(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') THEN  
     NEWgeometry := ST_buffer(NEWgeometry,0);
-    IF ST_IsEmpty(NEWgeometry) OR NOT ST_IsValid(NEWgeometry) OR ST_X(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') THEN  
+    IF ST_X(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEWgeometry))::text in ('NaN','Infinity','-Infinity') THEN  
       RETURN ST_SetSRID(ST_Point(0,0),4326);
     END IF;
   END IF;
@@ -60,7 +60,7 @@ CREATE OR REPLACE FUNCTION debug_geometry_sector(osmid integer, place geometry) 
 DECLARE
   NEWgeometry geometry;
 BEGIN
-  RAISE WARNING '%',osmid;
+--  RAISE WARNING '%',osmid;
   IF osmid = 61315 THEN
     return null;
   END IF;
@@ -1251,6 +1251,9 @@ DECLARE
 BEGIN
   newpoints := 0;
   IF interpolationtype = 'odd' OR interpolationtype = 'even' OR interpolationtype = 'all' THEN
+
+--RAISE WARNING 'interpolation % %',wayid,interpolationtype;
+
     select nodes from planet_osm_ways where id = wayid INTO waynodes;
     IF array_upper(waynodes, 1) IS NOT NULL THEN
 
@@ -1259,9 +1262,9 @@ BEGIN
       FOR nodeidpos in 1..array_upper(waynodes, 1) LOOP
 
         select * from placex where osm_type = 'N' and osm_id = waynodes[nodeidpos]::bigint limit 1 INTO nextnode;
-
+--RAISE WARNING '%',waynodes[nodeidpos];
         IF nextnode.geometry IS NULL THEN
-          select ST_SetSRID(ST_Point(lon,lat),4326) from planet_osm_nodes where id = waynodes[nodeidpos] INTO nextnode.geometry;
+          select ST_SetSRID(ST_Point(lon::float/10000000,lat::float/10000000),4326) from planet_osm_nodes where id = waynodes[nodeidpos] INTO nextnode.geometry;
         END IF;
       
         IF havefirstpoint THEN
@@ -1276,6 +1279,7 @@ BEGIN
             IF startnumber != endnumber THEN
 
               linestr := linestr || ')';
+--RAISE WARNING 'linestr %',linestr;
               linegeo := ST_GeomFromText(linestr,4326);
               linestr := 'LINESTRING('||ST_X(nextnode.geometry)||' '||ST_Y(nextnode.geometry);
               IF (startnumber > endnumber) THEN
@@ -1308,7 +1312,7 @@ BEGIN
               FOR housenum IN startnumber..endnumber BY stepsize LOOP
                 -- this should really copy postcodes but it puts a huge burdon on the system for no big benefit
                 -- ideally postcodes should move up to the way
-                insert into placex values (null,'N',prevnode.osm_id,prevnode.class,prevnode.type,NULL,prevnode.admin_level,housenum,prevnode.street,prevnode.isin,null,prevnode.country_code,prevnode.street_place_id,prevnode.rank_address,prevnode.rank_search,false,ST_Line_Interpolate_Point(linegeo, (housenum::float-orginalstartnumber)/originalnumberrange));
+                 insert into placex values (null,'N',prevnode.osm_id,prevnode.class,prevnode.type,NULL,prevnode.admin_level,housenum,prevnode.street,prevnode.isin,null,prevnode.country_code,prevnode.street_place_id,prevnode.rank_address,prevnode.rank_search,false,ST_Line_Interpolate_Point(linegeo, (housenum::float-orginalstartnumber::float)/originalnumberrange::float));
                 newpoints := newpoints + 1;
               END LOOP;
             END IF;
@@ -1340,7 +1344,8 @@ DECLARE
   country_code VARCHAR(2);
   diameter FLOAT;
 BEGIN
-  RAISE WARNING '%',NEW;
+--  RAISE WARNING '%',NEW;
+--  RAISE WARNING '%',NEW.osm_id;
 
   -- just block these
   IF NEW.class = 'highway' and NEW.type in ('turning_circle','traffic_signals','mini_roundabout','noexit','crossing') THEN
@@ -1351,6 +1356,10 @@ BEGIN
   END IF;
 
   IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
+    IF NEW.osm_type = 'R' THEN
+      -- invalid multipolygons can crash postgis, don't even bother to try!
+      RETURN NULL;
+    END IF;
     NEW.geometry := ST_buffer(NEW.geometry,0);
     IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
       RAISE WARNING 'Invalid geometary, rejecting: % %', NEW.osm_type, NEW.osm_id;
@@ -1518,7 +1527,7 @@ BEGIN
     result := add_location(NEW.place_id,NEW.country_code,NEW.name,NEW.rank_search,NEW.rank_address,NEW.geometry);
   END IF;
 
-  RETURN NEW;
+  --RETURN NEW;
   -- The following is not needed until doing diff updates, and slows the main index process down
 
   IF (ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(NEW.geometry)) THEN
@@ -1549,9 +1558,9 @@ BEGIN
 
   END IF;
 
-IF NEW.rank_search < 18 THEN
-  RAISE WARNING 'placex insert end: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-END IF;
+--IF NEW.rank_search < 18 THEN
+--  RAISE WARNING 'placex insert end: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--END IF;
 
   RETURN NEW;
 
@@ -2095,9 +2104,9 @@ BEGIN
     DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class;
   END IF;
 
-IF existing.rank_search < 26 THEN
-  RAISE WARNING 'existing: % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,existing;
-END IF;
+--IF existing.rank_search < 26 THEN
+--  RAISE WARNING 'existing: % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,existing;
+--END IF;
 
   -- To paraphrase, if there isn't an existing item, OR if the admin level has changed, OR if it is a major change in geometry
   IF existing IS NULL OR coalesce(existing.admin_level, 100) != coalesce(NEW.admin_level, 100) 
@@ -2106,13 +2115,13 @@ END IF;
      THEN
 
     IF existing IS NOT NULL THEN
-      RAISE WARNING 'insert delete % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+      --RAISE WARNING 'insert delete % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
       DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
     END IF;   
 
-IF existing.rank_search < 26 THEN
-    RAISE WARNING 'insert placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-END IF;
+--IF existing.rank_search < 26 THEN
+--    RAISE WARNING 'insert placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--END IF;
 
     -- No - process it as a new insertion (hopefully of low rank or it will be slow)
     insert into placex values (NEW.place_id
@@ -2205,7 +2214,7 @@ END IF;
     OR coalesce(existing.postcode, '') != coalesce(NEW.postcode, '')
     OR coalesce(existing.country_code, '') != coalesce(NEW.country_code, '') THEN
 
-IF existing.rank_search < 26 THEN
+IF false and existing.rank_search < 26 THEN
   IF coalesce(existing.name::text, '') != coalesce(NEW.name::text, '') THEN
     RAISE WARNING 'update details, name: % % % %',NEW.osm_type,NEW.osm_id,existing.name::text,NEW.name::text;
   END IF;
@@ -2479,7 +2488,7 @@ DECLARE
 BEGIN
   select * from place_boundingbox into result where place_id = search_place_id;
   IF result IS NULL THEN
-    select count(*) from place_addressline where address_place_id = search_place_id into numfeatures;
+    select count(*) from place_addressline where address_place_id = search_place_id and isaddress = true into numfeatures;
     insert into place_boundingbox select place_id,
              ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),4)),ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),2)),
              ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),1)),ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),3)),
@@ -2495,9 +2504,51 @@ BEGIN
              count(*), ST_Area(ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001)) as area,
              ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001) as boundary 
              from place_addressline join placex using (place_id) 
-             where address_place_id = search_place_id and (st_length(geometry) < 0.01 or place_id = search_place_id)
+             where address_place_id = search_place_id
+               and (isaddress = true OR place_id = search_place_id)
+               and (st_length(geometry) < 0.01 or place_id = search_place_id)
              group by address_place_id limit 1;
     select * from place_boundingbox into result where place_id = search_place_id;
+  END IF;
+  return result;
+END;
+$$
+LANGUAGE plpgsql;
+
+-- don't do the operation if it would be slow
+CREATE OR REPLACE FUNCTION get_place_boundingbox_quick(search_place_id INTEGER) RETURNS place_boundingbox
+  AS $$
+DECLARE
+  result place_boundingbox;
+  numfeatures integer;
+  rank integer;
+BEGIN
+  select * from place_boundingbox into result where place_id = search_place_id;
+  IF result IS NULL THEN
+    select count(*) from place_addressline where address_place_id = search_place_id and isaddress = true into numfeatures;
+    insert into place_boundingbox select place_id,
+             ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),4)),ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),2)),
+             ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),1)),ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),3)),
+             numfeatures, ST_Area(area),
+             area from location_area where place_id = search_place_id;
+    select * from place_boundingbox into result where place_id = search_place_id;
+  END IF;
+  IF result IS NULL THEN
+    select rank_search from placex where place_id = search_place_id into rank;
+    IF rank > 20 THEN
+-- TODO 0.0001
+      insert into place_boundingbox select address_place_id,
+             min(ST_Y(ST_Centroid(geometry))) as minlon,max(ST_Y(ST_Centroid(geometry))) as maxlon,
+             min(ST_X(ST_Centroid(geometry))) as minlat,max(ST_X(ST_Centroid(geometry))) as maxlat,
+             count(*), ST_Area(ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001)) as area,
+             ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001) as boundary 
+             from place_addressline join placex using (place_id) 
+             where address_place_id = search_place_id 
+               and (isaddress = true OR place_id = search_place_id)
+               and (st_length(geometry) < 0.01 or place_id = search_place_id)
+             group by address_place_id limit 1;
+      select * from place_boundingbox into result where place_id = search_place_id;
+    END IF;
   END IF;
   return result;
 END;
@@ -2603,6 +2654,42 @@ BEGIN
     RETURN 'Other: '||rank;
   END IF;
   
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_word_suggestion(srcword TEXT) RETURNS TEXT
+  AS $$
+DECLARE
+  trigramtoken TEXT;
+  result TEXT;
+BEGIN
+
+  trigramtoken := regexp_replace(make_standard_name(srcword),E'([^0-9])\\1+',E'\\1','g');
+  SELECT word FROM word WHERE word_trigram like ' %' and word_trigram % trigramtoken ORDER BY similarity(word_trigram, trigramtoken) DESC, word limit 1 into result;
+
+  return result;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_word_suggestions(srcword TEXT) RETURNS TEXT[]
+  AS $$
+DECLARE
+  trigramtoken TEXT;
+  result TEXT[];
+  r RECORD;
+BEGIN
+
+  trigramtoken := regexp_replace(make_standard_name(srcword),E'([^0-9])\\1+',E'\\1','g');
+
+  FOR r IN SELECT word,similarity(word_trigram, trigramtoken) as score FROM word 
+    WHERE word_trigram like ' %' and word_trigram % trigramtoken ORDER BY similarity(word_trigram, trigramtoken) DESC, word limit 4
+  LOOP
+    result[coalesce(array_upper(result,1)+1,1)] := r.word;
+  END LOOP;
+
+  return result;
 END;
 $$
 LANGUAGE plpgsql;
