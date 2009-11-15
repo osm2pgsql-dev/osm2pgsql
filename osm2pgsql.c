@@ -376,6 +376,7 @@ void EndElement(const xmlChar *name)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
         /* ignore */
+        resetList(&tags); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "create")) {
