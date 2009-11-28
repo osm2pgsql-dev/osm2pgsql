@@ -21,9 +21,10 @@ Operation
 createdb gazetteer
 createlang plpgsql gazetteer
 cat /usr/share/postgresql/8.3/contrib/_int.sql | psql gazetteer
+cat /usr/share/postgresql/8.3/contrib/pg_trgm.sql | psql gazetteer
 cat /usr/share/postgresql-8.3-postgis/lwpostgis.sql | psql gazetteer
 cat /usr/share/postgresql-8.3-postgis/spatial_ref_sys.sql | psql gazetteer
-osm2pgsql -lsc -O gazetteer -d gazetteer planet.osm.bz2
+./osm2pgsql -lsc -O gazetteer -d gazetteer planet.osm.bz2
 
 2) Build the transliteration module
 cd gazetter
@@ -34,6 +35,7 @@ replacing /home/twain/osm2pgsql/gazetteer/gazetteer.so
 
 3) Various suplimentary data, used to patch holes in OSM data
 cat import_worldboundaries.sql | psql gazetteer
+cat import_country_name.sql | psql gazetteer
 cat import_gb_postcode.sql | psql gazetteer
 cat import_gb_postcodearea.sql | psql gazetteer
 cat import_us_state.sql | psql gazetteer
