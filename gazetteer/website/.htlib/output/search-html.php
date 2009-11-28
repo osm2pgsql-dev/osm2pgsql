@@ -89,6 +89,7 @@ body {
   height: 100%;
   background:#ffffff;
   border: 1px solid #ffffff;
+  overflow: auto;
 }
 #map{
   position:absolute;
@@ -218,7 +219,7 @@ form{
                                 fillColor: "#F0F7FF",
                                 strokeWidth: 2,
                                 strokeOpacity: 0.75,
-                                fillOpacity: 0.75,
+                                fillOpacity: 0.75
                         };
                         var proj_EPSG4326 = new OpenLayers.Projection("EPSG:4326");
                         var proj_map = map.getProjectionObject();
@@ -242,11 +243,17 @@ form{
 			}
 		}
 
+		function round(v,n)
+		{
+			n = Math.pow(10,n);
+			return Math.round(v*n)/n;
+		}
+
 		function mapEventMove() {
 			var proj = new OpenLayers.Projection("EPSG:4326");
 			var bounds = map.getExtent();
 			bounds = bounds.transform(map.getProjectionObject(), proj);
-			$('viewbox').value = bounds.left+','+bounds.top+','+bounds.right+','+bounds.bottom;
+			$('viewbox').value = round(bounds.left,2)+','+round(bounds.top,2)+','+round(bounds.right,2)+','+round(bounds.bottom,2);
 		}
 
     function init() {
@@ -292,9 +299,15 @@ form{
 			<table border="0" width="100%">
 				<tr>
 					<td valign="center" style="width:30px;"><img src="images/logo.gif"></td>
-					<td valign="center" style="width:300px;"><input id="q" name="q" value="<?php echo htmlspecialchars($sQuery); ?>" style="width:300px;"><input type="hidden" id="viewbox" name="viewbox"></td>
+					<td valign="center" style="width:400px;"><input id="q" name="q" value="<?php echo htmlspecialchars($sQuery); 
+?>" style="width:270px;"><input type="text" id="viewbox" style="width:130px;" name="viewbox"></td>
 					<td style="width:80px;"><input type="submit" value="Search"></td>
-<?php if (CONST_Search_AreaPolygons) { ?>					<td style="width:200px;"><input type="checkbox" value="1" name="polygon" <?php if ($bShowPolygons) echo "checked"; ?>> Show Area Polygons</td>
+<?php if (CONST_Search_AreaPolygons) { ?>					<td style="width:100px;"><input type="checkbox" value="1" name="polygon" <?php if ($bShowPolygons) echo "checked"; ?>> Highlight</td>
+<td style="text-align:right;">Data: <?php echo $sDataDate; ?></td>
+<td style="text-align:right;">
+<a href="http://wiki.openstreetmap.org/wiki/Nominatim" target="_blank">Documentation</a> | <a href="http://wiki.openstreetmap.org/wiki/Nominatim/FAQ" 
+target="_blank">FAQ</a></td>
+
 <?php } ?>					<td style="text-align:right;"><?php if ($sQuery) { if ($sReportDescription) {?><div style="text-align:center;"><b>Thank you for your problem report</b></div><?php } else { ?><input type="button" value="Report Problem With Results" onclick="$('report').style.visibility=($('report').style.visibility=='hidden'?'visible':'hidden')"><?php }} ?></td>
 				</tr>
 			</table>
@@ -337,25 +350,48 @@ form{
 		echo ' <span class="details">(<a href="details.php?place_id='.$aResult['place_id'].'">details</a>)</span>';
 		echo '</div>';
 	}
-	if (!sizeof($aSearchResults))
+	if (sizeof($aSearchResults))
+	{
+		echo '<div class="disclaimer">Addresses and postcodes are approximate</div>';
+		if ($sMoreURL)
+		{
+			echo '<div class="more"><a href="'.$sMoreURL.'">Search for more results</a></div>';
+		}
+	}
+	else
 	{
 		echo '<div class="noresults">No search results found</div>';
 	}
 
 ?>
-		<div class="disclaimer">Addresses and postcodes are approximate</div>
-	<input type="button" value="Report Problem With Results" onclick="$('report').style.visibility=($('report').style.visibility=='hidden'?'visible':'hidden')">
+		<div class="disclaimer">Addresses and postcodes are approximate
+			<input type="button" value="Report Problem" onclick="$('report').style.visibility=($('report').style.visibility=='hidden'?'visible':'hidden')">
+		</div>
 	</div>
 <?php
 }
 ?>
 
 	<div id="map"></div>
-	<div id="report" style="visibility:hidden;">
+	<div id="report" style="visibility:hidden;"><div style="width:600px;margin:auto;margin-top:60px;">
 		<h2>Report a problem</h2>
-		<p>Please use this form to report problems with the search results.  Of particular interest are items missing, but please also use this form to report any other problems.</p>
-		<p>If your problem relates to the address of a particular search result please use the 'details' link to check how the address was generated before reporting a problem.</p>
-		<p>If you are reporting a missing result please (if possible) include the OSM ID of the item you where expecting (i.e. node 422162)</p>
+		<p>Before reporting problems please read the <a href="http://wiki.openstreetmap.org/wiki/Nominatim">user documentation</a> and <a 
+href="http://wiki.openstreetmap.org/wiki/Nominatim/FAQ">FAQ</a>.  If your problem relates to the address of a particular search result please use the 'details' link 
+to check how the address was generated before reporting a problem.</p>
+		<p>Please use <a href="http://trac.openstreetmap.org/newticket?component=nominatim">trac.openstreetmap.org</a> to report problems 
+making sure to set 
+the component to 'nominatim'.  You can search for existing bug reports <a href="http://trac.openstreetmap.org/query?status=new&status=assigned&status=reopened&component=nominatim&order=priority">here</a>.</p>
+		<p>Please ensure that you include a full description of the problem, including the search query that you used, the problem with the result and, if 
+the problem relates to missing data, the osm id of the item that is missing.  Problems that contain enough detail are likely to get looked at before ones that 
+require significant research!</p>
+		</div>
+		
+<!--
+ 		<p>Please use this form to report problems with the search results.  Of particular interest are items missing, but please also use this form to 
+report any other problems.</p>
+ 		<p>If your problem relates to the address of a particular search result please use the 'details' link to check how the address was generated before 
+reporting a problem.</p>
+ 		<p>If you are reporting a missing result please (if possible) include the OSM ID of the item you where expecting (i.e. node 422162)</p>
 		<form method="post">
 		<table>
 		<tr><th>Your Query:</th><td><input type="hidden" name="report:query" value="<?php echo htmlspecialchars($sQuery); ?>" style="width:500px;"><?php echo htmlspecialchars($sQuery); ?></td></tr>
@@ -369,6 +405,7 @@ form{
 		<li>Countries where missed out of the index</li>
 		<li>Area Polygons relate to the search area - not the address area which would make more sense</li>
 		</ul>
+-->
 	</div>
 
 	<script type="text/javascript">

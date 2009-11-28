@@ -1,6 +1,6 @@
 #!/usr/bin/php -Cq
 <?php
-
+	ini_set('memory_limit', '800M');
 	require_once('website/.htlib/lib.php');
 
 	$aCMDOptions = array(
@@ -11,6 +11,7 @@
 
 		array('import-hourly', '', 0, 1, 0, 0, 'bool', 'Import hourly diffs'),
 		array('import-daily', '', 0, 1, 0, 0, 'bool', 'Import daily diffs'),
+		array('import-all', '', 0, 1, 0, 0, 'bool', 'Import all available files'),
 		array('index', '', 0, 1, 0, 0, 'bool', 'Index'),
 		array('index-instances', '', 0, 1, 1, 1, 'int', 'Number of indexing instances'),
 		array('index-instance', '', 0, 1, 1, 1, 'int', 'Which instance are we (0 to index-instances-1)'),
@@ -26,15 +27,18 @@
 		if (exec('/bin/ps uww | grep '.basename(__FILE__).' | grep -v /dev/null | grep -v grep -c', $aOutput2, $iResult) > 1)
 		{
 			echo "Copy already running\n";
-			exit;
+//			exit;
 		}
 	}
 
-	if (getBlockingProcesses() > 1)
+	if (getBlockingProcesses() > 2)
 	{
 		echo "Too many blocking processes for import\n";
 		exit;
 	}
+
+	// Assume osm2pgsql is in the folder above
+	$sBasePath = dirname(dirname(__FILE__));
 
 	require_once('DB.php');
 	$oDB =& DB::connect('pgsql://@/gazetteerworld', false);
@@ -42,33 +46,49 @@
 	$oDB->query("SET DateStyle TO 'sql,european'");
 	$oDB->query("SET client_encoding TO 'utf-8'");
 
-	if ($aResult['import-hourly'])
+	$bFirst = true;
+	$bContinue = $aResult['import-all'];
+	while ($bContinue || $bFirst)
 	{
-		// Mirror the hourly diffs
-		exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/hourly');
-		$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDDHH24\')||\'-\'||TO_CHAR(lastimportdate+\'1 hour\'::interval,\'YYYYMMDDHH24\')||\'.osc.gz\' from import_status');
-		$sNextFile = '/home/twain/planet.openstreetmap.org/hourly/'.$sNextFile;
-		$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate+\'1 hour\'::interval';
-	}
+		$bFirst = false;
 
-	if ($aResult['import-daily'])
-	{
-		// Mirror the daily diffs
-		exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/daily');
-		$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDD\')||\'-\'||TO_CHAR(lastimportdate+\'1 day\'::interval,\'YYYYMMDD\')||\'.osc.gz\' from import_status');
-		$sNextFile = '/home/twain/planet.openstreetmap.org/daily/'.$sNextFile;
-		$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate::date + 1';
-	}
+		if ($aResult['import-hourly'])
+		{
+			// Mirror the hourly diffs
+			exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/hourly');
+			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDDHH24\')||\'-\'||TO_CHAR(lastimportdate+\'1 hour\'::interval,\'YYYYMMDDHH24\')||\'.osc.gz\' from import_status');
+			$sNextFile = '/home/twain/planet.openstreetmap.org/hourly/'.$sNextFile;
+			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate+\'1 hour\'::interval';
+		}
 
-	// Missing file is not an error - it might not be created yet
-	if (($aResult['import-hourly'] || $aResult['import-daily']) && file_exists($sNextFile))
-	{
-		// Import the file
-		exec('./osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld '.$sNextFile);
-		// TODO: check for errors!
+		if ($aResult['import-daily'])
+		{
+			// Mirror the daily diffs
+			exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/daily');
+			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDD\')||\'-\'||TO_CHAR(lastimportdate+\'1 day\'::interval,\'YYYYMMDD\')||\'.osc.gz\' from import_status');
+			$sNextFile = '/home/twain/planet.openstreetmap.org/daily/'.$sNextFile;
+			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate::date + 1';
+		}
+
+		// Missing file is not an error - it might not be created yet
+		if (($aResult['import-hourly'] || $aResult['import-daily']) && file_exists($sNextFile))
+		{
+			// Import the file
+			exec($sBasePath.'/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld '.$sNextFile, $sJunk, $iErrorLevel);
+
+			if ($iErrorLevel)
+			{
+				echo "Error from $sBasePath/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld $sNextFile, $iErrorLevel\n";
+				exit;
+			}
 	
-		// Move the date onwards
-		$oDB->query($sUpdateSQL);
+			// Move the date onwards
+			$oDB->query($sUpdateSQL);
+		}
+		else
+		{
+			$bContinue = false;
+		}
 	}
 
 	if ($aResult['index'])
@@ -108,17 +128,41 @@
 
 			foreach($aAllSectors as $aSector)
 			{
-				if (getBlockingProcesses() > 5)
+				while (getBlockingProcesses() > 3 || getLoadAverage() > 1.9)
 				{
-					echo "Too many blocking processes for index\n";
-					exit;
+					echo "System busy, pausing indexing...\n";
+					sleep(60);
 				}
 				$iNum = $aSector['count'];
 				echo $aSector['geometry_index'].": $iNum, $iTotalLeft remaining (".date('H:i:s').")\n";
 				$iTotalLeft -= $iNum;
 				flush();
+
+                                $fNumSteps = round(sqrt($iNum) / 100);
+
+                                if ($fNumSteps > 1 )
+                                {
+					echo "$fNumSteps steps\n";
+					// Convert sector number back to lat lon
+					$fLon = (500 - floor($aSector['geometry_index']/1000)) - 0.5;
+					$fLat = (500 -  $aSector['geometry_index']%1000) - 0.5;
+
+                                        $fStepSize = 1 / $fNumSteps;
+                                        for ($fStepLat = $fLat; $fStepLat < ($fLat + 1); $fStepLat += $fStepSize)
+                                        {
+                                                for ($fStepLon = $fLon; $fStepLon < ($fLon + 1); $fStepLon += $fStepSize)
+                                                {
+                                                        $fStepLonTop = $fStepLon + $fStepSize;
+							$fStepLatTop = $fStepLat + $fStepSize;
+                                                        echo "  Step1 ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
+							$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
+							$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
+//							var_Dump($sSQL);
+							$oDB->query($sSQL);
+						}
+					}
+				}
 				$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
-//var_dump($sSQL);exit;
 				$oDB->query($sSQL);
 			}
 			$iDuration = date('U') - $iStartTime;

@@ -6,8 +6,8 @@
 	@define('CONST_Search_AreaPolygons', true);
 	@define('CONST_Website_BaseURL', 'http://nominatim.openstreetmap.org/');
 
-	@define('CONST_Database_DSN', 'pgsql://www-data@/gazetteer');
-//	@define('CONST_Database_DSN', 'pgsql://www-data@/gazetteerworld');
+//	@define('CONST_Database_DSN', 'pgsql://www-data@/gazetteer');
+	@define('CONST_Database_DSN', 'pgsql://www-data@/gazetteerworld');
 
 	@define('CONST_Default_Language', 'en');
 	@define('CONST_Default_Lat', 20.0);

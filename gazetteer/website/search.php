@@ -1,5 +1,7 @@
 <?php
 
+	if (isset($_GET['debug']) && $_GET['debug']) @define('CONST_Debug', true);
+
 	require_once('.htlib/init.php');
 	ini_set('memory_limit', '200M');
 
@@ -42,7 +44,16 @@
 			// TODO:
 			fail('Not yet implemented');
 	}
-	
+
+	if (isset($_GET['exclude_place_ids']) && $_GET['exclude_place_ids'])
+	{
+		foreach(explode(',',$_GET['exclude_place_ids']) as $iExcludedPlaceID)
+		{
+			$iExcludedPlaceID = (int)$iExcludedPlaceID;
+			if ($iExcludedPlaceID) $aExcludePlaceIDs[$iExcludedPlaceID] = $iExcludedPlaceID;
+		}
+	}
+		
 	// Search query
 	$sQuery = (isset($_GET['q'])?trim($_GET['q']):'');
 	if (!$sQuery && $_SERVER['PATH_INFO'] && $_SERVER['PATH_INFO'][0] == '/')
@@ -57,8 +68,12 @@
 
 	if ($sQuery)
 	{
-		// Log
-		$oDB->query('insert into query_log values ('.getDBQuoted('now').','.getDBQuoted($sQuery).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
+                $aStartTime = explode('.',microtime(true));
+		if (!$aStartTime[1]) $aStartTime[1] = '0';
+                $sStartTime = date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1];
+
+                // Log
+                $oDB->query('insert into query_log values ('.getDBQuoted($sStartTime).','.getDBQuoted($sQuery).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
 
 		// Is it just a pair of lat,lon?
 		if (preg_match('/^(-?[0-9.]+)[, ]+(-?[0-9.]+)$/', $sQuery, $aData))
@@ -76,6 +91,11 @@
 			// If we have a view box create the SQL
 			// Small is the actual view box, Large is double (on each axis) that 
 			$sViewboxSmallSQL = $sViewboxLargeSQL = false;
+			if (isset($_GET['viewboxlbrt']) && $_GET['viewboxlbrt'])
+			{
+				$aCoOrdinatesLBRT = explode(',',$_GET['viewboxlbrt']);
+				$_GET['viewbox'] = $aCoOrdinatesLBRT[0].','.$aCoOrdinatesLBRT[3].','.$aCoOrdinatesLBRT[2].','.$aCoOrdinatesLBRT[1];
+			}
 			if (isset($_GET['viewbox']) && $_GET['viewbox'])
 			{
 				$aCoOrdinates = explode(',',$_GET['viewbox']);
@@ -90,6 +110,13 @@
 			}
 
 			//TODO: Most of this code needs moving into the database...
+			preg_match_all('/\\[(.*)=(.*)\\]/', $sQuery, $aSpecialTermsRaw, PREG_SET_ORDER);
+			$aSpecialTerms = array();
+			foreach($aSpecialTermsRaw as $aSpecialTerm)
+			{
+				$sQuery = str_replace($aSpecialTerm[0], ' ', $sQuery);
+				$aSpecialTerms[strtolower($aSpecialTerm[1])] = $aSpecialTerm[2];
+			}
 
 			// Split query into phrases
 			// Commas are used to reduce the search space by indicating where phrases split
@@ -109,9 +136,9 @@
 			}
 
 			// Check which tokens we have, get the ID numbers			
-			$sSQL = 'select min(word_id) as word_id,word_token, word, class, type, location,country_code';
+			$sSQL = 'select word_id,word_token, word, class, type, location,country_code';
 			$sSQL .= ' from word where word_token in ('.join(',',array_map("getDBQuoted",$aTokens)).')';
-			$sSQL .= ' group by word_token, word, class, type, location,country_code';
+//			$sSQL .= ' group by word_token, word, class, type, location,country_code';
 
 			if (CONST_Debug) var_Dump($sSQL);
 
@@ -140,7 +167,7 @@
 			{
 				if (!isset($aValidTokens[$sToken]) && !isset($aValidTokens[' '.$sToken]) && preg_match('/^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])([A-Z][A-Z])$/', strtoupper(trim($sToken)), $aData))
 				{
-					$aGBPostcodeLocation = gbPostcodeCalculate($aData[1], $oDB);
+					$aGBPostcodeLocation = gbPostcodeCalculate($aData[0], $aData[1], $aData[2], $oDB);
 					if ($aGBPostcodeLocation)
 					{
 						$aValidTokens[$sToken] = $aGBPostcodeLocation;
@@ -313,6 +340,9 @@
 
 					foreach($aSearches as $aSearch)
 					{
+						// Must have a location term
+						if (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && !$aSearch['fLon']) continue;
+
 						if (CONST_Debug) var_dump($aSearch);
 						$aPlaceIDs = array();
 						
@@ -320,7 +350,7 @@
 						$aTerms = array();
 						$aOrder = array();
 						if (sizeof($aSearch['aName'])) $aTerms[] = "name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
-						if (sizeof($aSearch['aAddress'])) $aTerms[] = "nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
+						if (sizeof($aSearch['aAddress']) && $aSearch['aName'] != $aSearch['aAddress']) $aTerms[] = "nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
 						if ($aSearch['sCountryCode']) $aTerms[] = "country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
 						if ($aSearch['sHouseNumber']) $aTerms[] = "address_rank = 26";
 						if ($aSearch['fLon'])
@@ -328,6 +358,12 @@
 							$aTerms[] = "ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].")";
 							$aOrder[] = "ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC";
 						}
+						if (sizeof($aExcludePlaceIDs))
+						{
+							$aTerms[] = "place_id not in (".join(',',$aExcludePlaceIDs).")";
+						}
+
+
 						if ($sViewboxSmallSQL) $aOrder[] = "ST_Contains($sViewboxSmallSQL, centroid) desc";
 						if ($sViewboxLargeSQL) $aOrder[] = "ST_Contains($sViewboxLargeSQL, centroid) desc";
 						$aOrder[] = "search_rank ASC";
@@ -342,7 +378,11 @@
 							$sSQL .= " from search_name";
 							$sSQL .= " where ".join(' and ',$aTerms);
 							$sSQL .= " order by ".join(', ',$aOrder);
-							$sSQL .= " limit 10";
+							if ($aSearch['sHouseNumber'])
+								$sSQL .= " limit 50";
+							else
+								$sSQL .= " limit 10";
+
 							if (CONST_Debug) var_dump($sSQL);
 							$aViewBoxPlaceIDs = $oDB->getAll($sSQL);
 							if (PEAR::IsError($aViewBoxPlaceIDs))
@@ -565,7 +605,7 @@
 		if (isset($aClassType[$aResult['class'].':'.$aResult['type']]['icon']) 
 			&& $aClassType[$aResult['class'].':'.$aResult['type']]['icon'])
 		{
-			$aResult['icon'] = 'http://katie.openstreetmap.org/~twain/images/mapicons/'.$aClassType[$aResult['class'].':'.$aResult['type']]['icon'].'.p.20.png';
+			$aResult['icon'] = CONST_Website_BaseURL.'images/mapicons/'.$aClassType[$aResult['class'].':'.$aResult['type']]['icon'].'.p.20.png';
 		}
 
 		if ($bShowAddressDetails)
@@ -597,6 +637,8 @@
 	$bFirst = true;
 	foreach($aToFilter as $iResNum => $aResult)
 	{
+		if ($aResult['type'] == 'adminitrative') $aResult['type'] = 'administrative';
+		$aExcludePlaceIDs[$aResult['place_id']] = $aResult['place_id'];
 		if ($bFirst)
 		{
 			$fLat = $aResult['lat'];
@@ -613,6 +655,21 @@
 		}
 	}
 
-//var_Dump($aSearchResults);exit;
+	$sDataDate = $oDB->getOne("select TO_CHAR(lastimportdate - '1 day'::interval,'YYYY/MM/DD') from import_status limit 1");
+
+        if ($sQuery)
+        {
+                $aEndTime = explode('.',microtime(true));
+		if (!$aEndTime[1]) $aEndTime[1] = '0';
+                $sEndTime = date('Y-m-d H:i:s',$aEndTime[0]).'.'.$aEndTime[1];
+		$iNumResults = sizeof($aToFilter);
+ 		$oDB->query('update query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults.' where starttime = '.getDBQuoted($sStartTime).' and query = '.getDBQuoted($sQuery).' and ipaddress = '.getDBQuoted(($_SERVER["REMOTE_ADDR"])));
+                if (CONST_Debug)
+                {
+                        var_Dump($aSearchResults);
+                        exit;
+                }
+        }
+	$sMoreURL = 'http://katie.openstreetmap.org/~twain/search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');

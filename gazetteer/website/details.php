@@ -15,6 +15,10 @@
 	}
 
 	$iPlaceID = (int)$_GET['place_id'];
+
+	$oDB->query('insert into query_log values ('.getDBQuoted('now').','.getDBQuoted('details: '.$iPlaceID.' '.(int)$_GET['osmid']).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
+	if ($_SERVER["REMOTE_ADDR"] == '66.249.67.161') exit;
+
 	$aLangPrefOrder = getPrefferedLangauges();
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
 
@@ -93,7 +97,7 @@
 	$sSQL .= "get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
 	$sSQL .= " from place_addressline join placex on (address_place_id = placex.place_id)";
-	$sSQL .= " where place_addressline.place_id = $iPlaceID and (rank_address > 0 OR address_place_id = $iPlaceID) and placex.place_id != $iPlaceID";
+	$sSQL .= " where place_addressline.place_id = $iPlaceID and ((rank_address > 0 AND rank_address < ".$aPointDetails['rank_address'].") OR address_place_id = $iPlaceID) and placex.place_id != $iPlaceID";
 	if ($aPointDetails['country_code'])
 	{
 		$sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$aPointDetails['country_code']."' OR rank_address < 4)";
@@ -113,7 +117,7 @@
 	$sSQL .= " from (select * from place_addressline where address_place_id = $iPlaceID and cached_rank_address < $iMaxRankAddress) as place_addressline join placex on (place_addressline.place_id = placex.place_id)";
 	$sSQL .= " where place_addressline.address_place_id = $iPlaceID and placex.rank_address < $iMaxRankAddress and cached_rank_address > 0 and placex.place_id != $iPlaceID";
 	$sSQL .= " and type != 'postcode'";
-	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL),housenumber";
+	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL),housenumber limit 1000";
 	$aParentOfLines = $oDB->getAll($sSQL);
 
 	include('.htlib/output/details-html.php');

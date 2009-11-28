@@ -76,7 +76,9 @@ static const struct taginfo {
    { "tourism",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "waterway", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "landuse",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "building",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "building", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "bridge",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "tunnel",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { NULL,       NULL,             0                                     }
 };
 
@@ -203,13 +205,15 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "old_name") == 0 ||
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
+          strcmp(item->key, "addr:housename") == 0 ||
           strcmp(item->key, "commonname") == 0 ||
           strcmp(item->key, "common_name") == 0 ||
           strcmp(item->key, "short_name") == 0 ||
           strcmp(item->key, "name") == 0 ||
           strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "name:", 5) == 0) ||
-          (strncmp(item->key, "official_name:", 14) == 0))
+          (strncmp(item->key, "official_name:", 14) == 0) || 
+          (strncmp(item->key, "short_name:", 11) == 0))
       {
          pushItem(names, item);
       }
@@ -225,13 +229,15 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          *street = item->value;
       }
-      else if (strcmp(item->key, "is_in") == 0 ||
-          (strncmp(item->key, "is_in:", 5) == 0))
+      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
+                strcmp(item->key, "country_code_iso3166_1") == 0 || 
+                strcmp(item->key, "country_code_iso3166") == 0 || 
+                strcmp(item->key, "country_code") == 0 || 
+                strcmp(item->key, "is_in:country_code") == 0 || 
+                strcmp(item->key, "addr:country_code") == 0) 
+                && strlen(item->value) == 2)
       {
-         *isin = realloc(*isin, isinsize + 2 + strlen(item->value));
-         *(*isin+isinsize) = ',';
-         strcpy(*isin+1+isinsize, item->value);
-         isinsize += 1 + strlen(item->value);
+         *countrycode = item->value;
       }
       else if (strcmp(item->key, "addr:housenumber") == 0)
       {
@@ -245,19 +251,18 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          *housenumber = item->value; 
          addItem(places, "place", "houses", 1);
       }
+      else if (strcmp(item->key, "is_in") == 0 ||
+          (strncmp(item->key, "is_in:", 5) == 0) ||
+          (strncmp(item->key, "addr:", 4) == 0))
+      {
+         *isin = realloc(*isin, isinsize + 2 + strlen(item->value));
+         *(*isin+isinsize) = ',';
+         strcpy(*isin+1+isinsize, item->value);
+         isinsize += 1 + strlen(item->value);
+      }
       else if (strcmp(item->key, "admin_level") == 0)
       {
          *admin_level = atoi(item->value);
-      }
-      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
-                strcmp(item->key, "country_code_iso3166_1") == 0 || 
-                strcmp(item->key, "country_code_iso3166") == 0 || 
-                strcmp(item->key, "country_code") == 0 || 
-                strcmp(item->key, "is_in:country_code") == 0 || 
-                strcmp(item->key, "addr:country_code") == 0) 
-                && strlen(item->value) == 2)
-      {
-         *countrycode = item->value;
       }
       else
       {
@@ -508,6 +513,8 @@ static void gazetteer_out_stop(void)
 //   Options->mid->iterate_ways( gazetteer_out_way );
 //   Options->mid->iterate_relations( gazetteer_process_relation );
 
+//fprintf(stderr, "stop\n");
+
    /* No longer need to access middle layer */
    Options->mid->stop();
 
@@ -518,7 +525,7 @@ static void gazetteer_out_stop(void)
    pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
 
    /* Analyse the table */
-   pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
+   //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
 
    return;
 }
@@ -540,6 +547,8 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
    char * postcode;
    char * countrycode;
    char wkt[128];
+
+//fprintf(stderr, "node\n");
 
    /* Split the tags */
    split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
@@ -579,11 +588,24 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    char * countrycode;
    int area;
 
+//fprintf(stderr, "way\n");
+
    /* Split the tags */
    area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
+
+/*
+   if (listHasData(&names))
+{
+fprintf(stderr, "name\n");
+}
+   if (listHasData(&places))
+{
+fprintf(stderr, "data\n");
+}
+*/
 
    /* Are we interested in this item? */
    if (listHasData(&names) || listHasData(&places))
@@ -654,7 +676,6 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    if (listHasData(&names))
    {
       /* get the boundary path (ways) */
-      /* straight copy from pgsql_process_relation with very little understanding */
 
       int i, count;
       int *xcount = malloc( (member_count+1) * sizeof(int) );
@@ -752,193 +773,23 @@ static int gazetteer_delete_relation(int id)
 
 static int gazetteer_modify_node(int id, double lat, double lon, struct keyval *tags)
 {
-   struct keyval names;
-   struct keyval places;
-   struct keyval *place;
-   int adminlevel;
-   char * housenumber;
-   char * street;
-   char * isin;
-   char * postcode;
-   char * countrycode;
-   char wkt[128];
-
-   /* Make sure we are in slim mode */
    require_slim_mode();
-
-   /* Split the tags */
-   split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
-
-   /* Feed this node to the middle layer */
-   Options->mid->node_changed(id);
-
-   /* Are we interested in this item? */
-   if (listHasData(&names) || listHasData(&places))
-   {
-      sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
-      for (place = firstItem(&places); place; place = nextItem(&places, place))
-      {
-         add_place('N', id, place->key, place->value, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
-      }
-   }
-
-   if (isin) free(isin);
-
-   /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-
-   return 0;
+   Options->mid->nodes_delete(id);
+   return gazetteer_add_node(id, lat, lon, tags);
 }
 
 static int gazetteer_modify_way(int id, int *ndv, int ndc, struct keyval *tags)
 {
-   struct keyval names;
-   struct keyval places;
-   struct keyval *place;
-   int adminlevel;
-   char * housenumber;
-   char * street;
-   char * isin;
-   char * postcode;
-   char * countrycode;
-   int area;
-
-   /* Make sure we are in slim mode */
    require_slim_mode();
-
-   /* Split the tags */
-   area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
-
-   /* Feed this way to the middle layer */
-   Options->mid->way_changed(id);
-
-   /* Are we interested in this item? */
-   if (listHasData(&names) || listHasData(&places))
-   {
-      struct osmNode *nodev;
-      int nodec;
-      char *wkt;
-      double dummy;
-    
-      /* Fetch the node details */
-      nodev = malloc(ndc * sizeof(struct osmNode));
-      nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
-
-      /* Get the geometry of the object */
-      if ((wkt = get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
-      {
-         for (place = firstItem(&places); place; place = nextItem(&places, place))
-         {
-            add_place('W', id, place->key, place->value, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
-         }
-      }
-
-      /* Free the geometry */
-      free(wkt);
-
-      /* Free the nodes */
-      free(nodev);
-   }
-
-   if (isin) free(isin);
-
-   /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-
-   return 0;
+   Options->mid->ways_delete(id);
+   return gazetteer_add_way(id, ndv, ndc, tags);
 }
 
 static int gazetteer_modify_relation(int id, struct member *members, int member_count, struct keyval *tags)
 {
-   /* Make sure we are in slim mode */
    require_slim_mode();
-
-   struct keyval names;
-   struct keyval places;
-   int adminlevel;
-   char * housenumber;
-   char * street;
-   char * isin;
-   char * postcode;
-   char * countrycode;
-   int area, wkt_size;
-   const char *type;
-
-   type = getItem(tags, "type");
-   if (!type)
-      return 0;
-
-   if (!strcmp(type, "associatedStreet") || !strcmp(type, "relatedStreet"))
-   {
-      Options->mid->relation_changed(id);
-      return 0;
-   }
-
-//TODO: strcmp(type, "route")
-//   if (strcmp(type, "boundary"))
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon"))
-      return 0;
-
-   /* Split the tags */
-   area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
-
-   if (listHasData(&names))
-   {
-      /* get the boundary path (ways) */
-      /* straight copy from pgsql_process_relation with very little understanding */
-
-      int i, count;
-      int *xcount = malloc( (member_count+1) * sizeof(int) );
-      struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
-      struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
-
-      count = 0;
-      for (i=0; i<member_count; i++)
-      {
-         /* only interested in ways */
-         if (members[i].type != OSMTYPE_WAY)
-            continue;
-
-         initList(&(xtags[count]));
-         if (Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count])))
-            continue;
-         count++;
-      }
-      xnodes[count] = NULL;
-      xcount[count] = 0;
-
-      wkt_size = build_geometry(id, xnodes, xcount, 1, 1000000);
-      for (i=0;i<wkt_size;i++)
-      {
-         char *wkt = get_wkt(i);
-         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
-         {
-            add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
-         }
-         free(wkt);
-      }
-      clear_wkts();
-
-      for( i=0; i<count; i++ )
-      {
-         resetList( &(xtags[i]) );
-         free( xnodes[i] );
-      }
-
-      free(xcount);
-      free(xtags);
-      free(xnodes);
-   }
-
-   if (isin) free(isin);
-
-   /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-
-   return 0;
+   Options->mid->relations_delete(id);
+   return gazetteer_add_relation(id, members, member_count, tags);
 }
 
 struct output_t out_gazetteer = {
