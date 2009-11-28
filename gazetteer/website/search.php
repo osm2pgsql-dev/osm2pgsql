@@ -670,6 +670,6 @@
                         exit;
                 }
         }
-	$sMoreURL = 'http://katie.openstreetmap.org/~twain/search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
+	$sMoreURL = CONST_Website_BaseURL.'search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');

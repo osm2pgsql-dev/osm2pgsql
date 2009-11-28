@@ -32,9 +32,9 @@
 
 			if ($bShowPolygons)
 			{
-				echo ' polygonpoints="';
+				echo ' polygonpoints=\'';
 				echo javascript_renderData($aResult['aPolyPoints']);
-				echo '"';
+				echo '\'';
 			}
 		}
 
