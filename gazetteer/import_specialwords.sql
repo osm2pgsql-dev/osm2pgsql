@@ -1,4 +1,5 @@
 select getorcreate_country(make_standard_name('uk'), 'gb');
+select getorcreate_country(make_standard_name('united states'), 'us');
 select count(*) from (select getorcreate_country(make_standard_name(country_code), country_code) from country_name where country_code is not null) as x;
 
 select count(*) from (select getorcreate_country(make_standard_name(get_name_by_language(country_name.name,ARRAY['name'])), country_code) from country_name where get_name_by_language(country_name.name, ARRAY['name']) is not null) as x;
@@ -36,3 +37,7 @@ select getorcreate_amenity(make_standard_name('rail station'),'railway','station
 select getorcreate_amenity(make_standard_name('station'),'railway','station');
 select getorcreate_amenity(make_standard_name('hospital'),'amenity','hospital');
 select getorcreate_amenity(make_standard_name('zoo'),'tourism','zoo');
+select getorcreate_amenity(make_standard_name('tree'),'natural','tree');
+select getorcreate_amenity(make_standard_name('trees'),'natural','tree');
+select getorcreate_amenity(make_standard_name('bridge'),'bridge','yes');
+select getorcreate_amenity(make_standard_name('tunnel'),'tunnel','yes');

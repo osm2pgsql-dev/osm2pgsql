@@ -44,16 +44,10 @@ select 'now'::timestamp;
 --insert into placex select null,'E',nextval,'place','postcode',null,null,null,null,false,substring(postcode from '^([A-Z][A-Z]?[0-9][0-9A-Z]?) [0-9]$'),lower(countrycode),null,null,null,null,geometry from gb_postcode where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
 --insert into placex select null,'X',nextval,'place','postcodearea',ARRAY[ROW('name',postcodeareaname)::keyvalue],null,null,null,null,null,'gb',null,15,23,false,geometry from gb_postcode join gb_postcodearea on (substring(postcode from '^([A-Z][A-Z]?)[0-9][0-9A-Z]? [0-9]$') = postcodeareaid) where postcode ~ '^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]$' and ST_GeometryType(geometry) = 'ST_Polygon';
 
-select 'now'::timestamp;
-insert into placex select * from place where osm_type = 'N';-- order by geometry_sector(geometry);
-select 'now'::timestamp;
-insert into placex select * from place where osm_type = 'W';-- order by geometry_sector(geometry);
-select 'now'::timestamp;
-insert into placex select * from place where osm_type = 'R';-- order by geometry_sector(geometry);
-select 'now'::timestamp;
+insert into placex select * from place where osm_type = 'N';
+insert into placex select * from place where osm_type = 'W';
+insert into placex select * from place where osm_type = 'R';
 
 -- use this to do a simple index - for the full planet use 'reindex.php'
---update placex set indexed = true where not indexed and rank_search <= 26 and name is not null;
---select 'finished <= 26','now'::timestamp;
---update placex set indexed = true where not indexed and rank_search > 26 and name is not null;
---select 'finished > 26','now'::timestamp;
+update placex set indexed = true where not indexed and rank_search <= 26 and name is not null;
+update placex set indexed = true where not indexed and rank_search > 26 and name is not null;

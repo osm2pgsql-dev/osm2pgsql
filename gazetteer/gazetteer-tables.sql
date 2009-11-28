@@ -9,10 +9,12 @@ CREATE SEQUENCE seq_location start 1;
 --drop table IF EXISTS query_log;
 CREATE TABLE query_log (
   starttime timestamp,
+  endtime timestamp,
   query text,
   ipaddress text
   );
 GRANT INSERT ON query_log TO "www-data" ;
+
 --drop table IF EXISTS report_log;
 CREATE TABLE report_log (
   starttime timestamp,

@@ -33,9 +33,9 @@
 		$aLanguages = array();
 		if (preg_match_all('/([a-z]{1,8}(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/i', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $aLanguagesParse, PREG_SET_ORDER))
 		{
-			foreach($aLanguagesParse as $aLanguage)
+			foreach($aLanguagesParse as $iLang => $aLanguage)
 			{
-				$aLanguages[$aLanguage[1]] = isset($aLanguage[4])?(float)$aLanguage[4]:1;
+				$aLanguages[$aLanguage[1]] = isset($aLanguage[4])?(float)$aLanguage[4]:1 - ($iLang/100);
 			}
 			arsort($aLanguages);
 		}
@@ -112,10 +112,10 @@
 		return abs(($aValues[$s1[0]]*21+$aValues[$s1[1]]) - ($aValues[$s2[0]]*21+$aValues[$s2[1]]));
 	}
 	
-	function gbPostcodeCalculate($sPostcode, &$oDB)
+	function gbPostcodeCalculate($sPostcode, $sPostcodeSector, $sPostcodeEnd, &$oDB)
 	{
-		$sSQL = 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcode.'\'';
-//var_dump($sSQL); exit;
+		// Try an exact match on the gb_postcode table
+		$sSQL = 'select \'AA\', ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from gb_postcode where upper(postcode) = \''.$sPostcode.'\'';
 		$aNearPostcodes = $oDB->getAll($sSQL);
 		if (PEAR::IsError($aNearPostcodes))
 		{
@@ -123,12 +123,30 @@
 			exit;
 		}
 
+		if (!sizeof($aNearPostcodes))
+		{
+ 			$sSQL = 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where country_code::text = \'gb\'::text AND substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcodeSector.'\'';
+			$sSQL .= ' union ';
+			$sSQL .= 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from gb_postcode where substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcodeSector.'\'';
+			$aNearPostcodes = $oDB->getAll($sSQL);
+			if (PEAR::IsError($aNearPostcodes))
+			{
+				var_dump($sSQL, $aNearPostcodes);
+				exit;
+			}
+		}
+
+		if (!sizeof($aNearPostcodes))
+		{
+			return false;
+		}
+
 		$fTotalLat = 0;
 		$fTotalLon = 0;
 		$fTotalFac = 0;
 		foreach($aNearPostcodes as $aPostcode)
 		{
-			$iDiff = gbPostcodeAlphaDifference($aData[2], $aPostcode['substring']);
+			$iDiff = gbPostcodeAlphaDifference($sPostcodeEnd, $aPostcode['substring']);
 			if ($iDiff == 0)
 				$fFac = 1;
 			else
@@ -142,7 +160,7 @@
 		{
 			$fLat = $fTotalLat / $fTotalFac;
 			$fLon = $fTotalLon / $fTotalFac;
-			$fRadius = min(0.1 / $fTotalFac, 0.1);
+			$fRadius = min(0.1 / $fTotalFac, 0.02);
 			return array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => $fRadius));
 		}
 		return false;
@@ -171,7 +189,7 @@
  'place:region' => array('label'=>'State','frequency'=>0,'icon'=>'poi_boundary_administrative','defzoom'=>8, 'defdiameter' => 5.12,),
  'place:island' => array('label'=>'Island','frequency'=>288,'icon'=>'','defzoom'=>11, 'defdiameter' => 0.64,),
  'place:county' => array('label'=>'County','frequency'=>108,'icon'=>'poi_boundary_administrative','defzoom'=>10, 'defdiameter' => 1.28,),
- 'boundary:adminitrative' => array('label'=>'Adminitrative','frequency'=>413,'icon'=>'poi_boundary_administrative', 'defdiameter' => 0.32,),
+ 'boundary:adminitrative' => array('label'=>'Administrative','frequency'=>413,'icon'=>'poi_boundary_administrative', 'defdiameter' => 0.32,),
  'place:town' => array('label'=>'Town','frequency'=>1497,'icon'=>'poi_place_town','defzoom'=>14, 'defdiameter' => 0.08,),
  'place:village' => array('label'=>'Village','frequency'=>11230,'icon'=>'poi_place_village','defzoom'=>15, 'defdiameter' => 0.04,),
  'place:hamlet' => array('label'=>'Hamlet','frequency'=>7075,'icon'=>'poi_place_village','defzoom'=>15, 'defdiameter' => 0.04,),
@@ -207,8 +225,8 @@
  'landuse:retail' => array('label'=>'Retail','frequency'=>754,'icon'=>'',),
  'landuse:commercial' => array('label'=>'Commercial','frequency'=>657,'icon'=>'',),
 
- 'place:airport' => array('label'=>'Airport','frequency'=>36,'icon'=>'transport_airport2',),
- 'railway:station' => array('label'=>'Station','frequency'=>3431,'icon'=>'transport_train_station2',),
+ 'place:airport' => array('label'=>'Airport','frequency'=>36,'icon'=>'transport_airport2', 'defdiameter' => 0.03,),
+ 'railway:station' => array('label'=>'Station','frequency'=>3431,'icon'=>'transport_train_station2', 'defdiameter' => 0.01,),
  'amenity:place_of_worship' => array('label'=>'Place Of Worship','frequency'=>9049,'icon'=>'place_of_worship3',),
  'amenity:pub' => array('label'=>'Pub','frequency'=>18969,'icon'=>'food_pub',),
  'amenity:bar' => array('label'=>'Bar','frequency'=>164,'icon'=>'food_bar',),
@@ -490,7 +508,7 @@
                         {
                                 foreach($xVal as $sKey => $xData)
                                 {
-                                        $aVals[] = "'".addslashes($sKey)."'".':'.javascript_renderData($xData);
+                                        $aVals[] = '"'.addslashes($sKey).'"'.':'.javascript_renderData($xData);
                                 }
                                 return '{'.join(',',$aVals).'}';
                         }
@@ -498,7 +516,7 @@
                 else
                 {
                         if (is_bool($xVal)) return $xVal?'true':'false';
-                        return "'".str_replace('>','\\>',str_replace(array("\n","\r"),'\\n',str_replace(array("\n\r","\r\n"),'\\n',addslashes($xVal))))."'";
+                        return '"'.str_replace('>','\\>',str_replace(array("\n","\r"),'\\n',str_replace(array("\n\r","\r\n"),'\\n',addslashes($xVal)))).'"';
                 }
         }
 
@@ -513,6 +531,7 @@
 			}
 		}
 		echo "<table border=\"1\">";
+		echo "<tr><th>rank</ht><th>Name Tokens</ht><th>Address Tokens</ht><th>country</ht><th>class</ht><th>type</ht><th>house#</ht></tr>";
 		foreach($aData as $iRank => $aRankedSet)
 		{
 			foreach($aRankedSet as $aRow)

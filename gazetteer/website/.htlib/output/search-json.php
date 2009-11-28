@@ -15,31 +15,35 @@
 			$aPlace['osm_id'] = $aPointDetails['osm_id'];
 		}
 		
+
+                if (isset($aResult['aBoundingBox']))
+                {
+			$aPlace['boundingbox'] = array(
+				$aResult['aBoundingBox'][0],
+				$aResult['aBoundingBox'][1],
+				$aResult['aBoundingBox'][2],
+				$aResult['aBoundingBox'][3]);
+                }
+
 		if (isset($aResult['aPointPolygon']) && $bShowPolygons)
 		{
-			$aPlace['boundingbox'] = array(
-				$aResult['aPointPolygon']['minlat'],
-				$aResult['aPointPolygon']['maxlat'],
-				$aResult['aPointPolygon']['minlon'],
-				$aResult['aPointPolygon']['maxlon']);
-
-			$aPlace['polygonpoints']=$aResult['aPolyPoints'];
+			$aPlace['polygonpoints'] = $aResult['aPolyPoints'];
 		}
 
 		if (isset($aResult['zoom']))
 		{
-			$aPlace['zoom']=$aResult['zoom'];
+			$aPlace['zoom'] = $aResult['zoom'];
 		}
 
-		$aPlace['lat']=$aResult['lat'];
-		$aPlace['lon']=$aResult['lon'];
-		$aPlace['display_name']=$aResult['name'];
+		$aPlace['lat'] = $aResult['lat'];
+		$aPlace['lon'] = $aResult['lon'];
+		$aPlace['display_name'] = $aResult['name'];
 
-		$aPlace['class']=$aResult['class'];
-		$aPlace['type']=$aResult['type'];
+		$aPlace['class'] = $aResult['class'];
+		$aPlace['type'] = $aResult['type'];
 		if ($aResult['icon'])
 		{
-			$aPlace['icon']=$aResult['icon'];
+			$aPlace['icon'] = $aResult['icon'];
 		}
 		$aFilteredPlaces[] = $aPlace;
 	}

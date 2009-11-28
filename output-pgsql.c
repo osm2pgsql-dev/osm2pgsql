@@ -646,7 +646,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
 
         if (wkt && strlen(wkt)) {
             /* FIXME: there should be a better way to detect polygons */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 expire_tiles_from_nodes_poly(nodes, count, id);
                 double area = get_area(i);
                 if (area > 0.0) {
@@ -874,7 +874,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
         if (wkt && strlen(wkt)) {
             expire_tiles_from_wkt(wkt, -id);
             /* FIXME: there should be a better way to detect polygons */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 double area = get_area(i);
                 if (area > 0.0) {
                     char tmp[32];
@@ -929,7 +929,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             if (strlen(wkt)) {
                 expire_tiles_from_wkt(wkt, -id);
                 /* FIXME: there should be a better way to detect polygons */
-                if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))) {
+                if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                     double area = get_area(i);
                     if (area > 0.0) {
                         char tmp[32];

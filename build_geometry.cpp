@@ -36,6 +36,7 @@
 #include <geos/geom/LinearRing.h>
 #include <geos/geom/MultiLineString.h>
 #include <geos/geom/Polygon.h>
+#include <geos/geom/MultiPolygon.h>
 #include <geos/geom/Point.h>
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
@@ -258,6 +259,25 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
     return 0;
 }
 
+struct polygondata
+{
+    Polygon*        polygon;
+    LinearRing*     ring;
+    double          area;
+    int             iscontained;
+    unsigned        containedbyid;
+};
+
+static int polygondata_comparearea(const void* vp1, const void* vp2)
+{
+    const polygondata* p1 = (const polygondata*)vp1;
+    const polygondata* p2 = (const polygondata*)vp2;
+
+    if (p1->area == p2->area) return 0;
+    if (p1->area > p2->area) return -1;
+    return 1;
+}
+
 size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, double split_at) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
@@ -290,28 +310,24 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
         std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
         WKTWriter writer;
 
-        std::auto_ptr<LinearRing> exterior;
-        std::auto_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
-        double ext_area = 0.0;
+        // Procces ways into lines or simple polygon list
+        polygondata* polys = new polygondata[merged->size()];
+
+        unsigned totalpolys = 0;
         for (unsigned i=0 ;i < merged->size(); ++i)
         {
             std::auto_ptr<LineString> pline ((*merged ) [i]);
             if (make_polygon && pline->getNumPoints() > 3 && pline->isClosed())
             {
-                std::auto_ptr<LinearRing> ring(gf.createLinearRing(pline->getCoordinates()));
-                std::auto_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
-                double poly_area = poly->getArea();
-                if (poly_area > ext_area) {
-                    if (ext_area > 0.0)
-                        interior->push_back(exterior.release());
-                    ext_area = poly_area;
-                    exterior = ring;
-                        //std::cerr << "Found bigger ring, area(" << ext_area << ") " << writer.write(poly.get()) << std::endl;
-                } else {
-                    interior->push_back(ring.release());
-                        //std::cerr << "Found inner ring, area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
-                }
-            } else {
+                polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
+                polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
+                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
+                polys[totalpolys].iscontained = 0;
+                if (polys[totalpolys].area > 0.0) totalpolys++;
+                else delete(polys[totalpolys].polygon);
+            }
+            else
+            {
                         //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
                 double distance = 0;
                 std::auto_ptr<CoordinateSequence> segment;
@@ -338,15 +354,91 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
             }
         }
 
-        if (ext_area > 0.0) {
-            std::auto_ptr<Polygon> poly(gf.createPolygon(exterior.release(), interior.release()));
-            poly->normalize(); // Fix direction of rings
-            std::string text = writer.write(poly.get());
-//                    std::cerr << "Result: area(" << poly->getArea() << ") " << writer.write(poly.get()) << std::endl;
-            wkts.push_back(text);
-            areas.push_back(ext_area);
-            wkt_size++;
+//        std::cerr << std::endl << "polygons found = " << totalpolys << std::endl;
+        
+        if (totalpolys)
+        {
+            qsort(polys, totalpolys, sizeof(polygondata), polygondata_comparearea);
+
+            unsigned toplevelpolygons = 0;
+            int istoplevelafterall;
+
+            for (unsigned i=0 ;i < totalpolys; ++i)
+            {
+                if (polys[i].iscontained) continue;
+                toplevelpolygons++;
+                for (unsigned j=i+1; j < totalpolys; ++j)
+                {
+                    // Does [i] contain a smaller polygon?
+                    if (polys[i].polygon->contains(polys[j].polygon))
+                    {
+                        // are we in a [i] contains [k] contains [j] situation
+                        // which would actually make j top level
+                        istoplevelafterall = 0;
+                        for (unsigned k=i+1; k < j; ++k)
+                        {
+                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon))
+                            {
+                                istoplevelafterall = 1;
+                                break;
+                            }
+                        }
+                        if (!istoplevelafterall)
+                        {
+                            polys[j].iscontained = 1;
+                            polys[j].containedbyid = i;
+                        }
+                    }
+                }
+            }
+            // polys now is a list of ploygons tagged with which ones are inside each other
+
+            // List of polygons for multipolygon
+            std::auto_ptr<vector<Geometry*> > polygons(new std::vector<Geometry*>);
+
+            // For each top level polygon create a new polygon including any holes
+            for (unsigned i=0 ;i < totalpolys; ++i)
+            {
+                if (polys[i].iscontained) continue;
+
+                // List of holes for this top level polygon
+                std::auto_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
+                for (unsigned j=i+1; j < totalpolys; ++j)
+                {
+                   if (polys[j].iscontained && polys[j].containedbyid == i)
+                   {
+                       interior->push_back(polys[j].ring);
+                   }
+                }
+                
+                Polygon* poly(gf.createPolygon(polys[i].ring, interior.release()));
+                poly->normalize();
+                polygons->push_back(poly);
+            }
+
+            // Make a multipolygon if required
+            if (toplevelpolygons == 1)
+            {
+                Polygon* poly = (Polygon*)polygons->at(0);
+                std::string text = writer.write(poly);
+                wkts.push_back(text);
+                wkt_size++;
+                delete(poly);
+            }
+            else
+            {
+                std::auto_ptr<MultiPolygon> multipoly(gf.createMultiPolygon(polygons.release()));
+                std::string text = writer.write(multipoly.get());
+                wkts.push_back(text);
+                wkt_size++;
+            }
         }
+
+        for (unsigned i=0; i < totalpolys; ++i)
+        {
+            delete(polys[i].polygon);
+        }
+        delete[](polys);
     }
     catch (...)
     {
