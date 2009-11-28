@@ -2,6 +2,7 @@ drop table import_status;
 CREATE TABLE import_status (
   lastimportdate timestamp NOT NULL
   );
+GRANT SELECT ON import_status TO "www-data" ;
 
 DROP SEQUENCE seq_location;
 CREATE SEQUENCE seq_location start 1;
