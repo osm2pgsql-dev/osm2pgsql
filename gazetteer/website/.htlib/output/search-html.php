@@ -162,6 +162,11 @@ body {
   font: normal 12px arial,sans-serif;
   padding-top:4px;
 }
+.more{
+  color: #ccc;
+  text-align:center;
+  padding-top:4px;
+}
 .disclaimer{
   color: #ccc;
   text-align:center;
@@ -325,13 +330,13 @@ target="_blank">FAQ</a></td>
 	{
 		if ($aResult['aBoundingBox'])
 		{
-			echo '<div class="result" onClick="panToLatLonBoundingBox('.$aResult['lat'].', '.$aResult['lon'];
+			echo '<div class="result" onClick=\'panToLatLonBoundingBox('.$aResult['lat'].', '.$aResult['lon'];
 			echo ', '.$aResult['aBoundingBox'][0];
 			echo ', '.$aResult['aBoundingBox'][1];
 			echo ', '.$aResult['aBoundingBox'][2];
 			echo ', '.$aResult['aBoundingBox'][3];
 			echo ', '.javascript_renderData($aResult['aPolyPoints']);
-			echo ');">';
+			echo ');\'>';
 		}
 		elseif (isset($aResult['zoom']))
 		{
@@ -352,7 +357,6 @@ target="_blank">FAQ</a></td>
 	}
 	if (sizeof($aSearchResults))
 	{
-		echo '<div class="disclaimer">Addresses and postcodes are approximate</div>';
 		if ($sMoreURL)
 		{
 			echo '<div class="more"><a href="'.$sMoreURL.'">Search for more results</a></div>';
