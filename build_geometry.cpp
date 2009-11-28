@@ -394,7 +394,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
             // polys now is a list of ploygons tagged with which ones are inside each other
 
             // List of polygons for multipolygon
-            std::auto_ptr<vector<Geometry*> > polygons(new std::vector<Geometry*>);
+            std::auto_ptr<std::vector<Geometry*> > polygons(new std::vector<Geometry*>);
 
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
