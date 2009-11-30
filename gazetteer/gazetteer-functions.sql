@@ -1384,7 +1384,7 @@ DECLARE
   country_code VARCHAR(2);
   diameter FLOAT;
 BEGIN
---  RAISE WARNING '%',NEW;
+--  RAISE WARNING '%',NEW.osm_id;
 --  RAISE WARNING '%',NEW.osm_id;
 
   -- just block these
@@ -1414,6 +1414,8 @@ BEGIN
   NEW.place_id := nextval('seq_place');
   NEW.indexed := false;
   NEW.country_code := lower(NEW.country_code);
+
+--RAISE WARNING '%',NEW.country_code;
 
   IF NEW.housenumber IS NOT NULL THEN
     i := getorcreate_housenumber_id(make_standard_name(NEW.housenumber));
@@ -1539,7 +1541,9 @@ BEGIN
       END IF;
 
     ELSEIF NEW.class = 'boundary' THEN
-      NEW.country_code := get_country_code(NEW.geometry);
+      IF NEW.country_code is null THEN
+        NEW.country_code := get_country_code(NEW.geometry);
+      END IF;
       NEW.rank_search := NEW.admin_level * 2;
       NEW.rank_address := NEW.rank_search;
     ELSEIF NEW.class = 'landuse' AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') THEN
@@ -1763,7 +1767,8 @@ BEGIN
             FOR i IN 1..array_upper(relation.members, 1) BY 2 LOOP
               IF NEW.street_place_id IS NULL AND relation.members[i+1] = 'street' THEN
 --RAISE WARNING 'node in relation %',relation;
-                SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer INTO NEW.street_place_id;
+                SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer 
+                  and rank_search = 26 INTO NEW.street_place_id;
               END IF;
             END LOOP;
           END IF;
@@ -1790,7 +1795,8 @@ BEGIN
               FOR i IN 1..array_upper(relation.members, 1) BY 2 LOOP
                 IF NEW.street_place_id IS NULL AND relation.members[i+1] = 'street' THEN
 --RAISE WARNING 'node in way that is in a relation %',relation;
-                  SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer INTO NEW.street_place_id;
+                  SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer 
+                    and rank_search = 26 INTO NEW.street_place_id;
                 END IF;
               END LOOP;
             END IF;
@@ -1831,7 +1837,8 @@ BEGIN
             FOR i IN 1..array_upper(relation.members, 1) BY 2 LOOP
               IF NEW.street_place_id IS NULL AND relation.members[i+1] = 'street' THEN
 --RAISE WARNING 'way that is in a relation %',relation;
-                SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer INTO NEW.street_place_id;
+                SELECT place_id from placex where osm_type='W' and osm_id = substring(relation.members[i],2,200)::integer
+                  and rank_search = 26 INTO NEW.street_place_id;
               END IF;
             END LOOP;
           END IF;
@@ -2148,7 +2155,7 @@ DECLARE
   existingplace_id INTEGER;
 BEGIN
 
---    RAISE WARNING 'place_insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--    RAISE WARNING 'place_insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW;
 
   -- Just block these - lots and pointless
   IF NEW.class = 'highway' and NEW.type in ('turning_circle','traffic_signals','mini_roundabout','noexit','crossing') THEN
