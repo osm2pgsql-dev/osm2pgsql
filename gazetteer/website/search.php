@@ -88,6 +88,11 @@
 		}
 		else
 		{
+			// Start with a blank search
+			$aSearches = array(
+				array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
+			);
+
 			// If we have a view box create the SQL
 			// Small is the actual view box, Large is double (on each axis) that 
 			$sViewboxSmallSQL = $sViewboxLargeSQL = false;
@@ -108,8 +113,15 @@
 				$aCoOrdinates[3] -= $fWidth;
 				$sViewboxLargeSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
 			}
+			$sNearPointSQL = false;
+			if (isset($_GET['nearlat']) && isset($_GET['nearlon']))
+			{
+				$sNearPointSQL = "ST_SetSRID(ST_Point(".(float)$_GET['nearlon'].",".$_GET['nearlat']."),4326)";
+				$aSearches[0]['fLat'] = (float)$_GET['nearlat'];
+				$aSearches[0]['fLon'] = (float)$_GET['nearlon'];
+				$aSearches[0]['fRadius'] = 0.1;
+			}
 
-			//TODO: Most of this code needs moving into the database...
 			preg_match_all('/\\[(.*)=(.*)\\]/', $sQuery, $aSpecialTermsRaw, PREG_SET_ORDER);
 			$aSpecialTerms = array();
 			foreach($aSpecialTermsRaw as $aSpecialTerm)
@@ -194,10 +206,6 @@
 				Score how good the search is so they can be ordered
 			*/
 
-			// Start with a blank search
-			$aSearches = array(
-				array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
-			);
 //echo "<pre>"; var_Dump($aValidTokens);exit;
 			foreach($aPhrases as $iPhrase => $sPhrase)
 			{
@@ -343,7 +351,7 @@
 						// Must have a location term
 						if (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && !$aSearch['fLon']) continue;
 
-						if (CONST_Debug) var_dump($aSearch);
+						if (CONST_Debug) var_dump('<hr>',$aSearch);
 						$aPlaceIDs = array();
 						
 						// First we need a position, either aName or fLat or both
@@ -353,7 +361,7 @@
 						if (sizeof($aSearch['aAddress']) && $aSearch['aName'] != $aSearch['aAddress']) $aTerms[] = "nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
 						if ($aSearch['sCountryCode']) $aTerms[] = "country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
 						if ($aSearch['sHouseNumber']) $aTerms[] = "address_rank = 26";
-						if ($aSearch['fLon'])
+						if ($aSearch['fLon'] && $aSearch['fLat'])
 						{
 							$aTerms[] = "ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].")";
 							$aOrder[] = "ST_Distance(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326)) ASC";
@@ -363,7 +371,7 @@
 							$aTerms[] = "place_id not in (".join(',',$aExcludePlaceIDs).")";
 						}
 
-
+						if ($sNearPointSQL) $aOrder[] = "ST_Distance($sNearPointSQL, centroid) asc";
 						if ($sViewboxSmallSQL) $aOrder[] = "ST_Contains($sViewboxSmallSQL, centroid) desc";
 						if ($sViewboxLargeSQL) $aOrder[] = "ST_Contains($sViewboxLargeSQL, centroid) desc";
 						$aOrder[] = "search_rank ASC";
@@ -380,6 +388,8 @@
 							$sSQL .= " order by ".join(', ',$aOrder);
 							if ($aSearch['sHouseNumber'])
 								$sSQL .= " limit 50";
+							elseif (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']))
+								$sSQL .= " limit 1";
 							else
 								$sSQL .= " limit 10";
 
@@ -442,7 +452,9 @@
 								$sSQL = "select l.place_id from placex as l,placex as f where ";
 								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 								$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
-								$sSQL .= " order by ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC limit 10";
+								if ($sNearPointSQL) $sSQL .= " order by ST_Distance($sNearPointSQL, l.geometry) ASC";
+								else $sSQL .= " order by ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC";
+								$sSQL .= " limit 10";
 								if (CONST_Debug) var_dump($sSQL);
 								$aPlaceIDs = $oDB->getCol($sSQL);
 							}
@@ -488,7 +500,7 @@
 					$sSQL .= ",get_name_by_language(name, $sLanguagePrefArraySQL) ";
 					$sSQL .= ",get_name_by_language(name, ARRAY['ref']) ";
 					$sSQL .= "order by rank_search,rank_address,".$sOrderSQL;
-					if (CONST_Debug) var_dump($sSQL);
+					if (CONST_Debug) var_dump('<hr>',$sSQL);
 					$aSearchResults = $oDB->getAll($sSQL);
 //var_dump($sSQL,$aSearchResults);exit;
 
@@ -624,6 +636,7 @@
 		}
 
 		$aResult['name'] = $aResult['langaddress'];
+		$aResult['foundorder'] = $iResNum;
 		$aSearchResults[$iResNum] = $aResult;
 	}
 	
