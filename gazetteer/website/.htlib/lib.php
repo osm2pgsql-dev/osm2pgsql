@@ -36,7 +36,9 @@
 			return ($a['aPointPolygon']['numfeatures'] > $b['aPointPolygon']['numfeatures']?-1:1);
 		if ($a['aPointPolygon']['area'] != $b['aPointPolygon']['area'])
 			return ($a['aPointPolygon']['area'] > $b['aPointPolygon']['area']?-1:1);
-		return ($a['importance'] == $b['importance']?0:($a['importance'] < $b['importance']?-1:1));
+		if ($a['importance'] != $b['importance'])
+			return ($a['importance'] < $b['importance']?-1:1);
+		return ($a['foundorder'] < $b['foundorder']?-1:1);
 	}
 
 	function getPrefferedLangauges()
@@ -548,7 +550,7 @@
 			}
 		}
 		echo "<table border=\"1\">";
-		echo "<tr><th>rank</ht><th>Name Tokens</ht><th>Address Tokens</ht><th>country</ht><th>class</ht><th>type</ht><th>house#</ht></tr>";
+		echo "<tr><th>rank</th><th>Name Tokens</th><th>Address Tokens</th><th>country</th><th>class</th><th>type</th><th>house#</th><th>Lat</th><th>Lon</th><th>Radius</th></tr>";
 		foreach($aData as $iRank => $aRankedSet)
 		{
 			foreach($aRankedSet as $aRow)
@@ -583,6 +585,10 @@
 				echo "<td>".$aRow['sType']."</td>";
 
 				echo "<td>".$aRow['sHouseNumber']."</td>";
+
+				echo "<td>".$aRow['fLat']."</td>";
+				echo "<td>".$aRow['fLon']."</td>";
+				echo "<td>".$aRow['fRadius']."</td>";
 	
 				echo "</tr>";
 			}
