@@ -535,6 +535,7 @@
                 else
                 {
                         if (is_bool($xVal)) return $xVal?'true':'false';
+			if (is_numeric($xVal)) return $xVal;
                         return '"'.str_replace('>','\\>',str_replace(array("\n","\r"),'\\n',str_replace(array("\n\r","\r\n"),'\\n',addslashes($xVal)))).'"';
                 }
         }
@@ -793,5 +794,5 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 		}
 	}
 	echo "\n";
-	if ($bExit) exit;
+	exit;
 }

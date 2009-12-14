@@ -12,6 +12,12 @@
 		array('import-hourly', '', 0, 1, 0, 0, 'bool', 'Import hourly diffs'),
 		array('import-daily', '', 0, 1, 0, 0, 'bool', 'Import daily diffs'),
 		array('import-all', '', 0, 1, 0, 0, 'bool', 'Import all available files'),
+
+		array('import-file', '', 0, 1, 1, 1, 'realpath', 'Re-import data from an OSM file'),
+		array('import-node', '', 0, 1, 1, 1, 'int', 'Re-import node'),
+		array('import-way', '', 0, 1, 1, 1, 'int', 'Re-import way'),
+		array('import-relation', '', 0, 1, 1, 1, 'int', 'Re-import relation'),
+
 		array('index', '', 0, 1, 0, 0, 'bool', 'Index'),
 		array('index-instances', '', 0, 1, 1, 1, 'int', 'Number of indexing instances'),
 		array('index-instance', '', 0, 1, 1, 1, 'int', 'Which instance are we (0 to index-instances-1)'),
@@ -74,7 +80,9 @@
 		if (($aResult['import-hourly'] || $aResult['import-daily']) && file_exists($sNextFile))
 		{
 			// Import the file
-			exec($sBasePath.'/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld '.$sNextFile, $sJunk, $iErrorLevel);
+			$sCMD = $sBasePath.'/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld '.$sNextFile;
+			echo $sCMD."\n";
+			exec($sCMD, $sJunk, $iErrorLevel);
 
 			if ($iErrorLevel)
 			{
@@ -88,6 +96,59 @@
 		else
 		{
 			$bContinue = false;
+		}
+	}
+
+	$sModifyXML = false;
+	if (isset($aResult['import-file']) && $aResult['import-file'])
+	{
+		$sModifyXML = file_get_contents($aResult['import-file']);
+	}
+	if (isset($aResult['import-node']) && $aResult['import-node'])
+	{
+		$sModifyXML = file_get_contents('http://www.openstreetmap.org/api/0.6/node/'.$aResult['import-node']);
+	}
+	if (isset($aResult['import-way']) && $aResult['import-way'])
+	{
+		$sModifyXML = file_get_contents('http://www.openstreetmap.org/api/0.6/way/'.$aResult['import-way'].'/full');
+	}
+	if (isset($aResult['import-relation']) && $aResult['import-relation'])
+	{
+		$sModifyXML = file_get_contents('http://www.openstreetmap.org/api/0.6/relation/'.$aResult['import-relation'].'/full');
+	}
+	if ($sModifyXML)
+	{
+		// Hack into a modify request
+		$sModifyXML = str_replace('<osm version="0.6" generator="OpenStreetMap server">',
+			'<osmChange version="0.6" generator="OpenStreetMap server"><modify>', $sModifyXML);
+		$sModifyXML = str_replace('</osm>', '</modify></osmChange>', $sModifyXML);
+
+		$aSpec = array(
+			0 => array("pipe", "r"),  // stdin
+			1 => array("pipe", "w"),  // stdout
+			2 => array("pipe", "w") // stderr
+		);
+		$aPipes = array();
+		$hProc = proc_open($sBasePath.'/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld -', $aSpec, $aPipes);
+		if (!is_resource($hProc))
+		{
+			echo "$sBasePath/osm2pgsql failed\n";
+			exit;	
+		}
+		fwrite($aPipes[0], $sModifyXML);
+		fclose($aPipes[0]);
+		$sOut = stream_get_contents($aPipes[1]);
+		if ($aResult['verbose']) echo $sOut;
+		fclose($aPipes[1]);
+		$sErrors = stream_get_contents($aPipes[2]);
+		if ($aResult['verbose']) echo $sErrors;
+		fclose($aPipes[2]);
+		if ($iError = proc_close($hProc))
+		{
+			echo "osm2pgsql existed with error level $iError\n";
+			echo $sOut;
+			echo $sError;
+			exit;
 		}
 	}
 
