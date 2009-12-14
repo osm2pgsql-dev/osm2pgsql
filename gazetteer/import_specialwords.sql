@@ -27,6 +27,8 @@ select getorcreate_amenity(make_standard_name('post box'),'amenity','post_box');
 select getorcreate_amenity(make_standard_name('post boxes'),'amenity','post_box');
 select getorcreate_amenity(make_standard_name('postbox'),'amenity','post_box');
 select getorcreate_amenity(make_standard_name('post office'),'amenity','post_office');
+select getorcreate_amenity(make_standard_name('post offices'),'amenity','post_office');
+select getorcreate_amenity(make_standard_name('postoffices'),'amenity','post_office');
 select getorcreate_amenity(make_standard_name('postoffice'),'amenity','post_office');
 select getorcreate_amenity(make_standard_name('cinema'),'amenity','cinema');
 select getorcreate_amenity(make_standard_name('cinemas'),'amenity','cinema');

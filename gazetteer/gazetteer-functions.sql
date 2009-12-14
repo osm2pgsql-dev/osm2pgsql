@@ -1659,13 +1659,15 @@ DECLARE
 
 BEGIN
 
---  RAISE WARNING '%',NEW.osm_id;
+--  RAISE WARNING '%',NEW.place_id;
 --RAISE WARNING '%', NEW;
 
   IF NEW.class = 'place' AND NEW.type = 'postcodearea' THEN
     -- Silently do nothing
     RETURN NEW;
   END IF;
+
+  NEW.country_code := lower(NEW.country_code);
 
   IF NEW.indexed and NOT OLD.indexed THEN
 
@@ -1959,6 +1961,10 @@ BEGIN
     -- try using the isin value to find parent places
     address_maxrank := search_maxrank;
     IF NEW.isin IS NOT NULL THEN
+      -- Doing isin without a country code seems to be dangerous
+      IF NEW.country_code is null THEN
+        NEW.country_code := get_country_code(place_centroid);
+      END IF;
       isin := regexp_split_to_array(NEW.isin, E'[;,]');
       FOR i IN 1..array_upper(isin, 1) LOOP
         address_street_word_id := get_name_id(make_standard_name(isin[i]));
@@ -2004,6 +2010,8 @@ BEGIN
     -- 16 = city, anything larger tends to be an area so don't continue
     WHILE search_diameter < 1 AND search_maxrank > 16 LOOP
 
+--      RAISE WARNING 'Nearest: % %', search_diameter, search_maxrank;
+
       search_prevdiameter := search_diameter;
       IF search_diameter = 0 THEN
         search_diameter := 0.001;
@@ -2013,7 +2021,8 @@ BEGIN
 
       -- Try nearest
       FOR location IN EXECUTE 'SELECT place_id, name, keywords, country_code, rank_address, rank_search,'||
-        'ST_Distance('||place_geometry_text||', centroid) as distance'||
+        'ST_Distance('||place_geometry_text||', centroid) as distance,'||
+        'ST_Distance('||place_geometry_text||', centroid) as maxdistance'|| -- this version of postgis doesnt have maxdistance !
         ' FROM location_point_'||(case when search_maxrank > 26 THEN 26 ELSE search_maxrank end)||
         ' WHERE ST_DWithin('||place_geometry_text||', centroid, '||search_diameter||') '||
         '  AND ST_Distance('||place_geometry_text||', centroid) > '||search_prevdiameter||
@@ -2030,15 +2039,16 @@ BEGIN
     
         -- Find search words
 --RAISE WARNING 'IF % % % %', location.name, location.distance, location.rank_search, search_maxdistance;
+--RAISE WARNING '  POINT: % % % % %', location.name, location.rank_search, location.place_id, location.distance, search_maxdistance[location.rank_search];
         IF (location.distance < search_maxdistance[location.rank_search]) THEN
---RAISE WARNING '  POINT: % % % %', location.name, location.rank_search, location.place_id, location.distance;
-    
+--RAISE WARNING '  adding';     
           -- Add it to the list of search terms, de-duplicate
           nameaddress_vector := array_merge(nameaddress_vector, location.keywords::integer[]);
     
-          iMax := (location.distance*1.5)::float;
+          iMax := (location.maxdistance*1.5)::float;
           FOR i IN location.rank_search..28 LOOP
             IF iMax < search_maxdistance[i] THEN
+--RAISE WARNING '  setting % to %',i,iMax;     
               IF iMax > search_mindistance[i] THEN
                 search_maxdistance[i] := iMax;
               ELSE
@@ -2152,10 +2162,11 @@ CREATE OR REPLACE FUNCTION place_insert() RETURNS TRIGGER
 DECLARE
   existing RECORD;
   existinggeometry GEOMETRY;
-  existingplace_id INTEGER;
+  existingplace_id bigint;
 BEGIN
 
---    RAISE WARNING 'place_insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW;
+--  RAISE WARNING '-----------------------------------------------------------------------------------';
+--  RAISE WARNING 'place_insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
   -- Just block these - lots and pointless
   IF NEW.class = 'highway' and NEW.type in ('turning_circle','traffic_signals','mini_roundabout','noexit','crossing') THEN
@@ -2165,8 +2176,9 @@ BEGIN
     RETURN null;
   END IF;
 
---  IF NEW.osm_type = 'W' then
---  END IF;
+  IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
+    RETURN null;
+  END IF;
 
   -- Patch in additional country names
   IF NEW.admin_level = 2 AND NEW.type = 'adminitrative' AND NEW.country_code is not null THEN
@@ -2179,22 +2191,20 @@ BEGIN
   -- Handle a place changing type by removing the old data
   -- My generated 'place' types are causing havok because they overlap with real tags
   -- TODO: move them to their own special purpose tag to avoid collisions
-  IF existing IS NULL AND (NEW.type not in ('postcode','house','houses')) THEN
+  IF existing.osm_type IS NULL AND (NEW.type not in ('postcode','house','houses')) THEN
     DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type not in ('postcode','house','houses');
   END IF;
 
---IF NEW.class != 'highway' THEN
---  RAISE WARNING ': % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,existing;
---END IF;
+--  RAISE WARNING 'Existing: % %',new,existing;
 
   -- To paraphrase, if there isn't an existing item, OR if the admin level has changed, OR if it is a major change in geometry
-  IF existing IS NULL OR coalesce(existing.admin_level, 100) != coalesce(NEW.admin_level, 100) 
+  IF existing.osm_type IS NULL OR coalesce(existing.admin_level, 100) != coalesce(NEW.admin_level, 100) 
      OR (existing.geometry != NEW.geometry AND ST_Distance(ST_Centroid(existing.geometry),ST_Centroid(NEW.geometry)) > 0.01 AND NOT
      (ST_GeometryType(existing.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon')))
      THEN
 
-    IF existing IS NOT NULL THEN
-      RAISE WARNING 'insert delete % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,ST_Distance(ST_Centroid(existing.geometry),ST_Centroid(NEW.geometry)),existing;
+    IF existing.osm_type IS NOT NULL THEN
+--      RAISE WARNING 'insert delete % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,ST_Distance(ST_Centroid(existing.geometry),ST_Centroid(NEW.geometry)),existing;
       DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
     END IF;   
 
@@ -2227,24 +2237,17 @@ BEGIN
   END IF;
 
   -- Special case for polygon shape changes because they tend to be large and we can be a bit clever about how we handle them
-  IF existing IS NOT NULL AND existing.geometry != NEW.geometry THEN
+  IF existing.osm_type IS NOT NULL AND existing.geometry != NEW.geometry THEN
+
+--    RAISE WARNING 'existing geom change % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
     IF ST_GeometryType(existing.geometry) in ('ST_Polygon','ST_MultiPolygon')
      AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') THEN 
 
-      -- Validate the new geometry or it can have weard results
-      IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
-        NEW.geometry := ST_buffer(NEW.geometry,0);
-        IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
-          RAISE WARNING 'Invalid geometary, rejecting: % %', NEW.osm_type, NEW.osm_id;
-          RETURN NULL;
-        END IF;
-      END IF;
-
       -- Get the version of the geometry actually used (in placex table)
       select geometry from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type into existinggeometry;
 
-      RAISE WARNING 'update polygon1 % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--      RAISE WARNING 'update polygon1 % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
       -- re-index points that have moved in / out of the polygon, could be done as a single query but postgres gets the index usage wrong
       update placex set indexed = false where indexed and 
@@ -2252,20 +2255,20 @@ BEGIN
         AND NOT (ST_Contains(existinggeometry, placex.geometry) OR ST_Intersects(existinggeometry, placex.geometry))
         AND rank_search > NEW.rank_search;
 
-      RAISE WARNING 'update polygon2 % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--      RAISE WARNING 'update polygon2 % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
       update placex set indexed = false where indexed and 
         (ST_Contains(existinggeometry, placex.geometry) OR ST_Intersects(existinggeometry, placex.geometry))
         AND NOT (ST_Contains(NEW.geometry, placex.geometry) OR ST_Intersects(NEW.geometry, placex.geometry))
         AND rank_search > NEW.rank_search;
 
-       RAISE WARNING 'update place % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--       RAISE WARNING 'update place % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
       update place set 
         geometry = NEW.geometry
         where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
 
-       RAISE WARNING 'update placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--       RAISE WARNING 'update placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
 
       update placex set 
         geometry = NEW.geometry
@@ -2293,7 +2296,7 @@ BEGIN
     OR coalesce(existing.postcode, '') != coalesce(NEW.postcode, '')
     OR coalesce(existing.country_code, '') != coalesce(NEW.country_code, '') THEN
 
-IF existing.rank_search < 26 THEN
+IF false AND existing.rank_search < 26 THEN
   IF coalesce(existing.name::text, '') != coalesce(NEW.name::text, '') THEN
     RAISE WARNING 'update details, name: % % % %',NEW.osm_type,NEW.osm_id,existing.name::text,NEW.name::text;
   END IF;
@@ -2314,7 +2317,7 @@ IF existing.rank_search < 26 THEN
   END IF;
   END IF;
 
---    RAISE WARNING 'update details % % %',NEW.osm_type,NEW.osm_id,existing.place_id;
+--    RAISE WARNING 'update place % %',NEW.osm_type,NEW.osm_id;
 
     update place set 
       name = NEW.name,
@@ -2322,25 +2325,28 @@ IF existing.rank_search < 26 THEN
       street = NEW.street,
       isin = NEW.isin,
       postcode = NEW.postcode,
-      country_code = null,
+      country_code = NEW.country_code,
       street_place_id = null
       where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
 
---    RAISE WARNING 'update placex % % %',NEW.osm_type,NEW.osm_id,existing.place_id;
+--    RAISE WARNING 'get existing place_id % %',NEW.osm_type,NEW.osm_id;
+
+    select place_id from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type into existingplace_id;
+
+--    RAISE WARNING 'update placex % % %',NEW.osm_type,NEW.osm_id, existingplace_id;
 
     update placex set 
       name = NEW.name,
-      housenumber  = NEW.housenumber,
+      housenumber = NEW.housenumber,
       street = NEW.street,
       isin = NEW.isin,
       postcode = NEW.postcode,
-      country_code = null,
-      street_place_id = null
-      where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
+      country_code = NEW.country_code,
+      street_place_id = null,
+      indexed = false
+      where place_id = existingplace_id and class = NEW.class and type = NEW.type;
 
---    RAISE WARNING 'update children % % %',NEW.osm_type,NEW.osm_id,existing.place_id;
-
-    select place_id from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type into existingplace_id;
+--    RAISE WARNING 'update children % % %',NEW.osm_type,NEW.osm_id,existingplace_id;
     
     -- performance, can't take the load of re-indexing a whole country
     IF existing.rank_search > 4 THEN
@@ -2570,8 +2576,9 @@ DECLARE
   numfeatures integer;
 BEGIN
   select * from place_boundingbox into result where place_id = search_place_id;
-  IF result IS NULL THEN
-    select count(*) from place_addressline where address_place_id = search_place_id and isaddress = true into numfeatures;
+  IF result.place_id IS NULL THEN
+-- remove  isaddress = true because if there is a matching polygon it always wins
+    select count(*) from place_addressline where address_place_id = search_place_id into numfeatures;
     insert into place_boundingbox select place_id,
              ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),4)),ST_Y(ST_PointN(ExteriorRing(ST_Box2D(area)),2)),
              ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),1)),ST_X(ST_PointN(ExteriorRing(ST_Box2D(area)),3)),
@@ -2579,16 +2586,16 @@ BEGIN
              area from location_area where place_id = search_place_id;
     select * from place_boundingbox into result where place_id = search_place_id;
   END IF;
-  IF result IS NULL THEN
+  IF result.place_id IS NULL THEN
 -- TODO 0.0001
     insert into place_boundingbox select address_place_id,
              min(ST_Y(ST_Centroid(geometry))) as minlon,max(ST_Y(ST_Centroid(geometry))) as maxlon,
              min(ST_X(ST_Centroid(geometry))) as minlat,max(ST_X(ST_Centroid(geometry))) as maxlat,
              count(*), ST_Area(ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001)) as area,
              ST_Buffer(ST_Convexhull(ST_Collect(geometry)),0.0001) as boundary 
-             from place_addressline join placex using (place_id) 
+             from (select * from place_addressline where address_place_id = search_place_id order by cached_rank_address limit 4000) as place_addressline join placex using (place_id) 
              where address_place_id = search_place_id
-               and (isaddress = true OR place_id = search_place_id)
+--               and (isaddress = true OR place_id = search_place_id)
                and (st_length(geometry) < 0.01 or place_id = search_place_id)
              group by address_place_id limit 1;
     select * from place_boundingbox into result where place_id = search_place_id;
@@ -2644,7 +2651,19 @@ DECLARE
   result place_boundingbox;
   numfeatures integer;
 BEGIN
-  update placex set indexed = false where place_id = search_place_id and indexed = true;
+  update placex set 
+      name = place.name,
+      housenumber = place.housenumber,
+      street = place.street,
+      isin = place.isin,
+      postcode = place.postcode,
+      country_code = place.country_code,
+      street_place_id = null,
+      indexed = false      
+      from place
+      where placex.place_id = search_place_id 
+        and place.osm_type = placex.osm_type and place.osm_id = placex.osm_id
+        and place.class = placex.class and place.type = placex.type;
   update placex set indexed = true where place_id = search_place_id and indexed = false;
   return true;
 END;
