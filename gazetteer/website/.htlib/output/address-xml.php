@@ -6,6 +6,7 @@
 
 	echo "<reversegeocode";
 	echo " timestamp='".date(DATE_RFC822)."'";
+	echo " attribution='Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0.'";
 	echo " querystring='".htmlspecialchars($_SERVER['QUERY_STRING'], ENT_QUOTES)."'";
 	echo ">\n";
 
@@ -17,6 +18,7 @@
 	echo "<addressparts>";
 	foreach($aAddress as $sKey => $sValue)
 	{
+		$sKey = str_replace(' ','_',$sKey);
 		echo "<$sKey>";
 		echo htmlspecialchars($sValue);
 		echo "</$sKey>";

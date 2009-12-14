@@ -6,6 +6,7 @@
 
 	echo "<searchresults";
 	echo " timestamp='".date(DATE_RFC822)."'";
+	echo " attribution='Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0.'";
 	echo " querystring='".htmlspecialchars($sQuery, ENT_QUOTES)."'";
 	if ($sViewBox) echo " viewbox='".htmlspecialchars($sViewBox, ENT_QUOTES)."'";
 	echo " polygon='".($bShowPolygons?'true':'false')."'";
@@ -59,7 +60,7 @@
 			echo ">";
 			foreach($aResult['address'] as $sKey => $sValue)
 			{
-				$sKey = str_replace(' ','',$sKey);
+				$sKey = str_replace(' ','_',$sKey);
 				echo "<$sKey>";
 				echo htmlspecialchars($sValue);
 				echo "</$sKey>";

@@ -352,6 +352,7 @@
 						if (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && !$aSearch['fLon']) continue;
 
 						if (CONST_Debug) var_dump('<hr>',$aSearch);
+						if (CONST_Debug) _debugDumpGroupedSearches(array(array($aSearch)), $aValidTokens);
 						$aPlaceIDs = array();
 						
 						// First we need a position, either aName or fLat or both
@@ -388,7 +389,7 @@
 							$sSQL .= " order by ".join(', ',$aOrder);
 							if ($aSearch['sHouseNumber'])
 								$sSQL .= " limit 50";
-							elseif (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']))
+							elseif (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && $aSearch['sClass'])
 								$sSQL .= " limit 1";
 							else
 								$sSQL .= " limit 10";
@@ -684,5 +685,6 @@
                 }
         }
 	$sMoreURL = CONST_Website_BaseURL.'search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
+	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= 'viewbox='.urlencode($_GET['viewbox']);
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');

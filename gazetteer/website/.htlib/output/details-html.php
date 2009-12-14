@@ -164,7 +164,7 @@ foreach($aPolyPoints as $aPolyPoint)
 //			echo ', <span class="adminlevel">'.$aAddressLine['admin_level'].'</span>';
 //			echo ', <span class="rankaddress">'.$aAddressLine['rank_address'].'</span>';
 			echo '<span class="area">'.($aAddressLine['isarea']=='t'?'Polygon':'Point').'</span>';
-			echo ', <span class="distance">~'.(round($aAddressLine['distance']*69,1)).'miles</span>';
+			echo ', <span class="distance">~'.(round($aAddressLine['distance']*69,1)).'&nbsp;miles</span>';
 			if ($sOSMType) echo ', <span class="osm"><span class="label"></span>'.$sOSMType.' <a href="http://www.openstreetmap.org/browse/'.$sOSMType.'/'.$aAddressLine['osm_id'].'">'.$aAddressLine['osm_id'].'</a></span>';
 			echo ', <a href="details.php?place_id='.$aAddressLine['place_id'].'">GOTO</a>';
 			echo ')';
