@@ -6,6 +6,7 @@
 	<title>OpenStreetMap Nominatim: Search</title>
 
 	<base href="<?php echo CONST_Website_BaseURL;?>" />
+	<link href="nominatim.xml" rel="search" title="Nominatim Search" type="application/opensearchdescription+xml" />
 
 	<script src="OpenLayers.js"></script>
 	<script src="http://www.openstreetmap.org/openlayers/OpenStreetMap.js"></script>
@@ -196,9 +197,9 @@ form{
 				$('map').style.left = 0;
 			}
 			
-			$('map').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
-			$('searchresults').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
-			$('report').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
+			if ($('map')) $('map').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
+			if ($('searchresults')) $('searchresults').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
+			if ($('report')) $('report').style.height = (document.documentElement.clientHeight > 0?document.documentElement.clientHeight:document.documentElement.offsetHeight) - 38;
 		}
 		window.onresize = handleResize;
 
