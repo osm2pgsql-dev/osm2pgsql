@@ -68,51 +68,62 @@
 
 	if ($sQuery)
 	{
-                $aStartTime = explode('.',microtime(true));
+		$aStartTime = explode('.',microtime(true));
 		if (!$aStartTime[1]) $aStartTime[1] = '0';
-                $sStartTime = date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1];
+		$sStartTime = date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1];
 
-                // Log
-                $oDB->query('insert into query_log values ('.getDBQuoted($sStartTime).','.getDBQuoted($sQuery).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
+		// Log
+		$oDB->query('insert into query_log values ('.getDBQuoted($sStartTime).','.getDBQuoted($sQuery).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
 
-		// Is it just a pair of lat,lon?
-		if (preg_match('/^(-?[0-9.]+)[, ]+(-?[0-9.]+)$/', $sQuery, $aData))
+		// If we have a view box create the SQL
+		// Small is the actual view box, Large is double (on each axis) that 
+		$sViewboxSmallSQL = $sViewboxLargeSQL = false;
+		if (isset($_GET['viewboxlbrt']) && $_GET['viewboxlbrt'])
 		{
-			$fLat = $aData[1];
-			$fLon = $aData[2];
+			$aCoOrdinatesLBRT = explode(',',$_GET['viewboxlbrt']);
+			$_GET['viewbox'] = $aCoOrdinatesLBRT[0].','.$aCoOrdinatesLBRT[3].','.$aCoOrdinatesLBRT[2].','.$aCoOrdinatesLBRT[1];
 		}
-		elseif (preg_match('/^([NS])([0-9]+)( [0-9.]+)?[, ]+([EW])([0-9]+)( [0-9.]+)?$/', $sQuery, $aData))
+		if (isset($_GET['viewbox']) && $_GET['viewbox'])
 		{
-			// TODO: alternative lat lon format
-			fail('Not yet implemented');
+			$aCoOrdinates = explode(',',$_GET['viewbox']);
+			$sViewboxSmallSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
+			$fHeight = $aCoOrdinates[0]-$aCoOrdinates[2];
+			$fWidth = $aCoOrdinates[1]-$aCoOrdinates[3];
+			$aCoOrdinates[0] += $fHeight;
+			$aCoOrdinates[2] -= $fHeight;
+			$aCoOrdinates[1] += $fWidth;
+			$aCoOrdinates[3] -= $fWidth;
+			$sViewboxLargeSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
 		}
-		else
+
+		// Do we have anything that looks like a lat/lon pair?
+		if (preg_match('/([NS])[ ]+([0-9]+)[ ]+([0-9.]+)?[, ]+([EW])[ ]+([0-9]+)[ ]+([0-9.]+)?/', $sQuery, $aData))
 		{
+			$_GET['nearlat'] = ($aData[1]=='N'?1:-1) * ($aData[2] + $aData[3]/60);
+			$_GET['nearlon'] = ($aData[4]=='E'?1:-1) * ($aData[5] + $aData[6]/60);
+			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
+		}
+		elseif (preg_match('/([0-9]+)[ ]+([0-9.]+)?[ ]+([NS])[, ]+([0-9]+)[ ]+([0-9.]+)?[ ]+([EW])/', $sQuery, $aData))
+		{
+			$_GET['nearlat'] = ($aData[3]=='N'?1:-1) * ($aData[1] + $aData[2]/60);
+			$_GET['nearlon'] = ($aData[6]=='E'?1:-1) * ($aData[4] + $aData[5]/60);
+			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
+		}
+		elseif (preg_match('/\\[?(-?[0-9.]+)[, ]+(-?[0-9.]+)\\]?/', $sQuery, $aData))
+		{
+			$_GET['nearlat'] = $aData[1];
+			$_GET['nearlon'] = $aData[2];
+			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
+		}
+
+		if ($sQuery)
+		{
+
 			// Start with a blank search
 			$aSearches = array(
 				array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
 			);
 
-			// If we have a view box create the SQL
-			// Small is the actual view box, Large is double (on each axis) that 
-			$sViewboxSmallSQL = $sViewboxLargeSQL = false;
-			if (isset($_GET['viewboxlbrt']) && $_GET['viewboxlbrt'])
-			{
-				$aCoOrdinatesLBRT = explode(',',$_GET['viewboxlbrt']);
-				$_GET['viewbox'] = $aCoOrdinatesLBRT[0].','.$aCoOrdinatesLBRT[3].','.$aCoOrdinatesLBRT[2].','.$aCoOrdinatesLBRT[1];
-			}
-			if (isset($_GET['viewbox']) && $_GET['viewbox'])
-			{
-				$aCoOrdinates = explode(',',$_GET['viewbox']);
-				$sViewboxSmallSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
-				$fHeight = $aCoOrdinates[0]-$aCoOrdinates[2];
-				$fWidth = $aCoOrdinates[1]-$aCoOrdinates[3];
-				$aCoOrdinates[0] += $fHeight;
-				$aCoOrdinates[2] -= $fHeight;
-				$aCoOrdinates[1] += $fWidth;
-				$aCoOrdinates[3] -= $fWidth;
-				$sViewboxLargeSQL = "ST_SetSRID(ST_MakeBox2D(ST_Point(".(float)$aCoOrdinates[0].",".(float)$aCoOrdinates[1]."),ST_Point(".(float)$aCoOrdinates[2].",".(float)$aCoOrdinates[3].")),4326)";
-			}
 			$sNearPointSQL = false;
 			if (isset($_GET['nearlat']) && isset($_GET['nearlon']))
 			{
@@ -132,7 +143,7 @@
 
 			// Split query into phrases
 			// Commas are used to reduce the search space by indicating where phrases split
-			$aPhrases = explode(',',str_replace(array(' in ',' near ',' im '),',',$sQuery));
+			$aPhrases = explode(',',str_replace(array(' in ',' near ',' im '),',',' '.$sQuery.' '));
 
 			// Convert each phrase to standard form
 			// Create a list of standard words
@@ -238,8 +249,11 @@
 										$aSearch['iSearchRank']++;
 										if ($aSearchTerm['country_code'] !== null && $aSearchTerm['country_code'] != '0')
 										{
-											$aSearch['sCountryCode'] = strtolower($aSearchTerm['country_code']);
-											$aNewWordsetSearches[] = $aSearch;
+                      if ($aSearch['sCountryCode'] === false)
+											{
+												$aSearch['sCountryCode'] = strtolower($aSearchTerm['country_code']);
+												$aNewWordsetSearches[] = $aSearch;
+											}
 										}
 										elseif ($aSearchTerm['lat'] !== '' && $aSearchTerm['lat'] !== null)
 										{
@@ -457,6 +471,7 @@
 							if (!sizeof($aPlaceIDs))
 							{
 								$fRange = 0.01;
+								if (isset($aSearch['fRadius'])) $fRange = $aSearch['fRadius'];
 								$sSQL = "select l.place_id from placex as l,placex as f where ";
 								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 								$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
@@ -678,19 +693,24 @@
 
 	$sDataDate = $oDB->getOne("select TO_CHAR(lastimportdate - '1 day'::interval,'YYYY/MM/DD') from import_status limit 1");
 
-        if ($sQuery)
-        {
-                $aEndTime = explode('.',microtime(true));
+	if (isset($_GET['nearlat']) && isset($_GET['nearlon']))
+	{
+		$sQuery .= ' ['.$_GET['nearlat'].','.$_GET['nearlon'].']';
+	}
+
+	if ($sQuery)
+	{
+		$aEndTime = explode('.',microtime(true));
 		if (!$aEndTime[1]) $aEndTime[1] = '0';
-                $sEndTime = date('Y-m-d H:i:s',$aEndTime[0]).'.'.$aEndTime[1];
+		$sEndTime = date('Y-m-d H:i:s',$aEndTime[0]).'.'.$aEndTime[1];
 		$iNumResults = sizeof($aToFilter);
  		$oDB->query('update query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults.' where starttime = '.getDBQuoted($sStartTime).' and query = '.getDBQuoted($sQuery).' and ipaddress = '.getDBQuoted(($_SERVER["REMOTE_ADDR"])));
-                if (CONST_Debug)
-                {
-                        var_Dump($aSearchResults);
-                        exit;
-                }
-        }
+		if (CONST_Debug)
+		{
+			var_Dump($aSearchResults);
+			exit;
+		}
+	}
 	$sMoreURL = CONST_Website_BaseURL.'search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
 	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= 'viewbox='.urlencode($_GET['viewbox']);
 
