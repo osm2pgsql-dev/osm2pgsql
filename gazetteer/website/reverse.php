@@ -10,6 +10,7 @@
         if (isset($_GET['osm_type']) && isset($_GET['osm_id']) && (int)$_GET['osm_id'] && ($_GET['osm_type'] == 'N' || $_GET['osm_type'] == 'W' || $_GET['osm_type'] == 'R'))
         {
                 $iPlaceID = $oDB->getOne("select place_id from placex where osm_type = '".$_GET['osm_type']."' and osm_id = ".(int)$_GET['osm_id']." order by type = 'postcode' asc");
+		if (!$iPlaceID) $sError = 'OSM ID Not Found';
         }
 	else
 	{
@@ -125,7 +126,6 @@
 
 	if ($iPlaceID)
 	{
-
 		$sSQL = "select placex.*,";
         	$sSQL .= " get_address_by_language(place_id, $sLanguagePrefArraySQL) as langaddress,";
 	        $sSQL .= " get_name_by_language(name, $sLanguagePrefArraySQL) as placename,";
