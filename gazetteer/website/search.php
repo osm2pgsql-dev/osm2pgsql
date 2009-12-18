@@ -97,19 +97,19 @@
 		}
 
 		// Do we have anything that looks like a lat/lon pair?
-		if (preg_match('/([NS])[ ]+([0-9]+)[ ]+([0-9.]+)?[, ]+([EW])[ ]+([0-9]+)[ ]+([0-9.]+)?/', $sQuery, $aData))
+		if (preg_match('/\\b([NS])[ ]+([0-9]+[0-9.]*)[ ]+([0-9.]+)?[, ]+([EW])[ ]+([0-9]+)[ ]+([0-9]+[0-9.]*)?\\b/', $sQuery, $aData))
 		{
 			$_GET['nearlat'] = ($aData[1]=='N'?1:-1) * ($aData[2] + $aData[3]/60);
 			$_GET['nearlon'] = ($aData[4]=='E'?1:-1) * ($aData[5] + $aData[6]/60);
 			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
 		}
-		elseif (preg_match('/([0-9]+)[ ]+([0-9.]+)?[ ]+([NS])[, ]+([0-9]+)[ ]+([0-9.]+)?[ ]+([EW])/', $sQuery, $aData))
+		elseif (preg_match('/\\b([0-9]+)[ ]+([0-9]+[0-9.]*)?[ ]+([NS])[, ]+([0-9]+)[ ]+([0-9]+[0-9.]*)?[ ]+([EW])\\b/', $sQuery, $aData))
 		{
 			$_GET['nearlat'] = ($aData[3]=='N'?1:-1) * ($aData[1] + $aData[2]/60);
 			$_GET['nearlon'] = ($aData[6]=='E'?1:-1) * ($aData[4] + $aData[5]/60);
 			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
 		}
-		elseif (preg_match('/\\[?(-?[0-9.]+)[, ]+(-?[0-9.]+)\\]?/', $sQuery, $aData))
+		elseif (preg_match('/\\b\\[?(-?[0-9]+[0-9.]*)[, ]+(-?[0-9]+[0-9.]*)\\]?\\b/', $sQuery, $aData))
 		{
 			$_GET['nearlat'] = $aData[1];
 			$_GET['nearlon'] = $aData[2];
@@ -711,7 +711,8 @@
 			exit;
 		}
 	}
-	$sMoreURL = CONST_Website_BaseURL.'search.php?q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
-	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= 'viewbox='.urlencode($_GET['viewbox']);
+ 	$sMoreURL = CONST_Website_BaseURL.'search?format='.urlencode($sOutputFormat).'&q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
+	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= '&viewbox='.urlencode($_GET['viewbox']);
+	if (isset($_GET['nearlat']) && isset($_GET['nearlon'])) $sMoreURL .= '&nearlat='.(float)$_GET['nearlat'].'&nearlon='.(float)$_GET['nearlon'];
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');
