@@ -10,6 +10,14 @@
 	echo " querystring='".htmlspecialchars($sQuery, ENT_QUOTES)."'";
 	if ($sViewBox) echo " viewbox='".htmlspecialchars($sViewBox, ENT_QUOTES)."'";
 	echo " polygon='".($bShowPolygons?'true':'false')."'";
+	if (sizeof($aExcludePlaceIDs))
+	{
+		echo " exclude_place_ids='".htmlspecialchars(join(',',$aExcludePlaceIDs))."'";
+	}
+	if ($sMoreURL)
+	{
+		echo " more_url='".htmlspecialchars($sMoreURL)."'";
+	}
 	echo ">\n";
 
 	foreach($aSearchResults as $iResNum => $aResult)
