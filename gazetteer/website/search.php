@@ -471,7 +471,7 @@
 							if (!sizeof($aPlaceIDs))
 							{
 								$fRange = 0.01;
-								if (isset($aSearch['fRadius'])) $fRange = $aSearch['fRadius'];
+								if (isset($aSearch['fRadius']) && $aSearch['fRadius']) $fRange = $aSearch['fRadius'];
 								$sSQL = "select l.place_id from placex as l,placex as f where ";
 								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 								$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
