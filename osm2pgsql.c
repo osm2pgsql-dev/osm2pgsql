@@ -540,6 +540,7 @@ static void long_usage(char *arg0)
     fprintf(stderr, "              \t\tInclude attributes for each object in the database.\n");
     fprintf(stderr, "              \t\tThis includes the username, userid, timestamp and version.\n"); 
     fprintf(stderr, "              \t\tNote: this option also requires additional entries in your style file.\n"); 
+    fprintf(stderr, "   -G|--multi-geometry\t\tGenerate multi-geometry features in postgresql tables.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -633,6 +634,7 @@ int main(int argc, char *argv[])
     int projection = PROJ_SPHERE_MERC;
     int expire_tiles_zoom = -1;
     int expire_tiles_zoom_min = -1;
+    int enable_multi = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -676,10 +678,11 @@ int main(int argc, char *argv[])
             {"expire-output", 1, 0, 'o'},
             {"output",   1, 0, 'O'},
             {"extra-attributes", 0, 0, 'x'},
+            {"multi-geometry", 0, 0, 'G'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:x", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:xG", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -711,6 +714,7 @@ int main(int argc, char *argv[])
             case 'o': expire_tiles_filename=optarg; break;
 	    case 'O': output_backend = optarg; break;
             case 'x': extra_attributes=1; break;
+            case 'G': enable_multi=1; break;
             case 'h': long_usage_bool=1; break;
             case '?':
             default:
@@ -775,6 +779,7 @@ int main(int argc, char *argv[])
     options.expire_tiles_zoom = expire_tiles_zoom;
     options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;
+    options.enable_multi = enable_multi;
 
     if (strcmp("pgsql", output_backend) == 0) {
       out = &out_pgsql;

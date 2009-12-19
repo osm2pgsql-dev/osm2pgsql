@@ -26,6 +26,7 @@ struct output_options {
   int expire_tiles_zoom;	/* Zoom level for tile expiry list */
   int expire_tiles_zoom_min;	/* Minimum zoom level for tile expiry list */
   const char *expire_tiles_filename;	/* File name to output expired tiles list to */
+  int enable_multi; /* Output multi-geometries intead of several simple geometries */
 };
 
 struct output_t {

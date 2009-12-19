@@ -54,7 +54,7 @@ static struct s_table {
 } tables [] = {
     { name: "%s_point",   type: "POINT"     },
     { name: "%s_line",    type: "LINESTRING"},
-    { name: "%s_polygon", type: "POLYGON"  },
+    { name: "%s_polygon", type: "GEOMETRY"  }, // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
     { name: "%s_roads",   type: "LINESTRING"}
 };
 #define NUM_TABLES ((signed)(sizeof(tables) / sizeof(tables[0])))
@@ -859,7 +859,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     else
         split_at = 100 * 1000;
 
-    wkt_size = build_geometry(id, xnodes, xcount, make_polygon, split_at);
+    wkt_size = build_geometry(id, xnodes, xcount, make_polygon, Options->enable_multi, split_at);
 
     if (!wkt_size) {
         resetList(&tags);
@@ -921,7 +921,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
-        wkt_size = build_geometry(id, xnodes, xcount, 1, split_at);
+        wkt_size = build_geometry(id, xnodes, xcount, 1, Options->enable_multi, split_at);
         for (i=0;i<wkt_size;i++)
         {
             char *wkt = get_wkt(i);
@@ -1057,7 +1057,12 @@ static int pgsql_out_start(const struct output_options *options)
                 }
                 /* Note: we do not verify the type or delete unused columns */
             }
+
             PQclear(res);
+
+            /* change the type of the geometry column if needed - this can only change to a more permisive type */
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
+                        tables[i].type, tables[i].type, tables[i].name);
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (int4) AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         

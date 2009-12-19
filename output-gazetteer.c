@@ -697,7 +697,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = build_geometry(id, xnodes, xcount, 1, 1000000);
+      wkt_size = build_geometry(id, xnodes, xcount, 1, 1, 1000000);
       for (i=0;i<wkt_size;i++)
       {
          char *wkt = get_wkt(i);
