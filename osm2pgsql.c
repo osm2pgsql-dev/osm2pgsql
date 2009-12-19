@@ -82,6 +82,7 @@ static void realloc_members();
 // Bounding box to filter imported data
 const char *bbox = NULL;
 static double minlon, minlat, maxlon, maxlat;
+static int extra_attributes;
 
 static void printStatus(void)
 {
@@ -301,6 +302,38 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
+
+    // Collect extra attribute information and add as tags
+    if (extra_attributes && (xmlStrEqual(name, BAD_CAST "node") ||
+                             xmlStrEqual(name, BAD_CAST "way") ||
+                             xmlStrEqual(name, BAD_CAST "relation")))
+    {
+        xmlChar *xtmp;
+
+        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
+        if (xtmp) {
+            addItem(&tags, "osm_user", (char *)xtmp, 0);
+            xmlFree(xtmp);
+        }
+
+        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
+        if (xtmp) {
+            addItem(&tags, "osm_uid", (char *)xtmp, 0);
+            xmlFree(xtmp);
+        }
+
+        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
+        if (xtmp) {
+            addItem(&tags, "osm_version", (char *)xtmp, 0);
+            xmlFree(xtmp);
+        }
+
+        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
+        if (xtmp) {
+            addItem(&tags, "osm_timestamp", (char *)xtmp, 0);
+            xmlFree(xtmp);
+        }
+    }
 }
 
 static void resetMembers()
@@ -503,6 +536,10 @@ static void long_usage(char *arg0)
     fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
     fprintf(stderr, "              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
     fprintf(stderr, "              \t\tnull  - No output. Useful for testing.\n");
+    fprintf(stderr, "   -x|--extra-attributes\n");
+    fprintf(stderr, "              \t\tInclude attributes for each object in the database.\n");
+    fprintf(stderr, "              \t\tThis includes the username, userid, timestamp and version.\n"); 
+    fprintf(stderr, "              \t\tNote: this option also requires additional entries in your style file.\n"); 
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
     fprintf(stderr, "\n");
@@ -637,11 +674,12 @@ int main(int argc, char *argv[])
             {"style",    1, 0, 'S'},
             {"expire-tiles", 1, 0, 'e'},
             {"expire-output", 1, 0, 'o'},
-	    {"output",   1, 0, 'O'},
+            {"output",   1, 0, 'O'},
+            {"extra-attributes", 0, 0, 'x'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:x", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -672,6 +710,7 @@ int main(int argc, char *argv[])
                 break;
             case 'o': expire_tiles_filename=optarg; break;
 	    case 'O': output_backend = optarg; break;
+            case 'x': extra_attributes=1; break;
             case 'h': long_usage_bool=1; break;
             case '?':
             default:
