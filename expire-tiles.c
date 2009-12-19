@@ -17,6 +17,7 @@
 #include "output.h"
 #include "pgsql.h"
 #include "build_geometry.h"
+#include "reprojection.h"
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
