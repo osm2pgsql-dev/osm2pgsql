@@ -102,3 +102,9 @@ way        way_area     real                # This is calculated during import
 #way       route_pref_color text     linear
 #way       route_name       text     linear
 
+# The following entries can be used with the --extra-attributes option
+# to include the username, userid, version & timstamp in the DB
+node,way  osm_user       text
+node,way  osm_uid        text
+node,way  osm_version    text
+node,way  osm_timestamp  text
