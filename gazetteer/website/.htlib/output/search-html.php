@@ -256,12 +256,22 @@ form{
 			n = Math.pow(10,n);
 			return Math.round(v*n)/n;
 		}
+		function floor(v,n)
+		{
+			n = Math.pow(10,n);
+			return Math.floor(v*n)/n;
+		}
+		function ceil(v,n)
+		{
+			n = Math.pow(10,n);
+			return Math.ceil(v*n)/n;
+		}
 
 		function mapEventMove() {
 			var proj = new OpenLayers.Projection("EPSG:4326");
 			var bounds = map.getExtent();
 			bounds = bounds.transform(map.getProjectionObject(), proj);
-			$('viewbox').value = round(bounds.left,2)+','+round(bounds.top,2)+','+round(bounds.right,2)+','+round(bounds.bottom,2);
+			$('viewbox').value = floor(bounds.left,2)+','+ceil(bounds.top,2)+','+ceil(bounds.right,2)+','+floor(bounds.bottom,2);
 		}
 
     function init() {
