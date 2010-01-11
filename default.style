@@ -74,7 +74,7 @@ node,way   religion     text         nocache
 node,way   residence    text         linear
 node,way   route        text         linear
 node,way   service      text         linear
-node,way   shop         text         linear
+node,way   shop         text         polygon
 node,way   sport        text         polygon
 node,way   tourism      text         polygon
 way        tracktype    text         linear
