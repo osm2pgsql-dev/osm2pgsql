@@ -29,22 +29,6 @@
 	$aLangPrefOrder = getPrefferedLangauges();
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
 
-	// Is this reporting a bug
-	if (isset($_POST['report:description']))
-	{
-		$sReportQuery = trim($_POST['report:query']);
-		$sReportDescription = trim($_POST['report:description']);
-		$sReportEmail = trim($_POST['report:email']);
-		$oDB->query('insert into report_log values ('.getDBQuoted('now').','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).','.getDBQuoted($sReportQuery).','.getDBQuoted($sReportDescription).','.getDBQuoted($sReportEmail).')');
-	}
-	
-	// Filter by lat/lon not implemented
-	if (isset($_GET['lat']) && isset($_GET['lon']))
-	{
-			// TODO:
-			fail('Not yet implemented');
-	}
-
 	if (isset($_GET['exclude_place_ids']) && $_GET['exclude_place_ids'])
 	{
 		foreach(explode(',',$_GET['exclude_place_ids']) as $iExcludedPlaceID)
@@ -68,12 +52,7 @@
 
 	if ($sQuery)
 	{
-		$aStartTime = explode('.',microtime(true));
-		if (!$aStartTime[1]) $aStartTime[1] = '0';
-		$sStartTime = date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1];
-
-		// Log
-		$oDB->query('insert into query_log values ('.getDBQuoted($sStartTime).','.getDBQuoted($sQuery).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
+		$hLog = logStart($oDB, 'search', $sQuery, $aLangPrefOrder);
 
 		// If we have a view box create the SQL
 		// Small is the actual view box, Large is double (on each axis) that 
@@ -163,7 +142,7 @@
 				{
 					unset($aPhrases[$iPhrase]);
 				}
-			}
+			}			
 
 			// Check which tokens we have, get the ID numbers			
 			$sSQL = 'select word_id,word_token, word, class, type, location,country_code';
@@ -195,8 +174,13 @@
 			// Try and calculate GB postcodes we might be missing
 			foreach($aTokens as $sToken)
 			{
-				if (!isset($aValidTokens[$sToken]) && !isset($aValidTokens[' '.$sToken]) && preg_match('/^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])([A-Z][A-Z])$/', strtoupper(trim($sToken)), $aData))
+				if (!isset($aValidTokens[$sToken]) && !isset($aValidTokens[' '.$sToken]) && preg_match('/^([A-Z][A-Z]?[0-9][0-9A-Z]? ?[0-9])([A-Z][A-Z])$/', strtoupper(trim($sToken)), $aData))
 				{
+					if (substr($aData[1],-2,1) != ' ')
+					{
+						$aData[0] = substr($aData[0],0,strlen($aData[1]-1)).' '.substr($aData[0],strlen($aData[1]-1));
+						$aData[1] = substr($aData[1],0,-1).' '.substr($aData[1],-1,1);
+					}
 					$aGBPostcodeLocation = gbPostcodeCalculate($aData[0], $aData[1], $aData[2], $oDB);
 					if ($aGBPostcodeLocation)
 					{
@@ -224,7 +208,6 @@
 				Score how good the search is so they can be ordered
 			*/
 
-//echo "<pre>"; var_Dump($aValidTokens);exit;
 			foreach($aPhrases as $iPhrase => $sPhrase)
 			{
 					$aNewPhraseSearches = array();
@@ -249,7 +232,7 @@
 										$aSearch['iSearchRank']++;
 										if ($aSearchTerm['country_code'] !== null && $aSearchTerm['country_code'] != '0')
 										{
-                      if ($aSearch['sCountryCode'] === false)
+											if ($aSearch['sCountryCode'] === false)
 											{
 												$aSearch['sCountryCode'] = strtolower($aSearchTerm['country_code']);
 												$aNewWordsetSearches[] = $aSearch;
@@ -453,6 +436,10 @@
 							
 							// Now they are indexed look for a house attached to a street we found
 							$sSQL = "select place_id from placex where street_place_id in (".$sPlaceIDs.") and housenumber ~ E'".$sHouseNumberRegex."'";
+							if (sizeof($aExcludePlaceIDs))
+							{
+								$sSQL .= " and place_id not in (".join(',',$aExcludePlaceIDs).")";
+							}
 							if (CONST_Debug) var_dump($sSQL);
 							$aPlaceIDs = $oDB->getCol($sSQL);
 						}
@@ -475,6 +462,10 @@
 								$sSQL = "select l.place_id from placex as l,placex as f where ";
 								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
 								$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
+								if (sizeof($aExcludePlaceIDs))
+								{
+									$sSQL .= " and l.place_id not in (".join(',',$aExcludePlaceIDs).")";
+								}
 								if ($sNearPointSQL) $sSQL .= " order by ST_Distance($sNearPointSQL, l.geometry) ASC";
 								else $sSQL .= " order by ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC";
 								$sSQL .= " limit 10";
@@ -700,18 +691,12 @@
 
 	if ($sQuery)
 	{
-		$aEndTime = explode('.',microtime(true));
-		if (!$aEndTime[1]) $aEndTime[1] = '0';
-		$sEndTime = date('Y-m-d H:i:s',$aEndTime[0]).'.'.$aEndTime[1];
-		$iNumResults = sizeof($aToFilter);
- 		$oDB->query('update query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults.' where starttime = '.getDBQuoted($sStartTime).' and query = '.getDBQuoted($sQuery).' and ipaddress = '.getDBQuoted(($_SERVER["REMOTE_ADDR"])));
-		if (CONST_Debug)
-		{
-			var_Dump($aSearchResults);
-			exit;
-		}
+		logEnd($oDB, $hLog, sizeof($aToFilter));
 	}
  	$sMoreURL = CONST_Website_BaseURL.'search?format='.urlencode($sOutputFormat).'&q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
+	$sMoreURL .= '&accept-language='.$_SERVER["HTTP_ACCEPT_LANGUAGE"];
+	if ($bShowPolygons) $sMoreURL .= '&polygon=1';
+	if ($bShowAddressDetails) $sMoreURL .= '&addressdetails=1';
 	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= '&viewbox='.urlencode($_GET['viewbox']);
 	if (isset($_GET['nearlat']) && isset($_GET['nearlon'])) $sMoreURL .= '&nearlat='.(float)$_GET['nearlat'].'&nearlon='.(float)$_GET['nearlon'];
 
