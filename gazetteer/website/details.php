@@ -17,7 +17,6 @@
 	$iPlaceID = (int)$_GET['place_id'];
 
 	$oDB->query('insert into query_log values ('.getDBQuoted('now').','.getDBQuoted('details: '.$iPlaceID.' '.(int)$_GET['osmid']).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
-	if ($_SERVER["REMOTE_ADDR"] == '66.249.67.161') exit;
 
 	$aLangPrefOrder = getPrefferedLangauges();
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
@@ -93,6 +92,8 @@
 	}
 
 	// Address
+	$aAddressLines = getAddressDetails($oDB, $sLanguagePrefArraySQL, $iPlaceID, $aPointDetails['country_code'], true);
+/*
 	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
 	$sSQL .= "get_searchrank_label(rank_search) as rank_search_label, fromarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
@@ -109,7 +110,7 @@
 		var_dump($aAddressLines);
 		exit;
 	}
-
+*/
 	// All places this is a parent of
 	$iMaxRankAddress = $aPointDetails['rank_address']+13;
 	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, cached_rank_address, ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') as isarea, distance, ";

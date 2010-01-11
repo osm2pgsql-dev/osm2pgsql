@@ -1,5 +1,7 @@
 <?php
-	header ("content-type: text/xml");
+	header("content-type: text/xml");
+	header("Access-Control-Allow-Origin: *");
+
 	echo "<";
 	echo "?xml version=\"1.0\" encoding=\"UTF-8\" ?";
 	echo ">\n";

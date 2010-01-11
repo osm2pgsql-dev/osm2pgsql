@@ -3,6 +3,13 @@
         require_once('.htlib/init.php');
         ini_set('memory_limit', '200M');
 
+        // Format for output
+	$sOutputFormat = 'xml';
+        if (isset($_GET['format']) && ($_GET['format'] == 'xml' || $_GET['format'] == 'json'))
+        {
+                $sOutputFormat = $_GET['format'];
+        }
+
         // Prefered language
         $aLangPrefOrder = getPrefferedLangauges();
         $sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
@@ -135,4 +142,4 @@
 
 		$aAddress = getAddressDetails($oDB, $sLanguagePrefArraySQL, $iPlaceID, $aPlace['country_code']);
 	}
-	include('.htlib/output/address-xml.php');
+	include('.htlib/output/address-'.$sOutputFormat.'.php');

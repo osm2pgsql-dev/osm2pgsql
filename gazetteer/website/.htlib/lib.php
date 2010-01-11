@@ -144,7 +144,7 @@
 
 		if (!sizeof($aNearPostcodes))
 		{
- 			$sSQL = 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where country_code::text = \'gb\'::text AND substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcodeSector.'\'';
+  			$sSQL = 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from placex where country_code::text = \'gb\'::text AND substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcodeSector.'\' and class=\'place\' and type=\'postcode\' ';
 			$sSQL .= ' union ';
 			$sSQL .= 'select substring(upper(postcode) from \'^[A-Z][A-Z]?[0-9][0-9A-Z]? [0-9]([A-Z][A-Z])$\'),ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from gb_postcode where substring(upper(postcode) from \'^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$\') = \''.$sPostcodeSector.'\'';
 			$aNearPostcodes = $oDB->getAll($sSQL);
@@ -165,7 +165,7 @@
 		$fTotalFac = 0;
 		foreach($aNearPostcodes as $aPostcode)
 		{
-			$iDiff = gbPostcodeAlphaDifference($sPostcodeEnd, $aPostcode['substring']);
+			$iDiff = gbPostcodeAlphaDifference($sPostcodeEnd, $aPostcode['substring'])*2 + 1;
 			if ($iDiff == 0)
 				$fFac = 1;
 			else
@@ -536,7 +536,7 @@
                 {
                         if (is_bool($xVal)) return $xVal?'true':'false';
 			if (is_numeric($xVal)) return $xVal;
-                        return '"'.str_replace('>','\\>',str_replace(array("\n","\r"),'\\n',str_replace(array("\n\r","\r\n"),'\\n',addslashes($xVal)))).'"';
+                        return '"'.str_replace('>','\\>',str_replace(array("\n","\r"),'\\n',str_replace(array("\n\r","\r\n"),'\\n',str_replace('"','\\"',$xVal)))).'"';
                 }
         }
 
@@ -598,13 +598,14 @@
 	}
 
 
-	function getAddressDetails(&$oDB, $sLanguagePrefArraySQL, $iPlaceID, $sCountryCode = false)
+	function getAddressDetails(&$oDB, $sLanguagePrefArraySQL, $iPlaceID, $sCountryCode = false, $bRaw = false)
 	{
 
 	        // Address
         	$sSQL = "select country_code, placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
 	        $sSQL .= "get_searchrank_label(rank_search) as rank_search_label, fromarea, isaddress, distance, ";
-        	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
+        	$sSQL .= " CASE WHEN type = 'postcode' THEN postcode ELSE get_name_by_language(name,$sLanguagePrefArraySQL) END as localname, ";
+		$sSQL .= " length(name::text) as namelength ";
 	        $sSQL .= " from place_addressline join placex on (address_place_id = placex.place_id)";
         	$sSQL .= " where place_addressline.place_id = $iPlaceID and (rank_address > 0 OR address_place_id = $iPlaceID)";
 // and isaddress";
@@ -614,11 +615,12 @@
 	        }
         	$sSQL .= " order by cached_rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc";
 	        $aAddressLines = $oDB->getAll($sSQL);
-        	IF (PEAR::IsError($aAddressLines))
+        	if (PEAR::IsError($aAddressLines))
 	        {
         	        var_dump($aAddressLines);
                 	exit;
 	        }
+		if ($bRaw) return $aAddressLines;
 	
 		$aClassType = getClassTypes();
 
@@ -627,16 +629,19 @@
 		foreach($aAddressLines as $aLine)
 		{
 			if (!$sCountryCode) $sCountryCode = $aLine['country_code'];
-			$aTypeLabel = false;
-			if (isset($aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']];
-			elseif (isset($aClassType[$aLine['class'].':'.$aLine['type']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type']];
-			else $aTypeLabel = array('simplelabel'=>$aLine['class']);
-			if ($aTypeLabel && ($aLine['localname'] || $aLine['housenumber']))
+			if ($aLine['rank_address'] < $iMinRank)
 			{
-				$sTypeLabel = strtolower(isset($aTypeLabel['simplelabel'])?$aTypeLabel['simplelabel']:$aTypeLabel['label']);
-				if (!isset($aAddress[$sTypeLabel])) $aAddress[$sTypeLabel] = $aLine['localname']?$aLine['localname']:$aLine['housenumber'];
+				$aTypeLabel = false;
+				if (isset($aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type'].':'.$aLine['admin_level']];
+				elseif (isset($aClassType[$aLine['class'].':'.$aLine['type']])) $aTypeLabel = $aClassType[$aLine['class'].':'.$aLine['type']];
+				else $aTypeLabel = array('simplelabel'=>$aLine['class']);
+				if ($aTypeLabel && ($aLine['localname'] || $aLine['housenumber']))
+				{
+					$sTypeLabel = strtolower(isset($aTypeLabel['simplelabel'])?$aTypeLabel['simplelabel']:$aTypeLabel['label']);
+					if (!isset($aAddress[$sTypeLabel])) $aAddress[$sTypeLabel] = $aLine['localname']?$aLine['localname']:$aLine['housenumber'];
+				}
+				$iMinRank = $aLine['rank_address'];
 			}
-			if ($aLine['rank_address'] < $iMinRank) $iMinRank = $aLine['rank_address'];
 		}
 		if ($iMinRank > 4 && $sCountryCode)
 		{
@@ -796,3 +801,45 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 	echo "\n";
 	exit;
 }
+
+	function logStart(&$oDB, $sType = '', $sQuery = '', $aLanguageList = array())
+	{
+		$aStartTime = explode('.',microtime(true));
+		if (!$aStartTime[1]) $aStartTime[1] = '0';
+
+		$hLog = array(
+				date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1],
+				$_SERVER["REMOTE_ADDR"],
+				$sQuery
+			);
+
+                // Log
+                $oDB->query('insert into query_log values ('.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]).','.getDBQuoted($hLog[1]).')');
+
+		$sSQL = 'insert into new_query_log (type,starttime,query,ipaddress,useragent, language)';
+		$sSQL .= ' values ('.getDBQuoted($sType).','.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]);
+		$sSQL .= ','.getDBQuoted($hLog[1]).','.getDBQuoted($_SERVER['HTTP_USER_AGENT']).','.getDBQuoted(join(',',$aLanguageList)).')';
+		$oDB->query($sSQL);
+
+
+		return $hLog;
+	}
+
+	function logEnd($oDB, $hLog, $iNumResults)
+	{
+                $aEndTime = explode('.',microtime(true));
+                if (!$aEndTime[1]) $aEndTime[1] = '0';
+                $sEndTime = date('Y-m-d H:i:s',$aEndTime[0]).'.'.$aEndTime[1];
+
+		$sSQL = 'update query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults;
+		$sSQL .= ' where starttime = '.getDBQuoted($hLog[0]);
+		$sSQL .= ' and ipaddress = '.getDBQuoted($hLog[1]);
+		$sSQL .= ' and query = '.getDBQuoted($hLog[2]);
+                $oDB->query($sSQL);
+
+		$sSQL = 'update new_query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults;
+		$sSQL .= ' where starttime = '.getDBQuoted($hLog[0]);
+		$sSQL .= ' and ipaddress = '.getDBQuoted($hLog[1]);
+		$sSQL .= ' and query = '.getDBQuoted($hLog[2]);
+		$oDB->query($sSQL);
+	}
