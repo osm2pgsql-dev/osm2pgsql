@@ -244,7 +244,7 @@
 			}
 
 			// Keep in sync with other instances
-			if ($aResult['index-instances'])
+			if (isset($aResult['index-instances']) && $aResult['index-instances'] > 1)
 			{
 				$sSQL = 'select count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null';
 				while($iWaitNum = $oDB->getOne($sSQL))
