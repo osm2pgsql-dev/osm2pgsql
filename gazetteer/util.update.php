@@ -33,7 +33,7 @@
 		if (exec('/bin/ps uww | grep '.basename(__FILE__).' | grep -v /dev/null | grep -v grep -c', $aOutput2, $iResult) > 1)
 		{
 			echo "Copy already running\n";
-//			exit;
+			exit;
 		}
 	}
 
@@ -47,7 +47,12 @@
 	$sBasePath = dirname(dirname(__FILE__));
 
 	require_once('DB.php');
-	$oDB =& DB::connect('pgsql://@/gazetteerworld', false);
+	$oDB =& DB::connect('pgsql://@/gazetteer', false);
+	if (PEAR::IsError($oDB))
+	{
+		echo $oDB->getMessage()."\n";
+		exit;
+	} 
 	$oDB->setFetchMode(DB_FETCHMODE_ASSOC);
 	$oDB->query("SET DateStyle TO 'sql,european'");
 	$oDB->query("SET client_encoding TO 'utf-8'");
@@ -122,6 +127,7 @@
 		$sModifyXML = str_replace('<osm version="0.6" generator="OpenStreetMap server">',
 			'<osmChange version="0.6" generator="OpenStreetMap server"><modify>', $sModifyXML);
 		$sModifyXML = str_replace('</osm>', '</modify></osmChange>', $sModifyXML);
+		if ($aResult['verbose']) var_dump($sModifyXML);
 
 		$aSpec = array(
 			0 => array("pipe", "r"),  // stdin
@@ -199,7 +205,7 @@
 				$iTotalLeft -= $iNum;
 				flush();
 
-                                $fNumSteps = round(sqrt($iNum) / 100);
+                                $fNumSteps = round(sqrt($iNum) / 20);
 
                                 if ($fNumSteps > 1 )
                                 {
@@ -213,9 +219,14 @@
                                         {
                                                 for ($fStepLon = $fLon; $fStepLon < ($fLon + 1); $fStepLon += $fStepSize)
                                                 {
+							while (getBlockingProcesses() > 3 || getLoadAverage() > 1.9)
+							{
+								echo "System busy, pausing indexing...\n";
+								sleep(60);
+							}
                                                         $fStepLonTop = $fStepLon + $fStepSize;
 							$fStepLatTop = $fStepLat + $fStepSize;
-                                                        echo "  Step1 ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
+                                                        echo "  Step: ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
 							$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
 							$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
 //							var_Dump($sSQL);
