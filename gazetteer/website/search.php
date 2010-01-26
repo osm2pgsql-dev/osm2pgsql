@@ -12,6 +12,7 @@
 	$sOutputFormat = 'html';
 	$aSearchResults = array();
 	$aExcludePlaceIDs = array();
+	$sSuggestion = $sSuggestionURL = false;
 
 	// Format for output
 	if (isset($_GET['format']) && ($_GET['format'] == 'html' || $_GET['format'] == 'xml' || $_GET['format'] == 'json'))
@@ -170,6 +171,35 @@
 				}
 			}
 			if (CONST_Debug) var_Dump($aPhrases, $aValidTokens);
+
+                        $aSuggestion = array();
+                        $bSuggestion = false;
+			if (CONST_Suggestions_On)
+			{
+	                        foreach($aPhrases as $iPhrase => $aPhrase)
+        	                {
+                	                if (!isset($aValidTokens[' '.$aPhrase['wordsets'][0][0]]))
+                        	        {
+                                	        $sQuotedPhrase = getDBQuoted(' '.$aPhrase['wordsets'][0][0]);
+						$aSuggestionWords = getWordSuggestions($oDB, $aPhrase['wordsets'][0][0]);
+	                                        $aRow = $aSuggestionWords[0];
+        	                                if ($aRow && $aRow['word'])
+                	                        {
+                        	                        $aSuggestion[] = $aRow['word'];
+                                	                $bSuggestion = true;
+                                        	}
+	                                        else
+        	                                {
+                	                                $aSuggestion[] = $aPhrase['string'];
+                        	                }
+	                                }
+        	                        else
+                	                {
+                        	                $aSuggestion[] = $aPhrase['string'];
+                                	}
+				}
+                        }
+                        if ($bSuggestion) $sSuggestion = join(', ',$aSuggestion);
 
 			// Try and calculate GB postcodes we might be missing
 			foreach($aTokens as $sToken)
@@ -693,11 +723,18 @@
 	{
 		logEnd($oDB, $hLog, sizeof($aToFilter));
 	}
- 	$sMoreURL = CONST_Website_BaseURL.'search?format='.urlencode($sOutputFormat).'&q='.urlencode($sQuery).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
+ 	$sMoreURL = CONST_Website_BaseURL.'search?format='.urlencode($sOutputFormat).'&exclude_place_ids='.join(',',$aExcludePlaceIDs);
 	$sMoreURL .= '&accept-language='.$_SERVER["HTTP_ACCEPT_LANGUAGE"];
 	if ($bShowPolygons) $sMoreURL .= '&polygon=1';
 	if ($bShowAddressDetails) $sMoreURL .= '&addressdetails=1';
 	if (isset($_GET['viewbox']) && $_GET['viewbox']) $sMoreURL .= '&viewbox='.urlencode($_GET['viewbox']);
 	if (isset($_GET['nearlat']) && isset($_GET['nearlon'])) $sMoreURL .= '&nearlat='.(float)$_GET['nearlat'].'&nearlon='.(float)$_GET['nearlon'];
+	if ($sSuggestion)
+	{
+		$sSuggestionURL = $sMoreURL.'&q='.urlencode($sSuggestion);
+	}
+	$sMoreURL .= '&q='.urlencode($sQuery);
+
+	if (CONST_Debug) exit;
 
 	include('.htlib/output/search-'.$sOutputFormat.'.php');

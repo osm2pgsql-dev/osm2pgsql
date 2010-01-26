@@ -339,6 +339,10 @@ target="_blank">FAQ</a></td>
 	<div id="searchresultsfade1"></div><div id="searchresultsfade2"></div><div id="searchresultsfade3"></div><div id="searchresultsfade4"></div>
 	<div id="searchresults">
 <?php
+	if ($sSuggestionURL)
+	{
+		echo '<div class="more"><b>Suggest: </b><a href="'.$sSuggestionURL.'"><b>'.$sSuggestion.'</b></a></div>';
+	}
 	foreach($aSearchResults as $iResNum => $aResult)
 	{
 		if ($aResult['aBoundingBox'])
