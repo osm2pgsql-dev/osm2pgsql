@@ -613,7 +613,8 @@
         	{
                 	$sSQL .= " and (placex.country_code IS NULL OR placex.country_code = '".$sCountryCode."' OR rank_address < 4)";
 	        }
-        	$sSQL .= " order by cached_rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc";
+        	$sSQL .= " order by cached_rank_address desc,fromarea desc,distance asc,rank_search desc,namelength desc";
+//var_dump($sSQL);
 	        $aAddressLines = $oDB->getAll($sSQL);
         	if (PEAR::IsError($aAddressLines))
 	        {
@@ -825,7 +826,7 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 		return $hLog;
 	}
 
-	function logEnd($oDB, $hLog, $iNumResults)
+	function logEnd(&$oDB, $hLog, $iNumResults)
 	{
                 $aEndTime = explode('.',microtime(true));
                 if (!$aEndTime[1]) $aEndTime[1] = '0';
@@ -842,4 +843,18 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 		$sSQL .= ' and ipaddress = '.getDBQuoted($hLog[1]);
 		$sSQL .= ' and query = '.getDBQuoted($hLog[2]);
 		$oDB->query($sSQL);
+	}
+
+
+	function getWordSuggestions(&$oDB, $sWord)
+	{
+		$sWordQuoted = getDBQuoted(trim($sWord));
+		$sSQL = "select *,levenshtein($sWordQuoted,word) from test_token ";
+		$sSQL .= "where (metaphone = dmetaphone($sWordQuoted) or metaphonealt = dmetaphone($sWordQuoted) or ";
+		$sSQL .= "metaphone = dmetaphone_alt($sWordQuoted) or metaphonealt = dmetaphone_alt($sWordQuoted)) ";
+		$sSQL .= "and len between length($sWordQuoted)-2 and length($sWordQuoted)+2 ";
+		$sSQL .= "and levenshtein($sWordQuoted,word) < 3 ";
+		$sSQL .= "order by levenshtein($sWordQuoted,word) asc, abs(len - length($sWordQuoted)) asc limit 20";
+		$aSimilar = $oDB->getAll($sSQL);
+		return $aSimilar;
 	}
