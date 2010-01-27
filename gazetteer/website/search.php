@@ -89,10 +89,10 @@
 			$_GET['nearlon'] = ($aData[6]=='E'?1:-1) * ($aData[4] + $aData[5]/60);
 			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
 		}
-		elseif (preg_match('/\\b\\[?(-?[0-9]+[0-9.]*)[, ]+(-?[0-9]+[0-9.]*)\\]?\\b/', $sQuery, $aData))
+		elseif (preg_match('/(\\[|\\b)(-?[0-9]+[0-9.]*)[, ]+(-?[0-9]+[0-9.]*)(\\]|\\b])/', $sQuery, $aData))
 		{
-			$_GET['nearlat'] = $aData[1];
-			$_GET['nearlon'] = $aData[2];
+			$_GET['nearlat'] = $aData[2];
+			$_GET['nearlon'] = $aData[3];
 			$sQuery = trim(str_replace($aData[0], ' ', $sQuery));
 		}
 
@@ -132,9 +132,10 @@
 			$aTokens = array();
 			foreach($aPhrases as $iPhrase => $sPhrase)
 			{
-				if (trim($sPhrase))
+				$aPhrase = $oDB->getRow("select make_standard_name('".pg_escape_string($sPhrase)."') as string");
+				if (trim($aPhrase['string']))
 				{
-					$aPhrases[$iPhrase] = $oDB->getRow("select make_standard_name('".pg_escape_string($sPhrase)."') as string");
+					$aPhrases[$iPhrase] = $aPhrase;
 					$aPhrases[$iPhrase]['words'] = explode(' ',$aPhrases[$iPhrase]['string']);
 					$aPhrases[$iPhrase]['wordsets'] = getWordSets($aPhrases[$iPhrase]['words']);
 					$aTokens = array_merge($aTokens, getTokensFromSets($aPhrases[$iPhrase]['wordsets']));
@@ -144,6 +145,9 @@
 					unset($aPhrases[$iPhrase]);
 				}
 			}			
+
+			if (sizeof($aTokens))
+			{
 
 			// Check which tokens we have, get the ID numbers			
 			$sSQL = 'select word_id,word_token, word, class, type, location,country_code';
@@ -555,6 +559,7 @@
 					}
 				}
 			}
+		}
 	}
 	
 	$sSearchResult = '';
