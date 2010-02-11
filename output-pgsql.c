@@ -121,6 +121,7 @@ void read_style_file( const char *filename )
 {
   FILE *in;
   int lineno = 0;
+  int num_read = 0;
 
   exportList[OSMTYPE_NODE] = malloc( sizeof(struct taginfo) * MAX_STYLES );
   exportList[OSMTYPE_WAY]  = malloc( sizeof(struct taginfo) * MAX_STYLES );
@@ -195,6 +196,15 @@ void read_style_file( const char *filename )
       fprintf( stderr, "Weird style line %d\n", lineno );
       exit_nicely();
     }
+    num_read++;
+  }
+  if (ferror(in)) {
+      perror(filename);
+      exit_nicely();
+  }
+  if (num_read == 0) {
+      fprintf(stderr, "Unable to parse any valid columns from the style file. Aborting.\n");
+      exit_nicely();
   }
   fclose(in);
 }
