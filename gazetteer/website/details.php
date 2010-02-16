@@ -16,10 +16,10 @@
 
 	$iPlaceID = (int)$_GET['place_id'];
 
-	$oDB->query('insert into query_log values ('.getDBQuoted('now').','.getDBQuoted('details: '.$iPlaceID.' '.(int)$_GET['osmid']).','.getDBQuoted(($_SERVER["REMOTE_ADDR"])).')');
-
 	$aLangPrefOrder = getPrefferedLangauges();
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
+
+	$hLog = logStart($oDB, 'details', $_SERVER['QUERY_STRING'], $aLangPrefOrder);
 
 	// Make sure the point we are reporting on is fully indexed
 	$sSQL = "UPDATE placex set indexed = true where indexed = false and place_id = $iPlaceID";
@@ -120,5 +120,7 @@
 	$sSQL .= " and type != 'postcode'";
 	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL),housenumber limit 1000";
 	$aParentOfLines = $oDB->getAll($sSQL);
+
+	logEnd($oDB, $hLog, 1);
 
 	include('.htlib/output/details-html.php');
