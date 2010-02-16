@@ -48,9 +48,9 @@
 			$aPlace['icon'] = $aPointDetails['icon'];
 		}
 
-		if (isset($aResult['address']))
+		if (isset($aPointDetails['address']))
 		{
-			$aPlace['address'] = $aResult['address'];
+			$aPlace['address'] = $aPointDetails['address'];
                 }
 
 		$aFilteredPlaces[] = $aPlace;

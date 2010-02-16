@@ -14,6 +14,8 @@
         $aLangPrefOrder = getPrefferedLangauges();
         $sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
 
+	$hLog = logStart($oDB, 'reverse', $_SERVER['QUERY_STRING'], $aLangPrefOrder);
+
         if (isset($_GET['osm_type']) && isset($_GET['osm_id']) && (int)$_GET['osm_id'] && ($_GET['osm_type'] == 'N' || $_GET['osm_type'] == 'W' || $_GET['osm_type'] == 'R'))
         {
                 $iPlaceID = $oDB->getOne("select place_id from placex where osm_type = '".$_GET['osm_type']."' and osm_id = ".(int)$_GET['osm_id']." order by type = 'postcode' asc");

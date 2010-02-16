@@ -600,6 +600,7 @@
 
 	function getAddressDetails(&$oDB, $sLanguagePrefArraySQL, $iPlaceID, $sCountryCode = false, $bRaw = false)
 	{
+		$sHouseNumber = $oDB->getOne('select housenumber from placex where place_id = '.$iPlaceID);
 
 	        // Address
         	$sSQL = "select country_code, placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
@@ -627,6 +628,7 @@
 
 		$iMinRank = 100;
 		$aAddress = array();
+		if ($sHouseNumber) $aAddress['house_number'] = $sHouseNumber;
 		foreach($aAddressLines as $aLine)
 		{
 			if (!$sCountryCode) $sCountryCode = $aLine['country_code'];
@@ -639,7 +641,7 @@
 				if ($aTypeLabel && ($aLine['localname'] || $aLine['housenumber']))
 				{
 					$sTypeLabel = strtolower(isset($aTypeLabel['simplelabel'])?$aTypeLabel['simplelabel']:$aTypeLabel['label']);
-					if (!isset($aAddress[$sTypeLabel])) $aAddress[$sTypeLabel] = $aLine['localname']?$aLine['localname']:$aLine['housenumber'];
+					if (!isset($aAddress[$sTypeLabel]) && $aLine['localname']) $aAddress[$sTypeLabel] = $aLine['localname']?$aLine['localname']:$aLine['housenumber'];
 				}
 				$iMinRank = $aLine['rank_address'];
 			}
@@ -815,7 +817,10 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 			);
 
                 // Log
-                $oDB->query('insert into query_log values ('.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]).','.getDBQuoted($hLog[1]).')');
+		if ($sType == 'search')
+		{
+	                $oDB->query('insert into query_log values ('.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]).','.getDBQuoted($hLog[1]).')');
+		}
 
 		$sSQL = 'insert into new_query_log (type,starttime,query,ipaddress,useragent, language)';
 		$sSQL .= ' values ('.getDBQuoted($sType).','.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]);
