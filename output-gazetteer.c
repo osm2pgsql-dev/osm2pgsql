@@ -79,6 +79,7 @@ static const struct taginfo {
    { "building", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "bridge",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "tunnel",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "aeroway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { NULL,       NULL,             0                                     }
 };
 
@@ -181,6 +182,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    int* admin_level, char ** housenumber, char ** street, char ** isin, char ** postcode, char ** countrycode)
 {
    int area = 0;
+   int placehouse = 0;
    struct keyval *item;
 
    *admin_level = ADMINLEVEL_NONE;
@@ -198,24 +200,37 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    /* Loop over the tags */
    while ((item = popItem(tags)) != NULL)
    {
+//      fprintf(stderr, "%s\n", item->key);
+
       /* If this is a name tag, add it to the name list */
       if (strcmp(item->key, "ref") == 0 ||
           strcmp(item->key, "iata") == 0 ||
           strcmp(item->key, "icao") == 0 ||
+          strcmp(item->key, "pcode:1") == 0 ||
+          strcmp(item->key, "pcode:2") == 0 ||
+          strcmp(item->key, "pcode:3") == 0 ||
+          strcmp(item->key, "un:pcode:1") == 0 ||
+          strcmp(item->key, "un:pcode:2") == 0 ||
+          strcmp(item->key, "un:pcode:3") == 0 ||
           strcmp(item->key, "old_name") == 0 ||
           strcmp(item->key, "loc_name") == 0 ||
           strcmp(item->key, "alt_name") == 0 ||
-          strcmp(item->key, "addr:housename") == 0 ||
           strcmp(item->key, "commonname") == 0 ||
           strcmp(item->key, "common_name") == 0 ||
           strcmp(item->key, "short_name") == 0 ||
           strcmp(item->key, "name") == 0 ||
           strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "name:", 5) == 0) ||
+          (strncmp(item->key, "place_name:", 11) == 0) ||
           (strncmp(item->key, "official_name:", 14) == 0) || 
           (strncmp(item->key, "short_name:", 11) == 0))
       {
          pushItem(names, item);
+      }
+      else if (strcmp(item->key, "addr:housename") == 0)
+      {
+         pushItem(names, item);
+         placehouse = 1;
       }
       else if (strcmp(item->key, "postal_code") == 0 ||
           strcmp(item->key, "post_code") == 0 ||
@@ -233,7 +248,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                 strcmp(item->key, "country_code_iso3166_1") == 0 || 
                 strcmp(item->key, "country_code_iso3166") == 0 || 
                 strcmp(item->key, "country_code") == 0 || 
+                strcmp(item->key, "iso3166-1") == 0 || 
+                strcmp(item->key, "ISO3166-1") == 0 || 
+                strcmp(item->key, "iso3166") == 0 || 
                 strcmp(item->key, "is_in:country_code") == 0 || 
+                strcmp(item->key, "addr:country") == 0 ||
                 strcmp(item->key, "addr:country_code") == 0) 
                 && strlen(item->value) == 2)
       {
@@ -243,7 +262,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          // house number can be far more complex than just a single house number - leave for postgresql to deal with
          *housenumber = item->value; 
-         addItem(places, "place", "house", 1);
+         placehouse = 1;
       }
       else if (strcmp(item->key, "addr:interpolation") == 0)
       {
@@ -253,7 +272,9 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
-          (strncmp(item->key, "addr:", 4) == 0))
+          strcmp(item->key, "addr:country")== 0 ||
+          strcmp(item->key, "addr:city") == 0||
+          strcmp(item->key, "addr:state") == 0)
       {
          *isin = realloc(*isin, isinsize + 2 + strlen(item->value));
          *(*isin+isinsize) = ',';
@@ -288,6 +309,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          /* Free the tag if we didn't want it */
          if (t->name == NULL) freeItem(item);
       }
+   }
+
+   if (placehouse)
+   {
+      addItem(places, "place", "house", 1);
    }
 
    return area;
@@ -526,6 +552,9 @@ static void gazetteer_out_stop(void)
 
    /* Analyse the table */
    //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
+
+   /* Interpolate any addresses - has to be done after all nodes commited  */
+   pgsql_exec(Connection, PGRES_TUPLES_OK, "select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses'");
 
    return;
 }

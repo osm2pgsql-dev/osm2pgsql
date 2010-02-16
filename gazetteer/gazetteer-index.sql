@@ -48,7 +48,7 @@ insert into placex select * from place where osm_type = 'N';
 insert into placex select * from place where osm_type = 'W';
 insert into placex select * from place where osm_type = 'R';
 
--- use this to do a simple index - for the full planet use 'util.update.php'
+-- use this to do a simple index - for the full planet use 'util.update.php' and remove all lines below
 update placex set indexed = true where not indexed and rank_search = 0 and name is not null;
 update placex set indexed = true where not indexed and rank_search = 1 and name is not null;
 update placex set indexed = true where not indexed and rank_search = 2 and name is not null;

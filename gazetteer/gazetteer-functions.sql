@@ -1164,6 +1164,44 @@ END;
 $$
 LANGUAGE plpgsql IMMUTABLE;
 
+CREATE OR REPLACE FUNCTION delete_location(OLD_place_id BIGINT) RETURNS BOOLEAN
+  AS $$
+DECLARE
+BEGIN
+  DELETE FROM location_area where place_id = OLD_place_id;
+  DELETE FROM location_point where place_id = OLD_place_id;
+  DELETE FROM location_point_0 where place_id = OLD_place_id;
+  DELETE FROM location_point_1 where place_id = OLD_place_id;
+  DELETE FROM location_point_2 where place_id = OLD_place_id;
+  DELETE FROM location_point_3 where place_id = OLD_place_id;
+  DELETE FROM location_point_4 where place_id = OLD_place_id;
+  DELETE FROM location_point_5 where place_id = OLD_place_id;
+  DELETE FROM location_point_6 where place_id = OLD_place_id;
+  DELETE FROM location_point_7 where place_id = OLD_place_id;
+  DELETE FROM location_point_8 where place_id = OLD_place_id;
+  DELETE FROM location_point_9 where place_id = OLD_place_id;
+  DELETE FROM location_point_10 where place_id = OLD_place_id;
+  DELETE FROM location_point_11 where place_id = OLD_place_id;
+  DELETE FROM location_point_12 where place_id = OLD_place_id;
+  DELETE FROM location_point_13 where place_id = OLD_place_id;
+  DELETE FROM location_point_14 where place_id = OLD_place_id;
+  DELETE FROM location_point_15 where place_id = OLD_place_id;
+  DELETE FROM location_point_16 where place_id = OLD_place_id;
+  DELETE FROM location_point_17 where place_id = OLD_place_id;
+  DELETE FROM location_point_18 where place_id = OLD_place_id;
+  DELETE FROM location_point_19 where place_id = OLD_place_id;
+  DELETE FROM location_point_20 where place_id = OLD_place_id;
+  DELETE FROM location_point_21 where place_id = OLD_place_id;
+  DELETE FROM location_point_22 where place_id = OLD_place_id;
+  DELETE FROM location_point_23 where place_id = OLD_place_id;
+  DELETE FROM location_point_24 where place_id = OLD_place_id;
+  DELETE FROM location_point_25 where place_id = OLD_place_id;
+  DELETE FROM location_point_26 where place_id = OLD_place_id;
+  RETURN true;
+END;
+$$
+LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION add_location(
     place_id BIGINT,
     place_country_code varchar(2),
@@ -1259,6 +1297,26 @@ END;
 $$
 LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION update_location(
+    place_id BIGINT,
+    place_country_code varchar(2),
+    name keyvalue[],
+    rank_search INTEGER,
+    rank_address INTEGER,
+    geometry GEOMETRY
+  ) 
+  RETURNS BOOLEAN
+  AS $$
+DECLARE
+  b BOOLEAN;
+BEGIN
+  b := delete_location(place_id);
+  RETURN add_location(place_id, place_country_code, name, rank_search, rank_address, geometry);
+END;
+$$
+LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION create_interpolation(wayid BIGINT, interpolationtype TEXT) RETURNS INTEGER
   AS $$
 DECLARE
@@ -1283,9 +1341,8 @@ BEGIN
   newpoints := 0;
   IF interpolationtype = 'odd' OR interpolationtype = 'even' OR interpolationtype = 'all' THEN
 
---RAISE WARNING 'interpolation % %',wayid,interpolationtype;
-
     select nodes from planet_osm_ways where id = wayid INTO waynodes;
+--RAISE WARNING 'interpolation % % %',wayid,interpolationtype,waynodes;
     IF array_upper(waynodes, 1) IS NOT NULL THEN
 
       havefirstpoint := false;
@@ -1293,27 +1350,25 @@ BEGIN
       FOR nodeidpos in 1..array_upper(waynodes, 1) LOOP
 
         select min(place_id) from placex where osm_type = 'N' and osm_id = waynodes[nodeidpos]::bigint and type = 'house' INTO search_place_id;
-        IF search_place_id IS NOT NULL THEN
-          select * from placex where place_id = search_place_id INTO nextnode;
-        ELSE
+        IF search_place_id IS NULL THEN
+          -- null record of right type
           select * from placex where osm_type = 'N' and osm_id = waynodes[nodeidpos]::bigint and type = 'house' limit 1 INTO nextnode;
-        END IF;
-
--- TODO: need to tag interpolated places so we can seperate them from the original node if someone changes the ways, tag with wayid ? 
---        select * from placex where osm_type = 'N' and osm_id = waynodes[nodeidpos]::bigint and type = 'house' limit 1 INTO nextnode;
-
-        IF nextnode.geometry IS NULL THEN
           select ST_SetSRID(ST_Point(lon::float/10000000,lat::float/10000000),4326) from planet_osm_nodes where id = waynodes[nodeidpos] INTO nextnode.geometry;
+        ELSE
+          select * from placex where place_id = search_place_id INTO nextnode;
         END IF;
+
+--RAISE WARNING 'interpolation node % % % ',nextnode.housenumber,ST_X(nextnode.geometry),ST_Y(nextnode.geometry);
       
         IF havefirstpoint THEN
 
           -- add point to the line string
           linestr := linestr||','||ST_X(nextnode.geometry)||' '||ST_Y(nextnode.geometry);
-          startnumber := ('0'||substring(prevnode.housenumber,'[0-9]+'))::integer;
           endnumber := ('0'||substring(nextnode.housenumber,'[0-9]+'))::integer;
 
           IF startnumber IS NOT NULL and startnumber > 0 AND endnumber IS NOT NULL and endnumber > 0 THEN
+
+--RAISE WARNING 'interpolation end % % ',nextnode.place_id,endnumber;
 
             IF startnumber != endnumber THEN
 
@@ -1342,7 +1397,7 @@ BEGIN
                 IF (interpolationtype = 'odd' OR interpolationtype = 'even') THEN
                   startnumber := startnumber + 2;
                   stepsize := 2;
-                ELSE
+                ELSE -- everything else assumed to be 'all'
                   startnumber := startnumber + 1;
                   stepsize := 1;
                 END IF;
@@ -1352,23 +1407,29 @@ BEGIN
               FOR housenum IN startnumber..endnumber BY stepsize LOOP
                 -- this should really copy postcodes but it puts a huge burdon on the system for no big benefit
                 -- ideally postcodes should move up to the way
-                 insert into placex values (null,'N',prevnode.osm_id,prevnode.class,prevnode.type,NULL,prevnode.admin_level,housenum,prevnode.street,prevnode.isin,null,prevnode.country_code,prevnode.street_place_id,prevnode.rank_address,prevnode.rank_search,false,ST_Line_Interpolate_Point(linegeo, (housenum::float-orginalstartnumber::float)/originalnumberrange::float));
+                insert into placex values (null,'N',prevnode.osm_id,prevnode.class,prevnode.type,NULL,prevnode.admin_level,housenum,prevnode.street,prevnode.isin,null,prevnode.country_code,prevnode.street_place_id,prevnode.rank_address,prevnode.rank_search,false,ST_Line_Interpolate_Point(linegeo, (housenum::float-orginalstartnumber::float)/originalnumberrange::float));
                 newpoints := newpoints + 1;
+--RAISE WARNING 'interpolation number % % ',prevnode.place_id,housenum;
               END LOOP;
             END IF;
-            prevnode := nextnode;
+            havefirstpoint := false;
           END IF;
-        ELSE
+        END IF;
+
+        IF NOT havefirstpoint THEN
           startnumber := ('0'||substring(nextnode.housenumber,'[0-9]+'))::integer;
           IF startnumber IS NOT NULL AND startnumber > 0 THEN
             havefirstpoint := true;
             linestr := 'LINESTRING('||ST_X(nextnode.geometry)||' '||ST_Y(nextnode.geometry);
             prevnode := nextnode;
           END IF;
+--RAISE WARNING 'interpolation start % % ',nextnode.place_id,startnumber;
         END IF;
       END LOOP;
     END IF;
   END IF;
+
+--RAISE WARNING 'interpolation points % ',newpoints;
 
   RETURN newpoints;
 END;
@@ -1456,9 +1517,15 @@ BEGIN
       ELSEIF NEW.type in ('town') THEN
         NEW.rank_search := 17;
         NEW.rank_address := NEW.rank_search;
-      ELSEIF NEW.type in ('village','hamlet','municipality','districy','unincorporated_area','borough','airport') THEN
+      ELSEIF NEW.type in ('village','hamlet','municipality','districy','unincorporated_area','borough') THEN
         NEW.rank_search := 18;
         NEW.rank_address := 17;
+      ELSEIF NEW.type in ('airport') AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') THEN
+        NEW.rank_search := 18;
+        NEW.rank_address := 17;
+      ELSEIF NEW.type in ('moor') AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') THEN
+        NEW.rank_search := 17;
+        NEW.rank_address := 18;
       ELSEIF NEW.type in ('moor') THEN
         NEW.rank_search := 17;
         NEW.rank_address := 0;
@@ -1536,8 +1603,9 @@ BEGIN
         NEW.rank_search := 28;
         NEW.rank_address := NEW.rank_search;
       ELSEIF NEW.type in ('houses') THEN
+        -- can't guarantee all required nodes loaded yet due to caching in osm2pgsql
         -- insert new point into place for each derived building
-        i := create_interpolation(NEW.osm_id, NEW.housenumber);
+        --i := create_interpolation(NEW.osm_id, NEW.housenumber);
       END IF;
 
     ELSEIF NEW.class = 'boundary' THEN
@@ -1579,7 +1647,7 @@ BEGIN
     result := add_location(NEW.place_id,NEW.country_code,NEW.name,NEW.rank_search,NEW.rank_address,NEW.geometry);
   END IF;
 
-  --RETURN NEW;
+  RETURN NEW;
   -- The following is not needed until doing diff updates, and slows the main index process down
 
   IF (ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(NEW.geometry)) THEN
@@ -1657,6 +1725,8 @@ DECLARE
   name_vector INTEGER[];
   nameaddress_vector INTEGER[];
 
+  result BOOLEAN;
+
 BEGIN
 
 --  RAISE WARNING '%',NEW.place_id;
@@ -1670,6 +1740,11 @@ BEGIN
   NEW.country_code := lower(NEW.country_code);
 
   IF NEW.indexed and NOT OLD.indexed THEN
+
+    IF NEW.class = 'place' AND NEW.type = 'houses' THEN
+      i := create_interpolation(NEW.osm_id, NEW.housenumber);
+      RETURN NEW;
+    END IF;
 
 --RAISE WARNING 'PROCESSING: % %', NEW.place_id, NEW.name;
 
@@ -1943,14 +2018,14 @@ BEGIN
       ORDER BY ST_Distance(place_centroid, centroid) ASC
     LOOP
 
---RAISE WARNING '  AREA: %',location.keywords;
+--RAISE WARNING '  AREA: % % %',location.keywords,NEW.country_code,location.country_code;
 
       IF NEW.country_code IS NULL THEN
         NEW.country_code := location.country_code;
       ELSEIF NEW.country_code != location.country_code and location.rank_search > 3 THEN
         search_country_code_conflict := true;
       END IF;
-  
+
       -- Add it to the list of search terms
       nameaddress_vector := array_merge(nameaddress_vector, location.keywords::integer[]);
       INSERT INTO place_addressline VALUES (NEW.place_id, location.place_id, true, NOT address_havelevel[location.rank_address], location.distance, location.rank_address); 
@@ -1975,7 +2050,7 @@ BEGIN
             FROM search_name join location_point using (place_id)
             WHERE search_name.name_vector @> ARRAY[address_street_word_id]
             AND rank_search < NEW.rank_search
-            AND (NEW.country_code IS NULL OR search_name.country_code = NEW.country_code)
+            AND (NEW.country_code IS NULL OR search_name.country_code = NEW.country_code OR search_name.address_rank < 4)
             ORDER BY ST_distance(NEW.geometry, search_name.centroid) ASC limit 1
           LOOP
 
@@ -2019,13 +2094,21 @@ BEGIN
         search_diameter := search_diameter * 2;
       END IF;
 
+--RAISE WARNING '%', 'SELECT place_id, name, keywords, country_code, rank_address, rank_search,'||
+--        'ST_Distance('||place_geometry_text||', centroid) as distance,'||
+--        'ST_Distance('||place_geometry_text||', centroid) as maxdistance'|| -- this version of postgis doesnt have maxdistance !
+--        ' FROM location_point_'||(case when search_maxrank > 26 THEN 26 ELSE search_maxrank end)||
+--        ' WHERE ST_DWithin('||place_geometry_text||', centroid, '||search_diameter||') '||
+--        '  AND ST_Distance('||place_geometry_text||', centroid) > '||search_prevdiameter||
+--        ' ORDER BY ST_Distance('||place_geometry_text||', centroid) ASC';
+
       -- Try nearest
       FOR location IN EXECUTE 'SELECT place_id, name, keywords, country_code, rank_address, rank_search,'||
         'ST_Distance('||place_geometry_text||', centroid) as distance,'||
         'ST_Distance('||place_geometry_text||', centroid) as maxdistance'|| -- this version of postgis doesnt have maxdistance !
         ' FROM location_point_'||(case when search_maxrank > 26 THEN 26 ELSE search_maxrank end)||
         ' WHERE ST_DWithin('||place_geometry_text||', centroid, '||search_diameter||') '||
-        '  AND ST_Distance('||place_geometry_text||', centroid) > '||search_prevdiameter||
+        '  AND ST_Distance('||place_geometry_text||', centroid) >= '||search_prevdiameter||
         ' ORDER BY ST_Distance('||place_geometry_text||', centroid) ASC'
       LOOP
 
@@ -2083,6 +2166,12 @@ BEGIN
 
     INSERT INTO search_name values (NEW.place_id, NEW.rank_search, NEW.rank_search, NEW.country_code, 
       name_vector, nameaddress_vector, place_centroid);
+
+    IF NEW.country_code IS NOT NULL THEN
+      DELETE FROM place_addressline WHERE place_id = NEW.place_id and address_place_id in (
+        select address_place_id from place_addressline join placex on (address_place_id = placex.place_id)
+          where place_addressline.place_id = NEW.place_id and placex.country_code != NEW.country_code and cached_rank_address >= 4);
+    END IF;
 
   END IF;
 
@@ -2160,9 +2249,11 @@ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION place_insert() RETURNS TRIGGER
   AS $$
 DECLARE
+  i INTEGER;
   existing RECORD;
   existinggeometry GEOMETRY;
   existingplace_id bigint;
+  result BOOLEAN;
 BEGIN
 
 --  RAISE WARNING '-----------------------------------------------------------------------------------';
@@ -2177,6 +2268,7 @@ BEGIN
   END IF;
 
   IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
+--    RAISE WARNING 'Invalid Geometry: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
     RETURN null;
   END IF;
 
@@ -2226,7 +2318,8 @@ BEGIN
         ,NEW.postcode
         ,NEW.country_code
         ,NEW.street_place_id
-        ,NEW.rank_address,NEW.rank_search
+        ,NEW.rank_address
+        ,NEW.rank_search
         ,NEW.indexed
         ,NEW.geometry
         );
@@ -2287,6 +2380,9 @@ BEGIN
         where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
 
     END IF;
+
+    result := update_location(NEW.place_id,NEW.country_code,NEW.name,NEW.rank_search,NEW.rank_address,NEW.geometry);
+
   END IF;
 
   IF coalesce(existing.name::text, '') != coalesce(NEW.name::text, '')
@@ -2347,11 +2443,17 @@ IF false AND existing.rank_search < 26 THEN
       where place_id = existingplace_id and class = NEW.class and type = NEW.type;
 
 --    RAISE WARNING 'update children % % %',NEW.osm_type,NEW.osm_id,existingplace_id;
-    
+
     -- performance, can't take the load of re-indexing a whole country
     IF existing.rank_search > 4 THEN
       UPDATE placex set indexed = false from place_addressline where address_place_id = existingplace_id and placex.place_id = place_addressline.place_id and indexed;
     END IF;
+
+    -- can't guarantee all required nodes loaded yet due to caching in osm2pgsql
+    --IF NEW.type in ('houses') and  THEN
+    --i := create_interpolation(NEW.osm_id, NEW.housenumber);
+    --END IF;
+
   END IF;
 
 --  RAISE WARNING 'update end % % %',NEW.osm_type,NEW.osm_id,existing.place_id;
@@ -2475,11 +2577,12 @@ BEGIN
 
   FOR location IN 
     select CASE WHEN address_place_id = for_place_id AND rank_address = 0 THEN 100 ELSE rank_address END as rank_address,
-      name,distance,length(name::text) as namelength 
+      CASE WHEN type = 'postcode' THEN ARRAY[ROW('name',postcode)::keyvalue] ELSE name END as name,
+      distance,length(name::text) as namelength 
       from place_addressline join placex on (address_place_id = placex.place_id) 
       where place_addressline.place_id = for_place_id and ((rank_address > 0 AND rank_address < searchrankaddress) OR address_place_id = for_place_id)
       and (placex.country_code IS NULL OR searchcountrycode IS NULL OR placex.country_code = searchcountrycode OR rank_address < 4)
-      order by rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc
+      order by rank_address desc,fromarea desc,distance asc,rank_search desc,namelength desc
   LOOP
     IF array_upper(search, 1) IS NOT NULL AND array_upper(location.name, 1) IS NOT NULL THEN
       FOR j IN 1..array_upper(search, 1) LOOP
@@ -2493,7 +2596,10 @@ BEGIN
     END IF;
   END LOOP;
 
-  IF searchhousenumber IS NOT NULL AND result[(100 - 28)] IS NULL THEN
+  IF searchhousenumber IS NOT NULL AND COALESCE(result[(100 - 28)],'') != searchhousenumber THEN
+    IF result[(100 - 28)] IS NOT NULL THEN
+      result[(100 - 29)] := result[(100 - 28)];
+    END IF;
     result[(100 - 28)] := searchhousenumber;
   END IF;
 
@@ -2537,7 +2643,7 @@ BEGIN
       from place_addressline join placex on (address_place_id = placex.place_id) 
       where place_addressline.place_id = for_place_id and (rank_address > 0 OR address_place_id = for_place_id)
       and (placex.country_code IS NULL OR searchcountrycode IS NULL OR placex.country_code = searchcountrycode OR rank_address < 4)
-      order by rank_address desc,rank_search desc,fromarea desc,distance asc,namelength desc
+      order by rank_address desc,fromarea desc,distance asc,rank_search desc,namelength desc
   LOOP
     IF array_upper(search, 1) IS NOT NULL AND array_upper(location.name, 1) IS NOT NULL THEN
       FOR j IN 1..array_upper(search, 1) LOOP
@@ -2792,6 +2898,143 @@ BEGIN
   END LOOP;
 
   return result;
+END;
+$$
+LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_word_letterfequency(srcword TEXT) RETURNS INTEGER[]
+  AS $$
+DECLARE
+  letterfeq INTEGER[];
+  i INTEGER;
+BEGIN
+  letterfeq[97] := 0;
+  letterfeq[101] := 0;
+  letterfeq[105] := 0;
+  letterfeq[114] := 0;
+  letterfeq[116] := 0;
+  letterfeq[115] := 0;
+  letterfeq[111] := 0;
+  letterfeq[117] := 0;
+  letterfeq[110] := 0;
+  letterfeq[100] := 0;
+  FOR i IN 1..length(srcword) LOOP
+    i := ascii(substring(srcword, i, 1));
+    IF (i = 97 OR i = 101 OR i = 105 OR i = 114 OR i = 116 OR i = 115 OR i = 111 OR i = 117 OR i = 110 OR i = 100) AND letterfeq[i] < 7 THEN
+      letterfeq[i] := letterfeq[i] + 1;
+    END IF;
+  END LOOP;
+  RETURN letterfeq;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_word_indexval(a INTEGER,e INTEGER,i INTEGER,r INTEGER,t INTEGER,s INTEGER,o INTEGER,u INTEGER,n INTEGER,d INTEGER) RETURNS INTEGER
+  AS $$
+DECLARE
+BEGIN
+  RETURN (a << 0) + (e << 3) + (i << 6) + (r << 9) + (t << 12) + (s << 15) + (o << 18) + (u << 21) + (n << 24) + (d << 27);
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_word_indexkey(srcword TEXT) RETURNS INTEGER
+  AS $$
+DECLARE
+  letterfeq INTEGER[];
+BEGIN
+
+  letterfeq := get_word_letterfequency(srcword);
+  RETURN get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_word_indexnear(srcword TEXT) RETURNS INTEGER[]
+  AS $$
+DECLARE
+  letterfeq INTEGER[];
+  near INTEGER[];
+BEGIN
+
+
+  letterfeq := get_word_letterfequency(srcword);
+
+  near := ARRAY[get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100])];
+
+  IF letterfeq[97] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97]-1, letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[97] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97]+1, letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[101] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101]-1, letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[101] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101]+1, letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[105] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105]-1, letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[105] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105]+1, letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[114] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114]-1, letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[114] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114]+1, letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[116] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116]-1, letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[116] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116]+1, letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[115] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115]-1, letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[115] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115]+1, letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[111] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111]-1, letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[111] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111]+1, letterfeq[117], letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[117] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117]-1, letterfeq[110], letterfeq[100]);
+  END IF;
+  IF letterfeq[117] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117]+1, letterfeq[110], letterfeq[100]);
+  END IF;
+
+  IF letterfeq[110] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110]-1, letterfeq[100]);
+  END IF;
+  IF letterfeq[110] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110]+1, letterfeq[100]);
+  END IF;
+
+  IF letterfeq[100] > 0 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]-1);
+  END IF;
+  IF letterfeq[100] < 7 THEN
+    near := near || get_word_indexval(letterfeq[97], letterfeq[101], letterfeq[105], letterfeq[114], letterfeq[116], letterfeq[115], letterfeq[111], letterfeq[117], letterfeq[110], letterfeq[100]+1);
+  END IF;
+
+  RETURN near;  
 END;
 $$
 LANGUAGE plpgsql;
