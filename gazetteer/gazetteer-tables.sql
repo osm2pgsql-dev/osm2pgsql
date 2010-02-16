@@ -9,12 +9,33 @@ CREATE SEQUENCE seq_location start 1;
 
 --drop table IF EXISTS query_log;
 CREATE TABLE query_log (
+  type text,
   starttime timestamp,
-  endtime timestamp,
+  ipaddress text,
+  useragent text,
+  language text,
   query text,
-  ipaddress text
+  endtime timestamp,
+  results integer
   );
 GRANT INSERT ON query_log TO "www-data" ;
+
+CREATE TABLE new_query_log (
+  type text,
+  starttime timestamp,
+  ipaddress text,
+  useragent text,
+  language text,
+  query text,
+  endtime timestamp,
+  results integer
+  );
+GRANT INSERT ON new_query_log TO "www-data" ;
+GRANT UPDATE ON new_query_log TO "www-data" ;
+GRANT SELECT ON new_query_log TO "www-data" ;
+
+create view vw_search_query_log as SELECT substr(query, 1, 50) AS query, starttime, endtime - starttime AS duration, substr(useragent, 1, 20) as 
+useragent, language, results, ipaddress FROM new_query_log WHERE type = 'search' ORDER BY starttime DESC;
 
 --drop table IF EXISTS report_log;
 CREATE TABLE report_log (
@@ -183,7 +204,7 @@ CREATE INDEX idx_placex_pendingbylatlon ON placex USING BTREE (geometry_index(ge
 CREATE INDEX idx_placex_street_place_id ON placex USING BTREE (street_place_id) where street_place_id IS NOT NULL;
 CREATE INDEX idx_placex_gb_postcodesector ON placex USING BTREE (substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$'))
   where country_code = 'gb' and substring(upper(postcode) from '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9])[A-Z][A-Z]$') is not null;
-
+CREATE INDEX idx_placex_interpolation ON placex USING BTREE (geometry_sector(geometry)) where indexed = false and class='place' and type='houses';
 CREATE INDEX idx_placex_sector ON placex USING BTREE (geometry_sector(geometry),rank_address,osm_type,osm_id);
 CLUSTER placex USING idx_placex_sector;
 
