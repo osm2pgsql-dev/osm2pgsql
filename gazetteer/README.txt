@@ -16,6 +16,13 @@ Requirements
 - PHP	     	http://php.net/ (both apache and command line)
 - PHP-pgsql  
 - PEAR::DB   	http://pear.php.net/package/DB
+- wget
+
+Hardware
+========
+For a full planet install you will need a minimum of 250GB of hard disk space.  On the OSM Nominatim server 
+(http://wiki.openstreetmap.org/wiki/Servers/katie) the initial import (osm2pgsql) takes around 30 hours.
+The rest of the indexing process takes approximately 5 days using both processors in parallel.
 
 Operation
 =========
@@ -33,7 +40,8 @@ cat /usr/share/postgresql-8.3-postgis/spatial_ref_sys.sql | psql gazetteer
 2) Import OSM data
 cd osm2pgsql
 make
-./osm2pgsql -lsc -O gazetteer -d gazetteer planet.osm.bz2
+./osm2pgsql -lsc -O gazetteer -C 2000 -d gazetteer planet.osm.bz2
+# -C 2000 uses 2000MB of memory as a cache, the more the better, especialy during the initial import
 # No need to expand the planet file. osm2pgsql will handle the bzip.
 # Ignore notices about missing functions and data types.
 # If you get a projector initialization error, your proj installation can't
@@ -66,7 +74,11 @@ cat gazetteer-tables.sql | psql gazetteer
 cat gazetteer-functions.sql | psql gazetteer
 # You really do need to run gazetteer-functions.sql TWICE!
 
-7) Index the database - this will take a VERY long time! Approx 8 times the import time.
+7) Copy the data into the live tables
+# This does the first stange of indexing using various triggers and will take a while
+cat gazetteer-loaddata.sql | psql gazetteer
+
+8) Index the database - this will take a VERY long time! Approx 8 times the import time.
 # For small imports (single country) use:
 cat gazetteer-index.sql | psql gazetteer
 # for anything large you will need to use util.update.php
@@ -78,10 +90,16 @@ cat gazetteer-index.sql | psql gazetteer
 # You will need to make sure settings.php is configured to connect to your database
 # edit website/.htlib/settings.php
 
-7) Various 'special' words for searching - see file for details
+9) Various 'special' words for searching - see file for details
 cat import_specialwords.sql | psql gazetteer
 
-8) Setup the website
+10) Setup the website
 cp website/* ~/public_html/
 # You will need to make sure settings.php is configured to connect to your database
 # edit website/.htlib/settings.php
+
+11) Updates
+# update the table 'import_status' to reflect the date of your planet dump file (you
+# might want to have a days overlap to ensure that no data is missed)
+# edit util.update.php to replace /home/twain with the location you wish to store your files
+./util.update.php --import-daily --import-all --index
