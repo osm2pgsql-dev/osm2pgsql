@@ -212,17 +212,29 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "un:pcode:1") == 0 ||
           strcmp(item->key, "un:pcode:2") == 0 ||
           strcmp(item->key, "un:pcode:3") == 0 ||
-          strcmp(item->key, "old_name") == 0 ||
-          strcmp(item->key, "loc_name") == 0 ||
-          strcmp(item->key, "alt_name") == 0 ||
-          strcmp(item->key, "commonname") == 0 ||
-          strcmp(item->key, "common_name") == 0 ||
-          strcmp(item->key, "short_name") == 0 ||
           strcmp(item->key, "name") == 0 ||
-          strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "name:", 5) == 0) ||
-          (strncmp(item->key, "place_name:", 11) == 0) ||
+          strcmp(item->key, "int_name") == 0 ||
+          (strncmp(item->key, "int_name:", 9) == 0) || 
+          strcmp(item->key, "nat_name") == 0 ||
+          (strncmp(item->key, "nat_name:", 9) == 0) || 
+          strcmp(item->key, "reg_name") == 0 ||
+          (strncmp(item->key, "reg_name:", 9) == 0) || 
+          strcmp(item->key, "loc_name") == 0 ||
+          (strncmp(item->key, "loc_name:", 9) == 0) || 
+          strcmp(item->key, "old_name") == 0 ||
+          (strncmp(item->key, "old_name:", 9) == 0) || 
+          strcmp(item->key, "alt_name") == 0 ||
+          (strncmp(item->key, "alt_name:", 9) == 0) || 
+          strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "official_name:", 14) == 0) || 
+          strcmp(item->key, "commonname") == 0 ||
+          (strncmp(item->key, "commonname:", 11) == 0) ||
+          strcmp(item->key, "common_name") == 0 ||
+          (strncmp(item->key, "common_name:", 12) == 0) ||
+          strcmp(item->key, "place_name") == 0 ||
+          (strncmp(item->key, "place_name:", 11) == 0) ||
+          strcmp(item->key, "short_name") == 0 ||
           (strncmp(item->key, "short_name:", 11) == 0))
       {
          pushItem(names, item);
@@ -273,6 +285,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
           strcmp(item->key, "addr:country")== 0 ||
+          strcmp(item->key, "addr:county")== 0 ||
           strcmp(item->key, "addr:city") == 0||
           strcmp(item->key, "addr:state") == 0)
       {
@@ -505,7 +518,7 @@ static int gazetteer_out_start(const struct output_options *options)
    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
 
    /* (Re)create the table unless we are appending */
-   if (!options->append)
+   if (!Options->append)
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
@@ -554,7 +567,10 @@ static void gazetteer_out_stop(void)
    //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
 
    /* Interpolate any addresses - has to be done after all nodes commited  */
-   pgsql_exec(Connection, PGRES_TUPLES_OK, "select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses'");
+   if (!Options->append)
+   {
+      pgsql_exec(Connection, PGRES_TUPLES_OK, "select count(*) from (select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses') as x");
+   }
 
    return;
 }
