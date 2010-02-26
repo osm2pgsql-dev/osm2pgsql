@@ -2,14 +2,12 @@
 	header("Content-Type: text/x-json");
 	header("Access-Control-Allow-Origin: *");
 
-	// don't do this as it is not JSON compliant
-    // echo "/* Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0. */\n";
-	
 	$aFilteredPlaces = array();
 	foreach($aSearchResults as $iResNum => $aPointDetails)
 	{
 		$aPlace = array(
-				'place_id'=>$aPointDetails['place_id']
+				'place_id'=>$aPointDetails['place_id'],
+				'licence'=>"Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0.",
 			);
 
 		$sOSMType = ($aPointDetails['osm_type'] == 'N'?'node':($aPointDetails['osm_type'] == 'W'?'way':($aPointDetails['osm_type'] == 'R'?'relation':'')));
