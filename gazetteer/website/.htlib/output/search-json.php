@@ -2,7 +2,8 @@
 	header("Content-Type: text/x-json");
 	header("Access-Control-Allow-Origin: *");
 
-	echo "/* Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0. */\n";
+	// don't do this as it is not JSON compliant
+    // echo "/* Data Copyright OpenStreetMap Contributors, Some Rights Reserved. CC-BY-SA 2.0. */\n";
 	
 	$aFilteredPlaces = array();
 	foreach($aSearchResults as $iResNum => $aPointDetails)
