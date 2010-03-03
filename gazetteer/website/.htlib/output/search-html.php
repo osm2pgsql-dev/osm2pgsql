@@ -304,11 +304,15 @@ form{
 //			var lonLat = new OpenLayers.LonLat(<?php echo $fLon ?>, <?php echo $fLat ?>).transform(new OpenLayers.Projection("EPSG:4326"), map.getProjectionObject());
 //			map.setCenter (lonLat, <?php echo $iZoom ?>);
 		}
+
+		function setfocus(field_id) { 
+			$(field_id).focus() 
+		} 
 		
 	</script>
 </head>
 
-<body>
+<body onload="setfocus('q');">
 
 	<div id="seachheaderfade1"></div><div id="seachheaderfade2"></div><div id="seachheaderfade3"></div><div id="seachheaderfade4"></div>
 
