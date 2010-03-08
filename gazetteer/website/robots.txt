@@ -6,3 +6,5 @@ Disallow: /search.php
 Disallow: /search
 Disallow: /details.php
 Disallow: /details
+Disallow: /reverse.php
+Disallow: /reverse
