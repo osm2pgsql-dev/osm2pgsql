@@ -567,7 +567,7 @@ static void gazetteer_out_stop(void)
    //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
 
    /* Interpolate any addresses - has to be done after all nodes commited  */
-   if (!Options->append)
+   if (Options->append)
    {
       pgsql_exec(Connection, PGRES_TUPLES_OK, "select count(*) from (select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses') as x");
    }
@@ -700,6 +700,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    char * countrycode;
    int area, wkt_size;
    const char *type;
+//   const char *boundary;
 
    type = getItem(tags, "type");
    if (!type)
@@ -711,7 +712,8 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
       return 0;
    }
 
-//   if (strcmp(type, "boundary"))
+//   boundary = getItem(tags, "boundary");
+//   if (strcmp(type, "boundary") && !boundary)
    if (strcmp(type, "boundary") && strcmp(type, "multipolygon"))
       return 0;
 
