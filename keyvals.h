@@ -29,4 +29,5 @@ void resetList(struct keyval *head);
 struct keyval *getMatches(struct keyval *head, const char *name);
 void updateItem(struct keyval *head, const char *name, const char *value);
 void cloneList( struct keyval *target, struct keyval *source );
+void keyval2hstore(char *hstring, struct keyval *tags, size_t max);
 #endif
