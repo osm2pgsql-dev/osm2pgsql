@@ -253,3 +253,41 @@ void cloneList( struct keyval *target, struct keyval *source )
   for( ptr = source->next; ptr != source; ptr=ptr->next )
     addItem( target, ptr->key, ptr->value, 0 );
 }
+
+
+/* create an escaped version of the string for hstore table insert */
+static void escape4hstore(char *dst, char *src, size_t max) {
+  size_t i,j,len;
+
+  if ((len=strlen(src)) > max) len=max;
+
+  j=0;
+  for (i=0;i<len;i++) {
+    switch(src[i]) {
+      case '\\':
+        dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='\\'; break;
+      case '"':
+        dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='"'; break;
+      default:
+        dst[j]=src[i];
+      }
+    j++;
+  }
+  dst[j]='\0';
+}
+
+/* print struct keyval in syntax for pgsql hstore import 
+   \ and " need to be escaped
+*/
+void keyval2hstore(char *hstring, struct keyval *tags, size_t max)
+{
+  static char* str=NULL;
+  
+  if (str == NULL) str=malloc(max);
+
+  escape4hstore(str,tags->key,max);  
+  hstring+=snprintf(hstring,max,"\"%s\"=>",str);
+  escape4hstore(str,tags->value,max);
+  snprintf(hstring,max,"\"%s\"",str);  
+}
+

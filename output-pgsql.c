@@ -443,7 +443,7 @@ Workaround - output SRID=4326;<WKB>
 
 static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
-    char sql[2048], *v;
+    char sql[32768], *v;
     int i;
 
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
@@ -464,6 +464,21 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         copy_to_table(t_point, sql);
         copy_to_table(t_point, "\t");
     }
+    
+    if (Options->enable_hstore) {
+      v=sql;
+      while (tags->next->key != NULL) {
+	keyval2hstore(v,tags->next,2048);
+	v+=strlen(v);
+	tags=tags->next;
+	if (tags->next->key != NULL) {
+          *v=',';
+          v++;
+	}
+      }
+      copy_to_table(t_point, sql);
+      copy_to_table(t_point, "\t");
+    }
 
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
     copy_to_table(t_point, sql);
@@ -477,8 +492,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_id table)
 {
     int j;
-    char sql[2048];
-    const char*v;
+    char sql[32768], *v;
 
     sprintf(sql, "%d\t", id);
     copy_to_table(table, sql);
@@ -496,6 +510,21 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
 
             copy_to_table(table, sql);
             copy_to_table(table, "\t");
+    }
+
+    if (Options->enable_hstore) {
+      v=sql;
+      while (tags->next->key != NULL) {
+	keyval2hstore(v,tags->next,2048);
+	v+=strlen(v);
+	tags=tags->next;
+	if (tags->next->key != NULL) {
+          *v=',';
+          v++;
+	}
+      }
+      copy_to_table(table, sql);
+      copy_to_table(table, "\t");
     }
 
     sprintf(sql, "SRID=%d;", SRID);
@@ -591,8 +620,13 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
         }
         if( i == exportListCount[type] )
         {
-            freeItem( item );
-            item = NULL;
+	  if (Options->enable_hstore) {
+	    pushItem( &temp, item );
+	    filter=0;
+	  } else {
+	    freeItem( item );
+	  }
+	  item = NULL;
         }
     }
 
@@ -961,7 +995,7 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
 
 static int pgsql_out_start(const struct output_options *options)
 {
-    char *sql, tmp[128];
+    char *sql, tmp[256];
     PGresult   *res;
     int i,j;
     unsigned int sql_len;
@@ -970,7 +1004,7 @@ static int pgsql_out_start(const struct output_options *options)
 
     read_style_file( options->style );
 
-    sql_len = 1024;
+    sql_len = 2048;
     sql = malloc(sql_len);
     assert(sql);
 
@@ -1035,7 +1069,12 @@ static int pgsql_out_start(const struct output_options *options)
                 }
                 strcat(sql, tmp);
             }
-            strcat(sql, " );\n");
+            if (Options->enable_hstore) {
+                strcat(sql, ",tags hstore );\n");
+	    } else {
+	      strcat(sql, " );\n");
+	    }
+
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
@@ -1090,7 +1129,10 @@ static int pgsql_out_start(const struct output_options *options)
             }
             strcat(sql, tmp);
         }
-        tables[i].columns = strdup(sql);
+
+	if (Options->enable_hstore) strcat(sql,",tags");
+
+	tables[i].columns = strdup(sql);
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[i].name, tables[i].columns);
 
         tables[i].copyMode = 1;
