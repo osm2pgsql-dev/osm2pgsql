@@ -270,6 +270,10 @@ static void escape4hstore(char *dst, char *src, size_t max) {
         dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='"'; break;
       case '\t':
         dst[j]='\\';j++;dst[j]='\t'; break;
+      case '\r':
+        dst[j]='\\';j++;dst[j]='\r'; break;
+      case '\n':
+        dst[j]='\\';j++;dst[j]='\n'; break;
       default:
         dst[j]=src[i];
       }
