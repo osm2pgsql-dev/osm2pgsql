@@ -63,6 +63,7 @@ static struct s_table {
 #define FLAG_LINEAR  2    /* For lines table */
 #define FLAG_NOCACHE 4    /* Optimisation: don't bother remembering this one */
 #define FLAG_DELETE  8    /* These tags should be simply deleted on sight */
+#define FLAG_PHSTORE 16   /* polygons without own column but listed in hstore */
 static struct flagsname {
     char *name;
     int flag;
@@ -70,7 +71,8 @@ static struct flagsname {
     { name: "polygon",    flag: FLAG_POLYGON },
     { name: "linear",     flag: FLAG_LINEAR },
     { name: "nocache",    flag: FLAG_NOCACHE },
-    { name: "delete",     flag: FLAG_DELETE }
+    { name: "delete",     flag: FLAG_DELETE },
+    { name: "phstore",    flag: FLAG_PHSTORE }
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
@@ -174,6 +176,13 @@ void read_style_file( const char *filename )
       }
       if( i == NUM_FLAGS )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
+    }
+    if (temp.flags & FLAG_PHSTORE) {
+      if (0==(Options->enable_hstore)) {
+	fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
+	fprintf( stderr, "flag 'phstore' is invalid in non-hstore mode\n");
+	exit_nicely();
+      }
     }
     temp.count = 0;
 //    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset );
@@ -453,6 +462,8 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
             continue;
+	if( exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE)
+            continue;
         if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
         {
             escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_NODE][i].type);
@@ -499,6 +510,8 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
 
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
             if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
+                continue;
+	    if( exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE)
                 continue;
             if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
             {
@@ -635,6 +648,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
         pushItem( tags, item );
 
     *polygon = flags & FLAG_POLYGON;
+    if ( flags & FLAG_PHSTORE) *polygon = 1;
 
     /* Special case allowing area= to override anything else */
     if ((area = getItem(tags, "area"))) {
@@ -1061,6 +1075,8 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
+		if( exportTags[j].flags & FLAG_PHSTORE )
+		    continue;
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
                     sql_len *= 2;
@@ -1094,6 +1110,8 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
+		if( exportTags[j].flags & FLAG_PHSTORE )
+		    continue;
                 sprintf(tmp, "\"%s\"", exportTags[j].name);
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
@@ -1120,6 +1138,8 @@ static int pgsql_out_start(const struct output_options *options)
         for (j=0; j < numTags; j++) {
             if( exportTags[j].flags & FLAG_DELETE )
                 continue;
+	    if( exportTags[j].flags & FLAG_PHSTORE )
+		    continue;
             sprintf(tmp, ",\"%s\"", exportTags[j].name);
 
             if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
