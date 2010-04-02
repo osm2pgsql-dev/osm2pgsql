@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <string.h>
 #include "keyvals.h"
 
 #ifdef USE_TREE
@@ -256,13 +257,12 @@ void cloneList( struct keyval *target, struct keyval *source )
 
 
 /* create an escaped version of the string for hstore table insert */
-static void escape4hstore(char *dst, char *src, size_t max) {
-  size_t i,j,len;
-
-  if ((len=strlen(src)) > max) len=max;
+/* make shure dst is 2*strlen(src) */
+static void escape4hstore(char *dst, char *src) {
+  size_t i,j;
 
   j=0;
-  for (i=0;i<len;i++) {
+  for (i=0;i<strlen(src);i++) {
     switch(src[i]) {
       case '\\':
         dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='\\';j++;dst[j]='\\'; break;
@@ -285,15 +285,27 @@ static void escape4hstore(char *dst, char *src, size_t max) {
 /* print struct keyval in syntax for pgsql hstore import 
    \ and " need to be escaped
 */
-void keyval2hstore(char *hstring, struct keyval *tags, size_t max)
+void keyval2hstore(char *hstring, struct keyval *tags)
 {
   static char* str=NULL;
-  
-  if (str == NULL) str=malloc(max);
+  static size_t stlen=0;
+  size_t len;
+ 
+  len=strlen(tags->value);
+  if (len>stlen) {
+    stlen=len;
+    str=realloc(str,1+stlen*2);
+  }
 
-  escape4hstore(str,tags->key,max);  
-  hstring+=snprintf(hstring,max,"\"%s\"=>",str);
-  escape4hstore(str,tags->value,max);
-  snprintf(hstring,max,"\"%s\"",str);  
+  len=strlen(tags->key);
+  if (len>stlen) {
+    stlen=len;
+    str=realloc(str,1+stlen*2);
+  }
+
+  escape4hstore(str,tags->key);  
+  hstring+=sprintf(hstring,"\"%s\"=>",str);
+  escape4hstore(str,tags->value);
+  sprintf(hstring,"\"%s\"",str);  
 }
 
