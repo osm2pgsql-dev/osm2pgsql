@@ -452,8 +452,16 @@ Workaround - output SRID=4326;<WKB>
 
 static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
 {
-    char sql[32768], *v;
+
+    static char *sql;
+    static size_t sqllen=0;
+    char *v;
     int i;
+
+    if (sqllen==0) {
+      sqllen=2048;
+      sql=malloc(2048);
+    }
 
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
     sprintf(sql, "%d\t", id);
@@ -466,7 +474,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
             continue;
         if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
         {
-            escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_NODE][i].type);
+            escape_type(sql, sqllen, v, exportList[OSMTYPE_NODE][i].type);
             exportList[OSMTYPE_NODE][i].count++;
         }
         else
@@ -477,20 +485,35 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     }
     
     if (Options->enable_hstore) {
-      v=sql;
       while (tags->next->key != NULL) {
-	keyval2hstore(v,tags->next,2048);
-	v+=strlen(v);
+	size_t hlen;
+	/*
+	  hstore ASCII representation looks like
+	  "<key>"=>"<value>"
+
+	  we need at least strlen(key)+strlen(value)+6+'\0' bytes
+	  in theory any single character could also be escaped
+	  thus we need an additional factor of 2.
+	  The maximum lenght of a single hstore element is thus
+	  calcuated as follows:
+	*/
+	hlen=2*(strlen(tags->next->key)+strlen(tags->next->value))+7;
+	if (hlen > sqllen) {
+	  sqllen=hlen;
+	  sql=realloc(sql,sqllen);
+	}
+	keyval2hstore(sql,tags->next);
 	tags=tags->next;
 	if (tags->next->key != NULL) {
-          *v=',';
-          v++;
+          copy_to_table(t_point, sql);
+	  copy_to_table(t_point, ",");
+	} else {
+	  copy_to_table(t_point, sql);
 	}
       }
-      copy_to_table(t_point, sql);
       copy_to_table(t_point, "\t");
     }
-
+ 
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
     copy_to_table(t_point, sql);
     copy_to_table(t_point, "\n");
@@ -502,9 +525,17 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
 static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_id table)
 {
+  
+    static char *sql;
+    static size_t sqllen=0;
+    char *v;
     int j;
-    char sql[32768], *v;
 
+    if (sqllen==0) {
+      sqllen=2048;
+      sql=malloc(2048);
+    }
+    
     sprintf(sql, "%d\t", id);
     copy_to_table(table, sql);
 
@@ -516,7 +547,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
             if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
             {
                 exportList[OSMTYPE_WAY][j].count++;
-                escape_type(sql, sizeof(sql), v, exportList[OSMTYPE_WAY][j].type);
+                escape_type(sql, sqllen, v, exportList[OSMTYPE_WAY][j].type);
             }
             else
                 sprintf(sql, "\\N");
@@ -526,17 +557,32 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
     }
 
     if (Options->enable_hstore) {
-      v=sql;
       while (tags->next->key != NULL) {
-	keyval2hstore(v,tags->next,2048);
-	v+=strlen(v);
+	size_t hlen;
+	/*
+	  hstore ASCII representation looks like
+	  "<key>"=>"<value>"
+
+	  we need at least strlen(key)+strlen(value)+6+'\0' bytes
+	  in theory any single character could also be escaped
+	  thus we need an additional factor of 2.
+	  The maximum lenght of a single hstore element is thus
+	  calcuated as follows:
+	*/
+	hlen=2*(strlen(tags->next->key)+strlen(tags->next->value))+7;
+	if (hlen > sqllen) {
+	  sqllen=hlen;
+	  //sql=realloc(sql,sqllen);
+	}
+	keyval2hstore(sql,tags->next);
 	tags=tags->next;
 	if (tags->next->key != NULL) {
-          *v=',';
-          v++;
+          copy_to_table(table, sql);
+	  copy_to_table(table, ",");
+	} else {
+	  copy_to_table(table, sql);
 	}
       }
-      copy_to_table(table, sql);
       copy_to_table(table, "\t");
     }
 
