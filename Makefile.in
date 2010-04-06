@@ -1,9 +1,18 @@
-PACKAGE:=osm2pgsql
-VERSION:=0.69
-SVN:=$(shell svnversion)
 
-CC = gcc
-CXX = g++
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+sysconfdir = @sysconfdir@
+datarootdir = @datarootdir@
+datadir = @datadir@
+
+PACKAGE = @PACKAGE_NAME@
+VERSION = @PACKAGE_VERSION@
+SVN:=$(shell svnversion)
+DATADIR = $(datadir)/$(PACKAGE)
+
+
+CC = @CC@ 
 
 CFLAGS += -g -O2 -Wall -Wextra
 CFLAGS += $(shell xml2-config --cflags)
@@ -11,9 +20,7 @@ CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 CFLAGS += -DHAVE_PTHREAD
-
-CXXFLAGS += -g -O2 -Wall -DGEOS_INLINE $(CFLAGS)
-CXXFLAGS += $(shell geos-config --cflags)
+CFLAGS += -DDATADIR=\"$(DATADIR)\"
 
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)
@@ -29,9 +36,8 @@ OBJS:=$(OBJS:.cpp=.o)
 DEPS:=$(SRCS:.c=.d)
 DEPS:=$(DEPS:.cpp=.d)
 
-DESTDIR = /
-
 APPS:=osm2pgsql
+DATA:=default.style
 
 .PHONY: all clean $(PACKAGE).spec
 
@@ -43,7 +49,10 @@ clean:
 	rm -f osm2pgsql.spec
 
 install: $(APPS)
-	install -o root -g root -m 0755 $(APPS) $(DESTDIR)/usr/bin
+	mkdir -p $(DESTDIR)$(bindir)
+	install -m 0755 $(APPS) $(DESTDIR)$(bindir)
+	mkdir -p $(DESTDIR)$(DATADIR)
+	install -m 0644 $(DATA) $(DESTDIR)$(DATADIR)
 
 %.d: %.c
 	@set -e; rm -f $@; \
@@ -54,7 +63,7 @@ install: $(APPS)
 -include $(DEPS)
 
 osm2pgsql: $(OBJS)
-	$(CXX) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LDFLAGS)
 
 $(PACKAGE).spec: $(PACKAGE).spec.in
 	sed -e "s/@PACKAGE@/$(PACKAGE)/g; s/@VERSION@/$(VERSION)/g; s/@SVN@/$(SVN)/g;" $^ > $@
