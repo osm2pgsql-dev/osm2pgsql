@@ -523,7 +523,7 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
-    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to /usr/share/osm2pgsql/default.style\n");
+    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to "DATADIR"/default.style\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
@@ -645,7 +645,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
-    const char *style = "/usr/share/osm2pgsql/default.style";
+    const char *style = DATADIR"/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
     int cache = 800;
