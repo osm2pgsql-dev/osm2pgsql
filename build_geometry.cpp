@@ -90,9 +90,15 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
         std::string wkt = wktw.write(geom.get());
         return strdup(wkt.c_str());
     }
+    catch (std::bad_alloc)
+    {
+        std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
+        std::cerr << "Try in slim mode, using -s parameter." << std::endl;
+        return NULL;
+    }
     catch (...)
     {
-        std::cerr << std::endl << "excepton caught processing way" << std::endl;
+        std::cerr << std::endl << "Exception caught processing way" << std::endl;
         return NULL;
     }
 }
@@ -149,9 +155,15 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
         }
 
     }
+    catch (std::bad_alloc)
+    {
+        std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
+        std::cerr << "Try in slim mode, using -s parameter." << std::endl;
+        wkt_size = 0;
+    }
     catch (...)
     {
-        std::cerr << std::endl << "excepton caught processing way" << std::endl;
+        std::cerr << std::endl << "Exception caught processing way" << std::endl;
         wkt_size = 0;
     }
     return wkt_size;
@@ -253,7 +265,7 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
         }
         delete geometry;
     } catch (...) {
-        std::cerr << std::endl << "excepton caught parsing PostGIS data" << std::endl;
+        std::cerr << std::endl << "Exception caught parsing PostGIS data" << std::endl;
         return -1;
     }
     return 0;
@@ -468,7 +480,7 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
     }
     catch (...)
     {
-        std::cerr << std::endl << "excepton caught processing way id=" << osm_id << std::endl;
+        std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
         wkt_size = 0;
     }
 
