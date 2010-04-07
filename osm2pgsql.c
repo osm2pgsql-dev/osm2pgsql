@@ -523,6 +523,13 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+
+    if (sizeof(int*) == 4) {
+        fprintf(stderr, "            \t\tYou are running this on 32bit system, so at most\n");
+        fprintf(stderr, "            \t\t3GB of RAM will be used. If you encounter unexpected\n");
+        fprintf(stderr, "            \t\texceptions during import, you should try this switch.\n");
+    }
+    
     fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to "DATADIR"/default.style\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
@@ -801,6 +808,13 @@ int main(int argc, char *argv[])
 
     realloc_nodes();
     realloc_members();
+
+    if (sizeof(int*) == 4) {
+        fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
+        fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
+        fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
+        fprintf(stderr, "!! mode using parameter -s.\n");
+    }
 
     while (optind < argc) {
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
