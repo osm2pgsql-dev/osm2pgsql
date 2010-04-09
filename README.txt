@@ -28,6 +28,8 @@ Features
 - Configurable table names
 - Gazetteer backend for Nominatim
   http://wiki.openstreetmap.org/wiki/Nominatim
+- Support for hstore field type to store the complete set of tags in one database
+  field if desired
 
 Source code
 ===========
@@ -115,7 +117,10 @@ supplied in an additional package (e.g. postgresql-contrib).
 $ sudo yum install postgresql-contrib
 $ sudo -u postgres psql -d <dbname> -f /usr/share/pgsql/contrib/_int.sql
 
+If you want to use hstore support then you will also need to enable the PostgreSQL
+hstore-new extension.
 
+$ sudo -u postgres psql -d <dbname> -f /usr/share/postgresql/8.3/contrib/hstore-new.sql
 
 Now you can run osm2pgsql to import the OSM data.
 This will perform the following actions:
