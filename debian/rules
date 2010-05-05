@@ -23,6 +23,10 @@ build-stamp: configure-stamp
 	dh_testdir
 
 	# Add here commands to compile the package.
+	autoreconf -f
+	aclocal
+	autoconf
+	./configure
 	$(MAKE)
 	#docbook-to-man debian/osm2pgsql.sgml > osm2pgsql.1
 
@@ -34,7 +38,7 @@ clean: unpatch
 	rm -f build-stamp configure-stamp
 
 	# Add here commands to clean up after the build process.
-	$(MAKE) clean
+	$(MAKE) clean || /bin/true
 
 	dh_clean 
 
