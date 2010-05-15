@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <malloc.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -1108,7 +1109,11 @@ static int pgsql_start(const struct output_options *options)
     maxBlocks = (options->cache*((1024*1024)/(PER_BLOCK*sizeof(struct ramNode)))) | 1;
     queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );    
     
-    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%zd\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) ); 
+#ifdef __MINGW_H
+    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%d\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) ); 
+#else
+    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%zd\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) );
+#endif
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {

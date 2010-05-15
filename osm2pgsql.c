@@ -530,7 +530,7 @@ static void long_usage(char *arg0)
         fprintf(stderr, "            \t\texceptions during import, you should try this switch.\n");
     }
     
-    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to "DATADIR"/default.style\n");
+    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
     fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
     fprintf(stderr, "             \t\tDefault is 800\n");
     fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
@@ -652,7 +652,7 @@ int main(int argc, char *argv[])
     const char *port = "5432";
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
-    const char *style = DATADIR"/default.style";
+    const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
     int cache = 800;
