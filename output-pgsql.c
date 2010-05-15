@@ -141,7 +141,7 @@ void read_style_file( const char *filename )
     lineno++;
     
     char osmtype[24];
-    char tag[24];
+    char tag[64];
     char datatype[24];
     char flags[128];
     int i;
@@ -151,7 +151,7 @@ void read_style_file( const char *filename )
     if( str )
       *str = '\0';
       
-    int fields = sscanf( buffer, "%23s %23s %23s %127s", osmtype, tag, datatype, flags );
+    int fields = sscanf( buffer, "%23s %63s %23s %127s", osmtype, tag, datatype, flags );
     if( fields <= 0 )  /* Blank line */
       continue;
     if( fields < 3 )
