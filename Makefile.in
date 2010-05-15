@@ -13,6 +13,7 @@ DATADIR = $(datadir)/$(PACKAGE)
 
 
 CC = @CC@ 
+CXX = @CXX@
 
 CFLAGS += -g -O2 -Wall -Wextra
 CFLAGS += $(shell xml2-config --cflags)
@@ -20,7 +21,7 @@ CFLAGS += $(shell geos-config --cflags)
 CFLAGS += -I$(shell pg_config --includedir)
 CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 CFLAGS += -DHAVE_PTHREAD
-CFLAGS += -DDATADIR=\"$(DATADIR)\"
+CFLAGS += -DOSM2PGSQL_DATADIR=\"$(DATADIR)\"
 
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)

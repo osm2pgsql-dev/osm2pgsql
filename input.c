@@ -1,6 +1,9 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE
 
+#ifdef __MINGW_H
+# include <windows.h>
+#else
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -8,6 +11,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <zlib.h>
+#endif
+
 #include <bzlib.h>
 
 #include "sanitizer.h"
