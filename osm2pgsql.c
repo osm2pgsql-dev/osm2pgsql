@@ -809,7 +809,7 @@ int main(int argc, char *argv[])
     realloc_nodes();
     realloc_members();
 
-    if (sizeof(int*) == 4) {
+    if (sizeof(int*) == 4 && options.slim != 1) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
