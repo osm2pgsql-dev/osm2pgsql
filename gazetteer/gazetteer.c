@@ -228,9 +228,11 @@ gettokenstring( PG_FUNCTION_ARGS )
 
 	// Buffer for doing the replace in - string could get slightly longer (double is mastive overkill)
 	buffer = (char *)palloc((sourcedatalength*2)*sizeof(char));
-	memcpy(buffer, sourcedata, sourcedatalength);
-	buffer[sourcedatalength] = 0;
-	len = sourcedatalength+1;
+	memcpy(buffer+1, sourcedata, sourcedatalength);
+	buffer[0] = 32;
+	buffer[sourcedatalength+1] = 32;
+	buffer[sourcedatalength+2] = 0;
+	len = sourcedatalength+3;
 
 	changes = 1;
 	str_dupspaces(buffer);
