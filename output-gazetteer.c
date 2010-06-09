@@ -51,10 +51,10 @@
 #define ADMINLEVEL_NONE 100
 
 #define CREATE_PLACE_ID_INDEX \
-   "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)"
+   "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) TABLESPACE %s"
 
 #define CREATE_PLACE_GEOMETRY_INDEX \
-   "CREATE INDEX place_geometry_idx ON place USING GIST (geometry)"
+   "CREATE INDEX place_geometry_idx ON place USING GIST (geometry) TABLESPACE %s"
 
 #define TAGINFO_NODE 0x1u
 #define TAGINFO_WAY  0x2u
@@ -534,10 +534,10 @@ static int gazetteer_out_start(const struct output_options *options)
 
       /* Create the new table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, Options->tblsindex);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX, Options->tblsindex);
    }
 
    /* Setup middle layer */
