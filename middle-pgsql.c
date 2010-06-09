@@ -44,6 +44,7 @@ struct table_desc {
     const char *name;
     const char *start;
     const char *create;
+    const char *create_index;
     const char *prepare;
     const char *prepare_intarray;
     const char *copy;
@@ -82,9 +83,9 @@ prepare_intarray: // This is to fetch lots of nodes simultaneously, in order inc
         //table: t_way,
          name: "%s_ways",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n"
-               "CREATE INDEX %s_ways_idx ON %s_ways (id) WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_ops);\n",
+       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
+ create_index: "CREATE INDEX %s_ways_idx ON %s_ways (id) TABLESPACE %s WHERE pending;\n",
+array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_ops) TABLESPACE %s;\n",
       prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
@@ -99,9 +100,9 @@ prepare_intarray: "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending
         //table: t_rel,
          name: "%s_rels",
         start: "BEGIN;\n",
-       create: "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n"
-               "CREATE INDEX %s_rels_idx ON %s_rels (id) WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_ops);\n",
+       create: "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n",
+ create_index: "CREATE INDEX %s_rels_idx ON %s_rels (id) TABLESPACE %s WHERE pending;\n",
+array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_ops) TABLESPACE %s;\n",
       prepare: "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
                "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %s_rels WHERE id = $1;\n"
                "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
@@ -1093,6 +1094,16 @@ static inline void set_prefix( const char *prefix, const char **string )
   *string = strdup( buffer );
 }
 
+/* Replace %s with prefix and tablespace*/
+static inline void set_prefixtbls( const char *prefix, const char *tbls, const char **string )
+{
+  char buffer[1024];
+  if( *string == NULL )
+      return;
+  sprintf( buffer, *string, prefix, prefix, tbls );
+  *string = strdup( buffer );
+}
+
 static int build_indexes;
 
 static int pgsql_start(const struct output_options *options)
@@ -1122,12 +1133,13 @@ static int pgsql_start(const struct output_options *options)
         set_prefix( options->prefix, &(tables[i].name) );
         set_prefix( options->prefix, &(tables[i].start) );
         set_prefix( options->prefix, &(tables[i].create) );
+        set_prefixtbls( options->prefix, options->tblsindex, &(tables[i].create_index) );
         set_prefix( options->prefix, &(tables[i].prepare) );
         set_prefix( options->prefix, &(tables[i].prepare_intarray) );
         set_prefix( options->prefix, &(tables[i].copy) );
         set_prefix( options->prefix, &(tables[i].analyze) );
         set_prefix( options->prefix, &(tables[i].stop) );
-        set_prefix( options->prefix, &(tables[i].array_indexes) );
+        set_prefixtbls( options->prefix, options->tblsindex, &(tables[i].array_indexes) );
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);
@@ -1165,7 +1177,11 @@ static int pgsql_start(const struct output_options *options)
 
         if (dropcreate && tables[i].create) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
+	    if ( tables[i].create_index) {
+	      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+	    }
         }
+
 
         if (tables[i].prepare) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);

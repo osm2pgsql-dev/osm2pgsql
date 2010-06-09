@@ -220,20 +220,22 @@ void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
         }
         xmlFree(xk);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
+
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
         osm_id   = strtol((char *)xid, NULL, 10);
         action = ParseAction( reader );
-
+	
         if (osm_id > max_way)
-            max_way = osm_id;
-
+	  max_way = osm_id;
+	
         count_way++;
         if (count_way%1000 == 0)
-            printStatus();
-
+	  printStatus();
+	
         nd_count = 0;
         xmlFree(xid);
+
     } else if (xmlStrEqual(name, BAD_CAST "nd")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
@@ -514,6 +516,8 @@ static void long_usage(char *arg0)
     fprintf(stderr, "              \t\tdefault if --append is not specified.\n");
     fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
     fprintf(stderr, "                \tto (default: gis).\n");
+    fprintf(stderr, "   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where indexes will be create\n");
+    fprintf(stderr, "                \tto (default: pg_default).\n");
     fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
     fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
     fprintf(stderr, "   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
@@ -650,6 +654,7 @@ int main(int argc, char *argv[])
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
+    const char *tblsindex = "pg_default"; // default TABLESPACE for index
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = OSM2PGSQL_DATADIR "/default.style";
@@ -681,6 +686,7 @@ int main(int argc, char *argv[])
             {"password", 0, 0, 'W'},
             {"host",     1, 0, 'H'},
             {"port",     1, 0, 'P'},
+            {"tablespace-index", 1, 0, 'i'},
             {"help",     0, 0, 'h'},
             {"style",    1, 0, 'S'},
             {"expire-tiles", 1, 0, 'e'},
@@ -692,7 +698,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:E:C:S:e:o:O:xkG", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkG", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -715,6 +721,7 @@ int main(int argc, char *argv[])
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
             case 'S': style=optarg; break;
+            case 'i': tblsindex=optarg; break;
             case 'e':
                 expire_tiles_zoom_min = atoi(optarg);
 		temparg = strchr(optarg, '-');
@@ -787,6 +794,7 @@ int main(int argc, char *argv[])
     options.mid = slim ? &mid_pgsql : &mid_ram;
     options.cache = cache;
     options.style = style;
+    options.tblsindex = tblsindex;
     options.expire_tiles_zoom = expire_tiles_zoom;
     options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;
