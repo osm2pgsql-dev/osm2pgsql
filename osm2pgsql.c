@@ -760,6 +760,10 @@ int main(int argc, char *argv[])
 
     if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
+    else {
+        password = getenv("PGPASS");
+    }	
+        
 
     conninfo = build_conninfo(db, username, password, host, port);
     sql_conn = PQconnectdb(conninfo);

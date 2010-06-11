@@ -11,7 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <malloc.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
