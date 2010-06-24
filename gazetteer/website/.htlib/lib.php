@@ -717,6 +717,9 @@ function getCmdOpt($aArg, $aSpec, &$aResult, $bExitOnError = false, $bExitOnUnkn
 						case 'int':
 							$xVal[] = (int)$aArg[$i];
 							break;
+						case 'float':
+							$xVal[] = (float)$aArg[$i];
+							break;
 						default:
 							$xVal[] = $aArg[$i];
 							break;
