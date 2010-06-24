@@ -9,6 +9,9 @@
 		array('quiet', 'q', 0, 1, 0, 0, 'bool', 'Quiet output'),
 		array('verbose', 'v', 0, 1, 0, 0, 'bool', 'Verbose output'),
 
+		array('max-load', '', 0, 1, 1, 1, 'float', 'Maximum load average - indexing is paused if this is exceeded'),
+		array('max-blocking', '', 0, 1, 1, 1, 'int', 'Maximum blocking processes - indexing is aborted / paused if this is exceeded'),
+
 		array('import-hourly', '', 0, 1, 0, 0, 'bool', 'Import hourly diffs'),
 		array('import-daily', '', 0, 1, 0, 0, 'bool', 'Import daily diffs'),
 		array('import-all', '', 0, 1, 0, 0, 'bool', 'Import all available files'),
@@ -19,6 +22,7 @@
 		array('import-relation', '', 0, 1, 1, 1, 'int', 'Re-import relation'),
 
 		array('index', '', 0, 1, 0, 0, 'bool', 'Index'),
+		array('index-rank', '', 0, 1, 1, 1, 'int', 'Rank to index'),
 		array('index-instances', '', 0, 1, 1, 1, 'int', 'Number of indexing instances'),
 		array('index-instance', '', 0, 1, 1, 1, 'int', 'Which instance are we (0 to index-instances-1)'),
 		array('index-estrate', '', 0, 1, 1, 1, 'int', 'Estimated indexed items per second (def:30)'),
@@ -37,7 +41,10 @@
 		}
 	}
 
-	if (getBlockingProcesses() > 2)
+	if (!isset($aResult['max-load'])) $aResult['max-load'] = 1.9;
+	if (!isset($aResult['max-blocking'])) $aResult['max-blocking'] = 3;
+
+	if (getBlockingProcesses() > $aResult['max-blocking'])
 	{
 		echo "Too many blocking processes for import\n";
 		exit;
@@ -47,7 +54,7 @@
 	$sBasePath = dirname(dirname(__FILE__));
 
 	require_once('DB.php');
-	$oDB =& DB::connect('pgsql://@/gazetteer', false);
+	$oDB =& DB::connect('pgsql://@/gazetteerworld', false);
 	if (PEAR::IsError($oDB))
 	{
 		echo $oDB->getMessage()."\n";
@@ -162,7 +169,7 @@
 	{
 		if (!isset($aResult['index-estrate'])) $aResult['index-estrate'] = 30;
 
-		if (getBlockingProcesses() > 3)
+		if (getBlockingProcesses() > $aResult['max-blocking'])
 		{
 			echo "Too many blocking processes for index\n";
 			exit;
@@ -175,7 +182,8 @@
 		}
 
 		// Re-index the new items
-		for ($i = 0; $i <= 30; $i++)
+		if (!$aResult['index-rank']) $aResult['index-rank'] = 0;
+		for ($i = $aResult['index-rank']; $i <= 30; $i++)
 		{ 
 			echo "Rank: $i";
 			$iStartTime = date('U');
@@ -193,23 +201,37 @@
 			echo ", total to do: $iTotalNum \n";
 			flush();
 
+			$fRankStartTime = time();
+			$iTotalDone = 0;
+			$fRate = 10;
+
 			foreach($aAllSectors as $aSector)
 			{
-				while (getBlockingProcesses() > 3 || getLoadAverage() > 1.9)
+				while (getBlockingProcesses() > $aResult['max-blocking'] || getLoadAverage() > $aResult['max-load'])
 				{
 					echo "System busy, pausing indexing...\n";
 					sleep(60);
 				}
+
+				$iEstSeconds = (int)($iTotalLeft / $fRate);
+				$iEstDays = floor($iEstSeconds / (60*60*24));
+				$iEstSeconds -= $iEstDays*(60*60*24);
+				$iEstHours = floor($iEstSeconds / (60*60));
+				$iEstSeconds -= $iEstHours*(60*60);
+				$iEstMinutes = floor($iEstSeconds / (60));
+				$iEstSeconds -= $iEstMinutes*(60);
 				$iNum = $aSector['count'];
-				echo $aSector['geometry_index'].": $iNum, $iTotalLeft remaining (".date('H:i:s').")\n";
+				$sRate = round($fRate, 1);
+				echo $aSector['geometry_index'].": $iNum, $iTotalLeft left.  Est. time remaining (this rank) d:$iEstDays h:$iEstHours m:$iEstMinutes s:$iEstSeconds @ $sRate per second\n";
 				$iTotalLeft -= $iNum;
 				flush();
 
-                                $fNumSteps = round(sqrt($iNum) / 20);
+                                $fNumSteps = round(sqrt($iNum) / 10);
 
                                 if ($fNumSteps > 1 )
                                 {
-					echo "$fNumSteps steps\n";
+					$iStepNum = 1;
+					echo "Spliting into ".($fNumSteps*$fNumSteps)." steps\n";
 					// Convert sector number back to lat lon
 					$fLon = (500 - floor($aSector['geometry_index']/1000)) - 0.5;
 					$fLat = (500 -  $aSector['geometry_index']%1000) - 0.5;
@@ -219,23 +241,27 @@
                                         {
                                                 for ($fStepLon = $fLon; $fStepLon < ($fLon + 1); $fStepLon += $fStepSize)
                                                 {
-							while (getBlockingProcesses() > 3 || getLoadAverage() > 1.9)
+							while (getBlockingProcesses() > $aResult['max-blocking'] || getLoadAverage() > $aResult['max-load'])
 							{
 								echo "System busy, pausing indexing...\n";
 								sleep(60);
 							}
                                                         $fStepLonTop = $fStepLon + $fStepSize;
 							$fStepLatTop = $fStepLat + $fStepSize;
-                                                        echo "  Step: ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
+                                                        echo "  Step  : ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
 							$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
 							$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
 //							var_Dump($sSQL);
 							$oDB->query($sSQL);
+							$iStepNum++;
 						}
 					}
 				}
 				$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
 				$oDB->query($sSQL);
+
+				$iTotalDone += $iNum;
+				$fRate = $iTotalDone / (time() - $fRankStartTime);
 			}
 			$iDuration = date('U') - $iStartTime;
 			if ($iDuration && $iTotalNum)
