@@ -26,7 +26,7 @@ build-stamp: configure-stamp
 	autoreconf -f
 	aclocal
 	autoconf
-	./configure
+	./configure --prefix=/usr
 	$(MAKE)
 	#docbook-to-man debian/osm2pgsql.sgml > osm2pgsql.1
 
