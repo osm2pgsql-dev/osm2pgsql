@@ -58,12 +58,27 @@
 			}
 			arsort($aLanguages);
 		}
-		if (!sizeof($aLanguages)) $aLanguages = array(CONST_Language_Default=>1);
+		if (!sizeof($aLanguages)) $aLanguages = array(CONST_Default_Language=>1);
+		foreach($aLanguages as $sLangauge => $fLangauagePref)
+		{
+			$aLangPrefOrder[] = 'short_name:'.$sLangauge;
+		}
 		foreach($aLanguages as $sLangauge => $fLangauagePref)
 		{
 			$aLangPrefOrder[] = 'name:'.$sLangauge;
 		}
+		foreach($aLanguages as $sLangauge => $fLangauagePref)
+		{
+			$aLangPrefOrder[] = 'place_name:'.$sLangauge;
+		}
+		foreach($aLanguages as $sLangauge => $fLangauagePref)
+		{
+			$aLangPrefOrder[] = 'official_name:'.$sLangauge;
+		}
+		$aLangPrefOrder[] = 'short_name';
 		$aLangPrefOrder[] = 'name';
+		$aLangPrefOrder[] = 'place_name';
+		$aLangPrefOrder[] = 'official_name';
 		$aLangPrefOrder[] = 'ref';
 		$aLangPrefOrder[] = 'type';
 		return $aLangPrefOrder;
@@ -600,7 +615,10 @@
 
 	function getAddressDetails(&$oDB, $sLanguagePrefArraySQL, $iPlaceID, $sCountryCode = false, $bRaw = false)
 	{
-		$sHouseNumber = $oDB->getOne('select housenumber from placex where place_id = '.$iPlaceID);
+		$aHouseNumber = $oDB->getRow('select housenumber, get_name_by_language(name,ARRAY[\'addr:housename\']) as housename,rank_search from placex where place_id = '.$iPlaceID);
+		$sHouseNumber = $aHouseNumber['housenumber'];
+		$sHouseName = $aHouseNumber['housename'];
+		$iRank = $aHouseNumber['rank_search'];
 
 	        // Address
         	$sSQL = "select country_code, placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, rank_address, rank_search, ";
@@ -628,7 +646,8 @@
 
 		$iMinRank = 100;
 		$aAddress = array();
-		if ($sHouseNumber) $aAddress['house_number'] = $sHouseNumber;
+		if ($iRank >= 28 && $sHouseNumber) $aAddress['house_number'] = $sHouseNumber;
+		if ($iRank >= 28 && $sHouseName) $aAddress['house_name'] = $sHouseName;
 		foreach($aAddressLines as $aLine)
 		{
 			if (!$sCountryCode) $sCountryCode = $aLine['country_code'];
@@ -816,18 +835,19 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 		$hLog = array(
 				date('Y-m-d H:i:s',$aStartTime[0]).'.'.$aStartTime[1],
 				$_SERVER["REMOTE_ADDR"],
+				$_SERVER['QUERY_STRING'],
 				$sQuery
 			);
 
                 // Log
 		if ($sType == 'search')
 		{
-	                $oDB->query('insert into query_log values ('.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]).','.getDBQuoted($hLog[1]).')');
+	                $oDB->query('insert into query_log values ('.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[3]).','.getDBQuoted($hLog[1]).')');
 		}
 
-		$sSQL = 'insert into new_query_log (type,starttime,query,ipaddress,useragent, language)';
+		$sSQL = 'insert into new_query_log (type,starttime,query,ipaddress,useragent,language,format)';
 		$sSQL .= ' values ('.getDBQuoted($sType).','.getDBQuoted($hLog[0]).','.getDBQuoted($hLog[2]);
-		$sSQL .= ','.getDBQuoted($hLog[1]).','.getDBQuoted($_SERVER['HTTP_USER_AGENT']).','.getDBQuoted(join(',',$aLanguageList)).')';
+		$sSQL .= ','.getDBQuoted($hLog[1]).','.getDBQuoted($_SERVER['HTTP_USER_AGENT']).','.getDBQuoted(join(',',$aLanguageList)).','.getDBQuoted($_GET['format']).')';
 		$oDB->query($sSQL);
 
 
@@ -843,7 +863,7 @@ function showUsage($aSpec, $bExit = false, $sError = false)
 		$sSQL = 'update query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults;
 		$sSQL .= ' where starttime = '.getDBQuoted($hLog[0]);
 		$sSQL .= ' and ipaddress = '.getDBQuoted($hLog[1]);
-		$sSQL .= ' and query = '.getDBQuoted($hLog[2]);
+		$sSQL .= ' and query = '.getDBQuoted($hLog[3]);
                 $oDB->query($sSQL);
 
 		$sSQL = 'update new_query_log set endtime = '.getDBQuoted($sEndTime).', results = '.$iNumResults;
