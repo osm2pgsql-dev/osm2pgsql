@@ -190,7 +190,7 @@
 			$iStartTime = date('U');
 			flush();
 			
-			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name) order by random()';
+			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name) order by count desc, random()';
 			$aAllSectors = $oDB->getAll($sSQL);
 			$iTotalNum = 0;
 			foreach($aAllSectors as $aSector)
