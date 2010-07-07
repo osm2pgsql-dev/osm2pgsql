@@ -176,11 +176,12 @@
 		}
 
 		$sModSQL = '';
+/*
 		if (isset($aResult['index-instances']) && $aResult['index-instances'] > 1)
 		{
 			$sModSQL = ' and geometry_index(geometry,indexed,name) % '.$aResult['index-instances'].' = '.(int)$aResult['index-instance'].' ';
 		}
-
+*/
 		// Re-index the new items
 		if (!$aResult['index-rank']) $aResult['index-rank'] = 0;
 		for ($i = $aResult['index-rank']; $i <= 30; $i++)
@@ -189,7 +190,7 @@
 			$iStartTime = date('U');
 			flush();
 			
-			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name)';
+			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name) order by random()';
 			$aAllSectors = $oDB->getAll($sSQL);
 			$iTotalNum = 0;
 			foreach($aAllSectors as $aSector)
@@ -207,6 +208,9 @@
 
 			foreach($aAllSectors as $aSector)
 			{
+				$bAlreadyRunning = $oDB->getOne('select count(*) from pg_stat_activity where current_query like \'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i.'%\'');
+				if ($bAlreadyRunning) continue;
+
 				while (getBlockingProcesses() > $aResult['max-blocking'] || getLoadAverage() > $aResult['max-load'])
 				{
 					echo "System busy, pausing indexing...\n";
@@ -226,7 +230,8 @@
 				$iTotalLeft -= $iNum;
 				flush();
 
-                                $fNumSteps = round(sqrt($iNum) / 10);
+                                $fNumSteps = ceil(sqrt($iNum) / 10);
+                                $iNumSteps = $fNumSteps*$fNumSteps;
 
                                 if ($fNumSteps > 1 )
                                 {
@@ -248,7 +253,7 @@
 							}
                                                         $fStepLonTop = $fStepLon + $fStepSize;
 							$fStepLatTop = $fStepLat + $fStepSize;
-                                                        echo "  Step  : ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
+                                                        echo "  Step $iStepNum of $iNumSteps: ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
 							$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i;
 							$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
 //							var_Dump($sSQL);
@@ -270,7 +275,7 @@
 			}
 
 			// Keep in sync with other instances
-			if (isset($aResult['index-instances']) && $aResult['index-instances'] > 1)
+//			if (isset($aResult['index-instances']) && $aResult['index-instances'] > 1)
 			{
 				$sSQL = 'select count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null';
 				while($iWaitNum = $oDB->getOne($sSQL))
