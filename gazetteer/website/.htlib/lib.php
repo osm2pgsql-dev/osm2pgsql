@@ -45,42 +45,43 @@
 	{
 		// If we have been provided the value in $_GET it overrides browser value
 		if (isset($_GET['accept-language']) && $_GET['accept-language'])
-	  {
+		{
 			$_SERVER["HTTP_ACCEPT_LANGUAGE"] = $_GET['accept-language'];
 		}
 		
 		$aLanguages = array();
-		if (preg_match_all('/([a-z]{1,8}(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/i', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $aLanguagesParse, PREG_SET_ORDER))
+		if (preg_match_all('/(([a-z]{1,8})(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.[0-9]+))?/i', $_SERVER['HTTP_ACCEPT_LANGUAGE'], $aLanguagesParse, PREG_SET_ORDER))
 		{
 			foreach($aLanguagesParse as $iLang => $aLanguage)
 			{
-				$aLanguages[$aLanguage[1]] = isset($aLanguage[4])?(float)$aLanguage[4]:1 - ($iLang/100);
+				$aLanguages[$aLanguage[1]] = isset($aLanguage[5])?(float)$aLanguage[5]:1 - ($iLang/100);
+				if (!isset($aLanguages[$aLanguage[2]])) $aLanguages[$aLanguage[2]] = $aLanguages[$aLanguage[1]]/10;
 			}
 			arsort($aLanguages);
 		}
 		if (!sizeof($aLanguages)) $aLanguages = array(CONST_Default_Language=>1);
 		foreach($aLanguages as $sLangauge => $fLangauagePref)
 		{
-			$aLangPrefOrder[] = 'short_name:'.$sLangauge;
+			$aLangPrefOrder['short_name:'.$sLangauge] = 'short_name:'.$sLangauge;
 		}
 		foreach($aLanguages as $sLangauge => $fLangauagePref)
 		{
-			$aLangPrefOrder[] = 'name:'.$sLangauge;
+			$aLangPrefOrder['name:'.$sLangauge] = 'name:'.$sLangauge;
 		}
 		foreach($aLanguages as $sLangauge => $fLangauagePref)
 		{
-			$aLangPrefOrder[] = 'place_name:'.$sLangauge;
+			$aLangPrefOrder['place_name:'.$sLangauge] = 'place_name:'.$sLangauge;
 		}
 		foreach($aLanguages as $sLangauge => $fLangauagePref)
 		{
-			$aLangPrefOrder[] = 'official_name:'.$sLangauge;
+			$aLangPrefOrder['official_name:'.$sLangauge] = 'official_name:'.$sLangauge;
 		}
-		$aLangPrefOrder[] = 'short_name';
-		$aLangPrefOrder[] = 'name';
-		$aLangPrefOrder[] = 'place_name';
-		$aLangPrefOrder[] = 'official_name';
-		$aLangPrefOrder[] = 'ref';
-		$aLangPrefOrder[] = 'type';
+		$aLangPrefOrder['short_name'] = 'short_name';
+		$aLangPrefOrder['name'] = 'name';
+		$aLangPrefOrder['place_name'] = 'place_name';
+		$aLangPrefOrder['official_name'] = 'official_name';
+		$aLangPrefOrder['ref'] = 'ref';
+		$aLangPrefOrder['type'] = 'type';
 		return $aLangPrefOrder;
 	}
 
@@ -196,6 +197,65 @@
 			$fLon = $fTotalLon / $fTotalFac;
 			$fRadius = min(0.1 / $fTotalFac, 0.02);
 			return array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => $fRadius));
+		}
+		return false;
+
+		/*
+			$fTotalFac is a suprisingly good indicator of accuracy
+			$iZoom = 18 + round(log($fTotalFac,32));
+			$iZoom = max(13,min(18,$iZoom));
+		*/
+	}
+
+	function usPostcodeCalculate($sPostcode, &$oDB)
+	{
+		$iZipcode = (int)$sPostcode;
+
+		// Try an exact match on the us_zippostcode table
+		$sSQL = 'select zipcode, ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from us_zipcode where zipcode = '.$iZipcode;
+		$aNearPostcodes = $oDB->getAll($sSQL);
+		if (PEAR::IsError($aNearPostcodes))
+		{
+			var_dump($sSQL, $aNearPostcodes);
+			exit;
+		}
+
+		if (!sizeof($aNearPostcodes))
+		{
+   			$sSQL = 'select zipcode,ST_X(ST_Centroid(geometry)) as lon,ST_Y(ST_Centroid(geometry)) as lat from us_zipcode where zipcode between '.($iZipcode-100).' and '.($iZipcode+100).' order by abs(zipcode - '.$iZipcode.') asc limit 5';
+			$aNearPostcodes = $oDB->getAll($sSQL);
+			if (PEAR::IsError($aNearPostcodes))
+			{
+				var_dump($sSQL, $aNearPostcodes);
+				exit;
+			}
+		}
+
+		if (!sizeof($aNearPostcodes))
+		{
+			return false;
+		}
+
+		$fTotalLat = 0;
+		$fTotalLon = 0;
+		$fTotalFac = 0;
+		foreach($aNearPostcodes as $aPostcode)
+		{
+			$iDiff = abs($aPostcode['zipcode'] - $iZipcode) + 1;
+			if ($iDiff == 0)
+				$fFac = 1;
+			else
+				$fFac = 1/($iDiff*$iDiff);
+			
+			$fTotalFac += $fFac;
+			$fTotalLat += $aPostcode['lat'] * $fFac;
+			$fTotalLon += $aPostcode['lon'] * $fFac;
+		}
+		if ($fTotalFac)
+		{
+			$fLat = $fTotalLat / $fTotalFac;
+			$fLon = $fTotalLon / $fTotalFac;
+			return array(array('lat' => $fLat, 'lon' => $fLon, 'radius' => 0.2));
 		}
 		return false;
 
