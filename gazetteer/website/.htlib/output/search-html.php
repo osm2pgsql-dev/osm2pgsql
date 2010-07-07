@@ -317,7 +317,7 @@ form{
 	<div id="seachheaderfade1"></div><div id="seachheaderfade2"></div><div id="seachheaderfade3"></div><div id="seachheaderfade4"></div>
 
 	<div id="seachheader">
-		<form action="/search" method="get">
+		<form action="<?php echo CONST_Website_BaseURL; ?>search" method="get">
 			<table border="0" width="100%">
 				<tr>
 					<td valign="center" style="width:30px;"><img src="images/logo.gif"></td>
