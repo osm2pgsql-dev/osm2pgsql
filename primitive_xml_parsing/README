@@ -1,0 +1,7 @@
+This is a version of osm2pgsql without proper XML parsing
+it should arrive at the same results as the normal osm2pgsql 
+and take an hour less to process the full planet file but
+YMMV. This is just a proof of concept and should not be used
+in a production environment.
+
+
