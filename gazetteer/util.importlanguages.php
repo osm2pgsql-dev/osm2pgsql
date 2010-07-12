@@ -6,9 +6,52 @@
 	$oDB->query("SET DateStyle TO 'sql,european'");
 	$oDB->query("SET client_encoding TO 'utf-8'");
 
+	$aLanguageIn = array(
+			'ar' => array('في'),
+			'ca' => array('a', 'dins', 'en'),
+			'dk' => array('i'),
+			'nl' => array('in', 'te'),
+			'en' => array('in'),
+			'fr' => array('à','en','dans'),
+			'de' => array('in','im'),
+//			'he' => array('ב'), //Not sure how to deal with this one
+			'hu' => array('itt'),
+			'it' => array('in','a','ad'),
+			'pl' => array('w'),
+			'pt' => array('em'),
+			'ru' => array('в'),
+			'sk' => array('v'),
+			'sl' => array('v'),
+			'es' => array('en'),
+			'sv' => array('i','på'),
+			'tr' => array('\'de','\'da'),
+		);
+
+	$aLanguageNear = array(
+			'ar' => array('قرب'),
+			'ca' => array('prop de', 'prop', 'a prop', 'proper', 'proper a'),
+			'dk' => array('nær'),
+			'nl' => array('bij, nabij', 'in de buurt van'),
+			'en' => array('near'),
+			'fi' => array('lähellä'),
+			'fr' => array('près', 'près de', 'proche', 'proche de'),
+			'de' => array('nah', 'nahe', 'bei', 'in der Nähe von'),
+//			'he' => array('ליד','בקרבת'),
+			'hu' => array('közelében'),
+			'it' => array('vicino', 'vicino a', 'presso'),
+			'pl' => array('blisko', 'w pobliżu', 'przy', 'niedaleko', 'obok', 'koło'),
+			'pt' => array('perto de', 'próximo a'),
+			'ru' => array('возле', 'около', 'рядом с', 'у', 'близ'),
+			'sk' => array('blízko', 'pri', 'v blízkosti', 'nedaleko'),
+			'sl' => array('blizu', 'pri', 'v bližini'),
+			'es' => array('cerca', 'cerca de'),
+			'sv' => array('vid', 'nära', 'i närheten av', 'bredvid', 'omkring'),
+			'tr' => array('yakın', 'yakınlarında', 'civarında', 'yanında'),
+		);
+
 	if (false)
 	{
-		$sYML = file_get_contents('http://svn.openstreetmap.org/sites/rails_port/config/languages.yml');
+		$sYML = file_get_contents('rails/config/languages.yml');
 
 		$oDB->query('delete from languagedata');
 
@@ -47,17 +90,16 @@
 	if (true)
 	{
 		$aData = array();
-		$sConfigFilesHTML = file_get_contents('http://svn.openstreetmap.org/sites/rails_port/config/locales/');
-		if (preg_match_all('/href="([a-z]{2,3}(-[a-zA-Z]+)?[.]yml)"/', $sConfigFilesHTML, $aYMLLanguages))
+		foreach (glob("rails/config/locales/*") as $sFileName)
 		{
-			foreach($aYMLLanguages[1] as $sFileName)
+			$sConfigFilesHTML = file_get_contents($sFileName);
+			$aTree = array();
+			foreach(explode("\n",$sConfigFilesHTML) as $sLine)
 			{
-				$sConfigFilesHTML = file_get_contents('http://svn.openstreetmap.org/sites/rails_port/config/locales/'.$sFileName);
-				$aTree = array();
-				foreach(explode("\n",$sConfigFilesHTML) as $sLine)
+				if (@$sLine[0] == '#') continue;
+
+				if (preg_match('/( *)([^:]+): ?(.*)/',$sLine, $aLine))
 				{
-					if ($sLine[0] == '#') continue;
-					preg_match('/( *)([^:]+): ?(.*)/',$sLine, $aLine);
 					$iDepth = strlen($aLine[1]) / 2;
 					if ($aLine[3])
 					{
@@ -80,7 +122,13 @@
 		$aTranslatedTags = array();
 		foreach($aData as $sLanguage => $aLanguageData)
 		{
-			if (!isset($aLanguageData['geocoder']['search_osm_nominatim']['prefix'])) continue;
+			if (	!isset($aLanguageData['geocoder']) ||
+				!isset($aLanguageData['geocoder']['search_osm_nominatim']) || 
+				!isset($aLanguageData['geocoder']['search_osm_nominatim']['prefix']) || 
+				!is_array($aLanguageData['geocoder']['search_osm_nominatim']['prefix']))
+			{
+				continue;
+			}
 			foreach($aLanguageData['geocoder']['search_osm_nominatim']['prefix'] as $sClass => $aType)
 			{
 				foreach($aType as $sType => $sLabel)
@@ -96,10 +144,23 @@
 			{
 				foreach($aLanguage as $sLanguage => $sLabel)
 				{
-					echo "$sLabel: ($sClass=$sType)\n";
+//					echo "$sLabel: ($sClass=$sType)\n";
 
-					$sLabel = pg_escape_string($sLabel);
-//					echo "select getorcreate_amenity(make_standard_name('$sLabel'), '$sClass','$sType');\n";
+					echo "select getorcreate_amenity(make_standard_name('".pg_escape_string($sLabel)."'), '$sClass', '$sType');\n";
+					if (isset($aLanguageIn[$sLanguage]))
+					{
+						foreach($aLanguageIn[$sLanguage] as $sIn)
+						{
+							echo "select getorcreate_amenityoperator(make_standard_name('".pg_escape_string($sLabel.' '.$sIn)."'), '$sClass', '$sType', 'in');\n";
+						}
+					}
+					if (isset($aLanguageNear[$sLanguage]))
+					{
+						foreach($aLanguageNear[$sLanguage] as $sNear)
+						{
+							echo "select getorcreate_amenityoperator(make_standard_name('".pg_escape_string($sLabel.' '.$sNear)."'), '$sClass', '$sType', 'near');\n";
+						}
+					}
 				}
 			}
 		}
