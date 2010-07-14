@@ -22,11 +22,16 @@ Hardware
 ========
 For a full planet install you will need a minimum of 250GB of hard disk space.  On the OSM Nominatim server 
 (http://wiki.openstreetmap.org/wiki/Servers/katie) the initial import (osm2pgsql) takes around 30 hours.
-The rest of the indexing process takes approximately 5 days using both processors in parallel.
+The rest of the indexing process takes approximately 10 days using both processors in parallel.
+
+POSTGRESQL VERSION
+==================
+Please be aware that various problems have been found running Nominatim on PostgreSQL 8.4.  It is currently
+recomended to use PostgreSQL 8.3 althought there are some reports that version 9.0 might have resolved
+the issues.
 
 Operation
 =========
-
 1) Make the database
 createdb gazetteer
 createlang plpgsql gazetteer
