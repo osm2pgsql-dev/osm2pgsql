@@ -66,7 +66,7 @@ e.g. on Fedora:
 # yum install geos-devel proj-devel postgresql-devel libxml2-devel bzip2-devel gcc-c++
 
 On most Unix-like systems the program can be compiled by
-running './configure && make'.
+running './autogen.sh && ./configure && make'.
 
 Operation
 =========
