@@ -9,15 +9,13 @@ CREATE SEQUENCE seq_location start 1;
 
 --drop table IF EXISTS query_log;
 CREATE TABLE query_log (
-  type text,
   starttime timestamp,
-  ipaddress text,
-  useragent text,
-  language text,
   query text,
+  ipaddress text,
   endtime timestamp,
   results integer
   );
+CREATE INDEX idx_query_log ON query_log USING BTREE (starttime);
 GRANT INSERT ON query_log TO "www-data" ;
 
 CREATE TABLE new_query_log (
@@ -28,8 +26,11 @@ CREATE TABLE new_query_log (
   language text,
   query text,
   endtime timestamp,
-  results integer
+  results integer,
+  format text,
+  secret text
   );
+CREATE INDEX idx_new_query_log_starttime ON new_query_log USING BTREE (starttime);
 GRANT INSERT ON new_query_log TO "www-data" ;
 GRANT UPDATE ON new_query_log TO "www-data" ;
 GRANT SELECT ON new_query_log TO "www-data" ;
