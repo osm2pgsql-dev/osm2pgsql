@@ -1517,7 +1517,7 @@ BEGIN
       ELSEIF NEW.type in ('town') THEN
         NEW.rank_search := 17;
         NEW.rank_address := NEW.rank_search;
-      ELSEIF NEW.type in ('village','hamlet','municipality','districy','unincorporated_area','borough') THEN
+      ELSEIF NEW.type in ('village','hamlet','municipality','district','unincorporated_area','borough') THEN
         NEW.rank_search := 18;
         NEW.rank_address := 17;
       ELSEIF NEW.type in ('airport') AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') THEN
