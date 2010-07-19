@@ -552,6 +552,9 @@ static void long_usage(char *arg0)
     fprintf(stderr, "              \t\tThis includes the username, userid, timestamp and version.\n"); 
     fprintf(stderr, "              \t\tNote: this option also requires additional entries in your style file.\n"); 
     fprintf(stderr, "   -k|--hstore\t\tGenerate an additional hstore (key/value) column to  postgresql tables\n");
+    fprintf(stderr, "   -z|--hstore-column\tGenerate an additional hstore (key/value) column to containing all tags\n");
+    fprintf(stderr, "                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
+    fprintf(stderr, "                     \tproduce an extra hstore column that contains all name:xx tags\n");
     fprintf(stderr, "   -G|--multi-geometry\t\tGenerate multi-geometry features in postgresql tables.\n");
     fprintf(stderr, "   -h|--help\t\tHelp information.\n");
     fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
@@ -660,6 +663,8 @@ int main(int argc, char *argv[])
     const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
+    const char **hstore_columns = NULL;
+    int n_hstore_columns = 0;
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -693,12 +698,13 @@ int main(int argc, char *argv[])
             {"expire-output", 1, 0, 'o'},
             {"output",   1, 0, 'O'},
             {"extra-attributes", 0, 0, 'x'},
-	    {"hstore", 0, 0, 'k'},
+            {"hstore", 0, 0, 'k'},
+            {"hstore-column", 1, 0, 'z'},
             {"multi-geometry", 0, 0, 'G'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkG", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -732,6 +738,11 @@ int main(int argc, char *argv[])
 	    case 'O': output_backend = optarg; break;
             case 'x': extra_attributes=1; break;
 	    case 'k': enable_hstore=1; break;
+            case 'z': 
+                n_hstore_columns++;
+                hstore_columns = (const char**)realloc(hstore_columns, sizeof(&n_hstore_columns) * n_hstore_columns);
+                hstore_columns[n_hstore_columns-1] = optarg;
+                break;
 	    case 'G': enable_multi=1; break;
             case 'h': long_usage_bool=1; break;
             case '?':
@@ -804,6 +815,8 @@ int main(int argc, char *argv[])
     options.expire_tiles_filename = expire_tiles_filename;
     options.enable_multi = enable_multi;
     options.enable_hstore = enable_hstore;
+    options.hstore_columns = hstore_columns;
+    options.n_hstore_columns = n_hstore_columns;
 
     if (strcmp("pgsql", output_backend) == 0) {
       out = &out_pgsql;
@@ -848,6 +861,9 @@ int main(int argc, char *argv[])
     
     free(nds);
     free(members);
+    
+    // free the column pointer buffer
+    free(hstore_columns);
 
     project_exit();
     text_exit();

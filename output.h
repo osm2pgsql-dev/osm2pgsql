@@ -29,6 +29,8 @@ struct output_options {
   const char *expire_tiles_filename;	/* File name to output expired tiles list to */
   int enable_hstore; /* add an additional hstore column with objects key/value pairs */
   int enable_multi; /* Output multi-geometries intead of several simple geometries */
+  char** hstore_columns; /* list of columns that should be written into their own hstore column */
+  int n_hstore_columns; /* number of hstore columns */
 };
 
 struct output_t {

@@ -436,6 +436,137 @@ static void escape_type(char *sql, int len, const char *value, const char *type)
     }
 }
 
+static void write_hstore(enum table_id table, struct keyval *tags)
+{
+    static char *sql;
+    static size_t sqllen=0;
+    
+    // sql buffer
+    if (sqllen==0) {
+      sqllen=2048;
+      sql=malloc(sqllen);
+    }
+    
+    // a clone of the tags pointer
+    struct keyval *xtags = tags;
+    
+    // while this tags has a follow-up..
+    while (xtags->next->key != NULL)
+    {
+        /*
+          hstore ASCII representation looks like
+          "<key>"=>"<value>"
+          
+          we need at least strlen(key)+strlen(value)+6+'\0' bytes
+          in theory any single character could also be escaped
+          thus we need an additional factor of 2.
+          The maximum lenght of a single hstore element is thus
+          calcuated as follows:
+        */
+        size_t hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
+        
+        // if the sql buffer is too small
+        if (hlen > sqllen) {
+            sqllen = hlen;
+            sql = realloc(sql, sqllen);
+        }
+        
+        // pack the tag with its value into the hstore
+        keyval2hstore(sql, xtags->next);
+        copy_to_table(table, sql);
+        
+        // update the tag-pointer to point to the next tag
+        xtags = xtags->next;
+        
+        // if the tag has a follow up, add a comma to the end
+        if (xtags->next->key != NULL)
+            copy_to_table(table, ",");
+    }
+    
+    // finish the hstore column by placing a TAB into the data stream
+    copy_to_table(table, "\t");
+    
+    // the main hstore-column has now been written
+}
+
+// write an hstore column to the database
+static void write_hstore_columns(enum table_id table, struct keyval *tags)
+{
+    static char *sql;
+    static size_t sqllen=0;
+    
+    // sql buffer
+    if (sqllen==0) {
+      sqllen=2048;
+      sql=malloc(sqllen);
+    }
+    
+    // the index of the current hstore column
+    int i_hstore_column;
+    
+    // iterate over all configured hstore colums in the options
+    for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
+    {
+        // did this node have a tag that matched the current hstore column
+        int found = 0;
+        
+        // a clone of the tags pointer
+        struct keyval *xtags = tags;
+        
+        // while this tags has a follow-up..
+        while (xtags->next->key != NULL) {
+            
+            // check if the tags' key starts with the name of the hstore column
+            char *pos = strstr(xtags->next->key, Options->hstore_columns[i_hstore_column]);
+            
+            // and if it does..
+            if(pos == xtags->next->key)
+            {
+                // remember we found one
+                found=1;
+                
+                // generate the short key name
+                char *shortkey = xtags->next->key + strlen(Options->hstore_columns[i_hstore_column]);
+                
+                // calculate the size needed for this hstore entry
+                size_t hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
+                
+                // if the sql buffer is too small
+                if (hlen > sqllen) {
+                    // resize it
+                    sqllen=hlen;
+                    sql=realloc(sql,sqllen);
+                }
+                
+                // and pack the shortkey with its value into the hstore
+                keyval2hstore_manual(sql, shortkey, xtags->next->value);
+                copy_to_table(table, sql);
+                
+                // update the tag-pointer to point to the next tag
+                xtags=xtags->next;
+                
+                // if the tag has a follow up, add a comma to the end
+                if (xtags->next->key != NULL)
+                    copy_to_table(table, ",");
+            }
+            else
+            {
+                // update the tag-pointer to point to the next tag
+                xtags=xtags->next;
+            }
+        }
+        
+        // if no matching tag has been found, write a NULL
+        if(!found)
+            copy_to_table(table, "\\N");
+        
+        // finish the hstore column by placing a TAB into the data stream
+        copy_to_table(table, "\t");
+    }
+    
+    // all hstore-columns have now been written
+}
+
 
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
@@ -460,7 +591,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
     if (sqllen==0) {
       sqllen=2048;
-      sql=malloc(2048);
+      sql=malloc(sqllen);
     }
 
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
@@ -484,36 +615,13 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
         copy_to_table(t_point, "\t");
     }
     
-    if (Options->enable_hstore) {
-      while (tags->next->key != NULL) {
-	size_t hlen;
-	/*
-	  hstore ASCII representation looks like
-	  "<key>"=>"<value>"
-
-	  we need at least strlen(key)+strlen(value)+6+'\0' bytes
-	  in theory any single character could also be escaped
-	  thus we need an additional factor of 2.
-	  The maximum lenght of a single hstore element is thus
-	  calcuated as follows:
-	*/
-	hlen=2*(strlen(tags->next->key)+strlen(tags->next->value))+7;
-	if (hlen > sqllen) {
-	  sqllen=hlen;
-	  sql=realloc(sql,sqllen);
-	}
-	keyval2hstore(sql,tags->next);
-	tags=tags->next;
-	if (tags->next->key != NULL) {
-          copy_to_table(t_point, sql);
-	  copy_to_table(t_point, ",");
-	} else {
-	  copy_to_table(t_point, sql);
-	}
-      }
-      copy_to_table(t_point, "\t");
-    }
- 
+    // hstore columns
+    write_hstore_columns(t_point, tags);
+    
+    // check if a regular hstore is requested
+    if (Options->enable_hstore)
+        write_hstore(t_point, tags);
+    
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
     copy_to_table(t_point, sql);
     copy_to_table(t_point, "\n");
@@ -533,7 +641,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
 
     if (sqllen==0) {
       sqllen=2048;
-      sql=malloc(2048);
+      sql=malloc(sqllen);
     }
     
     sprintf(sql, "%d\t", id);
@@ -555,37 +663,14 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
             copy_to_table(table, sql);
             copy_to_table(table, "\t");
     }
-
-    if (Options->enable_hstore) {
-      while (tags->next->key != NULL) {
-	size_t hlen;
-	/*
-	  hstore ASCII representation looks like
-	  "<key>"=>"<value>"
-
-	  we need at least strlen(key)+strlen(value)+6+'\0' bytes
-	  in theory any single character could also be escaped
-	  thus we need an additional factor of 2.
-	  The maximum lenght of a single hstore element is thus
-	  calcuated as follows:
-	*/
-	hlen=2*(strlen(tags->next->key)+strlen(tags->next->value))+7;
-	if (hlen > sqllen) {
-	  sqllen=hlen;
-	  //sql=realloc(sql,sqllen);
-	}
-	keyval2hstore(sql,tags->next);
-	tags=tags->next;
-	if (tags->next->key != NULL) {
-          copy_to_table(table, sql);
-	  copy_to_table(table, ",");
-	} else {
-	  copy_to_table(table, sql);
-	}
-      }
-      copy_to_table(table, "\t");
-    }
-
+    
+    // hstore columns
+    write_hstore_columns(table, tags);
+    
+    // check if a regular hstore is requested
+    if (Options->enable_hstore)
+        write_hstore(table, tags);
+    
     sprintf(sql, "SRID=%d;", SRID);
     copy_to_table(table, sql);
     copy_to_table(table, wkt);
@@ -1104,6 +1189,13 @@ static int pgsql_out_start(const struct output_options *options)
                 }
                 strcat(sql, tmp);
             }
+            int i_hstore_column;
+            for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
+            {
+                strcat(sql, ",\"");
+                strcat(sql, Options->hstore_columns[i_hstore_column]);
+                strcat(sql, "\" hstore ");
+            }
             if (Options->enable_hstore) {
                 strcat(sql, ",tags hstore );\n");
 	    } else {
@@ -1169,6 +1261,14 @@ static int pgsql_out_start(const struct output_options *options)
             strcat(sql, tmp);
         }
 
+        int i_hstore_column;
+        for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
+        {
+            strcat(sql, ",\"");
+            strcat(sql, Options->hstore_columns[i_hstore_column]);
+            strcat(sql, "\" ");
+        }
+    
 	if (Options->enable_hstore) strcat(sql,",tags");
 
 	tables[i].columns = strdup(sql);
