@@ -285,27 +285,32 @@ static void escape4hstore(char *dst, char *src) {
 /* print struct keyval in syntax for pgsql hstore import 
    \ and " need to be escaped
 */
-void keyval2hstore(char *hstring, struct keyval *tags)
+inline void keyval2hstore(char *hstring, struct keyval *tags)
+{
+  keyval2hstore_manual(hstring, tags->key, tags->value);
+}
+
+void keyval2hstore_manual(char *hstring, char *key, char *value)
 {
   static char* str=NULL;
   static size_t stlen=0;
   size_t len;
  
-  len=strlen(tags->value);
+  len=strlen(value);
   if (len>stlen) {
     stlen=len;
     str=realloc(str,1+stlen*2);
   }
 
-  len=strlen(tags->key);
+  len=strlen(key);
   if (len>stlen) {
     stlen=len;
     str=realloc(str,1+stlen*2);
   }
 
-  escape4hstore(str,tags->key);  
+  escape4hstore(str,key);  
   hstring+=sprintf(hstring,"\"%s\"=>",str);
-  escape4hstore(str,tags->value);
+  escape4hstore(str,value);
   sprintf(hstring,"\"%s\"",str);  
 }
 
