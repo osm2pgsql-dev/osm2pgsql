@@ -1,3 +1,6 @@
+<?php
+	header("content-type: text/html; charset=UTF-8");
+?>
 <html>
   <head>
     <title>OpenStreetMap Nominatim: <?php echo $aPointDetails['localname'];?></title>

@@ -25,7 +25,7 @@
 		$aFilteredPlaces['address'] = $aAddress;
 	}
 
-	if (isset($_GET['json_callback']) && preg_match('/^[-A-Za-z0-9:_.]+$/',$_GET['json_callback']))
+	if (isset($_GET['json_callback']) && preg_match('/^[-A-Za-z0-9:_]+$/',$_GET['json_callback']))
 	{
 		echo $_GET['json_callback'].'('.javascript_renderData($aFilteredPlaces).')';
 	}

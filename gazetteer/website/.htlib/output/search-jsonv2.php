@@ -40,7 +40,7 @@
 		$aPlace['lon'] = $aPointDetails['lon'];
 		$aPlace['display_name'] = $aPointDetails['name'];
 
-		$aPlace['class'] = $aPointDetails['class'];
+		$aPlace['category'] = $aPointDetails['class'];
 		$aPlace['type'] = $aPointDetails['type'];
 		if ($aPointDetails['icon'])
 		{
