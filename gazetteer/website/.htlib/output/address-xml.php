@@ -1,5 +1,5 @@
 <?php
-	header("content-type: text/xml");
+	header("content-type: text/xml; charset=UTF-8");
 	header("Access-Control-Allow-Origin: *");
 
 	echo "<";
@@ -23,7 +23,8 @@
 	{
 		echo "<result";
 		if ($aPlace['place_id']) echo ' place_id="'.$aPlace['place_id'].'"';
-		if ($aPlace['osm_type']&&$aPlace['osm_id']) echo ' osm_type="'.($aPlace['osm_type']=='N'?'node':($aPlace['osm_type']=='W'?'way':'relation')).'"'.' osm_id="'.$aPlace['osm_id'].'"';
+		if ($aPlace['osm_type'] && $aPlace['osm_id']) echo ' osm_type="'.($aPlace['osm_type']=='N'?'node':($aPlace['osm_type']=='W'?'way':'relation')).'"'.' osm_id="'.$aPlace['osm_id'].'"';
+		if ($aPlace['ref']) echo ' ref="'.htmlspecialchars($aPlace['ref']).'"';
 		echo ">".htmlspecialchars($aPlace['langaddress'])."</result>";
 
 		echo "<addressparts>";
