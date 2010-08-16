@@ -24,9 +24,6 @@ CREATE TABLE gb_postcodearea (
     postcodearearegion text
 );
 
-
-ALTER TABLE public.gb_postcodearea OWNER TO twain;
-
 --
 -- Data for Name: gb_postcodearea; Type: TABLE DATA; Schema: public; Owner: twain
 --
@@ -165,16 +162,6 @@ RG	Reading	England
 
 ALTER TABLE ONLY gb_postcodearea
     ADD CONSTRAINT pk_postcodearea PRIMARY KEY (postcodeareaid);
-
-
---
--- Name: gb_postcodearea; Type: ACL; Schema: public; Owner: twain
---
-
-REVOKE ALL ON TABLE gb_postcodearea FROM PUBLIC;
-REVOKE ALL ON TABLE gb_postcodearea FROM twain;
-GRANT ALL ON TABLE gb_postcodearea TO twain;
-
 
 --
 -- PostgreSQL database dump complete

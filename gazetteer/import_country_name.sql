@@ -24,9 +24,6 @@ CREATE TABLE country_name (
     country_default_language_code character varying(2)
 );
 
-
-ALTER TABLE public.country_name OWNER TO twain;
-
 --
 -- Data for Name: country_name; Type: TABLE DATA; Schema: public; Owner: twain
 --
@@ -263,17 +260,6 @@ pf	{"(official_name:lv,\\"Francijas Polinēzijas teritorija\\")","(name:zh-min-n
 --
 
 CREATE INDEX idx_country_name_country_code ON country_name USING btree (country_code);
-
-
---
--- Name: country_name; Type: ACL; Schema: public; Owner: twain
---
-
-REVOKE ALL ON TABLE country_name FROM PUBLIC;
-REVOKE ALL ON TABLE country_name FROM twain;
-GRANT ALL ON TABLE country_name TO twain;
-GRANT SELECT ON TABLE country_name TO "www-data";
-
 
 --
 -- PostgreSQL database dump complete
