@@ -20,15 +20,19 @@ Requirements
 
 Hardware
 ========
-For a full planet install you will need a minimum of 250GB of hard disk space.  On the OSM Nominatim server 
-(http://wiki.openstreetmap.org/wiki/Servers/katie) the initial import (osm2pgsql) takes around 30 hours.
-The rest of the indexing process takes approximately 10 days using both processors in parallel.
+
+For a full planet install you will need a minimum of 250GB of hard disk space.  
+On the OSM Nominatim server (http://wiki.openstreetmap.org/wiki/Servers/katie) 
+the initial import (osm2pgsql) takes around 30 hours.
+
+The rest of the indexing process takes approximately 10 days using both processors 
+in parallel.
 
 POSTGRESQL VERSION
 ==================
-Please be aware that various problems have been found running Nominatim on PostgreSQL 8.4.  It is currently
-recomended to use PostgreSQL 8.3 althought there are some reports that version 9.0 might have resolved
-the issues.
+Please be aware that various problems have been found running Nominatim on 
+PostgreSQL 8.4.  It is currently recomended to use PostgreSQL 8.3 although there 
+are some reports that version 9.0 might have resolved the issues.
 
 Operation
 =========
@@ -43,16 +47,21 @@ cat /usr/share/postgresql-8.3-postgis/lwpostgis.sql | psql gazetteer
 cat /usr/share/postgresql-8.3-postgis/spatial_ref_sys.sql | psql gazetteer
 
 2) Import OSM data
+
 cd osm2pgsql
 make
 ./osm2pgsql -lsc -O gazetteer -C 2000 -d gazetteer planet.osm.bz2
-# -C 2000 uses 2000MB of memory as a cache, the more the better, especialy during the initial import
+# -C 2000 uses 2000MB of memory as a cache, ideally you'd use >= 8 times the
+# highest node ID, currently something like 7000 MB. 
 # No need to expand the planet file. osm2pgsql will handle the bzip.
 # Ignore notices about missing functions and data types.
 # If you get a projector initialization error, your proj installation can't
 # be found in the expected location copying the proj folder to /usr/share/ will solve this.
-# Be patient. Reading in the whole planet file takes a long time. By the end of 2009 you could expect these amounts:
+# Be patient. Reading in the whole planet file takes a long time. 
+# By the end of 2009 you could expect these amounts:
 #       Processing: Node(519844k) Way(38084k) Relation(316k) 
+# NOTE: Nominatim requires importing in "slim" mode (--slim, or -s in the above
+# example). Non-slim mode does not work.
 
 3) Build the transliteration module
 cd gazetter
@@ -75,6 +84,9 @@ createuser -SDR www-data
 
 6) Add gazetteer functions to database
 cat gazetteer-functions.sql | psql gazetteer
+# if you get an error "ERROR:  type "planet_osm_ways" does not exist", that means
+# you are trying to run the script on a non-slim database which is not supported;
+# you need to specify -s on first import.
 cat gazetteer-tables.sql | psql gazetteer
 cat gazetteer-functions.sql | psql gazetteer
 # You really do need to run gazetteer-functions.sql TWICE!
