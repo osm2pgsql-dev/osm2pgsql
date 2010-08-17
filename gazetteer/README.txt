@@ -87,6 +87,7 @@ cat gazetteer-functions.sql | psql gazetteer
 # if you get an error "ERROR:  type "planet_osm_ways" does not exist", that means
 # you are trying to run the script on a non-slim database which is not supported;
 # you need to specify -s on first import.
+# ignore any errors about place_boundingbox not existing in the first run!
 cat gazetteer-tables.sql | psql gazetteer
 cat gazetteer-functions.sql | psql gazetteer
 # You really do need to run gazetteer-functions.sql TWICE!
