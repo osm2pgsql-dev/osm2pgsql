@@ -7,6 +7,15 @@ GRANT SELECT ON import_status TO "www-data" ;
 DROP SEQUENCE seq_location;
 CREATE SEQUENCE seq_location start 1;
 
+drop table import_osmosis_log;
+CREATE TABLE import_osmosis_log (
+  batchend timestamp,
+  batchsize integer,
+  starttime timestamp,
+  endtime timestamp,
+  event text
+  );
+
 --drop table IF EXISTS query_log;
 CREATE TABLE query_log (
   starttime timestamp,

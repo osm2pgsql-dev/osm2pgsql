@@ -3,9 +3,13 @@
 	ini_set('memory_limit', '800M');
 	require_once('website/.htlib/lib.php');
 
-    // make this point to a place where you want --import-hourly and --import-daily
-    // save mirrored files
-    $mirrorDir = "/home/twain";
+	// make this point to a place where you want --import-hourly and --import-daily
+	// save mirrored files
+	$sMirrorDir = "/home/twain/";
+
+	// Where to find and store osmosis files
+	$sOsmosisCMD = '/home/twain/osmosis-0.35.1/bin/osmosis';
+	$sOsmosisWorkingDirectory = '/home/twain/.osmosis';
 
 	$aCMDOptions = array(
 		"Import / update / index osm data",
@@ -15,6 +19,8 @@
 
 		array('max-load', '', 0, 1, 1, 1, 'float', 'Maximum load average - indexing is paused if this is exceeded'),
 		array('max-blocking', '', 0, 1, 1, 1, 'int', 'Maximum blocking processes - indexing is aborted / paused if this is exceeded'),
+
+		array('import-osmosis', '', 0, 1, 0, 0, 'bool', 'Import using osmosis'),
 
 		array('import-hourly', '', 0, 1, 0, 0, 'bool', 'Import hourly diffs'),
 		array('import-daily', '', 0, 1, 0, 0, 'bool', 'Import daily diffs'),
@@ -31,12 +37,16 @@
 		array('index-instances', '', 0, 1, 1, 1, 'int', 'Number of indexing instances'),
 		array('index-instance', '', 0, 1, 1, 1, 'int', 'Which instance are we (0 to index-instances-1)'),
 		array('index-estrate', '', 0, 1, 1, 1, 'int', 'Estimated indexed items per second (def:30)'),
+
+		array('deduplicate', '', 0, 1, 0, 0, 'bool', 'Deduplicate tokens'),
 	);
 	getCmdOpt($_SERVER['argv'], $aCMDOptions, $aResult, true, true);
 
 	if ($aResult['import-hourly'] + $aResult['import-daily'] + isset($aResult['import-diff']) > 1) showUsage($aCMDOptions, true, 'Select either import of hourly, daily, or diff');
 
-	if (!isset($aResult['index-instances']) || $aResult['index-instances'] == 1)
+	if (!isset($aResult['index-instances'])) $aResult['index-instances'] = 1;
+
+	if ($aResult['index-instances'] == 1)
 	{
 		// Lock to prevent multiple copies running
 		if (exec('/bin/ps uww | grep '.basename(__FILE__).' | grep -v /dev/null | grep -v grep -c', $aOutput2, $iResult) > 1)
@@ -78,18 +88,18 @@
 		if ($aResult['import-hourly'])
 		{
 			// Mirror the hourly diffs
-			exec('wget --quiet --mirror -l 1 -P $mirrorDir/ http://planet.openstreetmap.org/hourly');
+			exec("wget --quiet --mirror -l 1 -P $sMirrorDir http://planet.openstreetmap.org/hourly");
 			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDDHH24\')||\'-\'||TO_CHAR(lastimportdate+\'1 hour\'::interval,\'YYYYMMDDHH24\')||\'.osc.gz\' from import_status');
-			$sNextFile = '$mirrorDir/planet.openstreetmap.org/hourly/'.$sNextFile;
+			$sNextFile = $sMirrorDir.'planet.openstreetmap.org/hourly/'.$sNextFile;
 			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate+\'1 hour\'::interval';
 		}
 
 		if ($aResult['import-daily'])
 		{
 			// Mirror the daily diffs
-			exec('wget --quiet --mirror -l 1 -P $mirrorDir/ http://planet.openstreetmap.org/daily');
+			exec("wget --quiet --mirror -l 1 -P $sMirrorDir/ http://planet.openstreetmap.org/daily");
 			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDD\')||\'-\'||TO_CHAR(lastimportdate+\'1 day\'::interval,\'YYYYMMDD\')||\'.osc.gz\' from import_status');
-			$sNextFile = '$mirrorDir/planet.openstreetmap.org/daily/'.$sNextFile;
+			$sNextFile = $sMirrorDir.'/planet.openstreetmap.org/daily/'.$sNextFile;
 			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate::date + 1';
 		}
 
@@ -153,7 +163,7 @@
 		$sModifyXML = str_replace('<osm version="0.6" generator="OpenStreetMap server">',
 			'<osmChange version="0.6" generator="OpenStreetMap server"><modify>', $sModifyXML);
 		$sModifyXML = str_replace('</osm>', '</modify></osmChange>', $sModifyXML);
-		if ($aResult['verbose']) var_dump($sModifyXML);
+//		if ($aResult['verbose']) var_dump($sModifyXML);
 
 		$aSpec = array(
 			0 => array("pipe", "r"),  // stdin
@@ -184,6 +194,60 @@
 		}
 	}
 
+	if ($aResult['deduplicate'])
+	{
+		$sSQL = "select word_token,count(*) from word where substr(word_token, 1, 1) = ' ' and class is null and type is null and country_code is null group by word_token having count(*) > 1 order by word_token";
+		$aDuplicateTokens = $oDB->getAll($sSQL);
+		foreach($aDuplicateTokens as $aToken)
+		{
+			if (trim($aToken['word_token']) == '' || trim($aToken['word_token']) == '-') continue;
+			echo "Deduping ".$aToken['word_token']."\n";
+			$sSQL = "select word_id,(select count(*) from search_name where nameaddress_vector @> ARRAY[word_id]) as num from word where word_token = '".$aToken['word_token']."' and class is null and type is null and country_code is null order by num desc";
+			$aTokenSet = $oDB->getAll($sSQL);
+			if (PEAR::isError($aTokenSet))
+			{
+				var_dump($aTokenSet, $sSQL);
+				exit;
+			}
+			
+			$aKeep = array_shift($aTokenSet);
+			$iKeepID = $aKeep['word_id'];
+
+			foreach($aTokenSet as $aRemove)
+			{
+				$sSQL = "update search_name set";
+				$sSQL .= " name_vector = (name_vector - ".$aRemove['word_id'].")+".$iKeepID.",";
+				$sSQL .= " nameaddress_vector = (nameaddress_vector - ".$aRemove['word_id'].")+".$iKeepID;
+				$sSQL .= " where name_vector @> ARRAY[".$aRemove['word_id']."]";
+				$x = $oDB->query($sSQL);
+				if (PEAR::isError($x))
+				{
+					var_dump($x);
+					exit;
+				}
+
+				$sSQL = "update search_name set";
+				$sSQL .= " nameaddress_vector = (nameaddress_vector - ".$aRemove['word_id'].")+".$iKeepID;
+				$sSQL .= " where nameaddress_vector @> ARRAY[".$aRemove['word_id']."]";
+				$x = $oDB->query($sSQL);
+				if (PEAR::isError($x))
+				{
+					var_dump($x);
+					exit;
+				}
+
+				$sSQL = "delete from word where word_id = ".$aRemove['word_id'];
+				$x = $oDB->query($sSQL);
+				if (PEAR::isError($x))
+				{
+					var_dump($x);
+					exit;
+				}
+			}
+
+		}
+	}
+
 	if ($aResult['index'])
 	{
 		if (!isset($aResult['index-estrate'])) $aResult['index-estrate'] = 30;
@@ -206,10 +270,12 @@
 		for ($i = $aResult['index-rank']; $i <= 30; $i++)
 		{ 
 			echo "Rank: $i";
+
 			$iStartTime = date('U');
 			flush();
 			
-			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name) order by count desc, random()';
+			$sSQL = 'select geometry_index(geometry,indexed,name),count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null '.$sModSQL.'group by geometry_index(geometry,indexed,name)';
+			if ($aResult['index-instances'] > 1) $sSQL .= ' order by count desc, random()';
 			$aAllSectors = $oDB->getAll($sSQL);
 			$iTotalNum = 0;
 			foreach($aAllSectors as $aSector)
@@ -227,8 +293,17 @@
 
 			foreach($aAllSectors as $aSector)
 			{
-				$bAlreadyRunning = $oDB->getOne('select count(*) from pg_stat_activity where current_query like \'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i.'%\'');
-				if ($bAlreadyRunning) continue;
+				if ($i == 21 && $aSector['geometry_index'] == 617467)
+				{
+					echo "Skipping sector 617467 @ 21 due to issue\n";
+					continue;
+				}
+
+				if ($aResult['index-instances'] > 1)
+				{
+					$bAlreadyRunning = $oDB->getOne('select count(*) from pg_stat_activity where current_query like \'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$i.'%\'');
+					if ($bAlreadyRunning) continue;
+				}
 
 				while (getBlockingProcesses() > $aResult['max-blocking'] || getLoadAverage() > $aResult['max-load'])
 				{
@@ -245,7 +320,7 @@
 				$iEstSeconds -= $iEstMinutes*(60);
 				$iNum = $aSector['count'];
 				$sRate = round($fRate, 1);
-				echo $aSector['geometry_index'].": $iNum, $iTotalLeft left.  Est. time remaining (this rank) d:$iEstDays h:$iEstHours m:$iEstMinutes s:$iEstSeconds @ $sRate per second\n";
+				echo $aSector['geometry_index'].": $iNum, $iTotalLeft left.  Est. time remaining (rank $i) d:$iEstDays h:$iEstHours m:$iEstMinutes s:$iEstSeconds @ $sRate per second\n";
 				$iTotalLeft -= $iNum;
 				flush();
 
@@ -285,25 +360,97 @@
 				$oDB->query($sSQL);
 
 				$iTotalDone += $iNum;
-				$fRate = $iTotalDone / (time() - $fRankStartTime);
+				$fDuration = time() - $fRankStartTime;
+				if ($fDuration)
+					$fRate = $iTotalDone / $fDuration;
+				else
+					$fRate = 10;
 			}
 			$iDuration = date('U') - $iStartTime;
 			if ($iDuration && $iTotalNum)
 			{
 				echo "Finished Rank: $i in $iDuration @ ".($iTotalNum / $iDuration)." per second\n";
 			}
-
-			// Keep in sync with other instances
-//			if (isset($aResult['index-instances']) && $aResult['index-instances'] > 1)
-			{
-				$sSQL = 'select count(*) from placex where rank_search = '.$i.' and indexed = false and name is not null';
-				while($iWaitNum = $oDB->getOne($sSQL))
-				{
-					$iEstSleepSeconds = round(max(1,($iWaitNum / $aResult['index-estrate'])/10));
-					echo "Waiting for $iWaitNum other places to be indexed at this level, sleeping $iEstSleepSeconds seconds\n";
-					sleep($iEstSleepSeconds);
-				}
-			}
 		}
+	}
+
+	if ($aResult['import-osmosis'])
+	{
+		$sImportFile = $sBasePath.'/osmosischange.osm';
+		$sCMDDownload = $sOsmosisCMD.' --read-replication-interval workingDirectory='.$sOsmosisWorkingDirectory.' --simplify-change --write-xml-change '.$sImportFile;
+		$sCMDImport = $sBasePath.'/osm2pgsql -las -C 2000 -O gazetteer -d gazetteerworld '.$sImportFile;
+		$sCMDIndex = $sBasePath.'/gazetteer/util.update.php --index --index-instances 2 --max-load 20 --max-blocking 20';
+		while(true)
+		{
+			$fStartTime = time();
+			$iFileSize = 0;
+			$sBatchEnd = "";
+
+			if (!file_exists($sImportFile))
+			{
+				// Use osmosis to download the file
+				$fCMDStartTime = time();
+				echo $sCMDDownload."\n";
+				exec($sCMDDownload, $sJunk, $iErrorLevel);
+				if ($iErrorLevel)
+				{
+					echo "Error: $iErrorLevel\n";
+					exit;
+				}
+				$iFileSize = filesize($sImportFile);
+				$sBatchEnd = getosmosistimestamp();
+				echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
+				$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osmosis')";
+				$oDB->query($sSQL);
+			}
+
+			$iFileSize = filesize($sImportFile);
+			$sBatchEnd = getosmosistimestamp();
+		
+			// Import the file
+			$fCMDStartTime = time();
+			echo $sCMDImport."\n";
+			exec($sCMDImport, $sJunk, $iErrorLevel);
+			if ($iErrorLevel)
+			{
+				echo "Error: $iErrorLevel\n";
+				exit;
+			}
+			echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
+			$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osm2pgsql')";
+			$oDB->query($sSQL);
+
+			// Archive for debug?
+			unlink($sImportFile);
+
+			// Index file (TODO: mutli-thread)
+			$fCMDStartTime = time();
+			echo $sCMDIndex."\n";
+			exec($sCMDIndex, $sJunk, $iErrorLevel);
+			if ($iErrorLevel)
+			{
+				echo "Error: $iErrorLevel\n";
+				exit;
+			}
+			echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
+			$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','index')";
+			$oDB->query($sSQL);
+
+			$sSQL = "update import_status set lastimportdate = '$sBatchEnd'";
+			$oDB->query($sSQL);
+
+			$fDuration = time() - $fStartTime;
+			echo "Completed ".round($fDuration/60,2)."\n";
+			echo "Sleeping ".max(0,600-$fDuration)." seconds\n";
+			sleep(max(0,600-$fDuration));
+		}
+		
+	}
+
+	function getosmosistimestamp()
+	{
+        	$sStateFile = file_get_contents($sMirrorDir.'.osmosis/state.txt');
+	        preg_match('#timestamp=(.+)#', $sStateFile, $aResult);
+        	return str_replace('\:',':',$aResult[1]);
 	}
 
