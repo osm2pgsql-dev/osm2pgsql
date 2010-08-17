@@ -776,7 +776,7 @@ function getCmdOpt($aArg, $aSpec, &$aResult, $bExitOnError = false, $bExitOnUnkn
 					for($n = $aLine[4]; $i < $iSize && $n; $n--)
 					{
 						$i++;
-						if ($i >= $iSize || $aArg[$i][0] == '-') showUsage($aSpec, $bExitOnError, 'Paramater of  \''.$aLine[0].'\' is missing');
+						if ($i >= $iSize || $aArg[$i][0] == '-') showUsage($aSpec, $bExitOnError, 'Parameter of  \''.$aLine[0].'\' is missing');
 
 						switch ($aLine[6])
 						{
