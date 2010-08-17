@@ -3,6 +3,10 @@
 	ini_set('memory_limit', '800M');
 	require_once('website/.htlib/lib.php');
 
+    // make this point to a place where you want --import-hourly and --import-daily
+    // save mirrored files
+    $mirrorDir = "/home/twain";
+
 	$aCMDOptions = array(
 		"Import / update / index osm data",
 		array('help', 'h', 0, 1, 0, 0, false, 'Show Help'),
@@ -14,6 +18,7 @@
 
 		array('import-hourly', '', 0, 1, 0, 0, 'bool', 'Import hourly diffs'),
 		array('import-daily', '', 0, 1, 0, 0, 'bool', 'Import daily diffs'),
+		array('import-diff', '', 0, 1, 1, 1, 'realpath', 'Import a diff (osc) file from local file system'),
 		array('import-all', '', 0, 1, 0, 0, 'bool', 'Import all available files'),
 
 		array('import-file', '', 0, 1, 1, 1, 'realpath', 'Re-import data from an OSM file'),
@@ -29,7 +34,7 @@
 	);
 	getCmdOpt($_SERVER['argv'], $aCMDOptions, $aResult, true, true);
 
-	if ($aResult['import-hourly'] && $aResult['import-daily']) showUsage($aCMDOptions, true, 'Select either import of hourly or daily');
+	if ($aResult['import-hourly'] + $aResult['import-daily'] + isset($aResult['import-diff']) > 1) showUsage($aCMDOptions, true, 'Select either import of hourly, daily, or diff');
 
 	if (!isset($aResult['index-instances']) || $aResult['index-instances'] == 1)
 	{
@@ -73,19 +78,33 @@
 		if ($aResult['import-hourly'])
 		{
 			// Mirror the hourly diffs
-			exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/hourly');
+			exec('wget --quiet --mirror -l 1 -P $mirrorDir/ http://planet.openstreetmap.org/hourly');
 			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDDHH24\')||\'-\'||TO_CHAR(lastimportdate+\'1 hour\'::interval,\'YYYYMMDDHH24\')||\'.osc.gz\' from import_status');
-			$sNextFile = '/home/twain/planet.openstreetmap.org/hourly/'.$sNextFile;
+			$sNextFile = '$mirrorDir/planet.openstreetmap.org/hourly/'.$sNextFile;
 			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate+\'1 hour\'::interval';
 		}
 
 		if ($aResult['import-daily'])
 		{
 			// Mirror the daily diffs
-			exec('wget --quiet --mirror -l 1 -P /home/twain/ http://planet.openstreetmap.org/daily');
+			exec('wget --quiet --mirror -l 1 -P $mirrorDir/ http://planet.openstreetmap.org/daily');
 			$sNextFile = $oDB->getOne('select TO_CHAR(lastimportdate,\'YYYYMMDD\')||\'-\'||TO_CHAR(lastimportdate+\'1 day\'::interval,\'YYYYMMDD\')||\'.osc.gz\' from import_status');
-			$sNextFile = '/home/twain/planet.openstreetmap.org/daily/'.$sNextFile;
+			$sNextFile = '$mirrorDir/planet.openstreetmap.org/daily/'.$sNextFile;
 			$sUpdateSQL = 'update import_status set lastimportdate = lastimportdate::date + 1';
+		}
+
+		if (isset($aResult['import-diff']))
+		{
+			// import diff directly (e.g. from osmosis --rri)
+			$sNextFile = $aResult['import-diff'];
+            if (!file_exists($nextFile))
+            {
+				echo "Cannot open $nextFile\n";
+				exit;
+            }
+            // FIXME, currently this assumes that the diff is "current". should really 
+            // interface with Osmosis' replication state.
+			$sUpdateSQL = 'update import_status set lastimportdate = now()';
 		}
 
 		// Missing file is not an error - it might not be created yet
