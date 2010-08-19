@@ -741,6 +741,7 @@ int main(int argc, char *argv[])
     struct output_options options;
     PGconn *sql_conn;
 
+    memset(&options, '\0', sizeof(options));
     fprintf(stderr, "osm2pgsql SVN version %s\n\n", VERSION);
 
     while (1) {
