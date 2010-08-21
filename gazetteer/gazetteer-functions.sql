@@ -804,28 +804,28 @@ out := replace(out, ' zgornji ',' zg ');
 out := replace(out, ' zhilishchien komplieks ',' zh k ');
 out := replace(out, ' zum ',' z ');
 
-out := replace(out, ' and ',' ');
-out := replace(out, ' und ',' ');
-out := replace(out, ' en ',' ');
-out := replace(out, ' et ',' ');
-out := replace(out, ' e ',' ');
-out := replace(out, ' y ',' ');
+-- out := replace(out, ' and ',' ');
+-- out := replace(out, ' und ',' ');
+-- out := replace(out, ' en ',' ');
+-- out := replace(out, ' et ',' ');
+-- out := replace(out, ' e ',' ');
+-- out := replace(out, ' y ',' ');
 
-out := replace(out, ' the ',' ');
-out := replace(out, ' der ',' ');
-out := replace(out, ' den ',' ');
-out := replace(out, ' die ',' ');
-out := replace(out, ' das ',' ');
+-- out := replace(out, ' the ',' ');
+-- out := replace(out, ' der ',' ');
+-- out := replace(out, ' den ',' ');
+-- out := replace(out, ' die ',' ');
+-- out := replace(out, ' das ',' ');
 
-out := replace(out, ' la ',' ');
-out := replace(out, ' le ',' ');
-out := replace(out, ' el ',' ');
-out := replace(out, ' il ',' ');
+-- out := replace(out, ' la ',' ');
+-- out := replace(out, ' le ',' ');
+-- out := replace(out, ' el ',' ');
+-- out := replace(out, ' il ',' ');
 out := replace(out, ' ال ',' ');
 
-out := replace(out, 'ae','a');
-out := replace(out, 'oe','o');
-out := replace(out, 'ue','u');
+-- out := replace(out, 'ae','a');
+-- out := replace(out, 'oe','o');
+-- out := replace(out, 'ue','u');
 
 -- out := regexp_replace(out,E'([^0-9])\\1+',E'\\1','g');
 -- out := regexp_replace(out,E'\\mcir\\M','circle','g');
