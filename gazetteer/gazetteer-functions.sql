@@ -2273,7 +2273,7 @@ BEGIN
   END IF;
 
   -- Patch in additional country names
-  IF NEW.admin_level = 2 AND NEW.type = 'adminitrative' AND NEW.country_code is not null THEN
+  IF NEW.admin_level = 2 AND NEW.type = 'administrative' AND NEW.country_code is not null THEN
     select add_keywords(NEW.name, country_name.name) from country_name where country_name.country_code = lower(NEW.country_code) INTO NEW.name;
   END IF;
     
