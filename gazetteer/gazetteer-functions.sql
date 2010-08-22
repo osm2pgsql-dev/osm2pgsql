@@ -741,7 +741,7 @@ BEGIN
     coalesce(location_point.keywords,'{}'::INTEGER[]) - coalesce(newkeywords,'{}'::INTEGER[]) from location_point 
     where place_id = OLD_place_id into addedkeywords, removedkeywords;
 
-  RAISE WARNING 'update_location_nameonly for %: new:% added:% removed:%', OLD_place_id, newkeywords, addedkeywords, removedkeywords;
+--  RAISE WARNING 'update_location_nameonly for %: new:% added:% removed:%', OLD_place_id, newkeywords, addedkeywords, removedkeywords;
 
   IF #removedkeywords > 0 THEN
     -- abort due to tokens removed
@@ -1164,9 +1164,9 @@ BEGIN
 
   END IF;
 
-  IF NEW.rank_search < 26 THEN
-    RAISE WARNING 'placex insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-  END IF;
+--  IF NEW.rank_search < 26 THEN
+--    RAISE WARNING 'placex insert: % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--  END IF;
 
   RETURN NEW;
 
@@ -1798,7 +1798,7 @@ BEGIN
     IF existing.osm_type IS NOT NULL THEN
 --      RAISE WARNING 'insert delete % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,ST_Distance(ST_Centroid(existing.geometry),ST_Centroid(NEW.geometry)),existing;
       IF existing.rank_search < 26 THEN
-        RAISE WARNING 'replace placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--        RAISE WARNING 'replace placex % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
       END IF;
       DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
     END IF;   
@@ -1858,9 +1858,9 @@ BEGIN
      AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') 
      THEN 
 
-    IF existing.rank_search < 26 THEN
-      RAISE WARNING 'existing polygon change % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-    END IF;
+--    IF existing.rank_search < 26 THEN
+--      RAISE WARNING 'existing polygon change % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--    END IF;
 
     -- Get the version of the geometry actually used (in placex table)
     select geometry from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type into existinggeometry;
@@ -1893,9 +1893,9 @@ BEGIN
      AND coalesce(existing.name::text, '') != coalesce(NEW.name::text, '') 
      THEN
 
-    IF existing.rank_search < 26 THEN
-      RAISE WARNING 'name change only % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-    END IF;
+--    IF existing.rank_search < 26 THEN
+--      RAISE WARNING 'name change only % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--    END IF;
 
     IF NOT update_location_nameonly(existingplacex.place_id, NEW.name) THEN
 
@@ -1916,9 +1916,9 @@ BEGIN
         OR coalesce(existing.postcode, '') != coalesce(NEW.postcode, '')
         OR coalesce(existing.country_code, '') != coalesce(NEW.country_code, '') THEN
 
-      IF existing.rank_search < 26 THEN
-        RAISE WARNING 'other change % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
-      END IF;
+--      IF existing.rank_search < 26 THEN
+--        RAISE WARNING 'other change % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type;
+--      END IF;
 
       -- performance, can't take the load of re-indexing a whole country / huge area
       IF st_area(NEW.geometry) < 0.5 THEN
