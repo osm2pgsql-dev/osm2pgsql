@@ -120,11 +120,11 @@ $$
 LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION transliteration(text) RETURNS text
-  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'transliteration'
+  AS '/home/twain/osm2pgsql/gazetteer/gazetteer.so', 'transliteration'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION gettokenstring(text) RETURNS text
-  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'gettokenstring'
+  AS '/home/twain/osm2pgsql/gazetteer/gazetteer.so', 'gettokenstring'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION make_standard_name(name TEXT) RETURNS TEXT
@@ -273,10 +273,10 @@ BEGIN
   IF return_word_id IS NULL THEN
     return_word_id := nextval('seq_word');
     INSERT INTO word VALUES (return_word_id, lookup_token, regexp_replace(lookup_token,E'([^0-9])\\1+',E'\\1','g'), src_word, null, null, null, 0, null);
-    nospace_lookup_token := replace(replace(lookup_token, '-',''), ' ','');
-    IF ' '||nospace_lookup_token != lookup_token THEN
-      INSERT INTO word VALUES (return_word_id, '-'||nospace_lookup_token, null, src_word, null, null, null, 0, null);
-    END IF;
+--    nospace_lookup_token := replace(replace(lookup_token, '-',''), ' ','');
+--    IF ' '||nospace_lookup_token != lookup_token THEN
+--      INSERT INTO word VALUES (return_word_id, '-'||nospace_lookup_token, null, src_word, null, null, null, 0, null);
+--    END IF;
   END IF;
   RETURN return_word_id;
 END;
@@ -506,22 +506,42 @@ LANGUAGE plpgsql IMMUTABLE;
 CREATE OR REPLACE FUNCTION get_country_code(place geometry) RETURNS TEXT
   AS $$
 DECLARE
+  place_centre GEOMETRY;
   nearcountry RECORD;
 BEGIN
-  FOR nearcountry IN select country_code from location_area where ST_Contains(area, ST_Centroid(place)) and country_code is not null order by rank_address asc limit 1
+  place_centre := ST_Centroid(place);
+
+  -- Try for a OSM polygon first
+  FOR nearcountry IN select country_code from location_area where st_contains(area, place_centre) limit 1
   LOOP
-    RETURN lower(nearcountry.country_code);
+    RETURN nearcountry.country_code;
   END LOOP;
-  -- Are we in a country? Ignore the error condition of being in multiple countries
-  FOR nearcountry IN select distinct country_code from country where ST_Contains(country.geometry, ST_Centroid(place)) limit 1
+
+  -- Try for an OSM polygon first, grid is faster
+  FOR nearcountry IN select country_code from country_osm_grid where st_contains(geometry, place_centre) limit 1
   LOOP
-    RETURN lower(nearcountry.country_code);
+    RETURN nearcountry.country_code;
   END LOOP;
-  -- Not in a country - try nearest withing 12 miles of a country
-  FOR nearcountry IN select country_code from country where st_distance(country.geometry, ST_Centroid(place)) < 0.5 order by st_distance(country.geometry, place) asc limit 1
+
+  -- Natural earth data (first fallback)
+  FOR nearcountry IN select country_code from country_naturalearthdata where st_contains(geometry, place_centre) limit 1
   LOOP
-    RETURN lower(nearcountry.country_code);
+    RETURN nearcountry.country_code;
   END LOOP;
+
+  -- WorldBoundaries data (second fallback - think there might be something broken in this data)
+  FOR nearcountry IN select country_code from country where st_contains(geometry, place_centre) limit 1
+  LOOP
+    RETURN nearcountry.country_code;
+  END LOOP;
+
+  -- Still not in a country - try nearest within ~12 miles of a country
+  FOR nearcountry IN select country_code from country where st_distance(geometry, place_centre) < 0.5 
+    order by st_distance(geometry, place) limit 1
+  LOOP
+    RETURN nearcountry.country_code;
+  END LOOP;
+
   RETURN NULL;
 END;
 $$
@@ -594,9 +614,16 @@ DECLARE
   country_code VARCHAR(2);
   locationid INTEGER;
   isarea BOOLEAN;
+  xmin INTEGER;
+  ymin INTEGER;
+  xmax INTEGER;
+  ymax INTEGER;
+  lon INTEGER;
+  lat INTEGER;
+  secgeo GEOMETRY;
 BEGIN
 
-  -- Allocate all tokens ids - prevents multi-processor race condition later on
+  -- Allocate all tokens ids - prevents multi-processor race condition later on at cost of slowing down import
   keywords := make_keywords(name);
 
   -- 26 = street/highway
@@ -608,9 +635,31 @@ BEGIN
 
     isarea := false;
     IF (ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(geometry)) THEN
-      INSERT INTO location_area values (place_id,country_code,name,keywords,
-        rank_search,rank_address,ST_Centroid(geometry),geometry);
-      isarea := true;
+
+      isArea := true;
+
+      xmin := floor(st_xmin(geometry));
+      xmax := ceil(st_xmax(geometry));
+      ymin := floor(st_ymin(geometry));
+      ymax := ceil(st_ymax(geometry));
+
+      IF xmin = xmax OR ymin = ymax OR (xmax-xmin < 2 AND ymax-ymin < 2) THEN
+        INSERT INTO location_area values (place_id, country_code, name, keywords,
+          rank_search, rank_address, ST_Centroid(geometry), geometry);
+      ELSE
+        FOR lon IN xmin..(xmax-1) LOOP
+          FOR lat IN ymin..(ymax-1) LOOP
+            secgeo := st_intersection(geometry, ST_SetSRID(ST_MakeBox2D(ST_Point(lon,lat),ST_Point(lon+1,lat+1)),4326));
+            IF NOT ST_IsEmpty(secgeo) THEN
+              INSERT INTO location_area values (place_id, country_code, name, keywords,
+                rank_search, rank_address, ST_Centroid(geometry),
+                st_intersection(geometry, ST_SetSRID(ST_MakeBox2D(ST_Point(lon,lat),ST_Point(lon+1,lat+1)),4326))
+                );
+            END IF;
+          END LOOP;
+        END LOOP;
+      END IF;
+
     END IF;
 
     INSERT INTO location_point values (place_id,country_code,name,keywords,rank_search,rank_address,isarea,ST_Centroid(geometry));
@@ -929,10 +978,11 @@ BEGIN
   END IF;
 
 --  RAISE WARNING '%',NEW.osm_id;
-
   IF ST_IsEmpty(NEW.geometry) OR NOT ST_IsValid(NEW.geometry) OR ST_X(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') OR ST_Y(ST_Centroid(NEW.geometry))::text in ('NaN','Infinity','-Infinity') THEN  
     -- block all invalid geometary - just not worth the risk.  seg faults are causing serious problems.
     RETURN NULL;
+
+    -- Dead code
     IF NEW.osm_type = 'R' THEN
       -- invalid multipolygons can crash postgis, don't even bother to try!
       RETURN NULL;
@@ -947,8 +997,6 @@ BEGIN
   NEW.place_id := nextval('seq_place');
   NEW.indexed := false;
   NEW.country_code := lower(NEW.country_code);
-
---RAISE WARNING '%',NEW.country_code;
 
   IF NEW.housenumber IS NOT NULL THEN
     i := getorcreate_housenumber_id(make_standard_name(NEW.housenumber));
@@ -1122,7 +1170,7 @@ BEGIN
     result := add_location(NEW.place_id,NEW.country_code,NEW.name,NEW.rank_search,NEW.rank_address,NEW.geometry);
   END IF;
 
-  --RETURN NEW;
+  RETURN NEW;
   -- The following is not needed until doing diff updates, and slows the main index process down
 
   IF (ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(NEW.geometry)) THEN
