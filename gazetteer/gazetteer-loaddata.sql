@@ -39,4 +39,4 @@ CREATE SEQUENCE seq_progress_updates start 1;
 insert into placex select * from place where osm_type = 'N';
 insert into placex select * from place where osm_type = 'W';
 insert into placex select * from place where osm_type = 'R';
-select count(*) from (select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses') as x;
+select count(*) from (select create_interpolation(osm_id, housenumber) from placex where indexed=false and class='place' and type='houses') as x;
