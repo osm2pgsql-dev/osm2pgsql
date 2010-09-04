@@ -524,10 +524,10 @@ BEGIN
   END LOOP;
 
   -- Natural earth data (first fallback)
-  FOR nearcountry IN select country_code from country_naturalearthdata where st_contains(geometry, place_centre) limit 1
-  LOOP
-    RETURN nearcountry.country_code;
-  END LOOP;
+--  FOR nearcountry IN select country_code from country_naturalearthdata where st_contains(geometry, place_centre) limit 1
+--  LOOP
+--    RETURN nearcountry.country_code;
+--  END LOOP;
 
   -- WorldBoundaries data (second fallback - think there might be something broken in this data)
   FOR nearcountry IN select country_code from country where st_contains(geometry, place_centre) limit 1
