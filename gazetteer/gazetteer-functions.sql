@@ -650,7 +650,7 @@ BEGIN
         FOR lon IN xmin..(xmax-1) LOOP
           FOR lat IN ymin..(ymax-1) LOOP
             secgeo := st_intersection(geometry, ST_SetSRID(ST_MakeBox2D(ST_Point(lon,lat),ST_Point(lon+1,lat+1)),4326));
-            IF NOT ST_IsEmpty(secgeo) THEN
+            IF NOT ST_IsEmpty(secgeo) AND ST_GeometryType(secgeo) in ('ST_Polygon','ST_MultiPolygon') THEN
               INSERT INTO location_area values (place_id, country_code, name, keywords,
                 rank_search, rank_address, ST_Centroid(geometry),
                 st_intersection(geometry, ST_SetSRID(ST_MakeBox2D(ST_Point(lon,lat),ST_Point(lon+1,lat+1)),4326))
