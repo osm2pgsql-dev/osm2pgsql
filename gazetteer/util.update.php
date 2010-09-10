@@ -595,7 +595,7 @@ function indexSector($oDB, $aSector, $fMaxBlocking, $fMaxLoad)
 				echo "  Step $iStepNum of $iNumSteps: ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
 				$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$iRank;
 				$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
-				if (PEAR::IsError($xError = $oDB->query($sSQL))
+				if (PEAR::IsError($xError = $oDB->query($sSQL)))
 				{
 					var_dump($xError);
 					exit;
