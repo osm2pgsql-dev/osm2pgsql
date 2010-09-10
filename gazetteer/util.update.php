@@ -269,45 +269,53 @@
 		while(true)
 		{
 			$fStartTime = time();
-			$iFileSize = 0;
-			
-			if (!file_exists($sImportFile))
-			{
-				// Use osmosis to download the file
+			$iFileSize = 1001;
+
+			// Logic behind this is that osm2pgsql locks the database quite a bit
+			// So it is better to import lots of small files
+			// But indexing works most efficiently on large amounts of data
+			// So do lots of small imports and a BIG index
+
+			while($aResult['import-osmosis-all'] && $iFileSize > 1000)
+			{			
+				if (!file_exists($sImportFile))
+				{
+					// Use osmosis to download the file
+					$fCMDStartTime = time();
+					echo $sCMDDownload."\n";
+					exec($sCMDDownload, $sJunk, $iErrorLevel);
+					if ($iErrorLevel)
+					{
+						echo "Error: $iErrorLevel\n";
+						exit;
+					}
+					$iFileSize = filesize($sImportFile);
+					$sBatchEnd = getosmosistimestamp($sOsmosisConfigDirectory);
+					echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
+					$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osmosis')";
+					$oDB->query($sSQL);
+				}
+
+				$iFileSize = filesize($sImportFile);
+				$sBatchEnd = getosmosistimestamp($sOsmosisConfigDirectory);
+		
+				// Import the file
 				$fCMDStartTime = time();
-				echo $sCMDDownload."\n";
-				exec($sCMDDownload, $sJunk, $iErrorLevel);
+				echo $sCMDImport."\n";
+				exec($sCMDImport, $sJunk, $iErrorLevel);
 				if ($iErrorLevel)
 				{
 					echo "Error: $iErrorLevel\n";
 					exit;
 				}
-				$iFileSize = filesize($sImportFile);
-				$sBatchEnd = getosmosistimestamp($sOsmosisConfigDirectory);
 				echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
-				$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osmosis')";
+				$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osm2pgsql')";
+				var_Dump($sSQL);
 				$oDB->query($sSQL);
-			}
 
-			$iFileSize = filesize($sImportFile);
-			$sBatchEnd = getosmosistimestamp($sOsmosisConfigDirectory);
-		
-			// Import the file
-			$fCMDStartTime = time();
-			echo $sCMDImport."\n";
-			exec($sCMDImport, $sJunk, $iErrorLevel);
-			if ($iErrorLevel)
-			{
-				echo "Error: $iErrorLevel\n";
-				exit;
+				// Archive for debug?
+				unlink($sImportFile);
 			}
-			echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
-			$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','osm2pgsql')";
-			var_Dump($sSQL);
-			$oDB->query($sSQL);
-
-			// Archive for debug?
-			unlink($sImportFile);
 
 			// Index file
 			$fCMDStartTime = time();
@@ -327,6 +335,9 @@
 
 			echo "Completed for $sBatchEnd in ".round((time()-$fCMDStartTime)/60,2)." minutes\n";
 			$sSQL = "INSERT INTO import_osmosis_log values ('$sBatchEnd',$iFileSize,'".date('Y-m-d H:i:s',$fCMDStartTime)."','".date('Y-m-d H:i:s')."','index')";
+			$oDB->query($sSQL);
+
+			$sSQL = "update import_status set lastimportdate = '$sBatchEnd'";
 			$oDB->query($sSQL);
 
 			$fDuration = time() - $fStartTime;
@@ -584,7 +595,11 @@ function indexSector($oDB, $aSector, $fMaxBlocking, $fMaxLoad)
 				echo "  Step $iStepNum of $iNumSteps: ($fStepLon,$fStepLat,$fStepLonTop,$fStepLatTop)\n";
 				$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$iRank;
 				$sSQL .= " and ST_Contains(ST_SetSRID(ST_MakeBox2D(ST_SetSRID(ST_POINT($fStepLon,$fStepLat),4326),ST_SetSRID(ST_POINT($fStepLonTop,$fStepLatTop),4326)),4326),geometry)";
-				$oDB->query($sSQL);
+				if (PEAR::IsError($xError = $oDB->query($sSQL))
+				{
+					var_dump($xError);
+					exit;
+				}
 				$iStepNum++;
 			}
 		}
