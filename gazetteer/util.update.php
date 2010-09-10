@@ -605,5 +605,10 @@ function indexSector($oDB, $aSector, $fMaxBlocking, $fMaxLoad)
 		}
 	}
 	$sSQL = 'update placex set indexed = true where geometry_index(geometry,indexed,name) = '.$aSector['geometry_index'].' and rank_search = '.$iRank;
+	if (PEAR::IsError($xError = $oDB->query($sSQL)))
+	{
+		var_dump($xError);
+		exit;
+	}
 	$oDB->query($sSQL);
 }
