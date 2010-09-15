@@ -290,7 +290,7 @@ form{
                 projection: new OpenLayers.Projection("EPSG:900913"),
                 displayProjection: new OpenLayers.Projection("EPSG:4326"),
                 eventListeners: {
-									"moveend": mapEventMove,
+									"moveend": mapEventMove
 								}
             	} );
 			map.addLayer(new OpenLayers.Layer.OSM.Mapnik("Mapnik"));

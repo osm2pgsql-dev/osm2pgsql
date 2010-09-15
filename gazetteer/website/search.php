@@ -3,6 +3,19 @@
 	if (isset($_GET['debug']) && $_GET['debug']) @define('CONST_Debug', true);
 
 	require_once('.htlib/init.php');
+
+	if (strpos(CONST_BulkUserIPs, ','.$_SERVER["REMOTE_ADDR"].',') !== false)
+	{
+		$fLoadAvg = getLoadAverage();
+		if ($fLoadAvg > 1) sleep(60);
+		if ($fLoadAvg > 2) sleep(120);
+		if ($fLoadAvg > 3)
+		{
+			echo "Bulk User: Temporary block due to high server load\n";
+			exit;
+		}
+	}
+
 	ini_set('memory_limit', '200M');
 
 	// Display defaults
@@ -13,9 +26,14 @@
 	$aSearchResults = array();
 	$aExcludePlaceIDs = array();
 	$sSuggestion = $sSuggestionURL = false;
+	$bDeDupe = isset($_GET['dedupe'])?(bool)$_GET['dedupe']:true;
+	$bReverseInPlan = false;
+	$iLimit = isset($_GET['limit'])?(int)$_GET['limit']:10;
+	$iMaxRank = 20;
+	if ($iLimit > 100) $iLimit = 100;
 
 	// Format for output
-	if (isset($_GET['format']) && ($_GET['format'] == 'html' || $_GET['format'] == 'xml' || $_GET['format'] == 'json'))
+	if (isset($_GET['format']) && ($_GET['format'] == 'html' || $_GET['format'] == 'xml' || $_GET['format'] == 'json' ||  $_GET['format'] == 'jsonv2'))
 	{
 		$sOutputFormat = $_GET['format'];
 	}
@@ -28,6 +46,8 @@
 
 	// Prefered language	
 	$aLangPrefOrder = getPrefferedLangauges();
+	if (isset($aLangPrefOrder['name:de'])) $bReverseInPlan = true;
+//	$bReverseInPlan = true;
 	$sLanguagePrefArraySQL = "ARRAY[".join(',',array_map("getDBQuoted",$aLangPrefOrder))."]";
 
 	if (isset($_GET['exclude_place_ids']) && $_GET['exclude_place_ids'])
@@ -101,7 +121,8 @@
 
 			// Start with a blank search
 			$aSearches = array(
-				array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
+				array('iSearchRank' => 0, 'iNamePhrase' => 0, 'sCountryCode' => false, 'aName'=>array(), 'aAddress'=>array(), 
+					'sOperator'=>'', 'aFeatureName' => array(), 'sClass'=>'', 'sType'=>'', 'sHouseNumber'=>'', 'fLat'=>'', 'fLon'=>'', 'fRadius'=>'')
 			);
 
 			$sNearPointSQL = false;
@@ -123,7 +144,7 @@
 
 			// Split query into phrases
 			// Commas are used to reduce the search space by indicating where phrases split
-			$aPhrases = explode(',',str_replace(array(' in ',' near ',' im '),',',' '.$sQuery.' '));
+			$aPhrases = explode(',',$sQuery);
 
 			// Convert each phrase to standard form
 			// Create a list of standard words
@@ -133,6 +154,11 @@
 			foreach($aPhrases as $iPhrase => $sPhrase)
 			{
 				$aPhrase = $oDB->getRow("select make_standard_name('".pg_escape_string($sPhrase)."') as string");
+				if (PEAR::isError($aPhrase))
+				{
+					var_dump($aPhrase);
+					exit;
+				}
 				if (trim($aPhrase['string']))
 				{
 					$aPhrases[$iPhrase] = $aPhrase;
@@ -146,11 +172,14 @@
 				}
 			}			
 
+			// reindex phrases - we make assumptions later on
+			$aPhrases = array_values($aPhrases);
+
 			if (sizeof($aTokens))
 			{
 
 			// Check which tokens we have, get the ID numbers			
-			$sSQL = 'select word_id,word_token, word, class, type, location,country_code';
+			$sSQL = 'select word_id,word_token, word, class, type, location, country_code, operator';
 			$sSQL .= ' from word where word_token in ('.join(',',array_map("getDBQuoted",$aTokens)).')';
 //			$sSQL .= ' group by word_token, word, class, type, location,country_code';
 
@@ -180,8 +209,8 @@
                         $bSuggestion = false;
 			if (CONST_Suggestions_On)
 			{
-	                        foreach($aPhrases as $iPhrase => $aPhrase)
-        	                {
+				foreach($aPhrases as $iPhrase => $aPhrase)
+				{
                 	                if (!isset($aValidTokens[' '.$aPhrase['wordsets'][0][0]]))
                         	        {
                                 	        $sQuotedPhrase = getDBQuoted(' '.$aPhrase['wordsets'][0][0]);
@@ -242,8 +271,8 @@
 				Score how good the search is so they can be ordered
 			*/
 
-			foreach($aPhrases as $iPhrase => $sPhrase)
-			{
+				foreach($aPhrases as $iPhrase => $sPhrase)
+				{
 					$aNewPhraseSearches = array();
 
 					foreach($aPhrases[$iPhrase]['wordsets'] as $iWordset => $aWordset)
@@ -269,7 +298,10 @@
 											if ($aSearch['sCountryCode'] === false)
 											{
 												$aSearch['sCountryCode'] = strtolower($aSearchTerm['country_code']);
-												$aNewWordsetSearches[] = $aSearch;
+												// Country is almost always at the end of the string - increase score for finding it anywhere else (opimisation)
+//var_dump('<hr>',$sToken, $iWordset, sizeof($aPhrases[$iPhrase]['wordsets']), $iPhrase, sizeof($aPhrases), $aPhrases);
+												if ($iWordset+1 != sizeof($aPhrases[$iPhrase]['wordsets']) || $iPhrase+1 != sizeof($aPhrases)) $aSearch['iSearchRank'] += 5;
+												if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 											}
 										}
 										elseif ($aSearchTerm['lat'] !== '' && $aSearchTerm['lat'] !== null)
@@ -279,7 +311,7 @@
 												$aSearch['fLat'] = $aSearchTerm['lat'];
 												$aSearch['fLon'] = $aSearchTerm['lon'];
 												$aSearch['fRadius'] = $aSearchTerm['radius'];
-												$aNewWordsetSearches[] = $aSearch;
+												if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 											}
 										}
 										elseif ($aSearchTerm['class'] == 'place' && $aSearchTerm['type'] == 'house')
@@ -287,41 +319,49 @@
 											if ($aSearch['sHouseNumber'] === '')
 											{
 												$aSearch['sHouseNumber'] = $sToken;
-												$aNewWordsetSearches[] = $aSearch;
+												if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 
 												// Fall back to not searching for this item (better than nothing)
 												$aSearch = $aCurrentSearch;
 												$aSearch['iSearchRank'] += 2;
-												$aNewWordsetSearches[] = $aSearch;
+												if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 											}
 										}
 										elseif ($aSearchTerm['class'] !== '' && $aSearchTerm['class'] !== null)
 										{
 											if ($aSearch['sClass'] === '')
 											{
+												$aSearch['sOperator'] = $aSearchTerm['operator'];
 												$aSearch['sClass'] = $aSearchTerm['class'];
 												$aSearch['sType'] = $aSearchTerm['type'];
-												$aNewWordsetSearches[] = $aSearch;
+												if (sizeof($aSearch['aName'])) $aSearch['sOperator'] = 'name';
+												else $aSearch['sOperator'] = 'near'; // near = in for the moment
+
+												// Do we have a shortcut id?
+												if ($aSearch['sOperator'] == 'name')
+												{
+
+													$sSQL = "select get_tagpair('".$aSearch['sClass']."', '".$aSearch['sType']."')";
+													if ($iAmenityID = $oDB->getOne($sSQL))
+													{
+														$aValidTokens[$aSearch['sClass'].':'.$aSearch['sType']] = array('word_id' => $iAmenityID);
+														$aSearch['aName'][$iAmenityID] = $iAmenityID;
+														$aSearch['sClass'] = '';
+														$aSearch['sType'] = '';
+													}
+												}
+												if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 											}
 										}
 										else
 										{
 											$aSearch['aAddress'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
-											if (!sizeof($aSearch['aName']) || $aSearch['iNamePhrase'] == $iPhrase)
+											if (!sizeof($aSearch['aName']))
 											{
-												// If we already have a name there is the option of NOT
-												// adding this word to the name, just the address
-												if (sizeof($aSearch['aName']))
-												{
-													$aSearch['iNamePhrase'] = -1;
-													$aSearch['iSearchRank'] += 1;
-													$aNewWordsetSearches[] = $aSearch;
-													$aSearch['iSearchRank'] -= 1;
-												}
 												$aSearch['aName'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
 												$aSearch['iNamePhrase'] = $iPhrase;
 											}
-											$aNewWordsetSearches[] = $aSearch;
+											if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 										}
 									}
 								}
@@ -331,14 +371,14 @@
 									foreach($aValidTokens[$sToken] as $aSearchTerm)
 									{
 										$aSearch = $aCurrentSearch;
-										$aSearch['iSearchRank']+=10;
+										$aSearch['iSearchRank']+=5;
 										$aSearch['aAddress'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
 										if (!sizeof($aSearch['aName']) || $aSearch['iNamePhrase'] == $iPhrase)
 										{
 											$aSearch['aName'][$aSearchTerm['word_id']] = $aSearchTerm['word_id'];
 											$aSearch['iNamePhrase'] = $iPhrase;
 										}
-										$aNewWordsetSearches[] = $aSearch;
+										if ($aSearch['iSearchRank'] < $iMaxRank) $aNewWordsetSearches[] = $aSearch;
 									}
 								}
 								else
@@ -349,16 +389,22 @@
 									//$aNewWordsetSearches[] = $aSearch;
 								}
 							}
-							$aWordsetSearches = $aNewWordsetSearches;
+							// Sort and cut
+							usort($aNewWordsetSearches, 'bySearchRank');
+							$aWordsetSearches = array_slice($aNewWordsetSearches, 0, 50);
 						}						
+//						var_Dump('<hr>',sizeof($aWordsetSearches)); exit;
+
 						$aNewPhraseSearches = array_merge($aNewPhraseSearches, $aNewWordsetSearches);
+						usort($aNewPhraseSearches, 'bySearchRank');
+						$aNewPhraseSearches = array_slice($aNewPhraseSearches, 0, 50);
 					}
 
-					// Re-group the searches by their score
+					// Re-group the searches by their score, junk anything over 20 as just not worth trying
 					$aGroupedSearches = array();
 					foreach($aNewPhraseSearches as $aSearch)
 					{
-						if ($aSearch['iSearchRank'] < 200)
+						if ($aSearch['iSearchRank'] < $iMaxRank)
 						{
 							if (!isset($aGroupedSearches[$aSearch['iSearchRank']])) $aGroupedSearches[$aSearch['iSearchRank']] = array();
 							$aGroupedSearches[$aSearch['iSearchRank']][] = $aSearch;
@@ -370,27 +416,68 @@
 					$aSearches = array();
 					foreach($aGroupedSearches as $iScore => $aNewSearches)
 					{
-						$iSearchCount += sizeof($aSearches);
+						$iSearchCount += sizeof($aNewSearches);
 						$aSearches = array_merge($aSearches, $aNewSearches);
-						if ($iSearchCount > 10) break;
+						if ($iSearchCount > 50) break;
 					}
 				}
 				
 				if (CONST_Debug) var_Dump($aGroupedSearches);
+
+				if ($bReverseInPlan)
+				{
+					foreach($aGroupedSearches as $iGroup => $aSearches)
+					{
+						foreach($aSearches as $iSearch => $aSearch)
+						{
+							if (sizeof($aSearch['aAddress']))
+							{
+								$aReverseSearch = $aSearch;
+								$iReverseItem = array_pop($aSearch['aAddress']);
+								$aReverseSearch['aName'][$iReverseItem] = $iReverseItem;
+								$aGroupedSearches[$iGroup][] = $aReverseSearch;
+							}
+						}
+					}
+				}
+
+//var_Dump($aGroupedSearches); exit;
+
+				// Filter out duplicate searches
+				$aSearchHash = array();
+				foreach($aGroupedSearches as $iGroup => $aSearches)
+				{
+					foreach($aSearches as $iSearch => $aSearch)
+					{
+						$sHash = serialize($aSearch);
+						if (isset($aSearchHash[$sHash]))
+						{
+							unset($aGroupedSearches[$iGroup][$iSearch]);
+							if (sizeof($aGroupedSearches[$iGroup]) == 0) unset($aGroupedSearches[$iGroup]);
+						}
+						else
+						{
+							$aSearchHash[$sHash] = 1;
+						}
+					}
+				}
+				
 				if (CONST_Debug) _debugDumpGroupedSearches($aGroupedSearches, $aValidTokens);
 
-				$iLoop = 0;
-				foreach($aGroupedSearches as $aSearches)
+				$iGroupLoop = 0;
+				$iQueryLoop = 0;
+				foreach($aGroupedSearches as $iGroupedRank => $aSearches)
 				{
-					if ($iLoop++ > 4) break;
-
+					$iGroupLoop++;
 					foreach($aSearches as $aSearch)
 					{
+						$iQueryLoop++;
 						// Must have a location term
 						if (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && !$aSearch['fLon']) continue;
+						if ($aSearch['aName'] == array(282=>'282')) continue;
 
 						if (CONST_Debug) var_dump('<hr>',$aSearch);
-						if (CONST_Debug) _debugDumpGroupedSearches(array(array($aSearch)), $aValidTokens);
+						if (CONST_Debug) _debugDumpGroupedSearches(array($iGroupedRank => array($aSearch)), $aValidTokens);
 						$aPlaceIDs = array();
 						
 						// First we need a position, either aName or fLat or both
@@ -399,7 +486,7 @@
 						if (sizeof($aSearch['aName'])) $aTerms[] = "name_vector @> ARRAY[".join($aSearch['aName'],",")."]";
 						if (sizeof($aSearch['aAddress']) && $aSearch['aName'] != $aSearch['aAddress']) $aTerms[] = "nameaddress_vector @> ARRAY[".join($aSearch['aAddress'],",")."]";
 						if ($aSearch['sCountryCode']) $aTerms[] = "country_code = '".pg_escape_string($aSearch['sCountryCode'])."'";
-						if ($aSearch['sHouseNumber']) $aTerms[] = "address_rank = 26";
+						if ($aSearch['sHouseNumber']) $aTerms[] = "address_rank in (26,27)";
 						if ($aSearch['fLon'] && $aSearch['fLat'])
 						{
 							$aTerms[] = "ST_DWithin(centroid, ST_SetSRID(ST_Point(".$aSearch['fLon'].",".$aSearch['fLat']."),4326), ".$aSearch['fRadius'].")";
@@ -430,7 +517,7 @@
 							elseif (!sizeof($aSearch['aName']) && !sizeof($aSearch['aAddress']) && $aSearch['sClass'])
 								$sSQL .= " limit 1";
 							else
-								$sSQL .= " limit 10";
+								$sSQL .= " limit ".$iLimit;
 
 							if (CONST_Debug) var_dump($sSQL);
 							$aViewBoxPlaceIDs = $oDB->getAll($sSQL);
@@ -462,14 +549,14 @@
 
 							// Make sure everything nearby is indexed (if we pre-indexed houses this wouldn't be needed!)
 							$sSQL = "update placex set indexed = true from placex as f where placex.indexed = false";
-							$sSQL .= " and f.place_id in (".$sPlaceIDs.") and ST_DWithin(placex.geometry, f.geometry, 0.001)";
-							$sSQL .= " and placex.housenumber ~ E'".$sHouseNumberRegex."'";
+							$sSQL .= " and f.place_id in (".$sPlaceIDs.") and ST_DWithin(placex.geometry, f.geometry, 0.004)";
+							$sSQL .= " and placex.housenumber ~* E'".$sHouseNumberRegex."'";
 							$sSQL .= " and placex.class='place' and placex.type='house'";
 							if (CONST_Debug) var_dump($sSQL);
 							$oDB->query($sSQL);
 							
 							// Now they are indexed look for a house attached to a street we found
-							$sSQL = "select place_id from placex where street_place_id in (".$sPlaceIDs.") and housenumber ~ E'".$sHouseNumberRegex."'";
+							$sSQL = "select place_id from placex where street_place_id in (".$sPlaceIDs.") and housenumber ~* E'".$sHouseNumberRegex."'";
 							if (sizeof($aExcludePlaceIDs))
 							{
 								$sSQL .= " and place_id not in (".join(',',$aExcludePlaceIDs).")";
@@ -481,20 +568,22 @@
 						if ($aSearch['sClass'] && sizeof($aPlaceIDs))
 						{
 							$sPlaceIDs = join(',',$aPlaceIDs);
-							
-							// If they were searching for a named class (i.e. 'Kings Head pub') then we might have an extra match
-							$sSQL = "select place_id from placex where place_id in ($sPlaceIDs) and class='".$aSearch['sClass']."' and type='".$aSearch['sType']."'";
-							$sSQL .= " order by rank_search asc limit 10";
-							if (CONST_Debug) var_dump($sSQL);
-							$aPlaceIDs = $oDB->getCol($sSQL);
+
+							if (!$aSearch['sOperator'] || $aSearch['sOperator'] == 'name')
+							{
+								// If they were searching for a named class (i.e. 'Kings Head pub') then we might have an extra match
+								$sSQL = "select place_id from placex where place_id in ($sPlaceIDs) and class='".$aSearch['sClass']."' and type='".$aSearch['sType']."'";
+								$sSQL .= " order by rank_search asc limit $iLimit";
+								if (CONST_Debug) var_dump($sSQL);
+								$aPlaceIDs = $oDB->getCol($sSQL);
+							}
 								
-							// No exact match, look for one nearby
-							if (!sizeof($aPlaceIDs))
+							if (!$aSearch['sOperator'] || $aSearch['sOperator'] == 'near') // & in
 							{
 								$fRange = 0.01;
 								if (isset($aSearch['fRadius']) && $aSearch['fRadius']) $fRange = $aSearch['fRadius'];
 								$sSQL = "select l.place_id from placex as l,placex as f where ";
-								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, f.geometry, $fRange) ";
+								$sSQL .= "f.place_id in ($sPlaceIDs) and ST_DWithin(l.geometry, st_centroid(f.geometry), $fRange) ";
 								$sSQL .= "and l.class='".$aSearch['sClass']."' and l.type='".$aSearch['sType']."' ";
 								if (sizeof($aExcludePlaceIDs))
 								{
@@ -502,7 +591,7 @@
 								}
 								if ($sNearPointSQL) $sSQL .= " order by ST_Distance($sNearPointSQL, l.geometry) ASC";
 								else $sSQL .= " order by ST_Distance(l.geometry, f.geometry) asc, l.rank_search ASC";
-								$sSQL .= " limit 10";
+								$sSQL .= " limit $iLimit";
 								if (CONST_Debug) var_dump($sSQL);
 								$aPlaceIDs = $oDB->getCol($sSQL);
 							}
@@ -520,9 +609,12 @@
 						{
 							$aResultPlaceIDs[$iPlaceID] = $iPlaceID;
 						}
+						if ($iQueryLoop > 20) break;
 					}
 					//exit;
 					if (sizeof($aResultPlaceIDs)) break;
+					if ($iGroupLoop > 4) break;
+					if ($iQueryLoop > 30) break;
 				}
 //exit;
 				// Did we find anything?	
@@ -544,6 +636,7 @@
 					$sSQL .= "avg(ST_X(ST_Centroid(geometry))) as lon,avg(ST_Y(ST_Centroid(geometry))) as lat ";
 					$sSQL .= "from placex where place_id in ($sPlaceIDs) ";
 					$sSQL .= "group by osm_type,osm_id,class,type,rank_search,rank_address,country_code";
+					if (!$bDeDupe) $sSQL .= ",place_id";
 					$sSQL .= ",get_address_by_language(place_id, $sLanguagePrefArraySQL) ";
 					$sSQL .= ",get_name_by_language(name, $sLanguagePrefArraySQL) ";
 					$sSQL .= ",get_name_by_language(name, ARRAY['ref']) ";
@@ -708,8 +801,8 @@
 			if (isset($aResult['zoom'])) $iZoom = $aResult['zoom'];
 			$bFirst = false;
 		}
-		if (!isset($aOSMIDDone[$aResult['osm_type'].$aResult['osm_id']])
-			&& !isset($aClassTypeNameDone[$aResult['osm_type'].$aResult['osm_class'].$aResult['name']]))
+		if (!$bDeDupe || (!isset($aOSMIDDone[$aResult['osm_type'].$aResult['osm_id']])
+			&& !isset($aClassTypeNameDone[$aResult['osm_type'].$aResult['osm_class'].$aResult['name']])))
 		{
 			$aOSMIDDone[$aResult['osm_type'].$aResult['osm_id']] = true;
 			$aClassTypeNameDone[$aResult['osm_type'].$aResult['osm_class'].$aResult['name']] = true;

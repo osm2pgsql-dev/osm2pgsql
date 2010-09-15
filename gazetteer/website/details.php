@@ -1,6 +1,14 @@
 <?php
 
 	require_once('.htlib/init.php');
+
+        $fLoadAvg = getLoadAverage();
+        if ($fLoadAvg > 3)
+        {
+		echo "Page temporarily blocked due to high server load\n";
+                exit;
+        }
+
 	ini_set('memory_limit', '200M');
 
 	if (isset($_GET['osmtype']) && isset($_GET['osmid']) && (int)$_GET['osmid'] && ($_GET['osmtype'] == 'N' || $_GET['osmtype'] == 'W' || $_GET['osmtype'] == 'R'))
@@ -115,7 +123,7 @@
 	$iMaxRankAddress = $aPointDetails['rank_address']+13;
 	$sSQL = "select placex.place_id, osm_type, osm_id, class, type, housenumber, admin_level, cached_rank_address, ST_GeometryType(geometry) in ('ST_Polygon','ST_MultiPolygon') as isarea, distance, ";
 	$sSQL .= " get_name_by_language(name,$sLanguagePrefArraySQL) as localname, length(name::text) as namelength ";
-	$sSQL .= " from (select * from place_addressline where address_place_id = $iPlaceID and cached_rank_address < $iMaxRankAddress) as place_addressline join placex on (place_addressline.place_id = placex.place_id)";
+	$sSQL .= " from (select * from place_addressline where address_place_id = $iPlaceID and cached_rank_address < $iMaxRankAddress limit 1000) as place_addressline join placex on (place_addressline.place_id = placex.place_id)";
 	$sSQL .= " where place_addressline.address_place_id = $iPlaceID and placex.rank_address < $iMaxRankAddress and cached_rank_address > 0 and placex.place_id != $iPlaceID";
 	$sSQL .= " and type != 'postcode'";
 	$sSQL .= " order by cached_rank_address asc,rank_search asc,get_name_by_language(name,$sLanguagePrefArraySQL),housenumber limit 1000";
