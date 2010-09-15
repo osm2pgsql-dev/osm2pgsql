@@ -1,6 +1,19 @@
 <?php
 
         require_once('.htlib/init.php');
+
+        if (strpos(CONST_BulkUserIPs, ','.$_SERVER["REMOTE_ADDR"].',') !== false)
+        {
+                $fLoadAvg = getLoadAverage();
+                if ($fLoadAvg > 2) sleep(60);
+                if ($fLoadAvg > 4) sleep(120);
+                if ($fLoadAvg > 6)
+                {
+                        echo "Bulk User: Temporary block due to high server load\n";
+                        exit;
+                }
+        }
+
         ini_set('memory_limit', '200M');
 
         // Format for output
@@ -48,7 +61,8 @@
 			15 => 22,
 			16 => 26, // Street, TODO: major street?
 			17 => 26, 
-			18 => 28, // or >, Building
+			18 => 30, // or >, Building
+			19 => 30, // or >, Building
 			);
 		$iMaxRank = isset($aZoomRank[$_GET['zoom']])?$aZoomRank[$_GET['zoom']]:28;
 
@@ -70,6 +84,7 @@
 			if ($fSearchDiam > 0.2 && $iMaxRank > 17) $iMaxRank = 17;
 			if ($fSearchDiam > 0.1 && $iMaxRank > 18) $iMaxRank = 18;
 			if ($fSearchDiam > 0.01 && $iMaxRank > 22) $iMaxRank = 22;
+			if ($fSearchDiam > 0.001 && $iMaxRank > 25) $iMaxRank = 25;
 
 			if ($iMaxRank >= 26)
 			{
@@ -77,8 +92,8 @@
 				$sSQL = 'select place_id from placex';
 				$sSQL .= ' WHERE ST_DWithin('.$sPointSQL.', geometry, '.$fSearchDiam.')';
 				$sSQL .= ' and rank_search >= 26 and rank_search <= '.$iMaxRank;
-				$sSQL .= ' and (ST_GeometryType(geometry) not in (\'ST_Polygon\',\'ST_MultiPolygon\') ';
-				$sSQL .= ' OR ST_DWithin('.$sPointSQL.', ST_Centroid(geometry), '.$fSearchDiam.'))';
+//				$sSQL .= ' and (ST_GeometryType(geometry) not in (\'ST_Polygon\',\'ST_MultiPolygon\') ';
+//				$sSQL .= ' OR ST_DWithin('.$sPointSQL.', ST_Centroid(geometry), '.$fSearchDiam.'))';
 				$sSQL .= ' ORDER BY rank_search desc, ST_distance('.$sPointSQL.', geometry) ASC limit 1';
 				$iPlaceID = $oDB->getOne($sSQL);
 				if (PEAR::IsError($iPlaceID))

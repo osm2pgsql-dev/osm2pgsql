@@ -30,6 +30,11 @@
 		return "'".pg_escape_string($s)."'";
 	}
 	
+	function bySearchRank($a, $b)
+	{
+		if ($a['iSearchRank'] == $b['iSearchRank']) return 0;
+		return ($a['iSearchRank'] < $b['iSearchRank']?-1:1);
+	}
 	function byImportance($a, $b)
 	{
 		if ($a['aPointPolygon']['numfeatures'] != $b['aPointPolygon']['numfeatures'])
@@ -110,7 +115,8 @@
 			foreach($aSet as $sWord)
 			{
 				$aTokens[' '.$sWord] = ' '.$sWord;
-				if (!strpos($sWord,' ')) $aTokens[$sWord] = $sWord;
+				$aTokens[$sWord] = $sWord;
+				//if (!strpos($sWord,' ')) $aTokens[$sWord] = $sWord;
 			}
 		}
 		return $aTokens;
@@ -622,11 +628,11 @@
 		{
 			foreach($aWords as $aToken)
 			{
-				$aWordsIDs[$aToken['word_id']] = $sToken;
+				$aWordsIDs[$aToken['word_id']] = $sToken.'('.$aToken['word_id'].')';
 			}
 		}
 		echo "<table border=\"1\">";
-		echo "<tr><th>rank</th><th>Name Tokens</th><th>Address Tokens</th><th>country</th><th>class</th><th>type</th><th>house#</th><th>Lat</th><th>Lon</th><th>Radius</th></tr>";
+		echo "<tr><th>rank</th><th>Name Tokens</th><th>Address Tokens</th><th>country</th><th>operator</th><th>class</th><th>type</th><th>house#</th><th>Lat</th><th>Lon</th><th>Radius</th></tr>";
 		foreach($aData as $iRank => $aRankedSet)
 		{
 			foreach($aRankedSet as $aRow)
@@ -647,7 +653,7 @@
 				$sSep = '';
 				foreach($aRow['aAddress'] as $iWordID)
 				{
-					if (!isset($aRow['aName'][$iWordID]))
+//					if (!isset($aRow['aName'][$iWordID]))
 					{
 						echo $sSep.'#'.$aWordsIDs[$iWordID].'#';
 						$sSep = ', ';
@@ -657,6 +663,7 @@
 
 				echo "<td>".$aRow['sCountryCode']."</td>";
 
+				echo "<td>".$aRow['sOperator']."</td>";
 				echo "<td>".$aRow['sClass']."</td>";
 				echo "<td>".$aRow['sType']."</td>";
 
