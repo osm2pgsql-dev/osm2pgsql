@@ -65,6 +65,9 @@ compiler.
 e.g. on Fedora:
 # yum install geos-devel proj-devel postgresql-devel libxml2-devel bzip2-devel gcc-c++
 
+on Debian:
+# aptitude install libxml2-dev libgeos-dev libpq-dev libbz2-dev proj autoconf make g++
+
 On most Unix-like systems the program can be compiled by
 running './autogen.sh && ./configure && make'.
 
