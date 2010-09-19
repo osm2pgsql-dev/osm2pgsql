@@ -1885,7 +1885,6 @@
         <CssParameter name="stroke-linecap">round</CssParameter>
       </LineSymbolizer>
     </Rule>
-    
     <Rule>
       <Filter>[highway] = 'service' and not ([service]='parking_aisle' or [service]='drive-through' or [tunnel]='yes')</Filter>
       &maxscale_zoom14;
