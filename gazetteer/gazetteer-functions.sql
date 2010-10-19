@@ -6,6 +6,15 @@
 --);
 
 
+CREATE OR REPLACE FUNCTION getclasstypekey(c text, t text) RETURNS TEXT
+  AS $$
+DECLARE
+BEGIN
+  RETURN c||'|'||t;
+END;
+$$
+LANGUAGE plpgsql IMMUTABLE;
+
 CREATE OR REPLACE FUNCTION isbrokengeometry(place geometry) RETURNS BOOLEAN
   AS $$
 DECLARE
@@ -120,11 +129,11 @@ $$
 LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION transliteration(text) RETURNS text
-  AS '/home/twain/osm2pgsql/gazetteer/gazetteer.so', 'transliteration'
+  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'transliteration'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION gettokenstring(text) RETURNS text
-  AS '/home/twain/osm2pgsql/gazetteer/gazetteer.so', 'gettokenstring'
+  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'gettokenstring'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION make_standard_name(name TEXT) RETURNS TEXT
@@ -998,6 +1007,10 @@ BEGIN
   NEW.indexed := false;
   NEW.country_code := lower(NEW.country_code);
 
+  IF NEW.admin_level > 15 THEN
+    NEW.admin_level := 15;
+  END IF;
+
   IF NEW.housenumber IS NOT NULL THEN
     i := getorcreate_housenumber_id(make_standard_name(NEW.housenumber));
   END IF;
@@ -1068,7 +1081,10 @@ BEGIN
           NEW.country_code := get_country_code(NEW.geometry);
         END IF;
 
+        NEW.name := ARRAY[ROW('ref',NEW.postcode)::keyvalue];
+
         IF NEW.country_code = 'gb' THEN
+
           IF NEW.postcode ~ '^([A-Z][A-Z]?[0-9][0-9A-Z]? [0-9][A-Z][A-Z])$' THEN
             NEW.rank_search := 25;
             NEW.rank_address := 5;
@@ -1084,6 +1100,7 @@ BEGIN
           END IF;
 
         ELSEIF NEW.country_code = 'de' THEN
+
           IF NEW.postcode ~ '^([0-9]{5})$' THEN
             NEW.name := ARRAY[ROW('ref',NEW.postcode)::keyvalue];
             NEW.rank_search := 21;
@@ -1159,6 +1176,8 @@ BEGIN
     ELSEIF NEW.class = 'natural' and NEW.type = 'sea' THEN
       NEW.rank_search := 4;
       NEW.rank_address := NEW.rank_search;
+    ELSEIF NEW.class = 'natural' and NEW.type in ('coastline') THEN
+      RETURN NULL;
     ELSEIF NEW.class = 'natural' and NEW.type in ('peak','volcano') THEN
       NEW.rank_search := 18;
       NEW.rank_address := 0;
@@ -1166,11 +1185,24 @@ BEGIN
 
   END IF;
 
+  IF NEW.rank_search > 30 THEN
+    NEW.rank_search := 30;
+  END IF;
+
+  IF NEW.rank_address > 30 THEN
+    NEW.rank_address := 30;
+  END IF;
+
+-- Block import below rank 22
+--  IF NEW.rank_search > 22 THEN
+--    RETURN NULL;
+--  END IF;
+
   IF array_upper(NEW.name, 1) is not null THEN
     result := add_location(NEW.place_id,NEW.country_code,NEW.name,NEW.rank_search,NEW.rank_address,NEW.geometry);
   END IF;
 
-  RETURN NEW;
+  --RETURN NEW;
   -- The following is not needed until doing diff updates, and slows the main index process down
 
   IF (ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_IsValid(NEW.geometry)) THEN
@@ -1463,10 +1495,11 @@ BEGIN
 
       IF NEW.street_place_id IS NULL AND NEW.street IS NOT NULL THEN
       	address_street_word_id := get_name_id(make_standard_name(NEW.street));
+--RAISE WARNING 'street: % %', NEW.street, address_street_word_id;
         IF address_street_word_id IS NOT NULL THEN
           FOR location IN SELECT place_id,ST_distance(NEW.geometry, search_name.centroid) as distance 
             FROM search_name WHERE search_name.name_vector @> ARRAY[address_street_word_id]
-            AND ST_DWithin(NEW.geometry, search_name.centroid, 0.01) and search_rank = 26 
+            AND ST_DWithin(NEW.geometry, search_name.centroid, 0.01) and search_rank between 22 and 27
             ORDER BY ST_distance(NEW.geometry, search_name.centroid) ASC limit 1
           LOOP
 --RAISE WARNING 'streetname found nearby %',location;
@@ -1486,7 +1519,7 @@ BEGIN
       WHILE NEW.street_place_id IS NULL AND search_diameter < 0.1 LOOP
 --RAISE WARNING '% %', search_diameter,ST_AsText(ST_Centroid(NEW.geometry));
         FOR location IN SELECT place_id FROM placex
-          WHERE ST_DWithin(place_centroid, placex.geometry, search_diameter) and rank_search = 26
+          WHERE ST_DWithin(place_centroid, placex.geometry, search_diameter) and rank_search between 22 and 27
           ORDER BY ST_distance(NEW.geometry, placex.geometry) ASC limit 1
         LOOP
 --RAISE WARNING 'using nearest street,% % %',search_diameter,NEW.street,location;
@@ -1775,7 +1808,7 @@ DECLARE
 BEGIN
 
 --  RAISE WARNING 'delete: % % % %',OLD.osm_type,OLD.osm_id,OLD.class,OLD.type;
-  delete from placex where osm_type = OLD.osm_type and osm_id = OLD.osm_id and class = OLD.class;
+  delete from placex where osm_type = OLD.osm_type and osm_id = OLD.osm_id and class = OLD.class and type = OLD.type;
   RETURN OLD;
 
 END;
@@ -1796,6 +1829,8 @@ BEGIN
   IF FALSE AND NEW.osm_type = 'R' THEN
     RAISE WARNING '-----------------------------------------------------------------------------------';
     RAISE WARNING 'place_insert: % % % % %',NEW.osm_type,NEW.osm_id,NEW.class,NEW.type,st_area(NEW.geometry);
+    select * from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type INTO existingplacex;
+    RAISE WARNING '%', existingplacex;
   END IF;
 
   -- Just block these - lots and pointless
@@ -1821,7 +1856,7 @@ BEGIN
   select * from place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type INTO existing;
 
   -- Get the existing place_id
-  select * from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type into existingplacex;
+  select * from placex where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type INTO existingplacex;
 
   -- Handle a place changing type by removing the old data
   -- My generated 'place' types are causing havok because they overlap with real tags
@@ -1841,6 +1876,14 @@ BEGIN
      (ST_GeometryType(existing.geometry) in ('ST_Polygon','ST_MultiPolygon') AND ST_GeometryType(NEW.geometry) in ('ST_Polygon','ST_MultiPolygon')))
      THEN
 
+--  IF existing.osm_type IS NULL THEN
+--    RAISE WARNING 'no existing place';
+--  END IF;
+--  IF existingplacex.osm_type IS NULL THEN
+--    RAISE WARNING 'no existing placex %', existingplacex;
+--  END IF;
+
+
 --    RAISE WARNING 'delete and replace';
 
     IF existing.osm_type IS NOT NULL THEN
@@ -1850,6 +1893,8 @@ BEGIN
       END IF;
       DELETE FROM place where osm_type = NEW.osm_type and osm_id = NEW.osm_id and class = NEW.class and type = NEW.type;
     END IF;   
+
+--    RAISE WARNING 'delete and replace2';
 
     -- No - process it as a new insertion (hopefully of low rank or it will be slow)
     insert into placex values (NEW.place_id
@@ -2302,6 +2347,31 @@ BEGIN
     END IF;
   END IF;
   return result;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION update_place(search_place_id INTEGER) RETURNS BOOLEAN
+  AS $$
+DECLARE
+  result place_boundingbox;
+  numfeatures integer;
+BEGIN
+  update placex set 
+      name = place.name,
+      housenumber = place.housenumber,
+      street = place.street,
+      isin = place.isin,
+      postcode = place.postcode,
+      country_code = place.country_code,
+      street_place_id = null,
+      indexed = false      
+      from place
+      where placex.place_id = search_place_id 
+        and place.osm_type = placex.osm_type and place.osm_id = placex.osm_id
+        and place.class = placex.class and place.type = placex.type;
+  update placex set indexed = true where place_id = search_place_id and indexed = false;
+  return true;
 END;
 $$
 LANGUAGE plpgsql;
