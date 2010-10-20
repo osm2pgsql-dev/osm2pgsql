@@ -23,6 +23,8 @@ CFLAGS += -DVERSION=\"$(VERSION)-$(SVN)\"
 CFLAGS += -DHAVE_PTHREAD
 CFLAGS += -DOSM2PGSQL_DATADIR=\"$(DATADIR)\"
 
+CPPFLAGS += $(shell geos-config --cflags)
+
 LDFLAGS += $(shell xml2-config --libs) 
 LDFLAGS += $(shell geos-config --libs)
 LDFLAGS += -L$(shell pg_config --libdir) -lpq
