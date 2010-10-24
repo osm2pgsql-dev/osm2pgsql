@@ -48,13 +48,26 @@
    "  indexed BOOLEAN"                          \
    ")"
 
+#define V2_CREATE_PLACE_TABLE                   \
+   "CREATE TABLE place ("                       \
+   "  osm_type CHAR(1) NOT NULL,"               \
+   "  osm_id BIGINT NOT NULL,"                  \
+   "  class TEXT NOT NULL,"                     \
+   "  type TEXT NOT NULL,"                      \
+   "  name HSTORE,"                             \
+   "  admin_level INTEGER,"                     \
+   "  housenumber TEXT,"                        \
+   "  street TEXT,"                             \
+   "  isin TEXT,"                               \
+   "  postcode TEXT,"                           \
+   "  country_code VARCHAR(2),"                 \
+   "  extratags HSTORE"                         \
+   ")"
+
 #define ADMINLEVEL_NONE 100
 
 #define CREATE_PLACE_ID_INDEX \
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) TABLESPACE %s"
-
-#define CREATE_PLACE_GEOMETRY_INDEX \
-   "CREATE INDEX place_geometry_idx ON place USING GIST (geometry) TABLESPACE %s"
 
 #define TAGINFO_NODE 0x1u
 #define TAGINFO_WAY  0x2u
@@ -80,6 +93,7 @@ static const struct taginfo {
    { "bridge",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "tunnel",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "aeroway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "boundary",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { NULL,       NULL,             0                                     }
 };
 
@@ -343,13 +357,11 @@ void escape_array_record(char *out, int len, const char *in)
     while(*in && count < len-3) {
         switch(*in) {
             case '\\': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; count+= 8; break;
-//            case '\n': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = 'n'; count+= 7; break;
-//            case '\r': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = 'r'; count+= 7; break;
-//            case '"': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '"'; count+= 7; break;
             case '\n': 
             case '\r': 
             case '\t': 
             case '"': 
+		// This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity
 		*out++ = ' '; count++; break;
             default:   *out++ = *in; count++; break;
         }
@@ -362,7 +374,7 @@ void escape_array_record(char *out, int len, const char *in)
 }
 
 
-static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+static void add_place_v1(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
@@ -488,6 +500,136 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
    return;
 }
 
+static void add_place_v2(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+   int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
+{
+   int first;
+   struct keyval *name;
+   char sql[2048];
+
+   /* Output a copy line for this place */
+   sprintf(sql, "%c\t%d\t", osm_type, osm_id);
+   copy_data(sql);
+
+   escape(sql, sizeof(sql), class);
+   copy_data(sql);
+   copy_data("\t");
+
+   escape(sql, sizeof(sql), type);
+   copy_data(sql);
+   copy_data("\t");
+
+   /* start name array */
+   if (listHasData(names))
+   {
+      first = 1;
+      for (name = firstItem(names); name; name = nextItem(names, name))
+      {
+         if (first) first = 0;
+         else copy_data(", ");
+
+         copy_data("\"");
+
+         escape_array_record(sql, sizeof(sql), name->key);
+         copy_data(sql);
+
+         copy_data("\"=>\"");
+
+         escape_array_record(sql, sizeof(sql), name->value);
+         copy_data(sql);
+
+         copy_data("\"");
+      }
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   sprintf(sql, "%d\t", adminlevel);
+   copy_data(sql);
+
+   if (housenumber)
+   {
+      escape(sql, sizeof(sql), housenumber);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (street)
+   {
+      escape(sql, sizeof(sql), street);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (isin)
+   {
+      // Skip the leading ',' from the contactination
+      escape(sql, sizeof(sql), isin+1);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (postcode)
+   {
+      escape(sql, sizeof(sql), postcode);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (countrycode)
+   {
+      escape(sql, sizeof(sql), countrycode);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+     copy_data("\\N\t");
+   }
+
+   // Extra tags - TODO
+   copy_data("\\N\t");
+
+   sprintf(sql, "SRID=%d;", SRID);
+   copy_data(sql);
+   copy_data(wkt);
+
+   copy_data("\n");
+
+//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
+
+   return;
+}
+
+static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+   int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
+{
+   if (Options->enable_hstore)
+      add_place_v2(osm_type, osm_id, class, type, names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+   else
+      add_place_v1(osm_type, osm_id, class, type, names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+   return;
+}
+
 static void delete_place(char osm_type, int osm_id)
 {
    /* Stop any active copy */
@@ -529,15 +671,20 @@ static int gazetteer_out_start(const struct output_options *options)
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP FUNCTION IF EXISTS get_connected_ways(integer[])");
 
       /* Create types and functions */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
+      if (!Options->enable_hstore)
+      {
+         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
+      }
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
+      if (Options->enable_hstore)
+         pgsql_exec(Connection, PGRES_COMMAND_OK, V2_CREATE_PLACE_TABLE);
+      else
+         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, Options->tblsindex);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_GEOMETRY_INDEX, Options->tblsindex);
    }
 
    /* Setup middle layer */
@@ -551,8 +698,6 @@ static void gazetteer_out_stop(void)
    /* Process any remaining ways and relations */
 //   Options->mid->iterate_ways( gazetteer_out_way );
 //   Options->mid->iterate_relations( gazetteer_process_relation );
-
-//fprintf(stderr, "stop\n");
 
    /* No longer need to access middle layer */
    Options->mid->stop();
@@ -641,17 +786,6 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
 
-/*
-   if (listHasData(&names))
-{
-fprintf(stderr, "name\n");
-}
-   if (listHasData(&places))
-{
-fprintf(stderr, "data\n");
-}
-*/
-
    /* Are we interested in this item? */
    if (listHasData(&names) || listHasData(&places))
    {
@@ -700,7 +834,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    char * countrycode;
    int area, wkt_size;
    const char *type;
-//   const char *boundary;
+   const char *boundary;
 
    type = getItem(tags, "type");
    if (!type)
@@ -712,10 +846,11 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
       return 0;
    }
 
-//   boundary = getItem(tags, "boundary");
-//   if (strcmp(type, "boundary") && !boundary)
    if (strcmp(type, "boundary") && strcmp(type, "multipolygon"))
       return 0;
+
+   boundary = getItem(tags, "boundary");
+   if (!boundary) boundary = "administrative";
 
    /* Split the tags */
    area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
@@ -723,7 +858,6 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    if (listHasData(&names))
    {
       /* get the boundary path (ways) */
-
       int i, count;
       int *xcount = malloc( (member_count+1) * sizeof(int) );
       struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
@@ -750,7 +884,10 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
          char *wkt = get_wkt(i);
          if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
          {
-            add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            if (Options->enable_hstore)
+                add_place('R', id, "boundary", boundary, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            else
+                add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
          }
          free(wkt);
       }
