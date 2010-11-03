@@ -43,3 +43,7 @@ select getorcreate_amenity(make_standard_name('tree'),'natural','tree');
 select getorcreate_amenity(make_standard_name('trees'),'natural','tree');
 select getorcreate_amenity(make_standard_name('bridge'),'bridge','yes');
 select getorcreate_amenity(make_standard_name('tunnel'),'tunnel','yes');
+select getorcreate_amenity(make_standard_name('recycling'),'amenity','recycling');
+select getorcreate_amenity(make_standard_name('peak'),'natural','peak');
+select getorcreate_amenity(make_standard_name('mount'),'natural','peak');
+select getorcreate_amenity(make_standard_name('mountain'),'natural','peak');

@@ -87,7 +87,7 @@
 		}
 	}
 
-	if (true)
+	if (false)
 	{
 		$aData = array();
 		foreach (glob("rails/config/locales/*") as $sFileName)
@@ -164,5 +164,80 @@
 				}
 			}
 		}
-		
+	}
+
+	if (true)
+	{
+		$aData = array();
+		foreach (glob("rails/config/locales/*") as $sFileName)
+		{
+			$sConfigFilesHTML = file_get_contents($sFileName);
+			$aTree = array();
+			foreach(explode("\n",$sConfigFilesHTML) as $sLine)
+			{
+				if (@$sLine[0] == '#') continue;
+
+				if (preg_match('/( *)([^:]+): ?"?([^"]*)"?/',$sLine, $aLine))
+				{
+					$iDepth = strlen($aLine[1]) / 2;
+					if ($aLine[3])
+					{
+						$aP =& $aData;
+						for($i = 0; $i < $iDepth; $i++)
+						{
+							if (!isset($aP[$aTree[$i]])) $aP[$aTree[$i]] = array();
+							$aP =& $aP[$aTree[$i]];
+						}
+						$aP[$aLine[2]] = $aLine[3];
+						
+					}
+					else
+					{
+						$aTree[$iDepth] = $aLine[2];
+					}
+				}
+			}
+		}
+		$aTranslatedTags = array();
+		foreach($aData as $sLanguage => $aLanguageData)
+		{
+			if (	!isset($aLanguageData['geocoder']) ||
+				!isset($aLanguageData['geocoder']['search_osm_nominatim']) || 
+				!isset($aLanguageData['geocoder']['search_osm_nominatim']['prefix']) || 
+				!is_array($aLanguageData['geocoder']['search_osm_nominatim']['prefix']))
+			{
+				continue;
+			}
+			foreach($aLanguageData['geocoder']['search_osm_nominatim']['prefix'] as $sClass => $aType)
+			{
+				foreach($aType as $sType => $sLabel)
+				{
+					if ($sLabel[0] == '"' && substr($sLabel, -1, 1) == '"') $sLabel = substr($sLabel, 1, -1);
+					$aTranslatedTags[$sClass][$sType] = 1;
+				}
+			}
+		}
+
+		unset($aTranslatedTags['bridge']['yes']);
+		unset($aTranslatedTags['building']['yes']);
+		unset($aTranslatedTags['place']['house']);
+		unset($aTranslatedTags['place']['postcode']);
+		unset($aTranslatedTags['highway']['residential']);
+		unset($aTranslatedTags['highway']['unclassified']);
+		unset($aTranslatedTags['highway']['tertiary']);
+		unset($aTranslatedTags['highway']['secondary']);
+
+		foreach($aTranslatedTags as $sClass => $aType)
+		{
+			foreach($aType as $sType => $aLanguage)
+			{
+				if (!preg_match('/^[a-z]+$/', $sClass) || !preg_match('/^[a-z]+$/', $sType)) continue;
+				echo "DROP TABLE place_classtype_".$sClass."_".$sType.";\n";
+				echo "CREATE TABLE place_classtype_".$sClass."_".$sType." ( place_id bigint, centroid geometry );\n";
+				echo "GRANT select on place_classtype_".$sClass."_".$sType." to \"www-data\";\n";
+				echo "INSERT INTO place_classtype_".$sClass."_".$sType." SELECT place_id,st_centroid(geometry) from placex where class='".pg_escape_string($sClass)."' and type='".pg_escape_string($sType)."' ;\n";
+				echo "CREATE INDEX idx_place_classtype_".$sClass."_".$sType."_centroid ON place_classtype_".$sClass."_".$sType." USING GIST (centroid);\n";
+				echo "CREATE INDEX idx_place_classtype_".$sClass."_".$sType."_place_id ON place_classtype_".$sClass."_".$sType." USING BTREE (place_id);\n";
+			}
+		}
 	}
