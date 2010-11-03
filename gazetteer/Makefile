@@ -1,4 +1,4 @@
 MODULES = gazetteer
-PGXS := $(shell pg_config --pgxs)
+PGXS := $(shell /usr/lib/postgresql/8.3/bin/pg_config --pgxs)
 include $(PGXS)
 

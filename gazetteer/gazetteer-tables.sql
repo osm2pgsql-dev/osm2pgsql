@@ -75,7 +75,8 @@ CREATE TABLE word (
   class text,
   type text,
   country_code varchar(2),
-  search_name_count INTEGER
+  search_name_count INTEGER,
+  operator text
   );
 SELECT AddGeometryColumn('word', 'location', 4326, 'GEOMETRY', 2);
 CREATE INDEX idx_word_word_id on word USING BTREE (word_id);
