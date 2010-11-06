@@ -62,18 +62,18 @@ static int null_modify_relation(int a UNUSED, struct member * b UNUSED, int c UN
 }
 
 struct output_t out_null = {
- start:         null_out_start,
- stop:          null_out_stop,
- cleanup:       null_out_cleanup,
- node_add:      null_add_node,
- way_add:       null_add_way,
- relation_add:  null_add_relation,
+ .start           = null_out_start,
+ .stop            = null_out_stop,
+ .cleanup         = null_out_cleanup,
+ .node_add        = null_add_node,
+ .way_add         = null_add_way,
+ .relation_add    = null_add_relation,
  
- node_modify:     null_modify_node,
- way_modify:      null_modify_way,
- relation_modify: null_modify_relation,
+ .node_modify     = null_modify_node,
+ .way_modify      = null_modify_way,
+ .relation_modify = null_modify_relation,
  
- node_delete:     null_delete_node,
- way_delete:      null_delete_way,
- relation_delete: null_delete_relation
+ .node_delete     = null_delete_node,
+ .way_delete      = null_delete_way,
+ .relation_delete = null_delete_relation
 };

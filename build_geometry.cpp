@@ -23,6 +23,7 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
+#include <exception>
 
 /* Need to know which geos version we have to work out which headers to include */
 #include <geos/version.h>
@@ -478,11 +479,16 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
         }
         delete[](polys);
     }
+    catch (std::exception& e)
+      {
+	std::cerr << std::endl << "Standard exception processing way_id "<< osm_id << ": " << e.what()  << std::endl;
+	wkt_size = 0;
+      }
     catch (...)
-    {
+      {
         std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
         wkt_size = 0;
-    }
+      }
 
     return wkt_size;
 }

@@ -9,7 +9,7 @@ Release: 1.%{svn}%{?dist}
 
 License: GPL
 URL:     http://svn.openstreetmap.org/applications/utils/export/osm2pgsql
-Source0: %{name}-%{version}-%{svn}.tar.bz2
+Source0: %{name}-%{version}.tar.bz2
 Source1: osm2pgsql-svn.sh
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n) 
 
@@ -49,7 +49,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,root,root)
-%doc README.txt
+%doc README
 %{_bindir}/osm2pgsql
 
 

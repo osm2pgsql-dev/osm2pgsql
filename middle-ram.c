@@ -403,22 +403,25 @@ static void ram_stop(void)
 }
 
 struct middle_t mid_ram = {
-    start:          ram_start,
-    stop:           ram_stop,
-    end:            ram_end,
-    cleanup:        ram_stop,
-    analyze:        ram_analyze,
-    nodes_set:      ram_nodes_set,
-//    nodes_get:      ram_nodes_get,
-    nodes_get_list: ram_nodes_get_list,
-    ways_set:       ram_ways_set,
-    ways_get:       ram_ways_get,
-    ways_done:      ram_ways_done,
+    .start             = ram_start,
+    .stop              = ram_stop,
+    .end               = ram_end,
+    .cleanup           = ram_stop,
+    .analyze           = ram_analyze,
+    .nodes_set         = ram_nodes_set,
+#if 0
+    .nodes_get         = ram_nodes_get,
+#endif
+    .nodes_get_list    = ram_nodes_get_list,
+    .ways_set          = ram_ways_set,
+    .ways_get          = ram_ways_get,
+    .ways_done         = ram_ways_done,
 
-    relations_set:  ram_relations_set,
-
-//    iterate_nodes:  ram_iterate_nodes,
-    iterate_ways:   ram_iterate_ways,
-    iterate_relations: ram_iterate_relations
+    .relations_set     = ram_relations_set,
+#if 0
+    .iterate_nodes     = ram_iterate_nodes,
+#endif
+    .iterate_ways      = ram_iterate_ways,
+    .iterate_relations = ram_iterate_relations
 };
 

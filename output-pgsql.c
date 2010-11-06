@@ -52,10 +52,10 @@ static struct s_table {
     int copyMode;
     char *columns;
 } tables [] = {
-    { name: "%s_point",   type: "POINT"     },
-    { name: "%s_line",    type: "LINESTRING"},
-    { name: "%s_polygon", type: "GEOMETRY"  }, // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
-    { name: "%s_roads",   type: "LINESTRING"}
+    { .name = "%s_point",   .type = "POINT"     },
+    { .name = "%s_line",    .type = "LINESTRING"},
+    { .name = "%s_polygon", .type = "GEOMETRY"  }, // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
+    { .name = "%s_roads",   .type = "LINESTRING"}
 };
 #define NUM_TABLES ((signed)(sizeof(tables) / sizeof(tables[0])))
 
@@ -68,11 +68,11 @@ static struct flagsname {
     char *name;
     int flag;
 } tagflags[] = {
-    { name: "polygon",    flag: FLAG_POLYGON },
-    { name: "linear",     flag: FLAG_LINEAR },
-    { name: "nocache",    flag: FLAG_NOCACHE },
-    { name: "delete",     flag: FLAG_DELETE },
-    { name: "phstore",    flag: FLAG_PHSTORE }
+    { .name = "polygon",    .flag = FLAG_POLYGON },
+    { .name = "linear",     .flag = FLAG_LINEAR },
+    { .name = "nocache",    .flag = FLAG_NOCACHE },
+    { .name = "delete",     .flag = FLAG_DELETE },
+    { .name = "phstore",    .flag = FLAG_PHSTORE }
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
@@ -1605,18 +1605,18 @@ static int pgsql_modify_relation(int osm_id, struct member *members, int member_
 }
 
 struct output_t out_pgsql = {
-        start:     pgsql_out_start,
-        stop:      pgsql_out_stop,
-        cleanup:   pgsql_out_cleanup,
-        node_add:      pgsql_add_node,
-        way_add:       pgsql_add_way,
-        relation_add:  pgsql_add_relation,
+        .start           = pgsql_out_start,
+        .stop            = pgsql_out_stop,
+        .cleanup         = pgsql_out_cleanup,
+        .node_add        = pgsql_add_node,
+        .way_add         = pgsql_add_way,
+        .relation_add    = pgsql_add_relation,
         
-        node_modify: pgsql_modify_node,
-        way_modify: pgsql_modify_way,
-        relation_modify: pgsql_modify_relation,
+        .node_modify     = pgsql_modify_node,
+        .way_modify      = pgsql_modify_way,
+        .relation_modify = pgsql_modify_relation,
 
-        node_delete: pgsql_delete_node,
-        way_delete: pgsql_delete_way,
-        relation_delete: pgsql_delete_relation
+        .node_delete     = pgsql_delete_node,
+        .way_delete      = pgsql_delete_way,
+        .relation_delete = pgsql_delete_relation
 };
