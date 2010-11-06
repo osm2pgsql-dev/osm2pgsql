@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <getopt.h>
 #include <libgen.h>
+#include <time.h>
 
 #include <libpq-fe.h>
 
@@ -311,7 +312,7 @@ int main(int argc, char *argv[])
     const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
-    const char *input_reader = "libxml2";
+    const char *input_reader = "auto";
     const char **hstore_columns = NULL;
     int n_hstore_columns = 0;
     int cache = 800;
@@ -484,21 +485,23 @@ int main(int argc, char *argv[])
       exit(EXIT_FAILURE);
     }
 
-    if (strcmp("libxml2", input_reader) == 0) {
-      streamFile = &streamFileXML2;
-    } else if (strcmp("primitive", input_reader) == 0) {
-      streamFile = &streamFilePrimitive;
+    if (strcmp("auto", input_reader) != 0) {
+      if (strcmp("libxml2", input_reader) == 0) {
+        streamFile = &streamFileXML2;
+      } else if (strcmp("primitive", input_reader) == 0) {
+        streamFile = &streamFilePrimitive;
 #ifdef BUILD_READER_PBF
-    } else if (strcmp("pbf", input_reader) == 0) {
-      streamFile = &streamFilePbf;
+      } else if (strcmp("pbf", input_reader) == 0) {
+        streamFile = &streamFilePbf;
 #endif
-    } else {
-      fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive"
+      } else {
+        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive"
 #ifdef BUILD_READER_PBF
 	      ", pbf"
 #endif
 	      "].\n", input_reader);
       exit(EXIT_FAILURE);
+      }
     }
 
     osmdata.out->start(&options);
@@ -514,6 +517,19 @@ int main(int argc, char *argv[])
     }
 
     while (optind < argc) {
+        /* if input_reader is not forced by -r switch try to auto-detect it
+           by file extension */
+        if (strcmp("auto", input_reader) == 0) {
+#ifdef BUILD_READER_PBF
+          if (strcasecmp(".pbf",argv[optind]+strlen(argv[optind])-4) == 0) {
+            streamFile = &streamFilePbf;
+          } else {
+            streamFile = &streamFileXML2;
+          }
+#else
+          streamFile = &streamFileXML2;
+#endif
+        }
         time_t start, end;
 
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
