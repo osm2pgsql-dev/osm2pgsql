@@ -57,64 +57,64 @@ struct table_desc {
 
 static struct table_desc tables [] = {
     { 
-        //table: t_node,
-         name: "%s_nodes",
-        start: "BEGIN;\n",
+        //table = t_node,
+         .name = "%s_nodes",
+        .start = "BEGIN;\n",
 #ifdef FIXED_POINT
-       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat int4 not null, lon int4 not null, tags text[]);\n",
-      prepare: "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat int4 not null, lon int4 not null, tags text[]);\n",
+      .prepare = "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
 #else
-       create: "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
-      prepare: "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
+      .prepare = "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
-prepare_intarray: // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
+.prepare_intarray = // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
                   // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
                   //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %s_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
                "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
                                                "(select * from %s_nodes where id = ANY($1)) y where l_id=id order by i;\n",
-         copy: "COPY %s_nodes FROM STDIN;\n",
-      analyze: "ANALYZE %s_nodes;\n",
-         stop: "COMMIT;\n"
+         .copy = "COPY %s_nodes FROM STDIN;\n",
+      .analyze = "ANALYZE %s_nodes;\n",
+         .stop = "COMMIT;\n"
     },
     { 
-        //table: t_way,
-         name: "%s_ways",
-        start: "BEGIN;\n",
-       create: "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
- create_index: "CREATE INDEX %s_ways_idx ON %s_ways (id) TABLESPACE %s WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_ops) TABLESPACE %s;\n",
-      prepare: "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
+        //table = t_way,
+         .name = "%s_ways",
+        .start = "BEGIN;\n",
+       .create = "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
+ .create_index = "CREATE INDEX %s_ways_idx ON %s_ways (id) TABLESPACE %s WHERE pending;\n",
+.array_indexes = "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_ops) TABLESPACE %s;\n",
+      .prepare = "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
                "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
-prepare_intarray: "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
-         copy: "COPY %s_ways FROM STDIN;\n",
-      analyze: "ANALYZE %s_ways;\n",
-         stop:  "COMMIT;\n"
+.prepare_intarray = "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
+         .copy = "COPY %s_ways FROM STDIN;\n",
+      .analyze = "ANALYZE %s_ways;\n",
+         .stop =  "COMMIT;\n"
     },
     { 
-        //table: t_rel,
-         name: "%s_rels",
-        start: "BEGIN;\n",
-       create: "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n",
- create_index: "CREATE INDEX %s_rels_idx ON %s_rels (id) TABLESPACE %s WHERE pending;\n",
-array_indexes: "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_ops) TABLESPACE %s;\n",
-      prepare: "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+        //table = t_rel,
+         .name = "%s_rels",
+        .start = "BEGIN;\n",
+       .create = "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n",
+ .create_index = "CREATE INDEX %s_rels_idx ON %s_rels (id) TABLESPACE %s WHERE pending;\n",
+.array_indexes = "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_ops) TABLESPACE %s;\n",
+      .prepare = "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
                "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %s_rels WHERE id = $1;\n"
                "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
                "PREPARE pending_rels AS SELECT id FROM %s_rels WHERE pending;\n"
                "PREPARE delete_rel(int4) AS DELETE FROM %s_rels WHERE id = $1;\n",
-prepare_intarray: /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
+.prepare_intarray = /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
                 "PREPARE node_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
                 "PREPARE way_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
                   /* For this it works fine */
                 "PREPARE rel_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
-         copy: "COPY %s_rels FROM STDIN;\n",
-      analyze: "ANALYZE %s_rels;\n",
-         stop:  "COMMIT;\n"
+         .copy = "COPY %s_rels FROM STDIN;\n",
+      .analyze = "ANALYZE %s_rels;\n",
+         .stop =  "COMMIT;\n"
     }
 };
 
@@ -1259,31 +1259,36 @@ static void pgsql_stop(void)
 }
  
 struct middle_t mid_pgsql = {
-        start:          pgsql_start,
-        stop:           pgsql_stop,
-        cleanup:        pgsql_cleanup,
-        analyze:        pgsql_analyze,
-        end:            pgsql_end,
+        .start             = pgsql_start,
+        .stop              = pgsql_stop,
+        .cleanup           = pgsql_cleanup,
+        .analyze           = pgsql_analyze,
+        .end               = pgsql_end,
 
-        nodes_set:      pgsql_nodes_set,
-//        nodes_get:      pgsql_nodes_get,
-        nodes_get_list:      pgsql_nodes_get_list,
-        nodes_delete:	pgsql_nodes_delete,
-        node_changed:   pgsql_node_changed,
+        .nodes_set         = pgsql_nodes_set,
+#if 0
+        .nodes_get         = pgsql_nodes_get,
+#endif
+        .nodes_get_list    = pgsql_nodes_get_list,
+        .nodes_delete	   = pgsql_nodes_delete,
+        .node_changed      = pgsql_node_changed,
 
-        ways_set:       pgsql_ways_set,
-        ways_get:       pgsql_ways_get,
-        ways_done:      pgsql_ways_done,
-        ways_delete:    pgsql_ways_delete,
-        way_changed:    pgsql_way_changed,
+        .ways_set          = pgsql_ways_set,
+        .ways_get          = pgsql_ways_get,
+        .ways_done         = pgsql_ways_done,
+        .ways_delete       = pgsql_ways_delete,
+        .way_changed       = pgsql_way_changed,
 
-        relations_set:  pgsql_rels_set,
-//        relations_get:  pgsql_rels_get,
-        relations_done:  pgsql_rels_done,
-        relations_delete:  pgsql_rels_delete,
-        relation_changed:  pgsql_rel_changed,
-
-//        iterate_nodes:  pgsql_iterate_nodes,
-        iterate_ways:   pgsql_iterate_ways,
-        iterate_relations: pgsql_iterate_relations
+        .relations_set     = pgsql_rels_set,
+#if 0
+        .relations_get     = pgsql_rels_get,
+#endif
+        .relations_done    = pgsql_rels_done,
+        .relations_delete  = pgsql_rels_delete,
+        .relation_changed  = pgsql_rel_changed,
+#if 0
+        .iterate_nodes     = pgsql_iterate_nodes,
+#endif
+        .iterate_ways      = pgsql_iterate_ways,
+        .iterate_relations = pgsql_iterate_relations
 };

@@ -285,7 +285,7 @@ static void escape4hstore(char *dst, char *src) {
 /* print struct keyval in syntax for pgsql hstore import 
    \ and " need to be escaped
 */
-inline void keyval2hstore(char *hstring, struct keyval *tags)
+void keyval2hstore(char *hstring, struct keyval *tags)
 {
   keyval2hstore_manual(hstring, tags->key, tags->value);
 }

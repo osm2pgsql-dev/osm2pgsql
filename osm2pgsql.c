@@ -23,6 +23,8 @@
 #-----------------------------------------------------------------------------
 */
 
+#include "config.h"
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
@@ -39,7 +41,6 @@
 
 #include "osmtypes.h"
 #include "build_geometry.h"
-#include "keyvals.h"
 #include "middle-pgsql.h"
 #include "middle-ram.h"
 #include "output-pgsql.h"
@@ -50,440 +51,56 @@
 #include "text-tree.h"
 #include "input.h"
 #include "sprompt.h"
+#include "parse-xml2.h"
+#include "parse-primitive.h"
 
-typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
-typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
-
-static int count_node,    max_node;
-static int count_way,     max_way;
-static int count_rel,     max_rel;
-
-struct output_t *out;
-
-/* Since {node,way} elements are not nested we can guarantee the 
-   values in an end tag must match those of the corresponding 
-   start tag and can therefore be cached.
-*/
-static double node_lon, node_lat;
-static struct keyval tags;
-static int *nds;
-static int nd_count, nd_max;
-static struct member *members;
-static int member_count, member_max;
-static int osm_id;
+#ifdef BUILD_READER_PBF
+#  include "parse-pbf.h"
+#endif
 
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096
 
 int verbose;
-static void realloc_nodes();
-static void realloc_members();
 
-// Bounding box to filter imported data
-const char *bbox = NULL;
-static double minlon, minlat, maxlon, maxlat;
-static int extra_attributes;
+// Data structure carrying all parsing related variables
+static struct osmdata_t osmdata = { 
+  .filetype = FILETYPE_NONE,
+  .action   = ACTION_NONE,
+  .bbox     = NULL
+};
 
-static void printStatus(void)
-{
-    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%dk)",
-            count_node/1000, count_way/1000, count_rel/1000);
-}
 
-static int parse_bbox(void)
+static int parse_bbox(struct osmdata_t *osmdata)
 {
     int n;
 
-    if (!bbox)
+    if (!osmdata->bbox)
         return 0;
 
-    n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minlon, &minlat, &maxlon, &maxlat);
+    n = sscanf(osmdata->bbox, "%lf,%lf,%lf,%lf", &(osmdata->minlon), &(osmdata->minlat), &(osmdata->maxlon), &(osmdata->maxlat));
     if (n != 4) {
         fprintf(stderr, "Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
         return 1;
     }
-    if (maxlon <= minlon) {
+    if (osmdata->maxlon <= osmdata->minlon) {
         fprintf(stderr, "Bounding box failed due to maxlon <= minlon\n");
         return 1;
     }
-    if (maxlat <= minlat) {
+    if (osmdata->maxlat <= osmdata->minlat) {
         fprintf(stderr, "Bounding box failed due to maxlat <= minlat\n");
         return 1;
     }
-    printf("Applying Bounding box: %f,%f to %f,%f\n", minlon,minlat,maxlon,maxlat);
+    printf("Applying Bounding box: %f,%f to %f,%f\n", osmdata->minlon, osmdata->minlat, osmdata->maxlon, osmdata->maxlat);
     return 0;
 }
 
-static int node_wanted(double lat, double lon)
-{
-    if (!bbox)
-        return 1;
 
-    if (lat < minlat || lat > maxlat)
-        return 0;
-    if (lon < minlon || lon > maxlon)
-        return 0;
-    return 1;
-}
 
-static filetypes_t filetype = FILETYPE_NONE;
-static actions_t action = ACTION_NONE;
-
-/* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
-static actions_t ParseAction( xmlTextReaderPtr reader )
-{
-    if( filetype == FILETYPE_OSMCHANGE || filetype == FILETYPE_PLANETDIFF )
-        return action;
-    actions_t new_action = ACTION_NONE;
-    xmlChar *action = xmlTextReaderGetAttribute( reader, BAD_CAST "action" );
-    if( action == NULL )
-        new_action = ACTION_CREATE;
-    else if( strcmp((char *)action, "modify") == 0 )
-        new_action = ACTION_MODIFY;
-    else if( strcmp((char *)action, "delete") == 0 )
-        new_action = ACTION_DELETE;
-    else
-    {
-        fprintf( stderr, "Unknown value for action: %s\n", (char*)action );
-        exit_nicely();
-    }
-    return new_action;
-}
-
-void StartElement(xmlTextReaderPtr reader, const xmlChar *name)
-{
-    xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
-    char *k;
-
-    if (filetype == FILETYPE_NONE)
-    {
-        if (xmlStrEqual(name, BAD_CAST "osm"))
-        {
-            filetype = FILETYPE_OSM;
-            action = ACTION_CREATE;
-        }
-        else if (xmlStrEqual(name, BAD_CAST "osmChange"))
-        {
-            filetype = FILETYPE_OSMCHANGE;
-            action = ACTION_NONE;
-        }
-        else if (xmlStrEqual(name, BAD_CAST "planetdiff"))
-        {
-            filetype = FILETYPE_PLANETDIFF;
-            action = ACTION_NONE;
-        }
-        else
-        {
-            fprintf( stderr, "Unknown XML document type: %s\n", name );
-            exit_nicely();
-        }
-        return;
-    }
-    
-    if (xmlStrEqual(name, BAD_CAST "node")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
-        xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
-        assert(xid); assert(xlon); assert(xlat);
-
-        osm_id  = strtol((char *)xid, NULL, 10);
-        node_lon = strtod((char *)xlon, NULL);
-        node_lat = strtod((char *)xlat, NULL);
-        action = ParseAction( reader );
-
-        if (osm_id > max_node)
-            max_node = osm_id;
-
-        count_node++;
-        if (count_node%10000 == 0)
-            printStatus();
-
-        xmlFree(xid);
-        xmlFree(xlon);
-        xmlFree(xlat);
-    } else if (xmlStrEqual(name, BAD_CAST "tag")) {
-        xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
-        assert(xk);
-
-        /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
-        if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
-            char *p;
-            xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
-            assert(xv);
-            k  = (char *)xmlStrdup(xk);
-            while ((p = strchr(k, ' ')))
-                *p = '_';
-
-            addItem(&tags, k, (char *)xv, 0);
-            xmlFree(k);
-            xmlFree(xv);
-        }
-        xmlFree(xk);
-    } else if (xmlStrEqual(name, BAD_CAST "way")) {
-
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        assert(xid);
-        osm_id   = strtol((char *)xid, NULL, 10);
-        action = ParseAction( reader );
-	
-        if (osm_id > max_way)
-	  max_way = osm_id;
-	
-        count_way++;
-        if (count_way%1000 == 0)
-	  printStatus();
-	
-        nd_count = 0;
-        xmlFree(xid);
-
-    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
-        assert(xid);
-
-        nds[nd_count++] = strtol( (char *)xid, NULL, 10 );
-
-        if( nd_count >= nd_max )
-          realloc_nodes();
-        xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        assert(xid);
-        osm_id   = strtol((char *)xid, NULL, 10);
-        action = ParseAction( reader );
-
-        if (osm_id > max_rel)
-            max_rel = osm_id;
-
-        count_rel++;
-        if (count_rel%1000 == 0)
-            printStatus();
-
-        member_count = 0;
-        xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "member")) {
-	xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
-	assert(xrole);
-
-	xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
-	assert(xtype);
-
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
-        assert(xid);
-
-        members[member_count].id   = strtol( (char *)xid, NULL, 0 );
-        members[member_count].role = strdup( (char *)xrole );
-        
-        /* Currently we are only interested in 'way' members since these form polygons with holes */
-	if (xmlStrEqual(xtype, BAD_CAST "way"))
-	    members[member_count].type = OSMTYPE_WAY;
-	if (xmlStrEqual(xtype, BAD_CAST "node"))
-	    members[member_count].type = OSMTYPE_NODE;
-	if (xmlStrEqual(xtype, BAD_CAST "relation"))
-	    members[member_count].type = OSMTYPE_RELATION;
-        member_count++;
-
-        if( member_count >= member_max )
-          realloc_members();
-        xmlFree(xid);
-        xmlFree(xrole);
-        xmlFree(xtype);
-    } else if (xmlStrEqual(name, BAD_CAST "add") ||
-               xmlStrEqual(name, BAD_CAST "create")) {
-        action = ACTION_CREATE;
-        action = ACTION_MODIFY; // Turns all creates into modifies, makes it resiliant against inconsistant snapshots.
-    } else if (xmlStrEqual(name, BAD_CAST "modify")) {
-        action = ACTION_MODIFY;
-    } else if (xmlStrEqual(name, BAD_CAST "delete")) {
-        action = ACTION_DELETE;
-    } else if (xmlStrEqual(name, BAD_CAST "bound")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
-        /* ignore */
-    } else {
-        fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
-    }
-
-    // Collect extra attribute information and add as tags
-    if (extra_attributes && (xmlStrEqual(name, BAD_CAST "node") ||
-                             xmlStrEqual(name, BAD_CAST "way") ||
-                             xmlStrEqual(name, BAD_CAST "relation")))
-    {
-        xmlChar *xtmp;
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
-        if (xtmp) {
-            addItem(&tags, "osm_user", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
-        if (xtmp) {
-            addItem(&tags, "osm_uid", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
-        if (xtmp) {
-            addItem(&tags, "osm_version", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
-        if (xtmp) {
-            addItem(&tags, "osm_timestamp", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-    }
-}
-
-static void resetMembers()
-{
-  int i;
-  for(i=0; i<member_count; i++ )
-    free( members[i].role );
-}
-
-void EndElement(const xmlChar *name)
-{
-    if (xmlStrEqual(name, BAD_CAST "node")) {
-        if (node_wanted(node_lat, node_lon)) {
-            reproject(&node_lat, &node_lon);
-            if( action == ACTION_CREATE )
-                out->node_add(osm_id, node_lat, node_lon, &tags);
-            else if( action == ACTION_MODIFY )
-                out->node_modify(osm_id, node_lat, node_lon, &tags);
-            else if( action == ACTION_DELETE )
-                out->node_delete(osm_id);
-            else
-            {
-                fprintf( stderr, "Don't know action for node %d\n", osm_id );
-                exit_nicely();
-            }
-        }
-        resetList(&tags);
-    } else if (xmlStrEqual(name, BAD_CAST "way")) {
-        if( action == ACTION_CREATE )
-            out->way_add(osm_id, nds, nd_count, &tags );
-        else if( action == ACTION_MODIFY )
-            out->way_modify(osm_id, nds, nd_count, &tags );
-        else if( action == ACTION_DELETE )
-            out->way_delete(osm_id);
-        else
-        {
-            fprintf( stderr, "Don't know action for way %d\n", osm_id );
-            exit_nicely();
-        }
-        resetList(&tags);
-    } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-        if( action == ACTION_CREATE )
-            out->relation_add(osm_id, members, member_count, &tags);
-        else if( action == ACTION_MODIFY )
-            out->relation_modify(osm_id, members, member_count, &tags);
-        else if( action == ACTION_DELETE )
-            out->relation_delete(osm_id);
-        else
-        {
-            fprintf( stderr, "Don't know action for relation %d\n", osm_id );
-            exit_nicely();
-        }
-        resetList(&tags);
-        resetMembers();
-    } else if (xmlStrEqual(name, BAD_CAST "tag")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "member")) {
-	/* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "osm")) {
-        printStatus();
-        filetype = FILETYPE_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "osmChange")) {
-        printStatus();
-        filetype = FILETYPE_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "planetdiff")) {
-        printStatus();
-        filetype = FILETYPE_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "bound")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
-        /* ignore */
-        resetList(&tags); /* We may have accumulated some tags even if we ignored the changeset */
-    } else if (xmlStrEqual(name, BAD_CAST "add")) {
-        action = ACTION_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "create")) {
-        action = ACTION_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "modify")) {
-        action = ACTION_NONE;
-    } else if (xmlStrEqual(name, BAD_CAST "delete")) {
-        action = ACTION_NONE;
-    } else {
-        fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
-    }
-}
-
-static void processNode(xmlTextReaderPtr reader) {
-    xmlChar *name;
-    name = xmlTextReaderName(reader);
-    if (name == NULL)
-        name = xmlStrdup(BAD_CAST "--");
-	
-    switch(xmlTextReaderNodeType(reader)) {
-        case XML_READER_TYPE_ELEMENT:
-            StartElement(reader, name);
-            if (xmlTextReaderIsEmptyElement(reader))
-                EndElement(name); /* No end_element for self closing tags! */
-            break;
-        case XML_READER_TYPE_END_ELEMENT:
-            EndElement(name);
-            break;
-        case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
-            /* Ignore */
-            break;
-        default:
-            fprintf(stderr, "Unknown node type %d\n", xmlTextReaderNodeType(reader));
-            break;
-    }
-
-    xmlFree(name);
-}
-
-static int streamFile(char *filename, int sanitize) {
-    xmlTextReaderPtr reader;
-    int ret = 0;
-
-    if (sanitize)
-        reader = sanitizerOpen(filename);
-    else
-        reader = inputUTF8(filename);
-
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-            processNode(reader);
-            ret = xmlTextReaderRead(reader);
-        }
-
-        if (ret != 0) {
-            fprintf(stderr, "%s : failed to parse\n", filename);
-            return ret;
-        }
-
-        xmlFreeTextReader(reader);
-    } else {
-        fprintf(stderr, "Unable to open %s\n", filename);
-        return 1;
-    }
-    return 0;
-}
-
-void exit_nicely(void)
+void exit_nicely()
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
-    out->cleanup();
+    osmdata.out->cleanup();
     exit(1);
 }
  
@@ -543,6 +160,12 @@ static void long_usage(char *arg0)
     fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
     fprintf(stderr, "   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
     fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
+    fprintf(stderr, "   -r|--input-reader\tInput frontend.\n");
+    fprintf(stderr, "              \t\tlibxml2   - Parse XML using libxml2. (default)\n");
+    fprintf(stderr, "              \t\tprimitive - Primitive XML parsing.\n");
+#ifdef BUILD_READER_PBF
+    fprintf(stderr, "              \t\tpbf       - OSM binary format.\n");
+#endif
     fprintf(stderr, "   -O|--output\t\tOutput backend.\n");
     fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
     fprintf(stderr, "              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
@@ -608,34 +231,59 @@ const char *build_conninfo(const char *db, const char *username, const char *pas
     return conninfo;
 }
 
-static void realloc_nodes()
+void realloc_nodes(struct osmdata_t *osmdata)
 {
-  if( nd_max == 0 )
-    nd_max = INIT_MAX_NODES;
+  if( osmdata->nd_max == 0 )
+    osmdata->nd_max = INIT_MAX_NODES;
   else
-    nd_max <<= 1;
+    osmdata->nd_max <<= 1;
     
-  nds = realloc( nds, nd_max * sizeof( nds[0] ) );
-  if( !nds )
+  osmdata->nds = realloc( osmdata->nds, osmdata->nd_max * sizeof( osmdata->nds[0] ) );
+  if( !osmdata->nds )
   {
-    fprintf( stderr, "Failed to expand node list to %d\n", nd_max );
+    fprintf( stderr, "Failed to expand node list to %d\n", osmdata->nd_max );
     exit_nicely();
   }
 }
 
-static void realloc_members()
+void realloc_members(struct osmdata_t *osmdata)
 {
-  if( member_max == 0 )
-    member_max = INIT_MAX_NODES;
+  if( osmdata->member_max == 0 )
+    osmdata->member_max = INIT_MAX_NODES;
   else
-    member_max <<= 1;
+    osmdata->member_max <<= 1;
     
-  members = realloc( members, member_max * sizeof( members[0] ) );
-  if( !members )
+  osmdata->members = realloc( osmdata->members, osmdata->member_max * sizeof( osmdata->members[0] ) );
+  if( !osmdata->members )
   {
-    fprintf( stderr, "Failed to expand member list to %d\n", member_max );
+    fprintf( stderr, "Failed to expand member list to %d\n", osmdata->member_max );
     exit_nicely();
   }
+}
+
+void resetMembers(struct osmdata_t *osmdata)
+{
+  int i;
+  for(i = 0; i < osmdata->member_count; i++ )
+    free( osmdata->members[i].role );
+}
+
+void printStatus(struct osmdata_t *osmdata)
+{
+    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%dk)",
+            osmdata->count_node/1000, osmdata->count_way/1000, osmdata->count_rel/1000);
+}
+
+int node_wanted(struct osmdata_t *osmdata, double lat, double lon)
+{
+    if (!osmdata->bbox)
+        return 1;
+
+    if (lat < osmdata->minlat || lat > osmdata->maxlat)
+        return 0;
+    if (lon < osmdata->minlon || lon > osmdata->maxlon)
+        return 0;
+    return 1;
 }
 
 int main(int argc, char *argv[])
@@ -663,11 +311,14 @@ int main(int argc, char *argv[])
     const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
+    const char *input_reader = "libxml2";
     const char **hstore_columns = NULL;
     int n_hstore_columns = 0;
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
+    
+    int (*streamFile)(char *, int, struct osmdata_t *);
 
     fprintf(stderr, "osm2pgsql SVN version %s\n\n", VERSION);
 
@@ -701,16 +352,18 @@ int main(int argc, char *argv[])
             {"hstore", 0, 0, 'k'},
             {"hstore-column", 1, 0, 'z'},
             {"multi-geometry", 0, 0, 'G'},
+	    {"input-reader", 1, 0, 'r'},
+            {"version", 0, 0, 'V'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:r:V", long_options, &option_index);
         if (c == -1)
             break;
 
         switch (c) {
             case 'a': append=1;   break;
-            case 'b': bbox=optarg; break;
+            case 'b': osmdata.bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
             case 's': slim=1;     break;
@@ -736,7 +389,7 @@ int main(int argc, char *argv[])
                 break;
             case 'o': expire_tiles_filename=optarg; break;
 	    case 'O': output_backend = optarg; break;
-            case 'x': extra_attributes=1; break;
+            case 'x': osmdata.extra_attributes=1; break;
 	    case 'k': enable_hstore=1; break;
             case 'z': 
                 n_hstore_columns++;
@@ -744,7 +397,9 @@ int main(int argc, char *argv[])
                 hstore_columns[n_hstore_columns-1] = optarg;
                 break;
 	    case 'G': enable_multi=1; break;
+	    case 'r': input_reader = optarg; break;
             case 'h': long_usage_bool=1; break;
+  	    case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
                 short_usage(argv[0]);
@@ -785,11 +440,11 @@ int main(int argc, char *argv[])
     PQfinish(sql_conn);
 
     text_init();
-    initList(&tags);
+    initList(&osmdata.tags);
 
-    count_node = max_node = 0;
-    count_way = max_way = 0;
-    count_rel = max_rel = 0;
+    osmdata.count_node = osmdata.max_node = 0;
+    osmdata.count_way  = osmdata.max_way  = 0;
+    osmdata.count_rel  = osmdata.max_rel  = 0;
 
     LIBXML_TEST_VERSION
 
@@ -797,7 +452,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
         project_getprojinfo()->srs, project_getprojinfo()->descr );
 
-    if (parse_bbox())
+    if (parse_bbox(&osmdata))
         return 1;
 
     options.conninfo = conninfo;
@@ -819,20 +474,37 @@ int main(int argc, char *argv[])
     options.n_hstore_columns = n_hstore_columns;
 
     if (strcmp("pgsql", output_backend) == 0) {
-      out = &out_pgsql;
+      osmdata.out = &out_pgsql;
     } else if (strcmp("gazetteer", output_backend) == 0) {
-      out = &out_gazetteer;
+      osmdata.out = &out_gazetteer;
     } else if (strcmp("null", output_backend) == 0) {
-      out = &out_null;
+      osmdata.out = &out_null;
     } else {
       fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
       exit(EXIT_FAILURE);
     }
 
-    out->start(&options);
+    if (strcmp("libxml2", input_reader) == 0) {
+      streamFile = &streamFileXML2;
+    } else if (strcmp("primitive", input_reader) == 0) {
+      streamFile = &streamFilePrimitive;
+#ifdef BUILD_READER_PBF
+    } else if (strcmp("pbf", input_reader) == 0) {
+      streamFile = &streamFilePbf;
+#endif
+    } else {
+      fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive"
+#ifdef BUILD_READER_PBF
+	      ", pbf"
+#endif
+	      "].\n", input_reader);
+      exit(EXIT_FAILURE);
+    }
 
-    realloc_nodes();
-    realloc_members();
+    osmdata.out->start(&options);
+
+    realloc_nodes(&osmdata);
+    realloc_members(&osmdata);
 
     if (sizeof(int*) == 4 && options.slim != 1) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
@@ -842,25 +514,30 @@ int main(int argc, char *argv[])
     }
 
     while (optind < argc) {
+        time_t start, end;
+
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        if (streamFile(argv[optind], sanitize) != 0)
+        time(&start);
+        if (streamFile(argv[optind], sanitize, &osmdata) != 0)
             exit_nicely();
+        time(&end);
+        fprintf(stderr, "  parse time: %ds\n", (int)(end - start));
         optind++;
     }
 
     xmlCleanupParser();
     xmlMemoryDump();
     
-    if (count_node || count_way || count_rel) {
+    if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "Node stats: total(%d), max(%d)\n", count_node, max_node);
-        fprintf(stderr, "Way stats: total(%d), max(%d)\n", count_way, max_way);
-        fprintf(stderr, "Relation stats: total(%d), max(%d)\n", count_rel, max_rel);
+        fprintf(stderr, "Node stats: total(%d), max(%d)\n", osmdata.count_node, osmdata.max_node);
+        fprintf(stderr, "Way stats: total(%d), max(%d)\n", osmdata.count_way, osmdata.max_way);
+        fprintf(stderr, "Relation stats: total(%d), max(%d)\n", osmdata.count_rel, osmdata.max_rel);
     }
-    out->stop();
+    osmdata.out->stop();
     
-    free(nds);
-    free(members);
+    free(osmdata.nds);
+    free(osmdata.members);
     
     // free the column pointer buffer
     free(hstore_columns);
