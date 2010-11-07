@@ -264,8 +264,7 @@ void realloc_members(struct osmdata_t *osmdata)
 
 void resetMembers(struct osmdata_t *osmdata)
 {
-  int i;
-  for(i = 0; i < osmdata->member_count; i++ )
+  for(unsigned i = 0; i < osmdata->member_count; i++ )
     free( osmdata->members[i].role );
 }
 

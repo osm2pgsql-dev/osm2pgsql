@@ -37,7 +37,7 @@ struct osmdata_t {
   int *nds;
   int nd_count, nd_max;
   struct member *members;
-  int member_count, member_max;
+  unsigned member_count, member_max;
   int osm_id;
   filetypes_t filetype;
   actions_t action;
