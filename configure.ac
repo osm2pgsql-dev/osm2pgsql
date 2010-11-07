@@ -5,7 +5,7 @@ dnl Required autoconf version
 AC_PREREQ(2.65)
 
 dnl use automake to generate standard Makefiles
-AM_INIT_AUTOMAKE([1.10 dist-bzip2])
+AM_INIT_AUTOMAKE([1.10 dist-bzip2 std-options check-news])
 
 dnl use 'silent' make rules by default (disabled for now)
 dnl AM_INIT_AUTOMAKE([1.11 dist-bzip2 silent-rules])
