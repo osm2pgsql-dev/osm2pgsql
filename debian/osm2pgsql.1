@@ -7,7 +7,7 @@ osm2pgsql \- Openstreetmap data to PostgreSQL converter.
 .RI [ options ] " planet.osm"
 .br
 .B osm2pgsql
-.RI [ options ] " planet.osm.{gz,bz2}"
+.RI [ options ] " planet.osm.{gz,bz2,pbf}"
 .br
 .B osm2pgsql
 .RI [ options ] " file1.osm file2.osm file3.osm"
@@ -24,6 +24,9 @@ suitable for use by the Mapnik renderer.
 OSM planet snapshots can be downloaded from http://planet.openstreetmap.org/.
 Partial planet files ("extracts") for various countries are available, see
 http://wiki.openstreetmap.org/wiki/Planet.osm.
+.PP
+Extracts in PBF (ProtoBufBinary) format are also available from
+http://download.geofabrik.de/osm/.
 .PP
 When operating in "slim" mode (and on a database created in "slim" mode!),
 .B osm2pgsql
@@ -70,6 +73,11 @@ dumps prior to August 2007). Adds about 10% overhead.
 .TP
 \fB\-p\fR|\-\-prefix
 Prefix for table names (default planet_osm)
+.TP
+\fB\-r\fR|\-\-input\-reader
+Select input format reader. Available choices are \fBlibxml2\fR 
+(default) and \fBprimitive\fR for OSM XML format files, and \fBpbf\fR
+for OSM PBF binary format (may not be available on all platforms)
 .TP
 \fB\-s\fR|\-\-slim
 Store temporary data in the database. This greatly reduces the RAM usage but is much slower.
