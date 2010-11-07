@@ -963,6 +963,19 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             }
         }
     }
+    else if( strcmp( type, "boundary" ) == 0 )
+    {
+        // Boundaries will get converted into multiple geometries:
+        // - Linear features will end up in the line and roads tables (useful for admin boundaries)
+        // - Polygon features also go into the polygon table (useful for national_forests)
+        // The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately.
+        make_boundary = 1;
+    }
+    else if( strcmp( type, "multipolygon" ) == 0 && getItem(&tags, "boundary") )
+    {
+        // Treat type=multipolygon exactly like type=boundary if it has a boundary tag.
+        make_boundary = 1;
+    }
     else if( strcmp( type, "multipolygon" ) == 0 )
     {
         make_polygon = 1;
@@ -992,14 +1005,6 @@ static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **
             }
             p = p->next;
         }
-    }
-    else if( strcmp( type, "boundary" ) == 0 )
-    {
-        // Boundaries will get converted into multiple geometries:
-        // - Linear features will end up in the line and roads tables (useful for admin boundaries)
-        // - Polygon features also go into the polygon table (useful for national_forests)
-        // The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately.
-        make_boundary = 1;
     }
     else
     {
