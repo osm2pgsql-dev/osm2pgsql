@@ -4,6 +4,8 @@ AC_INIT(osm2pgsql, 0.70.5)
 dnl Required autoconf version
 AC_PREREQ(2.63)
 
+AX_CONFIG_NICE
+
 dnl use automake to generate standard Makefiles
 AM_INIT_AUTOMAKE([1.10 dist-bzip2 std-options check-news])
 
