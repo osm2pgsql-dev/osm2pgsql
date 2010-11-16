@@ -1,9 +1,6 @@
 AC_DEFUN([AX_CONFIG_NICE],[
   config_nice="config.nice"
   
-  echo "============================= foo ========================="
-  set > config.set
-
   test -f $config_nice && mv $config_nice $config_nice.old
   rm -f $config_nice.old
   cat >$config_nice <<EOF
