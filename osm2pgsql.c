@@ -118,82 +118,82 @@ static void long_usage(char *arg0)
     int i;
     const char *name = basename(arg0);
 
-    fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "\t%s [options] planet.osm\n", name);
-    fprintf(stderr, "\t%s [options] planet.osm.{gz,bz2}\n", name);
-    fprintf(stderr, "\t%s [options] file1.osm file2.osm file3.osm\n", name);
-    fprintf(stderr, "\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
-    fprintf(stderr, "suitable for use by the Mapnik renderer\n");
-    fprintf(stderr, "\nOptions:\n");
-    fprintf(stderr, "   -a|--append\t\tAdd the OSM file into the database without removing\n");
-    fprintf(stderr, "              \t\texisting data.\n");
-    fprintf(stderr, "   -b|--bbox\t\tApply a bounding box filter on the imported data\n");
-    fprintf(stderr, "              \t\tMust be specified as: minlon,minlat,maxlon,maxlat\n");
-    fprintf(stderr, "              \t\te.g. --bbox -0.5,51.25,0.5,51.75\n");
-    fprintf(stderr, "   -c|--create\t\tRemove existing data from the database. This is the \n");
-    fprintf(stderr, "              \t\tdefault if --append is not specified.\n");
-    fprintf(stderr, "   -d|--database\tThe name of the PostgreSQL database to connect\n");
-    fprintf(stderr, "                \tto (default: gis).\n");
-    fprintf(stderr, "   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where indexes will be create\n");
-    fprintf(stderr, "                \tto (default: pg_default).\n");
-    fprintf(stderr, "   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
-    fprintf(stderr, "   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
-    fprintf(stderr, "   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
-    fprintf(stderr, "   -E|--proj num\tUse projection EPSG:num\n");
-    fprintf(stderr, "   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
-    fprintf(stderr, "                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
-    fprintf(stderr, "   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
-    fprintf(stderr, "   -s|--slim\t\tStore temporary data in the database. This greatly\n");
-    fprintf(stderr, "            \t\treduces the RAM usage but is much slower.\n");
+    printf("Usage:\n");
+    printf("\t%s [options] planet.osm\n", name);
+    printf("\t%s [options] planet.osm.{gz,bz2}\n", name);
+    printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
+    printf("\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
+    printf("suitable for use by the Mapnik renderer\n");
+    printf("\nOptions:\n");
+    printf("   -a|--append\t\tAdd the OSM file into the database without removing\n");
+    printf("              \t\texisting data.\n");
+    printf("   -b|--bbox\t\tApply a bounding box filter on the imported data\n");
+    printf("              \t\tMust be specified as: minlon,minlat,maxlon,maxlat\n");
+    printf("              \t\te.g. --bbox -0.5,51.25,0.5,51.75\n");
+    printf("   -c|--create\t\tRemove existing data from the database. This is the \n");
+    printf("              \t\tdefault if --append is not specified.\n");
+    printf("   -d|--database\tThe name of the PostgreSQL database to connect\n");
+    printf("                \tto (default: gis).\n");
+    printf("   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where indexes will be create\n");
+    printf("                \tto (default: pg_default).\n");
+    printf("   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
+    printf("   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
+    printf("   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
+    printf("   -E|--proj num\tUse projection EPSG:num\n");
+    printf("   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
+    printf("                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
+    printf("   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
+    printf("   -s|--slim\t\tStore temporary data in the database. This greatly\n");
+    printf("            \t\treduces the RAM usage but is much slower.\n");
 
     if (sizeof(int*) == 4) {
-        fprintf(stderr, "            \t\tYou are running this on 32bit system, so at most\n");
-        fprintf(stderr, "            \t\t3GB of RAM will be used. If you encounter unexpected\n");
-        fprintf(stderr, "            \t\texceptions during import, you should try this switch.\n");
+        printf("            \t\tYou are running this on 32bit system, so at most\n");
+        printf("            \t\t3GB of RAM will be used. If you encounter unexpected\n");
+        printf("            \t\texceptions during import, you should try this switch.\n");
     }
     
-    fprintf(stderr, "   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
-    fprintf(stderr, "   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
-    fprintf(stderr, "             \t\tDefault is 800\n");
-    fprintf(stderr, "   -U|--username\tPostgresql user name.\n");
-    fprintf(stderr, "   -W|--password\tForce password prompt.\n");
-    fprintf(stderr, "   -H|--host\t\tDatabase server hostname or socket location.\n");
-    fprintf(stderr, "   -P|--port\t\tDatabase server port.\n");
-    fprintf(stderr, "   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
-    fprintf(stderr, "   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
-    fprintf(stderr, "   -r|--input-reader\tInput frontend.\n");
-    fprintf(stderr, "              \t\tlibxml2   - Parse XML using libxml2. (default)\n");
-    fprintf(stderr, "              \t\tprimitive - Primitive XML parsing.\n");
+    printf("   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
+    printf("   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
+    printf("             \t\tDefault is 800\n");
+    printf("   -U|--username\tPostgresql user name.\n");
+    printf("   -W|--password\tForce password prompt.\n");
+    printf("   -H|--host\t\tDatabase server hostname or socket location.\n");
+    printf("   -P|--port\t\tDatabase server port.\n");
+    printf("   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
+    printf("   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
+    printf("   -r|--input-reader\tInput frontend.\n");
+    printf("              \t\tlibxml2   - Parse XML using libxml2. (default)\n");
+    printf("              \t\tprimitive - Primitive XML parsing.\n");
 #ifdef BUILD_READER_PBF
-    fprintf(stderr, "              \t\tpbf       - OSM binary format.\n");
+    printf("              \t\tpbf       - OSM binary format.\n");
 #endif
-    fprintf(stderr, "   -O|--output\t\tOutput backend.\n");
-    fprintf(stderr, "              \t\tpgsql - Output to a PostGIS database. (default)\n");
-    fprintf(stderr, "              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
-    fprintf(stderr, "              \t\tnull  - No output. Useful for testing.\n");
-    fprintf(stderr, "   -x|--extra-attributes\n");
-    fprintf(stderr, "              \t\tInclude attributes for each object in the database.\n");
-    fprintf(stderr, "              \t\tThis includes the username, userid, timestamp and version.\n"); 
-    fprintf(stderr, "              \t\tNote: this option also requires additional entries in your style file.\n"); 
-    fprintf(stderr, "   -k|--hstore\t\tGenerate an additional hstore (key/value) column to  postgresql tables\n");
-    fprintf(stderr, "   -z|--hstore-column\tGenerate an additional hstore (key/value) column to containing all tags\n");
-    fprintf(stderr, "                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
-    fprintf(stderr, "                     \tproduce an extra hstore column that contains all name:xx tags\n");
-    fprintf(stderr, "   -G|--multi-geometry\t\tGenerate multi-geometry features in postgresql tables.\n");
-    fprintf(stderr, "   -h|--help\t\tHelp information.\n");
-    fprintf(stderr, "   -v|--verbose\t\tVerbose output.\n");
-    fprintf(stderr, "\n");
+    printf("   -O|--output\t\tOutput backend.\n");
+    printf("              \t\tpgsql - Output to a PostGIS database. (default)\n");
+    printf("              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
+    printf("              \t\tnull  - No output. Useful for testing.\n");
+    printf("   -x|--extra-attributes\n");
+    printf("              \t\tInclude attributes for each object in the database.\n");
+    printf("              \t\tThis includes the username, userid, timestamp and version.\n"); 
+    printf("              \t\tNote: this option also requires additional entries in your style file.\n"); 
+    printf("   -k|--hstore\t\tGenerate an additional hstore (key/value) column to  postgresql tables\n");
+    printf("   -z|--hstore-column\tGenerate an additional hstore (key/value) column to containing all tags\n");
+    printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
+    printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");
+    printf("   -G|--multi-geometry\t\tGenerate multi-geometry features in postgresql tables.\n");
+    printf("   -h|--help\t\tHelp information.\n");
+    printf("   -v|--verbose\t\tVerbose output.\n");
+    printf("\n");
     if(!verbose)
     {
-        fprintf(stderr, "Add -v to display supported projections.\n");
-        fprintf(stderr, "Use -E to access any espg projections (usually in /usr/share/proj/epsg)\n" );
+        printf("Add -v to display supported projections.\n");
+        printf("Use -E to access any espg projections (usually in /usr/share/proj/epsg)\n" );
     }
     else
     {
-        fprintf(stderr, "Supported projections:\n" );
+        printf("Supported projections:\n" );
         for(i=0; i<PROJ_COUNT; i++ )
         {
-            fprintf( stderr, "%-20s(%2s) SRS:%6d %s\n", 
+            printf( "%-20s(%2s) SRS:%6d %s\n", 
                     Projection_Info[i].descr, Projection_Info[i].option, Projection_Info[i].srs, Projection_Info[i].proj4text);
         }
     }
@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
     
     int (*streamFile)(char *, int, struct osmdata_t *);
 
-    fprintf(stderr, "osm2pgsql SVN version %s\n\n", VERSION);
+    printf("osm2pgsql SVN version %s\n\n", VERSION);
 
     while (1) {
         int c, option_index = 0;
@@ -409,7 +409,7 @@ int main(int argc, char *argv[])
 
     if (long_usage_bool) {
         long_usage(argv[0]);
-        exit(EXIT_FAILURE);
+        exit(EXIT_SUCCESS);
     }
 
     if (argc == optind) {  // No non-switch arguments
