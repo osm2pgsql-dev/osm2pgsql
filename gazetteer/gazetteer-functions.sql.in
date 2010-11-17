@@ -129,11 +129,11 @@ $$
 LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION transliteration(text) RETURNS text
-  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'transliteration'
+  AS 'gazetteerdir/gazetteer.so', 'transliteration'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION gettokenstring(text) RETURNS text
-  AS '/home/twain/osm2pgsql2/gazetteer/gazetteer.so', 'gettokenstring'
+  AS 'gazetteerdir/gazetteer.so', 'gettokenstring'
 LANGUAGE c IMMUTABLE STRICT;
 
 CREATE OR REPLACE FUNCTION make_standard_name(name TEXT) RETURNS TEXT

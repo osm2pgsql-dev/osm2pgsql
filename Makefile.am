@@ -40,7 +40,8 @@ AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ 
 
 AM_LDFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_LDFLAGS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROTOBUF_C_LDFLAGS@
 
-dist_data_DATA = default.style 900913.sql
+osm2pgsqldir = $(datadir)/osm2pgsql
+osm2pgsql_DATA = default.style 900913.sql
 
 man1_MANS = debian/osm2pgsql.1
 
@@ -48,7 +49,8 @@ EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
              protobuf/fileformat.proto \
              protobuf/osmformat.proto \
-             debian
+             debian \
+             $(osm2pgsql_DATA)
 
 $(PACKAGE).spec: $(PACKAGE).spec.in
 	sed -e "s/@""PACKAGE""@/$(PACKAGE)/g; s/@""VERSION""@/$(VERSION)/g; s/@""SVN""@/`svnversion`/g;" $^ > $@
