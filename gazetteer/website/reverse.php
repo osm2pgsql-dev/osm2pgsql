@@ -18,7 +18,7 @@
 
         // Format for output
 	$sOutputFormat = 'xml';
-        if (isset($_GET['format']) && ($_GET['format'] == 'xml' || $_GET['format'] == 'json'))
+        if (isset($_GET['format']) && ($_GET['format'] == 'xml' || $_GET['format'] == 'json' || $_GET['format'] == 'jsonv2'))
         {
                 $sOutputFormat = $_GET['format'];
         }
@@ -40,6 +40,7 @@
 		$fLat = (float)$_GET['lat'];
 		$fLon = (float)$_GET['lon'];
 		$sPointSQL = "ST_SetSRID(ST_Point($fLon,$fLat),4326)";
+		$bNamedOnly = isset($_GET['namedonly'])?(bool)$_GET['namedonly']:false;
 
 		// Zoom to rank, this could probably be calculated but a lookup gives fine control
 		$aZoomRank = array(
@@ -64,7 +65,7 @@
 			18 => 30, // or >, Building
 			19 => 30, // or >, Building
 			);
-		$iMaxRank = isset($aZoomRank[$_GET['zoom']])?$aZoomRank[$_GET['zoom']]:28;
+		$iMaxRank = isset($aZoomRank[$_GET['zoom']])?$aZoomRank[$_GET['zoom']]:30;
 
 		// Find the nearest point
 		$fSearchDiam = 0.0001;
@@ -84,7 +85,7 @@
 			if ($fSearchDiam > 0.2 && $iMaxRank > 17) $iMaxRank = 17;
 			if ($fSearchDiam > 0.1 && $iMaxRank > 18) $iMaxRank = 18;
 			if ($fSearchDiam > 0.01 && $iMaxRank > 22) $iMaxRank = 22;
-			if ($fSearchDiam > 0.001 && $iMaxRank > 25) $iMaxRank = 25;
+			if ($fSearchDiam > 0.005 && $iMaxRank > 25) $iMaxRank = 25;
 
 			if ($iMaxRank >= 26)
 			{
@@ -92,8 +93,10 @@
 				$sSQL = 'select place_id from placex';
 				$sSQL .= ' WHERE ST_DWithin('.$sPointSQL.', geometry, '.$fSearchDiam.')';
 				$sSQL .= ' and rank_search >= 26 and rank_search <= '.$iMaxRank;
-//				$sSQL .= ' and (ST_GeometryType(geometry) not in (\'ST_Polygon\',\'ST_MultiPolygon\') ';
-//				$sSQL .= ' OR ST_DWithin('.$sPointSQL.', ST_Centroid(geometry), '.$fSearchDiam.'))';
+				$sSQL .= ' and (ST_GeometryType(geometry) not in (\'ST_Polygon\',\'ST_MultiPolygon\') ';
+  				$sSQL .= ' OR ST_DWithin('.$sPointSQL.', ST_Centroid(geometry), '.$fSearchDiam.'))';
+				$sSQL .= ' and rank_address != 0 and type != \'houses\'';
+				if ($bNamedOnly) $sSQL .= ' and (name is not null or housenumber is not null)';
 				$sSQL .= ' ORDER BY rank_search desc, ST_distance('.$sPointSQL.', geometry) ASC limit 1';
 				$iPlaceID = $oDB->getOne($sSQL);
 				if (PEAR::IsError($iPlaceID))
@@ -111,6 +114,7 @@
 				{
 					$sSQL = 'select place_id,rank_address,ST_distance('.$sPointSQL.', centroid) as distance from location_area';
 					$sSQL .= ' WHERE ST_Contains(area,'.$sPointSQL.') and rank_search <= '.$iMaxRank;
+					if ($bNamedOnly) $sSQL .= ' and (name is not null)';
 					$sSQL .= ' ORDER BY rank_address desc, ST_distance('.$sPointSQL.', centroid) ASC limit 1';
 					$aArea = $oDB->getRow($sSQL);
 					if ($aArea) $fMaxAreaDistance = $aArea['distance'];
@@ -123,6 +127,7 @@
 					$sSQL = 'select place_id from location_point_'.($iMaxRank+1);
 					$sSQL .= ' WHERE ST_DWithin('.$sPointSQL.', centroid, '.$fSearchDiam.') ';
 					$sSQL .= ' and rank_search > '.($aArea['rank_address']+3);
+					if ($bNamedOnly) $sSQL .= ' and (name is not null)';
 					$sSQL .= ' ORDER BY rank_address desc, ST_distance('.$sPointSQL.', centroid) ASC limit 1';
 					$iPlaceID = $oDB->getOne($sSQL);
 					if (PEAR::IsError($iPlaceID))
@@ -158,5 +163,15 @@
 		$aPlace = $oDB->getRow($sSQL);
 
 		$aAddress = getAddressDetails($oDB, $sLanguagePrefArraySQL, $iPlaceID, $aPlace['country_code']);
+
+                $aClassType = getClassTypes();
+		$sAddressType = '';
+		if (isset($aClassType[$aPlace['class'].':'.$aPlace['type'].':'.$aPlace['admin_level']])) 
+			$sAddressType = $aClassType[$aPlace['class'].':'.$aPlace['type'].':'.$aPlace['admin_level']]['simplelabel'];
+		elseif (isset($aClassType[$aPlace['class'].':'.$aPlace['type']])) 
+			$sAddressType = $aClassType[$aPlace['class'].':'.$aPlace['type']]['simplelabel'];
+                else $sAddressType = $aPlace['class'];
+		$aPlace['addresstype'] = $sAddressType;
+
 	}
 	include('.htlib/output/address-'.$sOutputFormat.'.php');
