@@ -179,7 +179,10 @@ static void long_usage(char *arg0)
     printf("   -z|--hstore-column\tGenerate an additional hstore (key/value) column to containing all tags\n");
     printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
     printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");
-    printf("   -G|--multi-geometry\t\tGenerate multi-geometry features in postgresql tables.\n");
+    printf("   -G|--multi-geometry\tGenerate multi-geometry features in postgresql tables.\n");
+    printf("   -K|--keep-coastlines\tKeep coastline data rather than filtering it out.\n");
+    printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
+    printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
     printf("\n");
@@ -314,6 +317,7 @@ int main(int argc, char *argv[])
     const char *input_reader = "auto";
     const char **hstore_columns = NULL;
     int n_hstore_columns = 0;
+    int keep_coastlines=0;
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
@@ -352,12 +356,13 @@ int main(int argc, char *argv[])
             {"hstore", 0, 0, 'k'},
             {"hstore-column", 1, 0, 'z'},
             {"multi-geometry", 0, 0, 'G'},
-	    {"input-reader", 1, 0, 'r'},
+            {"keep-coastlines", 0, 0, 'K'},
+            {"input-reader", 1, 0, 'r'},
             {"version", 0, 0, 'V'},
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:hlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:r:V", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:r:V", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -367,6 +372,7 @@ int main(int argc, char *argv[])
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
             case 's': slim=1;     break;
+            case 'K': keep_coastlines=1;     break;
             case 'u': sanitize=1; break;
             case 'l': projection=PROJ_LATLONG;  break;
             case 'm': projection=PROJ_SPHERE_MERC; break;
@@ -472,6 +478,7 @@ int main(int argc, char *argv[])
     options.enable_hstore = enable_hstore;
     options.hstore_columns = hstore_columns;
     options.n_hstore_columns = n_hstore_columns;
+    options.keep_coastlines = keep_coastlines;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;

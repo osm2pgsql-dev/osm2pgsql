@@ -708,14 +708,19 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
     while( (item = popItem(tags)) != NULL )
     {
-        /* Discard natural=coastline tags (we render these from a shapefile instead) */
+        /* Allow named islands to appear as polygons */
         if (!strcmp("natural",item->key) && !strcmp("coastline",item->value))
-        {		
+        {               
+            add_area_tag = 1; 
+        }
+
+        /* Discard natural=coastline tags (we render these from a shapefile instead) */
+        if (!Options->keep_coastlines && !strcmp("natural",item->key) && !strcmp("coastline",item->value))
+        {               
             freeItem( item );
             item = NULL;
-            add_area_tag = 1; /* Allow named islands to appear as polygons */
             continue;
-        }    
+        }
 
         for (i=0; i < exportListCount[type]; i++)
         {
