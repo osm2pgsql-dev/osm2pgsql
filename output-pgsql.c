@@ -6,6 +6,8 @@
  * emit the final geometry-enabled output formats
 */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
