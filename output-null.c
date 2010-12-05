@@ -5,10 +5,6 @@
 #include <assert.h>
 #include <errno.h>
 
-#ifdef HAVE_PTHREAD
-#include <pthread.h>
-#endif
-
 #include "osmtypes.h"
 #include "output.h"
 #include "output-null.h"
