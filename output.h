@@ -31,6 +31,7 @@ struct output_options {
   int enable_multi; /* Output multi-geometries intead of several simple geometries */
   const char** hstore_columns; /* list of columns that should be written into their own hstore column */
   int n_hstore_columns; /* number of hstore columns */
+  int keep_coastlines;
 };
 
 struct output_t {
