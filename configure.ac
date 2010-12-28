@@ -2,12 +2,12 @@ dnl Process this file with autoconf to produce a configure script.
 AC_INIT(osm2pgsql, 0.70.5)
 
 dnl Required autoconf version
-AC_PREREQ(2.63)
+AC_PREREQ(2.62)
 
 AX_CONFIG_NICE
 
 dnl use automake to generate standard Makefiles
-AM_INIT_AUTOMAKE([1.10 dist-bzip2 std-options check-news])
+AM_INIT_AUTOMAKE([1.9.6 dist-bzip2 std-options check-news])
 
 dnl use 'silent' make rules by default (disabled for now)
 dnl AM_INIT_AUTOMAKE([1.11 dist-bzip2 silent-rules])
