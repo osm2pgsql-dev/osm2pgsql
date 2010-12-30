@@ -60,4 +60,6 @@ rpm: dist-gzip
 
 distclean-local:
 	@rm -f $(PACKAGE).spec
+	@rm -f config.nice
+	
 

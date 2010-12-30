@@ -19,3 +19,5 @@ noinst_HEADERS = utfasciitable.h tokenstringreplacements.inc
 
 gazetteer-functions.sql: gazetteer-functions.sql.in
 	sed -e"s/gazetteerdir/"`echo $(gazetteerdir) | sed -e's/\//\\\\\//g'`"/g" < $< > $@
+
+MOSTLYCLEANFILES = gazetteer-functions.sql
