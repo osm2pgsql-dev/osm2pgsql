@@ -28,8 +28,14 @@
 /* Need to know which geos version we have to work out which headers to include */
 #include <geos/version.h>
 
+/* geos (3.0.0+) */
 #if (GEOS_VERSION_MAJOR==3)
-/* geos trunk (3.0.0+) */
+#if (GEOS_VERSION_MINOR>=1)
+/* Prepared geometries are new in 3.1.0 */
+#define HAS_PREPARED_GEOMETRIES
+#include <geos/geom/prep/PreparedGeometryFactory.h>
+#include <geos/geom/prep/PreparedPolygon.h>
+#endif
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
@@ -296,6 +302,9 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
+#ifdef HAS_PREPARED_GEOMETRIES
+    geos::geom::prep::PreparedGeometryFactory pgf;
+#endif
 
     try
     {
@@ -383,11 +392,19 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
             {
                 if (polys[i].iscontained != 0) continue;
                 toplevelpolygons++;
+#ifdef HAS_PREPARED_GEOMETRIES
+                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
+#endif
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
+#ifdef HAS_PREPARED_GEOMETRIES
+                    // Does preparedtoplevelpolygon contain the smaller polygon[j]?
+                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
+#else
                     // Does polygon[i] contain the smaller polygon[j]?
                     if (polys[j].containedbyid == 0 && polys[i].polygon->contains(polys[j].polygon))
+#endif
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
@@ -399,9 +416,9 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
                                 istoplevelafterall = 1;
                                 break;
                             }
+#if 0
                             else if (polys[k].polygon->intersects(polys[j].polygon) || polys[k].polygon->touches(polys[j].polygon))
 			    {
-#if 0
                                 // FIXME: This code does not work as intended
                                 // It should be setting the polys[k].ring in order to update this object
                                 // but the value of polys[k].polygon calculated is normally NULL
@@ -414,8 +431,9 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
 				polys[j].iscontained = 2; // Drop
                                 istoplevelafterall = 2;
                                 break;
-#endif
+
                             }
+#endif
                         }
                         if (istoplevelafterall == 0)
                         {
@@ -424,6 +442,9 @@ size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make
                         }
                     }
                 }
+#ifdef HAS_PREPARED_GEOMETRIES
+		pgf.destroy(preparedtoplevelpolygon);
+#endif
             }
             // polys now is a list of ploygons tagged with which ones are inside each other
 
