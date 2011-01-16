@@ -257,8 +257,8 @@ static void ram_iterate_relations(int (*callback)(int id, struct member *members
             if (rels[block][offset].members) {
                 int id = block2id(block, offset);
                 rel_out_count++;
-                if (rel_out_count % 1000 == 0)
-                    fprintf(stderr, "\rWriting rel(%uk)", rel_out_count/1000);
+                if (rel_out_count % 10 == 0)
+                    fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
 
                 callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
             }
@@ -272,7 +272,7 @@ static void ram_iterate_relations(int (*callback)(int id, struct member *members
         rels[block] = NULL;
     }
 
-    fprintf(stderr, "\rWriting rel(%uk)\n", rel_out_count/1000);
+    fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
 static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
@@ -289,7 +289,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
             if (ways[block][offset].ndids) {
                 way_out_count++;
                 if (way_out_count % 1000 == 0)
-                    fprintf(stderr, "\rWriting way(%uk)", way_out_count/1000);
+                    fprintf(stderr, "\rWriting way (%uk)", way_out_count/1000);
 
                 if (ways[block][offset].pending) {
                     /* First element contains number of nodes */
@@ -317,7 +317,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
             }
         }
     }
-    fprintf(stderr, "\rWriting way(%uk)\n", way_out_count/1000);
+    fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */

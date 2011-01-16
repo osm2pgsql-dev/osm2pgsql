@@ -1026,8 +1026,8 @@ static void pgsql_iterate_relations(int (*callback)(int id, struct member *membe
         struct member *members;
         int member_count;
 
-        if (count++ %1000 == 0)
-                fprintf(stderr, "\rprocessing relation (%dk)", count/1000);
+        if (count++ %10 == 0)
+                fprintf(stderr, "\rprocessing relation (%d)", count);
 
         initList(&tags);
         if( pgsql_rels_get(id, &members, &member_count, &tags) )
