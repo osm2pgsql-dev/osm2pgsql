@@ -43,8 +43,6 @@ AM_LDFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_LDFLAGS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS
 osm2pgsqldir = $(datadir)/osm2pgsql
 osm2pgsql_DATA = default.style 900913.sql
 
-man1_MANS = debian/osm2pgsql.1
-
 EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
              protobuf/fileformat.proto \
@@ -61,5 +59,3 @@ rpm: dist-gzip
 distclean-local:
 	@rm -f $(PACKAGE).spec
 	@rm -f config.nice
-	
-
