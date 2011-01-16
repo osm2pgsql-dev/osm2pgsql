@@ -9,6 +9,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <proj_api.h>
+#include <math.h>
 
 #include "reprojection.h"
 
@@ -137,6 +138,22 @@ void reproject(double *lat, double *lon)
     if (Proj == PROJ_LATLONG)
         return;
 
+    if (Proj == PROJ_SPHERE_MERC)
+    {
+      /* The latitude co-ordinate is clipped at slightly larger than the 900913 'world' 
+       * extent of +-85.0511 degrees to ensure that the points appear just outside the
+       * edge of the map. */
+
+        if (*lat > 85.07)
+            *lat = 85.07;
+        if (*lat < -85.07)
+            *lat = -85.07;
+
+        *lat = log(tan(M_PI/4.0 + (*lat) * DEG_TO_RAD / 2.0)) * EARTH_CIRCUMFERENCE/(M_PI*2);
+        *lon = (*lon) * EARTH_CIRCUMFERENCE / 360.0;
+        return;
+    }
+
     x[0] = *lon * DEG_TO_RAD;
     y[0] = *lat * DEG_TO_RAD;
     z[0] = 0;
@@ -145,7 +162,7 @@ void reproject(double *lat, double *lon)
     
     pj_transform(pj_source, pj_target, 1, 1, x, y, z);
     
-    //printf("%.4f\t%.4f -> %.4f\t%.4f\n", *lat, *lon, y[0], x[0]);    
+    //printf("%.4f\t%.4f -> %.4f\t%.4f\n", *lat, *lon, y[0], x[0]);
     *lat = y[0];
     *lon = x[0];
 }
