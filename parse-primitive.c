@@ -247,7 +247,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
             osmdata->max_rel = osmdata->osm_id;
 
         osmdata->count_rel++;
-        if (osmdata->count_rel%1000 == 0)
+        if (osmdata->count_rel%10 == 0)
             printStatus(osmdata);
 
         osmdata->member_count = 0;

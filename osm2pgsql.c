@@ -273,8 +273,8 @@ void resetMembers(struct osmdata_t *osmdata)
 
 void printStatus(struct osmdata_t *osmdata)
 {
-    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%dk)",
-            osmdata->count_node/1000, osmdata->count_way/1000, osmdata->count_rel/1000);
+    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%d)",
+            osmdata->count_node/1000, osmdata->count_way/1000, osmdata->count_rel);
 }
 
 int node_wanted(struct osmdata_t *osmdata, double lat, double lon)
