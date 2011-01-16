@@ -47,7 +47,6 @@ EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
              protobuf/fileformat.proto \
              protobuf/osmformat.proto \
-             debian \
              $(osm2pgsql_DATA)
 
 $(PACKAGE).spec: $(PACKAGE).spec.in
