@@ -22,7 +22,10 @@ struct output_options {
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
-  const char *tblsindex;     /* Pg Tablespace to store indexes */
+  const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables */
+  const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables */
+  const char *tblsmain_data;     /* Pg Tablespace to store main tables */
+  const char *tblsslim_data;     /* Pg Tablespace to store slim tables */
   const char *style;     /* style file to use */
   int expire_tiles_zoom;	/* Zoom level for tile expiry list */
   int expire_tiles_zoom_min;	/* Minimum zoom level for tile expiry list */
