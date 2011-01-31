@@ -1,0 +1,9 @@
+The Debian Package osm2pgsql
+----------------------------
+
+Debian packaging stuff created to allow building a stand-alone osm2pgsql package.
+
+Unrelated to Joerg Ostertag's "openstreetmap-utils" package which also contains
+osm2pgsql!
+
+ -- Frederik Ramm <frederik@remote.org>  Fri, 13 Mar 2009 00:14:15 +0100
