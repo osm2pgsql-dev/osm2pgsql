@@ -1,0 +1,133 @@
+.TH OSM2PGSQL 1 "March 13, 2009"
+.\" Please adjust this date whenever revising the manpage.
+.SH NAME
+osm2pgsql \- Openstreetmap data to PostgreSQL converter.
+.SH SYNOPSIS
+.B osm2pgsql
+.RI [ options ] " planet.osm"
+.br
+.B osm2pgsql
+.RI [ options ] " planet.osm.{gz,bz2,pbf}"
+.br
+.B osm2pgsql
+.RI [ options ] " file1.osm file2.osm file3.osm"
+.br
+.SH DESCRIPTION
+This manual page documents briefly the
+.B osm2pgsql
+command.
+.PP
+.B osm2pgsql
+imports data from OSM file(s) into a PostgreSQL database
+suitable for use by the Mapnik renderer.
+.br
+OSM planet snapshots can be downloaded from http://planet.openstreetmap.org/.
+Partial planet files ("extracts") for various countries are available, see
+http://wiki.openstreetmap.org/wiki/Planet.osm.
+.PP
+Extracts in PBF (ProtoBufBinary) format are also available from
+http://download.geofabrik.de/osm/.
+.PP
+When operating in "slim" mode (and on a database created in "slim" mode!),
+.B osm2pgsql
+can also process OSM change files (osc files), thereby bringing an existing
+database up to date. 
+.PP
+.SH OPTIONS
+These programs follow the usual GNU command line syntax, with long
+options starting with two dashes (`-').
+A summary of options is included below.
+.TP
+\fB\-a\fR|\-\-append
+Add the OSM file into the database without removing
+existing data.
+.TP
+\fB\-b\fR|\-\-bbox
+Apply a bounding box filter on the imported data
+Must be specified as: minlon,minlat,maxlon,maxlat
+e.g. \fB\-\-bbox\fR \fB\-0\fR.5,51.25,0.5,51.75
+.TP
+\fB\-c\fR|\-\-create
+Remove existing data from the database. This is the
+default if \fB\-\-append\fR is not specified.
+.TP
+\fB\-d\fR|\-\-database
+The name of the PostgreSQL database to connect
+to (default: gis).
+.TP
+\fB\-l\fR|\-\-latlong
+Store data in degrees of latitude & longitude.
+.TP
+\fB\-m\fR|\-\-merc
+Store data in proper spherical mercator (the default)
+.TP
+\fB\-M\fR|\-\-oldmerc
+Store data in the legacy OSM mercator format
+.TP
+\fB\-E\fR|\-\-proj num
+Use projection EPSG:num
+.TP
+\fB\-u\fR|\-\-utf8\-sanitize
+Repair bad UTF8 input data (present in planet
+dumps prior to August 2007). Adds about 10% overhead.
+.TP
+\fB\-p\fR|\-\-prefix
+Prefix for table names (default planet_osm)
+.TP
+\fB\-r\fR|\-\-input\-reader
+Select input format reader. Available choices are \fBlibxml2\fR 
+(default) and \fBprimitive\fR for OSM XML format files, and \fBpbf\fR
+for OSM PBF binary format (may not be available on all platforms)
+.TP
+\fB\-s\fR|\-\-slim
+Store temporary data in the database. This greatly reduces the RAM usage but is much slower.
+.TP
+\fB\-S\fR|\-\-style
+Location of the style file. Defaults to /usr/share/osm2pgsql/default.style.
+.TP
+\fB\-C\fR|\-\-cache
+Only for slim mode: Use upto this many MB for caching nodes. Defaults to 800.
+.TP
+\fB\-U\fR|\-\-username
+Postgresql user name.
+.TP
+\fB\-W\fR|\-\-password
+Force password prompt.
+.TP
+\fB\-H\fR|\-\-host
+Database server hostname or socket location.
+.TP
+\fB\-P\fR|\-\-port
+Database server port.
+.TP
+\fB\-e\fR|\-\-expire-tiles [min_zoom-]max-zoom 
+Create a tile expiry list.
+.TP
+\fB\-o\fR|\-\-expire-output
+Output filename for expired tiles list.
+.TP
+\fB\-h\fR|\-\-help
+Help information.
+.br
+Add \fB\-v\fR to display supported projections.
+.TP
+\fB\-v\fR|\-\-verbose
+Verbose output.
+.PP
+.SH SUPPORTED PROJECTIONS
+Latlong             (-l) SRS:  4326 (none)
+.br       
+WGS84 Mercator      (  ) SRS:  3395 +proj=merc +datum=WGS84  +k=1.0 +units=m +over +no_defs
+.br
+Spherical Mercator  (-m) SRS:900913 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
+.PP
+.SH SEE ALSO
+.BR proj (1),
+.BR postgres (1).
+.br
+.SH AUTHOR
+osm2pgsql was written by Jon Burgess, Artem Pavlenko, and other
+OpenStreetMap project members.
+.PP
+This manual page was written by Andreas Putzo <andreas@putzo.net>
+for the Debian project, and amended by OpenStreetMap authors.

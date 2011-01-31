@@ -36,17 +36,20 @@ BUILT_SOURCES = \
 endif
 
 AM_CFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@  @GEOS_CFLAGS@ @PROJ_CFLAGS@  @PROTOBUF_C_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(datadir)"' -DVERSION='"@PACKAGE_VERSION@"'
-AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@  @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(datadir)"' -Igeos-fallback
+AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@  @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(datadir)"'  -Igeos-fallback
 
 AM_LDFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_LDFLAGS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROTOBUF_C_LDFLAGS@
 
 osm2pgsqldir = $(datadir)/osm2pgsql
 osm2pgsql_DATA = default.style 900913.sql
 
+man1_MANS = debian/osm2pgsql.1
+
 EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
              protobuf/fileformat.proto \
              protobuf/osmformat.proto \
+             debian \
              $(osm2pgsql_DATA)
 
 $(PACKAGE).spec: $(PACKAGE).spec.in
@@ -58,3 +61,5 @@ rpm: dist-gzip
 distclean-local:
 	@rm -f $(PACKAGE).spec
 	@rm -f config.nice
+	
+
