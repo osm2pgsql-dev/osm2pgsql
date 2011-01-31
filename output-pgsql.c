@@ -1191,8 +1191,8 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
-		if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
-		    continue;
+                if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+                    continue;
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
                     sql_len *= 2;
@@ -1209,18 +1209,17 @@ static int pgsql_out_start(const struct output_options *options)
                 strcat(sql, "\" hstore ");
             }
             if (Options->enable_hstore) {
-                strcat(sql, ",tags hstore );\n");
-	    } else {
-	      strcat(sql, " );\n");
-	    }
+                strcat(sql, ",tags hstore");
+            } 
+            sprintf(sql + strlen(sql), ") TABLESPACE %s\n", Options->tblsmain_data);
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
             /* slim mode needs this to be able to apply diffs */
-            if( Options->slim )
-	      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", tables[i].name, tables[i].name, Options->tblsindex);
+            if (Options->slim)
+	            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", tables[i].name, tables[i].name, Options->tblsmain_index);
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
@@ -1342,10 +1341,10 @@ static void *pgsql_out_stop_one(void *arg)
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsindex);
+      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
       /* slim mode needs this to be able to apply diffs */
       if( Options->slim )
-	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsindex);
+	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
       pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
     }

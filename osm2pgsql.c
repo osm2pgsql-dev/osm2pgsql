@@ -133,9 +133,16 @@ static void long_usage(char *arg0)
     printf("   -c|--create\t\tRemove existing data from the database. This is the \n");
     printf("              \t\tdefault if --append is not specified.\n");
     printf("   -d|--database\tThe name of the PostgreSQL database to connect\n");
-    printf("                \tto (default: gis).\n");
-    printf("   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where indexes will be create\n");
-    printf("                \tto (default: pg_default).\n");
+    printf("              \t\tto (default: gis).\n");
+    printf("   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where\n");
+    printf("              \t\tall indexes will be created (default: pg_default).\n");
+    printf("              \t\tThe following options allow more fine-grained control:\n");
+    printf("      --tablespace-main-data \ttablespace for main tables\n");
+    printf("      --tablespace-main-index\ttablespace for main table indexes\n");
+    printf("      --tablespace-slim-data \ttablespace for slim mode tables\n");
+    printf("      --tablespace-slim-index\ttablespace for slim mode indexes\n");
+    printf("              \t\t(all default to pg_default; -i is equivalent to setting\n");
+    printf("              \t\t--tablespace-main-index and --tablespace-slim-index)\n");
     printf("   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
     printf("   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
     printf("   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
@@ -308,7 +315,10 @@ int main(int argc, char *argv[])
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
-    const char *tblsindex = "pg_default"; // default TABLESPACE for index
+    const char *tblsmain_index = "pg_default"; // default TABLESPACE for index on main tables
+    const char *tblsmain_data = "pg_default";  // default TABLESPACE for main tables
+    const char *tblsslim_index = "pg_default"; // default TABLESPACE for index on slim mode tables
+    const char *tblsslim_data = "pg_default";  // default TABLESPACE for slim mode tables
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = OSM2PGSQL_DATADIR "/default.style";
@@ -347,6 +357,10 @@ int main(int argc, char *argv[])
             {"host",     1, 0, 'H'},
             {"port",     1, 0, 'P'},
             {"tablespace-index", 1, 0, 'i'},
+            {"tablespace-slim-data", 1, 0, 200},
+            {"tablespace-slim-index", 1, 0, 201},
+            {"tablespace-main-data", 1, 0, 202},
+            {"tablespace-main-index", 1, 0, 203},
             {"help",     0, 0, 'h'},
             {"style",    1, 0, 'S'},
             {"expire-tiles", 1, 0, 'e'},
@@ -386,26 +400,30 @@ int main(int argc, char *argv[])
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
             case 'S': style=optarg; break;
-            case 'i': tblsindex=optarg; break;
+            case 'i': tblsmain_index=tblsslim_index=optarg; break;
+            case 200: tblsslim_data=optarg; break;    
+            case 201: tblsslim_index=optarg; break;    
+            case 202: tblsmain_data=optarg; break;    
+            case 203: tblsmain_index=optarg; break;    
             case 'e':
                 expire_tiles_zoom_min = atoi(optarg);
-		temparg = strchr(optarg, '-');
-		if (temparg) expire_tiles_zoom = atoi(temparg + 1);
-		if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
+                temparg = strchr(optarg, '-');
+                if (temparg) expire_tiles_zoom = atoi(temparg + 1);
+                if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
                 break;
             case 'o': expire_tiles_filename=optarg; break;
-	    case 'O': output_backend = optarg; break;
+            case 'O': output_backend = optarg; break;
             case 'x': osmdata.extra_attributes=1; break;
-	    case 'k': enable_hstore=1; break;
+            case 'k': enable_hstore=1; break;
             case 'z': 
                 n_hstore_columns++;
                 hstore_columns = (const char**)realloc(hstore_columns, sizeof(&n_hstore_columns) * n_hstore_columns);
                 hstore_columns[n_hstore_columns-1] = optarg;
                 break;
-	    case 'G': enable_multi=1; break;
-	    case 'r': input_reader = optarg; break;
+            case 'G': enable_multi=1; break;
+            case 'r': input_reader = optarg; break;
             case 'h': long_usage_bool=1; break;
-  	    case 'V': exit(EXIT_SUCCESS);
+            case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
                 short_usage(argv[0]);
@@ -428,7 +446,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if( cache < 0 ) cache = 0;
+    if (cache < 0) cache = 0;
 
     if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
@@ -470,7 +488,10 @@ int main(int argc, char *argv[])
     options.mid = slim ? &mid_pgsql : &mid_ram;
     options.cache = cache;
     options.style = style;
-    options.tblsindex = tblsindex;
+    options.tblsmain_index = tblsmain_index;
+    options.tblsmain_data = tblsmain_data;
+    options.tblsslim_index = tblsslim_index;
+    options.tblsslim_data = tblsslim_data;
     options.expire_tiles_zoom = expire_tiles_zoom;
     options.expire_tiles_zoom_min = expire_tiles_zoom_min;
     options.expire_tiles_filename = expire_tiles_filename;

@@ -60,62 +60,62 @@ struct table_desc {
 static struct table_desc tables [] = {
     { 
         //table = t_node,
-         .name = "%s_nodes",
+         .name = "%p_nodes",
         .start = "BEGIN;\n",
 #ifdef FIXED_POINT
-       .create = "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat int4 not null, lon int4 not null, tags text[]);\n",
-      .prepare = "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, lat int4 not null, lon int4 not null, tags text[]) TABLESPACE %t;\n",
+      .prepare = "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
-       .create = "CREATE TABLE %s_nodes (id int4 PRIMARY KEY, lat double precision not null, lon double precision not null, tags text[]);\n",
-      .prepare = "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %s_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, lat double precision not null, lon double precision not null, tags text[]) TABLESPACE %t;\n",
+      .prepare = "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
-               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %s_nodes WHERE id = $1 LIMIT 1;\n"
-               "PREPARE delete_node (int4) AS DELETE FROM %s_nodes WHERE id = $1;\n",
+               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
+               "PREPARE delete_node (int4) AS DELETE FROM %p_nodes WHERE id = $1;\n",
 .prepare_intarray = // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
                   // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
-                  //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %s_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
+                  //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
                "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
-                                               "(select * from %s_nodes where id = ANY($1)) y where l_id=id order by i;\n",
-         .copy = "COPY %s_nodes FROM STDIN;\n",
-      .analyze = "ANALYZE %s_nodes;\n",
+                                               "(select * from %p_nodes where id = ANY($1)) y where l_id=id order by i;\n",
+         .copy = "COPY %p_nodes FROM STDIN;\n",
+      .analyze = "ANALYZE %p_nodes;\n",
          .stop = "COMMIT;\n"
     },
     { 
         //table = t_way,
-         .name = "%s_ways",
+         .name = "%p_ways",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %s_ways (id int4 PRIMARY KEY, nodes int4[] not null, tags text[], pending boolean not null);\n",
- .create_index = "CREATE INDEX %s_ways_idx ON %s_ways (id) TABLESPACE %s WHERE pending;\n",
-.array_indexes = "CREATE INDEX %s_ways_nodes ON %s_ways USING gin (nodes gin__int_ops) TABLESPACE %s;\n",
-      .prepare = "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %s_ways VALUES ($1,$2,$3,$4);\n"
-               "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %s_ways WHERE id = $1;\n"
-               "PREPARE way_done(int4) AS UPDATE %s_ways SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_ways AS SELECT id FROM %s_ways WHERE pending;\n"
-               "PREPARE delete_way(int4) AS DELETE FROM %s_ways WHERE id = $1;\n",
-.prepare_intarray = "PREPARE node_changed_mark(int4) AS UPDATE %s_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
-         .copy = "COPY %s_ways FROM STDIN;\n",
-      .analyze = "ANALYZE %s_ways;\n",
+       .create = "CREATE TABLE %p_ways (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, nodes int4[] not null, tags text[], pending boolean not null) TABLESPACE %t;\n",
+ .create_index = "CREATE INDEX %p_ways_idx ON %p_ways (id) TABLESPACE %i WHERE pending;\n",
+.array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes gin__int_ops) TABLESPACE %i;\n",
+      .prepare = "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
+               "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
+               "PREPARE way_done(int4) AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
+               "PREPARE delete_way(int4) AS DELETE FROM %p_ways WHERE id = $1;\n",
+.prepare_intarray = "PREPARE node_changed_mark(int4) AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
+         .copy = "COPY %p_ways FROM STDIN;\n",
+      .analyze = "ANALYZE %p_ways;\n",
          .stop =  "COMMIT;\n"
     },
     { 
         //table = t_rel,
-         .name = "%s_rels",
+         .name = "%p_rels",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %s_rels(id int4 PRIMARY KEY, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null);\n",
- .create_index = "CREATE INDEX %s_rels_idx ON %s_rels (id) TABLESPACE %s WHERE pending;\n",
-.array_indexes = "CREATE INDEX %s_rels_parts ON %s_rels USING gin (parts gin__int_ops) TABLESPACE %s;\n",
-      .prepare = "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %s_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
-               "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %s_rels WHERE id = $1;\n"
-               "PREPARE rel_done(int4) AS UPDATE %s_rels SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_rels AS SELECT id FROM %s_rels WHERE pending;\n"
-               "PREPARE delete_rel(int4) AS DELETE FROM %s_rels WHERE id = $1;\n",
+       .create = "CREATE TABLE %p_rels(id int4 PRIMARY KEY USING INDEX TABLESPACE %i, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null) TABLESPACE %t;\n",
+ .create_index = "CREATE INDEX %p_rels_idx ON %p_rels (id) TABLESPACE %i WHERE pending;\n",
+.array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts gin__int_ops) TABLESPACE %i;\n",
+      .prepare = "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+               "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
+               "PREPARE rel_done(int4) AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_rels AS SELECT id FROM %p_rels WHERE pending;\n"
+               "PREPARE delete_rel(int4) AS DELETE FROM %p_rels WHERE id = $1;\n",
 .prepare_intarray = /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
-                "PREPARE node_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE way_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE node_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE way_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
                   /* For this it works fine */
-                "PREPARE rel_changed_mark(int4) AS UPDATE %s_rels SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
-         .copy = "COPY %s_rels FROM STDIN;\n",
-      .analyze = "ANALYZE %s_rels;\n",
+                "PREPARE rel_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
+         .copy = "COPY %p_rels FROM STDIN;\n",
+      .analyze = "ANALYZE %p_rels;\n",
          .stop =  "COMMIT;\n"
     }
 };
@@ -1085,24 +1085,36 @@ static void pgsql_end(void)
     }
 }
 
-/* Replace %s with prefix */
-static inline void set_prefix( const char *prefix, const char **string )
+/* Replace %p with prefix, %t with data tablespace, %i with index tablespace */
+static inline void set_prefix_and_tbls(const char *prefix, const char *t, const char *i, const char **string)
 {
-  char buffer[1024];
-  if( *string == NULL )
-      return;
-  sprintf( buffer, *string, prefix, prefix, prefix, prefix, prefix, prefix );
-  *string = strdup( buffer );
-}
-
-/* Replace %s with prefix and tablespace*/
-static inline void set_prefixtbls( const char *prefix, const char *tbls, const char **string )
-{
-  char buffer[1024];
-  if( *string == NULL )
-      return;
-  sprintf( buffer, *string, prefix, prefix, tbls );
-  *string = strdup( buffer );
+    char buffer[1024];
+    if (*string == NULL) return;
+    const char *source = *string;
+    char *dest = buffer;
+    while (*source) {
+        if (*source == '%') {
+            if (*(source+1) == 'p') {
+                strcpy(dest, prefix);
+                dest += strlen(prefix);
+                source+=2;
+                continue;
+            } else if (*(source+1) == 't') {
+                strcpy(dest, t);
+                dest += strlen(t);
+                source+=2;
+                continue;
+            } else if (*(source+1) == 'i') {
+                strcpy(dest, i);
+                dest += strlen(t);
+                source+=2;
+                continue;
+            }
+        }
+        *(dest++) = *(source++);
+    }
+    *dest = 0;
+    *string = strdup(buffer);
 }
 
 static int build_indexes;
@@ -1131,16 +1143,16 @@ static int pgsql_start(const struct output_options *options)
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
                         
-        set_prefix( options->prefix, &(tables[i].name) );
-        set_prefix( options->prefix, &(tables[i].start) );
-        set_prefix( options->prefix, &(tables[i].create) );
-        set_prefixtbls( options->prefix, options->tblsindex, &(tables[i].create_index) );
-        set_prefix( options->prefix, &(tables[i].prepare) );
-        set_prefix( options->prefix, &(tables[i].prepare_intarray) );
-        set_prefix( options->prefix, &(tables[i].copy) );
-        set_prefix( options->prefix, &(tables[i].analyze) );
-        set_prefix( options->prefix, &(tables[i].stop) );
-        set_prefixtbls( options->prefix, options->tblsindex, &(tables[i].array_indexes) );
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].name));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].start));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].create));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].create_index));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].prepare));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].prepare_intarray));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].copy));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].analyze));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].stop));
+        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].array_indexes));
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);
@@ -1178,9 +1190,9 @@ static int pgsql_start(const struct output_options *options)
 
         if (dropcreate && tables[i].create) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
-	    if ( tables[i].create_index) {
-	      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
-	    }
+            if (tables[i].create_index) {
+              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+            }
         }
 
 
@@ -1211,9 +1223,26 @@ static void *pgsql_stop_one(void *arg)
     if (table->stop) 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->stop);
 
-    if( build_indexes && table->array_indexes ) {
-        fprintf(stderr, "Building index on table: %s\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
+    if (build_indexes && table->array_indexes) {
+        char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
+        char *tblsp = strstr(table->array_indexes, "TABLESPACE");
+
+        // automatically insert FASTUPDATE=OFF when creating,
+        // indexes for PostgreSQL 8.4 and higher
+        // see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html
+        if (tblsp && PQserverVersion(sql_conn) >= 80400) {
+            fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
+            *tblsp = 0; // temporary null byte for following strcpy operation
+            strcpy(buffer, table->array_indexes);
+            *tblsp = 'T'; // restore old content
+            strcat(buffer, " WITH (FASTUPDATE=OFF)");
+            strcat(buffer, tblsp);
+        } else {
+            fprintf(stderr, "Building index on table: %s\n", table->name);
+            strcpy(buffer, table->array_indexes);
+        }
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
+        free(buffer);
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;

@@ -20,13 +20,13 @@
    "CREATE TYPE keyvalue AS ("                  \
    "  key TEXT,"                                \
    "  value TEXT"                               \
-   ")"
+   ") TABLESPACE %s"
 
 #define CREATE_WORDSCORE_TYPE                   \
    "CREATE TYPE wordscore AS ("                 \
    "  word TEXT,"                                \
    "  score FLOAT"                               \
-   ")"
+   ") TABLESPACE %s"
 
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
@@ -46,7 +46,7 @@
    "  rank_address INTEGER,"                    \
    "  rank_search INTEGER,"                     \
    "  indexed BOOLEAN"                          \
-   ")"
+   ") TABLESPACE %s"
 
 #define V2_CREATE_PLACE_TABLE                   \
    "CREATE TABLE place ("                       \
@@ -62,7 +62,7 @@
    "  postcode TEXT,"                           \
    "  country_code VARCHAR(2),"                 \
    "  extratags HSTORE"                         \
-   ")"
+   ") TABLESPACE %s"
 
 #define ADMINLEVEL_NONE 100
 
@@ -673,16 +673,16 @@ static int gazetteer_out_start(const struct output_options *options)
       /* Create types and functions */
       if (!Options->enable_hstore)
       {
-         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
+         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE, Options->tblsmain_data);
       }
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE, Options->tblsmain_data);
 
       /* Create the new table */
       if (Options->enable_hstore)
-         pgsql_exec(Connection, PGRES_COMMAND_OK, V2_CREATE_PLACE_TABLE);
+         pgsql_exec(Connection, PGRES_COMMAND_OK, V2_CREATE_PLACE_TABLE, Options->tblsmain_data);
       else
-         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, Options->tblsindex);
+         pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE, Options->tblsmain_data);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, Options->tblsmain_index);
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    }
