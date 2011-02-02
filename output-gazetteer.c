@@ -20,13 +20,13 @@
    "CREATE TYPE keyvalue AS ("                  \
    "  key TEXT,"                                \
    "  value TEXT"                               \
-   ") TABLESPACE %s"
+   ")"
 
 #define CREATE_WORDSCORE_TYPE                   \
    "CREATE TYPE wordscore AS ("                 \
    "  word TEXT,"                                \
    "  score FLOAT"                               \
-   ") TABLESPACE %s"
+   ")"
 
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
