@@ -28,6 +28,7 @@ node,way   note         text         delete   # These tags can be long but are u
 node,way   source       text         delete   # This indicates that we shouldn't store them
 
 node,way   access       text         linear
+node,way   addr:housename      text  linear
 node,way   addr:housenumber    text  linear
 node,way   addr:interpolation  text  linear 
 node,way   admin_level  text         linear
@@ -37,12 +38,15 @@ node,way   amenity      text         nocache,polygon
 node,way   area         text         # hard coded support for area=1/yes => polygon is in osm2pgsql
 node,way   barrier      text         linear
 node,way   bicycle      text         nocache
+node,way   brand        text         linear
 node,way   bridge       text         linear
 node,way   boundary     text         linear
 node,way   building     text         polygon
-node	     capital      text         linear
+node       capital      text         linear
 node,way   construction text         linear
+node,way   covered      text         linear
 node,way   cutting      text         linear
+node,way   denomination text         linear
 node,way   disused      text         linear
 node       ele          text         linear
 node,way   embankment   text         linear
@@ -73,10 +77,13 @@ node,way   route        text         linear
 node,way   service      text         linear
 node,way   shop         text         polygon
 node,way   sport        text         polygon
+node,way   surface      text         linear
+node,way   toll         text         linear
 node,way   tourism      text         polygon
 way        tracktype    text         linear
 node,way   tunnel       text         linear
 node,way   waterway     text         polygon
+node,way   wetland      text         polygon
 node,way   width        text         linear
 node,way   wood         text         linear
 node,way   z_order      int4         linear # This is calculated during import
