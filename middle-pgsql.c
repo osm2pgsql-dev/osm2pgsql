@@ -1106,7 +1106,7 @@ static inline void set_prefix_and_tbls(const char *prefix, const char *t, const 
                 continue;
             } else if (*(source+1) == 'i') {
                 strcpy(dest, i);
-                dest += strlen(t);
+                dest += strlen(i);
                 source+=2;
                 continue;
             }
