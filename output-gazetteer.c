@@ -78,23 +78,27 @@ static const struct taginfo {
    const char   *value;
    unsigned int flags;
 } taginfo[] = {
-   { "amenity",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "highway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "historic", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "natural",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "leisure",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "place",    NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "railway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "shop",     NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "tourism",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "waterway", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "landuse",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "building", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "bridge",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "tunnel",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { "aeroway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "aeroway",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "amenity",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
    { "boundary",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
-   { NULL,       NULL,             0                                     }
+   { "bridge",    NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "building",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "craft",     NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "emergency", NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "highway",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "historic",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "landuse",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "leisure",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "military",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "natural",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "office",    NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "place",     NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "railway",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "shop",      NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "tourism",   NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "tunnel",    NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { "waterway",  NULL,             TAGINFO_NODE|TAGINFO_WAY|TAGINFO_AREA },
+   { NULL,        NULL,             0                                     }
 };
 
 //static int gazetteer_delete_relation(int osm_id);
@@ -104,6 +108,13 @@ static PGconn *Connection = NULL;
 static int CopyActive = 0;
 static char Buffer[BUFFER_SIZE];
 static unsigned int BufferLen = 0;
+
+static PGconn *ConnectionError = NULL;
+static int CopyErrorActive = 0;
+static char BufferError[BUFFER_SIZE];
+static unsigned int BufferErrorLen = 0;
+
+static FILE * hLog = NULL;
 
 static void require_slim_mode(void)
 {
@@ -192,11 +203,90 @@ static void stop_copy(void)
    return;
 }
 
-static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, 
+static void copy_error_data(const char *sql)
+{
+   unsigned int sqlLen = strlen(sql);
+
+fprintf(hLog, "%s", sql);
+
+   /* Make sure we have an active copy */
+   if (!CopyErrorActive)
+   {
+      pgsql_exec(ConnectionError, PGRES_COPY_IN, "COPY import_polygon_error (osm_type, osm_id, class, type, name, country_code, updated, errormessage, prevgeometry, newgeometry) FROM stdin;");
+      CopyErrorActive = 1;
+   }
+
+   /* If the combination of old and new data is too big, flush old data */
+   if (BufferErrorLen + sqlLen > BUFFER_SIZE - 10)
+   {
+      pgsql_CopyData("import_polygon_error", ConnectionError, BufferError);
+      BufferErrorLen = 0;
+   }
+
+   /*
+    * If new data by itself is too big, output it immediately,
+    * otherwise just add it to the buffer.
+    */
+   if (sqlLen > BUFFER_SIZE - 10)
+   {
+      pgsql_CopyData("import_polygon_error", ConnectionError, sql);
+      sqlLen = 0;
+   }
+   else if (sqlLen > 0)
+   {
+      strcpy(BufferError + BufferErrorLen, sql);
+      BufferErrorLen += sqlLen;
+      sqlLen = 0;
+   }
+
+   /* If we have completed a line, output it */
+   if (BufferErrorLen > 0 && BufferError[BufferErrorLen-1] == '\n')
+   {
+      pgsql_CopyData("place", ConnectionError, BufferError);
+      BufferErrorLen = 0;
+   }
+
+   return;
+}
+
+static void stop_error_copy(void)
+{
+   PGresult *res;
+
+   /* Do we have a copy active? */
+   if (!CopyErrorActive) return;
+
+   /* Terminate the copy */
+   if (PQputCopyEnd(ConnectionError, NULL) != 1)
+   {
+      fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
+      exit_nicely();
+   }
+
+   /* Check the result */
+   res = PQgetResult(ConnectionError);
+   if (PQresultStatus(res) != PGRES_COMMAND_OK)
+   {
+      fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
+      PQclear(res);
+      exit_nicely();
+   }
+
+   /* Discard the result */
+   PQclear(res);
+
+   /* We no longer have an active copy */
+   CopyErrorActive = 0;
+
+   return;
+}
+
+static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
    int* admin_level, char ** housenumber, char ** street, char ** isin, char ** postcode, char ** countrycode)
 {
-   int area = 0;
    int placehouse = 0;
+   int placebuilding = 0;
+   char landuse[256];
    struct keyval *item;
 
    *admin_level = ADMINLEVEL_NONE;
@@ -206,10 +296,12 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    int isinsize = 0;
    *postcode = 0;
    *countrycode = 0;
+   *landuse = 0;
 
    /* Initialise the result lists */
    initList(names);
    initList(places);
+   initList(extratags);
 
    /* Loop over the tags */
    while ((item = popItem(tags)) != NULL)
@@ -218,6 +310,14 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 
       /* If this is a name tag, add it to the name list */
       if (strcmp(item->key, "ref") == 0 ||
+          strcmp(item->key, "int_ref") == 0 ||
+          strcmp(item->key, "nat_ref") == 0 ||
+          strcmp(item->key, "reg_ref") == 0 ||
+          strcmp(item->key, "loc_ref") == 0 ||
+          strcmp(item->key, "old_ref") == 0 ||
+          strcmp(item->key, "ncn_ref") == 0 ||
+          strcmp(item->key, "rcn_ref") == 0 ||
+          strcmp(item->key, "lcn_ref") == 0 ||
           strcmp(item->key, "iata") == 0 ||
           strcmp(item->key, "icao") == 0 ||
           strcmp(item->key, "pcode:1") == 0 ||
@@ -249,22 +349,53 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "place_name") == 0 ||
           (strncmp(item->key, "place_name:", 11) == 0) ||
           strcmp(item->key, "short_name") == 0 ||
-          (strncmp(item->key, "short_name:", 11) == 0))
+          (strncmp(item->key, "short_name:", 11) == 0) ||
+          strcmp(item->key, "operator") == 0) //operator is a bit of an oddity
       {
          pushItem(names, item);
+      }
+      else if (strcmp(item->key, "aeroway") == 0 ||
+               strcmp(item->key, "amenity") == 0 ||
+               strcmp(item->key, "boundary") == 0 ||
+               strcmp(item->key, "bridge") == 0 ||
+               strcmp(item->key, "craft") == 0 ||
+               strcmp(item->key, "emergency") == 0 ||
+               strcmp(item->key, "highway") == 0 ||
+               strcmp(item->key, "historic") == 0 ||
+               strcmp(item->key, "leisure") == 0 ||
+               strcmp(item->key, "military") == 0 ||
+               strcmp(item->key, "natural") == 0 ||
+               strcmp(item->key, "office") == 0 ||
+               strcmp(item->key, "place") == 0 ||
+               strcmp(item->key, "railway") == 0 ||
+               strcmp(item->key, "shop") == 0 ||
+               strcmp(item->key, "tourism") == 0 ||
+               strcmp(item->key, "tunnel") == 0 ||
+               strcmp(item->key, "waterway") == 0 )
+      {
+         pushItem(places, item);
       }
       else if (strcmp(item->key, "addr:housename") == 0)
       {
          pushItem(names, item);
          placehouse = 1;
       }
+      else if (strcmp(item->key, "landuse") == 0)
+      {
+         strcpy(landuse, item->value);
+         freeItem(item);
+      }
       else if (strcmp(item->key, "postal_code") == 0 ||
           strcmp(item->key, "post_code") == 0 ||
           strcmp(item->key, "postcode") == 0 ||
-          strcmp(item->key, "addr:postcode") == 0)
+          strcmp(item->key, "addr:postcode") == 0 ||
+          strcmp(item->key, "tiger:zip_left") == 0 ||
+          strcmp(item->key, "tiger:zip_right") == 0)
       {
-         *postcode = item->value;
-         addItem(places, "place", "postcode", 1);
+         if (*postcode)
+	    freeItem(item);
+         else
+            *postcode = item->value;
       }
       else if (strcmp(item->key, "addr:street") == 0)
       {
@@ -300,7 +431,9 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           (strncmp(item->key, "is_in:", 5) == 0) ||
           strcmp(item->key, "addr:country")== 0 ||
           strcmp(item->key, "addr:county")== 0 ||
-          strcmp(item->key, "addr:city") == 0||
+          strcmp(item->key, "tiger:county")== 0 ||
+          strcmp(item->key, "addr:city") == 0 ||
+          strcmp(item->key, "addr:state_code") == 0 ||
           strcmp(item->key, "addr:state") == 0)
       {
          *isin = realloc(*isin, isinsize + 2 + strlen(item->value));
@@ -312,38 +445,113 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          *admin_level = atoi(item->value);
       }
+      else if (strcmp(item->key, "tracktype") == 0 ||
+               strcmp(item->key, "traffic_calming") == 0 ||
+               strcmp(item->key, "service") == 0 ||
+               strcmp(item->key, "cuisine") == 0 ||
+               strcmp(item->key, "capital") == 0 ||
+               strcmp(item->key, "dispending") == 0 ||
+               strcmp(item->key, "religion") == 0 ||
+               strcmp(item->key, "denomination") == 0 ||
+               strcmp(item->key, "sport") == 0 ||
+               strcmp(item->key, "internet_access") == 0 ||
+               strcmp(item->key, "lanes") == 0 ||
+               strcmp(item->key, "surface") == 0 ||
+               strcmp(item->key, "smoothness") == 0 ||
+               strcmp(item->key, "width") == 0 ||
+               strcmp(item->key, "est_width") == 0 ||
+               strcmp(item->key, "incline") == 0 ||
+               strcmp(item->key, "opening_hours") == 0 ||
+               strcmp(item->key, "food_hours") == 0 ||
+               strcmp(item->key, "collection_times") == 0 ||
+               strcmp(item->key, "service_times") == 0 ||
+               strcmp(item->key, "smoking_hours") == 0 ||
+               strcmp(item->key, "disused") == 0 ||
+               strcmp(item->key, "wheelchair") == 0 ||
+               strcmp(item->key, "sac_scale") == 0 ||
+               strcmp(item->key, "trail_visibility") == 0 ||
+               strcmp(item->key, "mtb:scale") == 0 ||
+               strcmp(item->key, "mtb:description") == 0 ||
+               strcmp(item->key, "wood") == 0 ||
+               strcmp(item->key, "drive_thru") == 0 ||
+               strcmp(item->key, "drive_in") == 0 ||
+               strcmp(item->key, "access") == 0 ||
+               strcmp(item->key, "vehicle") == 0 ||
+               strcmp(item->key, "bicyle") == 0 ||
+               strcmp(item->key, "foot") == 0 ||
+               strcmp(item->key, "goods") == 0 ||
+               strcmp(item->key, "hgv") == 0 ||
+               strcmp(item->key, "motor_vehicle") == 0 ||
+               strcmp(item->key, "motor_car") == 0 ||
+               (strncmp(item->key, "access:", 7) == 0) ||
+               (strncmp(item->key, "contact:", 8) == 0) ||
+               (strncmp(item->key, "drink:", 6) == 0) ||
+               strcmp(item->key, "oneway") == 0 ||
+               strcmp(item->key, "date_on") == 0 ||
+               strcmp(item->key, "date_off") == 0 ||
+               strcmp(item->key, "day_on") == 0 ||
+               strcmp(item->key, "day_off") == 0 ||
+               strcmp(item->key, "hour_on") == 0 ||
+               strcmp(item->key, "hour_off") == 0 ||
+               strcmp(item->key, "maxweight") == 0 ||
+               strcmp(item->key, "maxheight") == 0 ||
+               strcmp(item->key, "speed") == 0 ||
+               strcmp(item->key, "disused") == 0 ||
+               strcmp(item->key, "toll") == 0 ||
+               strcmp(item->key, "charge") == 0 ||
+               strcmp(item->key, "population") == 0 ||
+               strcmp(item->key, "description") == 0 ||
+               strcmp(item->key, "image") == 0 ||
+               strcmp(item->key, "attribution") == 0 ||
+               strcmp(item->key, "fax") == 0 ||
+               strcmp(item->key, "email") == 0 ||
+               strcmp(item->key, "url") == 0 ||
+               strcmp(item->key, "website") == 0 ||
+               strcmp(item->key, "phone") == 0 ||
+               strcmp(item->key, "phone") == 0 ||
+               strcmp(item->key, "tel") == 0 ||
+               strcmp(item->key, "real_ale") == 0 ||
+               strcmp(item->key, "smoking") == 0 ||
+               strcmp(item->key, "food") == 0 ||
+               strcmp(item->key, "camra") == 0 ||
+               strcmp(item->key, "brewery") == 0 ||
+               strcmp(item->key, "wikipedia") == 0)
+      {
+          pushItem(extratags, item);
+      }
+      else if (strcmp(item->key, "building") == 0)
+      {
+          placebuilding = 1;
+      }
       else
       {
-         const struct taginfo *t;
-
-         /* If this is a tag we want then add it to the place list */
-         for (t = taginfo; t->name != NULL; t++)
-         {
-            if ((t->flags & flags) != 0)
-            {
-               if (strcmp(t->name, item->key) == 0 &&
-                   (t->value == NULL || strcmp(t->value, item->value) == 0))
-               {
-                  if ((t->flags & TAGINFO_AREA) != 0) area = 1;
-
-                  pushItem(places, item);
-
-                  break;
-               }
-            }
-         }
-
-         /* Free the tag if we didn't want it */
-         if (t->name == NULL) freeItem(item);
+         freeItem(item);
       }
    }
 
-   if (placehouse)
+   if (placehouse && !listHasData(places))
    {
       addItem(places, "place", "house", 1);
    }
 
-   return area;
+   // Fallback place types - only used if we didn't create something more specific already
+   if (placebuilding && !listHasData(places))
+   {
+      addItem(places, "building", "yes", 1);
+   }
+
+   if (*landuse && !listHasData(places))
+   {
+      addItem(places, "landuse", landuse, 1);
+   }
+
+   if (*postcode && !listHasData(places))
+   {
+      addItem(places, "place", "postcode", 1);
+   }
+
+   // Try to convert everything to an area
+   return 1;
 }
 
 void escape_array_record(char *out, int len, const char *in)
@@ -374,7 +582,7 @@ void escape_array_record(char *out, int len, const char *in)
 }
 
 
-static void add_place_v1(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+static void add_place_v1(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
@@ -500,7 +708,7 @@ static void add_place_v1(char osm_type, int osm_id, const char *class, const cha
    return;
 }
 
-static void add_place_v2(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+static void add_place_v2(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
@@ -606,8 +814,33 @@ static void add_place_v2(char osm_type, int osm_id, const char *class, const cha
      copy_data("\\N\t");
    }
 
-   // Extra tags - TODO
-   copy_data("\\N\t");
+   /* extra tags array */
+   if (listHasData(names))
+   {
+      first = 1;
+      for (name = firstItem(extratags); name; name = nextItem(extratags, name))
+      {
+         if (first) first = 0;
+         else copy_data(", ");
+
+         copy_data("\"");
+
+         escape_array_record(sql, sizeof(sql), name->key);
+         copy_data(sql);
+
+         copy_data("\"=>\"");
+
+         escape_array_record(sql, sizeof(sql), name->value);
+         copy_data(sql);
+
+         copy_data("\"");
+      }
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
 
    sprintf(sql, "SRID=%d;", SRID);
    copy_data(sql);
@@ -620,13 +853,84 @@ static void add_place_v2(char osm_type, int osm_id, const char *class, const cha
    return;
 }
 
-static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, 
+static void add_polygon_error(char osm_type, int osm_id, const char *class, const char *type, 
+  struct keyval *names, const char *countrycode, const char *wkt)
+{
+   int first;
+   struct keyval *name;
+   char sql[2048];
+
+   /* Output a copy line for this place */
+   sprintf(sql, "%c\t%d\t", osm_type, osm_id);
+   copy_error_data(sql);
+
+   escape(sql, sizeof(sql), class);
+   copy_error_data(sql);
+   copy_error_data("\t");
+
+   escape(sql, sizeof(sql), type);
+   copy_error_data(sql);
+   copy_error_data("\t");
+
+   /* start name array */
+   if (listHasData(names))
+   {
+      first = 1;
+      for (name = firstItem(names); name; name = nextItem(names, name))
+      {
+         if (first) first = 0;
+         else copy_error_data(", ");
+
+         copy_error_data("\"");
+
+         escape_array_record(sql, sizeof(sql), name->key);
+         copy_error_data(sql);
+
+         copy_error_data("\"=>\"");
+
+         escape_array_record(sql, sizeof(sql), name->value);
+         copy_error_data(sql);
+
+         copy_error_data("\"");
+      }
+      copy_error_data("\t");
+   }
+   else
+   {
+      copy_error_data("\\N\t");
+   }
+
+   if (countrycode)
+   {
+      escape(sql, sizeof(sql), countrycode);
+      copy_error_data(sql);
+      copy_error_data("\t");
+   }
+   else
+   {
+     copy_error_data("\\N\t");
+   }
+
+   copy_error_data("now\tNot a polygon\t\\N\t");
+
+   sprintf(sql, "SRID=%d;", SRID);
+   copy_error_data(sql);
+   copy_error_data(wkt);
+
+   copy_error_data("\n");
+
+//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
+
+   return;
+}
+
+static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    if (Options->enable_hstore)
-      add_place_v2(osm_type, osm_id, class, type, names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+      add_place_v2(osm_type, osm_id, class, type, names, extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
    else
-      add_place_v1(osm_type, osm_id, class, type, names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+      add_place_v1(osm_type, osm_id, class, type, names, extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
    return;
 }
 
@@ -648,6 +952,7 @@ static int gazetteer_out_start(const struct output_options *options)
 
    /* Connection to the database */
    Connection = PQconnectdb(options->conninfo);
+   ConnectionError = PQconnectdb(options->conninfo);
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -690,6 +995,8 @@ static int gazetteer_out_start(const struct output_options *options)
    /* Setup middle layer */
    options->mid->start(options);
 
+   hLog = fopen("log", "w");
+
    return 0;
 }
 
@@ -704,18 +1011,14 @@ static void gazetteer_out_stop(void)
 
    /* Stop any active copy */
    stop_copy();
+   stop_error_copy();
+   fclose(hLog);
 
    /* Commit transaction */
    pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
 
    /* Analyse the table */
    //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
-
-   /* Interpolate any addresses - has to be done after all nodes commited  */
-   if (Options->append)
-   {
-      pgsql_exec(Connection, PGRES_TUPLES_OK, "select count(*) from (select update_place(place_id::integer) from placex where indexed=false and class='place' and type='houses') as x");
-   }
 
    return;
 }
@@ -729,6 +1032,7 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
 {
    struct keyval names;
    struct keyval places;
+   struct keyval extratags;
    struct keyval *place;
    int adminlevel;
    char * housenumber;
@@ -741,7 +1045,7 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
 //fprintf(stderr, "node\n");
 
    /* Split the tags */
-   split_tags(tags, TAGINFO_NODE, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   split_tags(tags, TAGINFO_NODE, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
    /* Feed this node to the middle layer */
    Options->mid->nodes_set(id, lat, lon, tags);
@@ -752,7 +1056,7 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
       for (place = firstItem(&places); place; place = nextItem(&places, place))
       {
-         add_place('N', id, place->key, place->value, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+         add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
       }
    }
 
@@ -769,6 +1073,7 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
 {
    struct keyval names;
    struct keyval places;
+   struct keyval extratags;
    struct keyval *place;
    int adminlevel;
    char * housenumber;
@@ -781,7 +1086,7 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
 //fprintf(stderr, "way\n");
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_WAY, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
@@ -802,7 +1107,7 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            add_place('W', id, place->key, place->value, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            add_place('W', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
          }
       }
 
@@ -826,6 +1131,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
 {
    struct keyval names;
    struct keyval places;
+   struct keyval extratags;
    int adminlevel;
    char * housenumber;
    char * street;
@@ -853,7 +1159,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    if (!boundary) boundary = "administrative";
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_AREA, &names, &places, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   area = split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
    if (listHasData(&names))
    {
@@ -885,9 +1191,13 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
          if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
          {
             if (Options->enable_hstore)
-                add_place('R', id, "boundary", boundary, &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+                add_place('R', id, "boundary", boundary, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
             else
-                add_place('R', id, "boundary", "adminitrative", &names, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+                add_place('R', id, "boundary", "adminitrative", &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+         }
+         else
+         {
+            add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt);
          }
          free(wkt);
       }
