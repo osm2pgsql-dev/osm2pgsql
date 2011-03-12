@@ -1011,7 +1011,7 @@ static void gazetteer_out_stop(void)
 
    /* Stop any active copy */
    stop_copy();
-   stop_error_copy();
+   //stop_error_copy();
    fclose(hLog);
 
    /* Commit transaction */
@@ -1197,7 +1197,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
          }
          else
          {
-            add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt);
+            //add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt);
          }
          free(wkt);
       }
