@@ -135,13 +135,13 @@ static void long_usage(char *arg0)
     printf("   -d|--database\tThe name of the PostgreSQL database to connect\n");
     printf("              \t\tto (default: gis).\n");
     printf("   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where\n");
-    printf("              \t\tall indexes will be created (default: pg_default).\n");
+    printf("              \t\tall indexes will be created.\n");
     printf("              \t\tThe following options allow more fine-grained control:\n");
     printf("      --tablespace-main-data \ttablespace for main tables\n");
     printf("      --tablespace-main-index\ttablespace for main table indexes\n");
     printf("      --tablespace-slim-data \ttablespace for slim mode tables\n");
     printf("      --tablespace-slim-index\ttablespace for slim mode indexes\n");
-    printf("              \t\t(all default to pg_default; -i is equivalent to setting\n");
+    printf("              \t\t(if unset, use db's default; -i is equivalent to setting\n");
     printf("              \t\t--tablespace-main-index and --tablespace-slim-index)\n");
     printf("   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
     printf("   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
@@ -315,10 +315,10 @@ int main(int argc, char *argv[])
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
-    const char *tblsmain_index = "pg_default"; // default TABLESPACE for index on main tables
-    const char *tblsmain_data = "pg_default";  // default TABLESPACE for main tables
-    const char *tblsslim_index = "pg_default"; // default TABLESPACE for index on slim mode tables
-    const char *tblsslim_data = "pg_default";  // default TABLESPACE for slim mode tables
+    const char *tblsmain_index = NULL; // no default TABLESPACE for index on main tables
+    const char *tblsmain_data = NULL;  // no default TABLESPACE for main tables
+    const char *tblsslim_index = NULL; // no default TABLESPACE for index on slim mode tables
+    const char *tblsslim_data = NULL;  // no default TABLESPACE for slim mode tables
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = OSM2PGSQL_DATADIR "/default.style";

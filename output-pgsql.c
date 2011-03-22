@@ -1211,15 +1211,24 @@ static int pgsql_out_start(const struct output_options *options)
             if (Options->enable_hstore) {
                 strcat(sql, ",tags hstore");
             } 
-            sprintf(sql + strlen(sql), ") TABLESPACE %s\n", Options->tblsmain_data);
+            strcat(sql, ")");
+            if (Options->tblsmain_data) {
+                sprintf(sql + strlen(sql), " TABLESPACE %s", Options->tblsmain_data);
+            }
+            strcat(sql, "\n");
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         tables[i].name, SRID, tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
             /* slim mode needs this to be able to apply diffs */
-            if (Options->slim)
-	            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", tables[i].name, tables[i].name, Options->tblsmain_index);
+            if (Options->slim) {
+                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  tables[i].name, tables[i].name);
+                if (Options->tblsmain_index) {
+                    sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
+                }
+	            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
+            }
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
@@ -1334,19 +1343,30 @@ static void *pgsql_out_stop_one(void *arg)
     // Commit transaction
     fprintf(stderr, "Committing transaction for %s\n", table->name);
     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
-    if( !Options->append )
+    if (!Options->append)
     {
-      fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
-      /* slim mode needs this to be able to apply diffs */
-      if( Options->slim )
-	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
-      pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+        fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
+        if (Options->tblsmain_index) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+        } else {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table->name, table->name);
+        }
+
+        /* slim mode needs this to be able to apply diffs */
+        if (Options->slim)
+        {
+            if (Options->tblsmain_index) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            } else {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
+            }
+        }
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;

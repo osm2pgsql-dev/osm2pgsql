@@ -63,10 +63,10 @@ static struct table_desc tables [] = {
          .name = "%p_nodes",
         .start = "BEGIN;\n",
 #ifdef FIXED_POINT
-       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, lat int4 not null, lon int4 not null, tags text[]) TABLESPACE %t;\n",
+       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
       .prepare = "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
-       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, lat double precision not null, lon double precision not null, tags text[]) TABLESPACE %t;\n",
+       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
       .prepare = "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
@@ -84,9 +84,9 @@ static struct table_desc tables [] = {
         //table = t_way,
          .name = "%p_ways",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_ways (id int4 PRIMARY KEY USING INDEX TABLESPACE %i, nodes int4[] not null, tags text[], pending boolean not null) TABLESPACE %t;\n",
- .create_index = "CREATE INDEX %p_ways_idx ON %p_ways (id) TABLESPACE %i WHERE pending;\n",
-.array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes gin__int_ops) TABLESPACE %i;\n",
+       .create = "CREATE TABLE %p_ways (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes int4[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
+ .create_index = "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
+.array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes gin__int_ops) {TABLESPACE %i};\n",
       .prepare = "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE way_done(int4) AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
@@ -101,9 +101,9 @@ static struct table_desc tables [] = {
         //table = t_rel,
          .name = "%p_rels",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_rels(id int4 PRIMARY KEY USING INDEX TABLESPACE %i, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null) TABLESPACE %t;\n",
- .create_index = "CREATE INDEX %p_rels_idx ON %p_rels (id) TABLESPACE %i WHERE pending;\n",
-.array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts gin__int_ops) TABLESPACE %i;\n",
+       .create = "CREATE TABLE %p_rels(id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
+ .create_index = "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
+.array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts gin__int_ops) {TABLESPACE %i};\n",
       .prepare = "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
                "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE rel_done(int4) AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
@@ -1085,28 +1085,74 @@ static void pgsql_end(void)
     }
 }
 
-/* Replace %p with prefix, %t with data tablespace, %i with index tablespace */
+/**
+ * Helper to create SQL queries.
+ * 
+ * Takes four arguments:
+ * prefix, t (tablespace) and i (index tablespace) - these may be NULL
+ * a pointer to an input string which, on success, is changed to point to the 
+ * result (caller takes ownership).
+ *
+ * The input string is mangled as follows:
+ * %p replaced by the given prefix,
+ * %i replaced by the given index tablespace
+ * %t replaced by the given tablespace
+ * other occurrences of the "%" char are treated normally.
+ * any occurrence of { or } will be ignored (not copied to output string);
+ * anything inside {} is only copied if it contained at least one of
+ * %p, %i, %t that was not NULL.
+ * 
+ * So, the input string 
+ *    Hello{ dear %i}!
+ * will, if i is set to "John", translate to
+ *    Hello dear John!
+ * but if i is unset, translate to
+ *    Hello!
+ *
+ * This is used for constructing SQL queries with proper tablespace settings.
+ */
 static inline void set_prefix_and_tbls(const char *prefix, const char *t, const char *i, const char **string)
 {
     char buffer[1024];
     if (*string == NULL) return;
     const char *source = *string;
     char *dest = buffer;
+    char *openbrace = NULL;
+    int copied = 0;
+
     while (*source) {
-        if (*source == '%') {
+        if (*source == '{') {
+            openbrace = dest;
+            copied = 0;
+            source++;
+            continue;
+        } else if (*source == '}') {
+            if (!copied && openbrace) dest = openbrace;
+            source++;
+            continue;
+        } else if (*source == '%') {
             if (*(source+1) == 'p') {
-                strcpy(dest, prefix);
-                dest += strlen(prefix);
+                if (prefix) {
+                    strcpy(dest, prefix);
+                    dest += strlen(prefix);
+                    copied = 1;
+                }
                 source+=2;
                 continue;
             } else if (*(source+1) == 't') {
-                strcpy(dest, t);
-                dest += strlen(t);
+                if (t) {
+                    strcpy(dest, t);
+                    dest += strlen(t);
+                    copied = 1;
+                }
                 source+=2;
                 continue;
             } else if (*(source+1) == 'i') {
-                strcpy(dest, i);
-                dest += strlen(i);
+                if (i) {
+                    strcpy(dest, i);
+                    dest += strlen(i);
+                    copied = 1;
+                }
                 source+=2;
                 continue;
             }
