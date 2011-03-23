@@ -70,7 +70,7 @@ node,way   operator     text         linear
 node       poi          text
 node,way   power        text         polygon
 node,way   power_source text         linear
-node,way   place        text         linear
+node,way   place        text         polygon
 node,way   railway      text         linear
 node,way   ref          text         linear
 node,way   religion     text         nocache
