@@ -51,6 +51,7 @@ node,way   disused      text         linear
 node       ele          text         linear
 node,way   embankment   text         linear
 node,way   foot         text         linear
+node,way   generator:source    text  linear
 node,way   highway      text         linear
 node,way   historic     text         polygon
 node,way   horse        text         linear
@@ -80,8 +81,10 @@ node,way   sport        text         polygon
 node,way   surface      text         linear
 node,way   toll         text         linear
 node,way   tourism      text         polygon
+node,way   tower:type   text         linear
 way        tracktype    text         linear
 node,way   tunnel       text         linear
+node,way   water        text         polygon
 node,way   waterway     text         polygon
 node,way   wetland      text         polygon
 node,way   width        text         linear
