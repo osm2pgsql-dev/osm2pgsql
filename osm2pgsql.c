@@ -182,8 +182,9 @@ static void long_usage(char *arg0)
     printf("              \t\tInclude attributes for each object in the database.\n");
     printf("              \t\tThis includes the username, userid, timestamp and version.\n"); 
     printf("              \t\tNote: this option also requires additional entries in your style file.\n"); 
-    printf("   -k|--hstore\t\tGenerate an additional hstore (key/value) column to  postgresql tables\n");
-    printf("   -z|--hstore-column\tGenerate an additional hstore (key/value) column to containing all tags\n");
+    printf("   -k|--hstore\t\tAdd tags without column to an additional hstore (key/value) column to postgresql tables\n");
+    printf("   -j|--hstore-all\t\tAdd all tags to an additional hstore (key/value) column in postgresql tables\n");
+    printf("   -z|--hstore-column\tAdd an additional hstore (key/value) column containing all tags\n");
     printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
     printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");
     printf("   -G|--multi-geometry\tGenerate multi-geometry features in postgresql tables.\n");
@@ -307,7 +308,7 @@ int main(int argc, char *argv[])
     int projection = PROJ_SPHERE_MERC;
     int expire_tiles_zoom = -1;
     int expire_tiles_zoom_min = -1;
-    int enable_hstore = 0;
+    int enable_hstore = HSTORE_NONE;
     int enable_multi = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
@@ -368,6 +369,7 @@ int main(int argc, char *argv[])
             {"output",   1, 0, 'O'},
             {"extra-attributes", 0, 0, 'x'},
             {"hstore", 0, 0, 'k'},
+            {"hstore-all", 0, 0, 'j'},
             {"hstore-column", 1, 0, 'z'},
             {"multi-geometry", 0, 0, 'G'},
             {"keep-coastlines", 0, 0, 'K'},
@@ -376,7 +378,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkGz:r:V", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:E:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -414,7 +416,8 @@ int main(int argc, char *argv[])
             case 'o': expire_tiles_filename=optarg; break;
             case 'O': output_backend = optarg; break;
             case 'x': osmdata.extra_attributes=1; break;
-            case 'k': enable_hstore=1; break;
+            case 'k': enable_hstore=HSTORE_NORM; break;
+	    case 'j': enable_hstore=HSTORE_ALL; break;
             case 'z': 
                 n_hstore_columns++;
                 hstore_columns = (const char**)realloc(hstore_columns, sizeof(&n_hstore_columns) * n_hstore_columns);

@@ -13,6 +13,14 @@
 #include "middle.h"
 #include "keyvals.h"
 
+/* Variants for generation of hstore column */
+/* No hstore column */
+#define HSTORE_NONE 0
+/* create a hstore column for all tags which do not have an exclusive column */
+#define HSTORE_NORM 1
+/* create a hstore column for all tags */
+#define HSTORE_ALL 2
+
 struct output_options {
   const char *conninfo;  /* Connection info string */
   const char *prefix;    /* prefix for table names */
