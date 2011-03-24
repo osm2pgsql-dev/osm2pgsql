@@ -20,6 +20,8 @@ void freeItem(struct keyval *p);
 unsigned int countList(struct keyval *head);
 int listHasData(struct keyval *head);
 char *getItem(struct keyval *head, const char *name);
+struct keyval *getTag(struct keyval *head, const char *name);
+void removeTag(struct keyval *tag);
 struct keyval *firstItem(struct keyval *head);
 struct keyval *nextItem(struct keyval *head, struct keyval *item);
 struct keyval *popItem(struct keyval *head);

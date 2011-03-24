@@ -180,7 +180,7 @@ void read_style_file( const char *filename )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
     }
     if (temp.flags==FLAG_PHSTORE) {
-      if (0==(Options->enable_hstore)) {
+      if (HSTORE_NONE==(Options->enable_hstore)) {
 	fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
 	fprintf( stderr, "flag 'phstore' is invalid in non-hstore mode\n");
 	exit_nicely();
@@ -455,34 +455,42 @@ static void write_hstore(enum table_id table, struct keyval *tags)
     // while this tags has a follow-up..
     while (xtags->next->key != NULL)
     {
-        /*
-          hstore ASCII representation looks like
-          "<key>"=>"<value>"
-          
-          we need at least strlen(key)+strlen(value)+6+'\0' bytes
-          in theory any single character could also be escaped
-          thus we need an additional factor of 2.
-          The maximum lenght of a single hstore element is thus
-          calcuated as follows:
-        */
-        size_t hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
+
+      /* hard exclude z_order tag from hstore */
+      if (strcmp("z_order",xtags->next->key)==0) {
+	// update the tag-pointer to point to the next tag
+	xtags = xtags->next;
+	continue;
+      }
+
+      /*
+	hstore ASCII representation looks like
+	"<key>"=>"<value>"
         
-        // if the sql buffer is too small
-        if (hlen > sqllen) {
-            sqllen = hlen;
-            sql = realloc(sql, sqllen);
-        }
+	we need at least strlen(key)+strlen(value)+6+'\0' bytes
+	in theory any single character could also be escaped
+	thus we need an additional factor of 2.
+	The maximum lenght of a single hstore element is thus
+	calcuated as follows:
+      */
+      size_t hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
+      
+      // if the sql buffer is too small
+      if (hlen > sqllen) {
+	sqllen = hlen;
+	sql = realloc(sql, sqllen);
+      }
         
-        // pack the tag with its value into the hstore
-        keyval2hstore(sql, xtags->next);
-        copy_to_table(table, sql);
+      // pack the tag with its value into the hstore
+      keyval2hstore(sql, xtags->next);
+      copy_to_table(table, sql);
+
+      // update the tag-pointer to point to the next tag
+      xtags = xtags->next;
         
-        // update the tag-pointer to point to the next tag
-        xtags = xtags->next;
-        
-        // if the tag has a follow up, add a comma to the end
-        if (xtags->next->key != NULL)
-            copy_to_table(table, ",");
+      // if the tag has a follow up, add a comma to the end
+      if (xtags->next->key != NULL)
+	copy_to_table(table, ",");
     }
     
     // finish the hstore column by placing a TAB into the data stream
@@ -590,6 +598,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     static size_t sqllen=0;
     char *v;
     int i;
+    struct keyval *tag;
 
     if (sqllen==0) {
       sqllen=2048;
@@ -605,10 +614,12 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
             continue;
 	if( (exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
             continue;
-        if ((v = getItem(tags, exportList[OSMTYPE_NODE][i].name)))
+        if ((tag = getTag(tags, exportList[OSMTYPE_NODE][i].name)))
         {
-            escape_type(sql, sqllen, v, exportList[OSMTYPE_NODE][i].type);
+            escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_NODE][i].type);
             exportList[OSMTYPE_NODE][i].count++;
+	    if (HSTORE_NORM==Options->enable_hstore)
+	      removeTag(tag);
         }
         else
             sprintf(sql, "\\N");
@@ -640,6 +651,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
     static size_t sqllen=0;
     char *v;
     int j;
+    struct keyval *tag;
 
     if (sqllen==0) {
       sqllen=2048;
@@ -654,10 +666,12 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
                 continue;
 	    if( (exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
                 continue;
-            if ((v = getItem(tags, exportList[OSMTYPE_WAY][j].name)))
+            if ((tag = getTag(tags, exportList[OSMTYPE_WAY][j].name)))
             {
                 exportList[OSMTYPE_WAY][j].count++;
-                escape_type(sql, sqllen, v, exportList[OSMTYPE_WAY][j].type);
+                escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_WAY][j].type);
+		if (HSTORE_NORM==Options->enable_hstore)
+		  removeTag(tag);
             }
             else
                 sprintf(sql, "\\N");

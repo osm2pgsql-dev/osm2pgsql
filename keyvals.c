@@ -84,6 +84,33 @@ char *getItem(struct keyval *head, const char *name)
     return NULL;
 }	
 
+/* unlike getItem this function gives a pointer to the whole
+   list item which can be used to remove the tag from the linked list
+   with the removeTag function
+*/
+struct keyval *getTag(struct keyval *head, const char *name)
+{
+    struct keyval *p;
+
+    if (!head) 
+        return NULL;
+
+    p = head->next;
+    while(p != head) {
+        if (!strcmp(p->key, name))
+            return p;
+        p = p->next;
+    }
+    return NULL;
+}
+
+void removeTag(struct keyval *tag)
+{
+  tag->prev->next=tag->next;
+  tag->next->prev=tag->prev;
+  freeItem(tag);
+}
+
 struct keyval *firstItem(struct keyval *head)
 {
     if (head == NULL || head == head->next)
@@ -183,6 +210,7 @@ struct keyval *popItem(struct keyval *head)
 
 void pushItem(struct keyval *head, struct keyval *item)
 {
+
     assert(head);
     assert(item);
  
