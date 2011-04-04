@@ -150,7 +150,7 @@ AC_DEFUN([AX_LIB_BZIP2],
         dnl
         if test "$bzlib_header_found" = "yes"; then
 
-            AC_MSG_CHECKING([for bzip2 librariy])
+            AC_MSG_CHECKING([for bzip2 library])
 
             AC_LANG_PUSH([C++])
             AC_LINK_IFELSE([

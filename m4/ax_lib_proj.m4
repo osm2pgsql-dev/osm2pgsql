@@ -150,7 +150,7 @@ AC_DEFUN([AX_LIB_PROJ],
         dnl
         if test "$proj_header_found" = "yes"; then
 
-            AC_MSG_CHECKING([for proj librariy])
+            AC_MSG_CHECKING([for proj library])
 
             AC_LANG_PUSH([C++])
             AC_LINK_IFELSE([
