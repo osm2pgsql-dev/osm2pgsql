@@ -150,7 +150,7 @@ AC_DEFUN([AX_LIB_ZLIB],
         dnl
         if test "$zlib_header_found" = "yes"; then
 
-            AC_MSG_CHECKING([for zlib librariy])
+            AC_MSG_CHECKING([for zlib library])
 
             AC_LANG_PUSH([C++])
             AC_LINK_IFELSE([
