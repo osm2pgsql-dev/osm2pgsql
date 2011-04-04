@@ -25,6 +25,7 @@ void initList(struct keyval *head)
     head->prev = head;
     head->key = NULL;
     head->value = NULL;
+    head->has_column = 0;
 }
 
 void freeItem(struct keyval *p)
@@ -251,6 +252,8 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
     item->key   = strdup(name);
     item->value = strdup(value);
 #endif
+    item->has_column=0;
+
 
 #if 1
     // Add to head
