@@ -456,8 +456,8 @@ static void write_hstore(enum table_id table, struct keyval *tags)
     while (xtags->next->key != NULL)
     {
 
-      /* hard exclude z_order tag from hstore */
-      if (strcmp("z_order",xtags->next->key)==0) {
+      /* hard exclude z_order tag and keys which have their own column */
+      if ((xtags->next->has_column) || (strcmp("z_order",xtags->next->key)==0)) {
 	// update the tag-pointer to point to the next tag
 	xtags = xtags->next;
 	continue;
@@ -619,7 +619,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
             escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_NODE][i].type);
             exportList[OSMTYPE_NODE][i].count++;
 	    if (HSTORE_NORM==Options->enable_hstore)
-	      removeTag(tag);
+	      tag->has_column=1;
         }
         else
             sprintf(sql, "\\N");
@@ -671,7 +671,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
                 exportList[OSMTYPE_WAY][j].count++;
                 escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_WAY][j].type);
 		if (HSTORE_NORM==Options->enable_hstore)
-		  removeTag(tag);
+		  tag->has_column=1;
             }
             else
                 sprintf(sql, "\\N");

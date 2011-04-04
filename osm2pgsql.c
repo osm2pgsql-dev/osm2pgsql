@@ -183,7 +183,7 @@ static void long_usage(char *arg0)
     printf("              \t\tThis includes the username, userid, timestamp and version.\n"); 
     printf("              \t\tNote: this option also requires additional entries in your style file.\n"); 
     printf("   -k|--hstore\t\tAdd tags without column to an additional hstore (key/value) column to postgresql tables\n");
-    printf("   -j|--hstore-all\t\tAdd all tags to an additional hstore (key/value) column in postgresql tables\n");
+    printf("   -j|--hstore-all\tAdd all tags to an additional hstore (key/value) column in postgresql tables\n");
     printf("   -z|--hstore-column\tAdd an additional hstore (key/value) column containing all tags\n");
     printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
     printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");

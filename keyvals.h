@@ -11,6 +11,11 @@
 struct keyval {
     char *key;
     char *value;
+    /* if a hstore column is requested we need a flag to store if a key
+       has its own column because it should not be added to the hstore 
+       in this case
+    */
+    int has_column;
     struct keyval *next;
     struct keyval *prev;
 };
