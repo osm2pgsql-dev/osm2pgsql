@@ -25,6 +25,7 @@
 #
 #     AC_SUBST(ZLIB_CFLAGS)
 #     AC_SUBST(ZLIB_LDFLAGS)
+#     AC_SUBST(ZLIB_LIBS)
 #
 #   And sets:
 #
@@ -99,10 +100,11 @@ AC_DEFUN([AX_LIB_ZLIB],
 
     if test -n "$zlib_prefix"; then
         zlib_include_dir="$zlib_prefix/include"
-        zlib_lib_flags="-L$zlib_prefix/lib -lz"
+        zlib_lib_flags="-L$zlib_prefix/lib"
+        zlib_lib_libs="-lz"
         run_zlib_test="yes"
     elif test "$zlib_requested" = "yes"; then
-        if test -n "$zlib_include_dir" -a -n "$zlib_lib_flags"; then
+        if test -n "$zlib_include_dir" -a -n "$zlib_lib_flags" -a -n "$zlib_lib_libs"; then
             run_zlib_test="yes"
         fi
     else
@@ -119,6 +121,9 @@ AC_DEFUN([AX_LIB_ZLIB],
 
         saved_LDFLAGS="$LDFLAGS"
         LDFLAGS="$LDFLAGS $zlib_lib_flags"
+
+        saved_LIBS="$LIBS"
+        LIBS="$LIBS $zlib_lib_libs"
 
         dnl
         dnl Check zlib headers
@@ -166,6 +171,7 @@ AC_DEFUN([AX_LIB_ZLIB],
                 )],
                 [
                 ZLIB_LDFLAGS="$zlib_lib_flags"
+                ZLIB_LIBS="$zlib_lib_libs"
                 zlib_lib_found="yes"
                 AC_MSG_RESULT([found])
                 ],
@@ -179,6 +185,7 @@ AC_DEFUN([AX_LIB_ZLIB],
 
         CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
+        LIBS="$saved_LIBS"
     fi
 
     AC_MSG_CHECKING([for zlib compression library])
@@ -187,6 +194,7 @@ AC_DEFUN([AX_LIB_ZLIB],
         if test "$zlib_header_found" = "yes" -a "$zlib_lib_found" = "yes"; then
             AC_SUBST([ZLIB_CFLAGS])
             AC_SUBST([ZLIB_LDFLAGS])
+            AC_SUBST([ZLIB_LIBS])
             AC_SUBST([HAVE_ZLIB])
 
             AC_DEFINE([HAVE_ZLIB], [1],
