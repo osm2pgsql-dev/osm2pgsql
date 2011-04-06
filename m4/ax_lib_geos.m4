@@ -25,6 +25,7 @@
 #
 #     AC_SUBST(GEOS_CFLAGS)
 #     AC_SUBST(GEOS_LDFLAGS)
+#     AC_SUBST(GEOS_LIBS)
 #     AC_SUBST(GEOS_VERSION)
 #
 #   And sets:
