@@ -25,6 +25,7 @@
 #
 #     AC_SUBST(BZIP2_CFLAGS)
 #     AC_SUBST(BZIP2_LDFLAGS)
+#     AC_SUBST(BZIP2_LiBS)
 #
 #   And sets:
 #
@@ -91,6 +92,7 @@ AC_DEFUN([AX_LIB_BZIP2],
 
     BZIP2_CFLAGS=""
     BZIP2_LDFLAGS=""
+    BZIP2_LIBS=""
 
     dnl
     dnl Collect include/lib paths and flags
@@ -99,10 +101,11 @@ AC_DEFUN([AX_LIB_BZIP2],
 
     if test -n "$bzlib_prefix"; then
         bzlib_include_dir="$bzlib_prefix/include"
-        bzlib_lib_flags="-L$bzlib_prefix/lib -lbz2"
+        bzlib_lib_flags="-L$bzlib_prefix/lib"
+        bzlib_lib_libs="-lbz2"
         run_bzlib_test="yes"
     elif test "$bzlib_requested" = "yes"; then
-        if test -n "$bzlib_include_dir" -a -n "$bzlib_lib_flags"; then
+        if test -n "$bzlib_include_dir" -a -n "$bzlib_lib_flags" -a -n "$bzlib_lib_libs"; then
             run_bzlib_test="yes"
         fi
     else
@@ -119,6 +122,9 @@ AC_DEFUN([AX_LIB_BZIP2],
 
         saved_LDFLAGS="$LDFLAGS"
         LDFLAGS="$LDFLAGS $bzlib_lib_flags"
+
+        saved_LIBSS="$LIBS"
+        LIBS="$LIBS $bzlib_lib_libs"
 
         dnl
         dnl Check bzip2 headers
@@ -166,6 +172,7 @@ AC_DEFUN([AX_LIB_BZIP2],
                 )],
                 [
                 BZIP2_LDFLAGS="$bzlib_lib_flags"
+                BZIP2_LIBS="$bzlib_lib_libs"
                 bzlib_lib_found="yes"
                 AC_MSG_RESULT([found])
                 ],
@@ -179,6 +186,7 @@ AC_DEFUN([AX_LIB_BZIP2],
 
         CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
+        LIBS="$saved_LIBS"
     fi
 
     AC_MSG_CHECKING([for bzip2 compression library])
@@ -187,6 +195,7 @@ AC_DEFUN([AX_LIB_BZIP2],
         if test "$bzlib_header_found" = "yes" -a "$bzlib_lib_found" = "yes"; then
             AC_SUBST([BZIP2_CFLAGS])
             AC_SUBST([BZIP2_LDFLAGS])
+            AC_SUBST([BZIP2_LIBS])
             AC_SUBST([HAVE_BZIP2])
 
             AC_DEFINE([HAVE_BZIP2], [1],
