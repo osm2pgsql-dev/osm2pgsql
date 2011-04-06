@@ -25,6 +25,7 @@
 #
 #     AC_SUBST(PROTOBUF_C_CFLAGS)
 #     AC_SUBST(PROTOBUF_C_LDFLAGS)
+#     AC_SUBST(PROTOBUF_C_LIBS)
 #
 #   And sets:
 #
@@ -96,6 +97,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
 
     PROTOBUF_C_CFLAGS=""
     PROTOBUF_C_LDFLAGS=""
+    PROTOBUF_C_LIBS=""
 
     dnl
     dnl Collect include/lib paths and flags
@@ -104,10 +106,11 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
 
     if test -n "$protobuf_c_prefix"; then
         protobuf_c_include_dir="$protobuf_c_prefix/include"
-        protobuf_c_lib_flags="-L$protobuf_c_prefix/lib -lprotobuf-c"
+        protobuf_c_lib_flags="-L$protobuf_c_prefix/lib"
+        protobuf_c_lib_libs="-lprotobuf-c"
         run_protobuf_c_test="yes"
     elif test "$protobuf_c_requested" = "yes"; then
-        if test -n "$protobuf_c_include_dir" -a -n "$protobuf_c_lib_flags"; then
+        if test -n "$protobuf_c_include_dir" -a -n "$protobuf_c_lib_flags" -a -n "$protobuf_c_lib_libs"; then
             run_protobuf_c_test="yes"
         fi
     else
@@ -124,6 +127,9 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
 
         saved_LDFLAGS="$LDFLAGS"
         LDFLAGS="$LDFLAGS $protobuf_c_lib_flags"
+
+        saved_LIBS="$LIBS"
+        LIBS="$LIBS $protobuf_c_lib_libs"
 
         dnl
         dnl Check protobuf_c headers
@@ -169,6 +175,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
                 )],
                 [
                 PROTOBUF_C_LDFLAGS="$protobuf_c_lib_flags"
+                PROTOBUF_C_LIBS="$protobuf_c_lib_libs"
                 protobuf_c_lib_found="yes"
                 AC_MSG_RESULT([found])
                 ],
@@ -182,6 +189,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
 
         CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
+        LIBS="$saved_LIBS"
     fi
 
     protobuf_c_version_ok=yes
@@ -216,6 +224,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
         then
             AC_SUBST([PROTOBUF_C_CFLAGS])
             AC_SUBST([PROTOBUF_C_LDFLAGS])
+            AC_SUBST([PROTOBUF_C_LIBS])
             AC_SUBST([HAVE_PROTOBUF_C])
 
             AC_DEFINE([HAVE_PROTOBUF_C], [1],
