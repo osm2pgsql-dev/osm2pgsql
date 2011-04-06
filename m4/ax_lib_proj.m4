@@ -25,6 +25,7 @@
 #
 #     AC_SUBST(PROJ_CFLAGS)
 #     AC_SUBST(PROJ_LDFLAGS)
+#     AC_SUBST(PROJ_LIBSS)
 #
 #   And sets:
 #
@@ -91,6 +92,7 @@ AC_DEFUN([AX_LIB_PROJ],
 
     PROJ_CFLAGS=""
     PROJ_LDFLAGS=""
+    PROJ_LIBS=""
 
     dnl
     dnl Collect include/lib paths and flags
@@ -99,10 +101,11 @@ AC_DEFUN([AX_LIB_PROJ],
 
     if test -n "$proj_prefix"; then
         proj_include_dir="$proj_prefix/include"
-        proj_lib_flags="-L$proj_prefix/lib -lproj"
+        proj_lib_flags="-L$proj_prefix/lib"
+        proj_lib_libs="-lproj"
         run_proj_test="yes"
     elif test "$proj_requested" = "yes"; then
-        if test -n "$proj_include_dir" -a -n "$proj_lib_flags"; then
+        if test -n "$proj_include_dir" -a -n "$proj_lib_flags" -a -n "$proj_lib_libs"; then
             run_proj_test="yes"
         fi
     else
@@ -119,6 +122,9 @@ AC_DEFUN([AX_LIB_PROJ],
 
         saved_LDFLAGS="$LDFLAGS"
         LDFLAGS="$LDFLAGS $proj_lib_flags"
+
+        saved_LIBS="$LIBS"
+        LIBS="$LIBS $proj_lib_libs"
 
         dnl
         dnl Check proj headers
@@ -164,6 +170,7 @@ AC_DEFUN([AX_LIB_PROJ],
                 )],
                 [
                 PROJ_LDFLAGS="$proj_lib_flags"
+                PROJ_LIBS="$proj_lib_libs"
                 proj_lib_found="yes"
                 AC_MSG_RESULT([found])
                 ],
@@ -177,6 +184,7 @@ AC_DEFUN([AX_LIB_PROJ],
 
         CPPFLAGS="$saved_CPPFLAGS"
         LDFLAGS="$saved_LDFLAGS"
+        LIBS="$saved_LIBS"
     fi
 
     AC_MSG_CHECKING([for proj projection library])
@@ -186,6 +194,7 @@ AC_DEFUN([AX_LIB_PROJ],
 
             AC_SUBST([PROJ_CFLAGS])
             AC_SUBST([PROJ_LDFLAGS])
+            AC_SUBST([PROJ_LIBS])
 
             HAVE_PROJ="yes"
         else
