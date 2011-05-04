@@ -45,6 +45,7 @@ node,way   building     text         polygon
 node       capital      text         linear
 node,way   construction text         linear
 node,way   covered      text         linear
+node,way   culvert      text         linear
 node,way   cutting      text         linear
 node,way   denomination text         linear
 node,way   disused      text         linear
@@ -52,9 +53,11 @@ node       ele          text         linear
 node,way   embankment   text         linear
 node,way   foot         text         linear
 node,way   generator:source    text  linear
+node,way   harbour      text         polygon
 node,way   highway      text         linear
 node,way   historic     text         polygon
 node,way   horse        text         linear
+node,way   intermittent text         linear
 node,way   junction     text         linear
 node,way   landuse      text         polygon
 node,way   layer        text         linear
@@ -68,6 +71,7 @@ node,way   natural      text         polygon  # natural=coastline tags are disca
 node,way   oneway       text         linear
 node,way   operator     text         linear
 node       poi          text
+node,way   population   text         linear
 node,way   power        text         polygon
 node,way   power_source text         linear
 node,way   place        text         polygon
