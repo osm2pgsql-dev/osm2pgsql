@@ -101,7 +101,7 @@ static const struct taginfo {
    { NULL,        NULL,             0                                     }
 };
 
-//static int gazetteer_delete_relation(int osm_id);
+//static int gazetteer_delete_relation(osmid_t osm_id);
 
 static const struct output_options *Options = NULL;
 static PGconn *Connection = NULL;
@@ -582,7 +582,7 @@ void escape_array_record(char *out, int len, const char *in)
 }
 
 
-static void add_place_v1(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
+static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
@@ -590,7 +590,7 @@ static void add_place_v1(char osm_type, int osm_id, const char *class, const cha
    char sql[2048];
 
    /* Output a copy line for this place */
-   sprintf(sql, "\\N\t%c\t%d\t", osm_type, osm_id);
+   sprintf(sql, "\\N\t%c\t%" PRIdOSMID "\t", osm_type, osm_id);
    copy_data(sql);
 
    escape(sql, sizeof(sql), class);
@@ -703,12 +703,12 @@ static void add_place_v1(char osm_type, int osm_id, const char *class, const cha
 
    copy_data("\n");
 
-//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
+//fprintf(stderr, "%c %" PRIdOSMID " %s\n", osm_type, osm_id, wkt);
 
    return;
 }
 
-static void add_place_v2(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
+static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    int first;
@@ -716,7 +716,7 @@ static void add_place_v2(char osm_type, int osm_id, const char *class, const cha
    char sql[2048];
 
    /* Output a copy line for this place */
-   sprintf(sql, "%c\t%d\t", osm_type, osm_id);
+   sprintf(sql, "%c\t%" PRIdOSMID "\t", osm_type, osm_id);
    copy_data(sql);
 
    escape(sql, sizeof(sql), class);
@@ -848,12 +848,12 @@ static void add_place_v2(char osm_type, int osm_id, const char *class, const cha
 
    copy_data("\n");
 
-//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
+//fprintf(stderr, "%c %" PRIdOSMID " %s\n", osm_type, osm_id, wkt);
 
    return;
 }
 
-static void add_polygon_error(char osm_type, int osm_id, const char *class, const char *type, 
+static void add_polygon_error(char osm_type, osmid_t osm_id, const char *class, const char *type, 
   struct keyval *names, const char *countrycode, const char *wkt)
 {
    int first;
@@ -861,7 +861,7 @@ static void add_polygon_error(char osm_type, int osm_id, const char *class, cons
    char sql[2048];
 
    /* Output a copy line for this place */
-   sprintf(sql, "%c\t%d\t", osm_type, osm_id);
+   sprintf(sql, "%c\t%" PRIdOSMID "\t", osm_type, osm_id);
    copy_error_data(sql);
 
    escape(sql, sizeof(sql), class);
@@ -919,12 +919,12 @@ static void add_polygon_error(char osm_type, int osm_id, const char *class, cons
 
    copy_error_data("\n");
 
-//fprintf(stderr, "%c %d %s\n", osm_type, osm_id, wkt);
+//fprintf(stderr, "%c %" PRIdOSMID " %s\n", osm_type, osm_id, wkt);
 
    return;
 }
 
-static void add_place(char osm_type, int osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
+static void add_place(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
 {
    if (Options->enable_hstore)
@@ -934,13 +934,13 @@ static void add_place(char osm_type, int osm_id, const char *class, const char *
    return;
 }
 
-static void delete_place(char osm_type, int osm_id)
+static void delete_place(char osm_type, osmid_t osm_id)
 {
    /* Stop any active copy */
    stop_copy();
 
    /* Delete all places for this object */
-   pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %d", osm_type, osm_id);
+   pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %" PRIdOSMID, osm_type, osm_id);
 
    return;
 }
@@ -1041,7 +1041,7 @@ static void gazetteer_out_cleanup(void)
    return;
 }
 
-static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tags)
+static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
 {
    struct keyval names;
    struct keyval places;
@@ -1082,7 +1082,7 @@ static int gazetteer_add_node(int id, double lat, double lon, struct keyval *tag
    return 0;
 }
 
-static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
+static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    struct keyval names;
    struct keyval places;
@@ -1140,7 +1140,7 @@ static int gazetteer_add_way(int id, int *ndv, int ndc, struct keyval *tags)
    return 0;
 }
 
-static int gazetteer_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
+static int gazetteer_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    struct keyval names;
    struct keyval places;
@@ -1236,7 +1236,7 @@ static int gazetteer_add_relation(int id, struct member *members, int member_cou
    return 0;
 }
 
-static int gazetteer_delete_node(int id)
+static int gazetteer_delete_node(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1250,7 +1250,7 @@ static int gazetteer_delete_node(int id)
    return 0;
 }
 
-static int gazetteer_delete_way(int id)
+static int gazetteer_delete_way(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1264,7 +1264,7 @@ static int gazetteer_delete_way(int id)
    return 0;
 }
 
-static int gazetteer_delete_relation(int id)
+static int gazetteer_delete_relation(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1278,21 +1278,21 @@ static int gazetteer_delete_relation(int id)
    return 0;
 }
 
-static int gazetteer_modify_node(int id, double lat, double lon, struct keyval *tags)
+static int gazetteer_modify_node(osmid_t id, double lat, double lon, struct keyval *tags)
 {
    require_slim_mode();
    Options->mid->nodes_delete(id);
    return gazetteer_add_node(id, lat, lon, tags);
 }
 
-static int gazetteer_modify_way(int id, int *ndv, int ndc, struct keyval *tags)
+static int gazetteer_modify_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    require_slim_mode();
    Options->mid->ways_delete(id);
    return gazetteer_add_way(id, ndv, ndc, tags);
 }
 
-static int gazetteer_modify_relation(int id, struct member *members, int member_count, struct keyval *tags)
+static int gazetteer_modify_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    require_slim_mode();
    Options->mid->relations_delete(id);

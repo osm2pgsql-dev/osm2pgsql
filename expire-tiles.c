@@ -371,7 +371,7 @@ void expire_tiles_from_nodes_line(struct osmNode * nodes, int count) {
 /*
  * Calculate a bounding box from a list of nodes and expire all tiles within it
  */
-void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, int osm_id) {
+void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm_id) {
 	int	i;
 	int	got_coords = 0;
 	double	min_lon = 0.0;
@@ -391,13 +391,13 @@ void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, int osm_id)
 	if (got_coords) {
 		if (expire_tiles_from_bbox(min_lon, min_lat, max_lon, max_lat)) {
 			// Bounding box too big - just expire tiles on the line
-			fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %i) - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
+			fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
 			expire_tiles_from_nodes_line(nodes, count);
 		}
 	}
 }
 
-static void expire_tiles_from_xnodes_poly(struct osmNode ** xnodes, int * xcount, int osm_id) {
+static void expire_tiles_from_xnodes_poly(struct osmNode ** xnodes, int * xcount, osmid_t osm_id) {
 	int	i;
 
         for (i = 0; xnodes[i]; i++) expire_tiles_from_nodes_poly(xnodes[i], xcount[i], osm_id);
@@ -409,7 +409,7 @@ static void expire_tiles_from_xnodes_line(struct osmNode ** xnodes, int * xcount
         for (i = 0; xnodes[i]; i++) expire_tiles_from_nodes_line(xnodes[i], xcount[i]);
 }
 
-void expire_tiles_from_wkt(const char * wkt, int osm_id) {
+void expire_tiles_from_wkt(const char * wkt, osmid_t osm_id) {
 	struct osmNode **	xnodes;
 	int *			xcount;
 	int			polygon;
@@ -425,7 +425,7 @@ void expire_tiles_from_wkt(const char * wkt, int osm_id) {
 	}
 }
 
-void expire_tiles_from_db(PGconn * sql_conn, int osm_id) {
+void expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
 	PGresult *	res;
 	char		tmp[16];
 	char const *	paramValues[1];
@@ -433,7 +433,7 @@ void expire_tiles_from_db(PGconn * sql_conn, int osm_id) {
 	char *		wkt;
 
 	if (Options->expire_tiles_zoom < 0) return;
-	snprintf(tmp, sizeof(tmp), "%d", osm_id);
+	snprintf(tmp, sizeof(tmp), PRIdOSMID, osm_id);
 	paramValues[0] = tmp;
 	res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
 	for (tuple = 0; tuple < PQntuples(res); tuple++) {

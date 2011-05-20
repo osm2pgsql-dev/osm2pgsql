@@ -99,7 +99,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
         assert(xid); assert(xlon); assert(xlat);
 
-        osmdata->osm_id   = strtol((char *)xid, NULL, 10);
+        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->node_lon = strtod((char *)xlon, NULL);
         osmdata->node_lat = strtod((char *)xlat, NULL);
         osmdata->action   = ParseAction( reader , osmdata);
@@ -136,7 +136,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
 
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
-        osmdata->osm_id   = strtol((char *)xid, NULL, 10);
+        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->action = ParseAction( reader, osmdata );
 	
         if (osmdata->osm_id > osmdata->max_way)
@@ -153,7 +153,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-        osmdata->nds[osmdata->nd_count++] = strtol( (char *)xid, NULL, 10 );
+        osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
 
         if( osmdata->nd_count >= osmdata->nd_max )
           realloc_nodes(osmdata);
@@ -161,7 +161,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
-        osmdata->osm_id   = strtol((char *)xid, NULL, 10);
+        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->action = ParseAction( reader, osmdata );
 
         if (osmdata->osm_id > osmdata->max_rel)
@@ -183,7 +183,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-        osmdata->members[osmdata->member_count].id   = strtol( (char *)xid, NULL, 0 );
+        osmdata->members[osmdata->member_count].id   = strtoosmid( (char *)xid, NULL, 0 );
         osmdata->members[osmdata->member_count].role = strdup( (char *)xrole );
         
         /* Currently we are only interested in 'way' members since these form polygons with holes */
@@ -264,7 +264,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
                 osmdata->out->node_delete(osmdata->osm_id);
             else
             {
-                fprintf( stderr, "Don't know action for node %d\n", osmdata->osm_id );
+                fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osmdata->osm_id );
                 exit_nicely();
             }
         }
@@ -278,7 +278,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             osmdata->out->way_delete(osmdata->osm_id);
         else
         {
-            fprintf( stderr, "Don't know action for way %d\n", osmdata->osm_id );
+            fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osmdata->osm_id );
             exit_nicely();
         }
         resetList(&(osmdata->tags));
@@ -291,7 +291,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             osmdata->out->relation_delete(osmdata->osm_id);
         else
         {
-            fprintf( stderr, "Don't know action for relation %d\n", osmdata->osm_id );
+            fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osmdata->osm_id );
             exit_nicely();
         }
         resetList(&(osmdata->tags));

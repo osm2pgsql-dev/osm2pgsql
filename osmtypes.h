@@ -3,6 +3,20 @@
 #ifndef OSMTYPES_H
 #define OSMTYPES_H
 
+#include <inttypes.h>
+
+#ifdef OSMID64
+typedef int64_t osmid_t;
+#define strtoosmid strtoll
+#define PRIdOSMID PRId64
+#define POSTGRES_OSMID_TYPE "int8"
+#else
+typedef int32_t osmid_t;
+#define strtoosmid strtol
+#define PRIdOSMID PRId32
+#define POSTGRES_OSMID_TYPE "int4"
+#endif
+
 #include "keyvals.h"
 
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
@@ -14,7 +28,7 @@ struct osmNode {
 
 struct member {
     enum OsmType type;
-    int id;
+    osmid_t id;
     char *role;
 };
 
@@ -34,11 +48,11 @@ struct osmdata_t {
 */
   double node_lon, node_lat;
   struct keyval tags;
-  int *nds;
+  osmid_t *nds;
   int nd_count, nd_max;
   struct member *members;
-  unsigned member_count, member_max;
-  int osm_id;
+  int member_count, member_max;
+  osmid_t osm_id;
   filetypes_t filetype;
   actions_t action;
   int extra_attributes;

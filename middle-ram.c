@@ -40,7 +40,7 @@ struct ramNode {
 
 struct ramWay {
     struct keyval *tags;
-    int *ndids;
+    osmid_t *ndids;
     int pending;
 };
 
@@ -78,13 +78,13 @@ static int way_blocks;
 static int way_out_count;
 static int rel_out_count;
 
-static inline int id2block(int id)
+static inline osmid_t id2block(osmid_t id)
 {
     // + NUM_BLOCKS/2 allows for negative IDs
     return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
 }
 
-static inline int id2offset(int id)
+static inline osmid_t id2offset(osmid_t id)
 {
     return id & (PER_BLOCK-1);
 }
@@ -95,7 +95,7 @@ static inline int block2id(int block, int offset)
 }
 
 #define UNUSED  __attribute__ ((unused))
-static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags UNUSED)
+static int ram_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -121,7 +121,7 @@ static int ram_nodes_set(int id, double lat, double lon, struct keyval *tags UNU
 }
 
 
-static int ram_nodes_get(struct osmNode *out, int id)
+static int ram_nodes_get(struct osmNode *out, osmid_t id)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -142,7 +142,7 @@ static int ram_nodes_get(struct osmNode *out, int id)
     return 0;
 }
 
-static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int pending)
+static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -186,7 +186,7 @@ static int ram_ways_set(int id, int *nds, int nd_count, struct keyval *tags, int
     return 0;
 }
 
-static int ram_relations_set(int id, struct member *members, int member_count, struct keyval *tags)
+static int ram_relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     struct keyval *p;
     int block  = id2block(id);
@@ -229,7 +229,7 @@ static int ram_relations_set(int id, struct member *members, int member_count, s
     return 0;
 }
 
-static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
+static int ram_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
     int i, count;
 
@@ -244,7 +244,7 @@ static int ram_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
     return count;
 }
 
-static void ram_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int))
+static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int))
 {
     int block, offset;
 
@@ -255,7 +255,7 @@ static void ram_iterate_relations(int (*callback)(int id, struct member *members
 
         for (offset=0; offset < PER_BLOCK; offset++) {
             if (rels[block][offset].members) {
-                int id = block2id(block, offset);
+                osmid_t id = block2id(block, offset);
                 rel_out_count++;
                 if (rel_out_count % 10 == 0)
                     fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
@@ -275,7 +275,7 @@ static void ram_iterate_relations(int (*callback)(int id, struct member *members
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
-static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     int block, offset, ndCount = 0;
     struct osmNode *nodes;
@@ -297,7 +297,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
                     ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
                     if (nodes) {
-                        int id = block2id(block, offset);
+                        osmid_t id = block2id(block, offset);
                         callback(id, ways[block][offset].tags, nodes, ndCount, 0);
                         free(nodes);
                     }
@@ -321,7 +321,7 @@ static void ram_iterate_ways(int (*callback)(int id, struct keyval *tags, struct
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
-static int ram_ways_get( int id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
+static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct osmNode *nodes;
@@ -345,7 +345,7 @@ static int ram_ways_get( int id, struct keyval *tags_ptr, struct osmNode **nodes
 }
 
 // Marks the way so that iterate ways skips it
-static int ram_ways_done( int id )
+static int ram_ways_done(osmid_t id)
 {
     int block = id2block(id), offset = id2offset(id);
 

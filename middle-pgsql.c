@@ -63,18 +63,18 @@ static struct table_desc tables [] = {
          .name = "%p_nodes",
         .start = "BEGIN;\n",
 #ifdef FIXED_POINT
-       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
-      .prepare = "PREPARE insert_node (int4, int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
+      .prepare = "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
-       .create = "CREATE TABLE %p_nodes (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-      .prepare = "PREPARE insert_node (int4, double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
+       .create = "CREATE TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
+      .prepare = "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
-               "PREPARE get_node (int4) AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
-               "PREPARE delete_node (int4) AS DELETE FROM %p_nodes WHERE id = $1;\n",
+               "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
+               "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
 .prepare_intarray = // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
                   // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
                   //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
-               "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
+               "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,array_length($1, 1)) as i) x) z, "
                                                "(select * from %p_nodes where id = ANY($1)) y where l_id=id order by i;\n",
          .copy = "COPY %p_nodes FROM STDIN;\n",
       .analyze = "ANALYZE %p_nodes;\n",
@@ -84,15 +84,15 @@ static struct table_desc tables [] = {
         //table = t_way,
          .name = "%p_ways",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_ways (id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes int4[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
+       .create = "CREATE TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
  .create_index = "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
-.array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes gin__int_ops) {TABLESPACE %i};\n",
-      .prepare = "PREPARE insert_way (int4, int4[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
-               "PREPARE get_way (int4) AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
-               "PREPARE way_done(int4) AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
+.array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n",
+      .prepare = "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", int4[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
+               "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
+               "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
-               "PREPARE delete_way(int4) AS DELETE FROM %p_ways WHERE id = $1;\n",
-.prepare_intarray = "PREPARE node_changed_mark(int4) AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
+               "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
+.prepare_intarray = "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
          .copy = "COPY %p_ways FROM STDIN;\n",
       .analyze = "ANALYZE %p_ways;\n",
          .stop =  "COMMIT;\n"
@@ -101,19 +101,18 @@ static struct table_desc tables [] = {
         //table = t_rel,
          .name = "%p_rels",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_rels(id int4 PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts int4[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
+       .create = "CREATE TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
  .create_index = "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
-.array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts gin__int_ops) {TABLESPACE %i};\n",
-      .prepare = "PREPARE insert_rel (int4, int2, int2, int[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
-               "PREPARE get_rel (int4) AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
-               "PREPARE rel_done(int4) AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
+.array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n",
+      .prepare = "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+               "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
+               "PREPARE rel_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
                "PREPARE pending_rels AS SELECT id FROM %p_rels WHERE pending;\n"
-               "PREPARE delete_rel(int4) AS DELETE FROM %p_rels WHERE id = $1;\n",
-.prepare_intarray = /* Note: don't use subarray here since (at least in 8.1) has odd effects if you request stuff out of range */
-                "PREPARE node_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE way_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
-                  /* For this it works fine */
-                "PREPARE rel_changed_mark(int4) AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND subarray(parts,rel_off+1) && ARRAY[$1] AND NOT pending;\n",
+               "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
+.prepare_intarray =
+                "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n",
          .copy = "COPY %p_rels FROM STDIN;\n",
       .analyze = "ANALYZE %p_rels;\n",
          .stop =  "COMMIT;\n"
@@ -179,33 +178,33 @@ struct ramNodeBlock {
 };
 
 #define BLOCK_SHIFT 10
-#define PER_BLOCK  (1 << BLOCK_SHIFT)
-#define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
+#define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
+#define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
 static struct ramNodeBlock blocks[NUM_BLOCKS];
 static int usedBlocks;
 /* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
 static int maxBlocks = 0;
 static struct ramNodeBlock **queue;
-static int storedNodes, totalNodes;
+static osmid_t storedNodes, totalNodes;
 int nodesCacheHits, nodesCacheLookups;
 
 static int Append;
 
-static inline int id2block(int id)
+static inline int id2block(osmid_t id)
 {
     // + NUM_BLOCKS/2 allows for negative IDs
     return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
 }
 
-static inline int id2offset(int id)
+static inline int id2offset(osmid_t id)
 {
     return id & (PER_BLOCK-1);
 }
 
-static inline int block2id(int block, int offset)
+static inline osmid_t block2id(int block, int offset)
 {
-    return ((block - NUM_BLOCKS/2) << BLOCK_SHIFT) + offset;
+    return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
 }
 
 #define Swap(a,b) { typeof(a) __tmp = a; a = b; b = __tmp; }
@@ -226,7 +225,7 @@ static void percolate_up( int pos )
 }
 
 #define UNUSED  __attribute__ ((unused))
-static int pgsql_ram_nodes_set(int id, double lat, double lon, struct keyval *tags UNUSED)
+static int pgsql_ram_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -313,7 +312,7 @@ static int pgsql_ram_nodes_set(int id, double lat, double lon, struct keyval *ta
       if( queue[expectedpos] != &blocks[block] )
       {
         if (!warn_node_order) {
-            fprintf( stderr, "WARNING: Found Out of order node %d (%d,%d) - this will impact the cache efficiency\n", id, block, offset );
+            fprintf( stderr, "WARNING: Found Out of order node %" PRIdOSMID " (%d,%d) - this will impact the cache efficiency\n", id, block, offset );
             warn_node_order++;
         }
         return 1;
@@ -333,7 +332,7 @@ static int pgsql_ram_nodes_set(int id, double lat, double lon, struct keyval *ta
 }
 
 
-int pgsql_ram_nodes_get(struct osmNode *out, int id)
+int pgsql_ram_nodes_get(struct osmNode *out, osmid_t id)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -368,7 +367,7 @@ static void pgsql_cleanup(void)
     }
 }
 
-char *pgsql_store_nodes(int *nds, int nd_count)
+char *pgsql_store_nodes(osmid_t *nds, int nd_count)
 {
   static char *buffer;
   static int buflen;
@@ -389,7 +388,7 @@ _restart:
   for( i=0; i<nd_count; i++ )
   {
     if( !first ) *ptr++ = ',';
-    ptr += sprintf( ptr, "%d", nds[i] );
+    ptr += sprintf(ptr, "%" PRIdOSMID, nds[i] );
     
     if( (ptr-buffer) > (buflen-20) ) /* Almost overflowed? */
     {
@@ -560,7 +559,7 @@ static void pgsql_parse_tags( const char *string, struct keyval *tags )
 }
 
 /* Parses an array of integers */
-static void pgsql_parse_nodes( const char *src, int *nds, int nd_count )
+static void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
 {
   int count = 0;
   const char *string = src;
@@ -570,7 +569,7 @@ static void pgsql_parse_nodes( const char *src, int *nds, int nd_count )
   while( *string != '}' )
   {
     char *ptr;
-    nds[count] = strtol( string, &ptr, 10 );
+    nds[count] = strtoosmid( string, &ptr, 10 );
     string = ptr;
     if( *string == ',' )
       string++;
@@ -606,7 +605,7 @@ static int pgsql_endCopy( struct table_desc *table)
     return 0;
 }
 
-static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
+static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags)
 {
     /* Four params: id, lat, lon, tags */
     char *paramValues[4];
@@ -619,17 +618,17 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
       int length = strlen(tag_buf) + 64;
       buffer = alloca( length );
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%d\t%d\t%d\t%s\n", id, DOUBLE_TO_FIX(lat), DOUBLE_TO_FIX(lon), tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, DOUBLE_TO_FIX(lat), DOUBLE_TO_FIX(lon), tag_buf ) > (length-10) )
+      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
-      if( snprintf( buffer, length, "%d\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %d\n", id); return 1; }
+      if( snprintf( buffer, length, "%" PRIdOSMID "d\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
+      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #endif
       return pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
     }
     buffer = alloca(64);
     paramValues[0] = buffer;
-    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%d", id ) + 1;
+    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%" PRIdOSMID, id ) + 1;
 #ifdef FIXED_POINT
     paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%d", DOUBLE_TO_FIX(lat) ) + 1;
     sprintf( paramValues[2], "%d", DOUBLE_TO_FIX(lon) );
@@ -643,7 +642,7 @@ static int pgsql_nodes_set(int id, double lat, double lon, struct keyval *tags)
 }
 
 
-static int pgsql_nodes_get(struct osmNode *out, int id)
+static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
     /* Check cache first */
     if( pgsql_ram_nodes_get( out, id ) == 0 )
@@ -657,7 +656,7 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( node_table );
 
-    snprintf(tmp, sizeof(tmp), "%d", id);
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     res = pgsql_execPrepared(sql_conn, "get_node", 1, paramValues, PGRES_TUPLES_OK);
@@ -679,7 +678,7 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
 }
 
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
-static int pgsql_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
+static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
     int count = 0, i;
     for( i=0; i<nd_count; i++ )
@@ -690,20 +689,20 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
     return count;
 }
 
-static int pgsql_nodes_delete(int osm_id)
+static int pgsql_nodes_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( node_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(node_table->sql_conn, "delete_node", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
-static int pgsql_node_changed(int osm_id)
+static int pgsql_node_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -711,14 +710,14 @@ static int pgsql_node_changed(int osm_id)
     pgsql_endCopy( way_table );
     pgsql_endCopy( rel_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     pgsql_execPrepared(rel_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
-static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tags, int pending)
+static int pgsql_ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
 {
     /* Three params: id, nodes, tags, pending */
     char *paramValues[4];
@@ -730,14 +729,14 @@ static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tag
       char *node_buf = pgsql_store_nodes(nds, nd_count);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = alloca(length);
-      if( snprintf( buffer, length, "%d\t%s\t%s\t%c\n", 
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\t%c\n", 
               way_id, node_buf, tag_buf, pending?'t':'f' ) > (length-10) )
-      { fprintf( stderr, "buffer overflow way id %d\n", way_id); return 1; }
+      { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
       return pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
     }
     buffer = alloca(64);
     paramValues[0] = buffer;
-    paramValues[3] = paramValues[0] + sprintf( paramValues[0], "%d", way_id ) + 1;
+    paramValues[3] = paramValues[0] + sprintf( paramValues[0], "%" PRIdOSMID, way_id ) + 1;
     sprintf( paramValues[3], "%c", pending?'t':'f' );
     paramValues[1] = pgsql_store_nodes(nds, nd_count);
     paramValues[2] = pgsql_store_tags(tags,0);
@@ -746,7 +745,7 @@ static int pgsql_ways_set(int way_id, int *nds, int nd_count, struct keyval *tag
 }
 
 /* Caller is responsible for freeing nodesptr & resetList(tags) */
-static int pgsql_ways_get(int id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
+static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
 {
     PGresult   *res;
     char tmp[16];
@@ -756,7 +755,7 @@ static int pgsql_ways_get(int id, struct keyval *tags, struct osmNode **nodes_pt
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
-    snprintf(tmp, sizeof(tmp), "%d", id);
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
@@ -769,8 +768,8 @@ static int pgsql_ways_get(int id, struct keyval *tags, struct osmNode **nodes_pt
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
 
     int num_nodes = strtol(PQgetvalue(res, 0, 2), NULL, 10);
-    int *list = alloca( sizeof(int)*num_nodes );
-    *nodes_ptr = malloc( sizeof(struct osmNode) * num_nodes );
+    osmid_t *list = alloca(sizeof(osmid_t)*num_nodes );
+    *nodes_ptr = malloc(sizeof(struct osmNode) * num_nodes);
     pgsql_parse_nodes( PQgetvalue(res, 0, 0), list, num_nodes);
     
     *count_ptr = pgsql_nodes_get_list( *nodes_ptr, list, num_nodes);
@@ -778,7 +777,7 @@ static int pgsql_ways_get(int id, struct keyval *tags, struct osmNode **nodes_pt
     return 0;
 }
 
-static int pgsql_ways_done(int id)
+static int pgsql_ways_done(osmid_t id)
 {
     char tmp[16];
     char const *paramValues[1];
@@ -787,7 +786,7 @@ static int pgsql_ways_done(int id)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
-    snprintf(tmp, sizeof(tmp), "%d", id);
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     pgsql_execPrepared(sql_conn, "way_done", 1, paramValues, PGRES_COMMAND_OK);
@@ -795,20 +794,20 @@ static int pgsql_ways_done(int id)
     return 0;
 }
 
-static int pgsql_ways_delete(int osm_id)
+static int pgsql_ways_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "delete_way", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
-static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     PGresult   *res_ways;
     int i, count = 0;
@@ -824,7 +823,7 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
 
     //fprintf(stderr, "\nIterating ways\n");
     for (i = 0; i < PQntuples(res_ways); i++) {
-        int id = strtol(PQgetvalue(res_ways, i, 0), NULL, 10);
+        osmid_t id = strtoosmid(PQgetvalue(res_ways, i, 0), NULL, 10);
         struct keyval tags;
         struct osmNode *nodes;
         int nd_count;
@@ -847,20 +846,20 @@ static void pgsql_iterate_ways(int (*callback)(int id, struct keyval *tags, stru
     fprintf(stderr, "\n");
 }
 
-static int pgsql_way_changed(int osm_id)
+static int pgsql_way_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "way_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
-static int pgsql_rels_set(int id, struct member *members, int member_count, struct keyval *tags)
+static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     /* Params: id, way_off, rel_off, parts, members, tags */
     char *paramValues[6];
@@ -868,11 +867,13 @@ static int pgsql_rels_set(int id, struct member *members, int member_count, stru
     int i;
     struct keyval member_list;
     
-    int node_parts[member_count], node_count = 0,
-        ways_parts[member_count], ways_count = 0,
-        rels_parts[member_count], rels_count = 0;
+    osmid_t node_parts[member_count],
+            way_parts[member_count],
+            rel_parts[member_count];
+    int node_count = 0, way_count = 0, rel_count = 0;
     
-    int all_parts[member_count], all_count = 0;
+    osmid_t all_parts[member_count];
+    int all_count = 0;
     initList( &member_list );    
     for( i=0; i<member_count; i++ )
     {
@@ -880,17 +881,17 @@ static int pgsql_rels_set(int id, struct member *members, int member_count, stru
       switch( members[i].type )
       {
         case OSMTYPE_NODE:     node_parts[node_count++] = members[i].id; tag = 'n'; break;
-        case OSMTYPE_WAY:      ways_parts[ways_count++] = members[i].id; tag = 'w'; break;
-        case OSMTYPE_RELATION: rels_parts[rels_count++] = members[i].id; tag = 'r'; break;
+        case OSMTYPE_WAY:      way_parts[way_count++] = members[i].id; tag = 'w'; break;
+        case OSMTYPE_RELATION: rel_parts[rel_count++] = members[i].id; tag = 'r'; break;
         default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); exit_nicely();
       }
       char buf[64];
-      sprintf( buf, "%c%d", tag, members[i].id );
+      sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
       addItem( &member_list, buf, members[i].role, 0 );
     }
     memcpy( all_parts+all_count, node_parts, node_count*sizeof(int) ); all_count+=node_count;
-    memcpy( all_parts+all_count, ways_parts, ways_count*sizeof(int) ); all_count+=ways_count;
-    memcpy( all_parts+all_count, rels_parts, rels_count*sizeof(int) ); all_count+=rels_count;
+    memcpy( all_parts+all_count, way_parts, way_count*sizeof(int) ); all_count+=way_count;
+    memcpy( all_parts+all_count, rel_parts, rel_count*sizeof(int) ); all_count+=rel_count;
   
     if( rel_table->copyMode )
     {
@@ -899,18 +900,18 @@ static int pgsql_rels_set(int id, struct member *members, int member_count, stru
       char *parts_buf = pgsql_store_nodes(all_parts, all_count);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = alloca(length);
-      if( snprintf( buffer, length, "%d\t%d\t%d\t%s\t%s\t%s\tf\n", 
-              id, node_count, node_count+ways_count, parts_buf, member_buf, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow relation id %d\n", id); return 1; }
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\tf\n", 
+              id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
+      { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
       resetList(&member_list);
       return pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
     }
     buffer = alloca(64);
     paramValues[0] = buffer;
-    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%d", id ) + 1;
+    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%" PRIdOSMID, id ) + 1;
     paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%d", node_count ) + 1;
-    sprintf( paramValues[2], "%d", node_count+ways_count );
+    sprintf( paramValues[2], "%d", node_count+way_count );
     paramValues[3] = pgsql_store_nodes(all_parts, all_count);
     paramValues[4] = pgsql_store_tags(&member_list,0);
     if( paramValues[4] )
@@ -924,7 +925,7 @@ static int pgsql_rels_set(int id, struct member *members, int member_count, stru
 }
 
 /* Caller is responsible for freeing members & resetList(tags) */
-static int pgsql_rels_get(int id, struct member **members, int *member_count, struct keyval *tags)
+static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags)
 {
     PGresult   *res;
     char tmp[16];
@@ -935,7 +936,7 @@ static int pgsql_rels_get(int id, struct member **members, int *member_count, st
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
 
-    snprintf(tmp, sizeof(tmp), "%d", id);
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     res = pgsql_execPrepared(sql_conn, "get_rel", 1, paramValues, PGRES_TUPLES_OK);
@@ -959,12 +960,12 @@ static int pgsql_rels_get(int id, struct member **members, int *member_count, st
     {
         if( i >= num_members )
         {
-            fprintf( stderr, "Unexpected member_count reading relation %d\n", id );
+            fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
             exit_nicely();
         }
         char tag = item->key[0];
         list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:-1;
-        list[i].id = strtol(item->key+1, NULL, 10 );
+        list[i].id = strtoosmid(item->key+1, NULL, 10 );
         list[i].role = strdup( item->value );
         freeItem(item);
         i++;
@@ -975,7 +976,7 @@ static int pgsql_rels_get(int id, struct member **members, int *member_count, st
     return 0;
 }
 
-static int pgsql_rels_done(int id)
+static int pgsql_rels_done(osmid_t id)
 {
     char tmp[16];
     char const *paramValues[1];
@@ -984,7 +985,7 @@ static int pgsql_rels_done(int id)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
 
-    snprintf(tmp, sizeof(tmp), "%d", id);
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     pgsql_execPrepared(sql_conn, "rel_done", 1, paramValues, PGRES_COMMAND_OK);
@@ -992,20 +993,20 @@ static int pgsql_rels_done(int id)
     return 0;
 }
 
-static int pgsql_rels_delete(int osm_id)
+static int pgsql_rels_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
 
-static void pgsql_iterate_relations(int (*callback)(int id, struct member *members, int member_count, struct keyval *tags, int exists))
+static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists))
 {
     PGresult   *res_rels;
     int i, count = 0;
@@ -1021,7 +1022,7 @@ static void pgsql_iterate_relations(int (*callback)(int id, struct member *membe
 
     //fprintf(stderr, "\nIterating ways\n");
     for (i = 0; i < PQntuples(res_rels); i++) {
-        int id = strtol(PQgetvalue(res_rels, i, 0), NULL, 10);
+        osmid_t id = strtoosmid(PQgetvalue(res_rels, i, 0), NULL, 10);
         struct keyval tags;
         struct member *members;
         int member_count;
@@ -1044,14 +1045,14 @@ static void pgsql_iterate_relations(int (*callback)(int id, struct member *membe
     fprintf(stderr, "\n");
 }
 
-static int pgsql_rel_changed(int osm_id)
+static int pgsql_rel_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    sprintf( buffer, "%d", osm_id );
+    sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "rel_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
@@ -1169,7 +1170,6 @@ static int pgsql_start(const struct output_options *options)
 {
     PGresult   *res;
     int i;
-    int have_intarray = 0;
     int dropcreate = !options->append;
 
     scale = options->scale;
@@ -1215,15 +1215,26 @@ static int pgsql_start(const struct output_options *options)
          * warn users *before* we start doing mountains of work */
         if (i == t_node)
         {
-            /* Note: this only checks for the GIST version, but recently there is also a GIN version, which may be faster... */
             res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
-            if( PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1 )
-                have_intarray = 1;
-            else
-                fprintf( stderr, "*** WARNING: intarray contrib module not installed\n*** The resulting database will not be usable for applying diffs.\n" );
+            if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
+            {
+                /* intarray is problematic now; causes at least postgres 8.4
+                 * to not use the index on nodes[]/parts[] which slows diff
+                 * updates to a crawl! 
+                 * If someone find a way to fix this rather than bow out here,
+                 * please do.*/
+
+                fprintf(stderr, 
+                    "\n"
+                    "The target database has the intarray contrib module loaded.\n"
+                    "While required for earlier versions of osm2pgsql, intarray \n"
+                    "is now unnecessary and will interfere with osm2pgsql's array\n"
+                    "handling. Please use a database without intarray.\n\n");
+                exit_nicely();
+            }
             PQclear(res);
-            
-            if( have_intarray && !options->append )
+
+            if(!options->append)
                 build_indexes = 1;
         }
         if (dropcreate) {
@@ -1246,7 +1257,7 @@ static int pgsql_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
 
-        if (have_intarray && tables[i].prepare_intarray) {
+        if (tables[i].prepare_intarray) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
         }
 
@@ -1303,7 +1314,7 @@ static void pgsql_stop(void)
     pthread_t threads[num_tables];
 #endif
 
-    fprintf( stderr, "node cache: stored: %d(%.2f%%), storage efficiency: %.2f%%, hit rate: %.2f%%\n", 
+    fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%%, hit rate: %.2f%%\n", 
              storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes/(usedBlocks*PER_BLOCK),
              100.0f*nodesCacheHits/nodesCacheLookups );
           

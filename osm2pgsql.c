@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
     
     int (*streamFile)(char *, int, struct osmdata_t *);
 
-    printf("osm2pgsql SVN version %s\n\n", VERSION);
+    printf("osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
 
     while (1) {
         int c, option_index = 0;
