@@ -852,7 +852,7 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
     return 0;
 }
 
-static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, int *xid, const char **xrole)
+static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
     int i, wkt_size;
     int polygon = 0, roads = 0;
@@ -1470,7 +1470,7 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
 {
   // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
   int i, count;
-  int *xid = malloc( (member_count+1) * sizeof(int) );
+  osmid_t *xid = malloc( (member_count+1) * sizeof(osmid_t) );
   const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
