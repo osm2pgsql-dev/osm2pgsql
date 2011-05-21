@@ -164,8 +164,8 @@ static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *t
     }
 
     /* Copy into length prefixed array */
-    ways[block][offset].ndids = malloc( (nd_count+1)*sizeof(int) );
-    memcpy( ways[block][offset].ndids+1, nds, nd_count*sizeof(int) );
+    ways[block][offset].ndids = malloc( (nd_count+1)*sizeof(osmid_t) );
+    memcpy( ways[block][offset].ndids+1, nds, nd_count*sizeof(osmid_t) );
     ways[block][offset].ndids[0] = nd_count;
     ways[block][offset].pending = pending;
 
