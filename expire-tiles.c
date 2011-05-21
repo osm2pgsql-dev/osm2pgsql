@@ -433,7 +433,7 @@ void expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
 	char *		wkt;
 
 	if (Options->expire_tiles_zoom < 0) return;
-	snprintf(tmp, sizeof(tmp), PRIdOSMID, osm_id);
+	snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
 	paramValues[0] = tmp;
 	res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
 	for (tuple = 0; tuple < PQntuples(res); tuple++) {

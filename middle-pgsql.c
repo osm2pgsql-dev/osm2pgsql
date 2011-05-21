@@ -621,7 +621,7 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, DOUBLE_TO_FIX(lat), DOUBLE_TO_FIX(lon), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
-      if( snprintf( buffer, length, "%" PRIdOSMID "d\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #endif
       return pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
