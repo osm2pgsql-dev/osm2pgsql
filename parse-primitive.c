@@ -185,14 +185,18 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
     if (!strcmp(name, "node")) {
         xid  = extractAttribute(token, tokens, "id");
-        xlon = extractAttribute(token, tokens, "lon");
-        xlat = extractAttribute(token, tokens, "lat");
-        assert(xid); assert(xlon); assert(xlat);
-
-        osmdata->osm_id  = strtol((char *)xid, NULL, 10);
-        osmdata->node_lon = strtod((char *)xlon, NULL);
-        osmdata->node_lat = strtod((char *)xlat, NULL);
+        assert(xid);
+        osmdata->osm_id = strtol((char *)xid, NULL, 10);
         osmdata->action = ParseAction(token, tokens, osmdata);
+
+        if (osmdata->action != ACTION_DELETE) {
+            xlon = extractAttribute(token, tokens, "lon");
+            xlat = extractAttribute(token, tokens, "lat");
+            assert(xlon);
+            assert(xlat);
+            osmdata->node_lon = strtod((char *)xlon, NULL);
+            osmdata->node_lat = strtod((char *)xlat, NULL);
+        }
 
         if (osmdata->osm_id > osmdata->max_node)
             osmdata->max_node = osmdata->osm_id;

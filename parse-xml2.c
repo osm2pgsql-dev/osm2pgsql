@@ -95,14 +95,18 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
     
     if (xmlStrEqual(name, BAD_CAST "node")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
-        xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
-        assert(xid); assert(xlon); assert(xlat);
-
+        assert(xid); 
         osmdata->osm_id   = strtol((char *)xid, NULL, 10);
-        osmdata->node_lon = strtod((char *)xlon, NULL);
-        osmdata->node_lat = strtod((char *)xlat, NULL);
         osmdata->action   = ParseAction( reader , osmdata);
+        
+        if (osmdata->action != ACTION_DELETE) {
+            xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
+            xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
+            assert(xlon); 
+            assert(xlat);
+            osmdata->node_lon = strtod((char *)xlon, NULL);
+            osmdata->node_lat = strtod((char *)xlat, NULL);
+        }
 
         if (osmdata->osm_id > osmdata->max_node)
             osmdata->max_node = osmdata->osm_id;
