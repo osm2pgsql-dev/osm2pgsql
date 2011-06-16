@@ -5,6 +5,7 @@
 
 #include <inttypes.h>
 
+#define OSMID64
 #ifdef OSMID64
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
@@ -36,9 +37,9 @@ typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETD
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
 struct osmdata_t {
-  int count_node,    max_node;
-  int count_way,     max_way;
-  int count_rel,     max_rel;
+  osmid_t count_node,    max_node;
+  osmid_t count_way,     max_way;
+  osmid_t count_rel,     max_rel;
 
   struct output_t *out;
 
