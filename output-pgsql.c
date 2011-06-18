@@ -1365,9 +1365,9 @@ static void *pgsql_out_stop_one(void *arg)
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
         if (Options->tblsmain_index) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way ) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
         } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table->name, table->name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way );\n", table->name, table->name);
         }
 
         /* slim mode needs this to be able to apply diffs */
