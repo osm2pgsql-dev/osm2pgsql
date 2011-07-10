@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -74,8 +75,9 @@ static struct table_desc tables [] = {
 .prepare_intarray = // This is to fetch lots of nodes simultaneously, in order including duplicates. The commented out version doesn't do duplicates
                   // It's not optimal as it does a Nested Loop / Index Scan which is suboptimal for large arrays
                   //"PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::int4[]) ORDER BY $1::int4[] # id\n",
-               "PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
-                                               "(select * from %p_nodes where id = ANY($1)) y where l_id=id order by i;\n",
+		 //"PREPARE get_node_list(int[]) AS select y.id, y.lat, y.lon from (select i, ($1)[i] as l_id from (select generate_series(1,icount($1)) as i) x) z, "
+		 //                                    "(select * from %p_nodes where id = ANY($1)) y where l_id=id order by i;\n",
+		 "PREPARE get_node_list(int[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::int4[])",
          .copy = "COPY %p_nodes FROM STDIN;\n",
       .analyze = "ANALYZE %p_nodes;\n",
          .stop = "COMMIT;\n"
@@ -681,12 +683,109 @@ static int pgsql_nodes_get(struct osmNode *out, int id)
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
 static int pgsql_nodes_get_list(struct osmNode *nodes, int *ndids, int nd_count)
 {
-    int count = 0, i;
-    for( i=0; i<nd_count; i++ )
-    {
-      if( pgsql_nodes_get( &nodes[count], ndids[i] ) == 0 )
-        count++;
+    char tmp[16];
+    char *tmp2; 
+    int count, count2, countDB, countPG, i,j;
+    int id;
+    int *ndidspg;
+    struct osmNode *nodespg;
+    struct osmNode *nodes2;
+    char const *paramValues[1]; 
+
+    PGresult   *res;
+    PGconn *sql_conn = node_table->sql_conn;
+    
+    count = 0; countDB = 0;
+
+    tmp2 = malloc(sizeof(char)*nd_count*16);
+    if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
+
+    /* create a list of ids in tmp2 to query the database  */
+    snprintf(tmp2, sizeof(tmp2), "{");
+    for( i=0; i<nd_count; i++ ) {
+        /* Check cache first */ 
+        if( pgsql_ram_nodes_get( &nodes[i], ndids[i]) == 0 ) {
+            count++;
+            continue;
+        }
+        countDB++;
+        /* Mark nodes as needing to be fetched from the DB */
+        nodes[i].lat = NAN;
+        nodes[i].lon = NAN;
+        snprintf(tmp, sizeof(tmp), "%d,", ndids[i]);
+        strcat(tmp2,tmp);
     }
+    tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
+ 
+    if (countDB == 0) {
+        free(tmp2);
+        return count; /* All ids where in cache, so nothing more to do */
+    }
+ 
+    pgsql_endCopy( node_table ); 
+
+    paramValues[0] = tmp2;  
+    res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
+    countPG = PQntuples(res);
+
+    ndidspg = malloc(sizeof(int)*countPG);
+    nodespg = malloc(sizeof(struct osmNode)*countPG);
+
+    if ((ndidspg == NULL) || (nodespg == NULL)) {
+        free(tmp2);
+        free(ndidspg);
+        free(nodespg);
+        PQclear(res);
+        return 0;
+    }
+
+    for (i = 0; i < countPG; i++) {
+        ndidspg[i] = strtol(PQgetvalue(res, i, 0), NULL, 10); 
+#ifdef FIXED_POINT 
+        nodespg[i].lat = FIX_TO_DOUBLE(strtol(PQgetvalue(res, i, 1), NULL, 10)); 
+        nodespg[i].lon = FIX_TO_DOUBLE(strtol(PQgetvalue(res, i, 2), NULL, 10)); 
+#else 
+        nodespg[i].lat = strtod(PQgetvalue(res, i, 1), NULL); 
+        nodespg[i].lon = strtod(PQgetvalue(res, i, 2), NULL); 
+#endif 
+    }
+ 
+ 
+    /* The list of results coming back from the db is in a different order to the list of nodes in the way.
+       Match the results back to the way node list */
+   
+    for (i=0; i<nd_count; i++ )	{
+        if ((isnan(nodes[i].lat)) || (isnan(nodes[i].lon))) {
+            /* TODO: implement an O(log(n)) algorithm to match node ids */
+            for (j = 0; j < countPG; j++) {
+                if (ndidspg[j] == ndids[i]) {
+                    nodes[i].lat = nodespg[j].lat;
+                    nodes[i].lon = nodespg[j].lon;
+                    count++;
+                    break;
+                }
+            }
+        }
+    }
+
+    /* If some of the nodes in the way don't exist, the returning list has wholes.
+       As the rest of the code expects a continous list, it needs to be re-compacted */
+    if (count != nd_count) {
+        j = 0;
+        for (i = 0; i < nd_count; i++) {
+            if ( !isnan(nodes[i].lat)) {
+                nodes[j].lat = nodes[i].lat;
+                nodes[j].lon = nodes[i].lon;
+                j++;
+            }
+         }
+    }
+
+    PQclear(res);
+    free(tmp2);
+    free(ndidspg);
+    free(nodespg);
+
     return count;
 }
 
