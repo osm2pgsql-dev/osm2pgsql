@@ -185,18 +185,14 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
     if (!strcmp(name, "node")) {
         xid  = extractAttribute(token, tokens, "id");
-        assert(xid);
-        osmdata->osm_id = strtol((char *)xid, NULL, 10);
-        osmdata->action = ParseAction(token, tokens, osmdata);
+        xlon = extractAttribute(token, tokens, "lon");
+        xlat = extractAttribute(token, tokens, "lat");
+        assert(xid); assert(xlon); assert(xlat);
 
-        if (osmdata->action != ACTION_DELETE) {
-            xlon = extractAttribute(token, tokens, "lon");
-            xlat = extractAttribute(token, tokens, "lat");
-            assert(xlon);
-            assert(xlat);
-            osmdata->node_lon = strtod((char *)xlon, NULL);
-            osmdata->node_lat = strtod((char *)xlat, NULL);
-        }
+        osmdata->osm_id  = strtoosmid((char *)xid, NULL, 10);
+        osmdata->node_lon = strtod((char *)xlon, NULL);
+        osmdata->node_lat = strtod((char *)xlat, NULL);
+        osmdata->action = ParseAction(token, tokens, osmdata);
 
         if (osmdata->osm_id > osmdata->max_node)
             osmdata->max_node = osmdata->osm_id;
@@ -222,7 +218,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
-        osmdata->osm_id   = strtol((char *)xid, NULL, 10);
+        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->action = ParseAction(token, tokens, osmdata);
 
         if (osmdata->osm_id > osmdata->max_way)
@@ -237,14 +233,14 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         xid  = extractAttribute(token, tokens, "ref");
         assert(xid);
 
-        osmdata->nds[osmdata->nd_count++] = strtol( (char *)xid, NULL, 10 );
+        osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
 
         if( osmdata->nd_count >= osmdata->nd_max )
           realloc_nodes(osmdata);
     } else if (!strcmp(name, "relation")) {
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
-        osmdata->osm_id   = strtol((char *)xid, NULL, 10);
+        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->action = ParseAction(token, tokens, osmdata);
 
         if (osmdata->osm_id > osmdata->max_rel)
@@ -265,7 +261,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         xid  = extractAttribute(token, tokens, "ref");
         assert(xid);
 
-        osmdata->members[osmdata->member_count].id   = strtol( (char *)xid, NULL, 0 );
+        osmdata->members[osmdata->member_count].id   = strtoosmid( (char *)xid, NULL, 0 );
         osmdata->members[osmdata->member_count].role = strdup( (char *)xrole );
 
         /* Currently we are only interested in 'way' members since these form polygons with holes */
@@ -338,7 +334,7 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
 	      osmdata->out->node_delete(osmdata->osm_id);
             else
             {
-	      fprintf( stderr, "Don't know action for node %d\n", osmdata->osm_id );
+	      fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osmdata->osm_id );
 	      exit_nicely();
             }
         }
@@ -352,7 +348,7 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
             osmdata->out->way_delete(osmdata->osm_id);
         else
         {
-            fprintf( stderr, "Don't know action for way %d\n", osmdata->osm_id );
+            fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osmdata->osm_id );
             exit_nicely();
         }
       resetList(&(osmdata->tags));
@@ -365,7 +361,7 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
 	  osmdata->out->relation_delete(osmdata->osm_id);
         else
         {
-	  fprintf( stderr, "Don't know action for relation %d\n", osmdata->osm_id );
+	  fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osmdata->osm_id );
 	  exit_nicely();
         }
         resetList(&(osmdata->tags));

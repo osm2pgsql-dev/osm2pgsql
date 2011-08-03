@@ -281,7 +281,7 @@ void resetMembers(struct osmdata_t *osmdata)
 
 void printStatus(struct osmdata_t *osmdata)
 {
-    fprintf(stderr, "\rProcessing: Node(%dk) Way(%dk) Relation(%d)",
+    fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k) Way(%" PRIdOSMID "k) Relation(%" PRIdOSMID ")",
             osmdata->count_node/1000, osmdata->count_way/1000, osmdata->count_rel);
 }
 
@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
     
     int (*streamFile)(char *, int, struct osmdata_t *);
 
-    printf("osm2pgsql SVN version %s\n\n", VERSION);
+    printf("osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
 
     while (1) {
         int c, option_index = 0;
@@ -576,9 +576,9 @@ int main(int argc, char *argv[])
     
     if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
         fprintf(stderr, "\n");
-        fprintf(stderr, "Node stats: total(%d), max(%d)\n", osmdata.count_node, osmdata.max_node);
-        fprintf(stderr, "Way stats: total(%d), max(%d)\n", osmdata.count_way, osmdata.max_way);
-        fprintf(stderr, "Relation stats: total(%d), max(%d)\n", osmdata.count_rel, osmdata.max_rel);
+        fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_node, osmdata.max_node);
+        fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_way, osmdata.max_way);
+        fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_rel, osmdata.max_rel);
     }
     osmdata.out->stop();
     

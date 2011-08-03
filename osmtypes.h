@@ -3,6 +3,23 @@
 #ifndef OSMTYPES_H
 #define OSMTYPES_H
 
+#include <inttypes.h>
+
+// uncomment the following to build a version that supports 64bit IDs.
+// #define OSMID64
+
+#ifdef OSMID64
+typedef int64_t osmid_t;
+#define strtoosmid strtoll
+#define PRIdOSMID PRId64
+#define POSTGRES_OSMID_TYPE "int8"
+#else
+typedef int32_t osmid_t;
+#define strtoosmid strtol
+#define PRIdOSMID PRId32
+#define POSTGRES_OSMID_TYPE "int4"
+#endif
+
 #include "keyvals.h"
 
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
@@ -14,7 +31,7 @@ struct osmNode {
 
 struct member {
     enum OsmType type;
-    int id;
+    osmid_t id;
     char *role;
 };
 
@@ -22,9 +39,9 @@ typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETD
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
 struct osmdata_t {
-  int count_node,    max_node;
-  int count_way,     max_way;
-  int count_rel,     max_rel;
+  osmid_t count_node,    max_node;
+  osmid_t count_way,     max_way;
+  osmid_t count_rel,     max_rel;
 
   struct output_t *out;
 
@@ -34,11 +51,11 @@ struct osmdata_t {
 */
   double node_lon, node_lat;
   struct keyval tags;
-  int *nds;
+  osmid_t *nds;
   int nd_count, nd_max;
   struct member *members;
-  unsigned member_count, member_max;
-  int osm_id;
+  int member_count, member_max;
+  osmid_t osm_id;
   filetypes_t filetype;
   actions_t action;
   int extra_attributes;

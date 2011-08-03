@@ -297,7 +297,7 @@ static int polygondata_comparearea(const void* vp1, const void* vp2)
     return 1;
 }
 
-size_t build_geometry(int osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at) {
+size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;

@@ -117,9 +117,9 @@ static struct {
 };
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
-static int pgsql_delete_way_from_output(int osm_id);
-static int pgsql_delete_relation_from_output(int osm_id);
-static int pgsql_process_relation(int id, struct member *members, int member_count, struct keyval *tags, int exists);
+static int pgsql_delete_way_from_output(osmid_t osm_id);
+static int pgsql_delete_relation_from_output(osmid_t osm_id);
+static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
 
 void read_style_file( const char *filename )
 {
@@ -591,7 +591,7 @@ psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
 Workaround - output SRID=4326;<WKB>
 */
 
-static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double node_lon)
+static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
 {
 
     static char *sql;
@@ -606,7 +606,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
     }
 
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
-    sprintf(sql, "%d\t", id);
+    sprintf(sql, "%" PRIdOSMID "\t", id);
     copy_to_table(t_point, sql);
 
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
@@ -644,7 +644,7 @@ static int pgsql_out_node(int id, struct keyval *tags, double node_lat, double n
 
 
 
-static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_id table)
+static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table)
 {
   
     static char *sql;
@@ -658,7 +658,7 @@ static void write_wkts(int id, struct keyval *tags, const char *wkt, enum table_
       sql=malloc(sqllen);
     }
     
-    sprintf(sql, "%d\t", id);
+    sprintf(sql, "%" PRIdOSMID "\t", id);
     copy_to_table(table, sql);
 
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
@@ -800,7 +800,7 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
+static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
     int i, wkt_size;
@@ -852,7 +852,7 @@ static int pgsql_out_way(int id, struct keyval *tags, struct osmNode *nodes, int
     return 0;
 }
 
-static int pgsql_out_relation(int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, int *xid, const char **xrole)
+static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
     int i, wkt_size;
     int polygon = 0, roads = 0;
@@ -1201,7 +1201,7 @@ static int pgsql_out_start(const struct output_options *options)
         int numTags = exportListCount[type];
         struct taginfo *exportTags = exportList[type];
         if (!options->append) {
-            sprintf(sql, "CREATE TABLE %s ( osm_id int4", tables[i].name );
+            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, tables[i].name );
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
@@ -1276,7 +1276,7 @@ static int pgsql_out_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
                         tables[i].type, tables[i].type, tables[i].name);
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (int4) AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -1432,7 +1432,7 @@ static void pgsql_out_stop()
     expire_tiles_stop();
 }
 
-static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags)
+static int pgsql_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
 {
   int polygon;
   int filter = pgsql_filter_tags(OSMTYPE_NODE, tags, &polygon);
@@ -1443,7 +1443,7 @@ static int pgsql_add_node(int id, double lat, double lon, struct keyval *tags)
   return 0;
 }
 
-static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
+static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
   int polygon = 0;
 
@@ -1466,11 +1466,11 @@ static int pgsql_add_way(int id, int *nds, int nd_count, struct keyval *tags)
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-static int pgsql_process_relation(int id, struct member *members, int member_count, struct keyval *tags, int exists)
+static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
-  // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+  // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
   int i, count;
-  int *xid = malloc( (member_count+1) * sizeof(int) );
+  osmid_t *xid = malloc( (member_count+1) * sizeof(osmid_t) );
   const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
@@ -1516,7 +1516,7 @@ static int pgsql_process_relation(int id, struct member *members, int member_cou
   return 0;
 }
 
-static int pgsql_add_relation(int id, struct member *members, int member_count, struct keyval *tags)
+static int pgsql_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
   const char *type = getItem(tags, "type");
 
@@ -1527,7 +1527,7 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
   /* In slim mode we remember these*/
   if(Options->mid->relations_set)
     Options->mid->relations_set(id, members, member_count, tags);
-  // (int id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+  // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
 
   return pgsql_process_relation(id, members, member_count, tags, 0);
 }
@@ -1536,7 +1536,7 @@ static int pgsql_add_relation(int id, struct member *members, int member_count, 
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
  * contain the change for that also. */
-static int pgsql_delete_node(int osm_id)
+static int pgsql_delete_node(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1545,13 +1545,13 @@ static int pgsql_delete_node(int osm_id)
     }
     pgsql_pause_copy(&tables[t_point]);
     expire_tiles_from_db(tables[t_point].sql_conn, osm_id);
-    pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_point].name, osm_id );
+    pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
     Options->mid->nodes_delete(osm_id);
     return 0;
 }
 
 /* Seperated out because we use it elsewhere */
-static int pgsql_delete_way_from_output(int osm_id)
+static int pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
     if( !Options->slim )
@@ -1562,13 +1562,13 @@ static int pgsql_delete_way_from_output(int osm_id)
     expire_tiles_from_db(tables[t_roads].sql_conn, osm_id);
     expire_tiles_from_db(tables[t_line].sql_conn, osm_id);
     expire_tiles_from_db(tables[t_poly].sql_conn, osm_id);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, osm_id );
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
     return 0;
 }
 
-static int pgsql_delete_way(int osm_id)
+static int pgsql_delete_way(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1581,7 +1581,7 @@ static int pgsql_delete_way(int osm_id)
 }
 
 /* Relations are identified by using negative IDs */
-static int pgsql_delete_relation_from_output(int osm_id)
+static int pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
@@ -1589,13 +1589,13 @@ static int pgsql_delete_relation_from_output(int osm_id)
     expire_tiles_from_db(tables[t_roads].sql_conn, -osm_id);
     expire_tiles_from_db(tables[t_line].sql_conn, -osm_id);
     expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_roads].name, -osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_line].name, -osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %d", tables[t_poly].name, -osm_id );
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, -osm_id );
+    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
+    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
     return 0;
 }
 
-static int pgsql_delete_relation(int osm_id)
+static int pgsql_delete_relation(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1610,7 +1610,7 @@ static int pgsql_delete_relation(int osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-static int pgsql_modify_node(int osm_id, double lat, double lon, struct keyval *tags)
+static int pgsql_modify_node(osmid_t osm_id, double lat, double lon, struct keyval *tags)
 {
     if( !Options->slim )
     {
@@ -1623,7 +1623,7 @@ static int pgsql_modify_node(int osm_id, double lat, double lon, struct keyval *
     return 0;
 }
 
-static int pgsql_modify_way(int osm_id, int *nodes, int node_count, struct keyval *tags)
+static int pgsql_modify_way(osmid_t osm_id, osmid_t *nodes, int node_count, struct keyval *tags)
 {
     if( !Options->slim )
     {
@@ -1636,7 +1636,7 @@ static int pgsql_modify_way(int osm_id, int *nodes, int node_count, struct keyva
     return 0;
 }
 
-static int pgsql_modify_relation(int osm_id, struct member *members, int member_count, struct keyval *tags)
+static int pgsql_modify_relation(osmid_t osm_id, struct member *members, int member_count, struct keyval *tags)
 {
     if( !Options->slim )
     {

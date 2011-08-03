@@ -50,21 +50,21 @@ struct output_t {
     void (*stop)();
     void (*cleanup)(void);
 //    void (*process)(struct middle_t *mid);
-//    int (*node)(int id, struct keyval *tags, double node_lat, double node_lon);
-//    int (*way)(int id, struct keyval *tags, struct osmNode *nodes, int count);
-//    int (*relation)(int id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
+//    int (*node)(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
+//    int (*way)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count);
+//    int (*relation)(osmid_t id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
 
-    int (*node_add)(int id, double lat, double lon, struct keyval *tags);
-    int (*way_add)(int id, int *nodes, int node_count, struct keyval *tags);
-    int (*relation_add)(int id, struct member *members, int member_count, struct keyval *tags);
+    int (*node_add)(osmid_t id, double lat, double lon, struct keyval *tags);
+    int (*way_add)(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
+    int (*relation_add)(osmid_t id, struct member *members, int member_count, struct keyval *tags);
 
-    int (*node_modify)(int id, double lat, double lon, struct keyval *tags);
-    int (*way_modify)(int id, int *nodes, int node_count, struct keyval *tags);
-    int (*relation_modify)(int id, struct member *members, int member_count, struct keyval *tags);
+    int (*node_modify)(osmid_t id, double lat, double lon, struct keyval *tags);
+    int (*way_modify)(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
+    int (*relation_modify)(osmid_t id, struct member *members, int member_count, struct keyval *tags);
 
-    int (*node_delete)(int id);
-    int (*way_delete)(int id);
-    int (*relation_delete)(int id);
+    int (*node_delete)(osmid_t id);
+    int (*way_delete)(osmid_t id);
+    int (*relation_delete)(osmid_t id);
 };
 
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon);
