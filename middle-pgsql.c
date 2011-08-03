@@ -1333,6 +1333,27 @@ static int pgsql_start(const struct output_options *options)
             }
             PQclear(res);
 
+            if (options->append)
+            {
+                res = PQexec(sql_conn, "select id from planet_osm_nodes limit 1" );
+                if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
+                {
+                    int size = PQfsize(res, 0);
+                    if (size != sizeof(osmid_t))
+                    {
+                        fprintf(stderr, 
+                            "\n"
+                            "The target database has been created with %dbit ID fields,\n"
+                            "but this version of osm2pgsql has been compiled to use %ldbit IDs.\n"
+                            "You cannot append data to this database with this program.\n"
+                            "Either re-create the database or use a matching osm2pgsql.\n\n",
+                            size * 8, sizeof(osmid_t) * 8);
+                        exit_nicely();
+                    }
+                }
+                PQclear(res);
+            }
+
             if(!options->append)
                 build_indexes = 1;
         }
