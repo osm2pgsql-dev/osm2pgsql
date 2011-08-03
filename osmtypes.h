@@ -5,7 +5,9 @@
 
 #include <inttypes.h>
 
-#define OSMID64
+// uncomment the following to build a version that supports 64bit IDs.
+// #define OSMID64
+
 #ifdef OSMID64
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
