@@ -1402,18 +1402,21 @@ static void *pgsql_stop_one(void *arg)
 
     if (build_indexes && table->array_indexes) {
         char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
-        char *tblsp = strstr(table->array_indexes, "TABLESPACE");
+        // we need to insert before the TABLESPACE setting, if any
+        char *insertpos = strstr(table->array_indexes, "TABLESPACE");
+        if (!insertpos) insertpos = strchr(table->array_indexes, ";");
 
         // automatically insert FASTUPDATE=OFF when creating,
         // indexes for PostgreSQL 8.4 and higher
         // see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html
-        if (tblsp && PQserverVersion(sql_conn) >= 80400) {
+        if (insertpos && PQserverVersion(sql_conn) >= 80400) {
+            char old = *insertpos;
             fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
-            *tblsp = 0; // temporary null byte for following strcpy operation
+            *insertpos = 0; // temporary null byte for following strcpy operation
             strcpy(buffer, table->array_indexes);
-            *tblsp = 'T'; // restore old content
+            *insertpos = old; // restore old content
             strcat(buffer, " WITH (FASTUPDATE=OFF)");
-            strcat(buffer, tblsp);
+            strcat(buffer, insertpos);
         } else {
             fprintf(stderr, "Building index on table: %s\n", table->name);
             strcpy(buffer, table->array_indexes);
