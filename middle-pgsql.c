@@ -1404,7 +1404,7 @@ static void *pgsql_stop_one(void *arg)
         char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
         // we need to insert before the TABLESPACE setting, if any
         char *insertpos = strstr(table->array_indexes, "TABLESPACE");
-        if (!insertpos) insertpos = strchr(table->array_indexes, ";");
+        if (!insertpos) insertpos = strchr(table->array_indexes, ';');
 
         // automatically insert FASTUPDATE=OFF when creating,
         // indexes for PostgreSQL 8.4 and higher
