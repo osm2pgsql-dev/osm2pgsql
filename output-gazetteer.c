@@ -207,7 +207,7 @@ static void copy_error_data(const char *sql)
 {
    unsigned int sqlLen = strlen(sql);
 
-fprintf(hLog, "%s", sql);
+   if (hLog) fprintf(hLog, "%s", sql);
 
    /* Make sure we have an active copy */
    if (!CopyErrorActive)
@@ -1025,7 +1025,7 @@ static void gazetteer_out_stop(void)
    /* Stop any active copy */
    stop_copy();
    //stop_error_copy();
-   fclose(hLog);
+   if (hLog) fclose(hLog);
 
    /* Commit transaction */
    pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
