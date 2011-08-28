@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <math.h>
+#include <time.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -913,6 +914,8 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     /* The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
+    time_t start, end;
+    time(&start);
     fprintf(stderr, "\nGoing over pending ways\n");
 
     /* Make sure we're out of copy mode */
@@ -927,8 +930,11 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         struct osmNode *nodes;
         int nd_count;
 
-        if (count++ %1000 == 0)
-                fprintf(stderr, "\rprocessing way (%dk)", count/1000);
+        if (count++ %1000 == 0) {
+            time(&end);
+            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
+            (int)(end - start) > 0 ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+        }
 
         initList(&tags);
         if( pgsql_ways_get(id, &tags, &nodes, &nd_count) )
@@ -943,6 +949,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 
     PQclear(res_ways);
     fprintf(stderr, "\n");
+    time(&end);
+    if (end - start > 0)
+        fprintf(stderr, "Pending ways took %ds at a rate of %.2f/s\n",(int)(end - start), ((double)count / (double)(end - start)));
 }
 
 static int pgsql_way_changed(osmid_t osm_id)
@@ -1112,6 +1121,8 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     /* The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
+    time_t start, end;
+    time(&start);
     fprintf(stderr, "\nGoing over pending relations\n");
 
     /* Make sure we're out of copy mode */
@@ -1126,8 +1137,11 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         struct member *members;
         int member_count;
 
-        if (count++ %10 == 0)
-                fprintf(stderr, "\rprocessing relation (%d)", count);
+        if (count++ %10 == 0) {
+            time(&end);
+            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
+                    (int)(end - start) > 0 ? ((double)count / (double)(end - start)) : 0);
+        }
 
         initList(&tags);
         if( pgsql_rels_get(id, &members, &member_count, &tags) )
@@ -1142,6 +1156,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
     PQclear(res_rels);
     fprintf(stderr, "\n");
+    time(&end);
+    if (end - start > 0)
+        fprintf(stderr, "Pending relations took %ds at a rate of %.2f/s\n",(int)(end - start), ((double)count / (double)(end - start)));
 }
 
 static int pgsql_rel_changed(osmid_t osm_id)

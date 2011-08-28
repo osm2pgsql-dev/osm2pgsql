@@ -14,6 +14,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <time.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -1359,6 +1360,8 @@ static void *pgsql_out_stop_one(void *arg)
     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
     if (!Options->append)
     {
+        time_t start, end;
+        time(&start);
         fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
@@ -1381,9 +1384,12 @@ static void *pgsql_out_stop_one(void *arg)
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+        time(&end);
+        fprintf(stderr, "Indexes on  %s created  in %ds\n", table->name, (int)(end - start));
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
+
     fprintf(stderr, "Completed %s\n", table->name);
     free(table->name);
     free(table->columns);
@@ -1498,7 +1504,6 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   xcount[count] = 0;
   xid[count] = 0;
   xrole[count] = NULL;
-
   // At some point we might want to consider storing the retreived data in the members, rather than as seperate arrays
   pgsql_out_relation(id, tags, xnodes, xtags, xcount, xid, xrole);
 

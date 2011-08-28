@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
@@ -107,6 +108,9 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         if (osmdata->osm_id > osmdata->max_node)
             osmdata->max_node = osmdata->osm_id;
 
+        if (osmdata->count_node == 0) {
+            time(&osmdata->start_node);
+        }
         osmdata->count_node++;
         if (osmdata->count_node%10000 == 0)
             printStatus(osmdata);
@@ -138,14 +142,17 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         assert(xid);
         osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
         osmdata->action = ParseAction( reader, osmdata );
-	
+
         if (osmdata->osm_id > osmdata->max_way)
-	  osmdata->max_way = osmdata->osm_id;
-	
+            osmdata->max_way = osmdata->osm_id;
+
+        if (osmdata->count_way == 0) {
+            time(&osmdata->start_way);
+        }
         osmdata->count_way++;
         if (osmdata->count_way%1000 == 0)
-	  printStatus(osmdata);
-	
+        printStatus(osmdata);
+
         osmdata->nd_count = 0;
         xmlFree(xid);
 
@@ -167,6 +174,9 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         if (osmdata->osm_id > osmdata->max_rel)
             osmdata->max_rel = osmdata->osm_id;
 
+        if (osmdata->count_rel == 0) {
+            time(&osmdata->start_rel);
+        }
         osmdata->count_rel++;
         if (osmdata->count_rel%10 == 0)
             printStatus(osmdata);

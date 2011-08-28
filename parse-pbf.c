@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include <zlib.h>
 #include <bzlib.h>
@@ -283,6 +284,9 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
       osmdata->max_node = node->id;
     }
 
+	if (osmdata->count_node == 0) {
+		time(&osmdata->start_node);
+	}
     osmdata->count_node++;
     if (osmdata->count_node%10000 == 0)
       printStatus(osmdata);
@@ -357,6 +361,9 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
 	osmdata->max_node = deltaid;
       }
 
+	  if (osmdata->count_node == 0) {
+		time(&osmdata->start_node);
+	  }
       osmdata->count_node++;
       if (osmdata->count_node%10000 == 0)
 	printStatus(osmdata);
@@ -405,6 +412,9 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
       osmdata->max_way = way->id;
     }
 
+	if (osmdata->count_way == 0) {
+		time(&osmdata->start_way);
+	}
     osmdata->count_way++;
     if (osmdata->count_way%1000 == 0)
       printStatus(osmdata);
@@ -481,6 +491,9 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
       osmdata->max_rel = relation->id;
     }
 
+	if (osmdata->count_rel == 0) {
+		time(&osmdata->start_rel);
+	}
     osmdata->count_rel++;
     if (osmdata->count_rel%10 == 0)
       printStatus(osmdata);
