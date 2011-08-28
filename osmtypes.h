@@ -42,6 +42,7 @@ struct osmdata_t {
   osmid_t count_node,    max_node;
   osmid_t count_way,     max_way;
   osmid_t count_rel,     max_rel;
+	time_t  start_node, start_way, start_rel;
 
   struct output_t *out;
 

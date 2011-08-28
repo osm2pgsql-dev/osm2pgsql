@@ -281,8 +281,20 @@ void resetMembers(struct osmdata_t *osmdata)
 
 void printStatus(struct osmdata_t *osmdata)
 {
-    fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k) Way(%" PRIdOSMID "k) Relation(%" PRIdOSMID ")",
-            osmdata->count_node/1000, osmdata->count_way/1000, osmdata->count_rel);
+    time_t now;
+    time(&now);
+    time_t end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
+    time_t end_way = osmdata->start_rel > 0 ? osmdata->start_rel : now;
+    time_t end_rel =  now;
+    fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2f/s)",
+            osmdata->count_node/1000,
+            (double)osmdata->count_node/1000.0/((int)(end_nodes - osmdata->start_node) > 0 ? (double)(end_nodes - osmdata->start_node) : 1.0),
+            osmdata->count_way/1000,
+            osmdata->count_way > 0 ? (double)osmdata->count_way/1000.0/
+            ((double)(end_way - osmdata->start_way) > 0.0 ? (double)(end_way - osmdata->start_way) : 1.0) : 0.0,
+            osmdata->count_rel,
+            osmdata->count_rel > 0 ? (double)osmdata->count_rel/
+            ((double)(end_rel - osmdata->start_rel) > 0.0 ? (double)(end_rel - osmdata->start_rel) : 1.0) : 0.0);
 }
 
 int node_wanted(struct osmdata_t *osmdata, double lat, double lon)
@@ -534,6 +546,9 @@ int main(int argc, char *argv[])
       }
     }
 
+    time_t overall_start, overall_end;
+    time(&overall_start);
+
     osmdata.out->start(&options);
 
     realloc_nodes(&osmdata);
@@ -575,10 +590,18 @@ int main(int argc, char *argv[])
     xmlMemoryDump();
     
     if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
+        time_t now;
+        time(&now);
+        time_t end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
+        time_t end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
+        time_t end_rel =  now;
         fprintf(stderr, "\n");
-        fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_node, osmdata.max_node);
-        fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_way, osmdata.max_way);
-        fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ")\n", osmdata.count_rel, osmdata.max_rel);
+        fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
+                osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);
+        fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_way, osmdata.max_way,
+                osmdata.count_way > 0 ? (int)(end_way - osmdata.start_way) : 0);
+        fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_rel, osmdata.max_rel,
+                osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
     }
     osmdata.out->stop();
     
@@ -591,6 +614,8 @@ int main(int argc, char *argv[])
     project_exit();
     text_exit();
     fprintf(stderr, "\n");
+    time(&overall_end);
+    fprintf(stderr, "Osm2pgsql took %ds overall\n", (int)(overall_end - overall_start));
 
     return 0;
 }
