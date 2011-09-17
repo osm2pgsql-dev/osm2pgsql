@@ -193,6 +193,7 @@ static void long_usage(char *arg0)
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("   -I|--disable-parallel-indexing\t\tDisable indexing all tables concurrently.\n");
+    printf("      --alloc-chunk\t\tAllocate node cache in chunks rather than as a whole.\n");
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
     printf("\n");
@@ -325,6 +326,7 @@ int main(int argc, char *argv[])
     int enable_hstore = HSTORE_NONE;
     int enable_multi = 0;
     int parallel_indexing = 1;
+    int alloc_chunkwise = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -391,6 +393,7 @@ int main(int argc, char *argv[])
             {"input-reader", 1, 0, 'r'},
             {"version", 0, 0, 'V'},
             {"disable-parallel-indexing", 0, 0, 'I'},
+            {"alloc-chunk", 0, 0, 204},
             {0, 0, 0, 0}
         };
 
@@ -447,6 +450,7 @@ int main(int argc, char *argv[])
                 parallel_indexing=0; 
 #endif
                 break;
+            case 204: alloc_chunkwise=1; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -525,6 +529,7 @@ int main(int argc, char *argv[])
     options.n_hstore_columns = n_hstore_columns;
     options.keep_coastlines = keep_coastlines;
     options.parallel_indexing = parallel_indexing;
+    options.alloc_chunkwise = alloc_chunkwise;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;
