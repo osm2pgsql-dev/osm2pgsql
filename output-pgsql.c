@@ -1407,30 +1407,37 @@ static void pgsql_out_stop()
     Options->mid->iterate_relations( pgsql_process_relation );
 
 #ifdef HAVE_PTHREAD
-    for (i=0; i<NUM_TABLES; i++) {
-        int ret = pthread_create(&threads[i], NULL, pgsql_out_stop_one, &tables[i]);
-        if (ret) {
-            fprintf(stderr, "pthread_create() returned an error (%d)", ret);
-            exit_nicely();
-        }
-    }
+    if (Options->parallel_indexing) {
+      for (i=0; i<NUM_TABLES; i++) {
+          int ret = pthread_create(&threads[i], NULL, pgsql_out_stop_one, &tables[i]);
+          if (ret) {
+              fprintf(stderr, "pthread_create() returned an error (%d)", ret);
+              exit_nicely();
+          }
+      }
+  
+      /* No longer need to access middle layer -- release memory */
+      Options->mid->stop();
+  
+      for (i=0; i<NUM_TABLES; i++) {
+          int ret = pthread_join(threads[i], NULL);
+          if (ret) {
+              fprintf(stderr, "pthread_join() returned an error (%d)", ret);
+              exit_nicely();
+          }
+      }
+    } else {
+#endif
 
-    /* No longer need to access middle layer -- release memory */
-    Options->mid->stop();
-
-    for (i=0; i<NUM_TABLES; i++) {
-        int ret = pthread_join(threads[i], NULL);
-        if (ret) {
-            fprintf(stderr, "pthread_join() returned an error (%d)", ret);
-            exit_nicely();
-        }
-    }
-#else
     /* No longer need to access middle layer -- release memory */
     Options->mid->stop();
     for (i=0; i<NUM_TABLES; i++)
         pgsql_out_stop_one(&tables[i]);
+
+#ifdef HAVE_PTHREAD
+    }
 #endif
+
 
     pgsql_out_cleanup();
     free_style();

@@ -43,6 +43,7 @@ struct output_options {
   const char** hstore_columns; /* list of columns that should be written into their own hstore column */
   int n_hstore_columns; /* number of hstore columns */
   int keep_coastlines;
+  int parallel_indexing;
 };
 
 struct output_t {
