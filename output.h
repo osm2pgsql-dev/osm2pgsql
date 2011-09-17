@@ -44,6 +44,7 @@ struct output_options {
   int n_hstore_columns; /* number of hstore columns */
   int keep_coastlines;
   int parallel_indexing;
+  int alloc_chunkwise;
 };
 
 struct output_t {
