@@ -1277,7 +1277,7 @@ static int pgsql_out_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
                         tables[i].type, tables[i].type, tables[i].name);
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -1368,9 +1368,9 @@ static void *pgsql_out_stop_one(void *arg)
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
         if (Options->tblsmain_index) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
         } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way GIST_GEOMETRY_OPS);\n", table->name, table->name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
         }
 
         /* slim mode needs this to be able to apply diffs */
