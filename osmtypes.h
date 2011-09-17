@@ -65,6 +65,8 @@ struct osmdata_t {
   const char *bbox;
 
   double minlon, minlat, maxlon, maxlat;
+
+  int parallel_indexing;
 };
 
 void realloc_nodes(struct osmdata_t *osmdata);
