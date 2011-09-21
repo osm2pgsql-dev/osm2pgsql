@@ -22,7 +22,7 @@ Features
 ========
 - Converts OSM files to a postgresql DB
 - Conversion of tags to columns is configurable in the style file
-- Able to read .gz and .bz2 files directly
+- Able to read .gz, .bz2 and .pbf files directly
 - Can apply diffs to keep the database up to data
 - Support the choice of output projection
 - Configurable table names
@@ -96,9 +96,10 @@ $ sudo -u postgres createdb -E UTF8 -O <username> <dbname>
 $ sudo -u postgres createlang plpgsql <dbname>
 
 Adding the postgis extensions. Note the location of the
-lwpostgis.sql file may vary.
+files may vary.
 
-$ sudo -u postgres psql -d <dbname> -f /usr/share/postgresql-8.3-postgis/lwpostgis.sql
+$ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
+$ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
 
 Next we need to give the <username> access to update the postgis
 metadata tables
@@ -111,19 +112,10 @@ should run:
 
 $ sudo psql -u postgres psql -d <dbname> -f 900913.sql
 
-
-If you want to update your database with the diffs then you will
-need to enable the PostgreSQL intarray contrib module. These 
-contrib scripts are not installed by default and are often 
-supplied in an additional package (e.g. postgresql-contrib).
-
-$ sudo yum install postgresql-contrib
-$ sudo -u postgres psql -d <dbname> -f /usr/share/pgsql/contrib/_int.sql
-
 If you want to use hstore support then you will also need to enable the PostgreSQL
 hstore-new extension.
 
-$ sudo -u postgres psql -d <dbname> -f /usr/share/postgresql/8.3/contrib/hstore-new.sql
+$ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/hstore.sql
 
 Now you can run osm2pgsql to import the OSM data.
 This will perform the following actions:
@@ -158,6 +150,22 @@ the above is the default.
  members and outputing these into the database.
 
 7) Indexes are added to speed up the queries by Mapnik.
+
+Tuning postgresql
+=================
+
+For an efficient operation of postgresql you will need to tune the config
+parameters of postgresql from its default values. These are set in the
+config file at /etc/postgresql/8.4/main/postgresql.conf
+
+The values you need to set will depend on the hardware you have available,
+but you will likely need to increase the values for the following parameters:
+
+- shared_buffers
+- checkpoint_segments
+- work_mem
+- maintenance_work_mem
+- effective_cache_size
 
 
 A quick note on projections
