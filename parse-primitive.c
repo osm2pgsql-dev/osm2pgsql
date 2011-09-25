@@ -197,9 +197,14 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         if (osmdata->osm_id > osmdata->max_node)
             osmdata->max_node = osmdata->osm_id;
 
+        if (osmdata->count_node == 0) {
+            time(&osmdata->start_node);
+        }
+        
         osmdata->count_node++;
         if (osmdata->count_node%10000 == 0)
             printStatus(osmdata);
+
     } else if (!strcmp(name, "tag")) {
         xk = extractAttribute(token, tokens, "k");
         assert(xk);
@@ -223,7 +228,11 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
         if (osmdata->osm_id > osmdata->max_way)
             osmdata->max_way = osmdata->osm_id;
-
+        
+        if (osmdata->count_way == 0) {
+            time(&osmdata->start_way);
+        }
+        
         osmdata->count_way++;
         if (osmdata->count_way%1000 == 0)
             printStatus(osmdata);
@@ -245,6 +254,10 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
         if (osmdata->osm_id > osmdata->max_rel)
             osmdata->max_rel = osmdata->osm_id;
+        
+        if (osmdata->count_rel == 0) {
+            time(&osmdata->start_rel);
+        }
 
         osmdata->count_rel++;
         if (osmdata->count_rel%10 == 0)
