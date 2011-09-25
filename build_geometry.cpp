@@ -253,7 +253,7 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
             case GEOS_MULTIPOINT:
                 // Drop through
             case GEOS_MULTILINESTRING:
-                gc = (GeometryCollection *) geometry;
+                gc = dynamic_cast<GeometryCollection *>(geometry);;
                 num_geometries = gc->getNumGeometries();
                 *xnodes = (struct osmNode **) malloc((num_geometries + 1) * sizeof(struct osmNode *));
                 *xcount = (int *) malloc(num_geometries * sizeof(int));
@@ -484,7 +484,7 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
             {
                 for(unsigned i=0; i<toplevelpolygons; i++) 
                 {
-                    Polygon* poly = (Polygon*)polygons->at(i);
+                    Polygon* poly = dynamic_cast<Polygon*>(polygons->at(i));;
                     std::string text = writer.write(poly);
                     wkts.push_back(text);
                     areas.push_back(poly->getArea());
