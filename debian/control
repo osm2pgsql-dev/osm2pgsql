@@ -8,7 +8,16 @@ Standards-Version: 3.9.2
 Package: osm2pgsql
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libgeos-3.2.0 | libgeos-3.2.2, libxml2, libpq5, libprotobuf-c0
-Recommends: postgresql, postgresql-8.4-postgis
+Recommends: postgresql, postgresql-8.4-postgis, openstreetmap-postgis-db-setup
 Conflicts:  openstreetmap-utils
 Description: Openstreetmap data to PostgreSQL converter
  osm2pgsql imports OpenStreetMap data into a PostGIS database.
+
+Package: openstreetmap-postgis-db-setup
+Architecture: all
+Depends: ${misc:Depends}, debconf, postgis, postgresql-8.4-postgis, postgresql-contrib
+Recommends: osm2pgsql
+Suggests: libapache2-mod-tile, openstreetmap-mapnik-data
+Description: Provides setup scripts to create a postgis database for OpenStreetMap
+ The database can be used with e.g. osm2pgsql to load data and mapnik for rendering
+ It sets up a database named 'gis'

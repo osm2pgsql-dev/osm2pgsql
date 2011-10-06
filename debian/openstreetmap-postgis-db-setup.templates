@@ -1,0 +1,20 @@
+Template: openstreetmap-postgis-db-setup/initdb
+Type: boolean
+Default: true
+Description: Do you want to create a postgis db?
+ Do you want these scripts to create and setup a new postgis 
+ database ready to be used with e.g. Osm2pgsql.
+ WARNING: This will delete an existing db
+
+Template: openstreetmap-postgis-db-setup/dbname
+Type: string
+Default: gis
+Description: Name of the database to create:
+ If you don't use the default name, you might need to adapt programs
+ and scripts to use the new name
+
+Template: openstreetmap-postgis-db-setup/grant_user
+Type: string
+Default: www-data
+Description: Other users that should have access to the db:
+ Please specify which users should have access to the newly created db.
