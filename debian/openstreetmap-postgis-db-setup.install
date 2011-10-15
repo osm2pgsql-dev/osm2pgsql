@@ -1,1 +1,2 @@
 install-postgis-osm-db.sh /usr/bin/
+install-postgis-osm-user.sh /usr/bin/
