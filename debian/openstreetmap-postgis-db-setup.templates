@@ -18,3 +18,6 @@ Type: string
 Default: www-data
 Description: Other users that should have access to the db:
  Please specify which users should have access to the newly created db.
+ You will want the user www-data for rendering and your own user name
+ to import data into the db. The list of users is blank separated: 
+ E.g. "www-data peter"

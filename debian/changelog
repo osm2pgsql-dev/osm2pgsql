@@ -1,8 +1,17 @@
-osm2pgsql (0.80.0-4) natty; urgency=low
+osm2pgsql (0.80.0-6~oneiric1) oneiric; urgency=low
+
+  * Add a script to add permissions to a db afterwards
+  
+  * Handle postgresql 9.1
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sun, 09 Oct 2011 10:00:00 +0000
+
+
+osm2pgsql (0.80.0-5~oneiric1) oneiric; urgency=low
 
   * Fix debian package scripts.
 
- -- Kai Krueger <kakrueger@gmail.com>  Wed, 05 Oct 2011 10:00:00 +0000
+ -- Kai Krueger <kakrueger@gmail.com>  Fri, 07 Oct 2011 10:00:00 +0000
 
 osm2pgsql (0.80.0) lucid; urgency=low
 
