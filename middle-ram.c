@@ -17,6 +17,7 @@
 #include "osmtypes.h"
 #include "middle.h"
 #include "middle-ram.h"
+#include "node-ram-cache.h"
 
 #include "output-pgsql.h"
 
@@ -25,18 +26,6 @@
 #define FIXED_POINT
 
 static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((x) * scale)
-#define FIX_TO_DOUBLE(x) (((double)x) / scale)
-
-struct ramNode {
-#ifdef FIXED_POINT
-    int lon;
-    int lat;
-#else
-    double lon;
-    double lat;
-#endif
-};
 
 struct ramWay {
     struct keyval *tags;
@@ -64,11 +53,10 @@ struct ramRel {
  *
  */
 
-#define BLOCK_SHIFT 14
+#define BLOCK_SHIFT 10
 #define PER_BLOCK  (1 << BLOCK_SHIFT)
 #define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
 
-static struct ramNode    *nodes[NUM_BLOCKS];
 static struct ramWay     *ways[NUM_BLOCKS];
 static struct ramRel     *rels[NUM_BLOCKS];
 
@@ -95,52 +83,6 @@ static inline int block2id(int block, int offset)
 }
 
 #define UNUSED  __attribute__ ((unused))
-static int ram_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-
-    if (!nodes[block]) {
-        nodes[block] = calloc(PER_BLOCK, sizeof(struct ramNode));
-        if (!nodes[block]) {
-            fprintf(stderr, "Error allocating nodes\n");
-            exit_nicely();
-        }
-        node_blocks++;
-        //fprintf(stderr, "\tnodes(%zuMb)\n", node_blocks * sizeof(struct ramNode) * PER_BLOCK / 1000000);
-    }
-
-#ifdef FIXED_POINT
-    nodes[block][offset].lat = DOUBLE_TO_FIX(lat);
-    nodes[block][offset].lon = DOUBLE_TO_FIX(lon);
-#else
-    nodes[block][offset].lat = lat;
-    nodes[block][offset].lon = lon;
-#endif
-    return 0;
-}
-
-
-static int ram_nodes_get(struct osmNode *out, osmid_t id)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-
-    if (!nodes[block])
-        return 1;
-
-    if (!nodes[block][offset].lat && !nodes[block][offset].lon)
-        return 1;
-
-#ifdef FIXED_POINT
-    out->lat = FIX_TO_DOUBLE(nodes[block][offset].lat);
-    out->lon = FIX_TO_DOUBLE(nodes[block][offset].lon);
-#else
-    out->lat = nodes[block][offset].lat;
-    out->lon = nodes[block][offset].lon;
-#endif
-    return 0;
-}
 
 static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
 {
@@ -236,7 +178,7 @@ static int ram_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_coun
     count = 0;
     for( i=0; i<nd_count; i++ )
     {
-        if (ram_nodes_get(&nodes[count], ndids[i]))
+        if (ram_cache_nodes_get(&nodes[count], ndids[i]))
             continue;
 
         count++;
@@ -372,6 +314,8 @@ static int ram_start(const struct output_options *options)
     // The fixed poing scaling needs adjusting accordingly to
     // be stored accurately in an int
     scale = options->scale;
+
+    init_node_ram_cache( options->alloc_chunkwise, options->cache );
     
     fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
 
@@ -381,12 +325,9 @@ static int ram_start(const struct output_options *options)
 static void ram_stop(void)
 {
     int i, j;
+    free_node_ram_cache();
 
     for (i=0; i<NUM_BLOCKS; i++) {
-        if (nodes[i]) {
-            free(nodes[i]);
-            nodes[i] = NULL;
-        }
         if (ways[i]) {
             for (j=0; j<PER_BLOCK; j++) {
                 if (ways[i][j].tags) {
@@ -412,7 +353,7 @@ struct middle_t mid_ram = {
     .cleanup           = ram_stop,
     .analyze           = ram_analyze,
     .commit            = ram_commit,
-    .nodes_set         = ram_nodes_set,
+    .nodes_set         = ram_cache_nodes_set,
 #if 0
     .nodes_get         = ram_nodes_get,
 #endif
