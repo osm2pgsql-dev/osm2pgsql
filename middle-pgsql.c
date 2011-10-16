@@ -29,6 +29,7 @@
 #include "middle.h"
 #include "middle-pgsql.h"
 #include "output-pgsql.h"
+#include "node-ram-cache.h"
 #include "pgsql.h"
 
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
@@ -132,290 +133,9 @@ static struct table_desc *node_table = &tables[t_node];
 static struct table_desc *way_table  = &tables[t_way];
 static struct table_desc *rel_table  = &tables[t_rel];
 
-/* Here we use a similar storage structure as middle-ram, except we allow
- * the array to be lossy so we can cap the total memory usage. Hence it is a
- * combination of a sparse array with a priority queue
- *
- * Like middle-ram we have a number of blocks all storing PER_BLOCK
- * ramNodes. However, here we also track the number of nodes in each block.
- * Seperately we have a priority queue like structure when maintains a list
- * of all the used block so we can easily find the block with the least
- * nodes. The cache has two phases:
- *
- * Phase 1: Loading initially, usedBlocks < maxBlocks. In this case when a
- * new block is needed we simply allocate it and put it in
- * queue[usedBlocks-1] which is the bottom of the tree. Every node added
- * increases it's usage. When we move onto the next block we percolate this
- * block up the queue until it reaches its correct position. The invariant
- * is that the priority tree is complete except for this last node. We do
- * not permit adding nodes to any other block to preserve this invariant.
- *
- * Phase 2: Once we've reached the maximum number of blocks permitted, we
- * change so that the block currently be inserted into is at the top of the
- * tree. When a new block is needed we take the one at the end of the queue,
- * as it is the one with the least number of nodes in it. When we move onto
- * the next block we first push the just completed block down to it's
- * correct position in the queue and then reuse the block that now at the
- * head.
- *
- * The result being that at any moment we have in memory the top maxBlock
- * blocks in terms of number of nodes in memory. This should maximize the
- * number of hits in lookups.
- *
- * Complexity:
- *  Insert node: O(1)
- *  Lookup node: O(1)
- *  Add new block: O(log usedBlocks)
- *  Reuse old block: O(log maxBlocks)
- */
-
-struct ramNode {
-#ifdef FIXED_POINT
-    int lon;
-    int lat;
-#else
-    double lon;
-    double lat;
-#endif
-};
-
-struct ramNodeBlock {
-  struct ramNode    *nodes;
-  int used;
-};
-
-#define BLOCK_SHIFT 9
-#define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
-#define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
-
-static struct ramNodeBlock *blocks;
-static int usedBlocks;
-/* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
-static int maxBlocks = 0;
-static void *blockCache = NULL;
-static int allocChunkwise = 1;
-static struct ramNodeBlock **queue;
-static osmid_t storedNodes, totalNodes;
-int nodesCacheHits, nodesCacheLookups;
-
 static int Append;
 
 const struct output_options *out_options;
-
-static inline int id2block(osmid_t id)
-{
-    // + NUM_BLOCKS/2 allows for negative IDs
-    return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
-}
-
-static inline int id2offset(osmid_t id)
-{
-    return id & (PER_BLOCK-1);
-}
-
-static inline osmid_t block2id(int block, int offset)
-{
-    return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
-}
-
-#define Swap(a,b) { typeof(a) __tmp = a; a = b; b = __tmp; }
-static void percolate_up( int pos )
-{
-    int i = pos;
-    while( i > 0 )
-    {
-      int parent = (i-1)>>1;
-      if( queue[i]->used < queue[parent]->used )
-      {
-        Swap( queue[i], queue[parent] );
-        i = parent;
-      }
-      else
-        break;
-    }
-}
-
-static void init_blockCache( int chunkwise) {
-  allocChunkwise = chunkwise;
-  blocks = malloc(sizeof(struct ramNodeBlock)*NUM_BLOCKS);
-  if( !allocChunkwise ) {
-    fprintf(stderr, "Allocating node cache in one big chunk\n");
-    queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );    
-    blockCache = malloc(maxBlocks * PER_BLOCK * sizeof(struct ramNode));
-
-    if (!queue || !blockCache) {
-      fprintf(stderr, "Out of memory, reduce --cache size\n");
-      exit_nicely();
-    }
-  } else {
-    fprintf(stderr, "Allocating node cache in block sized chunks\n");
-    queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );
-    if (!queue) {
-      fprintf(stderr, "Out of memory, reduce --cache size\n");
-      exit_nicely();
-    }
-  }
-}
-
-static void free_blockCache() {
-  int i;
-  if ( !allocChunkwise ) {
-    free(blockCache);
-  } else {
-    for( i=0; i<usedBlocks; i++) {
-      free(queue[i]->nodes);
-      queue[i]->nodes = NULL;
-    }
-  }
-}
-
-static void *next_chunk(size_t count, size_t size)
-{
-  if ( !allocChunkwise ) {
-    static size_t pos = 0;
-    void *result;
-    
-    result = blockCache + pos;
-  
-    pos += count * size;
-    
-    return result;
-  } else {
-    return calloc(PER_BLOCK, sizeof(struct ramNode));
-  }
-}
-
-#define UNUSED  __attribute__ ((unused))
-static int pgsql_ram_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-    
-    totalNodes++;
-
-    if (!blocks[block].nodes) {
-        if( usedBlocks < maxBlocks )
-        {
-          /* We've just finished with the previous block, so we need to percolate it up the queue to its correct position */
-          if( usedBlocks > 0 )
-            /* Upto log(usedBlocks) iterations */
-            percolate_up( usedBlocks-1 );
-
-	  blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(struct ramNode));
-
-          blocks[block].used = 0;
-          if (!blocks[block].nodes) {
-              fprintf(stderr, "Error allocating nodes\n");
-              exit_nicely();
-          }
-          queue[usedBlocks] = &blocks[block];
-          usedBlocks++;
-
-          /* If we've just used up the last possible block we enter the
-           * transition and we change the invariant. To do this we percolate
-           * the newly allocated block straight to the head */
-          if( usedBlocks == maxBlocks )
-            percolate_up( usedBlocks-1 );
-        }
-        else
-        {
-          /* We've reached the maximum number of blocks, so now we push the
-           * current head of the tree down to the right level to restore the
-           * priority queue invariant. Upto log(maxBlocks) iterations */
-          
-          int i=0;
-          while( 2*i+1 < maxBlocks )
-          {
-            if( queue[2*i+1]->used <= queue[2*i+2]->used )
-            {
-              if( queue[i]->used > queue[2*i+1]->used )
-              {
-                Swap( queue[i], queue[2*i+1] );
-                i = 2*i+1;
-              }
-              else
-                break;
-            }
-            else
-            {
-              if( queue[i]->used > queue[2*i+2]->used )
-              {
-                Swap( queue[i], queue[2*i+2] );
-                i = 2*i+2;
-              }
-              else
-                break;
-            }
-          }
-          /* Now the head of the queue is the smallest, so it becomes our replacement candidate */
-          blocks[block].nodes = queue[0]->nodes;
-          blocks[block].used = 0;
-          memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(struct ramNode) );
-          
-          /* Clear old head block and point to new block */
-          storedNodes -= queue[0]->used;
-          queue[0]->nodes = NULL;
-          queue[0]->used = 0;
-          queue[0] = &blocks[block];
-        }
-    }
-    else
-    {
-      /* Insert into an existing block. We can't allow this in general or it
-       * will break the invariant. However, it will work fine if all the
-       * nodes come in numerical order, which is the common case */
-      
-      int expectedpos;
-      if( usedBlocks < maxBlocks )
-        expectedpos = usedBlocks-1;
-      else
-        expectedpos = 0;
-        
-      if( queue[expectedpos] != &blocks[block] )
-      {
-        if (!warn_node_order) {
-            fprintf( stderr, "WARNING: Found Out of order node %" PRIdOSMID " (%d,%d) - this will impact the cache efficiency\n", id, block, offset );
-            warn_node_order++;
-        }
-        return 1;
-      }
-    }
-        
-#ifdef FIXED_POINT
-    blocks[block].nodes[offset].lat = DOUBLE_TO_FIX(lat);
-    blocks[block].nodes[offset].lon = DOUBLE_TO_FIX(lon);
-#else
-    blocks[block].nodes[offset].lat = lat;
-    blocks[block].nodes[offset].lon = lon;
-#endif
-    blocks[block].used++;
-    storedNodes++;
-    return 0;
-}
-
-
-int pgsql_ram_nodes_get(struct osmNode *out, osmid_t id)
-{
-    int block  = id2block(id);
-    int offset = id2offset(id);
-    nodesCacheLookups++;
-
-    if (!blocks[block].nodes)
-        return 1;
-
-    if (!blocks[block].nodes[offset].lat && !blocks[block].nodes[offset].lon)
-        return 1;
-
-#ifdef FIXED_POINT
-    out->lat = FIX_TO_DOUBLE(blocks[block].nodes[offset].lat);
-    out->lon = FIX_TO_DOUBLE(blocks[block].nodes[offset].lon);
-#else
-    out->lat = blocks[block].nodes[offset].lat;
-    out->lon = blocks[block].nodes[offset].lon;
-#endif
-    nodesCacheHits++;
-    return 0;
-}
 
 static int pgsql_connect(const struct output_options *options) {
     int i;
@@ -702,7 +422,7 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
     char *paramValues[4];
     char *buffer;
 
-    pgsql_ram_nodes_set( id, lat, lon, tags );
+    ram_cache_nodes_set( id, lat, lon, tags );
     if( node_table->copyMode )
     {
       char *tag_buf = pgsql_store_tags(tags,1);
@@ -736,8 +456,8 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
 static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
     /* Check cache first */
-    if( pgsql_ram_nodes_get( out, id ) == 0 )
-      return 0;
+    if( ram_cache_nodes_get( &out, id ) == 0 )
+        return 0;
       
     PGresult   *res;
     char tmp[16];
@@ -792,7 +512,7 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_co
     snprintf(tmp2, sizeof(tmp2), "{");
     for( i=0; i<nd_count; i++ ) {
         /* Check cache first */ 
-        if( pgsql_ram_nodes_get( &nodes[i], ndids[i]) == 0 ) {
+        if( ram_cache_nodes_get( &nodes[i], ndids[i]) == 0 ) {
             count++;
             continue;
         }
@@ -1444,16 +1164,9 @@ static int pgsql_start(const struct output_options *options)
 
     out_options = options;
     
-    /* How much we can fit, and make sure it's odd */
-    maxBlocks = (options->cache*((1024*1024)/(PER_BLOCK*sizeof(struct ramNode)))) | 1;
-    
-    init_blockCache(options->alloc_chunkwise);
+    init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache );
 
-#ifdef __MINGW_H
-    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%d\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) ); 
-#else
-    fprintf( stderr, "Mid: pgsql, scale=%d, cache=%dMB, maxblocks=%d*%zd\n", scale, options->cache, maxBlocks, PER_BLOCK*sizeof(struct ramNode) );
-#endif
+    fprintf( stderr, "Mid: pgsql, scale=%d\n", scale, options->cache);
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
@@ -1624,12 +1337,7 @@ static void pgsql_stop(void)
     pthread_t threads[num_tables];
 #endif
 
-    fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%%, hit rate: %.2f%%\n", 
-             storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes/(usedBlocks*PER_BLOCK),
-             100.0f*nodesCacheHits/nodesCacheLookups );
-          
-    free_blockCache();
-    free(queue);
+    free_node_ram_cache();
 
 #ifdef HAVE_PTHREAD
     for (i=0; i<num_tables; i++) {

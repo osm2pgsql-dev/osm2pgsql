@@ -44,6 +44,7 @@
 #include "build_geometry.h"
 #include "middle-pgsql.h"
 #include "middle-ram.h"
+#include "node-ram-cache.h"
 #include "output-pgsql.h"
 #include "output-gazetteer.h"
 #include "output-null.h"
@@ -195,7 +196,20 @@ static void long_usage(char *arg0)
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
     printf("             \t\tDefault is 2\n");
     printf("   -I|--disable-parallel-indexing\t\tDisable indexing all tables concurrently.\n");
-    printf("      --alloc-chunk\t\tAllocate node cache in chunks rather than as a whole.\n");
+    printf("      --cache-strategy\t\tSpecifies the method used to cache nodes in ram.\n");
+    printf("                      \t\tAvailable options are:\n");
+    printf("                      \t\tdense: caching strategy optimised for full planet import\n");
+    printf("                      \t\tchunked: caching strategy optimised for non-contigouse memory allocation\n");
+    printf("                      \t\tsparse: caching strategy optimised for small extracts\n");
+    printf("                      \t\toptimized: automatically combines dense and sparse strategies for optimal storage efficiency.\n");
+    printf("                      \t\t           optimized may use twice as much virtual memory, but no more physical memory\n");
+#ifdef __amd64__
+    printf("                      \t\t   The default is \"optimized\"\n");
+#else
+    /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
+    printf("                      \t\t   The default is \"chunked\"\n");
+#endif
+
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
     printf("\n");
@@ -328,7 +342,11 @@ int main(int argc, char *argv[])
     int enable_hstore = HSTORE_NONE;
     int enable_multi = 0;
     int parallel_indexing = 1;
-    int alloc_chunkwise = 0;
+#ifdef __amd64__
+    int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
+#else
+    int alloc_chunkwise = ALLOC_CHUNK | ALLOC_DENSE;
+#endif
     int num_procs = 2;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
@@ -396,7 +414,7 @@ int main(int argc, char *argv[])
             {"input-reader", 1, 0, 'r'},
             {"version", 0, 0, 'V'},
             {"disable-parallel-indexing", 0, 0, 'I'},
-            {"alloc-chunk", 0, 0, 204},
+            {"cache-strategy", 1, 0, 204},
             {"number-processes", 1, 0, 205},
             {0, 0, 0, 0}
         };
@@ -454,7 +472,12 @@ int main(int argc, char *argv[])
                 parallel_indexing=0; 
 #endif
                 break;
-            case 204: alloc_chunkwise=1; break;
+            case 204:
+                if (strcmp(optarg,"dense") == 0) alloc_chunkwise = ALLOC_DENSE;
+                if (strcmp(optarg,"chunk") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
+                if (strcmp(optarg,"sparse") == 0) alloc_chunkwise = ALLOC_SPARSE;
+                if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+                break;
             case 205: num_procs = atoi(optarg); break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
