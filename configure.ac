@@ -19,6 +19,8 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
+AC_HEADER_SYS_WAIT
+
 dnl Find C compiler
 AC_PROG_CC_C99
 

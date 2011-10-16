@@ -30,6 +30,7 @@ struct output_options {
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
+  struct output_t *out;  /* Output type used */
   const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables */
   const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables */
   const char *tblsmain_data;     /* Pg Tablespace to store main tables */
@@ -45,12 +46,15 @@ struct output_options {
   int keep_coastlines;
   int parallel_indexing;
   int alloc_chunkwise;
+  int num_procs;
 };
 
 struct output_t {
     int (*start)(const struct output_options *options);
+    int (*connect)(const struct output_options *options);
     void (*stop)();
     void (*cleanup)(void);
+    void (*close)(void);
 //    void (*process)(struct middle_t *mid);
 //    int (*node)(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
 //    int (*way)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count);
