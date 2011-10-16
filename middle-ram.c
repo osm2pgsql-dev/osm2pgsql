@@ -402,12 +402,16 @@ static void ram_stop(void)
     }
 }
 
+static void ram_commit(void) {
+}
+
 struct middle_t mid_ram = {
     .start             = ram_start,
     .stop              = ram_stop,
     .end               = ram_end,
     .cleanup           = ram_stop,
     .analyze           = ram_analyze,
+    .commit            = ram_commit,
     .nodes_set         = ram_nodes_set,
 #if 0
     .nodes_get         = ram_nodes_get,

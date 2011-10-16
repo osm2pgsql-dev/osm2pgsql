@@ -1138,6 +1138,22 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNod
     return 0;
 }
 
+static int pgsql_out_connect(const struct output_options *options) {
+    int i;
+    for (i=0; i<NUM_TABLES; i++) {
+        PGconn *sql_conn;
+        sql_conn = PQconnectdb(options->conninfo);
+        
+        /* Check to see that the backend connection was successfully made */
+        if (PQstatus(sql_conn) != CONNECTION_OK) {
+            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+            exit_nicely();
+        }
+        tables[i].sql_conn = sql_conn;
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+    }
+}
+
 static int pgsql_out_start(const struct output_options *options)
 {
     char *sql, tmp[256];
@@ -1274,8 +1290,8 @@ static int pgsql_out_start(const struct output_options *options)
             PQclear(res);
 
             /* change the type of the geometry column if needed - this can only change to a more permisive type */
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
-                        tables[i].type, tables[i].type, tables[i].name);
+            //            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
+            //           tables[i].type, tables[i].type, tables[i].name);
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         
@@ -1343,6 +1359,27 @@ static void pgsql_pause_copy(struct s_table *table)
     table->copyMode = 0;
 }
 
+static void pgsql_out_close(void) {
+    int i;
+    for (i=0; i<NUM_TABLES; i++) {
+        pgsql_pause_copy(&tables[i]);
+        // Commit transaction
+        pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        PQfinish(tables[i].sql_conn);
+        tables[i].sql_conn = NULL;
+    }
+}
+
+static void pgsql_out_commit(void) {
+    int i;
+    for (i=0; i<NUM_TABLES; i++) {
+        pgsql_pause_copy(&tables[i]);
+        // Commit transaction
+        fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
+        pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+    }
+}
+
 static void *pgsql_out_stop_one(void *arg)
 {
     struct s_table *table = arg;
@@ -1356,8 +1393,8 @@ static void *pgsql_out_stop_one(void *arg)
 
     pgsql_pause_copy(table);
     // Commit transaction
-    fprintf(stderr, "Committing transaction for %s\n", table->name);
-    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
+    //fprintf(stderr, "Committing transaction for %s\n", table->name);
+    //pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
     if (!Options->append)
     {
         time_t start, end;
@@ -1401,6 +1438,7 @@ static void *pgsql_out_stop_one(void *arg)
     free(table->columns);
     return NULL;
 }
+
 static void pgsql_out_stop()
 {
     int i;
@@ -1408,9 +1446,31 @@ static void pgsql_out_stop()
     pthread_t threads[NUM_TABLES];
 #endif
 
+    /* Commit the transactions, so that multiple processes can
+     * access the data simultanious to process the rest in parallel
+     * as well as see the newly created tables.
+     */
+    pgsql_out_commit();
+    Options->mid->commit();
+    /* To prevent deadlocks in parallel processing, the mid tables need
+     * to stay out of a transaction. In this stage output tables are only
+     * written to and not read, so they can be processed as several parallel
+     * independent transactions
+     */
+    for (i=0; i<NUM_TABLES; i++) {
+        PGconn *sql_conn = tables[i].sql_conn;
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+    }
     /* Processing any remaing to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
+    pgsql_out_commit();
+    Options->mid->commit();
+    for (i=0; i<NUM_TABLES; i++) {
+        PGconn *sql_conn = tables[i].sql_conn;
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+    }
     Options->mid->iterate_relations( pgsql_process_relation );
+    pgsql_out_commit();
 
 #ifdef HAVE_PTHREAD
     if (Options->parallel_indexing) {
@@ -1669,8 +1729,10 @@ static int pgsql_modify_relation(osmid_t osm_id, struct member *members, int mem
 
 struct output_t out_pgsql = {
         .start           = pgsql_out_start,
+        .connect         = pgsql_out_connect,
         .stop            = pgsql_out_stop,
         .cleanup         = pgsql_out_cleanup,
+        .close           = pgsql_out_close,
         .node_add        = pgsql_add_node,
         .way_add         = pgsql_add_way,
         .relation_add    = pgsql_add_relation,

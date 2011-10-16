@@ -19,6 +19,7 @@ struct middle_t {
     void (*cleanup)(void);
     void (*analyze)(void);
     void (*end)(void);
+    void (*commit)(void);
 
     int (*nodes_set)(osmid_t id, double lat, double lon, struct keyval *tags);
     int (*nodes_get_list)(struct osmNode *out, osmid_t *nds, int nd_count);

@@ -192,6 +192,8 @@ static void long_usage(char *arg0)
     printf("   -K|--keep-coastlines\tKeep coastline data rather than filtering it out.\n");
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
+    printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
+    printf("             \t\tDefault is 2\n");
     printf("   -I|--disable-parallel-indexing\t\tDisable indexing all tables concurrently.\n");
     printf("      --alloc-chunk\t\tAllocate node cache in chunks rather than as a whole.\n");
     printf("   -h|--help\t\tHelp information.\n");
@@ -327,6 +329,7 @@ int main(int argc, char *argv[])
     int enable_multi = 0;
     int parallel_indexing = 1;
     int alloc_chunkwise = 0;
+    int num_procs = 2;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -394,6 +397,7 @@ int main(int argc, char *argv[])
             {"version", 0, 0, 'V'},
             {"disable-parallel-indexing", 0, 0, 'I'},
             {"alloc-chunk", 0, 0, 204},
+            {"number-processes", 1, 0, 205},
             {0, 0, 0, 0}
         };
 
@@ -451,6 +455,7 @@ int main(int argc, char *argv[])
 #endif
                 break;
             case 204: alloc_chunkwise=1; break;
+            case 205: num_procs = atoi(optarg); break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -475,6 +480,8 @@ int main(int argc, char *argv[])
     }
 
     if (cache < 0) cache = 0;
+
+    if (num_procs < 1) num_procs = 1;
 
     if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
@@ -530,6 +537,7 @@ int main(int argc, char *argv[])
     options.keep_coastlines = keep_coastlines;
     options.parallel_indexing = parallel_indexing;
     options.alloc_chunkwise = alloc_chunkwise;
+    options.num_procs = num_procs;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;
@@ -541,6 +549,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
       exit(EXIT_FAILURE);
     }
+    options.out = osmdata.out;
 
     if (strcmp("auto", input_reader) != 0) {
       if (strcmp("libxml2", input_reader) == 0) {
