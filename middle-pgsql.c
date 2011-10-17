@@ -456,7 +456,7 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
 static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
     /* Check cache first */
-    if( ram_cache_nodes_get( &out, id ) == 0 )
+    if( ram_cache_nodes_get( out, id ) == 0 )
         return 0;
       
     PGresult   *res;
@@ -743,6 +743,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         pid=fork();
         if (pid==0) break;
         if (pid==-1) {
+            fprintf(stderr,"Failed to fork helper processes\n");
             exit_nicely();
         }
     }
@@ -980,6 +981,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         pid=fork();
         if (pid==0) break;
         if (pid==-1) {
+            fprintf(stderr,"Failed to fork helper processes for relations\n");
             exit_nicely();
         }
     }

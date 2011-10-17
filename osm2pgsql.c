@@ -345,7 +345,7 @@ int main(int argc, char *argv[])
 #ifdef __amd64__
     int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
 #else
-    int alloc_chunkwise = ALLOC_CHUNK | ALLOC_DENSE;
+    int alloc_chunkwise = ALLOC_DENSE_CHUNK | ALLOC_DENSE;
 #endif
     int num_procs = 2;
     const char *expire_tiles_filename = "dirty_tiles";

@@ -253,7 +253,7 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
              * priority queue invariant. Upto log(maxBlocks) iterations */
             
             int i=0;
-            while( 2*i+1 < maxBlocks ) {
+            while( 2*i+1 < usedBlocks - 1 ) {
                 if( queue[2*i+1]->used <= queue[2*i+2]->used ) {
                     if( queue[i]->used > queue[2*i+1]->used ) {
                         Swap( queue[i], queue[2*i+1] );
@@ -286,7 +286,7 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
          * nodes come in numerical order, which is the common case */
         
         int expectedpos;
-        if( usedBlocks < maxBlocks )
+        if (( usedBlocks < maxBlocks ) && (cacheUsed < cacheSize))
             expectedpos = usedBlocks-1;
         else
             expectedpos = 0;
