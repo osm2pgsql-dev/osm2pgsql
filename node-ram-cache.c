@@ -100,11 +100,11 @@ static struct ramNodeBlock **queue;
 
 
 static struct ramNodeID *sparseBlock;
-static long maxSparseTuples = 0;
-static long sizeSparseTuples = 0;
+static int64_t maxSparseTuples = 0;
+static int64_t sizeSparseTuples = 0;
 
 
-static long cacheUsed, cacheSize;
+static int64_t cacheUsed, cacheSize;
 static osmid_t storedNodes, totalNodes;
 int nodesCacheHits, nodesCacheLookups;
 
@@ -314,9 +314,9 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
 
 
 static int ram_cache_nodes_get_sparse(struct osmNode *out, osmid_t id) {
-    long pivotPos = sizeSparseTuples >> 1;
-    long minPos = 0;
-    long maxPos = sizeSparseTuples;
+    int64_t pivotPos = sizeSparseTuples >> 1;
+    int64_t minPos = 0;
+    int64_t maxPos = sizeSparseTuples;
 
     while (minPos <= maxPos) {
         if ( sparseBlock[pivotPos].id == id ) {
@@ -368,7 +368,7 @@ static int ram_cache_nodes_get_dense(struct osmNode *out, osmid_t id) {
 void init_node_ram_cache( int strategy, int cacheSizeMB ) {
 
     cacheUsed = 0;
-    cacheSize = cacheSizeMB*(1024*1024);
+    cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
     maxBlocks = (cacheSize/(PER_BLOCK*sizeof(struct ramNode))) | 1;
     maxSparseTuples = (cacheSize/sizeof(struct ramNodeID)) | 1;
