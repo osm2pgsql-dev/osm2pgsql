@@ -1301,6 +1301,8 @@ static void *pgsql_stop_one(void *arg)
     //if (table->stop) 
     //    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->stop);
     time(&start);
+    if (!out_options->droptemp)
+    {
     if (build_indexes && table->array_indexes) {
         char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
         // we need to insert before the TABLESPACE setting, if any
@@ -1324,6 +1326,11 @@ static void *pgsql_stop_one(void *arg)
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
         free(buffer);
+    }
+    else
+    {
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "drop table %s", table->name);
+    }
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;

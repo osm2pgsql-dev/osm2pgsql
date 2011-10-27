@@ -47,6 +47,7 @@ struct output_options {
   int parallel_indexing;
   int alloc_chunkwise;
   int num_procs;
+  int droptemp; /* drop slim mode temp tables after act */
 };
 
 struct output_t {

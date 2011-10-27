@@ -348,6 +348,7 @@ int main(int argc, char *argv[])
     int alloc_chunkwise = ALLOC_DENSE_CHUNK | ALLOC_DENSE;
 #endif
     int num_procs = 2;
+    int droptemp = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -416,6 +417,7 @@ int main(int argc, char *argv[])
             {"disable-parallel-indexing", 0, 0, 'I'},
             {"cache-strategy", 1, 0, 204},
             {"number-processes", 1, 0, 205},
+            {"drop", 0, 0, 206},
             {0, 0, 0, 0}
         };
 
@@ -479,6 +481,7 @@ int main(int argc, char *argv[])
                 if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
                 break;
             case 205: num_procs = atoi(optarg); break;
+            case 206: droptemp = 1; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -499,6 +502,11 @@ int main(int argc, char *argv[])
 
     if (append && create) {
         fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (droptemp && !slim) {
+        fprintf(stderr, "Error: --drop only makes sense with --slim.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -561,6 +569,7 @@ int main(int argc, char *argv[])
     options.parallel_indexing = parallel_indexing;
     options.alloc_chunkwise = alloc_chunkwise;
     options.num_procs = num_procs;
+    options.droptemp = droptemp;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;
