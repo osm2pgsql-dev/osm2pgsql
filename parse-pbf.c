@@ -148,7 +148,7 @@ static size_t uncompress_blob(Blob *bmsg, void *buf, int32_t max_size)
     (void)inflateEnd(&strm);
         
     if (ret != Z_STREAM_END) {
-      fprintf(stderr, "Zlib compression failed\n");
+      fprintf(stderr, "Zlib compression failed (code %d, %s)\n", ret, strm.msg);
       return 0;
     }
 
