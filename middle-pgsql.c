@@ -1303,34 +1303,34 @@ static void *pgsql_stop_one(void *arg)
     time(&start);
     if (!out_options->droptemp)
     {
-    if (build_indexes && table->array_indexes) {
-        char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
-        // we need to insert before the TABLESPACE setting, if any
-        char *insertpos = strstr(table->array_indexes, "TABLESPACE");
-        if (!insertpos) insertpos = strchr(table->array_indexes, ';');
+        if (build_indexes && table->array_indexes) {
+            char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
+            // we need to insert before the TABLESPACE setting, if any
+            char *insertpos = strstr(table->array_indexes, "TABLESPACE");
+            if (!insertpos) insertpos = strchr(table->array_indexes, ';');
 
-        // automatically insert FASTUPDATE=OFF when creating,
-        // indexes for PostgreSQL 8.4 and higher
-        // see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html
-        if (insertpos && PQserverVersion(sql_conn) >= 80400) {
-            char old = *insertpos;
-            fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
-            *insertpos = 0; // temporary null byte for following strcpy operation
-            strcpy(buffer, table->array_indexes);
-            *insertpos = old; // restore old content
-            strcat(buffer, " WITH (FASTUPDATE=OFF)");
-            strcat(buffer, insertpos);
-        } else {
-            fprintf(stderr, "Building index on table: %s\n", table->name);
-            strcpy(buffer, table->array_indexes);
+            // automatically insert FASTUPDATE=OFF when creating,
+            // indexes for PostgreSQL 8.4 and higher
+            // see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html
+            if (insertpos && PQserverVersion(sql_conn) >= 80400) {
+                char old = *insertpos;
+                fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
+                *insertpos = 0; // temporary null byte for following strcpy operation
+                strcpy(buffer, table->array_indexes);
+                *insertpos = old; // restore old content
+                strcat(buffer, " WITH (FASTUPDATE=OFF)");
+                strcat(buffer, insertpos);
+            } else {
+                fprintf(stderr, "Building index on table: %s\n", table->name);
+                strcpy(buffer, table->array_indexes);
+            }
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
+            free(buffer);
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
-        free(buffer);
     }
     else
     {
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "drop table %s", table->name);
-    }
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
