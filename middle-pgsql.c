@@ -1166,7 +1166,7 @@ static int pgsql_start(const struct output_options *options)
 
     out_options = options;
     
-    init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache );
+    init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale);
 
     fprintf( stderr, "Mid: pgsql, scale=%d\n", scale, options->cache);
     

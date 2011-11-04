@@ -315,7 +315,7 @@ static int ram_start(const struct output_options *options)
     // be stored accurately in an int
     scale = options->scale;
 
-    init_node_ram_cache( options->alloc_chunkwise, options->cache );
+    init_node_ram_cache( options->alloc_chunkwise, options->cache, scale);
     
     fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
 
