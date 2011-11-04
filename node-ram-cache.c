@@ -367,7 +367,7 @@ static int ram_cache_nodes_get_dense(struct osmNode *out, osmid_t id) {
 }
 
 
-void init_node_ram_cache( int strategy, int cacheSizeMB ) {
+void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
 
     blockCache = 0;
     cacheUsed = 0;
@@ -377,6 +377,7 @@ void init_node_ram_cache( int strategy, int cacheSizeMB ) {
     maxSparseTuples = (cacheSize/sizeof(struct ramNodeID)) | 1;
     
     allocStrategy = strategy;
+    scale = fixpointscale;
     
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");
