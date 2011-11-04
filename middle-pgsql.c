@@ -164,6 +164,7 @@ static int pgsql_connect(const struct output_options *options) {
             tables[i].copyMode = 1;
         }
     }
+    return 0;
 }
 
 static void pgsql_cleanup(void)

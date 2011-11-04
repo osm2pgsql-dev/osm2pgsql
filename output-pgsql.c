@@ -1152,6 +1152,7 @@ static int pgsql_out_connect(const struct output_options *options) {
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
+    return 0;
 }
 
 static int pgsql_out_start(const struct output_options *options)
