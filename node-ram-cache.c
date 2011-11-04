@@ -90,6 +90,8 @@ static int allocStrategy = ALLOC_DENSE;
 #define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
 #define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
+#define SAFETY_MARGIN 1024*1024
+
 static struct ramNodeBlock *blocks;
 static int usedBlocks;
 /* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
@@ -147,12 +149,12 @@ static void percolate_up( int pos )
 }
 
 static void *next_chunk(size_t count, size_t size) {
-    if ( allocStrategy & ALLOC_DENSE_CHUNK == 0 ) {
+    if ( (allocStrategy & ALLOC_DENSE_CHUNK) == 0 ) {
         static size_t pos = 0;
         void *result;
+        pos += count * size;
+        result = blockCache + cacheSize - pos + SAFETY_MARGIN;
         
-        result = blockCache + pos;        
-        pos += count * size;        
         return result;
     } else {
         return calloc(PER_BLOCK, sizeof(struct ramNode));
@@ -367,6 +369,7 @@ static int ram_cache_nodes_get_dense(struct osmNode *out, osmid_t id) {
 
 void init_node_ram_cache( int strategy, int cacheSizeMB ) {
 
+    blockCache = 0;
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
@@ -378,22 +381,20 @@ void init_node_ram_cache( int strategy, int cacheSizeMB ) {
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");
         blocks = malloc(sizeof(struct ramNodeBlock)*NUM_BLOCKS);
+        queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );
         /* Use this method of allocation if virtual memory is limited,
          * or if OS allocs physical memory right away, rather than page by page
          * once it is needed.
          */
         if( (allocStrategy & ALLOC_DENSE_CHUNK) > 0 ) {
             fprintf(stderr, "Allocating dense node cache in block sized chunks\n");
-            queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );
             if (!queue) {
                 fprintf(stderr, "Out of memory, reduce --cache size\n");
                 exit_nicely();
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
-            queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );    
-            blockCache = malloc(maxBlocks * PER_BLOCK * sizeof(struct ramNode));
-            
+            blockCache = malloc(maxBlocks * PER_BLOCK * sizeof(struct ramNode) + SAFETY_MARGIN);
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
                 exit_nicely();
@@ -410,7 +411,12 @@ void init_node_ram_cache( int strategy, int cacheSizeMB ) {
     
     if ((allocStrategy & ALLOC_SPARSE) > 0 ) {
         fprintf(stderr, "Allocating memory for sparse node cache\n");
-        sparseBlock = malloc(maxSparseTuples * sizeof(struct ramNodeID));
+        if (!blockCache) {
+            sparseBlock = malloc(maxSparseTuples * sizeof(struct ramNodeID));
+        } else {
+            fprintf(stderr, "Sharing dense sparse\n");
+            sparseBlock = blockCache;
+        }
         if (!sparseBlock) {
             fprintf(stderr, "Out of memory for sparse node cache, reduce --cache size\n");
             exit_nicely();
@@ -439,10 +445,11 @@ void free_node_ram_cache() {
           }
       } else {
           free(blockCache);
+          blockCache = 0;
       }
       free(queue);
   }
-  if ( (allocStrategy & ALLOC_SPARSE) > 0) {
+  if ( ((allocStrategy & ALLOC_SPARSE) > 0) && ((allocStrategy & ALLOC_DENSE) == 0)) {
       free(sparseBlock);
   }
 }
