@@ -744,8 +744,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         pid=fork();
         if (pid==0) break;
         if (pid==-1) {
-            fprintf(stderr,"Failed to fork helper processes\n");
-            exit_nicely();
+            fprintf(stderr,"WARNING: Failed to fork helper processes. Falling back to only using %i \n", p);
+            noProcs = p;
+            break;
         }
     }
     if ((pid == 0) && (noProcs > 1)) {
@@ -982,8 +983,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         pid=fork();
         if (pid==0) break;
         if (pid==-1) {
-            fprintf(stderr,"Failed to fork helper processes for relations\n");
-            exit_nicely();
+            fprintf(stderr,"WARNING: Failed to fork helper processes. Falling back to only using %i \n", p);
+            noProcs = p;
+            break;
         }
     }
     if ((pid == 0) && (noProcs > 1)) {
