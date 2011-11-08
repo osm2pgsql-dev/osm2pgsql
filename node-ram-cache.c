@@ -20,7 +20,7 @@
 
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
+//#define FIXED_POINT
 
 static int scale = 100;
 #define DOUBLE_TO_FIX(x) ((int)((x) * scale))
@@ -213,8 +213,14 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
                     for (i = 0; i < (1 << BLOCK_SHIFT); i++) {
                         if (queue[usedBlocks -1]->nodes[i].lat || queue[usedBlocks -1]->nodes[i].lon) {
                             ram_cache_nodes_set_sparse(block2id(queue[usedBlocks - 1]->block_offset,i), 
+#ifdef FIXED_POINT
                                                        FIX_TO_DOUBLE(queue[usedBlocks -1]->nodes[i].lat),
-                                                       FIX_TO_DOUBLE(queue[usedBlocks -1]->nodes[i].lon), NULL);
+                                                       FIX_TO_DOUBLE(queue[usedBlocks -1]->nodes[i].lon), 
+#else
+                                                       queue[usedBlocks -1]->nodes[i].lat,
+                                                       queue[usedBlocks -1]->nodes[i].lon, 
+#endif
+                                                       NULL);
                         }
                     }
                     /* reuse previous block, as it's content is now in the dense representation */
