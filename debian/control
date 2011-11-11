@@ -2,7 +2,7 @@ Source: osm2pgsql
 Section: utils
 Priority: optional
 Maintainer: Frederik Ramm <frederik@remote.org>
-Build-Depends: debhelper (>= 7), libgeos-dev, libxml2-dev, libpq-dev, dpatch, proj | libproj0, libbz2-dev, automake, autoconf, libtool, protobuf-c-compiler, libprotobuf-c0-dev
+Build-Depends: debhelper (>= 7), libgeos-dev, libxml2-dev, libpq-dev, proj | libproj0, libbz2-dev, automake, autoconf, libtool, protobuf-c-compiler, libprotobuf-c0-dev
 Standards-Version: 3.9.2
 
 Package: osm2pgsql

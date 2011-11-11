@@ -10,7 +10,7 @@
 #export DH_VERBOSE=1
 
 configure: configure-stamp
-configure-stamp: patch
+configure-stamp: 
 	dh_testdir
 
 	# Add here commands to configure the package.
@@ -34,7 +34,7 @@ build-stamp: configure-stamp
 
 	touch $@
 
-clean: unpatch
+clean: 
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
@@ -43,15 +43,6 @@ clean: unpatch
 	$(MAKE) clean || /bin/true
 
 	dh_clean 
-
-patch: patch-stamp
-patch-stamp:
-	dpatch apply-all
-	dpatch cat-all >patch-stamp
-
-unpatch:
-	dpatch deapply-all
-	rm -rf patch-stamp debian/patched
 
 install: build
 	dh_testdir
