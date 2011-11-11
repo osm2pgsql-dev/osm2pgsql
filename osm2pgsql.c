@@ -161,8 +161,8 @@ static void long_usage(char *arg0)
     }
     
     printf("   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
-    printf("   -C|--cache\t\tOnly for slim mode: Use upto this many MB for caching nodes\n");
-    printf("             \t\tDefault is 800\n");
+    printf("   -C|--cache\t\tNow required for slim and non-slim modes: \n");
+    printf("             \t\tUse up to this many MB for caching nodes (default: 800)\n");
     printf("   -U|--username\tPostgresql user name\n");
     printf("             \t\tpassword can be given by prompt or PGPASS environment variable.\n");
     printf("   -W|--password\tForce password prompt.\n");
