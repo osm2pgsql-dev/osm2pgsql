@@ -194,7 +194,7 @@ static void long_usage(char *arg0)
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
-    printf("             \t\tDefault is 2\n");
+    printf("             \t\tDefault is 1\n");
     printf("   -I|--disable-parallel-indexing\t\tDisable indexing all tables concurrently.\n");
     printf("      --cache-strategy\t\tSpecifies the method used to cache nodes in ram.\n");
     printf("                      \t\tAvailable options are:\n");
@@ -347,7 +347,7 @@ int main(int argc, char *argv[])
 #else
     int alloc_chunkwise = ALLOC_DENSE_CHUNK | ALLOC_DENSE;
 #endif
-    int num_procs = 2;
+    int num_procs = 1;
     int droptemp = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
