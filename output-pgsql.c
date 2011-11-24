@@ -1254,7 +1254,7 @@ static int pgsql_out_start(const struct output_options *options)
                         tables[i].name, SRID, tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
             /* slim mode needs this to be able to apply diffs */
-            if (Options->slim) {
+            if (Options->slim && !Options->droptemp) {
                 sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  tables[i].name, tables[i].name);
                 if (Options->tblsmain_index) {
                     sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
@@ -1418,7 +1418,7 @@ static void *pgsql_out_stop_one(void *arg)
         }
 
         /* slim mode needs this to be able to apply diffs */
-        if (Options->slim)
+        if (Options->slim && !Options->droptemp)
         {
             if (Options->tblsmain_index) {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
@@ -1634,6 +1634,9 @@ static int pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
     if( !Options->slim )
+        return 0;
+    /* in droptemp mode we don't have indices and this takes ages. */
+    if (Options->droptemp)
         return 0;
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
