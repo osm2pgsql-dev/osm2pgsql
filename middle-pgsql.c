@@ -151,6 +151,8 @@ static int pgsql_connect(const struct output_options *options) {
         }
         tables[i].sql_conn = sql_conn;
 
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+
         if (tables[i].prepare) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
@@ -1197,6 +1199,22 @@ static int pgsql_start(const struct output_options *options)
             exit_nicely();
         }
         tables[i].sql_conn = sql_conn;
+
+        /*
+         * To allow for parallelisation, the second phase (iterate_ways), cannot be run
+         * in an extended transaction and each update statement is its own transaction.
+         * Therefore commit rate of postgresql is very important to ensure high speed.
+         * If fsync is enabled to ensure safe transactions, the commit rate can be very low.
+         * To compensate for this, one can set the postgresql parameter synchronous_commit
+         * to off. This means an update statement returns to the client as success before the
+         * transaction is saved to disk via fsync, which in return allows to bunch up multiple
+         * transactions into a single fsync. This may result in some data loss in the case of a
+         * database crash. However, as we don't currently have the ability to restart a full osm2pgsql
+         * import session anyway, this is fine. Diff imports are also not effected, as the next
+         * diff import would simply deal with all pending ways that were not previously finished.
+         * This parameter does not effect safety from data corruption on the back-end.
+         */
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         /* Not really the right place for this test, but we need a live
          * connection that not used for anything else yet, and we'd like to
