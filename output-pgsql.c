@@ -1138,7 +1138,7 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNod
     return 0;
 }
 
-static int pgsql_out_connect(const struct output_options *options) {
+static int pgsql_out_connect(const struct output_options *options, int startTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
@@ -1150,7 +1150,9 @@ static int pgsql_out_connect(const struct output_options *options) {
             exit_nicely();
         }
         tables[i].sql_conn = sql_conn;
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+        if (startTransaction)
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
     return 0;
 }
@@ -1188,6 +1190,7 @@ static int pgsql_out_start(const struct output_options *options)
             exit_nicely();
         }
         tables[i].sql_conn = sql_conn;
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         if (!options->append) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
@@ -1360,12 +1363,13 @@ static void pgsql_pause_copy(struct s_table *table)
     table->copyMode = 0;
 }
 
-static void pgsql_out_close(void) {
+static void pgsql_out_close(int stopTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         pgsql_pause_copy(&tables[i]);
         // Commit transaction
-        pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        if (stopTransaction)
+            pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
         PQfinish(tables[i].sql_conn);
         tables[i].sql_conn = NULL;
     }
@@ -1466,12 +1470,13 @@ static void pgsql_out_stop()
     Options->mid->iterate_ways( pgsql_out_way );
     pgsql_out_commit();
     Options->mid->commit();
-    for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
-    }
+
+    /* Processing any remaing to be processed relations */
+    /* During this stage output tables also need to stay out of
+     * extended transactions, as the delete_way_from_output, called
+     * from process_relation, can deadlock if using multi-processing.
+     */    
     Options->mid->iterate_relations( pgsql_process_relation );
-    pgsql_out_commit();
 
 #ifdef HAVE_PTHREAD
     if (Options->parallel_indexing) {
