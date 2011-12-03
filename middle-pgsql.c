@@ -161,10 +161,6 @@ static int pgsql_connect(const struct output_options *options) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
         }
 
-        if (tables[i].copy) {
-            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
-            tables[i].copyMode = 1;
-        }
     }
     return 0;
 }
@@ -753,10 +749,26 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     }
     if ((pid == 0) && (noProcs > 1)) {
         /* After forking, need to reconnect to the postgresql db */
-        out_options->out->connect(out_options);
+        out_options->out->connect(out_options, 1);
         pgsql_connect(out_options);
     } else {
         p = 0;
+    }
+
+    /* Only start an extended transaction on the ways table,
+     * which should cover the bulk of the update statements.
+     * The nodes table should not be written to in this phase.
+     * The relations table can't be wrapped in an extended
+     * transaction, as with prallel processing it may deadlock.
+     * Updating a way will trigger an update of the pending status
+     * on connected relations. This should not be as many updates,
+     * so in combination with the synchronous_comit = off it should be fine.
+     * 
+     */
+    if (tables[t_way].start) {
+        pgsql_endCopy(&tables[t_way]);
+        pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].start);
+        tables[t_way].transactionMode = 1;
     }
 
     //fprintf(stderr, "\nIterating ways\n");
@@ -784,9 +796,15 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         free(nodes);
         resetList(&tags);
     }
+
+    if (tables[t_way].stop && tables[t_way].transactionMode) {
+        pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].stop);
+        tables[t_way].transactionMode = 0;
+    }
+
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
-        out_options->out->close();
+        out_options->out->close(1);
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
@@ -991,7 +1009,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         }
     }
     if ((pid == 0) && (noProcs > 1)) {
-        out_options->out->connect(out_options);
+        out_options->out->connect(out_options, 0);
         pgsql_connect(out_options);
     } else {
         p = 0;
@@ -1023,7 +1041,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
-        out_options->out->close();
+        out_options->out->close(0);
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);

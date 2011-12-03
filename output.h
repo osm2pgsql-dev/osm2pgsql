@@ -52,10 +52,10 @@ struct output_options {
 
 struct output_t {
     int (*start)(const struct output_options *options);
-    int (*connect)(const struct output_options *options);
+    int (*connect)(const struct output_options *options, int startTransaction);
     void (*stop)();
     void (*cleanup)(void);
-    void (*close)(void);
+    void (*close)(int stopTransaction);
 //    void (*process)(struct middle_t *mid);
 //    int (*node)(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
 //    int (*way)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count);
