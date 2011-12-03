@@ -802,6 +802,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         tables[t_way].transactionMode = 0;
     }
 
+    time(&end);
+    fprintf(stderr, "\nProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
+
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
         out_options->out->close(1);
@@ -815,7 +818,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     fprintf(stderr, "\n");
     time(&end);
     if (end - start > 0)
-        fprintf(stderr, "Pending ways took %ds at a rate of %.2f/s\n",(int)(end - start), 
+        fprintf(stderr, "%i Pending ways took %ds at a rate of %.2f/s\n",PQntuples(res_ways), (int)(end - start), 
                 ((double)PQntuples(res_ways) / (double)(end - start)));
     PQclear(res_ways);
 }
@@ -1038,6 +1041,8 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         free(members);
         resetList(&tags);
     }
+    time(&end);
+    fprintf(stderr, "\nProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
@@ -1048,11 +1053,12 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         fprintf(stderr, "\nAll child processes exited\n");
     }
 
-    PQclear(res_rels);
-    fprintf(stderr, "\n");
     time(&end);
     if (end - start > 0)
-        fprintf(stderr, "Pending relations took %ds at a rate of %.2f/s\n",(int)(end - start), ((double)count / (double)(end - start)));
+        fprintf(stderr, "%i Pending relations took %ds at a rate of %.2f/s\n",PQntuples(res_rels), (int)(end - start), ((double)PQntuples(res_rels) / (double)(end - start)));
+    PQclear(res_rels);
+    fprintf(stderr, "\n");
+
 }
 
 static int pgsql_rel_changed(osmid_t osm_id)
