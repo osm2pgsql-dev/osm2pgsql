@@ -1,7 +1,12 @@
 #!/bin/sh
 set -e
 
-DBOWNER=gis
+if [ -z $DBOWNER ]; then
+    DBOWNER=gis
+fi
+if [ -z $DBNAME ]; then
+    DBNAME=gis
+fi
 
 #    echo "Removing Old Database"
 #    sudo -u postgres dropdb $DBNAME >/dev/null 2>&1 || true
