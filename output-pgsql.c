@@ -1407,6 +1407,7 @@ static void *pgsql_out_stop_one(void *arg)
         time(&start);
         fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+        fprintf(stderr, "Analyzing %s finished\n", table->name);
         if (Options->tblsmain_data) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
                         "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
@@ -1416,10 +1417,17 @@ static void *pgsql_out_stop_one(void *arg)
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
+        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
         if (Options->tblsmain_index) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            if (strstr(table->name,"_polygon") > 0) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_no_building_index ON %s USING GIST (way) WHERE building is null TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            }
         } else {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
+            if (strstr(table->name,"_polygon") > 0) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_no_building_index ON %s USING GIST (way) WHERE building is null;\n", table->name, table->name);
+            }
         }
 
         /* slim mode needs this to be able to apply diffs */
@@ -1431,10 +1439,11 @@ static void *pgsql_out_stop_one(void *arg)
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
             }
         }
+        fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
         time(&end);
-        fprintf(stderr, "Indexes on  %s created  in %ds\n", table->name, (int)(end - start));
+        fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name, (int)(end - start));
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
