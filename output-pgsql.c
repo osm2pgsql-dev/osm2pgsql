@@ -1151,6 +1151,7 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
         }
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
@@ -1297,7 +1298,7 @@ static int pgsql_out_start(const struct output_options *options)
             //            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "UPDATE geometry_columns SET type = '%s' where type != '%s' and f_table_name = '%s' and f_geometry_column = 'way'",
             //           tables[i].type, tables[i].type, tables[i].name);
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -1628,8 +1629,9 @@ static int pgsql_delete_node(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_pause_copy(&tables[t_point]);
-    expire_tiles_from_db(tables[t_point].sql_conn, osm_id);
-    pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
+    if ( expire_tiles_from_db(tables[t_point].sql_conn, osm_id) != 0)
+        pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
+    
     Options->mid->nodes_delete(osm_id);
     return 0;
 }
@@ -1646,12 +1648,11 @@ static int pgsql_delete_way_from_output(osmid_t osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
-    expire_tiles_from_db(tables[t_roads].sql_conn, osm_id);
-    expire_tiles_from_db(tables[t_line].sql_conn, osm_id);
-    expire_tiles_from_db(tables[t_poly].sql_conn, osm_id);
     pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
+    if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0)
+        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
+    if ( expire_tiles_from_db(tables[t_poly].sql_conn, osm_id) != 0)
+        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
     return 0;
 }
 
@@ -1673,12 +1674,11 @@ static int pgsql_delete_relation_from_output(osmid_t osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
-    expire_tiles_from_db(tables[t_roads].sql_conn, -osm_id);
-    expire_tiles_from_db(tables[t_line].sql_conn, -osm_id);
-    expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id);
     pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, -osm_id );
-    pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
-    pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
+    if ( expire_tiles_from_db(tables[t_line].sql_conn, -osm_id) != 0)
+        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
+    if ( expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id) != 0)
+        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
     return 0;
 }
 

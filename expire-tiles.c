@@ -22,7 +22,7 @@
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
 #define TILE_EXPIRY_LEEWAY		0.5		// How many tiles worth of space to leave either side of a changed feature
-#define EXPIRE_TILES_MAX_BBOX		30000		// Maximum width or height of a bounding box (metres)
+#define EXPIRE_TILES_MAX_BBOX		20000		// Maximum width or height of a bounding box (metres)
 
 struct tile {
 	int		complete[2][2];	// Flags
@@ -425,22 +425,39 @@ void expire_tiles_from_wkt(const char * wkt, osmid_t osm_id) {
 	}
 }
 
-void expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
-	PGresult *	res;
-	char		tmp[16];
-	char const *	paramValues[1];
-	int		tuple;
-	char *		wkt;
+/*
+ * Expire tiles based on an osm element.
+ * What type of element (node, line, polygon) osm_id refers to depends on
+ * sql_conn. Each type of table has its own sql_conn and the prepared statement
+ * get_wkt refers to the appropriate table.
+ *
+ * The function returns -1 if expiry is not enabled. Otherwise it returns the number
+ * of elements that refer to the osm_id.
 
-	if (Options->expire_tiles_zoom < 0) return;
-	snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
-	paramValues[0] = tmp;
-	res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
-	for (tuple = 0; tuple < PQntuples(res); tuple++) {
-		wkt = PQgetvalue(res, tuple, 0);
-		expire_tiles_from_wkt(wkt, osm_id);
-	}
-	PQclear(res);
+ */
+int expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
+    PGresult *	res;
+    char *		wkt;
+    int i, noElements = 0;
+    char const *paramValues[1];
+    char tmp[16];
+
+    if (Options->expire_tiles_zoom < 0) return -1;
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
+    paramValues[0] = tmp;
+    
+    /* The prepared statement get_wkt will behave differently depending on the sql_conn
+     * each table has its own sql_connection with the get_way refering to the approriate table
+     */
+    res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
+    noElements = PQntuples(res);
+
+    for (i = 0; i < noElements; i++) {
+        wkt = PQgetvalue(res, i, 0);
+        expire_tiles_from_wkt(wkt, osm_id);
+    }
+    PQclear(res);
+    return noElements;
 }
 
 
