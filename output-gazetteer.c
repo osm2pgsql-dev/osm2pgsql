@@ -1020,6 +1020,7 @@ static void gazetteer_out_stop(void)
 //   Options->mid->iterate_relations( gazetteer_process_relation );
 
    /* No longer need to access middle layer */
+   Options->mid->commit();
    Options->mid->stop();
 
    /* Stop any active copy */
