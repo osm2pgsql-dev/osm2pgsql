@@ -21,7 +21,7 @@
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
-#define TILE_EXPIRY_LEEWAY		0.5		// How many tiles worth of space to leave either side of a changed feature
+#define TILE_EXPIRY_LEEWAY		0.1		// How many tiles worth of space to leave either side of a changed feature
 #define EXPIRE_TILES_MAX_BBOX		20000		// Maximum width or height of a bounding box (metres)
 
 struct tile {
@@ -263,9 +263,9 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 	y_step = y_len / hyp_len;
 //	fprintf(stderr, "Expire from line (%f,%f),(%f,%f) [%f,%f],[%f,%f] %fx%f hyp_len = %f\n", lon_a, lat_a, lon_b, lat_b, tile_x_a, tile_y_a, tile_x_b, tile_y_b, x_len, y_len, hyp_len);
 	
-	for (step = 0; step <= hyp_len; step ++) {
+	for (step = 0; step <= hyp_len; step+= 0.4) {
 		// Interpolate points 1 tile width apart
-		next_step = step + 1;
+		next_step = step + 0.4;
 		if (next_step > hyp_len) next_step = hyp_len;
 		x1 = tile_x_a + ((double)step * x_step);
 		y1 = tile_y_a + ((double)step * y_step);
