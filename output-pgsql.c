@@ -1420,14 +1420,8 @@ static void *pgsql_out_stop_one(void *arg)
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
         if (Options->tblsmain_index) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
-            if (strstr(table->name,"_polygon") > 0) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_no_building_index ON %s USING GIST (way) WHERE building is null TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
-            }
         } else {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
-            if (strstr(table->name,"_polygon") > 0) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_no_building_index ON %s USING GIST (way) WHERE building is null;\n", table->name, table->name);
-            }
         }
 
         /* slim mode needs this to be able to apply diffs */
