@@ -70,10 +70,10 @@ static struct table_desc tables [] = {
          .name = "%p_nodes",
         .start = "BEGIN;\n",
 #ifdef FIXED_POINT
-       .create = "CREATE TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
+       .create = "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
       .prepare = "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
-       .create = "CREATE TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
+       .create = "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
       .prepare = "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
@@ -92,7 +92,7 @@ static struct table_desc tables [] = {
         //table = t_way,
          .name = "%p_ways",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
+       .create = "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
  .create_index = "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
 .array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n",
       .prepare = "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
@@ -109,7 +109,7 @@ static struct table_desc tables [] = {
         //table = t_rel,
          .name = "%p_rels",
         .start = "BEGIN;\n",
-       .create = "CREATE TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
+       .create = "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
  .create_index = "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
 .array_indexes = "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n",
       .prepare = "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
@@ -1106,19 +1106,15 @@ static void pgsql_end(void)
 /**
  * Helper to create SQL queries.
  * 
- * Takes four arguments:
- * prefix, t (tablespace) and i (index tablespace) - these may be NULL
- * a pointer to an input string which, on success, is changed to point to the 
- * result (caller takes ownership).
- *
  * The input string is mangled as follows:
- * %p replaced by the given prefix,
- * %i replaced by the given index tablespace
- * %t replaced by the given tablespace
+ * %p replaced by the content of the "prefix" option
+ * %i replaced by the content of the "tblsslim_data" option
+ * %t replaced by the content of the "tblssslim_index" option
+ * %m replaced by "UNLOGGED" if the "unlogged" option is set
  * other occurrences of the "%" char are treated normally.
  * any occurrence of { or } will be ignored (not copied to output string);
  * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t that was not NULL.
+ * %p, %i, %t, %m that was not NULL.
  * 
  * So, the input string 
  *    Hello{ dear %i}!
@@ -1129,7 +1125,7 @@ static void pgsql_end(void)
  *
  * This is used for constructing SQL queries with proper tablespace settings.
  */
-static inline void set_prefix_and_tbls(const char *prefix, const char *t, const char *i, const char **string)
+static inline void set_prefix_and_tbls(const struct output_options *options, const char **string)
 {
     char buffer[1024];
     if (*string == NULL) return;
@@ -1150,25 +1146,33 @@ static inline void set_prefix_and_tbls(const char *prefix, const char *t, const 
             continue;
         } else if (*source == '%') {
             if (*(source+1) == 'p') {
-                if (prefix) {
-                    strcpy(dest, prefix);
-                    dest += strlen(prefix);
+                if (options->prefix) {
+                    strcpy(dest, options->prefix);
+                    dest += strlen(options->prefix);
                     copied = 1;
                 }
                 source+=2;
                 continue;
             } else if (*(source+1) == 't') {
-                if (t) {
-                    strcpy(dest, t);
-                    dest += strlen(t);
+                if (options->tblsslim_data) {
+                    strcpy(dest, options->tblsslim_data);
+                    dest += strlen(options->tblsslim_data);
                     copied = 1;
                 }
                 source+=2;
                 continue;
             } else if (*(source+1) == 'i') {
-                if (i) {
-                    strcpy(dest, i);
-                    dest += strlen(i);
+                if (options->tblsslim_index) {
+                    strcpy(dest, options->tblsslim_index);
+                    dest += strlen(options->tblsslim_index);
+                    copied = 1;
+                }
+                source+=2;
+                continue;
+            } else if (*(source+1) == 'm') {
+                if (options->unlogged) {
+                    strcpy(dest, "UNLOGGED");
+                    dest += 8;
                     copied = 1;
                 }
                 source+=2;
@@ -1203,16 +1207,16 @@ static int pgsql_start(const struct output_options *options)
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
                         
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].name));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].start));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].create));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].create_index));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].prepare));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].prepare_intarray));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].copy));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].analyze));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].stop));
-        set_prefix_and_tbls(options->prefix, options->tblsslim_data, options->tblsslim_index, &(tables[i].array_indexes));
+        set_prefix_and_tbls(options, &(tables[i].name));
+        set_prefix_and_tbls(options, &(tables[i].start));
+        set_prefix_and_tbls(options, &(tables[i].create));
+        set_prefix_and_tbls(options, &(tables[i].create_index));
+        set_prefix_and_tbls(options, &(tables[i].prepare));
+        set_prefix_and_tbls(options, &(tables[i].prepare_intarray));
+        set_prefix_and_tbls(options, &(tables[i].copy));
+        set_prefix_and_tbls(options, &(tables[i].analyze));
+        set_prefix_and_tbls(options, &(tables[i].stop));
+        set_prefix_and_tbls(options, &(tables[i].array_indexes));
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);

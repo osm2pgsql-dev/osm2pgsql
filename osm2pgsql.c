@@ -152,13 +152,15 @@ static void long_usage(char *arg0)
     printf("                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
     printf("   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
     printf("   -s|--slim\t\tStore temporary data in the database. This greatly\n");
-    printf("            \t\treduces the RAM usage but is much slower.\n");
+    printf("            \t\treduces the RAM usage but is much slower. This switch is\n");
+    printf("            \t\trequired if you want to update with --append later.\n");
 
     if (sizeof(int*) == 4) {
-        printf("            \t\tYou are running this on 32bit system, so at most\n");
-        printf("            \t\t3GB of RAM will be used. If you encounter unexpected\n");
-        printf("            \t\texceptions during import, you should try this switch.\n");
+        printf("            \t\tThis program was compiled on a 32bit system, so at most\n");
+        printf("            \t\t3GB of RAM will be used. If you encounter problems\n");
+        printf("            \t\tduring import, you should try this switch.\n");
     }
+    printf("      --drop\t\tonly with --slim: drop temporary tables after import (no updates).\n");
     
     printf("   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
     printf("   -C|--cache\t\tNow required for slim and non-slim modes: \n");
@@ -195,8 +197,9 @@ static void long_usage(char *arg0)
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
     printf("             \t\tDefault is 1\n");
-    printf("   -I|--disable-parallel-indexing\t\tDisable indexing all tables concurrently.\n");
-    printf("      --cache-strategy\t\tSpecifies the method used to cache nodes in ram.\n");
+    printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
+    printf("      --unlogged-tables\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
+    printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
     printf("                      \t\tAvailable options are:\n");
     printf("                      \t\tdense: caching strategy optimised for full planet import\n");
     printf("                      \t\tchunked: caching strategy optimised for non-contigouse memory allocation\n");
@@ -349,6 +352,7 @@ int main(int argc, char *argv[])
 #endif
     int num_procs = 1;
     int droptemp = 0;
+    int unlogged = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -418,6 +422,7 @@ int main(int argc, char *argv[])
             {"cache-strategy", 1, 0, 204},
             {"number-processes", 1, 0, 205},
             {"drop", 0, 0, 206},
+            {"unlogged", 0, 0, 207},
             {0, 0, 0, 0}
         };
 
@@ -482,6 +487,7 @@ int main(int argc, char *argv[])
                 break;
             case 205: num_procs = atoi(optarg); break;
             case 206: droptemp = 1; break;
+            case 207: unlogged = 1; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -510,6 +516,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    if (unlogged && !create) {
+        fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
+        unlogged = 0;
+    }
+
     if (cache < 0) cache = 0;
 
     if (num_procs < 1) num_procs = 1;
@@ -519,14 +530,19 @@ int main(int argc, char *argv[])
     else {
         password = getenv("PGPASS");
     }	
-        
 
     conninfo = build_conninfo(db, username, password, host, port);
     sql_conn = PQconnectdb(conninfo);
     if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+        fprintf(stderr, "Error: Connection to database failed: %s\n", PQerrorMessage(sql_conn));
         exit(EXIT_FAILURE);
     }
+    if (unlogged && PQserverVersion(sql_conn) < 90100) {
+        fprintf(stderr, "Error: --unlogged works only with PostgreSQL 9.1 and above, but\n");
+        fprintf(stderr, "you are using PostgreSQL %d.%d.%d.\n", PQserverVersion(sql_conn) / 10000, (PQserverVersion(sql_conn) / 100) % 100, PQserverVersion(sql_conn) % 100);
+        exit(EXIT_FAILURE);
+    }
+
     PQfinish(sql_conn);
 
     text_init();
@@ -570,6 +586,7 @@ int main(int argc, char *argv[])
     options.alloc_chunkwise = alloc_chunkwise;
     options.num_procs = num_procs;
     options.droptemp = droptemp;
+    options.unlogged = unlogged;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;

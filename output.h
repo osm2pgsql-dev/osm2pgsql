@@ -48,6 +48,7 @@ struct output_options {
   int alloc_chunkwise;
   int num_procs;
   int droptemp; /* drop slim mode temp tables after act */
+  int unlogged; /* use unlogged tables where possible */
 };
 
 struct output_t {
