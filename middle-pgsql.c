@@ -866,9 +866,9 @@ static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, 
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
       addItem( &member_list, buf, members[i].role, 0 );
     }
-    memcpy( all_parts+all_count, node_parts, node_count*sizeof(int) ); all_count+=node_count;
-    memcpy( all_parts+all_count, way_parts, way_count*sizeof(int) ); all_count+=way_count;
-    memcpy( all_parts+all_count, rel_parts, rel_count*sizeof(int) ); all_count+=rel_count;
+    memcpy( all_parts+all_count, node_parts, node_count*sizeof(osmid_t) ); all_count+=node_count;
+    memcpy( all_parts+all_count, way_parts, way_count*sizeof(osmid_t) ); all_count+=way_count;
+    memcpy( all_parts+all_count, rel_parts, rel_count*sizeof(osmid_t) ); all_count+=rel_count;
   
     if( rel_table->copyMode )
     {
@@ -1201,7 +1201,7 @@ static int pgsql_start(const struct output_options *options)
     
     init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale);
 
-    fprintf( stderr, "Mid: pgsql, scale=%d\n", scale, options->cache);
+    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
