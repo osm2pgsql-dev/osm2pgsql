@@ -452,7 +452,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "service") == 0 ||
                strcmp(item->key, "cuisine") == 0 ||
                strcmp(item->key, "capital") == 0 ||
-               strcmp(item->key, "dispending") == 0 ||
+               strcmp(item->key, "dispensing") == 0 ||
                strcmp(item->key, "religion") == 0 ||
                strcmp(item->key, "denomination") == 0 ||
                strcmp(item->key, "sport") == 0 ||
@@ -510,12 +510,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "url") == 0 ||
                strcmp(item->key, "website") == 0 ||
                strcmp(item->key, "phone") == 0 ||
-               strcmp(item->key, "phone") == 0 ||
                strcmp(item->key, "tel") == 0 ||
                strcmp(item->key, "real_ale") == 0 ||
                strcmp(item->key, "smoking") == 0 ||
                strcmp(item->key, "food") == 0 ||
-               strcmp(item->key, "camra") == 0 ||
+               strcmp(item->key, "camera") == 0 ||
                strcmp(item->key, "brewery") == 0 ||
                strcmp(item->key, "wikipedia") == 0)
       {
