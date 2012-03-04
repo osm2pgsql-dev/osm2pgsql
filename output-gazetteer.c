@@ -109,6 +109,8 @@ static int CopyActive = 0;
 static char Buffer[BUFFER_SIZE];
 static unsigned int BufferLen = 0;
 
+static PGconn *ConnectionDelete = NULL;
+
 static PGconn *ConnectionError = NULL;
 static int CopyErrorActive = 0;
 static char BufferError[BUFFER_SIZE];
@@ -581,6 +583,54 @@ void escape_array_record(char *out, int len, const char *in)
         fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
 }
 
+static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places) {
+    int i,sz, slen;
+    PGresult   *res;
+    char tmp[16];
+    char tmp2[2];
+    char *cls, *clslist = 0;
+    char const *paramValues[2];
+    
+    tmp2[0] = osm_type; tmp2[1] = '\0';
+    paramValues[0] = tmp2;
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
+    paramValues[1] = tmp;
+    res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2, paramValues, PGRES_TUPLES_OK);
+
+    sz = PQntuples(res);
+    if (sz > 0 && !places) {
+        PQclear(res);
+        /* uncondtional delete of all places */
+        stop_copy();
+        pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id  = %", osm_type, osm_id);
+    } else {
+        for (i = 0; i < sz; i++) {
+            cls = PQgetvalue(res, i, 0);
+            if (!getItem(places, cls)) {
+                if (!clslist) {
+                    clslist = malloc(strlen(cls)+3);
+                    sprintf(clslist, "'%s'", cls);
+                } else {
+                    slen = strlen(clslist);
+                    clslist = realloc(clslist, slen + 4 + strlen(cls));
+                    sprintf(&(clslist[slen]), ",'%s'", cls); 
+                }
+            }
+        }
+
+        PQclear(res);
+
+        if (clslist) {
+           /* Stop any active copy */
+           stop_copy();
+
+           /* Delete all places for this object */
+           pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %"
+        PRIdOSMID " and class = any(ARRAY[%s])", osm_type, osm_id, clslist);
+           free(clslist);
+        }
+    }
+}
 
 static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
@@ -952,7 +1002,7 @@ static int gazetteer_out_start(const struct output_options *options)
 
    /* Connection to the database */
    Connection = PQconnectdb(options->conninfo);
-   ConnectionError = PQconnectdb(options->conninfo);
+   //ConnectionError = PQconnectdb(options->conninfo);
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -1003,6 +1053,15 @@ static int gazetteer_out_start(const struct output_options *options)
 
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
+   } else {
+      ConnectionDelete = PQconnectdb(options->conninfo);
+      if (PQstatus(ConnectionDelete) != CONNECTION_OK)
+      { 
+          fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
+          exit_nicely();
+      }
+
+      pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), BIGINT) AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
    }
 
    /* Setup middle layer */
@@ -1042,7 +1101,7 @@ static void gazetteer_out_cleanup(void)
    return;
 }
 
-static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
+static int gazetteer_process_node(osmid_t id, double lat, double lon, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1064,6 +1123,9 @@ static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval 
    /* Feed this node to the middle layer */
    Options->mid->nodes_set(id, lat, lon, tags);
 
+   if (delete_old)
+       delete_unused_classes('N', id, &places);
+
    /* Are we interested in this item? */
    if (listHasData(&names) || listHasData(&places))
    {
@@ -1083,7 +1145,12 @@ static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval 
    return 0;
 }
 
-static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
+static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
+{
+    return gazetteer_process_node(id, lat, lon, tags, 0);
+}
+
+static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1104,6 +1171,9 @@ static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *t
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
+
+   if (delete_old)
+       delete_unused_classes('W', id, &places);
 
    /* Are we interested in this item? */
    if (listHasData(&names) || listHasData(&places))
@@ -1141,7 +1211,12 @@ static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *t
    return 0;
 }
 
-static int gazetteer_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
+{
+    return gazetteer_process_way(id, ndv, ndc, tags, 0);
+}
+
+static int gazetteer_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1157,23 +1232,33 @@ static int gazetteer_add_relation(osmid_t id, struct member *members, int member
    const char *boundary;
 
    type = getItem(tags, "type");
-   if (!type)
+   if (!type) {
+      if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
+   }
 
    if (!strcmp(type, "associatedStreet") || !strcmp(type, "relatedStreet"))
    {
       Options->mid->relations_set(id, members, member_count, tags);
+      if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
 
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon"))
+   if (strcmp(type, "boundary") && strcmp(type, "multipolygon")) {
+      if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
+   }
 
    boundary = getItem(tags, "boundary");
    if (!boundary) boundary = "administrative";
 
    /* Split the tags */
    area = split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+
+   /* There is only one type for multipolygons at the moment.
+   if (delete_old)
+       delete_unused_classes('R', id, &places);
+   */
 
    if (listHasData(&names))
    {
@@ -1237,6 +1322,11 @@ static int gazetteer_add_relation(osmid_t id, struct member *members, int member
    return 0;
 }
 
+static int gazetteer_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) 
+{
+    return gazetteer_process_relation(id, members, member_count, tags, 0);
+}
+
 static int gazetteer_delete_node(osmid_t id)
 {
    /* Make sure we are in slim mode */
@@ -1283,21 +1373,21 @@ static int gazetteer_modify_node(osmid_t id, double lat, double lon, struct keyv
 {
    require_slim_mode();
    Options->mid->nodes_delete(id);
-   return gazetteer_add_node(id, lat, lon, tags);
+   return gazetteer_process_node(id, lat, lon, tags, 1);
 }
 
 static int gazetteer_modify_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    require_slim_mode();
    Options->mid->ways_delete(id);
-   return gazetteer_add_way(id, ndv, ndc, tags);
+   return gazetteer_process_way(id, ndv, ndc, tags, 1);
 }
 
 static int gazetteer_modify_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    require_slim_mode();
    Options->mid->relations_delete(id);
-   return gazetteer_add_relation(id, members, member_count, tags);
+   return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
 struct output_t out_gazetteer = {
