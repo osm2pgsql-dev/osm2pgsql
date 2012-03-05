@@ -601,7 +601,7 @@ static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *
         PQclear(res);
         /* uncondtional delete of all places */
         stop_copy();
-        pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id  = %", osm_type, osm_id);
+        pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id  = %" PRIdOSMID, osm_type, osm_id);
     } else {
         for (i = 0; i < sz; i++) {
             cls = PQgetvalue(res, i, 0);
