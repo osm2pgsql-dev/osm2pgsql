@@ -284,11 +284,11 @@ static void stop_error_copy(void)
 }
 
 static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
-   int* admin_level, char ** housenumber, char ** street, char ** isin, char ** postcode, char ** countrycode)
+   int* admin_level, struct keyval ** housenumber, struct keyval ** street, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
 {
    int placehouse = 0;
    int placebuilding = 0;
-   char landuse[256];
+   struct keyval *landuse;
    struct keyval *item;
 
    *admin_level = ADMINLEVEL_NONE;
@@ -298,7 +298,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    int isinsize = 0;
    *postcode = 0;
    *countrycode = 0;
-   *landuse = 0;
+   landuse = 0;
 
    /* Initialise the result lists */
    initList(names);
@@ -384,8 +384,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "landuse") == 0)
       {
-         strcpy(landuse, item->value);
-         freeItem(item);
+         landuse = item;
       }
       else if (strcmp(item->key, "postal_code") == 0 ||
           strcmp(item->key, "post_code") == 0 ||
@@ -395,13 +394,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "tiger:zip_right") == 0)
       {
          if (*postcode)
-	    freeItem(item);
+	        freeItem(item);
          else
-            *postcode = item->value;
+            *postcode = item;
       }
       else if (strcmp(item->key, "addr:street") == 0)
       {
-         *street = item->value;
+         *street = item;
       }
       else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
                 strcmp(item->key, "country_code_iso3166_1") == 0 || 
@@ -415,19 +414,27 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                 strcmp(item->key, "addr:country_code") == 0) 
                 && strlen(item->value) == 2)
       {
-         *countrycode = item->value;
+         *countrycode = item;
       }
       else if (strcmp(item->key, "addr:housenumber") == 0)
       {
          // house number can be far more complex than just a single house number - leave for postgresql to deal with
-         *housenumber = item->value; 
-         placehouse = 1;
+         if (*housenumber)
+             freeItem(item);
+         else {
+             *housenumber = item;
+             placehouse = 1;
+         }
       }
       else if (strcmp(item->key, "addr:interpolation") == 0)
       {
          // house number can be far more complex than just a single house number - leave for postgresql to deal with
-         *housenumber = item->value; 
-         addItem(places, "place", "houses", 1);
+          if (*housenumber) {
+              freeItem(item);
+          } else {
+             *housenumber = item; 
+             addItem(places, "place", "houses", 1);
+          }
       }
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
@@ -442,10 +449,12 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          *(*isin+isinsize) = ',';
          strcpy(*isin+1+isinsize, item->value);
          isinsize += 1 + strlen(item->value);
+         freeItem(item);
       }
       else if (strcmp(item->key, "admin_level") == 0)
       {
          *admin_level = atoi(item->value);
+         freeItem(item);
       }
       else if (strcmp(item->key, "tracktype") == 0 ||
                strcmp(item->key, "traffic_calming") == 0 ||
@@ -523,6 +532,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "building") == 0)
       {
           placebuilding = 1;
+          freeItem(item);
       }
       else
       {
@@ -541,9 +551,16 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       addItem(places, "building", "yes", 1);
    }
 
-   if (*landuse && !listHasData(places))
+   if (landuse)
    {
-      addItem(places, "landuse", landuse, 1);
+      if (!listHasData(places))
+      {
+          pushItem(places, landuse);
+      }
+      else
+      {
+          freeItem(item);
+      }
    }
 
    if (*postcode && !listHasData(places))
@@ -632,7 +649,7 @@ static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *
 }
 
 static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
-   int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
+   int adminlevel, struct keyval *housenumber, struct keyval *street, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    int first;
    struct keyval *name;
@@ -684,7 +701,7 @@ static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const
 
    if (housenumber)
    {
-      escape(sql, sizeof(sql), housenumber);
+      escape(sql, sizeof(sql), housenumber->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -695,7 +712,7 @@ static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const
 
    if (street)
    {
-      escape(sql, sizeof(sql), street);
+      escape(sql, sizeof(sql), street->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -718,7 +735,7 @@ static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const
 
    if (postcode)
    {
-      escape(sql, sizeof(sql), postcode);
+      escape(sql, sizeof(sql), postcode->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -729,7 +746,7 @@ static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const
 
    if (countrycode)
    {
-      escape(sql, sizeof(sql), countrycode);
+      escape(sql, sizeof(sql), countrycode->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -758,7 +775,7 @@ static void add_place_v1(char osm_type, osmid_t osm_id, const char *class, const
 }
 
 static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
-   int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
+   int adminlevel, struct keyval *housenumber, struct keyval *street, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    int first;
    struct keyval *name;
@@ -809,7 +826,7 @@ static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const
 
    if (housenumber)
    {
-      escape(sql, sizeof(sql), housenumber);
+      escape(sql, sizeof(sql), housenumber->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -820,7 +837,7 @@ static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const
 
    if (street)
    {
-      escape(sql, sizeof(sql), street);
+      escape(sql, sizeof(sql), street->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -843,7 +860,7 @@ static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const
 
    if (postcode)
    {
-      escape(sql, sizeof(sql), postcode);
+      escape(sql, sizeof(sql), postcode->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -854,7 +871,7 @@ static void add_place_v2(char osm_type, osmid_t osm_id, const char *class, const
 
    if (countrycode)
    {
-      escape(sql, sizeof(sql), countrycode);
+      escape(sql, sizeof(sql), countrycode->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -974,7 +991,7 @@ static void add_polygon_error(char osm_type, osmid_t osm_id, const char *class, 
 }
 
 static void add_place(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
-   int adminlevel, const char *housenumber, const char *street, const char *isin, const char *postcode, const char *countrycode, const char *wkt)
+   int adminlevel, struct keyval *housenumber, struct keyval *street, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    if (Options->enable_hstore)
       add_place_v2(osm_type, osm_id, class, type, names, extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
@@ -1107,11 +1124,11 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
    struct keyval extratags;
    struct keyval *place;
    int adminlevel;
-   char * housenumber;
-   char * street;
+   struct keyval * housenumber;
+   struct keyval * street;
    char * isin;
-   char * postcode;
-   char * countrycode;
+   struct keyval * postcode;
+   struct keyval * countrycode;
    char wkt[128];
 
 //fprintf(stderr, "node\n");
@@ -1135,11 +1152,16 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
       }
    }
 
+   if (housenumber) freeItem(housenumber);
+   if (street) freeItem(street);
    if (isin) free(isin);
+   if (postcode) freeItem(postcode);
+   if (countrycode) freeItem(countrycode);
 
    /* Free tag lists */
    resetList(&names);
    resetList(&places);
+   resetList(&extratags);
 
    return 0;
 }
@@ -1156,11 +1178,11 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
    struct keyval extratags;
    struct keyval *place;
    int adminlevel;
-   char * housenumber;
-   char * street;
+   struct keyval * housenumber;
+   struct keyval * street;
    char * isin;
-   char * postcode;
-   char * countrycode;
+   struct keyval * postcode;
+   struct keyval * countrycode;
    int area;
 
 //fprintf(stderr, "way\n");
@@ -1201,11 +1223,16 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
       free(nodev);
    }
 
+   if (housenumber) freeItem(housenumber);
+   if (street) freeItem(street);
    if (isin) free(isin);
+   if (postcode) freeItem(postcode);
+   if (countrycode) freeItem(countrycode);
 
    /* Free tag lists */
    resetList(&names);
    resetList(&places);
+   resetList(&extratags);
 
    return 0;
 }
@@ -1221,11 +1248,11 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    struct keyval places;
    struct keyval extratags;
    int adminlevel;
-   char * housenumber;
-   char * street;
+   struct keyval * housenumber;
+   struct keyval * street;
    char * isin;
-   char * postcode;
-   char * countrycode;
+   struct keyval * postcode;
+   struct keyval * countrycode;
    int area, wkt_size;
    const char *type;
    const char *boundary;
@@ -1312,11 +1339,16 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       free(xnodes);
    }
 
+   if (housenumber) freeItem(housenumber);
+   if (street) freeItem(street);
    if (isin) free(isin);
+   if (postcode) freeItem(postcode);
+   if (countrycode) freeItem(countrycode);
 
    /* Free tag lists */
    resetList(&names);
    resetList(&places);
+   resetList(&extratags);
 
    return 0;
 }
