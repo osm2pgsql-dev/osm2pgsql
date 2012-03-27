@@ -181,11 +181,11 @@ void read_style_file( const char *filename )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
     }
     if (temp.flags==FLAG_PHSTORE) {
-      if (HSTORE_NONE==(Options->enable_hstore)) {
-	fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
-	fprintf( stderr, "flag 'phstore' is invalid in non-hstore mode\n");
-	exit_nicely();
-      }
+        if (HSTORE_NONE==(Options->enable_hstore)) {
+            fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
+            fprintf( stderr, "flag 'phstore' is invalid in non-hstore mode\n");
+            exit_nicely();
+        }
     }
     temp.count = 0;
 //    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset );
@@ -500,27 +500,27 @@ static void write_hstore(enum table_id table, struct keyval *tags)
 
       /* hard exclude z_order tag and keys which have their own column */
       if ((xtags->next->has_column) || (strcmp("z_order",xtags->next->key)==0)) {
-	// update the tag-pointer to point to the next tag
-	xtags = xtags->next;
-	continue;
+          // update the tag-pointer to point to the next tag
+          xtags = xtags->next;
+          continue;
       }
 
       /*
-	hstore ASCII representation looks like
-	"<key>"=>"<value>"
+        hstore ASCII representation looks like
+        "<key>"=>"<value>"
         
-	we need at least strlen(key)+strlen(value)+6+'\0' bytes
-	in theory any single character could also be escaped
-	thus we need an additional factor of 2.
-	The maximum lenght of a single hstore element is thus
-	calcuated as follows:
+        we need at least strlen(key)+strlen(value)+6+'\0' bytes
+        in theory any single character could also be escaped
+        thus we need an additional factor of 2.
+        The maximum lenght of a single hstore element is thus
+        calcuated as follows:
       */
       size_t hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
       
       // if the sql buffer is too small
       if (hlen > sqllen) {
-	sqllen = hlen;
-	sql = realloc(sql, sqllen);
+        sqllen = hlen;
+        sql = realloc(sql, sqllen);
       }
         
       // pack the tag with its value into the hstore
@@ -532,7 +532,7 @@ static void write_hstore(enum table_id table, struct keyval *tags)
         
       // if the tag has a follow up, add a comma to the end
       if (xtags->next->key != NULL)
-	copy_to_table(table, ",");
+          copy_to_table(table, ",");
     }
     
     // finish the hstore column by placing a TAB into the data stream
@@ -568,7 +568,7 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
         // while this tags has a follow-up..
         while (xtags->next->key != NULL) {
             
-            // check if the tags' key starts with the name of the hstore column
+            // check if the tag's key starts with the name of the hstore column
             char *pos = strstr(xtags->next->key, Options->hstore_columns[i_hstore_column]);
             
             // and if it does..
@@ -654,14 +654,14 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
             continue;
-	if( (exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+        if( (exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
             continue;
         if ((tag = getTag(tags, exportList[OSMTYPE_NODE][i].name)))
         {
             escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_NODE][i].type);
             exportList[OSMTYPE_NODE][i].count++;
-	    if (HSTORE_NORM==Options->enable_hstore)
-	      tag->has_column=1;
+            if (HSTORE_NORM==Options->enable_hstore)
+                tag->has_column=1;
         }
         else
             sprintf(sql, "\\N");
@@ -706,14 +706,14 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
             if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
                 continue;
-	    if( (exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+            if( (exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
                 continue;
             if ((tag = getTag(tags, exportList[OSMTYPE_WAY][j].name)))
             {
                 exportList[OSMTYPE_WAY][j].count++;
                 escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_WAY][j].type);
-		if (HSTORE_NORM==Options->enable_hstore)
-		  tag->has_column=1;
+                if (HSTORE_NORM==Options->enable_hstore)
+                    tag->has_column=1;
             }
             else
                 sprintf(sql, "\\N");
@@ -799,15 +799,20 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                 break;
             }
         }
-        if( i == exportListCount[type] )
+
+        /** if tag not found in list of exports: */
+        if (i == exportListCount[type])
         {
-	  if (Options->enable_hstore) {
-	    pushItem( &temp, item );
-	    filter=0;
-	  } else {
-	    freeItem( item );
-	  }
-	  item = NULL;
+            if (Options->enable_hstore) {
+                /* with hstore, copy all tags... */
+                pushItem(&temp, item);
+                /* ... but if hstore_match_only is set then don't take this 
+                   as a reason for keeping the object */
+                if (!Options->hstore_match_only) filter = 0;
+            } else {
+                freeItem(item);
+            }
+            item = NULL;
         }
     }
 
@@ -1318,8 +1323,8 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
-		if( (exportTags[j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
-		    continue;
+                if( (exportTags[j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+                    continue;
                 sprintf(tmp, "\"%s\"", exportTags[j].name);
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
@@ -1346,8 +1351,8 @@ static int pgsql_out_start(const struct output_options *options)
         for (j=0; j < numTags; j++) {
             if( exportTags[j].flags & FLAG_DELETE )
                 continue;
-	    if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
-		    continue;
+            if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+                continue;
             sprintf(tmp, ",\"%s\"", exportTags[j].name);
 
             if (strlen(sql) + strlen(tmp) + 1 > sql_len) {

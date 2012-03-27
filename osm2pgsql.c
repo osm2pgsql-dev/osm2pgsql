@@ -187,6 +187,8 @@ static void long_usage(char *arg0)
     printf("              \t\tThis includes the username, userid, timestamp and version.\n"); 
     printf("              \t\tNote: this option also requires additional entries in your style file.\n"); 
     printf("   -k|--hstore\t\tAdd tags without column to an additional hstore (key/value) column to postgresql tables\n");
+    printf("      --hstore-match-only\tOnly keep objects that have a value in one of the columns\n");
+    printf("      -                  \t(normal action with --hstore is to keep all objects)\n");
     printf("   -j|--hstore-all\tAdd all tags to an additional hstore (key/value) column in postgresql tables\n");
     printf("   -z|--hstore-column\tAdd an additional hstore (key/value) column containing all tags\n");
     printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
@@ -343,6 +345,7 @@ int main(int argc, char *argv[])
     int expire_tiles_zoom = -1;
     int expire_tiles_zoom_min = -1;
     int enable_hstore = HSTORE_NONE;
+    int hstore_match_only = 0;
     int enable_multi = 0;
     int parallel_indexing = 1;
 #ifdef __amd64__
@@ -414,6 +417,7 @@ int main(int argc, char *argv[])
             {"hstore", 0, 0, 'k'},
             {"hstore-all", 0, 0, 'j'},
             {"hstore-column", 1, 0, 'z'},
+            {"hstore-match-only", 0, 0, 208},
             {"multi-geometry", 0, 0, 'G'},
             {"keep-coastlines", 0, 0, 'K'},
             {"input-reader", 1, 0, 'r'},
@@ -465,7 +469,8 @@ int main(int argc, char *argv[])
             case 'O': output_backend = optarg; break;
             case 'x': osmdata.extra_attributes=1; break;
             case 'k': enable_hstore=HSTORE_NORM; break;
-	    case 'j': enable_hstore=HSTORE_ALL; break;
+            case 208: hstore_match_only = 1; break;
+            case 'j': enable_hstore=HSTORE_ALL; break;
             case 'z': 
                 n_hstore_columns++;
                 hstore_columns = (const char**)realloc(hstore_columns, sizeof(&n_hstore_columns) * n_hstore_columns);
@@ -519,6 +524,12 @@ int main(int argc, char *argv[])
     if (unlogged && !create) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
         unlogged = 0;
+    }
+
+    if (enable_hstore == HSTORE_NONE && hstore_match_only)
+    {
+        fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
+        hstore_match_only = 0;
     }
 
     if (cache < 0) cache = 0;
@@ -579,6 +590,7 @@ int main(int argc, char *argv[])
     options.expire_tiles_filename = expire_tiles_filename;
     options.enable_multi = enable_multi;
     options.enable_hstore = enable_hstore;
+    options.hstore_match_only = hstore_match_only;
     options.hstore_columns = hstore_columns;
     options.n_hstore_columns = n_hstore_columns;
     options.keep_coastlines = keep_coastlines;
