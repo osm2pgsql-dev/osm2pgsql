@@ -1275,6 +1275,8 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       return 0;
    }
 
+   Options->mid->relations_set(id, members, member_count, tags);
+
    boundary = getItem(tags, "boundary");
    if (!boundary) boundary = "administrative";
 
