@@ -1126,6 +1126,12 @@ static void gazetteer_out_stop(void)
    /* Analyse the table */
    //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
 
+   PQfinish(Connection);
+   if (ConnectionDelete)
+       PQfinish(ConnectionDelete);
+   if (ConnectionError)
+       PQfinish(ConnectionError);
+
    return;
 }
 
