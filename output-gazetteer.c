@@ -289,6 +289,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    int placehouse = 0;
    int placebuilding = 0;
    struct keyval *landuse;
+   struct keyval *place;
    struct keyval *item;
 
    *admin_level = ADMINLEVEL_NONE;
@@ -299,6 +300,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    *postcode = 0;
    *countrycode = 0;
    landuse = 0;
+   place = 0;
 
    /* Initialise the result lists */
    initList(names);
@@ -368,7 +370,6 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "military") == 0 ||
                strcmp(item->key, "natural") == 0 ||
                strcmp(item->key, "office") == 0 ||
-               strcmp(item->key, "place") == 0 ||
                strcmp(item->key, "railway") == 0 ||
                strcmp(item->key, "shop") == 0 ||
                strcmp(item->key, "tourism") == 0 ||
@@ -376,6 +377,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "waterway") == 0 )
       {
          pushItem(places, item);
+      }
+      else if (strcmp(item->key, "place") == 0) 
+      {
+         place = item;
       }
       else if (strcmp(item->key, "addr:housename") == 0)
       {
@@ -537,6 +542,18 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else
       {
          freeItem(item);
+      }
+   }
+
+   if (place)
+   {
+      if (listHasData(places) && (*admin_level != ADMINLEVEL_NONE))
+      {
+         pushItem(extratags, place);
+      } 
+      else
+      {
+         pushItem(places, place);
       }
    }
 
@@ -1143,7 +1160,7 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
        delete_unused_classes('N', id, &places);
 
    /* Are we interested in this item? */
-   if (listHasData(&names) || listHasData(&places))
+   if (listHasData(&places))
    {
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
       for (place = firstItem(&places); place; place = nextItem(&places, place))
@@ -1197,7 +1214,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
        delete_unused_classes('W', id, &places);
 
    /* Are we interested in this item? */
-   if (listHasData(&names) || listHasData(&places))
+   if (listHasData(&places))
    {
       struct osmNode *nodev;
       int nodec;
@@ -1247,6 +1264,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    struct keyval names;
    struct keyval places;
    struct keyval extratags;
+   struct keyval *place;
    int adminlevel;
    struct keyval * housenumber;
    struct keyval * street;
@@ -1255,7 +1273,6 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    struct keyval * countrycode;
    int area, wkt_size;
    const char *type;
-   const char *boundary;
 
    type = getItem(tags, "type");
    if (!type) {
@@ -1277,18 +1294,13 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
 
    Options->mid->relations_set(id, members, member_count, tags);
 
-   boundary = getItem(tags, "boundary");
-   if (!boundary) boundary = "administrative";
-
    /* Split the tags */
    area = split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
-   /* There is only one type for multipolygons at the moment.
    if (delete_old)
        delete_unused_classes('R', id, &places);
-   */
 
-   if (listHasData(&names))
+   if (listHasData(&places))
    {
       /* get the boundary path (ways) */
       int i, count;
@@ -1318,9 +1330,16 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
          {
             if (Options->enable_hstore)
-                add_place('R', id, "boundary", boundary, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
-            else
-                add_place('R', id, "boundary", "adminitrative", &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            {
+               for (place = firstItem(&places); place; place = nextItem(&places, place))
+               {
+                  add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+               }
+            }
+            else 
+            {
+               add_place('R', id, "boundary", "adminitrative", &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            }
          }
          else
          {
