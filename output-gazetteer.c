@@ -376,7 +376,14 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "tunnel") == 0 ||
                strcmp(item->key, "waterway") == 0 )
       {
-         pushItem(places, item);
+         if (strcmp(item->value, "no"))
+         {
+            pushItem(places, item);
+         }
+         else
+         {
+            freeItem(item);
+         }
       }
       else if (strcmp(item->key, "place") == 0) 
       {
@@ -537,6 +544,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "building") == 0)
       {
           placebuilding = 1;
+          freeItem(item);
+      }
+      else if (strcmp(item->key, "mountain_pass") == 0)
+      {
+          // the key be mountain_pass only ever comes with the value Yes.
+          // Not helpful. Therefore "retag" to place=mountain_pass
+          addItem(places, "place", "mountain_pass", 1);
           freeItem(item);
       }
       else
