@@ -200,7 +200,7 @@ static void long_usage(char *arg0)
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
     printf("             \t\tDefault is 1\n");
     printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
-    printf("      --unlogged-tables\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
+    printf("      --unlogged\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
     printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
     printf("                      \t\tAvailable options are:\n");
     printf("                      \t\tdense: caching strategy optimised for full planet import\n");
