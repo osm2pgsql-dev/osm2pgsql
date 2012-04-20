@@ -537,6 +537,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "food") == 0 ||
                strcmp(item->key, "camera") == 0 ||
                strcmp(item->key, "brewery") == 0 ||
+               strcmp(item->key, "locality") == 0 ||
                strcmp(item->key, "wikipedia") == 0)
       {
           pushItem(extratags, item);
