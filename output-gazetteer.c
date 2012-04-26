@@ -32,7 +32,7 @@
    "CREATE TABLE place ("                       \
    "  place_id BIGINT,"                         \
    "  osm_type CHAR(1) NOT NULL,"               \
-   "  osm_id BIGINT NOT NULL,"                  \
+   "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL," \
    "  class TEXT NOT NULL,"                     \
    "  type TEXT NOT NULL,"                      \
    "  name keyvalue[],"                         \
@@ -51,7 +51,7 @@
 #define V2_CREATE_PLACE_TABLE                   \
    "CREATE TABLE place ("                       \
    "  osm_type CHAR(1) NOT NULL,"               \
-   "  osm_id BIGINT NOT NULL,"                  \
+   "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL," \
    "  class TEXT NOT NULL,"                     \
    "  type TEXT NOT NULL,"                      \
    "  name HSTORE,"                             \
@@ -1109,7 +1109,7 @@ static int gazetteer_out_start(const struct output_options *options)
           exit_nicely();
       }
 
-      pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), BIGINT) AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
+      pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
    }
 
    /* Setup middle layer */
