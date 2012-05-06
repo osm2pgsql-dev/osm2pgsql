@@ -30,6 +30,7 @@
 #include "middle.h"
 #include "pgsql.h"
 #include "expire-tiles.h"
+#include "wildcmp.h"
 
 #define SRID (project_getprojinfo()->srs)
 
@@ -187,6 +188,11 @@ void read_style_file( const char *filename )
             exit_nicely();
         }
     }
+    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') >0) || (strchr(temp.name,'*') >0))) {
+        fprintf( stderr, "wildcard '%s' in non-delete style emtry\n",temp.name);
+        exit_nicely();
+    }
+    
     temp.count = 0;
 //    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset );
     
@@ -782,7 +788,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
 
         for (i=0; i < exportListCount[type]; i++)
         {
-            if( strcmp( exportList[type][i].name, item->key ) == 0 )
+            if (wildMatch( exportList[type][i].name, item->key ))
             {
                 if( exportList[type][i].flags & FLAG_DELETE )
                 {
