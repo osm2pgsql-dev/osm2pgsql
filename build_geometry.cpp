@@ -475,26 +475,26 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
             if ((toplevelpolygons > 1) && enable_multi)
             {
                 std::auto_ptr<MultiPolygon> multipoly(gf.createMultiPolygon(polygons.release()));
-                if (multipoly->isValid())
-                {
+                //if (multipoly->isValid())
+                //{
                     std::string text = writer.write(multipoly.get());
                     wkts.push_back(text);
                     areas.push_back(multipoly->getArea());
                     wkt_size++;
-                }
+                //}
             }
             else
             {
                 for(unsigned i=0; i<toplevelpolygons; i++) 
                 {
                     Polygon* poly = dynamic_cast<Polygon*>(polygons->at(i));;
-                    if (poly->isValid())
-                    {
+                    //if (poly->isValid())
+                    //{
                         std::string text = writer.write(poly);
                         wkts.push_back(text);
                         areas.push_back(poly->getArea());
                         wkt_size++;
-                    }
+                    //}
                     delete(poly);
                 }
             }
