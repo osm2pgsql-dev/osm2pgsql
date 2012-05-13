@@ -90,7 +90,7 @@ static int allocStrategy = ALLOC_DENSE;
 #define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
 #define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
-#define SAFETY_MARGIN 1024*1024
+#define SAFETY_MARGIN 1024*PER_BLOCK*sizeof(struct ramNode)
 
 static struct ramNodeBlock *blocks;
 static int usedBlocks;
@@ -387,8 +387,8 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");
-        blocks = malloc(sizeof(struct ramNodeBlock)*NUM_BLOCKS);
-        queue = malloc( maxBlocks * sizeof(struct ramNodeBlock) );
+        blocks = calloc(NUM_BLOCKS,sizeof(struct ramNodeBlock));
+        queue = calloc( maxBlocks,sizeof(struct ramNodeBlock) );
         /* Use this method of allocation if virtual memory is limited,
          * or if OS allocs physical memory right away, rather than page by page
          * once it is needed.
@@ -401,7 +401,7 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
-            blockCache = malloc(maxBlocks * PER_BLOCK * sizeof(struct ramNode) + SAFETY_MARGIN);
+            blockCache = calloc(maxBlocks + 1024,PER_BLOCK * sizeof(struct ramNode));
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
                 exit_nicely();
@@ -419,7 +419,7 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     if ((allocStrategy & ALLOC_SPARSE) > 0 ) {
         fprintf(stderr, "Allocating memory for sparse node cache\n");
         if (!blockCache) {
-            sparseBlock = malloc(maxSparseTuples * sizeof(struct ramNodeID));
+            sparseBlock = calloc(maxSparseTuples,sizeof(struct ramNodeID));
         } else {
             fprintf(stderr, "Sharing dense sparse\n");
             sparseBlock = blockCache;
