@@ -418,6 +418,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                 strcmp(item->key, "country_code_iso3166_1") == 0 || 
                 strcmp(item->key, "country_code_iso3166") == 0 || 
                 strcmp(item->key, "country_code") == 0 || 
+                strcmp(item->key, "iso3166-1:alpha2") == 0 || 
                 strcmp(item->key, "iso3166-1") == 0 || 
                 strcmp(item->key, "ISO3166-1") == 0 || 
                 strcmp(item->key, "iso3166") == 0 || 
