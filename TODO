@@ -15,16 +15,4 @@
    abstract C++ base clases would provide a cleaner and more readable
    interface than the current C99 struct based implementation IMHO
 
-== gazeteer ==
 
-* have relative .libs path to gazetteer.so in the gazeteer-functions.sql
-  file, replace the relative path with the absolute install path on
-  "make install" instead of having it replaced when generating the .sql
-  file from a .sql.in template on "make" time 
-
-* install all the .php / website helper files on "make install"
-
-* document changes on http://wiki.openstreetmap.org/wiki/Nominatim/Installation
-  and regenerate gazeteer/README.txt from it
-
-* install gazeteer/README.txt on "make install" ?
