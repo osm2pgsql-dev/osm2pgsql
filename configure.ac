@@ -82,16 +82,11 @@ AM_CONDITIONAL([READER_PBF], [test "$BUILD_READER_PBF" = "yes"])
 
 dnl Check for PostgresSQL client library
 AX_LIB_POSTGRESQL
-if test -f $POSTGRESQL_PGXS
-then
-  GAZETTEER_SUBDIR=gazetteer
-fi
-AC_SUBST([GAZETTEER_SUBDIR])
 
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
 
 dnl Generate Makefile
-AC_OUTPUT(Makefile legacy/Makefile gazetteer/Makefile)
+AC_OUTPUT(Makefile legacy/Makefile)
 

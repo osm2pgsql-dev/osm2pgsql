@@ -1,7 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 
-DIST_SUBDIRS = legacy gazetteer
-SUBDIRS = $(GAZETTEER_SUBDIR)
+DIST_SUBDIRS = legacy
 
 bin_PROGRAMS = osm2pgsql
 
