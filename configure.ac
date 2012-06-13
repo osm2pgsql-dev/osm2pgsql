@@ -30,6 +30,14 @@ AC_PROG_CXX
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
 
+dnl optional 64bit ID mode
+AC_ARG_ENABLE([64bit-ids],
+    AS_HELP_STRING([--enable-64bit-ids], [Enable 64bit IDs for OSM IDs]))
+AS_IF([test "x$enable_64bit_ids" = "xyes"], [
+  AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])
+])
+
+
 dnl Check for libxml2 library
 AX_LIB_XML2
 if test "$HAVE_XML2" = "no" 
