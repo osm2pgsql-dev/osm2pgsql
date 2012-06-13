@@ -5,9 +5,9 @@
 
 #include <inttypes.h>
 #include <time.h>
+#include <config.h>
 
-// uncomment the following to build a version that supports 64bit IDs.
-// #define OSMID64
+// Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs.
 
 #ifdef OSMID64
 typedef int64_t osmid_t;
