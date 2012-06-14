@@ -75,7 +75,7 @@ AC_DEFUN([AX_LIB_GEOS],
         fi
 
         if test ! -x "$GEOS_CONFIG"; then
-            AC_MSG_ERROR([$GEOS_CONFIG does not exist or it is not an exectuable file])
+            AC_MSG_ERROR([${GEOS_CONFIG:-geos-config} does not exist or it is not an exectuable file])
             GEOS_CONFIG="no"
             found_geos="no"
         fi
@@ -88,6 +88,13 @@ AC_DEFUN([AX_LIB_GEOS],
             GEOS_LIBS="`$GEOS_CONFIG --libs`"
 
             GEOS_VERSION=`$GEOS_CONFIG --version`
+
+            dnl Headers are in a different package in Debian, so check again.
+            CPPFLAGS="$CPPFLAGS $GEOS_CFLAGS"
+            AC_CHECK_HEADER([geos/version.h], [],
+                             [AC_MSG_ERROR([development headers for geos not found])])
+            echo $ac_save_CPPFLAGS
+            CPPFLAGS="$ac_save_CPPFLAGS"
 
             AC_DEFINE([HAVE_GEOS], [1],
                 [Define to 1 if geos libraries are available])
