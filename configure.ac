@@ -61,9 +61,9 @@ fi
 
 dnl Check for Geos library
 AX_LIB_GEOS
-if test "$HAVE_GEOS" = "no" 
+if test "x$GEOS_VERSION" = "x" 
 then
-  AC_MSG_ERROR([required library not found]);
+  AC_MSG_ERROR([geos library not found]);
 fi
 
 dnl Check for Proj library
@@ -90,6 +90,11 @@ AM_CONDITIONAL([READER_PBF], [test "$BUILD_READER_PBF" = "yes"])
 
 dnl Check for PostgresSQL client library
 AX_LIB_POSTGRESQL
+if test "x$POSTGRESQL_VERSION" = "x"
+then
+    AC_MSG_ERROR([postgresql client library not found])
+fi
+
 
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
