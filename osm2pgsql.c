@@ -208,13 +208,16 @@ static void long_usage(char *arg0)
     printf("                      \t\tsparse: caching strategy optimised for small extracts\n");
     printf("                      \t\toptimized: automatically combines dense and sparse strategies for optimal storage efficiency.\n");
     printf("                      \t\t           optimized may use twice as much virtual memory, but no more physical memory\n");
+
 #ifdef __amd64__
     printf("                      \t\t   The default is \"optimized\"\n");
 #else
     /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
     printf("                      \t\t   The default is \"chunked\"\n");
 #endif
-
+    printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
+    printf("                  \t\tThis file is a single > 16Gb large file. This method is only recomended for full planet imports\n");
+    printf("                   \t\tas it doesn't work well with small extracts. The default is disabled\n");
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
     printf("\n");
@@ -348,6 +351,7 @@ int main(int argc, char *argv[])
     int hstore_match_only = 0;
     int enable_multi = 0;
     int parallel_indexing = 1;
+    int flat_node_cache_enabled = 0;
 #ifdef __amd64__
     int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
 #else
@@ -373,6 +377,7 @@ int main(int argc, char *argv[])
     const char *output_backend = "pgsql";
     const char *input_reader = "auto";
     const char **hstore_columns = NULL;
+    const char *flat_nodes_file = NULL;
     int n_hstore_columns = 0;
     int keep_coastlines=0;
     int cache = 800;
@@ -427,6 +432,7 @@ int main(int argc, char *argv[])
             {"number-processes", 1, 0, 205},
             {"drop", 0, 0, 206},
             {"unlogged", 0, 0, 207},
+            {"flat-nodes",1,0,209},
             {0, 0, 0, 0}
         };
 
@@ -493,6 +499,10 @@ int main(int argc, char *argv[])
             case 205: num_procs = atoi(optarg); break;
             case 206: droptemp = 1; break;
             case 207: unlogged = 1; break;
+            case 209:
+            	flat_node_cache_enabled = 1;
+            	flat_nodes_file = optarg;
+            	break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -599,6 +609,8 @@ int main(int argc, char *argv[])
     options.num_procs = num_procs;
     options.droptemp = droptemp;
     options.unlogged = unlogged;
+    options.flat_node_cache_enabled = flat_node_cache_enabled;
+    options.flat_node_file = flat_nodes_file;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;
