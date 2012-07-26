@@ -18,9 +18,7 @@
 
 
 
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
+
 
 static int scale = 100;
 #define DOUBLE_TO_FIX(x) ((int)((x) * scale))
@@ -63,26 +61,7 @@ static int scale = 100;
  *  Reuse old block: O(log maxBlocks)
  */
 
-struct ramNode {
-#ifdef FIXED_POINT
-    int lon;
-    int lat;
-#else
-    double lon;
-    double lat;
-#endif
-};
 
-struct ramNodeID {
-    osmid_t id;
-    struct ramNode coord;
-};
-
-struct ramNodeBlock {
-    struct ramNode    *nodes;
-    int block_offset;
-    int used;
-};
 
 static int allocStrategy = ALLOC_DENSE;
 
