@@ -29,16 +29,12 @@
 #include "middle.h"
 #include "middle-pgsql.h"
 #include "output-pgsql.h"
+#include "node-persistent-cache.h"
 #include "node-ram-cache.h"
 #include "pgsql.h"
 
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
 
 static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((int)((x) * scale))
-#define FIX_TO_DOUBLE(x) (((double)x) / scale)
 
 
 
@@ -422,191 +418,38 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
     char *buffer;
 
     ram_cache_nodes_set( id, lat, lon, tags );
-    if( node_table->copyMode )
-    {
-      char *tag_buf = pgsql_store_tags(tags,1);
-      int length = strlen(tag_buf) + 64;
-      buffer = alloca( length );
-#ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, DOUBLE_TO_FIX(lat), DOUBLE_TO_FIX(lon), tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
-#else
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
-#endif
-      return pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
+
+    if (Append) {
+    	return persistent_cache_nodes_set_append(id, lat, lon);
+    } else {
+    	return persistent_cache_nodes_set_create(id, lat, lon);
     }
-    buffer = alloca(64);
-    paramValues[0] = buffer;
-    paramValues[1] = paramValues[0] + sprintf( paramValues[0], "%" PRIdOSMID, id ) + 1;
-#ifdef FIXED_POINT
-    paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%d", DOUBLE_TO_FIX(lat) ) + 1;
-    sprintf( paramValues[2], "%d", DOUBLE_TO_FIX(lon) );
-#else
-    paramValues[2] = paramValues[1] + sprintf( paramValues[1], "%.10f", lat ) + 1;
-    sprintf( paramValues[2], "%.10f", lon );
-#endif
-    paramValues[3] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
-
 
 static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
-    /* Check cache first */
-    if( ram_cache_nodes_get( out, id ) == 0 )
-        return 0;
-      
-    PGresult   *res;
-    char tmp[16];
-    char const *paramValues[1];
-    PGconn *sql_conn = node_table->sql_conn;
+	/* Check cache first */
+	if( ram_cache_nodes_get( out, id ) == 0 )
+		return 0;
 
-    /* Make sure we're out of copy mode */
-    pgsql_endCopy( node_table );
-
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    paramValues[0] = tmp;
- 
-    res = pgsql_execPrepared(sql_conn, "get_node", 1, paramValues, PGRES_TUPLES_OK);
-
-    if (PQntuples(res) != 1) {
-        PQclear(res);
-        return 1;
-    } 
-
-#ifdef FIXED_POINT
-    out->lat = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 0), NULL, 10));
-    out->lon = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 1), NULL, 10));
-#else
-    out->lat = strtod(PQgetvalue(res, 0, 0), NULL);
-    out->lon = strtod(PQgetvalue(res, 0, 1), NULL);
-#endif
-    PQclear(res);
-    return 0;
+	return persistent_cache_nodes_get(out, id);
 }
 
-/* This should be made more efficient by using an IN(ARRAY[]) construct */
 static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
-    char tmp[16];
-    char *tmp2; 
-    int count, count2, countDB, countPG, i,j;
-    osmid_t id;
-    osmid_t *ndidspg;
-    struct osmNode *nodespg;
-    struct osmNode *nodes2;
-    char const *paramValues[1]; 
-
-    PGresult *res;
-    PGconn *sql_conn = node_table->sql_conn;
-    
-    count = 0; countDB = 0;
-
-    tmp2 = malloc(sizeof(char)*nd_count*16);
-    if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
-
-    /* create a list of ids in tmp2 to query the database  */
-    snprintf(tmp2, sizeof(tmp2), "{");
-    for( i=0; i<nd_count; i++ ) {
-        /* Check cache first */ 
-        if( ram_cache_nodes_get( &nodes[i], ndids[i]) == 0 ) {
-            count++;
-            continue;
-        }
-        countDB++;
-        /* Mark nodes as needing to be fetched from the DB */
-        nodes[i].lat = NAN;
-        nodes[i].lon = NAN;
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
-        strcat(tmp2,tmp);
-    }
-    tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
- 
-    if (countDB == 0) {
-        free(tmp2);
-        return count; /* All ids where in cache, so nothing more to do */
-    }
- 
-    pgsql_endCopy(node_table); 
-
-    paramValues[0] = tmp2;  
-    res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
-    countPG = PQntuples(res);
-
-    ndidspg = malloc(sizeof(osmid_t)*countPG);
-    nodespg = malloc(sizeof(struct osmNode)*countPG);
-
-    if ((ndidspg == NULL) || (nodespg == NULL)) {
-        free(tmp2);
-        free(ndidspg);
-        free(nodespg);
-        PQclear(res);
-        return 0;
-    }
-
-    for (i = 0; i < countPG; i++) {
-        ndidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
-#ifdef FIXED_POINT 
-        nodespg[i].lat = FIX_TO_DOUBLE(strtol(PQgetvalue(res, i, 1), NULL, 10)); 
-        nodespg[i].lon = FIX_TO_DOUBLE(strtol(PQgetvalue(res, i, 2), NULL, 10)); 
-#else 
-        nodespg[i].lat = strtod(PQgetvalue(res, i, 1), NULL); 
-        nodespg[i].lon = strtod(PQgetvalue(res, i, 2), NULL); 
-#endif 
-    }
- 
- 
-    /* The list of results coming back from the db is in a different order to the list of nodes in the way.
-       Match the results back to the way node list */
-   
-    for (i=0; i<nd_count; i++ )	{
-        if ((isnan(nodes[i].lat)) || (isnan(nodes[i].lon))) {
-            /* TODO: implement an O(log(n)) algorithm to match node ids */
-            for (j = 0; j < countPG; j++) {
-                if (ndidspg[j] == ndids[i]) {
-                    nodes[i].lat = nodespg[j].lat;
-                    nodes[i].lon = nodespg[j].lon;
-                    count++;
-                    break;
-                }
-            }
-        }
-    }
-
-    /* If some of the nodes in the way don't exist, the returning list has holes.
-       As the rest of the code expects a continous list, it needs to be re-compacted */
-    if (count != nd_count) {
-        j = 0;
-        for (i = 0; i < nd_count; i++) {
-            if ( !isnan(nodes[i].lat)) {
-                nodes[j].lat = nodes[i].lat;
-                nodes[j].lon = nodes[i].lon;
-                j++;
-            }
-         }
-    }
-
-    PQclear(res);
-    free(tmp2);
-    free(ndidspg);
-    free(nodespg);
-
-    return count;
+	int count = 0, i;
+	for( i=0; i<nd_count; i++ )
+	{
+		if( pgsql_nodes_get( &nodes[count], ndids[i] ) == 0 )
+			count++;
+	}
+	return count;
 }
 
 static int pgsql_nodes_delete(osmid_t osm_id)
 {
-    char const *paramValues[1];
-    char buffer[64];
-    /* Make sure we're out of copy mode */
-    pgsql_endCopy( node_table );
-    
-    sprintf( buffer, "%" PRIdOSMID, osm_id );
-    paramValues[0] = buffer;
-    pgsql_execPrepared(node_table->sql_conn, "delete_node", 1, paramValues, PGRES_COMMAND_OK );
-    return 0;
+	return persistent_cache_nodes_set_append(osm_id, 0.0/0.0, 0.0/0.0);
 }
 
 static int pgsql_node_changed(osmid_t osm_id)
@@ -1204,6 +1047,11 @@ static int pgsql_start(const struct output_options *options)
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
     
+    init_node_persistent_cache(Append, scale);
+
+
+
+    /* Setup the postgress tables for ways and relations  */
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
@@ -1401,6 +1249,8 @@ static void pgsql_stop(void)
 #endif
 
     free_node_ram_cache();
+
+    shutdown_node_persistent_cache();
 
 #ifdef HAVE_PTHREAD
     for (i=0; i<num_tables; i++) {
