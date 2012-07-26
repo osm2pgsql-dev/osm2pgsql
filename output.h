@@ -50,6 +50,8 @@ struct output_options {
   int droptemp; /* drop slim mode temp tables after act */
   int unlogged; /* use unlogged tables where possible */
   int hstore_match_only; /* only copy rows that match an explicitly listed key */
+  int flat_node_cache_enabled;
+  const char *flat_node_file;
 };
 
 struct output_t {
