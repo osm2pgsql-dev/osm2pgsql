@@ -227,6 +227,10 @@ static void persistent_cache_expand_cache(osmid_t block_offset)
     wait_for_outstanding_io();
     struct ramNode * dummyNodes = malloc(
             READ_NODE_BLOCK_SIZE * sizeof(struct ramNode));
+    if (!dummyNodes) {
+        fprintf(stderr, "Out of memory: Could not allocate node structure during cache expansion\n");
+        exit_nicely();
+    }
     ramNodes_clear(dummyNodes, READ_NODE_BLOCK_SIZE);
     //Need to expand the persistent node cache
     lseek64(node_cache_fd,
@@ -605,6 +609,10 @@ void init_node_persistent_cache(const struct output_options *options, int append
     fprintf(stderr, "Mid: loading persistent node cache from %s\n",
             node_cache_fname);
     inflight_iops = calloc(sizeof(struct aiops), 128);
+    if (!inflight_iops) {
+        fprintf(stderr, "Out of memory: Failed to allocate space for async IO operations\n");
+        exit_nicely();
+    }
     readNodeBlockCacheIdx = init_search_array(READ_NODE_CACHE_SIZE);
     inflightIOPSIdx = init_search_array(128);
     /* Setup the file for the node position cache */
@@ -652,6 +660,10 @@ void init_node_persistent_cache(const struct output_options *options, int append
             fprintf(stderr, "Allocated space for persistent node cache file\n");
             writeNodeBlock.nodes = malloc(
                     WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode));
+            if (!writeNodeBlock.nodes) {
+                fprintf(stderr, "Out of memory: Failed to allocate node writeout buffer\n");
+                exit_nicely();
+            }
             ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
             writeNodeBlock.block_offset = 0;
             writeNodeBlock.used = 0;
@@ -695,10 +707,18 @@ void init_node_persistent_cache(const struct output_options *options, int append
 
     readNodeBlockCache = malloc(
             READ_NODE_CACHE_SIZE * sizeof(struct ramNodeBlock));
+    if (!readNodeBlockCache) {
+        fprintf(stderr, "Out of memory: Failed to allocate node read cache\n");
+        exit_nicely();
+    }
     for (i = 0; i < READ_NODE_CACHE_SIZE; i++)
     {
         readNodeBlockCache[i].nodes = malloc(
                 READ_NODE_BLOCK_SIZE * sizeof(struct ramNode));
+        if (!readNodeBlockCache[i].nodes) {
+            fprintf(stderr, "Out of memory: Failed to allocate node read cache\n");
+            exit_nicely();
+        }
         readNodeBlockCache[i].block_offset = -1;
         readNodeBlockCache[i].used = 0;
         readNodeBlockCache[i].dirty = 0;

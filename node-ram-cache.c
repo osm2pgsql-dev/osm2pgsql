@@ -367,6 +367,10 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");
         blocks = calloc(NUM_BLOCKS,sizeof(struct ramNodeBlock));
+        if (!blocks) {
+            fprintf(stderr, "Out of memory for node cache dense index, try using \"--cache-strategy sparse\" instead \n");
+            exit_nicely();
+        }
         queue = calloc( maxBlocks,sizeof(struct ramNodeBlock) );
         /* Use this method of allocation if virtual memory is limited,
          * or if OS allocs physical memory right away, rather than page by page
