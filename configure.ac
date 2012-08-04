@@ -26,6 +26,11 @@ AC_PROG_CC_C99
 
 dnl Find C++ compiler
 AC_PROG_CXX
+AC_CHECK_PROG(HAVE_CXX, $CXX, yes, no)
+if test "$HAVE_CXX" = "no" 
+then
+  AC_MSG_ERROR([Could not find a c++ compiler]);
+fi
 
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
