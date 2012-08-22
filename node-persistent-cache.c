@@ -40,6 +40,7 @@ struct aiops
 
 static int scale;
 static int cache_already_written = 0;
+static int use_async_io = 0;
 int no_inflight_iops = 0;
 struct aiops * inflight_iops;
 
@@ -565,12 +566,14 @@ int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
     if (count == nd_count)
         return count;
 
-    for (i = 0; i < nd_count; i++)
-    {
-        if (isnan(nodes[i].lat) && isnan(nodes[i].lon))
-            persistent_cache_nodes_prefetch_async(ndids[i]);
+    if (use_async_io) {
+        for (i = 0; i < nd_count; i++)
+        {
+            if (isnan(nodes[i].lat) && isnan(nodes[i].lon))
+                persistent_cache_nodes_prefetch_async(ndids[i]);
+        }
+        wait_for_outstanding_io();
     }
-    wait_for_outstanding_io();
     for (i = 0; i < nd_count; i++)
     {
         if ((isnan(nodes[i].lat) && isnan(nodes[i].lon))
@@ -600,14 +603,17 @@ int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
     return count;
 }
 
-void init_node_persistent_cache(const struct output_options *options, int append)
+void init_node_persistent_cache(const struct output_options *options, int append, int enable_async_io)
 {
     int i;
     scale = options->scale;
     append_mode = append;
     node_cache_fname = options->flat_node_file;
+    use_async_io = enable_async_io;
     fprintf(stderr, "Mid: loading persistent node cache from %s\n",
             node_cache_fname);
+    if (use_async_io) fprintf(stderr, "Mid: using async I/O for persistent node cache\n");
+    else fprintf(stderr, "Mid: not using async I/O for persistent node cache\n");
     inflight_iops = calloc(sizeof(struct aiops), 128);
     if (!inflight_iops) {
         fprintf(stderr, "Out of memory: Failed to allocate space for async IO operations\n");
