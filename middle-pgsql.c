@@ -22,6 +22,9 @@
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif 
+#ifdef HAVE_MMAP
+#include <sys/mman.h>
+#endif 
 
 #include <libpq-fe.h>
 
@@ -35,6 +38,12 @@
 
 static int scale = 100;
 
+struct progress_info {
+  time_t start;
+  time_t end;
+  int count;
+  int finished;
+};
 
 enum table_id {
     t_node, t_way, t_rel
@@ -740,6 +749,11 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 
     time_t start, end;
     time(&start);
+#if HAVE_MMAP
+    struct progress_info *info = 0;
+    if(noProcs > 1)
+        info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+#endif
     fprintf(stderr, "\nGoing over pending ways\n");
 
     /* Make sure we're out of copy mode */
@@ -801,8 +815,34 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 
         if (count++ %1000 == 0) {
             time(&end);
-            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
-            (int)(end - start) > 0 ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+#if HAVE_MMAP
+            if(info)
+            {
+                double rate = 0;
+                int n, total = 0, finished = 0;
+                struct progress_info f;
+
+                f.start = start;
+                f.end = end;
+                f.count = count;
+                f.finished = 0;
+                info[p] = f;
+                for(n = 0; n < noProcs; ++n)
+                {
+                    f = info[n];
+                    total += f.count;
+                    finished += f.finished;
+                    if(f.end > f.start)
+                        rate += (double)f.count / (double)(f.end - f.start);
+                }
+                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0), finished, noProcs;
+            }
+            else
+#endif
+            {
+                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
+                end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+            }
         }
 
         initList(&tags);
@@ -822,7 +862,18 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     }
 
     time(&end);
-    fprintf(stderr, "\nProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
+#if HAVE_MMAP
+    if(info)
+    {
+        struct progress_info f;
+        f.start = start;
+        f.end = end;
+        f.count = count;
+        f.finished = 1;
+        info[p] = f;
+    }
+#endif
+    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
@@ -834,7 +885,10 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         fprintf(stderr, "\nAll child processes exited\n");
     }
 
-    
+#if HAVE_MMAP
+    munmap(info, sizeof(struct progress_info)*noProcs);
+#endif
+
     fprintf(stderr, "\n");
     time(&end);
     if (end - start > 0)
@@ -1014,6 +1068,11 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
     time_t start, end;
     time(&start);
+#if HAVE_MMAP
+    struct progress_info *info = 0;
+    if(noProcs > 1)
+        info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+#endif
     fprintf(stderr, "\nGoing over pending relations\n");
 
     /* Make sure we're out of copy mode */
@@ -1051,8 +1110,34 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
         if (count++ %10 == 0) {
             time(&end);
-            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
-                    (int)(end - start) > 0 ? ((double)count / (double)(end - start)) : 0);
+#if HAVE_MMAP
+            if(info)
+            {
+                double rate = 0;
+                int n, total = 0, finished = 0;
+                struct progress_info f;
+
+                f.start = start;
+                f.end = end;
+                f.count = count;
+                f.finished = 0;
+                info[p] = f;
+                for(n = 0; n < noProcs; ++n)
+                {
+                    f = info[n];
+                    total += f.count;
+                    finished += f.finished;
+                    if(f.end > f.start)
+                        rate += (double)f.count / (double)(f.end - f.start);
+                }
+                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s (done %d of %d)", total, rate, finished, noProcs);
+            }
+            else
+#endif
+            {
+                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
+                        end > start ? ((double)count / (double)(end - start)) : 0);
+            }
         }
 
         initList(&tags);
@@ -1066,7 +1151,18 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         resetList(&tags);
     }
     time(&end);
-    fprintf(stderr, "\nProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
+#if HAVE_MMAP
+    if(info)
+    {
+        struct progress_info f;
+        f.start = start;
+        f.end = end;
+        f.count = count;
+        f.finished = 1;
+        info[p] = f;
+    }
+#endif
+    fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
@@ -1078,6 +1174,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         fprintf(stderr, "\nAll child processes exited\n");
     }
 
+#if HAVE_MMAP
+    munmap(info, sizeof(struct progress_info)*noProcs);
+#endif
     time(&end);
     if (end - start > 0)
         fprintf(stderr, "%i Pending relations took %ds at a rate of %.2f/s\n",PQntuples(res_rels), (int)(end - start), ((double)PQntuples(res_rels) / (double)(end - start)));

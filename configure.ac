@@ -20,6 +20,7 @@ dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
 AC_HEADER_SYS_WAIT
+AC_FUNC_MMAP
 
 dnl Find C compiler
 AC_PROG_CC_C99
