@@ -754,7 +754,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     if(noProcs > 1)
         info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 #endif
-    fprintf(stderr, "\nGoing over pending ways\n");
+    fprintf(stderr, "\nGoing over pending ways...\n");
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
@@ -762,6 +762,8 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
 
     res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
+
+    fprintf(stderr, "\t%i ways are pending\n", PQntuples(res_ways));
 
     
     /**
@@ -835,7 +837,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
                     if(f.end > f.start)
                         rate += (double)f.count / (double)(f.end - f.start);
                 }
-                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0), finished, noProcs;
+                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0, finished, noProcs);
             }
             else
 #endif
@@ -1073,7 +1075,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     if(noProcs > 1)
         info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
 #endif
-    fprintf(stderr, "\nGoing over pending relations\n");
+    fprintf(stderr, "\nGoing over pending relations...\n");
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
@@ -1081,6 +1083,8 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
 
     res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
+
+    fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
 
     fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
     for (p = 1; p < noProcs; p++) {
