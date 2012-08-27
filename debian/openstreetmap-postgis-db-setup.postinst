@@ -23,10 +23,14 @@ case "$1" in
 	#echo "GRANT_USER='$GRANT_USER' " >> /etc/default/openstreetmap-mapnik-data
 	#echo "INIT_DB='$INIT_DB' " >> /etc/default/openstreetmap-mapnik-data
 
-	if [ "x$INIT_DB" = "xtrue" ] ; then
-        export DBNAME GRANT_USER
-	    /usr/bin/install-postgis-osm-db.sh || true
-	fi
+    # only call the install postgis script on the first configuration
+    # we don't want to delete and recreate the db on upgrades of osm2pgsql
+    if [ -z "$2" ] ; then
+	    if [ "x$INIT_DB" = "xtrue" ] ; then
+            export DBNAME GRANT_USER
+	        /usr/bin/install-postgis-osm-db.sh || true
+	    fi
+    fi
 	true
 	;;
     

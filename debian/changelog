@@ -1,3 +1,54 @@
+osm2pgsql (0.80.0-13~precise1) precise; urgency=low
+
+  * Update from upstream to svn version 28638
+    - Implement a file based node lookup in slim mode
+    - fix segfault if out of memory
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sun, 26 Aug 2012 10:00:00 +0000
+
+osm2pgsql (0.80.0-12~precise1) precise; urgency=low
+
+  * Update from upstream to svn version 28406
+
+ -- Kai Krueger <kakrueger@gmail.com>  Thu, 24 May 2012 10:00:00 +0000
+
+osm2pgsql (0.80.0-11~precise1) precise; urgency=low
+
+  * Be less agressive on tile expiry
+  * Fix gazeteer
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sat, 14 Jan 2012 10:00:00 +0000
+
+osm2pgsql (0.80.0-10~lucid1) lucid; urgency=low
+
+  * Improve handling of multiple processes. Gracefully fallback if creating of helper processes fails
+  * Improve speed when fsync is enabled
+  * Fix expiry code when using multiple processes
+  * Introduce a --drop option, if updating is not needed but using --slim for memory saving purposes
+  * Create an additional index on planet_osm_polygon to improve rendering speed
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sun, 18 Dec 2011 10:00:00 +0000
+
+osm2pgsql (0.80.0-9~lucid1) lucid; urgency=low
+
+  * Bugfix: incorrectly round lat / lon to 2 s.f. in -l projection
+  * Reduce virtual memory usage to reduce chance of out of memory errors
+
+ -- Kai Krueger <kakrueger@gmail.com>  Thu, 3 Nov 2011 10:00:00 +0000
+
+osm2pgsql (0.80.0-8~oneiric1) oneiric; urgency=low
+
+  * Bugfix: Did not handle cache values larger than 2Gb correctly
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sat, 22 Oct 2011 10:00:00 +0000
+
+osm2pgsql (0.80.0-7~natty2) natty; urgency=low
+
+  * Memory optimize the node cache to handle larger extracts
+  * parallelize parts of the import and diff processing
+
+ -- Kai Krueger <kakrueger@gmail.com>  Sun, 16 Oct 2011 10:00:00 +0000
+
 osm2pgsql (0.80.0-6~oneiric1) oneiric; urgency=low
 
   * Add a script to add permissions to a db afterwards
@@ -5,7 +56,6 @@ osm2pgsql (0.80.0-6~oneiric1) oneiric; urgency=low
   * Handle postgresql 9.1
 
  -- Kai Krueger <kakrueger@gmail.com>  Sun, 09 Oct 2011 10:00:00 +0000
-
 
 osm2pgsql (0.80.0-5~oneiric1) oneiric; urgency=low
 

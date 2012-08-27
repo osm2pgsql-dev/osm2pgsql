@@ -3,11 +3,11 @@ Section: utils
 Priority: optional
 Maintainer: Frederik Ramm <frederik@remote.org>
 Build-Depends: debhelper (>= 7), libgeos-dev, libxml2-dev, libpq-dev, proj | libproj0, libbz2-dev, automake, autoconf, libtool, protobuf-c-compiler, libprotobuf-c0-dev
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 
 Package: osm2pgsql
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, libgeos-3.2.0 | libgeos-3.2.2, libxml2, libpq5, libprotobuf-c0
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Recommends: postgresql, postgresql-8.4-postgis | postgresql-9.1-postgis, openstreetmap-postgis-db-setup
 Conflicts:  openstreetmap-utils
 Description: Openstreetmap data to PostgreSQL converter
