@@ -1,5 +1,7 @@
 #define _LARGEFILE64_SOURCE     /* See feature_test_macrors(7) */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,13 +13,23 @@
 #include <fcntl.h>
 #include <math.h>
 
+#ifdef HAVE_AIO
 #include <aio.h>
+#endif
 
 #include "osmtypes.h"
 #include "output.h"
 #include "node-persistent-cache.h"
 #include "node-ram-cache.h"
 #include "binarysearcharray.h"
+
+#ifndef HAVE_LSEEK64
+#if SIZEOF_OFF_T == 8
+#define lseek64 lseek
+#else
+#error Flat nodes cache requires a 64 bit capable seek
+#endif
+#endif
 
 static int node_cache_fd;
 static const char * node_cache_fname;
@@ -29,26 +41,28 @@ static struct ramNodeBlock * readNodeBlockCache;
 static struct binary_search_array * readNodeBlockCacheIdx;
 static struct binary_search_array * inflightIOPSIdx;
 
-
-
+#ifdef HAVE_AIO
 struct aiops
 {
     struct aiocb64 * iops;
     int block_id;
     osmid_t block_offset;
 };
+struct aiops * inflight_iops;
+int no_inflight_iops = 0;
+#endif
+
 
 static int scale;
 static int cache_already_written = 0;
 static int use_async_io = 0;
-int no_inflight_iops = 0;
-struct aiops * inflight_iops;
 
 /**
  * Function blocks until all outstanding async I/O has completed
  */
 static void wait_for_outstanding_io()
 {
+#ifdef HAVE_AIO
     int i;
     int allfinished = 0;
 
@@ -101,7 +115,9 @@ static void wait_for_outstanding_io()
             }
         }
     }
+#endif
 }
+
 
 static void writeout_dirty_nodes(osmid_t id)
 {
@@ -263,8 +279,10 @@ static void persistent_cache_expand_cache(osmid_t block_offset)
     fsync(node_cache_fd);
 }
 
+
 static void persistent_cache_nodes_prefetch_async(osmid_t id)
 {
+#ifdef HAVE_AIO
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
     osmid_t block_id = persistent_cache_find_block(block_offset);
@@ -332,7 +350,9 @@ static void persistent_cache_nodes_prefetch_async(osmid_t id)
         aio_read64(inflight_iops[no_inflight_iops].iops);
         no_inflight_iops++;
     }
+#endif
 }
+
 
 /**
  * Load block offset in a synchronous way.
@@ -614,13 +634,16 @@ void init_node_persistent_cache(const struct output_options *options, int append
             node_cache_fname);
     if (use_async_io) fprintf(stderr, "Mid: using async I/O for persistent node cache\n");
     else fprintf(stderr, "Mid: not using async I/O for persistent node cache\n");
+#ifdef HAVE_AIO
     inflight_iops = calloc(sizeof(struct aiops), 128);
     if (!inflight_iops) {
         fprintf(stderr, "Out of memory: Failed to allocate space for async IO operations\n");
         exit_nicely();
     }
-    readNodeBlockCacheIdx = init_search_array(READ_NODE_CACHE_SIZE);
     inflightIOPSIdx = init_search_array(128);
+#endif
+    readNodeBlockCacheIdx = init_search_array(READ_NODE_CACHE_SIZE);
+    
     /* Setup the file for the node position cache */
     if (append_mode)
     {
@@ -654,6 +677,7 @@ void init_node_persistent_cache(const struct output_options *options, int append
         if (cache_already_written == 0)
         {
 
+            #ifdef HAVE_POSIX_FALLOCATE
             if (posix_fallocate(node_cache_fd, 0,
                     sizeof(struct ramNode) * MAXIMUM_INITIAL_ID) != 0)
             {
@@ -664,6 +688,7 @@ void init_node_persistent_cache(const struct output_options *options, int append
                 exit_nicely();
             }
             fprintf(stderr, "Allocated space for persistent node cache file\n");
+            #endif
             writeNodeBlock.nodes = malloc(
                     WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode));
             if (!writeNodeBlock.nodes) {

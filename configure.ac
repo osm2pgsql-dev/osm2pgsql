@@ -36,6 +36,13 @@ fi
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
 
+AC_CHECK_HEADERS([aio.h])
+AC_CHECK_FUNC(lseek64,[AC_DEFINE(HAVE_LSEEK64, [1], [lseek64 is present])],[AX_COMPILE_CHECK_SIZEOF(off_t)])
+AC_CHECK_FUNCS([posix_fallocate])
+
+dnl Check for librt which we need for Asynch IO
+AC_SEARCH_LIBS([aio_read64], [aio rt posix4], [AC_DEFINE(HAVE_AIO, [1], [AIO is present])])
+
 dnl optional 64bit ID mode
 AC_ARG_ENABLE([64bit-ids],
     AS_HELP_STRING([--enable-64bit-ids], [Enable 64bit IDs for OSM IDs]))
@@ -104,10 +111,6 @@ fi
 
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
-
-dnl Check for librt which we need for Asynch IO
-AC_CHECK_LIB(rt, aio_read, [AIOLIB="-lrt"])
-AC_SUBST(AIOLIB)
 
 
 dnl Generate Makefile
