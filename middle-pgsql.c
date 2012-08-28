@@ -19,11 +19,18 @@
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 #endif
+
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif 
+
 #ifdef HAVE_MMAP
 #include <sys/mman.h>
+#ifndef  MAP_ANONYMOUS
+#ifdef MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+#endif
 #endif 
 
 #include <libpq-fe.h>
