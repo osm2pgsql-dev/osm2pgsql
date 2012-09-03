@@ -815,7 +815,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                 /* ... but if hstore_match_only is set then don't take this 
                    as a reason for keeping the object */
                 if (!Options->hstore_match_only) filter = 0;
-            } if (Options->n_hstore_columns) {
+            } else if (Options->n_hstore_columns) {
                 /* does this column match any of the hstore column prefixes? */
                 int j;
                 for (j = 0; j < Options->n_hstore_columns; j++) {
