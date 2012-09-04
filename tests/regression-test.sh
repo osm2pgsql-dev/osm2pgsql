@@ -10,6 +10,7 @@ errorhandler(){
 
 planetfile=$1
 planetdiff=$2
+test_output=`dirname  $0`/test_output_$$
 
 function setup_db {
     echo ""
@@ -30,8 +31,27 @@ function teardown_db {
     dropdb osm2pgsql-test #To remove any objects that might still be in the table space
     psql -c "DROP TABLESPACE tablespacetest" -d postgres
     sudo rm -rf /tmp/psql-tablespace
+    rm -f $test_output $test_output.*
     dropdb osm2pgsql-test
 
+}
+
+function psql_test {
+    ( echo -n "$1"; psql -c "$2" -t -d osm2pgsql-test ) | tee -a $test_output.tmp
+}
+
+function reset_results {
+    rm -f $test_output $test_output.*
+}
+
+function compare_results {
+    if [ ! -r $test_output ]; then
+        mv $test_output.tmp $test_output
+    elif diff $test_output $test_output.tmp >/dev/null; then
+        rm $test_output.tmp
+    else
+        errorhandler
+    fi
 }
 
 function test_osm2pgsql_slim {
@@ -44,38 +64,26 @@ function test_osm2pgsql_slim {
     dbprefix=${2:-planet_osm}
 
     ./osm2pgsql --slim --create -d osm2pgsql-test $1 $planetfile
-    echo -n "Number of points imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_point;" -t -d osm2pgsql-test || true
-    echo -n "Number of lines imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_line;" -t -d osm2pgsql-test || true
-    echo -n "Number of roads imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_roads;" -t -d osm2pgsql-test || true
-    echo -n "Number of polygon imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_polygon;" -t -d osm2pgsql-test || true
-    echo -n "Number of nodes imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_nodes;" -t -d osm2pgsql-test || true
-    echo -n "Number of ways imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_ways;" -t -d osm2pgsql-test || true
-    echo -n "Number of relations imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_rels;" -t -d osm2pgsql-test || true
+    psql_test "Number of points imported" "SELECT count(*) FROM ${dbprefix}_point;"
+    psql_test "Number of lines imported" "SELECT count(*) FROM ${dbprefix}_line;"
+    psql_test "Number of roads imported" "SELECT count(*) FROM ${dbprefix}_roads;"
+    psql_test "Number of polygon imported" "SELECT count(*) FROM ${dbprefix}_polygon;"
+    psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
+    psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
+    psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
 
     echo "***Testing osm2pgsql diff import with the following parameters: \"" $1 "\"***"
     ./osm2pgsql --slim --append -d osm2pgsql-test $1 $planetdiff
-    echo -n "Number of points imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_point;" -t -d osm2pgsql-test || true
-    echo -n "Number of lines imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_line;" -t -d osm2pgsql-test || true
-    echo -n "Number of roads imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_roads;" -t -d osm2pgsql-test || true
-    echo -n "Number of polygon imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_polygon;" -t -d osm2pgsql-test || true
-    echo -n "Number of nodes imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_nodes;" -t -d osm2pgsql-test || true
-    echo -n "Number of ways imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_ways;" -t -d osm2pgsql-test || true
-    echo -n "Number of relations imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_rels;" -t -d osm2pgsql-test || true
+    psql_test "Number of points imported" "SELECT count(*) FROM ${dbprefix}_point;"
+    psql_test "Number of lines imported" "SELECT count(*) FROM ${dbprefix}_line;"
+    psql_test "Number of roads imported" "SELECT count(*) FROM ${dbprefix}_roads;"
+    psql_test "Number of polygon imported" "SELECT count(*) FROM ${dbprefix}_polygon;"
+    psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
+    psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
+    psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
+    compare_results
 }
+
 function test_osm2pgsql_gazetteer {
     trap errorhandler ERR
     echo ""
@@ -86,25 +94,18 @@ function test_osm2pgsql_gazetteer {
     dbprefix=${2:-planet_osm}
 
     ./osm2pgsql --slim --create -l -O gazetteer -d osm2pgsql-test $1 $planetfile
-    echo -n "Number of places imported"
-    psql -c "SELECT count(*) FROM place;" -t -d osm2pgsql-test || true
-    echo -n "Number of nodes imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_nodes;" -t -d osm2pgsql-test || true
-    echo -n "Number of ways imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_ways;" -t -d osm2pgsql-test || true
-    echo -n "Number of relations imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_rels;" -t -d osm2pgsql-test || true
+    psql_test "Number of places imported" "SELECT count(*) FROM place;"
+    psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
+    psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
+    psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
 
     echo "***Testing osm2pgsql diff import with the following parameters: \"" $1 "\"***"
     ./osm2pgsql --slim --append -l -O gazetteer -d osm2pgsql-test $1 $planetdiff
-    echo -n "Number of places imported"
-    psql -c "SELECT count(*) FROM place;" -t -d osm2pgsql-test || true
-    echo -n "Number of nodes imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_nodes;" -t -d osm2pgsql-test || true
-    echo -n "Number of ways imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_ways;" -t -d osm2pgsql-test || true
-    echo -n "Number of relations imported"
-    psql -c "SELECT count(*) FROM ${dbprefix}_rels;" -t -d osm2pgsql-test || true
+    psql_test "Number of places imported" "SELECT count(*) FROM place;"
+    psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
+    psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
+    psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
+    compare_results
 }
 
 function test_osm2pgsql_nonslim {
@@ -114,20 +115,22 @@ function test_osm2pgsql_nonslim {
     echo "@@@Testing osm2pgsql with the following parameters: \"" $1 "\"@@@"
     setup_db
     ./osm2pgsql --create -d osm2pgsql-test $1 $planetfile
-    echo -n "Number of points imported"
-    psql -c "SELECT count(*) FROM planet_osm_point;" -t -d osm2pgsql-test
-    echo -n "Number of lines imported"
-    psql -c "SELECT count(*) FROM planet_osm_line;" -t -d osm2pgsql-test
-    echo -n "Number of roads imported"
-    psql -c "SELECT count(*) FROM planet_osm_roads;" -t -d osm2pgsql-test
-    echo -n "Number of polygon imported"
-    psql -c "SELECT count(*) FROM planet_osm_polygon;" -t -d osm2pgsql-test
+    psql_test "Number of points imported" "SELECT count(*) FROM planet_osm_point;"
+    psql_test "Number of lines imported" "SELECT count(*) FROM planet_osm_line;"
+    psql_test "Number of roads imported" "SELECT count(*) FROM planet_osm_roads;"
+    psql_test "Number of polygon imported" "SELECT count(*) FROM planet_osm_polygon;"
+    compare_results
 }
 
 
 test_osm2pgsql_nonslim "-S default.style -C 100"
+test_osm2pgsql_nonslim "-S default.style -C 100"
+echo ========== OK SO FAR =============
 test_osm2pgsql_nonslim "-S default.style -l -C 100"
 test_osm2pgsql_nonslim "--slim --drop -S default.style -C 100"
+reset_results
+
+echo ========== NOW DOING SLIM =============
 test_osm2pgsql_slim "-S default.style -C 100"
 test_osm2pgsql_slim "-S default.style -l -C 100"
 test_osm2pgsql_slim "-k -S default.style -C 100"
@@ -145,9 +148,10 @@ test_osm2pgsql_slim "-S default.style -C 100 --tablespace-main-data tablespacete
 test_osm2pgsql_slim "-S default.style -C 100 --tablespace-main-index tablespacetest"
 test_osm2pgsql_slim "-S default.style -C 100 --tablespace-slim-data tablespacetest"
 test_osm2pgsql_slim "-S default.style -C 100 --tablespace-slim-index tablespacetest"
+reset_results
 
-test_osm2pgsql_gazetteer "-C 100"
-test_osm2pgsql_gazetteer "--bbox -90.0,-180.0,90.0,180.0 -C 100"
+#test_osm2pgsql_gazetteer "-C 100"
+#test_osm2pgsql_gazetteer "--bbox -90.0,-180.0,90.0,180.0 -C 100"
 
 teardown_db
 
