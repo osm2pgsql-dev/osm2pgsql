@@ -536,7 +536,7 @@ int main(int argc, char *argv[])
         unlogged = 0;
     }
 
-    if (enable_hstore == HSTORE_NONE && hstore_match_only)
+    if (enable_hstore == HSTORE_NONE && !n_hstore_columns && hstore_match_only)
     {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
         hstore_match_only = 0;
