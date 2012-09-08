@@ -89,18 +89,6 @@ void binary_search_add(struct binary_search_array * array, int key,
             array->array[idx].key = key;
             array->array[idx].value = value;
             array->size++;
-            for (i = 1; i < array->size; i++)
-            {
-                if (array->array[i - 1].key >= array->array[i].key)
-                {
-                    fprintf(stderr, "Ordering failure!\n");
-                    for (j = 0; j < array->size; j++)
-                    {
-                        fprintf(stderr, "%i\n", array->array[j - 1].key);
-                    }
-                    exit(1);
-                }
-            }
         }
         else
         {
