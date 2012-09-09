@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
 
 	if (argc > 3) {
-	    init_node_persistent_cache(&options, 1, 1);
+	    init_node_persistent_cache(&options, 1);
 		node_cnt = argc - 2;
 		nodes = malloc(sizeof(struct osmNode) * node_cnt);
 		osmids = malloc(sizeof(osmid_t) * node_cnt);
@@ -87,11 +87,7 @@ int main(int argc, char *argv[]) {
         setstate(&state);
 
 	    printf("Testing mode\n");
-	    init_node_persistent_cache(&options, 1, 0);
-	    test_get_node_list(10, 200, 0);
-	    shutdown_node_persistent_cache();
-	    printf("Testing mode Async I/O\n");
-	    init_node_persistent_cache(&options, 1, 1);
+	    init_node_persistent_cache(&options, 1);
 	    test_get_node_list(10, 200, 0);
 	    shutdown_node_persistent_cache();
 	    printf("Testing using multiple processes\n");
@@ -110,7 +106,7 @@ int main(int argc, char *argv[]) {
 	    gettimeofday(&start, NULL);
 	    initstate(start.tv_usec, &state, 8);
 	    setstate(&state);
-	    init_node_persistent_cache(&options, 1, 0);
+	    init_node_persistent_cache(&options, 1);
 	    test_get_node_list(10,200,p);
 
 	    if (pid == 0) {
@@ -126,7 +122,7 @@ int main(int argc, char *argv[]) {
 	    }
 	    fprintf(stderr, "\nAll child processes exited\n");
 	} else {
-	    init_node_persistent_cache(&options, 1, 1);
+	    init_node_persistent_cache(&options, 1);
 		if (strstr(argv[2],",") == NULL) {
 			persistent_cache_nodes_get(&node, atoi(argv[2]));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);

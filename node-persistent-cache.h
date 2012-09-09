@@ -20,5 +20,5 @@ struct persistentCacheHeader {
 int persistent_cache_nodes_set(osmid_t id, double lat, double lon);
 int persistent_cache_nodes_get(struct osmNode *out, osmid_t id);
 int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count);
-void init_node_persistent_cache(const struct output_options *options, const int append, int enable_async_io);
+void init_node_persistent_cache(const struct output_options *options, const int append);
 void shutdown_node_persistent_cache();
