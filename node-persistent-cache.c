@@ -279,6 +279,43 @@ static int persistent_cache_load_block(osmid_t block_offset)
     return block_id;
 }
 
+static void persisten_cache_nodes_set_create_writeout_block()
+{
+    if (write(node_cache_fd, writeNodeBlock.nodes,
+              WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+        < WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+    {
+        fprintf(stderr, "Failed to write out node cache: %s\n",
+                strerror(errno));
+        exit_nicely();
+    }
+#ifdef HAVE_SYNC_FILE_RANGE
+    /* writing out large files can cause trouble on some operating systems.
+     * For one, if to much dirty data is in RAM, the whole OS can stall until
+     * enough dirty data is written out which can take a while. It can also interfere
+     * with outher disk caching operations and might push things out to swap. By forcing the OS to
+     * immediately write out the data and blocking after a while, we ensure that no more
+     * than a couple of 10s of MB are dirty in RAM at a time.
+     * Secondly, the nodes are stored in an additional ram cache during import. Keeping the
+     * node cache file in buffer cache therefore duplicates the data wasting 16GB of ram.
+     * Therefore tell the OS not to cache the node-persistent-cache during initial import.
+     * */
+    sync_file_range(node_cache_fd, writeNodeBlock.block_offset*WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode) +
+                    sizeof(struct persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode),
+                    SYNC_FILE_RANGE_WRITE);
+
+    if (writeNodeBlock.block_offset > 16) {
+        sync_file_range(node_cache_fd, (writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode) +
+                        sizeof(struct persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode),
+                        SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE|SYNC_FILE_RANGE_WAIT_AFTER);
+#ifdef HAVE_POSIX_FADVISE
+        posix_fadvise(node_cache_fd, (writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode) +
+                      sizeof(struct persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode), POSIX_FADV_DONTNEED);
+#endif
+    }
+#endif
+}
+
 static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
 {
     osmid_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
@@ -291,14 +328,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
     {
         if (writeNodeBlock.dirty)
         {
-            if (write(node_cache_fd, writeNodeBlock.nodes,
-                    WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                    < WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-            {
-                fprintf(stderr, "Failed to write out node cache: %s\n",
-                        strerror(errno));
-                exit_nicely();
-            }
+            persisten_cache_nodes_set_create_writeout_block();
             writeNodeBlock.used = 0;
             writeNodeBlock.dirty = 0;
             //After writing out the node block, the file pointer is at the next block level
@@ -318,14 +348,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
         for (i = writeNodeBlock.block_offset; i < block_offset; i++)
         {
             ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
-            if (write(node_cache_fd, writeNodeBlock.nodes,
-                    WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                    < WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-            {
-                fprintf(stderr, "Failed to write out node cache: %s\n",
-                        strerror(errno));
-                exit_nicely();
-            }
+            persisten_cache_nodes_set_create_writeout_block();
         }
 
         ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
