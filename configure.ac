@@ -19,6 +19,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
+AC_GNU_SOURCE
 AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
 
@@ -37,7 +38,7 @@ dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
 
 AC_CHECK_FUNC(lseek64,[AC_DEFINE(HAVE_LSEEK64, [1], [lseek64 is present])],[AX_COMPILE_CHECK_SIZEOF(off_t)])
-AC_CHECK_FUNCS([posix_fallocate posix_fadvise])
+AC_CHECK_FUNCS([posix_fallocate posix_fadvise sync_file_range])
 
 
 dnl optional 64bit ID mode
