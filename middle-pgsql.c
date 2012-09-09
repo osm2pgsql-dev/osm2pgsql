@@ -795,7 +795,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options,1,(noProcs > 1?0:1)); //at this point we always want to be in append mode, to not delete and recreate the node cache file
+    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options,1); //at this point we always want to be in append mode, to not delete and recreate the node cache file
 
     /* Only start an extended transaction on the ways table,
      * which should cover the bulk of the update statements.
@@ -1110,7 +1110,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options, 1, (noProcs > 1?0:1)); //at this point we always want to be in append mode, to not delete and recreate the node cache file
+    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options, 1); //at this point we always want to be in append mode, to not delete and recreate the node cache file
 
     //fprintf(stderr, "\nIterating ways\n");
     for (i = p; i < PQntuples(res_rels); i+= noProcs) {
@@ -1336,7 +1336,7 @@ static int pgsql_start(const struct output_options *options)
     out_options = options;
     
     init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale);
-    if (options->flat_node_cache_enabled) init_node_persistent_cache(options, options->append, 1);
+    if (options->flat_node_cache_enabled) init_node_persistent_cache(options, options->append);
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
     
