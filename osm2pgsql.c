@@ -197,6 +197,7 @@ static void long_usage(char *arg0)
     printf("   -K|--keep-coastlines\tKeep coastline data rather than filtering it out.\n");
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
+    printf("      --exclude-invalid-polygon\n");
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
     printf("             \t\tDefault is 1\n");
     printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
@@ -360,6 +361,7 @@ int main(int argc, char *argv[])
     int num_procs = 1;
     int droptemp = 0;
     int unlogged = 0;
+    int excludepoly = 0;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -433,6 +435,7 @@ int main(int argc, char *argv[])
             {"drop", 0, 0, 206},
             {"unlogged", 0, 0, 207},
             {"flat-nodes",1,0,209},
+            {"exclude-invalid-polygon",0,0,210},
             {0, 0, 0, 0}
         };
 
@@ -503,6 +506,7 @@ int main(int argc, char *argv[])
             	flat_node_cache_enabled = 1;
             	flat_nodes_file = optarg;
             	break;
+            case 210: excludepoly = 1; exclude_broken_polygon(); break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -611,6 +615,7 @@ int main(int argc, char *argv[])
     options.unlogged = unlogged;
     options.flat_node_cache_enabled = flat_node_cache_enabled;
     options.flat_node_file = flat_nodes_file;
+    options.excludepoly = excludepoly;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;

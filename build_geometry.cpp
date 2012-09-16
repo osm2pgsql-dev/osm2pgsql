@@ -68,6 +68,7 @@ typedef std::auto_ptr<Geometry> geom_ptr;
 static std::vector<std::string> wkts;
 static std::vector<double> areas;
 
+static int excludepoly = 0;
 
 char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
     GeometryFactory gf;
@@ -87,6 +88,9 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
             std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             geom->normalize(); // Fix direction of ring
+            if (excludepoly && (geom->isValid() == 0)) {
+                return NULL;
+            }
         } else {
             if (coords->getSize() < 2)
                 return NULL;
@@ -132,6 +136,9 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
             std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             geom->normalize(); // Fix direction of ring
+            if (excludepoly && (geom->isValid() == 0)) {
+                return 0;
+            }
             area = geom->getArea();
             std::string wkt = wktw.write(geom.get());
             wkts.push_back(wkt);
@@ -475,26 +482,26 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
             if ((toplevelpolygons > 1) && enable_multi)
             {
                 std::auto_ptr<MultiPolygon> multipoly(gf.createMultiPolygon(polygons.release()));
-                //if (multipoly->isValid())
-                //{
+                if ((excludepoly == 0) || (multipoly->isValid()))
+                {
                     std::string text = writer.write(multipoly.get());
                     wkts.push_back(text);
                     areas.push_back(multipoly->getArea());
                     wkt_size++;
-                //}
+                }
             }
             else
             {
                 for(unsigned i=0; i<toplevelpolygons; i++) 
                 {
                     Polygon* poly = dynamic_cast<Polygon*>(polygons->at(i));;
-                    //if (poly->isValid())
-                    //{
+                    if ((excludepoly == 0) || (poly->isValid()))
+                    {
                         std::string text = writer.write(poly);
                         wkts.push_back(text);
                         areas.push_back(poly->getArea());
                         wkt_size++;
-                    //}
+                    }
                     delete(poly);
                 }
             }
@@ -518,4 +525,9 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
       }
 
     return wkt_size;
+}
+
+void exclude_broken_polygon ()
+{
+    excludepoly = 1;
 }
