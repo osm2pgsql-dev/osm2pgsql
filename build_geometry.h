@@ -38,6 +38,7 @@ char* get_wkt(size_t index);
 double get_area(size_t index);
 size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
 void clear_wkts();
+void exclude_broken_polygon ();
 
 #ifdef __cplusplus
 }
