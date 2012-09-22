@@ -846,7 +846,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         }
     }
 #endif
-    fprintf(stderr, "\nGoing over pending ways...\n");
+    if (!quiet) {
+        fprintf(stderr, "\nGoing over pending ways...\n");
+    }
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
@@ -855,14 +857,18 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 
     res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
-    fprintf(stderr, "\t%i ways are pending\n", PQntuples(res_ways));
+    if (!quiet) {
+        fprintf(stderr, "\t%i ways are pending\n", PQntuples(res_ways));
+    }
 
     
     /**
      * To speed up processing of pending ways, fork noProcs worker processes
      * each of which independently goes through an equal subset of the pending ways array
      */
-    fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+    if (!quiet) {
+        fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+    }
     for (p = 1; p < noProcs; p++) {
         pid=fork();
         if (pid==0) {
@@ -964,7 +970,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     }
 #endif
 
-    fprintf(stderr, "Helper process %i out of %i initialised\n",p, noProcs);
+    if (!quiet) {
+        fprintf(stderr, "Helper process %i out of %i initialised\n",p, noProcs);
+    }
     //fprintf(stderr, "\nIterating ways\n");
     /* Use a stride length of the number of worker processes,
        starting with an offset for each worker process p */
@@ -996,13 +1004,17 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
                     if(f.end > f.start)
                         rate += (double)f.count / (double)(f.end - f.start);
                 }
-                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0, finished, noProcs);
+                if (!quiet) {
+                    fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0, finished, noProcs);
+                }
             }
             else
 #endif
             {
-                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
-                end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+                if (!quiet) {
+                    fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
+                    end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+                }
             }
         }
 
@@ -1034,7 +1046,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         info[p] = f;
     }
 #endif
-    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
+    if (!quiet) {
+        fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
+    }
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
@@ -1043,7 +1057,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
-        fprintf(stderr, "\nAll child processes exited\n");
+        if (!quiet) {
+            fprintf(stderr, "\nAll child processes exited\n");
+        }
     }
 
 #if HAVE_MMAP
@@ -1055,8 +1071,10 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     }
     time(&end);
     if (end - start > 0)
-        fprintf(stderr, "%i Pending ways took %ds at a rate of %.2f/s\n",PQntuples(res_ways), (int)(end - start), 
+        if (!quiet) {
+            fprintf(stderr, "%i Pending ways took %ds at a rate of %.2f/s\n",PQntuples(res_ways), (int)(end - start), 
                 ((double)PQntuples(res_ways) / (double)(end - start)));
+        }
     PQclear(res_ways);
 }
 
@@ -1241,7 +1259,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         }
     }
 #endif
-    fprintf(stderr, "\nGoing over pending relations...\n");
+    if (!quiet) {
+        fprintf(stderr, "\nGoing over pending relations...\n");
+    }
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
@@ -1250,9 +1270,10 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
     res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
 
-    fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
-
-    fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+    if (!quiet) {
+        fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
+        fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+    }
     pid = 0;
     for (p = 1; p < noProcs; p++) {
         pid=fork();
@@ -1365,13 +1386,17 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
                     if(f.end > f.start)
                         rate += (double)f.count / (double)(f.end - f.start);
                 }
-                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s (done %d of %d)", total, rate, finished, noProcs);
+                if (!quiet) {
+                    fprintf(stderr, "\rprocessing relation (%d) at %.2f/s (done %d of %d)", total, rate, finished, noProcs);
+                }
             }
             else
 #endif
             {
-                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
+                if (!quiet) {
+                    fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
                         end > start ? ((double)count / (double)(end - start)) : 0);
+                }
             }
         }
 
@@ -1397,7 +1422,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         info[p] = f;
     }
 #endif
-    fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
+    if (!quiet) {
+        fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
+    }
 
     if ((pid == 0) && (noProcs > 1)) {
         pgsql_cleanup();
@@ -1406,7 +1433,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
-        fprintf(stderr, "\nAll child processes exited\n");
+        if (!quiet) {
+            fprintf(stderr, "\nAll child processes exited\n");
+        }
     }
 
 #if HAVE_MMAP
@@ -1564,7 +1593,9 @@ static int pgsql_start(const struct output_options *options)
     init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale);
     if (options->flat_node_cache_enabled) init_node_persistent_cache(options, options->append);
 
-    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
+    if (!quiet) {
+        fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
+    }
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
@@ -1581,7 +1612,9 @@ static int pgsql_start(const struct output_options *options)
         set_prefix_and_tbls(options, &(tables[i].stop));
         set_prefix_and_tbls(options, &(tables[i].array_indexes));
 
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        if (!quiet) {
+            fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        }
         sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -1606,6 +1639,11 @@ static int pgsql_start(const struct output_options *options)
          * This parameter does not effect safety from data corruption on the back-end.
          */
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+        if (quiet) {
+            // Do not send NOTICE messages
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages TO WARNING;");
+        }
+
 
         /* Not really the right place for this test, but we need a live
          * connection that not used for anything else yet, and we'd like to
@@ -1712,7 +1750,9 @@ static void *pgsql_stop_one(void *arg)
     struct table_desc *table = arg;
     PGconn *sql_conn = table->sql_conn;
 
-    fprintf(stderr, "Stopping table: %s\n", table->name);
+    if (!quiet) {
+        fprintf(stderr, "Stopping table: %s\n", table->name);
+    }
     pgsql_endCopy(table);
     //if (table->stop) 
     //    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->stop);
@@ -1730,14 +1770,18 @@ static void *pgsql_stop_one(void *arg)
             // see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html
             if (insertpos && PQserverVersion(sql_conn) >= 80400) {
                 char old = *insertpos;
-                fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
+                if (!quiet) {
+                    fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
+                }
                 *insertpos = 0; // temporary null byte for following strcpy operation
                 strcpy(buffer, table->array_indexes);
                 *insertpos = old; // restore old content
                 strcat(buffer, " WITH (FASTUPDATE=OFF)");
                 strcat(buffer, insertpos);
             } else {
-                fprintf(stderr, "Building index on table: %s\n", table->name);
+                if (!quiet) {
+                    fprintf(stderr, "Building index on table: %s\n", table->name);
+                }
                 strcpy(buffer, table->array_indexes);
             }
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
@@ -1751,7 +1795,9 @@ static void *pgsql_stop_one(void *arg)
     PQfinish(sql_conn);
     table->sql_conn = NULL;
     time(&end);
-    fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
+    if (!quiet) {
+        fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
+    }
     return NULL;
 }
 
