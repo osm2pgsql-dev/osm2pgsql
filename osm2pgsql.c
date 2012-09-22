@@ -40,6 +40,7 @@
 #include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
 
+#include "options.h"
 #include "osmtypes.h"
 #include "build_geometry.h"
 #include "middle-pgsql.h"
@@ -221,6 +222,7 @@ static void long_usage(char *arg0)
     printf("                   \t\tas it doesn't work well with small extracts. The default is disabled\n");
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
+    printf("   -q|--quiet\t\tRun quietly, with no output if everything is OK.\n");
     printf("\n");
     if(!verbose)
     {
@@ -309,6 +311,10 @@ void resetMembers(struct osmdata_t *osmdata)
 
 void printStatus(struct osmdata_t *osmdata)
 {
+    if (quiet) {
+        return;
+    }
+
     time_t now;
     time(&now);
     time_t end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
@@ -388,8 +394,6 @@ int main(int argc, char *argv[])
     
     int (*streamFile)(char *, int, struct osmdata_t *);
 
-    printf("osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
-
     while (1) {
         int c, option_index = 0;
         static struct option long_options[] = {
@@ -399,6 +403,7 @@ int main(int argc, char *argv[])
             {"database", 1, 0, 'd'},
             {"latlong",  0, 0, 'l'},
             {"verbose",  0, 0, 'v'},
+            {"quiet",    0, 0, 'q'},
             {"slim",     0, 0, 's'},
             {"prefix",   1, 0, 'p'},
             {"proj",     1, 0, 'E'},
@@ -439,15 +444,17 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvqU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
         if (c == -1)
             break;
 
+        quiet = 0;
         switch (c) {
             case 'a': append=1;   break;
             case 'b': osmdata.bbox=optarg; break;
             case 'c': create=1;   break;
-            case 'v': verbose=1;  break;
+            case 'v': verbose=1; quiet=0;  break;
+            case 'q': verbose=0; quiet=1;  break;
             case 's': slim=1;     break;
             case 'K': keep_coastlines=1;     break;
             case 'u': sanitize=1; break;
@@ -515,6 +522,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    if (!quiet) {
+        printf("osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
+    }
+
+
     if (long_usage_bool) {
         long_usage(argv[0]);
         exit(EXIT_SUCCESS);
@@ -580,8 +592,10 @@ int main(int argc, char *argv[])
     LIBXML_TEST_VERSION
 
     project_init(projection);
-    fprintf(stderr, "Using projection SRS %d (%s)\n", 
-        project_getprojinfo()->srs, project_getprojinfo()->descr );
+    if (!quiet) {
+        fprintf(stderr, "Using projection SRS %d (%s)\n", 
+            project_getprojinfo()->srs, project_getprojinfo()->descr );
+    }
 
     if (parse_bbox(&osmdata))
         return 1;
@@ -656,7 +670,7 @@ int main(int argc, char *argv[])
     realloc_nodes(&osmdata);
     realloc_members(&osmdata);
 
-    if (sizeof(int*) == 4 && options.slim != 1) {
+    if (sizeof(int*) == 4 && options.slim != 1 && !quiet) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
@@ -679,12 +693,16 @@ int main(int argc, char *argv[])
         }
         time_t start, end;
 
-        fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
+        if (!quiet) {
+            fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
+        }
         time(&start);
         if (streamFile(argv[optind], sanitize, &osmdata) != 0)
             exit_nicely();
         time(&end);
-        fprintf(stderr, "  parse time: %ds\n", (int)(end - start));
+        if (!quiet) {
+            fprintf(stderr, "  parse time: %ds\n", (int)(end - start));
+        }
         optind++;
     }
 
@@ -697,13 +715,15 @@ int main(int argc, char *argv[])
         time_t end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
         time_t end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
         time_t end_rel =  now;
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
-                osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);
-        fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_way, osmdata.max_way,
-                osmdata.count_way > 0 ? (int)(end_way - osmdata.start_way) : 0);
-        fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_rel, osmdata.max_rel,
-                osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
+        if (!quiet) {
+            fprintf(stderr, "\n");
+            fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
+                    osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);
+            fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_way, osmdata.max_way,
+                    osmdata.count_way > 0 ? (int)(end_way - osmdata.start_way) : 0);
+            fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_rel, osmdata.max_rel,
+                    osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
+        }
     }
     osmdata.out->stop();
     
@@ -715,9 +735,13 @@ int main(int argc, char *argv[])
 
     project_exit();
     text_exit();
-    fprintf(stderr, "\n");
+    if (!quiet) {
+        fprintf(stderr, "\n");
+    }
     time(&overall_end);
-    fprintf(stderr, "Osm2pgsql took %ds overall\n", (int)(overall_end - overall_start));
+    if (!quiet) {
+        fprintf(stderr, "Osm2pgsql took %ds overall\n", (int)(overall_end - overall_start));
+    }
 
     return 0;
 }

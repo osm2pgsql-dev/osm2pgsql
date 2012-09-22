@@ -42,6 +42,7 @@
 #include "node-ram-cache.h"
 #include "node-persistent-cache.h"
 #include "pgsql.h"
+#include "options.h"
 
 static int scale = 100;
 
@@ -898,7 +899,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     munmap(info, sizeof(struct progress_info)*noProcs);
 #endif
 
-    fprintf(stderr, "\n");
+    if (!quiet) {
+        fprintf(stderr, "\n");
+    }
     time(&end);
     if (end - start > 0)
         fprintf(stderr, "%i Pending ways took %ds at a rate of %.2f/s\n",PQntuples(res_ways), (int)(end - start), 
@@ -1192,7 +1195,9 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     if (end - start > 0)
         fprintf(stderr, "%i Pending relations took %ds at a rate of %.2f/s\n",PQntuples(res_rels), (int)(end - start), ((double)PQntuples(res_rels) / (double)(end - start)));
     PQclear(res_rels);
-    fprintf(stderr, "\n");
+    if (!quiet) {
+        fprintf(stderr, "\n");
+    }
 
 }
 

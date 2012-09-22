@@ -11,6 +11,7 @@
 #include <string.h>
 #include <assert.h>
 
+#include "options.h"
 #include "osmtypes.h"
 #include "middle.h"
 #include "node-ram-cache.h"
@@ -365,7 +366,9 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     scale = fixpointscale;
     
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
-        fprintf(stderr, "Allocating memory for dense node cache\n");
+        if (!quiet) {
+            fprintf(stderr, "Allocating memory for dense node cache\n");
+        }
         blocks = calloc(NUM_BLOCKS,sizeof(struct ramNodeBlock));
         if (!blocks) {
             fprintf(stderr, "Out of memory for node cache dense index, try using \"--cache-strategy sparse\" instead \n");
@@ -377,13 +380,17 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
          * once it is needed.
          */
         if( (allocStrategy & ALLOC_DENSE_CHUNK) > 0 ) {
-            fprintf(stderr, "Allocating dense node cache in block sized chunks\n");
+            if (!quiet) {
+                fprintf(stderr, "Allocating dense node cache in block sized chunks\n");
+            }
             if (!queue) {
                 fprintf(stderr, "Out of memory, reduce --cache size\n");
                 exit_nicely();
             }
         } else {
-            fprintf(stderr, "Allocating dense node cache in one big chunk\n");
+            if (!quiet) {
+                fprintf(stderr, "Allocating dense node cache in one big chunk\n");
+            }
             blockCache = calloc(maxBlocks + 1024,PER_BLOCK * sizeof(struct ramNode));
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
@@ -400,11 +407,15 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
      */
     
     if ((allocStrategy & ALLOC_SPARSE) > 0 ) {
-        fprintf(stderr, "Allocating memory for sparse node cache\n");
+        if (!quiet) {
+            fprintf(stderr, "Allocating memory for sparse node cache\n");
+        }
         if (!blockCache) {
             sparseBlock = calloc(maxSparseTuples,sizeof(struct ramNodeID));
         } else {
-            fprintf(stderr, "Sharing dense sparse\n");
+            if (!quiet) {
+                fprintf(stderr, "Sharing dense sparse\n");
+            }
             sparseBlock = blockCache;
         }
         if (!sparseBlock) {
@@ -414,18 +425,24 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     }
 
 #ifdef __MINGW_H
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
+    if (!quiet) {
+        fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
+    }
 #else
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    if (!quiet) {
+        fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    }
 #endif
 }
 
 void free_node_ram_cache() {
   int i;
-  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n", 
+  if (!quiet) {
+      fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n", 
            storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(struct ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
            100.0f*nodesCacheHits/nodesCacheLookups );
+    }
 
   if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
       if ( (allocStrategy & ALLOC_DENSE_CHUNK) > 0 ) {

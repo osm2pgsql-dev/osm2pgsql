@@ -18,6 +18,7 @@
 #include "middle.h"
 #include "middle-ram.h"
 #include "node-ram-cache.h"
+#include "options.h"
 
 #include "output-pgsql.h"
 
@@ -190,7 +191,9 @@ static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *mem
 {
     int block, offset;
 
-    fprintf(stderr, "\n");
+    if (!quiet) {
+        fprintf(stderr, "\n");
+    }
     for(block=NUM_BLOCKS-1; block>=0; block--) {
         if (!rels[block])
             continue;
@@ -199,8 +202,11 @@ static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *mem
             if (rels[block][offset].members) {
                 osmid_t id = block2id(block, offset);
                 rel_out_count++;
-                if (rel_out_count % 10 == 0)
-                    fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
+                if (rel_out_count % 10 == 0) {
+                    if (!quiet) {
+                        fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
+                    }
+                }
 
                 callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
             }
@@ -214,7 +220,9 @@ static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *mem
         rels[block] = NULL;
     }
 
-    fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
+    if (!quiet) {
+        fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
+    }
 }
 
 static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
@@ -222,7 +230,9 @@ static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, st
     int block, offset, ndCount = 0;
     struct osmNode *nodes;
 
-    fprintf(stderr, "\n");
+    if (!quiet) {
+        fprintf(stderr, "\n");
+    }
     for(block=NUM_BLOCKS-1; block>=0; block--) {
         if (!ways[block])
             continue;
@@ -230,8 +240,11 @@ static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, st
         for (offset=0; offset < PER_BLOCK; offset++) {
             if (ways[block][offset].ndids) {
                 way_out_count++;
-                if (way_out_count % 1000 == 0)
-                    fprintf(stderr, "\rWriting way (%uk)", way_out_count/1000);
+                if (way_out_count % 1000 == 0) {
+                    if (!quiet) {
+                        fprintf(stderr, "\rWriting way (%uk)", way_out_count/1000);
+                    }
+                }
 
                 if (ways[block][offset].pending) {
                     /* First element contains number of nodes */
@@ -259,7 +272,9 @@ static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, st
             }
         }
     }
-    fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
+    if (!quiet) {
+        fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
+    }
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
@@ -317,7 +332,9 @@ static int ram_start(const struct output_options *options)
 
     init_node_ram_cache( options->alloc_chunkwise, options->cache, scale);
     
-    fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
+    if (!quiet) {
+        fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
+    }
 
     return 0;
 }

@@ -22,6 +22,7 @@
 
 #include <libpq-fe.h>
 
+#include "options.h"
 #include "osmtypes.h"
 #include "output.h"
 #include "reprojection.h"
@@ -1251,7 +1252,9 @@ static int pgsql_out_start(const struct output_options *options)
             sprintf( temp, tables[i].name, options->prefix );
             tables[i].name = temp;
         }
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        if (!quiet) {
+            fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        }
         sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -1261,6 +1264,10 @@ static int pgsql_out_start(const struct output_options *options)
         }
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+        if (quiet) {
+            // Do not send NOTICE messages
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages TO WARNING;");
+        }
 
         if (!options->append) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
@@ -1450,7 +1457,9 @@ static void pgsql_out_commit(void) {
     for (i=0; i<NUM_TABLES; i++) {
         pgsql_pause_copy(&tables[i]);
         // Commit transaction
-        fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
+        if (!quiet) {
+            fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
+        }
         pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
     }
 }
@@ -1474,9 +1483,13 @@ static void *pgsql_out_stop_one(void *arg)
     {
         time_t start, end;
         time(&start);
-        fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
+        if (!quiet) {
+            fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
+        }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
-        fprintf(stderr, "Analyzing %s finished\n", table->name);
+        if (!quiet) {
+            fprintf(stderr, "Analyzing %s finished\n", table->name);
+        }
         if (Options->tblsmain_data) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
                         "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
@@ -1486,7 +1499,9 @@ static void *pgsql_out_stop_one(void *arg)
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
+        if (!quiet) {
+            fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
+        }
         if (Options->tblsmain_index) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
         } else {
@@ -1502,16 +1517,22 @@ static void *pgsql_out_stop_one(void *arg)
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
             }
         }
-        fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
+        if (!quiet) {
+            fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
+        }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
         time(&end);
-        fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name, (int)(end - start));
+        if (!quiet) {
+            fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name, (int)(end - start));
+        }
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
 
-    fprintf(stderr, "Completed %s\n", table->name);
+    if (!quiet) {
+        fprintf(stderr, "Completed %s\n", table->name);
+    }
     free(table->name);
     free(table->columns);
     return NULL;
