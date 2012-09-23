@@ -240,6 +240,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 {
    int placehouse = 0;
    int placebuilding = 0;
+   int placeadmin = 0;
    struct keyval *landuse;
    struct keyval *place;
    struct keyval *item;
@@ -308,9 +309,17 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           (strncmp(item->key, "short_name:", 11) == 0) ||
           strcmp(item->key, "operator") == 0) //operator is a bit of an oddity
       {
-         pushItem(names, item);
+         if (strcmp(item->key, "name:prefix") == 0)
+         {
+            pushItem(extratags, item);
+         }
+         else
+         {
+            pushItem(names, item);
+         }
       }
-      else if (strcmp(item->key, "aeroway") == 0 ||
+      else if (strcmp(item->key, "aerialway") == 0 ||
+               strcmp(item->key, "aeroway") == 0 ||
                strcmp(item->key, "amenity") == 0 ||
                strcmp(item->key, "boundary") == 0 ||
                strcmp(item->key, "bridge") == 0 ||
@@ -331,6 +340,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          if (strcmp(item->value, "no"))
          {
             pushItem(places, item);
+            if (strcmp(item->key, "boundary") == 0 && strcmp(item->value, "administrative") == 0)
+            {
+               placeadmin = 1;
+            }
          }
          else
          {
@@ -517,7 +530,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 
    if (place)
    {
-      if (listHasData(places) && (*admin_level != ADMINLEVEL_NONE))
+      if (placeadmin)
       {
          pushItem(extratags, place);
       } 
