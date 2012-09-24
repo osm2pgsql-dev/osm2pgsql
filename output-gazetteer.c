@@ -546,7 +546,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    }
 
    // Fallback place types - only used if we didn't create something more specific already
-   if (placebuilding && !listHasData(places))
+   if (placebuilding && !listHasData(places) && (listHasData(names) || *housenumber || *postcode))
    {
       addItem(places, "building", "yes", 1);
    }
