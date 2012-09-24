@@ -107,6 +107,7 @@ static struct table_desc tables [] = {
 .array_indexes = "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n",
       .prepare = "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
+               "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
@@ -713,6 +714,79 @@ static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **node
     		pgsql_nodes_get_list( *nodes_ptr, list, num_nodes);
     PQclear(res);
     return 0;
+}
+
+static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) {
+
+    char tmp[16];
+    char *tmp2; 
+    int count, countPG, i, j;
+    osmid_t id;
+    osmid_t *wayidspg;
+    char const *paramValues[1]; 
+
+    PGresult *res;
+    PGconn *sql_conn = way_table->sql_conn;
+    
+    *way_ids = malloc( sizeof(osmid_t) * (way_count + 1));
+    if (way_count == 0) return 0;
+    
+    tmp2 = malloc(sizeof(char)*way_count*16);
+    if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
+
+    /* create a list of ids in tmp2 to query the database  */
+    snprintf(tmp2, sizeof(tmp2), "{");
+    for( i=0; i<way_count; i++ ) {
+        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
+        strcat(tmp2,tmp);
+    }
+    tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
+  
+    pgsql_endCopy(way_table); 
+
+    paramValues[0] = tmp2;  
+    res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
+    countPG = PQntuples(res);
+
+    wayidspg = malloc(sizeof(osmid_t)*countPG);
+
+    if (wayidspg == NULL) return 0; /*failed to allocate memory, return */
+
+    for (i = 0; i < countPG; i++) {
+        wayidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
+    }
+
+
+    /* Match the list of ways coming from postgres in a different order
+       back to the list of ways given by the caller */
+    count = 0;
+    initList(&(tags[count]));
+    for (i = 0; i < way_count; i++) {
+        for (j = 0; j < countPG; j++) {
+            if (ids[i] == wayidspg[j]) {
+                (*way_ids)[count] = ids[i];
+                pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
+
+                int num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
+                osmid_t *list = alloca(sizeof(osmid_t)*num_nodes );
+                nodes_ptr[count] = malloc(sizeof(struct osmNode) * num_nodes);
+                pgsql_parse_nodes( PQgetvalue(res, j, 1), list, num_nodes);
+                
+                count_ptr[count] = out_options->flat_node_cache_enabled ?
+                    persistent_cache_nodes_get_list(nodes_ptr[count], list, num_nodes) :
+                    pgsql_nodes_get_list( nodes_ptr[count], list, num_nodes);
+
+                count++;
+                initList(&(tags[count]));
+            }
+        }
+    }
+
+    PQclear(res);
+    free(tmp2);
+    free(wayidspg);
+
+    return count;
 }
 
 static int pgsql_ways_done(osmid_t id)
@@ -1578,6 +1652,7 @@ struct middle_t mid_pgsql = {
 
         .ways_set          = pgsql_ways_set,
         .ways_get          = pgsql_ways_get,
+        .ways_get_list     = pgsql_ways_get_list,
         .ways_done         = pgsql_ways_done,
         .ways_delete       = pgsql_ways_delete,
         .way_changed       = pgsql_way_changed,

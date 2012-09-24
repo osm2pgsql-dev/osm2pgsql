@@ -1627,8 +1627,9 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
   // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
-  int i, count;
-  osmid_t *xid = malloc( (member_count+1) * sizeof(osmid_t) );
+    int i, j, count, count2;
+  osmid_t *xid2 = malloc( (member_count+1) * sizeof(osmid_t) );
+  osmid_t *xid;
   const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
@@ -1641,30 +1642,37 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   count = 0;
   for( i=0; i<member_count; i++ )
   {
+  
     /* Need to handle more than just ways... */
     if( members[i].type != OSMTYPE_WAY )
         continue;
-
-    initList(&(xtags[count]));
-    if( Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count]) ) )
-      continue;
-    xid[count] = members[i].id;
-    xrole[count] = members[i].role;
+    xid2[count] = members[i].id;
     count++;
   }
-  xnodes[count] = NULL;
-  xcount[count] = 0;
-  xid[count] = 0;
-  xrole[count] = NULL;
+
+  count2 = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+
+  for (i = 0; i < count2; i++) {
+      for (j = i; j < member_count; j++) {
+          if (members[j].id == xid[i]) break;
+      }
+      xrole[i] = members[j].role;
+  }
+  xnodes[count2] = NULL;
+  xcount[count2] = 0;
+  xid[count2] = 0;
+  xrole[count2] = NULL;
+
   // At some point we might want to consider storing the retreived data in the members, rather than as seperate arrays
   pgsql_out_relation(id, tags, xnodes, xtags, xcount, xid, xrole);
 
-  for( i=0; i<count; i++ )
+  for( i=0; i<count2; i++ )
   {
     resetList( &(xtags[i]) );
     free( xnodes[i] );
   }
 
+  free(xid2);
   free(xid);
   free(xrole);
   free(xcount);

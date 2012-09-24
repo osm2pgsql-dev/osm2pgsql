@@ -286,6 +286,21 @@ static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **no
     return 1;
 }
 
+static int ram_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
+    int count = 0;
+    *way_ids = malloc( sizeof(osmid_t) * (way_count + 1));
+    initList(&(tag_ptr[count]));
+    for (int i = 0; i < way_count; i++) {
+        
+        if (ram_ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
+            (*way_ids)[count] = ids[i];
+            count++;
+            initList(&(tag_ptr[count]));
+        }
+    }
+    return count;
+}
+
 // Marks the way so that iterate ways skips it
 static int ram_ways_done(osmid_t id)
 {
@@ -360,6 +375,7 @@ struct middle_t mid_ram = {
     .nodes_get_list    = ram_nodes_get_list,
     .ways_set          = ram_ways_set,
     .ways_get          = ram_ways_get,
+    .ways_get_list     = ram_ways_get_list,
     .ways_done         = ram_ways_done,
 
     .relations_set     = ram_relations_set,
