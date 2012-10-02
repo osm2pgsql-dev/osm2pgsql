@@ -1158,6 +1158,8 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       int *xcount = malloc( (member_count+1) * sizeof(int) );
       struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
       struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+      osmid_t *xid;
+      osmid_t *xid2 = malloc( (member_count+1) * sizeof(osmid_t) );
 
       count = 0;
       for (i=0; i<member_count; i++)
@@ -1165,12 +1167,12 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          /* only interested in ways */
          if (members[i].type != OSMTYPE_WAY)
             continue;
-
-         initList(&(xtags[count]));
-         if (Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count])))
-            continue;
+         xid2[count] = members[i].id;
          count++;
       }
+
+      count = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+
       xnodes[count] = NULL;
       xcount[count] = 0;
 
@@ -1199,6 +1201,8 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          free( xnodes[i] );
       }
 
+      free(xid);
+      free(xid2);
       free(xcount);
       free(xtags);
       free(xnodes);
