@@ -214,7 +214,7 @@ static void long_usage(char *arg0)
     printf("                      \t\t   The default is \"optimized\"\n");
 #else
     /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
-    printf("                      \t\t   The default is \"chunked\"\n");
+    printf("                      \t\t   The default is \"sparse\"\n");
 #endif
     printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
     printf("                  \t\tThis file is a single > 16Gb large file. This method is only recomended for full planet imports\n");
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
 #ifdef __amd64__
     int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
 #else
-    int alloc_chunkwise = ALLOC_DENSE_CHUNK | ALLOC_DENSE;
+    int alloc_chunkwise = ALLOC_SPARSE;
 #endif
     int num_procs = 1;
     int droptemp = 0;
