@@ -147,6 +147,13 @@ static int Append;
 
 const struct output_options *out_options;
 
+#define HELPER_STATE_UNINITIALIZED -1
+#define HELPER_STATE_FORKED -2
+#define HELPER_STATE_RUNNING 0
+#define HELPER_STATE_FINISHED 1
+#define HELPER_STATE_CONNECTED 2
+#define HELPER_STATE_FAILED 3
+
 static int pgsql_connect(const struct output_options *options) {
     int i;
     /* We use a connection per table to enable the use of COPY */
@@ -157,7 +164,7 @@ static int pgsql_connect(const struct output_options *options) {
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            exit_nicely();
+            return 1;
         }
         tables[i].sql_conn = sql_conn;
 
@@ -830,8 +837,13 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     time(&start);
 #if HAVE_MMAP
     struct progress_info *info = 0;
-    if(noProcs > 1)
+    if(noProcs > 1) {
         info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+        info[0].finished = HELPER_STATE_CONNECTED;
+        for (i = 1; i < noProcs; i++) {
+            info[i].finished = HELPER_STATE_UNINITIALIZED; // Register that the process was not yet initialised;
+        }
+    }
 #endif
     fprintf(stderr, "\nGoing over pending ways...\n");
 
@@ -852,17 +864,32 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
     for (p = 1; p < noProcs; p++) {
         pid=fork();
-        if (pid==0) break;
-        if (pid==-1) {
-            fprintf(stderr,"WARNING: Failed to fork helper processes. Falling back to only using %i \n", p);
-            noProcs = p;
+        if (pid==0) {
+#if HAVE_MMAP
+            info[p].finished = HELPER_STATE_FORKED;
+#endif            
             break;
+        }
+        if (pid==-1) {
+#if HAVE_MMAP
+            info[p].finished = HELPER_STATE_FAILED;
+            fprintf(stderr,"WARNING: Failed to fork helper processes %i. Trying to recover.\n", p);
+#else
+            fprintf(stderr,"ERROR: Failed to fork helper processes. Can't recover! \n");
+            exit_nicely();
+#endif            
         }
     }
     if ((pid == 0) && (noProcs > 1)) {
         /* After forking, need to reconnect to the postgresql db */
-        out_options->out->connect(out_options, 1);
-        pgsql_connect(out_options);
+        if ((pgsql_connect(out_options) != 0) || (out_options->out->connect(out_options, 1) != 0)) {
+#if HAVE_MMAP
+            info[p].finished = HELPER_STATE_FAILED;
+#else
+            fprintf(stderr,"\n\n!!!FATAL: Helper process failed, but can't compensate. Your DB will be broken and corrupt!!!!\n\n")
+#endif
+            exit_nicely();
+        };
     } else {
         p = 0;
     }
@@ -885,6 +912,58 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         tables[t_way].transactionMode = 1;
     }
 
+#if HAVE_MMAP
+    if (noProcs > 1) {
+        info[p].finished = HELPER_STATE_CONNECTED;
+        /* Syncronize all processes to make sure they have all run through the initialisation steps */
+        int all_processes_initialised = 0;
+        while (all_processes_initialised == 0) {
+            all_processes_initialised = 1;
+            for (i = 0; i < noProcs; i++) {
+                if (info[i].finished < 0) {
+                    all_processes_initialised = 0;
+                    sleep(1);
+                }
+            }
+        }
+        
+        /* As we process the pending ways in steps of noProcs,
+           we need to make sure that all processes correctly forked
+           and have connected to the db. Otherwise we need to readjust
+           the step size of going through the pending ways array */
+        int noProcsTmp = noProcs;
+        int pTmp = p;
+        for (i = 0; i < noProcs; i++) {
+            if (info[i].finished == HELPER_STATE_FAILED) {
+                noProcsTmp--;
+                if (i < p) pTmp--;
+            }
+        }
+        info[p].finished = HELPER_STATE_RUNNING;
+        p = pTmp; // reset the process number to account for failed processes
+        
+        /* As we have potentially changed the process number assignment,
+           we need to synchronize on all processes having performed the reassignment
+           as otherwise multiple process might have the same number and overwrite
+           the info fields incorrectly.
+        */
+        all_processes_initialised = 0;
+        while (all_processes_initialised == 0) { 
+            all_processes_initialised = 1; 
+            for (i = 0; i < noProcs; i++) { 
+                if (info[i].finished == HELPER_STATE_CONNECTED) { 
+                    //Process is connected, but hasn't performed the re-assignment of p.
+                    all_processes_initialised = 0; 
+                    sleep(1); 
+                    break; 
+                } 
+            }
+        }
+        noProcs = noProcsTmp;
+    }
+#endif
+
+    fprintf(stderr, "Helper process %i out of %i initialised\n",p, noProcs);
     //fprintf(stderr, "\nIterating ways\n");
     /* Use a stride length of the number of worker processes,
        starting with an offset for each worker process p */
@@ -906,7 +985,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
                 f.start = start;
                 f.end = end;
                 f.count = count;
-                f.finished = 0;
+                f.finished = HELPER_STATE_RUNNING;
                 info[p] = f;
                 for(n = 0; n < noProcs; ++n)
                 {
@@ -1151,8 +1230,13 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     time(&start);
 #if HAVE_MMAP
     struct progress_info *info = 0;
-    if(noProcs > 1)
+    if(noProcs > 1) {
         info = mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
+        info[0].finished = HELPER_STATE_CONNECTED; 
+        for (i = 1; i < noProcs; i++) { 
+            info[i].finished = HELPER_STATE_UNINITIALIZED; // Register that the process was not yet initialised; 
+        }
+    }
 #endif
     fprintf(stderr, "\nGoing over pending relations...\n");
 
@@ -1169,21 +1253,85 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     pid = 0;
     for (p = 1; p < noProcs; p++) {
         pid=fork();
-        if (pid==0) break;
-        if (pid==-1) {
-            fprintf(stderr,"WARNING: Failed to fork helper processes. Falling back to only using %i \n", p);
-            noProcs = p;
+        if (pid==0) {
+#if HAVE_MMAP 
+            info[p].finished = HELPER_STATE_FORKED; 
+#endif
             break;
+        }
+        if (pid==-1) {
+#if HAVE_MMAP 
+            info[p].finished = HELPER_STATE_FAILED; 
+            fprintf(stderr,"WARNING: Failed to fork helper processes %i. Trying to recover.\n", p); 
+#else 
+            fprintf(stderr,"ERROR: Failed to fork helper processes. Can't recover! \n"); 
+            exit_nicely(); 
+#endif 
         }
     }
     if ((pid == 0) && (noProcs > 1)) {
-        out_options->out->connect(out_options, 0);
-        pgsql_connect(out_options);
+        if ((out_options->out->connect(out_options, 0) != 0) || (pgsql_connect(out_options) != 0)) {
+#if HAVE_MMAP
+            info[p].finished = HELPER_STATE_FAILED;
+#endif
+            exit_nicely();
+        };
     } else {
         p = 0;
     }
 
     if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options, 1); //at this point we always want to be in append mode, to not delete and recreate the node cache file
+
+#if HAVE_MMAP 
+    if (noProcs > 1) { 
+        info[p].finished = HELPER_STATE_CONNECTED; 
+        /* Syncronize all processes to make sure they have all run through the initialisation steps */ 
+        int all_processes_initialised = 0; 
+        while (all_processes_initialised == 0) { 
+            all_processes_initialised = 1; 
+            for (i = 0; i < noProcs; i++) { 
+                if (info[i].finished < 0) { 
+                    all_processes_initialised = 0; 
+                    sleep(1); 
+                } 
+            } 
+        } 
+         
+        /* As we process the pending ways in steps of noProcs, 
+           we need to make sure that all processes correctly forked 
+           and have connected to the db. Otherwise we need to readjust 
+           the step size of going through the pending ways array */ 
+        int noProcsTmp = noProcs; 
+        int pTmp = p; 
+        for (i = 0; i < noProcs; i++) { 
+            if (info[i].finished == HELPER_STATE_FAILED) { 
+                noProcsTmp--; 
+                if (i < p) pTmp--; 
+            } 
+        } 
+        info[p].finished = HELPER_STATE_RUNNING; 
+        p = pTmp; // reset the process number to account for failed processes 
+         
+        /* As we have potentially changed the process number assignment,
+           we need to synchronize on all processes having performed the reassignment 
+           as otherwise multiple process might have the same number and overwrite 
+           the info fields incorrectly. 
+        */ 
+        all_processes_initialised = 0; 
+        while (all_processes_initialised == 0) {  
+            all_processes_initialised = 1;  
+            for (i = 0; i < noProcs; i++) {  
+                if (info[i].finished == HELPER_STATE_CONNECTED) {  
+                    //Process is connected, but hasn't performed the re-assignment of p. 
+                    all_processes_initialised = 0;  
+                    sleep(1);  
+                    break;  
+                }  
+            } 
+        } 
+        noProcs = noProcsTmp; 
+    } 
+#endif
 
     //fprintf(stderr, "\nIterating ways\n");
     for (i = p; i < PQntuples(res_rels); i+= noProcs) {
@@ -1204,7 +1352,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
                 f.start = start;
                 f.end = end;
                 f.count = count;
-                f.finished = 0;
+                f.finished = HELPER_STATE_RUNNING;
                 info[p] = f;
                 for(n = 0; n < noProcs; ++n)
                 {
