@@ -139,7 +139,6 @@ static struct table_desc tables [] = {
 };
 
 static const int num_tables = sizeof(tables)/sizeof(tables[0]);
-static int warn_node_order;
 static struct table_desc *node_table = &tables[t_node];
 static struct table_desc *way_table  = &tables[t_way];
 static struct table_desc *rel_table  = &tables[t_rel];
@@ -498,25 +497,25 @@ static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
     return 0;
 }
 
-static int middle_nodes_get(struct osmNode *out, osmid_t id)
-{
-    /* Check cache first */
-    if( ram_cache_nodes_get( out, id ) == 0 )
-        return 0;
+// Currently not used 
+//static int middle_nodes_get(struct osmNode *out, osmid_t id)
+//{
+//    /* Check cache first */
+//    if( ram_cache_nodes_get( out, id ) == 0 )
+//        return 0;
+//
+//    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get(out, id) : pgsql_nodes_get(out, id);
+//}
 
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get(out, id) : pgsql_nodes_get(out, id);
-}
 
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
 static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
     char tmp[16];
     char *tmp2; 
-    int count, count2, countDB, countPG, i,j;
-    osmid_t id;
+    int count,  countDB, countPG, i,j;
     osmid_t *ndidspg;
     struct osmNode *nodespg;
-    struct osmNode *nodes2;
     char const *paramValues[1]; 
 
     PGresult *res;
@@ -721,7 +720,6 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
     char tmp[16];
     char *tmp2; 
     int count, countPG, i, j;
-    osmid_t id;
     osmid_t *wayidspg;
     char const *paramValues[1]; 
 
@@ -1168,6 +1166,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
 
     fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+    pid = 0;
     for (p = 1; p < noProcs; p++) {
         pid=fork();
         if (pid==0) break;

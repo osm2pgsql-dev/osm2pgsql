@@ -257,7 +257,8 @@ int processOsmHeader(void *data, size_t length)
 
 int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity)
 {
-  for (unsigned node_id = 0; node_id < group->n_nodes; node_id++) {
+    unsigned node_id, key_id;
+  for (node_id = 0; node_id < group->n_nodes; node_id++) {
     Node *node = group->nodes[node_id];
     double lat, lon;
 
@@ -267,7 +268,7 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
       addInfoItems(&(osmdata->tags), node->info, string_table);
     }
 
-    for (unsigned key_id = 0; key_id < node->n_keys; key_id++) {
+    for (key_id = 0; key_id < node->n_keys; key_id++) {
       addProtobufItem(&(osmdata->tags), 
 		      string_table->s[node->keys[key_id]], 
 		      string_table->s[node->vals[key_id]], 
@@ -297,6 +298,7 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
 
 int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity)
 {
+    unsigned node_id;
   if (group->dense) {
     unsigned l = 0;
     long int deltaid = 0;
@@ -310,7 +312,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
 
     DenseNodes *dense = group->dense;
 
-    for (unsigned node_id = 0; node_id < dense->n_id; node_id++) {
+    for (node_id = 0; node_id < dense->n_id; node_id++) {
       resetList(&(osmdata->tags));
 
       deltaid += dense->id[node_id];
@@ -375,7 +377,8 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
 
 int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table)
 {
-  for (unsigned way_id = 0; way_id < group->n_ways; way_id++) {
+    unsigned way_id, key_id, ref_id;
+  for (way_id = 0; way_id < group->n_ways; way_id++) {
     Way *way = group->ways[way_id];
     long int deltaref = 0;
 
@@ -387,7 +390,7 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
 
     osmdata->nd_count = 0;
 
-    for (unsigned ref_id = 0; ref_id < way->n_refs; ref_id++) {
+    for (ref_id = 0; ref_id < way->n_refs; ref_id++) {
       deltaref += way->refs[ref_id];
 	    
       osmdata->nds[osmdata->nd_count++] = deltaref;
@@ -396,7 +399,7 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
 	realloc_nodes(osmdata);
     }
 
-    for (unsigned key_id = 0; key_id < way->n_keys; key_id++) {
+    for (key_id = 0; key_id < way->n_keys; key_id++) {
       addProtobufItem(&(osmdata->tags), 
 		      string_table->s[way->keys[key_id]], 
 		      string_table->s[way->vals[key_id]], 
@@ -425,7 +428,8 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
 
 int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table)
 {
-  for (unsigned rel_id = 0; rel_id < group->n_relations; rel_id++) {
+    unsigned rel_id, member_id, key_id;
+  for (rel_id = 0; rel_id < group->n_relations; rel_id++) {
     Relation *relation = group->relations[rel_id];
     long int deltamemids = 0;
 
@@ -437,7 +441,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
       addInfoItems(&(osmdata->tags), relation->info, string_table);
     }
 	  
-    for (unsigned member_id = 0; member_id < relation->n_memids; member_id++) {
+    for (member_id = 0; member_id < relation->n_memids; member_id++) {
       ProtobufCBinaryData role =  string_table->s[relation->roles_sid[member_id]];
       char *rolestr;
 
@@ -471,7 +475,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
       }
     }
 
-    for (unsigned key_id = 0; key_id < relation->n_keys; key_id++) {
+    for (key_id = 0; key_id < relation->n_keys; key_id++) {
       addProtobufItem(&(osmdata->tags), 
 		      string_table->s[relation->keys[key_id]], 
 		      string_table->s[relation->vals[key_id]], 
@@ -483,7 +487,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
 			       osmdata->member_count, 
 			       &(osmdata->tags));
 
-    for (unsigned member_id = 0; member_id < osmdata->member_count; member_id++) {
+    for (member_id = 0; member_id < osmdata->member_count; member_id++) {
       free(osmdata->members[member_id].role);
     }
 
@@ -505,6 +509,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
 
 int processOsmData(struct osmdata_t *osmdata, void *data, size_t length) 
 {
+  unsigned int j;
   PrimitiveBlock *pmsg = primitive_block__unpack (NULL, length, data);
   if (pmsg == NULL) {
     fprintf(stderr, "Error unpacking PrimitiveBlock message\n");
@@ -516,7 +521,7 @@ int processOsmData(struct osmdata_t *osmdata, void *data, size_t length)
   double granularity = NANO_DEGREE * pmsg->granularity;
       
 
-  for (unsigned int j = 0; j < pmsg->n_primitivegroup; j++) {
+  for (j = 0; j < pmsg->n_primitivegroup; j++) {
     PrimitiveGroup *group = pmsg->primitivegroup[j];
     StringTable *string_table = pmsg->stringtable;
 

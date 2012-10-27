@@ -288,9 +288,10 @@ static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **no
 
 static int ram_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
     int count = 0;
+    int i;
     *way_ids = malloc( sizeof(osmid_t) * (way_count + 1));
     initList(&(tag_ptr[count]));
-    for (int i = 0; i < way_count; i++) {
+    for (i = 0; i < way_count; i++) {
         
         if (ram_ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
             (*way_ids)[count] = ids[i];

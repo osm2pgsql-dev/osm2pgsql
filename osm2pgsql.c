@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -303,7 +302,8 @@ void realloc_members(struct osmdata_t *osmdata)
 
 void resetMembers(struct osmdata_t *osmdata)
 {
-  for(unsigned i = 0; i < osmdata->member_count; i++ )
+  unsigned i;
+  for(i = 0; i < osmdata->member_count; i++ )
     free( osmdata->members[i].role );
 }
 

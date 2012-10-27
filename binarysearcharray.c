@@ -68,7 +68,6 @@ void binary_search_remove(struct binary_search_array * array, int key)
 void binary_search_add(struct binary_search_array * array, int key,
         osmid_t value)
 {
-    int i, j;
     if (array->size < array->capacity)
     {
         //fprintf(stderr,"adding key value %i %i\n", key, value);
