@@ -644,7 +644,6 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
 
     static char *sql;
     static size_t sqllen=0;
-    char *v;
     int i;
     struct keyval *tag;
 
@@ -697,7 +696,6 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
   
     static char *sql;
     static size_t sqllen=0;
-    char *v;
     int j;
     struct keyval *tag;
 

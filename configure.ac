@@ -24,7 +24,7 @@ AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
 
 dnl Find C compiler
-AC_PROG_CC_C99
+dnl AC_PROG_CC_C99
 
 dnl Find C++ compiler
 AC_PROG_CXX
@@ -33,6 +33,9 @@ if test "$HAVE_CXX" = "no"
 then
   AC_MSG_ERROR([Could not find a c++ compiler]);
 fi
+
+AX_CFLAGS_WARN_ALL
+AX_CXXFLAGS_WARN_ALL
 
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
