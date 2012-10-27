@@ -1214,7 +1214,7 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            exit_nicely();
+            return 1;
         }
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
