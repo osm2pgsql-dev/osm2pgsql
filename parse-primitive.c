@@ -59,7 +59,7 @@ char *extractAttribute(char **token, int tokens, char *attname)
     {
         if (!strncmp(token[i], buffer, cl))
         {
-            char *quote = index(token[i] + cl, '"');
+            char *quote = strchr(token[i] + cl, '"');
             if (quote == NULL) quote = token[i] + strlen(token[i]) + 1;
             *quote = 0;
             if (strchr(token[i]+cl, '&') == 0) return (token[i] + cl);
@@ -415,11 +415,11 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
 }
 
 static void process(char *line, struct osmdata_t *osmdata) {
-    char *lt = index(line, '<');
+    char *lt = strchr(line, '<');
     if (lt)
     {
-        char *spc = index(lt+1, ' ');
-        char *gt = index(lt+1, '>');
+        char *spc = strchr(lt+1, ' ');
+        char *gt = strchr(lt+1, '>');
         char *nx = spc;
         if (*(lt+1) == '/')
         {
@@ -459,7 +459,7 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
         while(1)
         {
             bufsz = bufsz + readFile(i, buffer + bufsz, sizeof(buffer) - bufsz);
-            char *nl = index(buffer, '\n');
+            char *nl = strchr(buffer, '\n');
             if (nl == 0) break;
             *nl=0;
             while (nl && nl < buffer + bufsz)
@@ -468,7 +468,7 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
                 process(buffer + offset, osmdata);
                 offset = nl - buffer + 1;
                 //printf("\nsearch line at %d, buffer sz is %d = ",offset, bufsz);
-                nl = index(buffer + offset, '\n');
+                nl = strchr(buffer + offset, '\n');
                 //printf("%d\n", nl ? nl-buffer : -1);
             }
             memcpy(buffer, buffer + offset, bufsz - offset);
