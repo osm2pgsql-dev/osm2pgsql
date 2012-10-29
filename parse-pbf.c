@@ -219,13 +219,13 @@ int addIntItem(struct keyval *head, const char *key, int val, int noDupe)
 int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
 {
       if (info->has_version) {
-	addIntItem(head, "version", info->version,   0);	    
+	addIntItem(head, "osm_version", info->version,   0);	    
       }
       if (info->has_changeset) {
-	addIntItem(head, "changeset", info->changeset,   0);	    
+	addIntItem(head, "osm_changeset", info->changeset,   0);	    
       }
       if (info->has_uid) {
-	addIntItem(head, "uid", info->uid,   0);	    
+	addIntItem(head, "osm_uid", info->uid,   0);	    
       }
       if (info->has_user_sid) {
 	ProtobufCBinaryData user = string_table->s[info->user_sid];
@@ -234,7 +234,7 @@ int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
         username = calloc(user.len + 1, 1);
 	memcpy(username, user.data, user.len);
 
-	addItem(head, "user", username, 0);
+	addItem(head, "osm_user", username, 0);
       }
 
       /* TODO timestamp */
@@ -329,17 +329,17 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
                 deltauid += denseinfo->uid[node_id];
                 deltauser_sid += denseinfo->user_sid[node_id];
                 
-                addIntItem(&(osmdata->tags), "version", denseinfo->version[node_id], 0);
-                addIntItem(&(osmdata->tags), "changeset", deltachangeset, 0);
+                addIntItem(&(osmdata->tags), "osm_version", denseinfo->version[node_id], 0);
+                addIntItem(&(osmdata->tags), "osm_changeset", deltachangeset, 0);
                 
 #if 0
                 /* TODO */
                 if (deltauid != -1) { // osmosis devs failed to read the specs
                     printuser(string_table->s[deltauser_sid]);
-                    printnumericattribute("uid", deltauid);
+                    printnumericattribute("osm_uid", deltauid);
                 }
                 
-                printtimestamp("timestamp", deltatimestamp);
+                printtimestamp("osm_timestamp", deltatimestamp);
 #endif
             }
             

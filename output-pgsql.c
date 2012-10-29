@@ -818,6 +818,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                     && strcmp("osm_user",item->key)
                     && strcmp("osm_timestamp",item->key)
                     && strcmp("osm_version",item->key)
+                    && strcmp("osm_changeset",item->key)
                    ) filter = 0;
             } else if (Options->n_hstore_columns) {
                 /* does this column match any of the hstore column prefixes? */
@@ -834,6 +835,7 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                             && strcmp("osm_user",item->key)
                             && strcmp("osm_timestamp",item->key)
                             && strcmp("osm_version",item->key)
+                            && strcmp("osm_changeset",item->key)
                           ) filter = 0;
                         break; 
                     }
