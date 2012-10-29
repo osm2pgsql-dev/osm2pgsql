@@ -54,6 +54,7 @@
 #include "sprompt.h"
 #include "parse-xml2.h"
 #include "parse-primitive.h"
+#include "parse-o5m.h"
 
 #ifdef BUILD_READER_PBF
 #  include "parse-pbf.h"
@@ -638,8 +639,10 @@ int main(int argc, char *argv[])
       } else if (strcmp("pbf", input_reader) == 0) {
         streamFile = &streamFilePbf;
 #endif
+      } else if (strcmp("o5m", input_reader) == 0) {
+          streamFile = &streamFileO5m;
       } else {
-        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive"
+        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
 #ifdef BUILD_READER_PBF
 	      ", pbf"
 #endif
@@ -670,6 +673,8 @@ int main(int argc, char *argv[])
 #ifdef BUILD_READER_PBF
           if (strcasecmp(".pbf",argv[optind]+strlen(argv[optind])-4) == 0) {
             streamFile = &streamFilePbf;
+          } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0) {
+              streamFile = &streamFileO5m;
           } else {
             streamFile = &streamFileXML2;
           }
