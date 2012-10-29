@@ -1701,10 +1701,15 @@ static int pgsql_add_relation(osmid_t id, struct member *members, int member_cou
   if (!type)
       return 0;
 
-  /* In slim mode we remember these*/
+  // In slim mode we remember these
   if(Options->mid->relations_set)
     Options->mid->relations_set(id, members, member_count, tags);
   // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+    
+  // Only a limited subset of type= is supported, ignore other
+  if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
+    return 0;
+
 
   return pgsql_process_relation(id, members, member_count, tags, 0);
 }
