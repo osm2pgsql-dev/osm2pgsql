@@ -812,7 +812,13 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                 pushItem(&temp, item);
                 /* ... but if hstore_match_only is set then don't take this 
                    as a reason for keeping the object */
-                if (!Options->hstore_match_only) filter = 0;
+                if (
+                    !Options->hstore_match_only
+                    && strcmp("osm_uid",item->key)
+                    && strcmp("osm_user",item->key)
+                    && strcmp("osm_timestamp",item->key)
+                    && strcmp("osm_version",item->key)
+                   ) filter = 0;
             } else if (Options->n_hstore_columns) {
                 /* does this column match any of the hstore column prefixes? */
                 int j;
@@ -822,7 +828,13 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                         pushItem(&temp, item);
                         /* ... but if hstore_match_only is set then don't take this 
                            as a reason for keeping the object */
-                        if (!Options->hstore_match_only) filter = 0;
+                        if (
+                            !Options->hstore_match_only
+                            && strcmp("osm_uid",item->key)
+                            && strcmp("osm_user",item->key)
+                            && strcmp("osm_timestamp",item->key)
+                            && strcmp("osm_version",item->key)
+                          ) filter = 0;
                         break; 
                     }
                 }
