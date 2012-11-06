@@ -886,7 +886,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #else
-            fprintf(stderr,"\n\n!!!FATAL: Helper process failed, but can't compensate. Your DB will be broken and corrupt!!!!\n\n")
+            fprintf(stderr,"\n\n!!!FATAL: Helper process failed, but can't compensate. Your DB will be broken and corrupt!!!!\n\n");
 #endif
             exit_nicely();
         };
