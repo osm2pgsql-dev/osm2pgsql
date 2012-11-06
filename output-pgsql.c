@@ -188,8 +188,8 @@ void read_style_file( const char *filename )
             exit_nicely();
         }
     }
-    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') >0) || (strchr(temp.name,'*') >0))) {
-        fprintf( stderr, "wildcard '%s' in non-delete style emtry\n",temp.name);
+    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') != NULL) || (strchr(temp.name,'*') != NULL))) {
+        fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name);
         exit_nicely();
     }
     
