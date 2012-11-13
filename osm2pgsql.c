@@ -25,7 +25,6 @@
 
 #include "config.h"
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -56,6 +55,7 @@
 #include "sprompt.h"
 #include "parse-xml2.h"
 #include "parse-primitive.h"
+#include "parse-o5m.h"
 
 #ifdef BUILD_READER_PBF
 #  include "parse-pbf.h"
@@ -215,7 +215,7 @@ static void long_usage(char *arg0)
     printf("                      \t\t   The default is \"optimized\"\n");
 #else
     /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
-    printf("                      \t\t   The default is \"chunked\"\n");
+    printf("                      \t\t   The default is \"sparse\"\n");
 #endif
     printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
     printf("                  \t\tThis file is a single > 16Gb large file. This method is only recomended for full planet imports\n");
@@ -305,7 +305,8 @@ void realloc_members(struct osmdata_t *osmdata)
 
 void resetMembers(struct osmdata_t *osmdata)
 {
-  for(unsigned i = 0; i < osmdata->member_count; i++ )
+  unsigned i;
+  for(i = 0; i < osmdata->member_count; i++ )
     free( osmdata->members[i].role );
 }
 
@@ -362,7 +363,7 @@ int main(int argc, char *argv[])
 #ifdef __amd64__
     int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
 #else
-    int alloc_chunkwise = ALLOC_DENSE_CHUNK | ALLOC_DENSE;
+    int alloc_chunkwise = ALLOC_SPARSE;
 #endif
     int num_procs = 1;
     int droptemp = 0;
@@ -652,8 +653,10 @@ int main(int argc, char *argv[])
       } else if (strcmp("pbf", input_reader) == 0) {
         streamFile = &streamFilePbf;
 #endif
+      } else if (strcmp("o5m", input_reader) == 0) {
+          streamFile = &streamFileO5m;
       } else {
-        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive"
+        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
 #ifdef BUILD_READER_PBF
 	      ", pbf"
 #endif
@@ -684,6 +687,8 @@ int main(int argc, char *argv[])
 #ifdef BUILD_READER_PBF
           if (strcasecmp(".pbf",argv[optind]+strlen(argv[optind])-4) == 0) {
             streamFile = &streamFilePbf;
+          } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0) {
+              streamFile = &streamFileO5m;
           } else {
             streamFile = &streamFileXML2;
           }

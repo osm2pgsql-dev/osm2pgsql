@@ -87,10 +87,14 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            geom->normalize(); // Fix direction of ring
-            if (excludepoly && (geom->isValid() == 0)) {
-                return NULL;
+            if (!geom->isValid()) {
+                if (excludepoly) {
+                    return NULL;
+                } else {   
+                    geom = geom_ptr(geom->buffer(0));
+                }
             }
+            geom->normalize(); // Fix direction of ring
         } else {
             if (coords->getSize() < 2)
                 return NULL;
@@ -135,10 +139,14 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            geom->normalize(); // Fix direction of ring
-            if (excludepoly && (geom->isValid() == 0)) {
-                return 0;
+            if (!geom->isValid()) {
+                if (excludepoly) {
+                    return 0;
+                } else {
+                    geom = geom_ptr(geom->buffer(0));
+                }
             }
+            geom->normalize(); // Fix direction of ring
             area = geom->getArea();
             std::string wkt = wktw.write(geom.get());
             wkts.push_back(wkt);
@@ -481,7 +489,12 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
             // Make a multipolygon if required
             if ((toplevelpolygons > 1) && enable_multi)
             {
-                std::auto_ptr<MultiPolygon> multipoly(gf.createMultiPolygon(polygons.release()));
+                geom_ptr multipoly(gf.createMultiPolygon(polygons.release()));
+                if (!multipoly->isValid() && (excludepoly == 0)) {
+                    multipoly = geom_ptr(multipoly->buffer(0));
+                }
+                multipoly->normalize();
+
                 if ((excludepoly == 0) || (multipoly->isValid()))
                 {
                     std::string text = writer.write(multipoly.get());
@@ -494,7 +507,11 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
             {
                 for(unsigned i=0; i<toplevelpolygons; i++) 
                 {
-                    Polygon* poly = dynamic_cast<Polygon*>(polygons->at(i));;
+                    Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
+                    if (!poly->isValid() && (excludepoly == 0)) {
+                        poly = dynamic_cast<Geometry*>(poly->buffer(0));
+                        poly->normalize();
+                    }
                     if ((excludepoly == 0) || (poly->isValid()))
                     {
                         std::string text = writer.write(poly);

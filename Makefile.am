@@ -4,7 +4,7 @@ DIST_SUBDIRS = legacy
 
 bin_PROGRAMS = osm2pgsql nodecachefilereader
 
-osm2pgsql_SOURCES = build_geometry.cpp input.c middle.h middle-ram.h output-gazetteer.h output-pgsql.c rb.c sanitizer.h text-tree.h build_geometry.h input.h middle-pgsql.c osm2pgsql.c output.h output-pgsql.h rb.h sprompt.c UTF8sanitizer.c expire-tiles.c keyvals.c middle-pgsql.h osmtypes.h output-null.c parse-primitive.c parse-primitive.h parse-xml2.c parse-xml2.h pgsql.c reprojection.c sprompt.h expire-tiles.h keyvals.h middle-ram.c output-gazetteer.c output-null.h pgsql.h reprojection.h text-tree.c node-ram-cache.c wildcmp.c node-ram-cache.h node-persistent-cache.c node-persistent-cache.h binarysearcharray.c binarysearcharray.h 
+osm2pgsql_SOURCES = build_geometry.cpp input.c middle.h middle-ram.h output-gazetteer.h output-pgsql.c rb.c sanitizer.h text-tree.h build_geometry.h input.h middle-pgsql.c osm2pgsql.c output.h output-pgsql.h rb.h sprompt.c UTF8sanitizer.c expire-tiles.c keyvals.c middle-pgsql.h osmtypes.h output-null.c parse-o5m.c parse-o5m.h parse-primitive.c parse-primitive.h parse-xml2.c parse-xml2.h pgsql.c reprojection.c sprompt.h expire-tiles.h keyvals.h middle-ram.c output-gazetteer.c output-null.h pgsql.h reprojection.h text-tree.c node-ram-cache.c wildcmp.c node-ram-cache.h node-persistent-cache.c node-persistent-cache.h binarysearcharray.c binarysearcharray.h 
 
 nodecachefilereader_SOURCES = node-persistent-cache-reader.c node-persistent-cache.c node-ram-cache.c binarysearcharray.c
 

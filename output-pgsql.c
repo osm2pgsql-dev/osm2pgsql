@@ -189,8 +189,8 @@ void read_style_file( const char *filename )
             exit_nicely();
         }
     }
-    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') >0) || (strchr(temp.name,'*') >0))) {
-        fprintf( stderr, "wildcard '%s' in non-delete style emtry\n",temp.name);
+    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') != NULL) || (strchr(temp.name,'*') != NULL))) {
+        fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name);
         exit_nicely();
     }
     
@@ -645,7 +645,6 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
 
     static char *sql;
     static size_t sqllen=0;
-    char *v;
     int i;
     struct keyval *tag;
 
@@ -698,7 +697,6 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
   
     static char *sql;
     static size_t sqllen=0;
-    char *v;
     int j;
     struct keyval *tag;
 
@@ -815,7 +813,14 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                 pushItem(&temp, item);
                 /* ... but if hstore_match_only is set then don't take this 
                    as a reason for keeping the object */
-                if (!Options->hstore_match_only) filter = 0;
+                if (
+                    !Options->hstore_match_only
+                    && strcmp("osm_uid",item->key)
+                    && strcmp("osm_user",item->key)
+                    && strcmp("osm_timestamp",item->key)
+                    && strcmp("osm_version",item->key)
+                    && strcmp("osm_changeset",item->key)
+                   ) filter = 0;
             } else if (Options->n_hstore_columns) {
                 /* does this column match any of the hstore column prefixes? */
                 int j;
@@ -825,7 +830,14 @@ unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *poly
                         pushItem(&temp, item);
                         /* ... but if hstore_match_only is set then don't take this 
                            as a reason for keeping the object */
-                        if (!Options->hstore_match_only) filter = 0;
+                        if (
+                            !Options->hstore_match_only
+                            && strcmp("osm_uid",item->key)
+                            && strcmp("osm_user",item->key)
+                            && strcmp("osm_timestamp",item->key)
+                            && strcmp("osm_version",item->key)
+                            && strcmp("osm_changeset",item->key)
+                          ) filter = 0;
                         break; 
                     }
                 }
@@ -1217,7 +1229,7 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            exit_nicely();
+            return 1;
         }
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
@@ -1648,8 +1660,9 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
   // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
-  int i, count;
-  osmid_t *xid = malloc( (member_count+1) * sizeof(osmid_t) );
+    int i, j, count, count2;
+  osmid_t *xid2 = malloc( (member_count+1) * sizeof(osmid_t) );
+  osmid_t *xid;
   const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
@@ -1662,30 +1675,37 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   count = 0;
   for( i=0; i<member_count; i++ )
   {
+  
     /* Need to handle more than just ways... */
     if( members[i].type != OSMTYPE_WAY )
         continue;
-
-    initList(&(xtags[count]));
-    if( Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count]) ) )
-      continue;
-    xid[count] = members[i].id;
-    xrole[count] = members[i].role;
+    xid2[count] = members[i].id;
     count++;
   }
-  xnodes[count] = NULL;
-  xcount[count] = 0;
-  xid[count] = 0;
-  xrole[count] = NULL;
+
+  count2 = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+
+  for (i = 0; i < count2; i++) {
+      for (j = i; j < member_count; j++) {
+          if (members[j].id == xid[i]) break;
+      }
+      xrole[i] = members[j].role;
+  }
+  xnodes[count2] = NULL;
+  xcount[count2] = 0;
+  xid[count2] = 0;
+  xrole[count2] = NULL;
+
   // At some point we might want to consider storing the retreived data in the members, rather than as seperate arrays
   pgsql_out_relation(id, tags, xnodes, xtags, xcount, xid, xrole);
 
-  for( i=0; i<count; i++ )
+  for( i=0; i<count2; i++ )
   {
     resetList( &(xtags[i]) );
     free( xnodes[i] );
   }
 
+  free(xid2);
   free(xid);
   free(xrole);
   free(xcount);
@@ -1702,10 +1722,15 @@ static int pgsql_add_relation(osmid_t id, struct member *members, int member_cou
   if (!type)
       return 0;
 
-  /* In slim mode we remember these*/
+  // In slim mode we remember these
   if(Options->mid->relations_set)
     Options->mid->relations_set(id, members, member_count, tags);
   // (osmid_t id, struct keyval *rel_tags, struct osmNode **xnodes, struct keyval **xtags, int *xcount)
+    
+  // Only a limited subset of type= is supported, ignore other
+  if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
+    return 0;
+
 
   return pgsql_process_relation(id, members, member_count, tags, 0);
 }

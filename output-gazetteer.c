@@ -240,6 +240,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 {
    int placehouse = 0;
    int placebuilding = 0;
+   int placeadmin = 0;
    struct keyval *landuse;
    struct keyval *place;
    struct keyval *item;
@@ -308,9 +309,17 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           (strncmp(item->key, "short_name:", 11) == 0) ||
           strcmp(item->key, "operator") == 0) //operator is a bit of an oddity
       {
-         pushItem(names, item);
+         if (strcmp(item->key, "name:prefix") == 0)
+         {
+            pushItem(extratags, item);
+         }
+         else
+         {
+            pushItem(names, item);
+         }
       }
-      else if (strcmp(item->key, "aeroway") == 0 ||
+      else if (strcmp(item->key, "aerialway") == 0 ||
+               strcmp(item->key, "aeroway") == 0 ||
                strcmp(item->key, "amenity") == 0 ||
                strcmp(item->key, "boundary") == 0 ||
                strcmp(item->key, "bridge") == 0 ||
@@ -331,6 +340,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          if (strcmp(item->value, "no"))
          {
             pushItem(places, item);
+            if (strcmp(item->key, "boundary") == 0 && strcmp(item->value, "administrative") == 0)
+            {
+               placeadmin = 1;
+            }
          }
          else
          {
@@ -517,7 +530,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 
    if (place)
    {
-      if (listHasData(places) && (*admin_level != ADMINLEVEL_NONE))
+      if (placeadmin)
       {
          pushItem(extratags, place);
       } 
@@ -533,7 +546,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    }
 
    // Fallback place types - only used if we didn't create something more specific already
-   if (placebuilding && !listHasData(places))
+   if (placebuilding && !listHasData(places) && (listHasData(names) || *housenumber || *postcode))
    {
       addItem(places, "building", "yes", 1);
    }
@@ -1145,6 +1158,8 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       int *xcount = malloc( (member_count+1) * sizeof(int) );
       struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
       struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+      osmid_t *xid;
+      osmid_t *xid2 = malloc( (member_count+1) * sizeof(osmid_t) );
 
       count = 0;
       for (i=0; i<member_count; i++)
@@ -1152,12 +1167,12 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          /* only interested in ways */
          if (members[i].type != OSMTYPE_WAY)
             continue;
-
-         initList(&(xtags[count]));
-         if (Options->mid->ways_get( members[i].id, &(xtags[count]), &(xnodes[count]), &(xcount[count])))
-            continue;
+         xid2[count] = members[i].id;
          count++;
       }
+
+      count = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+
       xnodes[count] = NULL;
       xcount[count] = 0;
 
@@ -1186,6 +1201,8 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          free( xnodes[i] );
       }
 
+      free(xid);
+      free(xid2);
       free(xcount);
       free(xtags);
       free(xnodes);
