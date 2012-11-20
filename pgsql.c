@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <libpq-fe.h>
-#include "osmtypes.h" // For exit_nicely()
+#include "osmtypes.h" /* For exit_nicely() */
 #include "pgsql.h"
 
 void escape(char *out, int len, const char *in)
@@ -23,12 +23,12 @@ void escape(char *out, int len, const char *in)
     while(*in && count < len-3) { 
         switch(*in) {
             case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
-      //    case    8: *out++ = '\\'; *out++ = '\b'; count+= 2; break;
-      //    case   12: *out++ = '\\'; *out++ = '\f'; count+= 2; break;
+                /*    case    8: *out++ = '\\'; *out++ = '\b'; count+= 2; break; */
+                /*    case   12: *out++ = '\\'; *out++ = '\f'; count+= 2; break; */
             case '\n': *out++ = '\\'; *out++ = '\n'; count+= 2; break;
             case '\r': *out++ = '\\'; *out++ = '\r'; count+= 2; break;
             case '\t': *out++ = '\\'; *out++ = '\t'; count+= 2; break;
-      //    case   11: *out++ = '\\'; *out++ = '\v'; count+= 2; break;
+                /*    case   11: *out++ = '\\'; *out++ = '\v'; count+= 2; break; */
             default:   *out++ = *in; count++; break;
         }
         in++;

@@ -13,6 +13,10 @@
 
 #include "reprojection.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 /** must match expire.tiles.c */
 #define EARTH_CIRCUMFERENCE              40075016.68
 
@@ -53,8 +57,8 @@ static struct Projection_Info custom_projection;
 /** defined in expire-tiles.c; depends on the zoom level selected for expiry. */
 extern int map_width; 
 
-// Positive numbers refer the to the table above, negative numbers are
-// assumed to refer to EPSG codes and it uses the proj4 to find those.
+/* Positive numbers refer the to the table above, negative numbers are
+   assumed to refer to EPSG codes and it uses the proj4 to find those. */
 void project_init(int proj)
 {
     char buffer[32];
@@ -162,7 +166,6 @@ void reproject(double *lat, double *lon)
     
     pj_transform(pj_source, pj_target, 1, 1, x, y, z);
     
-    //printf("%.4f\t%.4f -> %.4f\t%.4f\n", *lat, *lon, y[0], x[0]);
     *lat = y[0];
     *lon = x[0];
 }

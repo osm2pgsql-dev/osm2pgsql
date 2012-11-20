@@ -14,6 +14,7 @@
 #endif
 
 #include <bzlib.h>
+#include <string.h>
 
 #include "sanitizer.h"
 #include "input.h"
@@ -22,20 +23,20 @@ struct Input {
   char *name;
   enum { plainFile, gzipFile, bzip2File } type;
   void *fileHandle;
-  // needed by bzip2 when decompressing from multiple streams. other
-  // decompressors must ignore it.
+    /* needed by bzip2 when decompressing from multiple streams. other 
+       decompressors must ignore it. */
   FILE *systemHandle; 
   int eof;
   char buf[4096];
   int buf_ptr, buf_fill;
 };
 
-// tries to re-open the bz stream at the next stream start.
-// returns 0 on success, -1 on failure.
+/* tries to re-open the bz stream at the next stream start.
+   returns 0 on success, -1 on failure. */
 int bzReOpen(struct Input *ctx, int *error) {
-  // for copying out the last unused part of the block which
-  // has an EOS token in it. needed for re-initialising the
-  // next stream.
+    /* for copying out the last unused part of the block which
+       has an EOS token in it. needed for re-initialising the
+       next stream. */
   unsigned char unused[BZ_MAX_UNUSED];
   void *unused_tmp_ptr = NULL;
   int nUnused, i;
@@ -43,15 +44,15 @@ int bzReOpen(struct Input *ctx, int *error) {
   BZ2_bzReadGetUnused(error, (BZFILE *)(ctx->fileHandle), &unused_tmp_ptr, &nUnused);
   if (*error != BZ_OK) return -1;
 	      
-  // when bzReadClose is called the unused buffer is deallocated, 
-  // so it needs to be copied somewhere safe first.
+  /* when bzReadClose is called the unused buffer is deallocated, 
+     so it needs to be copied somewhere safe first. */
   for (i = 0; i < nUnused; ++i)
     unused[i] = ((unsigned char *)unused_tmp_ptr)[i];
   
   BZ2_bzReadClose(error, (BZFILE *)(ctx->fileHandle));
   if (*error != BZ_OK) return -1;
 
-  // reassign the file handle
+  /* reassign the file handle */
   ctx->fileHandle = BZ2_bzReadOpen(error, ctx->systemHandle, 0, 0, unused, nUnused);
   if (ctx->fileHandle == NULL || *error != BZ_OK) return -1;
 
@@ -79,10 +80,10 @@ int readFile(void *context, char * buffer, int len)
         case bzip2File:
 	  l = BZ2_bzRead(&error, (BZFILE *)f, buffer, len);
 
-	  // error codes BZ_OK and BZ_STREAM_END are both "OK", but the stream 
-	  // end means the reader needs to be reset from the original handle.
+	  /* error codes BZ_OK and BZ_STREAM_END are both "OK", but the stream 
+         end means the reader needs to be reset from the original handle. */
 	  if (error != BZ_OK) {
-	    // for stream errors, try re-opening the stream before admitting defeat.
+          /* for stream errors, try re-opening the stream before admitting defeat. */
 	    if (error != BZ_STREAM_END || bzReOpen(ctx, &error) != 0) {
 	      l = 0;
 	      ctx->eof = 1;
@@ -116,7 +117,6 @@ char inputGetChar(void *context)
             exit(1);
         }
     }
-    //readFile(context, &c, 1);
     return ctx->buf[ctx->buf_ptr++];
 }
 
@@ -136,7 +136,8 @@ void *inputOpen(const char *name)
 
     memset(ctx, 0, sizeof(*ctx));
 
-    ctx->name = strdup(name);
+    ctx->name = malloc(strlen(name) + 1);
+    if (ctx->name) strcpy(ctx->name, name);
 
     if (ext && !strcmp(ext, ".gz")) {
         ctx->fileHandle = (void *)gzopen(name, "rb");

@@ -66,18 +66,18 @@ static int way_blocks;
 static int way_out_count;
 static int rel_out_count;
 
-static inline osmid_t id2block(osmid_t id)
+static osmid_t id2block(osmid_t id)
 {
-    // + NUM_BLOCKS/2 allows for negative IDs
+    /* + NUM_BLOCKS/2 allows for negative IDs */
     return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
 }
 
-static inline osmid_t id2offset(osmid_t id)
+static  osmid_t id2offset(osmid_t id)
 {
     return id & (PER_BLOCK-1);
 }
 
-static inline int block2id(int block, int offset)
+static int block2id(int block, int offset)
 {
     return ((block - NUM_BLOCKS/2) << BLOCK_SHIFT) + offset;
 }
@@ -97,7 +97,6 @@ static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *t
             exit_nicely();
         }
         way_blocks++;
-        //fprintf(stderr, "\tways(%zuMb)\n", way_blocks * sizeof(struct ramWay) * PER_BLOCK / 1000000);
     }
 
     if (ways[block][offset].ndids) {
@@ -302,7 +301,7 @@ static int ram_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, str
     return count;
 }
 
-// Marks the way so that iterate ways skips it
+/* Marks the way so that iterate ways skips it */
 static int ram_ways_done(osmid_t id)
 {
     int block = id2block(id), offset = id2offset(id);
@@ -326,9 +325,9 @@ static void ram_end(void)
 
 static int ram_start(const struct output_options *options)
 {
-    // latlong has a range of +-180, mercator +-20000
-    // The fixed poing scaling needs adjusting accordingly to
-    // be stored accurately in an int
+    /* latlong has a range of +-180, mercator +-20000
+       The fixed poing scaling needs adjusting accordingly to
+       be stored accurately in an int */
     scale = options->scale;
 
     init_node_ram_cache( options->alloc_chunkwise, options->cache, scale);

@@ -21,11 +21,11 @@
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
-#define TILE_EXPIRY_LEEWAY		0.1		// How many tiles worth of space to leave either side of a changed feature
-#define EXPIRE_TILES_MAX_BBOX		20000		// Maximum width or height of a bounding box (metres)
+#define TILE_EXPIRY_LEEWAY		0.1		/* How many tiles worth of space to leave either side of a changed feature */
+#define EXPIRE_TILES_MAX_BBOX		20000		/* Maximum width or height of a bounding box (metres) */
 
 struct tile {
-	int		complete[2][2];	// Flags
+	int		complete[2][2];	/* Flags */
 	struct tile *	subtiles[2][2];
 };
 
@@ -90,7 +90,7 @@ static int _mark_tile(struct tile ** tree, int x, int y, int zoom, int this_zoom
 			complete = _mark_tile(&((*tree)->subtiles[rel_x][rel_y]), x, y, zoom, this_zoom + 1);
 			if (complete >= 4) {
 				(*tree)->complete[rel_x][rel_y] = 1;
-				// We can destroy the subtree to save memory now all the children are dirty
+				/* We can destroy the subtree to save memory now all the children are dirty */
 				destroy_tree((*tree)->subtiles[rel_x][rel_y]);
 				(*tree)->subtiles[rel_x][rel_y] = NULL;
 			}
@@ -235,7 +235,7 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
     coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b);
 
 	if (tile_x_a > tile_x_b) {
-		// We always want the line to go from left to right - swap the ends if it doesn't
+		/* We always want the line to go from left to right - swap the ends if it doesn't */
 		temp = tile_x_b;
 		tile_x_b = tile_x_a;
 		tile_x_a = temp;
@@ -246,9 +246,9 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 
 	x_len = tile_x_b - tile_x_a;
 	if (x_len > map_width / 2) {
-		// If the line is wider than half the map, assume it
-		// crosses the international date line.
-		// These coordinates get normalised again later
+		/* If the line is wider than half the map, assume it
+           crosses the international date line.
+           These coordinates get normalised again later */
 		tile_x_a += map_width;
 		temp = tile_x_b;
 		tile_x_b = tile_x_a;
@@ -258,13 +258,12 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 		tile_y_a = temp;
 	}
 	y_len = tile_y_b - tile_y_a;
-	hyp_len = sqrt(pow(x_len, 2) + pow(y_len, 2));	// Pythagoras
+	hyp_len = sqrt(pow(x_len, 2) + pow(y_len, 2));	/* Pythagoras */
 	x_step = x_len / hyp_len;
 	y_step = y_len / hyp_len;
-//	fprintf(stderr, "Expire from line (%f,%f),(%f,%f) [%f,%f],[%f,%f] %fx%f hyp_len = %f\n", lon_a, lat_a, lon_b, lat_b, tile_x_a, tile_y_a, tile_x_b, tile_y_b, x_len, y_len, hyp_len);
 	
 	for (step = 0; step <= hyp_len; step+= 0.4) {
-		// Interpolate points 1 tile width apart
+		/* Interpolate points 1 tile width apart */
 		next_step = step + 0.4;
 		if (next_step > hyp_len) next_step = hyp_len;
 		x1 = tile_x_a + ((double)step * x_step);
@@ -272,12 +271,11 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 		x2 = tile_x_a + ((double)next_step * x_step);
 		y2 = tile_y_a + ((double)next_step * y_step);
 		
-//		printf("Expire from subline (%f,%f),(%f,%f)\n", x1, y1, x2, y2);
-		// The line (x1,y1),(x2,y2) is up to 1 tile width long
-		// x1 will always be <= x2
-		// We could be smart and figure out the exact tiles intersected,
-		// but for simplicity, treat the coordinates as a bounding box
-		// and expire everything within that box.
+		/* The line (x1,y1),(x2,y2) is up to 1 tile width long
+           x1 will always be <= x2
+           We could be smart and figure out the exact tiles intersected,
+           but for simplicity, treat the coordinates as a bounding box
+           and expire everything within that box. */
 		if (y1 > y2) {
 			temp = y2;
 			y2 = y1;
@@ -314,8 +312,8 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	width = max_lon - min_lon;
 	height = max_lat - min_lat;
 	if (width > HALF_EARTH_CIRCUMFERENCE + 1) {
-		// Over half the planet's width within the bounding box - assume the
-		// box crosses the international date line and split it into two boxes
+		/* Over half the planet's width within the bounding box - assume the
+           box crosses the international date line and split it into two boxes */
 		ret = expire_tiles_from_bbox(-HALF_EARTH_CIRCUMFERENCE, min_lat, min_lon, max_lat);
 		ret += expire_tiles_from_bbox(max_lon, min_lat, HALF_EARTH_CIRCUMFERENCE, max_lat);
 		return ret;
@@ -324,9 +322,8 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	if (width > EXPIRE_TILES_MAX_BBOX) return -1;
 	if (height > EXPIRE_TILES_MAX_BBOX) return -1;
 
-//	printf("Expire from bbox (%f,%f)-(%f,%f) %fx%f\n", min_lon, min_lat, min_lon, min_lat, width, height);
 
-	// Convert the box's Mercator coordinates into tile coordinates
+	/* Convert the box's Mercator coordinates into tile coordinates */
     coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat);
     min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
     min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
@@ -337,7 +334,6 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	if (min_tile_y < 0) min_tile_y = 0;
 	if (max_tile_x > map_width) max_tile_x = map_width;
 	if (max_tile_y > map_width) max_tile_y = map_width;
-//	printf("BBOX: (%f %f) - (%f %f) [%i %i] - [%i %i]\n", min_lon, min_lat, max_lon, max_lat, min_tile_x, min_tile_y, max_tile_x, max_tile_y);
 	for (iterator_x = min_tile_x; iterator_x <= max_tile_x; iterator_x ++) {
 		norm_x =  normalise_tile_x_coord(iterator_x);
 		for (iterator_y = min_tile_y; iterator_y <= max_tile_y; iterator_y ++) {
@@ -353,7 +349,6 @@ void expire_tiles_from_nodes_line(struct osmNode * nodes, int count) {
 	double	last_lon;
 
 	if (Options->expire_tiles_zoom < 0) return;
-//	fprintf(stderr, "Expire from nodes_line (%i)\n", count);
 	if (count < 1) return;
 	last_lat = nodes[0].lat;
 	last_lon = nodes[0].lon;
@@ -380,7 +375,6 @@ void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm
 	double	max_lat = 0.0;
         
 	if (Options->expire_tiles_zoom < 0) return;
-//	printf("Expire from nodes_poly (%i)\n", count);
 	for (i = 0; i < count; i++) {
 		if ((! got_coords) || (nodes[i].lon < min_lon)) min_lon = nodes[i].lon;
 		if ((! got_coords) || (nodes[i].lat < min_lat)) min_lat = nodes[i].lat;
@@ -390,7 +384,7 @@ void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm
 	}
 	if (got_coords) {
 		if (expire_tiles_from_bbox(min_lon, min_lat, max_lon, max_lat)) {
-			// Bounding box too big - just expire tiles on the line
+			/* Bounding box too big - just expire tiles on the line */
 			fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
 			expire_tiles_from_nodes_line(nodes, count);
 		}

@@ -53,7 +53,6 @@
 #define TAGINFO_WAY  0x2u
 #define TAGINFO_AREA 0x4u
 
-//static int gazetteer_delete_relation(osmid_t osm_id);
 
 static const struct output_options *Options = NULL;
 static PGconn *Connection = NULL;
@@ -263,7 +262,6 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    /* Loop over the tags */
    while ((item = popItem(tags)) != NULL)
    {
-//      fprintf(stderr, "%s\n", item->key);
 
       /* If this is a name tag, add it to the name list */
       if (strcmp(item->key, "ref") == 0 ||
@@ -307,7 +305,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           (strncmp(item->key, "place_name:", 11) == 0) ||
           strcmp(item->key, "short_name") == 0 ||
           (strncmp(item->key, "short_name:", 11) == 0) ||
-          strcmp(item->key, "operator") == 0) //operator is a bit of an oddity
+          strcmp(item->key, "operator") == 0) /* operator is a bit of an oddity */
       {
          if (strcmp(item->key, "name:prefix") == 0)
          {
@@ -396,7 +394,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "addr:housenumber") == 0)
       {
-         // house number can be far more complex than just a single house number - leave for postgresql to deal with
+          /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
          if (*housenumber)
              freeItem(item);
          else {
@@ -406,7 +404,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "addr:interpolation") == 0)
       {
-         // house number can be far more complex than just a single house number - leave for postgresql to deal with
+          /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
           if (*housenumber) {
               freeItem(item);
           } else {
@@ -517,8 +515,8 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "mountain_pass") == 0)
       {
-          // the key be mountain_pass only ever comes with the value Yes.
-          // Not helpful. Therefore "retag" to place=mountain_pass
+          /* the key be mountain_pass only ever comes with the value Yes.
+             Not helpful. Therefore "retag" to place=mountain_pass */
           addItem(places, "place", "mountain_pass", 1);
           freeItem(item);
       }
@@ -545,7 +543,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       addItem(places, "place", "house", 1);
    }
 
-   // Fallback place types - only used if we didn't create something more specific already
+   /* Fallback place types - only used if we didn't create something more specific already */
    if (placebuilding && !listHasData(places) && (listHasData(names) || *housenumber || *postcode))
    {
       addItem(places, "building", "yes", 1);
@@ -568,7 +566,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       addItem(places, "place", "postcode", 1);
    }
 
-   // Try to convert everything to an area
+   /* Try to convert everything to an area */
    return 1;
 }
 
@@ -587,7 +585,7 @@ void escape_array_record(char *out, int len, const char *in)
             case '\r': 
             case '\t': 
             case '"': 
-		// This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity
+                /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
 		*out++ = ' '; count++; break;
             default:   *out++ = *in; count++; break;
         }
@@ -722,7 +720,7 @@ static void add_place(char osm_type, osmid_t osm_id, const char *class, const ch
 
    if (isin)
    {
-      // Skip the leading ',' from the contactination
+       /* Skip the leading ',' from the contactination */
       escape(sql, sizeof(sql), isin+1);
       copy_data(sql);
       copy_data("\t");
@@ -788,7 +786,6 @@ static void add_place(char osm_type, osmid_t osm_id, const char *class, const ch
 
    copy_data("\n");
 
-//fprintf(stderr, "%c %" PRIdOSMID " %s\n", osm_type, osm_id, wkt);
 
    return;
 }
@@ -859,7 +856,6 @@ static void add_polygon_error(char osm_type, osmid_t osm_id, const char *class, 
 
    copy_error_data("\n");
 
-//fprintf(stderr, "%c %" PRIdOSMID " %s\n", osm_type, osm_id, wkt);
 
    return;
 }
@@ -883,7 +879,6 @@ static int gazetteer_out_start(const struct output_options *options)
 
    /* Connection to the database */
    Connection = PQconnectdb(options->conninfo);
-   //ConnectionError = PQconnectdb(options->conninfo);
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -953,8 +948,6 @@ static int gazetteer_out_start(const struct output_options *options)
 static void gazetteer_out_stop(void)
 {
    /* Process any remaining ways and relations */
-//   Options->mid->iterate_ways( gazetteer_out_way );
-//   Options->mid->iterate_relations( gazetteer_process_relation );
 
    /* No longer need to access middle layer */
    Options->mid->commit();
@@ -962,14 +955,11 @@ static void gazetteer_out_stop(void)
 
    /* Stop any active copy */
    stop_copy();
-   //stop_error_copy();
    if (hLog) fclose(hLog);
 
    /* Commit transaction */
    pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
 
-   /* Analyse the table */
-   //pgsql_exec(Connection, PGRES_COMMAND_OK, "ANALYZE place");
 
    PQfinish(Connection);
    if (ConnectionDelete)
@@ -999,7 +989,6 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
    struct keyval * countrycode;
    char wkt[128];
 
-//fprintf(stderr, "node\n");
 
    /* Split the tags */
    split_tags(tags, TAGINFO_NODE, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
@@ -1053,7 +1042,6 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
    struct keyval * countrycode;
    int area;
 
-//fprintf(stderr, "way\n");
 
    /* Split the tags */
    area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
@@ -1189,7 +1177,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          }
          else
          {
-            //add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt);
+             /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
          }
          free(wkt);
       }

@@ -55,7 +55,7 @@ static uint32_t get_length(FILE *input)
   return ntohl(*((size_t *)buf));
 }
 
-static inline void *realloc_or_free(void *p, size_t len)
+static void *realloc_or_free(void *p, size_t len)
 {
   void *new = realloc(p, len);
 
@@ -334,7 +334,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
                 
 #if 0
                 /* TODO */
-                if (deltauid != -1) { // osmosis devs failed to read the specs
+                if (deltauid != -1) { /* osmosis devs failed to read the specs */
                     printuser(string_table->s[deltauser_sid]);
                     printnumericattribute("osm_uid", deltauid);
                 }
