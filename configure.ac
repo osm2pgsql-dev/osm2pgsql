@@ -40,6 +40,9 @@ AX_CXXFLAGS_WARN_ALL
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
 
+LFS_CFLAGS=`getconf LFS_CFLAGS`
+AC_SUBST(LFS_CFLAGS)
+
 AC_CHECK_FUNC(lseek64,[AC_DEFINE(HAVE_LSEEK64, [1], [lseek64 is present])],[AX_COMPILE_CHECK_SIZEOF(off_t)])
 AC_CHECK_FUNCS([posix_fallocate posix_fadvise sync_file_range])
 
