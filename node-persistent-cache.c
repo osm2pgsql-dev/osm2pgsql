@@ -32,7 +32,7 @@ static const char * node_cache_fname;
 static int append_mode;
 
 struct persistentCacheHeader cacheHeader;
-static struct ramNodeBlock writeNodeBlock; //larger node block for more efficient initial sequential writing of node cache
+static struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
 static struct ramNodeBlock * readNodeBlockCache;
 static struct binary_search_array * readNodeBlockCacheIdx;
 
@@ -168,7 +168,7 @@ static void persistent_cache_expand_cache(osmid_t block_offset)
         exit_nicely();
     }
     ramNodes_clear(dummyNodes, READ_NODE_BLOCK_SIZE);
-    //Need to expand the persistent node cache
+    /* Need to expand the persistent node cache */
     lseek64(node_cache_fd,
             cacheHeader.max_initialised_id * sizeof(struct ramNode)
                     + sizeof(struct persistentCacheHeader), SEEK_SET);
@@ -207,10 +207,10 @@ static void persistent_cache_nodes_prefetch_async(osmid_t id)
     osmid_t block_id = persistent_cache_find_block(block_offset);
 
     if (block_id < 0)
-    {   // The needed block isn't in cache already, so initiate loading
+        {   /* The needed block isn't in cache already, so initiate loading */
         writeout_dirty_nodes(id);
 
-        //Make sure the node cache is correctly initialised for the block that will be read
+        /* Make sure the node cache is correctly initialised for the block that will be read */
         if (cacheHeader.max_initialised_id
                 < ((block_offset + 1) << READ_NODE_BLOCK_SHIFT))
             persistent_cache_expand_cache(block_offset);
@@ -254,14 +254,14 @@ static int persistent_cache_load_block(osmid_t block_offset)
     readNodeBlockCache[block_id].block_offset = block_offset;
     readNodeBlockCache[block_id].used = READ_NODE_CACHE_SIZE;
 
-    //Make sure the node cache is correctly initialised for the block that will be read
+    /* Make sure the node cache is correctly initialised for the block that will be read */
     if (cacheHeader.max_initialised_id
             < ((block_offset + 1) << READ_NODE_BLOCK_SHIFT))
     {
         persistent_cache_expand_cache(block_offset);
     }
 
-    //Read the block into cache
+    /* Read the block into cache */
     lseek64(node_cache_fd,
             (block_offset << READ_NODE_BLOCK_SHIFT) * sizeof(struct ramNode)
                     + sizeof(struct persistentCacheHeader), SEEK_SET);
@@ -331,7 +331,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
             persisten_cache_nodes_set_create_writeout_block();
             writeNodeBlock.used = 0;
             writeNodeBlock.dirty = 0;
-            //After writing out the node block, the file pointer is at the next block level
+            /* After writing out the node block, the file pointer is at the next block level */
             writeNodeBlock.block_offset++;
             cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
                     << WRITE_NODE_BLOCK_SHIFT) - 1;
@@ -344,7 +344,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
             exit_nicely();
         }
 
-        //We need to fill the intermediate node cache with node nodes to identify which nodes are valid
+        /* We need to fill the intermediate node cache with node nodes to identify which nodes are valid */
         for (i = writeNodeBlock.block_offset; i < block_offset; i++)
         {
             ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);

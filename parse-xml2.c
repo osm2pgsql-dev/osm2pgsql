@@ -212,7 +212,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         xmlFree(xtype);
     } else if (xmlStrEqual(name, BAD_CAST "add") ||
                xmlStrEqual(name, BAD_CAST "create")) {
-        osmdata->action = ACTION_MODIFY; // Turns all creates into modifies, makes it resiliant against inconsistant snapshots.
+        osmdata->action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
     } else if (xmlStrEqual(name, BAD_CAST "modify")) {
         osmdata->action = ACTION_MODIFY;
     } else if (xmlStrEqual(name, BAD_CAST "delete")) {
@@ -227,7 +227,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
 
-    // Collect extra attribute information and add as tags
+    /* Collect extra attribute information and add as tags */
     if (osmdata->extra_attributes && (xmlStrEqual(name, BAD_CAST "node") ||
 				      xmlStrEqual(name, BAD_CAST "way") ||
 				      xmlStrEqual(name, BAD_CAST "relation")))

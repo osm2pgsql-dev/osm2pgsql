@@ -290,7 +290,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
             realloc_members(osmdata);
     } else if (!strcmp(name, "add") ||
                !strcmp(name, "create")) {
-        osmdata->action = ACTION_MODIFY; // Turns all creates into modifies, makes it resiliant against inconsistant snapshots.
+        osmdata->action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
     } else if (!strcmp(name, "modify")) {
         osmdata->action = ACTION_MODIFY;
     } else if (!strcmp(name, "delete")) {
@@ -305,7 +305,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
 
-    // Collect extra attribute information and add as tags
+    /* Collect extra attribute information and add as tags */
     if (osmdata->extra_attributes && (!strcmp(name, "node") ||
 				      !strcmp(name, "way") ||
 				      !strcmp(name, "relation")))
@@ -440,7 +440,7 @@ static void process(char *line, struct osmdata_t *osmdata) {
                 }
             }
             *nx++ = 0;
-            //printf ("nx=%d, lt+1=#%s#\n", nx-lt,lt+1);
+            /* printf ("nx=%d, lt+1=#%s#\n", nx-lt,lt+1); */
             StartElement(lt+1, nx, osmdata);
             if (slash) EndElement(lt+1, osmdata);
         }
@@ -467,9 +467,7 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
                 *nl = 0;
                 process(buffer + offset, osmdata);
                 offset = nl - buffer + 1;
-                //printf("\nsearch line at %d, buffer sz is %d = ",offset, bufsz);
                 nl = strchr(buffer + offset, '\n');
-                //printf("%d\n", nl ? nl-buffer : -1);
             }
             memcpy(buffer, buffer + offset, bufsz - offset);
             bufsz = bufsz - offset;

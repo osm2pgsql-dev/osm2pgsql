@@ -7,7 +7,7 @@
 #include <time.h>
 #include <config.h>
 
-// Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs.
+/* Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs. */
 
 #ifdef OSMID64
 typedef int64_t osmid_t;
@@ -62,7 +62,7 @@ struct osmdata_t {
   actions_t action;
   int extra_attributes;
 
-  // Bounding box to filter imported data
+    /* Bounding box to filter imported data */
   const char *bbox;
 
   double minlon, minlat, maxlon, maxlat;

@@ -148,7 +148,6 @@ struct keyval *getMatches(struct keyval *head, const char *name)
     while(p != head) {
         struct keyval *next = p->next;
         if (!strncmp(p->key, name, strlen(name))) {
-            //printf("match: %s=%s\n", p->key, p->value);
             p->next->prev = p->prev;
             p->prev->next = p->next;
             pushItem(out, p);
@@ -256,13 +255,13 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
 
 
 #if 1
-    // Add to head
+    /* Add to head */
     item->next = head->next;
     item->prev = head;
     head->next->prev = item;
     head->next = item;
 #else
-    // Add to tail
+    /* Add to tail */
     item->prev = head->prev;
     item->next = head;
     head->prev->next = item;

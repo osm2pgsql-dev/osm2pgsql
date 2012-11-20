@@ -100,7 +100,7 @@ int sanitizerProcess(void *context, char *buffer, int len)
           break;
  
       if ((current_char & 128) == 0) {
-          //Handle_ASCII_char();
+          /* Handle_ASCII_char(); */
           if (current_char == '\n') 
               ctx->line++;
           else
@@ -111,18 +111,13 @@ int sanitizerProcess(void *context, char *buffer, int len)
               buffer[out++] = '_';
               ctx->state = 1;
           } 
-          //  buffer[out++] = current_char;
+          /*  buffer[out++] = current_char; */
           ctx->out_char[ctx->pend++] = current_char;
       } else if ((current_char & (128+64)) == 128) {
-          // Handle_continue_char();
+          /* Handle_continue_char(); */
           if(ctx->state > 1) {
               ctx->state--;
               if(ctx->state==1) {
-                  // long char finished
-                  //for(i=1; i<ctx->current_size; i++) {
-                  //  buffer[out++] = ctx->long_char[i-1];
-                  //}
-                  //buffer[out++] = current_char;
                   ctx->out_char[ctx->pend++] = current_char;
                   for(i=ctx->current_size-1; i>0; i--) {
                       ctx->out_char[ctx->pend++] = ctx->long_char[i-1];
@@ -135,27 +130,27 @@ int sanitizerProcess(void *context, char *buffer, int len)
               ctx->state=1;
           }
       } else if ((current_char & (128+64+32)) == (128+64)) {
-          //Handle_two_bytes();
+          /* Handle_two_bytes(); */
           ctx->state=2;
           ctx->chars2++;
           ctx->current_size=2;
       } else if ((current_char & (128+64+32+16)) == (128+64+32)) {
-          //Handle_three_bytes();
+          /* Handle_three_bytes(); */
           ctx->state=3;
           ctx->chars3++;
           ctx->current_size=3;
       } else if ((current_char & (128+64+32+16+8)) == (128+64+32+16)) {
-          //Handle_four_bytes();
+          /* Handle_four_bytes(); */
           ctx->state=4;
           ctx->chars4++;
           ctx->current_size=4;
       } else if ((current_char & (128+64+32+16+8+4)) == (128+64+32+16+8)) {
-          //Handle_five_bytes();
+          /* Handle_five_bytes(); */
           ctx->state=5;
           ctx->chars5++;
           ctx->current_size=5;
       } else if ((current_char & (128+64+32+16+8+4+2)) == (128+64+32+16+8+4)) {
-          //Handle_six_bytes();
+          /* Handle_six_bytes(); */
           ctx->state=6;
           ctx->chars6++;
           ctx->current_size=6;

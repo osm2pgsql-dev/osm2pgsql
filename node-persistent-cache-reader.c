@@ -114,10 +114,6 @@ int main(int argc, char *argv[]) {
 	        fprintf(stderr,"Exiting process %i\n", p);
 	        exit(0);
 	    } else {
-	        //fprintf(stderr,"Counting %i\n", p);
-	        //for (long k = 0; k < (1l << 60); k++) if (k == (1l<<50)) printf(stderr,"SHouldn't be here");
-	        //fprintf(stderr,"Counted\n", p);
-
 	        for (p = 0; p < noProcs; p++) wait(NULL);
 	    }
         free(state);

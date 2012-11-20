@@ -13,7 +13,6 @@ static int binary_search_lookup(struct binary_search_array * array, int key)
     while (a <= b)
     {
         int pivot = ((b - a) >> 1) + a;
-        //fprintf(stderr, "testing pivot %i (%i, %i) which is %i against %i\n", pivot,a,b, array->array[pivot].key, key);
         if (array->array[pivot].key == key)
         {
             return pivot;
@@ -35,9 +34,7 @@ osmid_t binary_search_get(struct binary_search_array * array, int key)
 {
     if (array->size == 0)
         return -1;
-    //fprintf(stderr,"!!Looking up binary search of %i\n", key);
     int idx = binary_search_lookup(array, key);
-    //fprintf(stderr,"Looking up binary search of %i %i on size %i\n", key, idx, array->size);
     if (idx < 0)
     {
         return -1;
@@ -51,11 +48,9 @@ osmid_t binary_search_get(struct binary_search_array * array, int key)
 
 void binary_search_remove(struct binary_search_array * array, int key)
 {
-    //fprintf(stderr,"!!REMOVING with binary search of %i\n", key);
     int idx = binary_search_lookup(array, key);
     if (idx < 0)
     {
-        //fprintf(stderr,"**Was Not There %i\n", key);
         return;
     }
     else
@@ -70,7 +65,6 @@ void binary_search_add(struct binary_search_array * array, int key,
 {
     if (array->size < array->capacity)
     {
-        //fprintf(stderr,"adding key value %i %i\n", key, value);
         if (array->size == 0)
         {
             array->array[0].key = key;
@@ -82,7 +76,6 @@ void binary_search_add(struct binary_search_array * array, int key,
         if (idx < 0)
         {
             idx = idx & (~(1 << (sizeof(int) * 8 - 1)));
-            //fprintf(stderr, "Inserting %i at position %i %i\n", key, idx, (~(1 << (sizeof(int) * 8 - 1))));
             memmove(&(array->array[idx + 1]), &(array->array[idx]),
                     sizeof(struct key_val_tuple) * (array->capacity - idx - 1));
             array->array[idx].key = key;

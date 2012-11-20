@@ -61,10 +61,6 @@ struct output_t {
     void (*stop)();
     void (*cleanup)(void);
     void (*close)(int stopTransaction);
-//    void (*process)(struct middle_t *mid);
-//    int (*node)(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
-//    int (*way)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count);
-//    int (*relation)(osmid_t id, struct keyval *rel_tags, struct osmNode **nodes, struct keyval **tags, int *count);
 
     int (*node_add)(osmid_t id, double lat, double lon, struct keyval *tags);
     int (*way_add)(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);

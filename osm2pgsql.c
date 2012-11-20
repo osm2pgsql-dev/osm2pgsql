@@ -65,7 +65,7 @@
 
 int verbose;
 
-// Data structure carrying all parsing related variables
+/* Data structure carrying all parsing related variables */
 static struct osmdata_t osmdata = { 
   .filetype = FILETYPE_NONE,
   .action   = ACTION_NONE,
@@ -369,10 +369,10 @@ int main(int argc, char *argv[])
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
-    const char *tblsmain_index = NULL; // no default TABLESPACE for index on main tables
-    const char *tblsmain_data = NULL;  // no default TABLESPACE for main tables
-    const char *tblsslim_index = NULL; // no default TABLESPACE for index on slim mode tables
-    const char *tblsslim_data = NULL;  // no default TABLESPACE for slim mode tables
+    const char *tblsmain_index = NULL; /* no default TABLESPACE for index on main tables */
+    const char *tblsmain_data = NULL;  /* no default TABLESPACE for main tables */
+    const char *tblsslim_index = NULL; /* no default TABLESPACE for index on slim mode tables */
+    const char *tblsslim_data = NULL;  /* no default TABLESPACE for slim mode tables */
     const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = OSM2PGSQL_DATADIR "/default.style";
@@ -521,7 +521,7 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
 
-    if (argc == optind) {  // No non-switch arguments
+    if (argc == optind) {  /* No non-switch arguments */
         short_usage(argv[0]);
         exit(EXIT_FAILURE);
     }
@@ -715,7 +715,7 @@ int main(int argc, char *argv[])
     free(osmdata.nds);
     free(osmdata.members);
     
-    // free the column pointer buffer
+    /* free the column pointer buffer */
     free(hstore_columns);
 
     project_exit();

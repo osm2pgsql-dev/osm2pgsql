@@ -93,23 +93,23 @@ static int warn_node_order;
 
 static int ram_cache_nodes_get_sparse(struct osmNode *out, osmid_t id);
 
-static inline int id2block(osmid_t id)
+static int id2block(osmid_t id)
 {
-    // + NUM_BLOCKS/2 allows for negative IDs
+    /* + NUM_BLOCKS/2 allows for negative IDs */
     return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
 }
 
-static inline int id2offset(osmid_t id)
+static int id2offset(osmid_t id)
 {
     return id & (PER_BLOCK-1);
 }
 
-static inline osmid_t block2id(int block, int offset)
+static osmid_t block2id(int block, int offset)
 {
     return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
 }
 
-#define Swap(a,b) { typeof(a) __tmp = a; a = b; b = __tmp; }
+#define Swap(a,b) { struct ramNodeBlock * __tmp = a; a = b; b = __tmp; }
 
 static void percolate_up( int pos )
 {
@@ -119,7 +119,7 @@ static void percolate_up( int pos )
       int parent = (i-1)>>1;
       if( queue[i]->used < queue[parent]->used )
       {
-        Swap( queue[i], queue[parent] );
+        Swap( queue[i], queue[parent] )
         i = parent;
       }
       else
