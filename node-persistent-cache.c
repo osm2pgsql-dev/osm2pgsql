@@ -19,12 +19,16 @@
 #include "node-ram-cache.h"
 #include "binarysearcharray.h"
 
-#ifndef HAVE_LSEEK64
-#if SIZEOF_OFF_T == 8
-#define lseek64 lseek
+#ifdef __APPLE__
+  #define lseek64 lseek
 #else
-#error Flat nodes cache requires a 64 bit capable seek
-#endif
+  #ifndef HAVE_LSEEK64
+  #if SIZEOF_OFF_T == 8
+  #define lseek64 lseek
+  #else
+  #error Flat nodes cache requires a 64 bit capable seek
+  #endif
+  #endif
 #endif
 
 static int node_cache_fd;
