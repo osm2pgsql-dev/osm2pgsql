@@ -130,6 +130,7 @@ static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *t
 static int ram_relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     struct keyval *p;
+    struct member *ptr;
     int block  = id2block(id);
     int offset = id2offset(id);
     if (!rels[block]) {
@@ -157,7 +158,7 @@ static int ram_relations_set(osmid_t id, struct member *members, int member_coun
     if (!rels[block][offset].members)
       free( rels[block][offset].members );
 
-    struct member *ptr = malloc(sizeof(struct member) * member_count);
+    ptr = malloc(sizeof(struct member) * member_count);
     if (ptr) {
         memcpy( ptr, members, sizeof(struct member) * member_count );
         rels[block][offset].member_count = member_count;
