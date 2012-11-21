@@ -414,15 +414,15 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     }
 
 #ifdef __MINGW_H
-    fprintf( stderr, "Node-cache: cache=%lldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
+    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
 #else
-    fprintf( stderr, "Node-cache: cache=%lldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
 #endif
 }
 
 void free_node_ram_cache() {
   int i;
-  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %lli), hit rate: %.2f%%\n", 
+  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n", 
            storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(struct ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
            100.0f*nodesCacheHits/nodesCacheLookups );
