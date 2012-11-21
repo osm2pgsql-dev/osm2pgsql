@@ -311,10 +311,13 @@ void resetMembers(struct osmdata_t *osmdata)
 void printStatus(struct osmdata_t *osmdata)
 {
     time_t now;
+    time_t end_nodes;
+    time_t end_way;
+    time_t end_rel;
     time(&now);
-    time_t end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
-    time_t end_way = osmdata->start_rel > 0 ? osmdata->start_rel : now;
-    time_t end_rel =  now;
+    end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
+    end_way = osmdata->start_rel > 0 ? osmdata->start_rel : now;
+    end_rel =  now;
     fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2f/s)",
             osmdata->count_node/1000,
             (double)osmdata->count_node/1000.0/((int)(end_nodes - osmdata->start_node) > 0 ? (double)(end_nodes - osmdata->start_node) : 1.0),
@@ -363,6 +366,12 @@ int main(int argc, char *argv[])
     int droptemp = 0;
     int unlogged = 0;
     int excludepoly = 0;
+    time_t start, end;
+    time_t overall_start, overall_end;
+    time_t now;
+    time_t end_nodes;
+    time_t end_way;
+    time_t end_rel;
     const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
@@ -651,9 +660,7 @@ int main(int argc, char *argv[])
       }
     }
 
-    time_t overall_start, overall_end;
     time(&overall_start);
-
     osmdata.out->start(&options);
 
     realloc_nodes(&osmdata);
@@ -682,8 +689,6 @@ int main(int argc, char *argv[])
           streamFile = &streamFileXML2;
 #endif
         }
-        time_t start, end;
-
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time(&start);
         if (streamFile(argv[optind], sanitize, &osmdata) != 0)
@@ -697,11 +702,10 @@ int main(int argc, char *argv[])
     xmlMemoryDump();
     
     if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
-        time_t now;
         time(&now);
-        time_t end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
-        time_t end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
-        time_t end_rel =  now;
+        end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
+        end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
+        end_rel =  now;
         fprintf(stderr, "\n");
         fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
                 osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);

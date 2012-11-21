@@ -403,16 +403,19 @@ static void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
 
 static int pgsql_endCopy( struct table_desc *table)
 {
+    PGresult *res;
+    PGconn *sql_conn;
+    int stop;
     /* Terminate any pending COPY */
-     if (table->copyMode) {
-        PGconn *sql_conn = table->sql_conn;
-        int stop = PQputCopyEnd(sql_conn, NULL);
+    if (table->copyMode) {
+        sql_conn = table->sql_conn;
+        stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
             exit_nicely();
         }
 
-        PGresult *res = PQgetResult(sql_conn);
+        res = PQgetResult(sql_conn);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
             PQclear(res);
@@ -464,6 +467,7 @@ static int middle_nodes_set(osmid_t id, double lat, double lon, struct keyval *t
 
     return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : pgsql_nodes_set(id, lat, lon, tags);
 }
+
 
 static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
@@ -686,7 +690,9 @@ static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **node
     char tmp[16];
     char const *paramValues[1];
     PGconn *sql_conn = way_table->sql_conn;
-
+    int num_nodes;
+    osmid_t *list;
+    
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
@@ -702,8 +708,8 @@ static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **node
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
 
-    int num_nodes = strtol(PQgetvalue(res, 0, 2), NULL, 10);
-    osmid_t *list = alloca(sizeof(osmid_t)*num_nodes );
+    num_nodes = strtol(PQgetvalue(res, 0, 2), NULL, 10);
+    list = alloca(sizeof(osmid_t)*num_nodes );
     *nodes_ptr = malloc(sizeof(struct osmNode) * num_nodes);
     pgsql_parse_nodes( PQgetvalue(res, 0, 0), list, num_nodes);
     
@@ -720,7 +726,9 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
     char *tmp2; 
     int count, countPG, i, j;
     osmid_t *wayidspg;
-    char const *paramValues[1]; 
+    char const *paramValues[1];
+    int num_nodes;
+    osmid_t *list;
 
     PGresult *res;
     PGconn *sql_conn = way_table->sql_conn;
@@ -764,8 +772,8 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
                 (*way_ids)[count] = ids[i];
                 pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
 
-                int num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
-                osmid_t *list = alloca(sizeof(osmid_t)*num_nodes );
+                num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
+                list = alloca(sizeof(osmid_t)*num_nodes );
                 nodes_ptr[count] = malloc(sizeof(struct osmNode) * num_nodes);
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list, num_nodes);
                 
@@ -1068,6 +1076,7 @@ static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, 
     char *buffer;
     int i;
     struct keyval member_list;
+    char buf[64];
     
     osmid_t node_parts[member_count],
             way_parts[member_count],
@@ -1087,7 +1096,6 @@ static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, 
         case OSMTYPE_RELATION: rel_parts[rel_count++] = members[i].id; tag = 'r'; break;
         default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); exit_nicely();
       }
-      char buf[64];
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
       addItem( &member_list, buf, members[i].role, 0 );
     }
@@ -1134,7 +1142,12 @@ static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count
     char const *paramValues[1];
     PGconn *sql_conn = rel_table->sql_conn;
     struct keyval member_temp;
-
+    char tag;
+    int num_members;
+    struct member *list;
+    int i=0;
+    struct keyval *item;
+    
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
 
@@ -1153,11 +1166,9 @@ static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count
     initList(&member_temp);
     pgsql_parse_tags( PQgetvalue(res, 0, 0), &member_temp );
 
-    int num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);
-    struct member *list = malloc( sizeof(struct member)*num_members );
+    num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);
+    list = malloc( sizeof(struct member)*num_members );
     
-    int i=0;
-    struct keyval *item;
     while( (item = popItem(&member_temp)) )
     {
         if( i >= num_members )
@@ -1165,7 +1176,7 @@ static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count
             fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
             exit_nicely();
         }
-        char tag = item->key[0];
+        tag = item->key[0];
         list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:-1;
         list[i].id = strtoosmid(item->key+1, NULL, 10 );
         list[i].role = strdup( item->value );
@@ -1474,11 +1485,14 @@ static void pgsql_end(void)
 static void set_prefix_and_tbls(const struct output_options *options, const char **string)
 {
     char buffer[1024];
-    if (*string == NULL) return;
-    const char *source = *string;
-    char *dest = buffer;
+    const char *source;
+    char *dest;
     char *openbrace = NULL;
     int copied = 0;
+
+    if (*string == NULL) return;
+    source = *string;
+    dest = buffer;
 
     while (*source) {
         if (*source == '{') {

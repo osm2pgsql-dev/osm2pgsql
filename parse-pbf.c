@@ -514,16 +514,16 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
 int processOsmData(struct osmdata_t *osmdata, void *data, size_t length) 
 {
   unsigned int j;
+  double lat_offset, lon_offset, granularity;
   PrimitiveBlock *pmsg = primitive_block__unpack (NULL, length, data);
   if (pmsg == NULL) {
     fprintf(stderr, "Error unpacking PrimitiveBlock message\n");
     return 0;
   }
 
-  double lat_offset = NANO_DEGREE * pmsg->lat_offset;
-  double lon_offset = NANO_DEGREE * pmsg->lon_offset;
-  double granularity = NANO_DEGREE * pmsg->granularity;
-      
+  lat_offset = NANO_DEGREE * pmsg->lat_offset;
+  lon_offset = NANO_DEGREE * pmsg->lon_offset;
+  granularity = NANO_DEGREE * pmsg->granularity;    
 
   for (j = 0; j < pmsg->n_primitivegroup; j++) {
     PrimitiveGroup *group = pmsg->primitivegroup[j];

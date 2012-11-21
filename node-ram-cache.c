@@ -239,7 +239,7 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
              * current head of the tree down to the right level to restore the
              * priority queue invariant. Upto log(maxBlocks) iterations */
             
-            int i=0;
+            i=0;
             while( 2*i+1 < usedBlocks - 1 ) {
                 if( queue[2*i+1]->used <= queue[2*i+2]->used ) {
                     if( queue[i]->used > queue[2*i+1]->used ) {
@@ -414,15 +414,15 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     }
 
 #ifdef __MINGW_H
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
+    fprintf( stderr, "Node-cache: cache=%lldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy ); 
 #else
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    fprintf( stderr, "Node-cache: cache=%lldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
 #endif
 }
 
 void free_node_ram_cache() {
   int i;
-  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n", 
+  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %lli), hit rate: %.2f%%\n", 
            storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(struct ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
            100.0f*nodesCacheHits/nodesCacheLookups );

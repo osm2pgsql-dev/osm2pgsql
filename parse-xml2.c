@@ -46,10 +46,12 @@
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
 static actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata )
 {
+    actions_t new_action;
+    xmlChar *action;
     if( osmdata->filetype == FILETYPE_OSMCHANGE || osmdata->filetype == FILETYPE_PLANETDIFF )
         return osmdata->action;
-    actions_t new_action = ACTION_NONE;
-    xmlChar *action = xmlTextReaderGetAttribute( reader, BAD_CAST "action" );
+    new_action = ACTION_NONE;
+    action = xmlTextReaderGetAttribute( reader, BAD_CAST "action" );
     if( action == NULL )
         new_action = ACTION_CREATE;
     else if( strcmp((char *)action, "modify") == 0 )

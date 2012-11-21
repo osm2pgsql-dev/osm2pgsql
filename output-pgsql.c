@@ -126,6 +126,16 @@ void read_style_file( const char *filename )
   FILE *in;
   int lineno = 0;
   int num_read = 0;
+  char osmtype[24];
+  char tag[64];
+  char datatype[24];
+  char flags[128];
+  int i;
+  char *str;
+  int fields;
+  struct taginfo temp;
+  char buffer[1024];
+  int flag = 0;
 
   exportList[OSMTYPE_NODE] = malloc( sizeof(struct taginfo) * MAX_STYLES );
   exportList[OSMTYPE_WAY]  = malloc( sizeof(struct taginfo) * MAX_STYLES );
@@ -137,23 +147,15 @@ void read_style_file( const char *filename )
     exit_nicely();
   }
   
-  char buffer[1024];
   while( fgets( buffer, sizeof(buffer), in) != NULL )
   {
     lineno++;
     
-    char osmtype[24];
-    char tag[64];
-    char datatype[24];
-    char flags[128];
-    int i;
-    char *str;
-
     str = strchr( buffer, '#' );
     if( str )
       *str = '\0';
       
-    int fields = sscanf( buffer, "%23s %63s %23s %127s", osmtype, tag, datatype, flags );
+    fields = sscanf( buffer, "%23s %63s %23s %127s", osmtype, tag, datatype, flags );
     if( fields <= 0 )  /* Blank line */
       continue;
     if( fields < 3 )
@@ -161,7 +163,6 @@ void read_style_file( const char *filename )
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
       exit_nicely();
     }
-    struct taginfo temp;
     temp.name = strdup(tag);
     temp.type = strdup(datatype);
     
@@ -194,7 +195,6 @@ void read_style_file( const char *filename )
     temp.count = 0;
     /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
     
-    int flag = 0;
     if( strstr( osmtype, "node" ) )
     {
       memcpy( &exportList[ OSMTYPE_NODE ][ exportListCount[ OSMTYPE_NODE ] ], &temp, sizeof(temp) );
@@ -488,15 +488,15 @@ static void write_hstore(enum table_id table, struct keyval *tags)
 {
     static char *sql;
     static size_t sqllen=0;
-    
+    size_t hlen;
+    /* a clone of the tags pointer */
+    struct keyval *xtags = tags;
+        
     /* sql buffer */
     if (sqllen==0) {
       sqllen=2048;
       sql=malloc(sqllen);
     }
-    
-    /* a clone of the tags pointer */
-    struct keyval *xtags = tags;
     
     /* while this tags has a follow-up.. */
     while (xtags->next->key != NULL)
@@ -519,7 +519,7 @@ static void write_hstore(enum table_id table, struct keyval *tags)
         The maximum lenght of a single hstore element is thus
         calcuated as follows:
       */
-      size_t hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
+      hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
       
       /* if the sql buffer is too small */
       if (hlen > sqllen) {
@@ -550,6 +550,13 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
 {
     static char *sql;
     static size_t sqllen=0;
+    char *shortkey;
+    /* the index of the current hstore column */
+    int i_hstore_column;
+    int found;
+    struct keyval *xtags;
+    char *pos;
+    size_t hlen;
     
     /* sql buffer */
     if (sqllen==0) {
@@ -557,23 +564,20 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
       sql=malloc(sqllen);
     }
     
-    /* the index of the current hstore column */
-    int i_hstore_column;
-    
     /* iterate over all configured hstore colums in the options */
     for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
     {
         /* did this node have a tag that matched the current hstore column */
-        int found = 0;
+        found = 0;
         
         /* a clone of the tags pointer */
-        struct keyval *xtags = tags;
+        xtags = tags;
         
         /* while this tags has a follow-up.. */
         while (xtags->next->key != NULL) {
             
             /* check if the tag's key starts with the name of the hstore column */
-            char *pos = strstr(xtags->next->key, Options->hstore_columns[i_hstore_column]);
+            pos = strstr(xtags->next->key, Options->hstore_columns[i_hstore_column]);
             
             /* and if it does.. */
             if(pos == xtags->next->key)
@@ -582,10 +586,10 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
                 found=1;
                 
                 /* generate the short key name */
-                char *shortkey = xtags->next->key + strlen(Options->hstore_columns[i_hstore_column]);
+                shortkey = xtags->next->key + strlen(Options->hstore_columns[i_hstore_column]);
                 
                 /* calculate the size needed for this hstore entry */
-                size_t hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
+                hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
                 
                 /* if the sql buffer is too small */
                 if (hlen > sqllen) {
@@ -885,6 +889,7 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
     int polygon = 0, roads = 0;
     int i, wkt_size;
     double split_at;
+    double area;
 
     /* If the flag says this object may exist already, delete it first */
     if(exists) {
@@ -911,7 +916,7 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 expire_tiles_from_nodes_poly(nodes, count, id);
-                double area = get_area(i);
+                area = get_area(i);
                 if (area > 0.0) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%f", area);
@@ -1240,6 +1245,11 @@ static int pgsql_out_start(const struct output_options *options)
     PGresult   *res;
     int i,j;
     unsigned int sql_len;
+    int their_srid;
+    int i_hstore_column;
+    enum OsmType type;
+    int numTags;
+    struct taginfo *exportTags;
 
     Options = options;
 
@@ -1281,7 +1291,7 @@ static int pgsql_out_start(const struct output_options *options)
                 fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", tables[i].name);
                 exit_nicely();
             }
-            int their_srid = atoi(PQgetvalue(res, 0, 0));
+            their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
@@ -1295,9 +1305,9 @@ static int pgsql_out_start(const struct output_options *options)
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
-        enum OsmType type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
-        int numTags = exportListCount[type];
-        struct taginfo *exportTags = exportList[type];
+        type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
+        numTags = exportListCount[type];
+        exportTags = exportList[type];
         if (!options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, tables[i].name );
             for (j=0; j < numTags; j++) {
@@ -1313,7 +1323,6 @@ static int pgsql_out_start(const struct output_options *options)
                 }
                 strcat(sql, tmp);
             }
-            int i_hstore_column;
             for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
             {
                 strcat(sql, ",\"");
@@ -1391,7 +1400,6 @@ static int pgsql_out_start(const struct output_options *options)
             strcat(sql, tmp);
         }
 
-        int i_hstore_column;
         for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
         {
             strcat(sql, ",\"");
@@ -1418,11 +1426,13 @@ static int pgsql_out_start(const struct output_options *options)
 static void pgsql_pause_copy(struct s_table *table)
 {
     PGresult   *res;
+    int stop;
+    
     if( !table->copyMode )
         return;
         
     /* Terminate any pending COPY */
-    int stop = PQputCopyEnd(table->sql_conn, NULL);
+    stop = PQputCopyEnd(table->sql_conn, NULL);
     if (stop != 1) {
        fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
        exit_nicely();

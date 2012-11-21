@@ -30,11 +30,13 @@ static int binary_search_lookup(struct binary_search_array * array, int key)
         a++;
     return a | (1 << (sizeof(int) * 8 - 1));
 }
+
 osmid_t binary_search_get(struct binary_search_array * array, int key)
 {
+    int idx;
     if (array->size == 0)
         return -1;
-    int idx = binary_search_lookup(array, key);
+    idx = binary_search_lookup(array, key);
     if (idx < 0)
     {
         return -1;
@@ -60,9 +62,11 @@ void binary_search_remove(struct binary_search_array * array, int key)
         array->size--;
     }
 }
+
 void binary_search_add(struct binary_search_array * array, int key,
         osmid_t value)
 {
+    int idx;
     if (array->size < array->capacity)
     {
         if (array->size == 0)
@@ -72,7 +76,7 @@ void binary_search_add(struct binary_search_array * array, int key,
             array->size++;
             return;
         }
-        int idx = binary_search_lookup(array, key);
+        idx = binary_search_lookup(array, key);
         if (idx < 0)
         {
             idx = idx & (~(1 << (sizeof(int) * 8 - 1)));

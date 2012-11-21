@@ -53,6 +53,8 @@ char *extractAttribute(char **token, int tokens, char *attname)
     char buffer[256];
     int cl;
     int i;
+    char *in;
+    char *out;
     sprintf(buffer, "%s=\"", attname);
     cl = strlen(buffer);
     for (i=0; i<tokens; i++)
@@ -64,8 +66,6 @@ char *extractAttribute(char **token, int tokens, char *attname)
             *quote = 0;
             if (strchr(token[i]+cl, '&') == 0) return (token[i] + cl);
 
-            char *in;
-            char *out;
             for (in=token[i]+cl, out=token[i]+cl; *in; in++)
             {
                 if (*in == '&')
@@ -106,10 +106,12 @@ char *extractAttribute(char **token, int tokens, char *attname)
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
 static actions_t ParseAction(char **token, int tokens, struct osmdata_t *osmdata)
 {
+    actions_t new_action;
+    char *action;
     if( osmdata->filetype == FILETYPE_OSMCHANGE || osmdata->filetype == FILETYPE_PLANETDIFF )
         return osmdata->action;
-    actions_t new_action = ACTION_NONE;
-    char *action = extractAttribute(token, tokens, "action");
+    new_action = ACTION_NONE;
+    action = extractAttribute(token, tokens, "action");
     if( action == NULL )
         new_action = ACTION_CREATE;
     else if( strcmp((char *)action, "modify") == 0 )
@@ -129,6 +131,8 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
     char *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
     char *token[255];
     int tokens = 0;
+    int quote = 0;
+    char *i;
 
     if (osmdata->filetype == FILETYPE_NONE)
     {
@@ -158,8 +162,6 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
     tokens=1;
     token[0] = line;
-    int quote = 0;
-    char *i;
     for (i=line; *i; i++)
     {
         if (quote)
@@ -452,6 +454,7 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
     char buffer[65536];
     int bufsz = 0;
     int offset = 0;
+    char *nl;
 
     i = inputOpen(filename);
 
@@ -459,7 +462,7 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
         while(1)
         {
             bufsz = bufsz + readFile(i, buffer + bufsz, sizeof(buffer) - bufsz);
-            char *nl = strchr(buffer, '\n');
+            nl = strchr(buffer, '\n');
             if (nl == 0) break;
             *nl=0;
             while (nl && nl < buffer + bufsz)
