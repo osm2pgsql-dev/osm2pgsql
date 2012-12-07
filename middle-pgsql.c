@@ -862,6 +862,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
      * each of which independently goes through an equal subset of the pending ways array
      */
     fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
+#ifdef HAVE_FORK
     for (p = 1; p < noProcs; p++) {
         pid=fork();
         if (pid==0) {
@@ -880,6 +881,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
 #endif            
         }
     }
+#endif
     if ((pid == 0) && (noProcs > 1)) {
         /* After forking, need to reconnect to the postgresql db */
         if ((pgsql_connect(out_options) != 0) || (out_options->out->connect(out_options, 1) != 0)) {
@@ -1253,6 +1255,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
     fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
     pid = 0;
+#ifdef HAVE_FORK
     for (p = 1; p < noProcs; p++) {
         pid=fork();
         if (pid==0) {
@@ -1271,6 +1274,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 #endif 
         }
     }
+#endif
     if ((pid == 0) && (noProcs > 1)) {
         if ((out_options->out->connect(out_options, 0) != 0) || (pgsql_connect(out_options) != 0)) {
 #if HAVE_MMAP
