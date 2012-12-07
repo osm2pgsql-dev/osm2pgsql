@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
 	    init_node_persistent_cache(&options, 1);
 	    test_get_node_list(10, 200, 0);
 	    shutdown_node_persistent_cache();
+#ifdef HAVE_FORK
 	    printf("Testing using multiple processes\n");
 	    int noProcs = 4;
 	    int pid;
@@ -118,6 +119,7 @@ int main(int argc, char *argv[]) {
 	    }
         free(state);
 	    fprintf(stderr, "\nAll child processes exited\n");
+#endif
 	} else {
 	    init_node_persistent_cache(&options, 1);
 		if (strstr(argv[2],",") == NULL) {

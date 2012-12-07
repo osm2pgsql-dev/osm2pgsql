@@ -198,8 +198,10 @@ static void long_usage(char *arg0)
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("      --exclude-invalid-polygon\n");
+#ifdef HAVE_FORK
     printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
     printf("             \t\tDefault is 1\n");
+#endif
     printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
     printf("      --unlogged\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
     printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
@@ -509,7 +511,13 @@ int main(int argc, char *argv[])
                 if (strcmp(optarg,"sparse") == 0) alloc_chunkwise = ALLOC_SPARSE;
                 if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
                 break;
-            case 205: num_procs = atoi(optarg); break;
+            case 205:
+#ifdef HAVE_FORK                
+                num_procs = atoi(optarg);
+#else
+                fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
+#endif
+                break;
             case 206: droptemp = 1; break;
             case 207: unlogged = 1; break;
             case 209:
