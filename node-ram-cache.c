@@ -19,11 +19,6 @@
 
 
 
-
-static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((int)((x) * scale))
-#define FIX_TO_DOUBLE(x) (((double)x) / scale)
-
 /* Here we use a similar storage structure as middle-ram, except we allow
  * the array to be lossy so we can cap the total memory usage. Hence it is a
  * combination of a sparse array with a priority queue

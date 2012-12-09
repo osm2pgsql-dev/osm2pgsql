@@ -25,8 +25,6 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
 
-static int scale = 100;
-
 struct ramWay {
     struct keyval *tags;
     osmid_t *ndids;

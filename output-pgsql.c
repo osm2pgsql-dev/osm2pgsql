@@ -31,6 +31,7 @@
 #include "pgsql.h"
 #include "expire-tiles.h"
 #include "wildcmp.h"
+#include "node-ram-cache.h"
 
 #define SRID (project_getprojinfo()->srs)
 
@@ -684,6 +685,13 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
     if (Options->enable_hstore)
         write_hstore(t_point, tags);
     
+#ifdef FIXED_POINT
+    // guarantee that we use the same values as in the node cache
+    scale = Options->scale;
+    node_lon = FIX_TO_DOUBLE(DOUBLE_TO_FIX(node_lon));
+    node_lat = FIX_TO_DOUBLE(DOUBLE_TO_FIX(node_lat));
+#endif
+
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
     copy_to_table(t_point, sql);
     copy_to_table(t_point, "\n");
