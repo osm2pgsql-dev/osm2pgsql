@@ -43,8 +43,6 @@
 #include "node-persistent-cache.h"
 #include "pgsql.h"
 
-static int scale = 100;
-
 struct progress_info {
   time_t start;
   time_t end;
