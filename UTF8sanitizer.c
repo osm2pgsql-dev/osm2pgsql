@@ -77,6 +77,7 @@ xmlTextReaderPtr sanitizerOpen(const char *name)
     ctx->file = inputOpen(name);
     if (!ctx->file) {
         fprintf(stderr, "Input reader create failed\n");
+        free(ctx);
         return NULL;
     }
 
