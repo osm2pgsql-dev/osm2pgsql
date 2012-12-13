@@ -461,7 +461,8 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
     if (i != NULL) {
         while(1)
         {
-            bufsz = bufsz + readFile(i, buffer + bufsz, sizeof(buffer) - bufsz);
+            bufsz = bufsz + readFile(i, buffer + bufsz, sizeof(buffer) - bufsz - 1);
+            buffer[bufsz] = 0;
             nl = strchr(buffer, '\n');
             if (nl == 0) break;
             *nl=0;
