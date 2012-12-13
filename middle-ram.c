@@ -280,6 +280,7 @@ static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **no
             *count_ptr = ndCount;
             return 0;
         }
+        free(nodes);
     }
     return 1;
 }
