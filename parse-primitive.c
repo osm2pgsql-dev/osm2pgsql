@@ -480,5 +480,6 @@ int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *o
         fprintf(stderr, "Unable to open %s\n", filename);
         return 1;
     }
+    inputClose(i);
     return 0;
 }
