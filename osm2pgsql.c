@@ -494,7 +494,7 @@ int main(int argc, char *argv[])
             case 'j': enable_hstore=HSTORE_ALL; break;
             case 'z': 
                 n_hstore_columns++;
-                hstore_columns = (const char**)realloc(hstore_columns, sizeof(&n_hstore_columns) * n_hstore_columns);
+                hstore_columns = (const char**)realloc(hstore_columns, sizeof(char *) * n_hstore_columns);
                 hstore_columns[n_hstore_columns-1] = optarg;
                 break;
             case 'G': enable_multi=1; break;
