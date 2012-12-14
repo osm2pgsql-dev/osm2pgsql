@@ -449,7 +449,7 @@ static inline bool read_input() {
           l= (read__buf+read__bufM)-read_bufe;
           /* reminding space in buffer */
           if(l>read_PREFETCH) l= read_PREFETCH;
-          memset(read_bufe,l,0);
+          memset(read_bufe,0,l);
           /* set reminding space up to prefetch bytes in buffer to 0 */
       break;
           }
