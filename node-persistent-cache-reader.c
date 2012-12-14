@@ -47,6 +47,8 @@ void test_get_node_list(int itterations, int max_size, int process_number) {
         gettimeofday(&stop, NULL);
         double duration = ((stop.tv_sec - start.tv_sec)*1000000.0 + (stop.tv_usec - start.tv_usec))/1000000.0;
         printf("Process %i: Got nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt / duration);
+        free(nodes);
+        free(osmids);
     }
     gettimeofday(&stop_overall, NULL);
     double duration = ((stop_overall.tv_sec - start_overall.tv_sec)*1000000.0 + (stop_overall.tv_usec - start_overall.tv_usec))/1000000.0;
