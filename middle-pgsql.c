@@ -528,7 +528,7 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_co
     if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
 
     /* create a list of ids in tmp2 to query the database  */
-    snprintf(tmp2, sizeof(tmp2), "{");
+    sprintf(tmp2, "{");
     for( i=0; i<nd_count; i++ ) {
         /* Check cache first */ 
         if( ram_cache_nodes_get( &nodes[i], ndids[i]) == 0 ) {
@@ -540,7 +540,7 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_co
         nodes[i].lat = NAN;
         nodes[i].lon = NAN;
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
-        strcat(tmp2,tmp);
+        strncat(tmp2, tmp, sizeof(char)*(nd_count*16 - 2));
     }
     tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
  
@@ -738,10 +738,10 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
     if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
 
     /* create a list of ids in tmp2 to query the database  */
-    snprintf(tmp2, sizeof(tmp2), "{");
+    sprintf(tmp2, "{");
     for( i=0; i<way_count; i++ ) {
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
-        strcat(tmp2,tmp);
+        strncat(tmp2,tmp, sizeof(char)*(way_count*16 - 2));
     }
     tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
   
