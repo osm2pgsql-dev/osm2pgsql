@@ -154,7 +154,7 @@ void *inputOpen(const char *name)
       ctx->type = bzip2File;
       
     } else {
-        int *pfd = malloc(sizeof(pfd));
+        int *pfd = malloc(sizeof(int));
         if (pfd) {
             if (!strcmp(name, "-")) {
                 *pfd = STDIN_FILENO;
