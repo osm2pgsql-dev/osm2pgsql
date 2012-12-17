@@ -197,6 +197,12 @@ int addProtobufItem(struct keyval *head, ProtobufCBinaryData key, ProtobufCBinar
   keystr = calloc(key.len + 1, 1);
   memcpy(keystr, key.data, key.len);
 
+  /* drop certain keys (matching parse-xml2) */
+  if ((strcmp(keystr, "created_by") == 0) || (strcmp(keystr, "source") == 0)) {
+    free(keystr);
+    return 0;
+  }
+
   valstr = calloc(val.len + 1, 1);
   memcpy(valstr, val.data, val.len);
   
