@@ -753,7 +753,7 @@ static void add_place(char osm_type, osmid_t osm_id, const char *class, const ch
    }
 
    /* extra tags array */
-   if (listHasData(names))
+   if (listHasData(extratags))
    {
       first = 1;
       for (name = firstItem(extratags); name; name = nextItem(extratags, name))
@@ -902,8 +902,8 @@ static int gazetteer_out_start(const struct output_options *options)
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP FUNCTION IF EXISTS get_connected_ways(integer[])");
 
       /* Create types and functions */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE, "", "");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE, Options->tblsmain_data);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
+      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
       if (Options->tblsmain_data)
@@ -1110,7 +1110,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
-   int area, wkt_size;
+   int wkt_size;
    const char *type;
 
    type = getItem(tags, "type");
@@ -1134,7 +1134,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    Options->mid->relations_set(id, members, member_count, tags);
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
 
    if (delete_old)
        delete_unused_classes('R', id, &places);
