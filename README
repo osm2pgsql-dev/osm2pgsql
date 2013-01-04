@@ -110,7 +110,7 @@ $ sudo -u postgres psql -d <dbname> -c "ALTER TABLE spatial_ref_sys  OWNER TO <u
 The 900913 is not normally included with postgis. To add it you
 should run:
 
-$ sudo psql -u postgres psql -d <dbname> -f 900913.sql
+$ sudo -u postgres psql -d <dbname> -f 900913.sql
 
 If you want to use hstore support then you will also need to enable the PostgreSQL
 hstore-new extension.
