@@ -243,6 +243,8 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    struct keyval *landuse;
    struct keyval *place;
    struct keyval *item;
+   struct keyval *conscriptionnumber;
+   struct keyval *streetnumber;
 
    *admin_level = ADMINLEVEL_NONE;
    *housenumber = 0;
@@ -253,6 +255,8 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    *countrycode = 0;
    landuse = 0;
    place = 0;
+   conscriptionnumber = 0;
+   streetnumber = 0;
 
    /* Initialise the result lists */
    initList(names);
@@ -405,6 +409,24 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
              placehouse = 1;
          }
       }
+      else if (strcmp(item->key, "addr:conscriptionnumber") == 0)
+      {
+         if (conscriptionnumber)
+             freeItem(item);
+         else {
+             conscriptionnumber = item;
+             placehouse = 1;
+         }
+      }
+      else if (strcmp(item->key, "addr:streetnumber") == 0)
+      {
+         if (streetnumber)
+             freeItem(item);
+         else {
+             streetnumber = item;
+             placehouse = 1;
+         }
+      }
       else if (strcmp(item->key, "addr:interpolation") == 0)
       {
           /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
@@ -525,6 +547,45 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          freeItem(item);
       }
    }
+
+   /* Handle Czech/Slovak addresses:
+        - if we have just a conscription number or a street number,
+          just use the one we have as a house number
+        - if we have both of them, concatenate them so users may search
+          by any of them
+    */
+   if (conscriptionnumber || streetnumber)
+   {
+      if (*housenumber)
+      {
+         freeItem(*housenumber);
+      }
+      if (!conscriptionnumber)
+      {
+         addItem(tags, "addr:housenumber", streetnumber->value, 0);
+         freeItem(streetnumber);
+         *housenumber = popItem(tags);
+      }
+      if (!streetnumber)
+      {
+         addItem(tags, "addr:housenumber", conscriptionnumber->value, 10);
+         freeItem(conscriptionnumber);
+         *housenumber = popItem(tags);
+      }
+      if (conscriptionnumber && streetnumber)
+      {
+         char * completenumber = strdup(conscriptionnumber->value);
+         size_t completenumberlength = strlen(completenumber);
+         completenumber = realloc(completenumber, completenumberlength + 2 + strlen(streetnumber->value));
+         *(completenumber + completenumberlength) = '/';
+         strcpy(completenumber + completenumberlength + 1, streetnumber->value);
+         freeItem(conscriptionnumber);
+         freeItem(streetnumber);
+         addItem(tags, "addr:housenumber", completenumber, 0);
+         *housenumber = popItem(tags);
+         free(completenumber);
+      }
+    }
 
    if (place)
    {
