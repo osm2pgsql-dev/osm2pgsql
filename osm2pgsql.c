@@ -685,17 +685,19 @@ int main(int argc, char *argv[])
         /* if input_reader is not forced by -r switch try to auto-detect it
            by file extension */
         if (strcmp("auto", input_reader) == 0) {
-#ifdef BUILD_READER_PBF
+
           if (strcasecmp(".pbf",argv[optind]+strlen(argv[optind])-4) == 0) {
+#ifdef BUILD_READER_PBF
             streamFile = &streamFilePbf;
+#else
+	    fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
+	    exit(EXIT_FAILURE);
+#endif
           } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0) {
               streamFile = &streamFileO5m;
           } else {
             streamFile = &streamFileXML2;
           }
-#else
-          streamFile = &streamFileXML2;
-#endif
         }
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time(&start);
