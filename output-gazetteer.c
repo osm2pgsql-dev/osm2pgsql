@@ -482,7 +482,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "hour_off") == 0 ||
                strcmp(item->key, "maxweight") == 0 ||
                strcmp(item->key, "maxheight") == 0 ||
-               strcmp(item->key, "speed") == 0 ||
+               strcmp(item->key, "maxspeed") == 0 ||
                strcmp(item->key, "disused") == 0 ||
                strcmp(item->key, "toll") == 0 ||
                strcmp(item->key, "charge") == 0 ||
@@ -515,10 +515,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "mountain_pass") == 0)
       {
-          /* the key be mountain_pass only ever comes with the value Yes.
-             Not helpful. Therefore "retag" to place=mountain_pass */
-          addItem(places, "place", "mountain_pass", 1);
-          freeItem(item);
+          pushItem(places, item);
       }
       else
       {
