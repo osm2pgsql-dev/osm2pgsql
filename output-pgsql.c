@@ -1480,6 +1480,7 @@ static void pgsql_out_commit(void) {
 
 static void *pgsql_out_stop_one(void *arg)
 {
+    int i_column;
     struct s_table *table = arg;
     PGconn *sql_conn = table->sql_conn;
 
@@ -1507,6 +1508,7 @@ static void *pgsql_out_stop_one(void *arg)
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
+        fprintf(stderr, "Creating geometry index on  %s\n", table->name);
         if (Options->tblsmain_index) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
         } else {
@@ -1516,10 +1518,29 @@ static void *pgsql_out_stop_one(void *arg)
         /* slim mode needs this to be able to apply diffs */
         if (Options->slim && !Options->droptemp)
         {
+            fprintf(stderr, "Creating osm_id index on  %s\n", table->name);
             if (Options->tblsmain_index) {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
             } else {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
+            }
+        }
+        /* Create hstore index if selected */
+        if (Options->enable_hstore_index) {
+            fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
+            if (Options->tblsmain_index) {
+                if (HSTORE_NONE != (Options->enable_hstore))
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
+                               table->name, i_column,table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
+                }
+            } else {
+                if (HSTORE_NONE != (Options->enable_hstore))
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name, table->name);
+                for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                }
             }
         }
         fprintf(stderr, "Creating indexes on  %s finished\n", table->name);

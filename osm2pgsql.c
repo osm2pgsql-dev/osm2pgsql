@@ -193,6 +193,7 @@ static void long_usage(char *arg0)
     printf("   -z|--hstore-column\tAdd an additional hstore (key/value) column containing all tags\n");
     printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
     printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");
+    printf("      --hstore-add-index\tAdd index to hstore column.\n");
     printf("   -G|--multi-geometry\tGenerate multi-geometry features in postgresql tables.\n");
     printf("   -K|--keep-coastlines\tKeep coastline data rather than filtering it out.\n");
     printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
@@ -355,6 +356,7 @@ int main(int argc, char *argv[])
     int expire_tiles_zoom = -1;
     int expire_tiles_zoom_min = -1;
     int enable_hstore = HSTORE_NONE;
+    int enable_hstore_index = 0;
     int hstore_match_only = 0;
     int enable_multi = 0;
     int parallel_indexing = 1;
@@ -437,6 +439,7 @@ int main(int argc, char *argv[])
             {"hstore-all", 0, 0, 'j'},
             {"hstore-column", 1, 0, 'z'},
             {"hstore-match-only", 0, 0, 208},
+            {"hstore-add-index",0,0,211},
             {"multi-geometry", 0, 0, 'G'},
             {"keep-coastlines", 0, 0, 'K'},
             {"input-reader", 1, 0, 'r'},
@@ -525,6 +528,7 @@ int main(int argc, char *argv[])
             	flat_nodes_file = optarg;
             	break;
             case 210: excludepoly = 1; exclude_broken_polygon(); break;
+            case 211: enable_hstore_index = 1; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -564,6 +568,11 @@ int main(int argc, char *argv[])
         hstore_match_only = 0;
     }
 
+    if (enable_hstore_index && enable_hstore  == HSTORE_NONE && !n_hstore_columns) {
+        fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
+        enable_hstore_index = 0;
+    }
+
     if (cache < 0) cache = 0;
 
     if (num_procs < 1) num_procs = 1;
@@ -572,7 +581,9 @@ int main(int argc, char *argv[])
         password = simple_prompt("Password:", 100, 0);
     else {
         password = getenv("PGPASS");
-    }	
+    }
+
+    
 
     conninfo = build_conninfo(db, username, password, host, port);
     sql_conn = PQconnectdb(conninfo);
@@ -622,6 +633,7 @@ int main(int argc, char *argv[])
     options.expire_tiles_filename = expire_tiles_filename;
     options.enable_multi = enable_multi;
     options.enable_hstore = enable_hstore;
+    options.enable_hstore_index = enable_hstore_index;
     options.hstore_match_only = hstore_match_only;
     options.hstore_columns = hstore_columns;
     options.n_hstore_columns = n_hstore_columns;
