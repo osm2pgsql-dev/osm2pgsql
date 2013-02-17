@@ -34,8 +34,8 @@ then
   AC_MSG_ERROR([Could not find a c++ compiler]);
 fi
 
-AX_CFLAGS_WARN_ALL
-AX_CXXFLAGS_WARN_ALL
+dnl AX_CFLAGS_WARN_ALL
+dnl AX_CXXFLAGS_WARN_ALL
 
 dnl Make sure we have libtool installed
 AM_PROG_LIBTOOL
