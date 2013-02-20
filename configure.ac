@@ -50,7 +50,11 @@ AC_CHECK_FUNCS([posix_fallocate posix_fadvise sync_file_range fork])
 dnl legacy 32bit ID mode
 AC_ARG_ENABLE([64bit-ids],
     AS_HELP_STRING([--disable-64bit-ids], [Disable 64bit IDs for OSM IDs]), 
-    [], [ AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])])
+    [ if test "$enableval" = "yes"
+      then
+        AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])
+      fi
+    ], [ AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])])
 
 
 dnl Check for libxml2 library
