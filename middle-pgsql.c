@@ -963,7 +963,8 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     }
 #endif
 
-    fprintf(stderr, "Helper process %i out of %i initialised\n",p, noProcs);
+    /* some spaces at end, so that processings outputs get cleaned if already existing */
+    fprintf(stderr, "\rHelper process %i out of %i initialised          \n", p, noProcs);
     /* Use a stride length of the number of worker processes,
        starting with an offset for each worker process p */
     for (i = p; i < PQntuples(res_ways); i+= noProcs) {
