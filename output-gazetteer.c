@@ -359,7 +359,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "landuse") == 0)
       {
-         landuse = item;
+         if (strcmp(item->value, "cemetery") == 0)
+            pushItem(places, item);
+         else
+            landuse = item;
       }
       else if (strcmp(item->key, "postal_code") == 0 ||
           strcmp(item->key, "post_code") == 0 ||
