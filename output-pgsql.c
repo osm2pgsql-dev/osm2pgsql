@@ -46,6 +46,9 @@ enum table_id {
 
 static const struct output_options *Options;
 
+/* enable output of a generated way_area tag to either hstore or its own column */
+static int enable_way_area=1;
+
 /* Tables to output */
 static struct s_table {
     char *name;
@@ -193,6 +196,10 @@ void read_style_file( const char *filename )
         exit_nicely();
     }
     
+    if ((0==strcmp(temp.name,"way_area")) && (temp.flags==FLAG_DELETE)) {
+        enable_way_area=0;
+    }
+
     temp.count = 0;
     /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
     
@@ -925,9 +932,9 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 expire_tiles_from_nodes_poly(nodes, count, id);
                 area = get_area(i);
-                if (area > 0.0) {
+                if ((area > 0.0) && enable_way_area) {
                     char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%f", area);
+                    snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
                 }
                 write_wkts(id, tags, wkt, t_poly);
@@ -1156,9 +1163,9 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNod
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 double area = get_area(i);
-                if (area > 0.0) {
+                if ((area > 0.0) && enable_way_area) {
                     char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%f", area);
+                    snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(&tags, "way_area", tmp, 0);
                 }
                 write_wkts(-id, &tags, wkt, t_poly);
@@ -1209,9 +1216,9 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, struct osmNod
                 /* FIXME: there should be a better way to detect polygons */
                 if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                     double area = get_area(i);
-                    if (area > 0.0) {
+                    if ((area > 0.0) && enable_way_area) {
                         char tmp[32];
-                        snprintf(tmp, sizeof(tmp), "%f", area);
+                        snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(&tags, "way_area", tmp, 0);
                     }
                     write_wkts(-id, &tags, wkt, t_poly);
