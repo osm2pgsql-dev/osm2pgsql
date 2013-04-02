@@ -99,7 +99,7 @@ dnl Decide whether to include PBF import support
 BUILD_READER_PBF=no
 if test "$HAVE_PROTOBUF_C" = "yes"
 then
-  if test "$PROTOC_C" != "false" -o -f $srcdir/fileformat.pb-c.c
+  if test "$PROTOC_C" != "false"
   then
     BUILD_READER_PBF=yes
     AC_DEFINE([BUILD_READER_PBF], [1], [Requirements for building the PBF reader are met])
@@ -122,3 +122,12 @@ AX_PTHREAD(,[AC_MSG_ERROR([no])])
 dnl Generate Makefile
 AC_OUTPUT(Makefile legacy/Makefile)
 
+if test "$BUILD_READER_PBF" != "yes"
+then
+    AC_MSG_WARN([
+protobuf libraries not found. You will NOT be able to import PBF files.
+
+To enable PBF support, the protobuf library and compiler are required. 
+Look for packages named: libprotobuf-c0-dev protobuf-c-compiler
+])
+fi
