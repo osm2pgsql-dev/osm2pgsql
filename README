@@ -1,11 +1,21 @@
 osm2pgsql
 =========
-Converts OSM planet.osm data to a PostgreSQL database suitable 
-for rendering into map tiles by Mapnik.
+Converts OSM planet.osm data to a PostgreSQL / PostGIS database suitable 
+for specific applications like rendering into map tiles by Mapnik
+or geocoding with Nominatim.
 
-The format of the database is optimised for ease of rendering
-by mapnik. It may be less suitable for other general purpose
-processing.
+osm2pgsql currently supports two different database schemas
+1) A database schema that is optimized for ease of rendering
+by Mapnik.
+2) A database schema that is optimized for geocoding with Nominatim,
+emphasizing the spatially hierarchical organizations of objects.
+
+Both schemas were specifically optimized for the purpose they were
+intended for and they may therefore be less suitable for other
+general purpose processing. Nevertheless, the rendering schema
+might be useful for other purposes as well, and has been used
+for a variety of additionally purposes.
+
 
 For a broader view of the whole map rendering tool chain see
 http://wiki.openstreetmap.org/index.php/Mapnik 
@@ -20,23 +30,23 @@ http://wiki.openstreetmap.org/index.php/Mailing_lists
 
 Features
 ========
-- Converts OSM files to a postgresql DB
+- Converts OSM files to a PostgreSQL DB
 - Conversion of tags to columns is configurable in the style file
-- Able to read .gz, .bz2 and .pbf files directly
+- Able to read .gz, .bz2, .pbf and .o5m files directly
 - Can apply diffs to keep the database up to data
 - Support the choice of output projection
 - Configurable table names
-- Gazetteer backend for Nominatim
+- Gazetteer back-end for Nominatim
   http://wiki.openstreetmap.org/wiki/Nominatim
 - Support for hstore field type to store the complete set of tags in one database
   field if desired
 
 Source code
 ===========
-The latest source code is available in the OSM SVN repository 
+The latest source code is available in the OSM git repository on github
 and can be downloaded as follows:
 
-$ svn co http://svn.openstreetmap.org/applications/utils/export/osm2pgsql
+$ git clone git://github.com/openstreetmap/osm2pgsql.git
 
 Build requirements
 ==================
@@ -66,7 +76,7 @@ e.g. on Fedora:
 # yum install geos-devel proj-devel postgresql-devel libxml2-devel bzip2-devel gcc-c++
 
 on Debian:
-# aptitude install libxml2-dev libgeos-dev libpq-dev libbz2-dev proj autoconf automake libtool make g++
+# aptitude install libxml2-dev libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev protobuf-c-compiler libprotobuf-c0-dev autoconf automake libtool make g++
 
 On most Unix-like systems the program can be compiled by
 running './autogen.sh && ./configure && make'.
@@ -74,7 +84,7 @@ running './autogen.sh && ./configure && make'.
 Operation
 =========
 You must create a PostgreSQL user and a database with the 
-postgis functions enabled. This requires access as the
+PostGIS functions enabled. This requires access as the
 database administrator, normally the 'postgres' user.
 
 The default name for this database is 'gis' but this may
@@ -95,19 +105,19 @@ $ sudo -u postgres createuser <username>
 $ sudo -u postgres createdb -E UTF8 -O <username> <dbname>
 $ sudo -u postgres createlang plpgsql <dbname>
 
-Adding the postgis extensions. Note the location of the
+Adding the PostGIS extensions. Note the location of the
 files may vary.
 
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
 
 Next we need to give the <username> access to update the postgis
-metadata tables
+meta-data tables
 
 $ sudo -u postgres psql -d <dbname> -c "ALTER TABLE geometry_columns OWNER TO <username>"
 $ sudo -u postgres psql -d <dbname> -c "ALTER TABLE spatial_ref_sys  OWNER TO <username>"
 
-The 900913 is not normally included with postgis. To add it you
+The 900913 is not normally included with PostGIS. To add it you
 should run:
 
 $ sudo psql -u postgres psql -d <dbname> -f 900913.sql
@@ -117,16 +127,26 @@ hstore-new extension.
 
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/hstore.sql
 
+On PostgreSQL 9.1 and above, you can install it by running "CREATE EXTENSION hstore;"
+in your database.
+
 Now you can run osm2pgsql to import the OSM data.
 This will perform the following actions:
 
-1) Osm2pgsql connects to database and creates the following 4 tables:
+1) Osm2pgsql connects to database and creates the following 4 tables
+when used with the default output back-end (pgsql):
    - planet_osm_point
    - planet_osm_line
    - planet_osm_roads
    - planet_osm_polygon
 The prefix "planet_osm" can be changed with the --prefix option, 
 the above is the default.
+
+If you are using --slim mode, it will create the following additional 3 tables:
+   - planet_osm_nodes
+   - planet_osm_ways
+   - planet_osm_rels
+
 
 2) Runs an XML parser on the input file (typically planet.osm) 
  and processes the nodes, ways and relations.
@@ -136,26 +156,26 @@ the above is the default.
  the position is noted, but not added to the database.
 
 4) Ways are read in converted into WKT geometries by using the 
- postitions of the nodes read in earlier. If the tags on the way 
+ positions of the nodes read in earlier. If the tags on the way 
  are listed in the style file then the way will be written into
  the line or roads tables.
 
-5) If the way has one or more tags marked as 'poloygon' and 
- forms a closed ring then it will be added to the lanet_osm_polygon
+5) If the way has one or more tags marked as 'polygon' and 
+ forms a closed ring then it will be added to the planet_osm_polygon
  table.
 
 6) The relations are parsed. Osm2pgsql has special handling for a
  limited number of types: multipolygon, route, boundary
  The code will build the appropriate geometries by referencing the
- members and outputing these into the database.
+ members and outputting these into the database.
 
 7) Indexes are added to speed up the queries by Mapnik.
 
-Tuning postgresql
+Tuning PostgreSQL
 =================
 
-For an efficient operation of postgresql you will need to tune the config
-parameters of postgresql from its default values. These are set in the
+For an efficient operation of PostgreSQL you will need to tune the config
+parameters of PostgreSQL from its default values. These are set in the
 config file at /etc/postgresql/8.4/main/postgresql.conf
 
 The values you need to set will depend on the hardware you have available,
@@ -175,19 +195,19 @@ Depending on the command-line switches you can select which projection you
 want the database in. You have three choices:
 
 4326: The standard lat/long coordinates
-900913: The spherical mercator projection, used by TileCache, Google Earth etc.
-3395: The legacy (broken) WGS84 mercator projection
+900913: The spherical Mercator projection, used by TileCache, Google Earth etc.
+3395: The legacy (broken) WGS84 Mercator projection
 
 Depending on what you're using one or the other is appropriate. The default
-mapnik style (osm.xml) assumes that the data is stored in 900913 and this 
+Mapnik style (osm.xml) assumes that the data is stored in 900913 and this 
 is the default for osm2pgsql.
 
 Combining the -v and -h switches will tell about the exact definitions of
 the projections.
 
 In case you want to use some completely different projection there is the -E
-option. It will initialise the projection as +init=epsg:<num>. This allows
-you to use any projection recognised by proj4, which is useful if you want
+option. It will initialize the projection as +init=epsg:<num>. This allows
+you to use any projection recognized by proj4, which is useful if you want
 to make a map in a different projection. These projections are usually
 defined in /usr/share/proj/epsg.
 
