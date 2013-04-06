@@ -45,7 +45,7 @@ AM_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @P
 
 osm2pgsql_DATA = default.style 900913.sql
 
-man1_MANS = debian/osm2pgsql.1
+man1_MANS = docs/osm2pgsql.1 docs/nodecachefilereader.1
 
 EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
