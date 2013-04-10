@@ -309,7 +309,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
     unsigned node_id;
     if (group->dense) {
         unsigned l = 0;
-        long int deltaid = 0;
+        osmid_t deltaid = 0;
         long int deltalat = 0;
         long int deltalon = 0;
         unsigned long int deltatimestamp = 0;
