@@ -390,7 +390,7 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
     unsigned way_id, key_id, ref_id;
   for (way_id = 0; way_id < group->n_ways; way_id++) {
     Way *way = group->ways[way_id];
-    long int deltaref = 0;
+    osmid_t deltaref = 0;
 
     resetList(&(osmdata->tags));
 
@@ -441,7 +441,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
     unsigned rel_id, member_id, key_id;
   for (rel_id = 0; rel_id < group->n_relations; rel_id++) {
     Relation *relation = group->relations[rel_id];
-    long int deltamemids = 0;
+    osmid_t deltamemids = 0;
 
     resetList(&(osmdata->tags));
 
