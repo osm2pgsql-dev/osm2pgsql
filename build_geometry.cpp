@@ -25,6 +25,10 @@
 #include <cstdlib>
 #include <exception>
 
+#if defined(__CYGWIN__)
+#define GEOS_INLINE
+#endif
+
 /* Need to know which geos version we have to work out which headers to include */
 #include <geos/version.h>
 
