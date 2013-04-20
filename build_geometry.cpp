@@ -126,21 +126,21 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
 // helper method to add the WKT for a geometry to the
 // global wkts list - used primarily for polygons.
 void add_wkt(geom_ptr &geom, double area) {
-  WKTWriter wktw;
-  std::string wkt = wktw.write(geom.get());
-  wkts.push_back(wkt);
-  areas.push_back(area);
+    WKTWriter wktw;
+    std::string wkt = wktw.write(geom.get());
+    wkts.push_back(wkt);
+    areas.push_back(area);
 }
 
 // helper method to add the WKT for a line built from a
 // coordinate sequence to the global wkts list.
 void add_wkt_line(GeometryFactory &gf, std::auto_ptr<CoordinateSequence> &segment) {
-  WKTWriter wktw;
-  geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
-  std::string wkt = wktw.write(geom.get());
-  wkts.push_back(wkt);
-  areas.push_back(0);
-  segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+    WKTWriter wktw;
+    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+    std::string wkt = wktw.write(geom.get());
+    wkts.push_back(wkt);
+    areas.push_back(0);
+    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
 }
 
 size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
@@ -171,7 +171,7 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
             }
             geom->normalize(); // Fix direction of ring
             area = geom->getArea();
-	    add_wkt(geom, area);
+            add_wkt(geom, area);
 
         } else {
             if (coords->getSize() < 2)
@@ -182,47 +182,47 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
             segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
             segment->add(coords->getAt(0));
             for(unsigned i=1; i<coords->getSize(); i++) {
-	        const Coordinate this_pt = coords->getAt(i);
-	        const Coordinate prev_pt = coords->getAt(i-1);
-	        const double delta = this_pt.distance(prev_pt);
-		// figure out if the addition of this point would take the total 
-		// length of the line in `segment` over the `split_at` distance.
-		const size_t splits = std::floor((distance + delta) / split_at);
+                const Coordinate this_pt = coords->getAt(i);
+                const Coordinate prev_pt = coords->getAt(i-1);
+                const double delta = this_pt.distance(prev_pt);
+                // figure out if the addition of this point would take the total 
+                // length of the line in `segment` over the `split_at` distance.
+                const size_t splits = std::floor((distance + delta) / split_at);
 
-		if (splits > 0) {
-		  // use the splitting distance to split the current segment up
-		  // into as many parts as necessary to keep each part below
-		  // the `split_at` distance.
-		  for (size_t i = 0; i < splits; ++i) {
-		    double frac = (double(i + 1) * split_at - distance) / delta;
-		    const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
-						  frac * (this_pt.y - prev_pt.y) + prev_pt.y);
-		    segment->add(interpolated);
-		    add_wkt_line(gf, segment);
-		    segment->add(interpolated);
-		  }
-		  // reset the distance based on the final splitting point for
-		  // the next iteration.
-		  distance = segment->getAt(0).distance(this_pt);
+                if (splits > 0) {
+                  // use the splitting distance to split the current segment up
+                  // into as many parts as necessary to keep each part below
+                  // the `split_at` distance.
+                  for (size_t i = 0; i < splits; ++i) {
+                    double frac = (double(i + 1) * split_at - distance) / delta;
+                    const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
+                                                  frac * (this_pt.y - prev_pt.y) + prev_pt.y);
+                    segment->add(interpolated);
+                    add_wkt_line(gf, segment);
+                    segment->add(interpolated);
+                  }
+                  // reset the distance based on the final splitting point for
+                  // the next iteration.
+                  distance = segment->getAt(0).distance(this_pt);
 
-		} else {
-		  // if not split then just push this point onto the sequence
-		  // being saved up.
-		  distance += delta;
-		}
+                } else {
+                  // if not split then just push this point onto the sequence
+                  // being saved up.
+                  distance += delta;
+                }
 
                 // always add this point
                 segment->add(this_pt);
 
-		// on the last iteration, close out the line.
+                // on the last iteration, close out the line.
                 if (i == coords->getSize()-1) {
-		  add_wkt_line(gf, segment);
+                  add_wkt_line(gf, segment);
                 }
             }
         }
 
-	// ensure the number of wkts in the global list is accurate.
-	wkt_size = wkts.size();
+        // ensure the number of wkts in the global list is accurate.
+        wkt_size = wkts.size();
     }
     catch (std::bad_alloc)
     {
