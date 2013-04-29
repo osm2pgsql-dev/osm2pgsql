@@ -128,7 +128,7 @@ static void long_usage(char *arg0)
     printf("\nOptions:\n");
     printf("   -a|--append\t\tAdd the OSM file into the database without removing\n");
     printf("              \t\texisting data.\n");
-    printf("   -b|--bbox\t\tApply a bounding box filter on the imported data\n");
+    printf("   -b|--bbox\t\tApply a bounding box filter on the imported data.\n");
     printf("              \t\tMust be specified as: minlon,minlat,maxlon,maxlat\n");
     printf("              \t\te.g. --bbox -0.5,51.25,0.5,51.75\n");
     printf("   -c|--create\t\tRemove existing data from the database. This is the \n");
@@ -145,12 +145,12 @@ static void long_usage(char *arg0)
     printf("              \t\t(if unset, use db's default; -i is equivalent to setting\n");
     printf("              \t\t--tablespace-main-index and --tablespace-slim-index)\n");
     printf("   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
-    printf("   -m|--merc\t\tStore data in proper spherical mercator (default)\n");
-    printf("   -M|--oldmerc\t\tStore data in the legacy OSM mercator format\n");
+    printf("   -m|--merc\t\tStore data in proper spherical mercator (default).\n");
+    printf("   -M|--oldmerc\t\tStore data in the legacy OSM mercator format.\n");
     printf("   -E|--proj num\tUse projection EPSG:num\n");
-    printf("   -u|--utf8-sanitize\tRepair bad UTF8 input data (present in planet\n");
+    printf("   -u|--utf8-sanitize\tRepair bad UTF-8 input data (present in planet\n");
     printf("                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
-    printf("   -p|--prefix\t\tPrefix for table names (default planet_osm)\n");
+    printf("   -p|--prefix\t\tPrefix for table names (default: planet_osm).\n");
     printf("   -s|--slim\t\tStore temporary data in the database. This greatly\n");
     printf("            \t\treduces the RAM usage but is much slower. This switch is\n");
     printf("            \t\trequired if you want to update with --append later.\n");
@@ -200,15 +200,15 @@ static void long_usage(char *arg0)
     printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
     printf("      --exclude-invalid-polygon\n");
 #ifdef HAVE_FORK
-    printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations\n");
-    printf("             \t\tDefault is 1\n");
+    printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations.\n");
+    printf("             \t\tDefault is 1.\n");
 #endif
     printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
     printf("      --unlogged\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
     printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
     printf("                      \t\tAvailable options are:\n");
     printf("                      \t\tdense: caching strategy optimised for full planet import\n");
-    printf("                      \t\tchunked: caching strategy optimised for non-contigouse memory allocation\n");
+    printf("                      \t\tchunked: caching strategy optimised for non-contiguous memory allocation\n");
     printf("                      \t\tsparse: caching strategy optimised for small extracts\n");
     printf("                      \t\toptimized: automatically combines dense and sparse strategies for optimal storage efficiency.\n");
     printf("                      \t\t           optimized may use twice as much virtual memory, but no more physical memory\n");
@@ -220,7 +220,7 @@ static void long_usage(char *arg0)
     printf("                      \t\t   The default is \"sparse\"\n");
 #endif
     printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
-    printf("                  \t\tThis file is a single > 16Gb large file. This method is only recomended for full planet imports\n");
+    printf("                  \t\tThis file is a single > 16Gb large file. This method is only recommended for full planet imports\n");
     printf("                   \t\tas it doesn't work well with small extracts. The default is disabled\n");
     printf("   -h|--help\t\tHelp information.\n");
     printf("   -v|--verbose\t\tVerbose output.\n");
@@ -228,7 +228,7 @@ static void long_usage(char *arg0)
     if(!verbose)
     {
         printf("Add -v to display supported projections.\n");
-        printf("Use -E to access any espg projections (usually in /usr/share/proj/epsg)\n" );
+        printf("Use -E to access any espg projections (usually in /usr/share/proj/epsg).\n" );
     }
     else
     {
