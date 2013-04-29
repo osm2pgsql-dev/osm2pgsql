@@ -44,9 +44,9 @@ Add the OSM file into the database without removing
 existing data.
 .TP
 \fB\-b\fR|\-\-bbox
-Apply a bounding box filter on the imported data
+Apply a bounding box filter on the imported data.
 Must be specified as: minlon,minlat,maxlon,maxlat
-e.g. \fB\-\-bbox\fR \fB\-0\fR.5,51.25,0.5,51.75
+e.g. \fB\-\-bbox\fR \fB\-0.5,51.25,0.5,51.75\fR
 .TP
 \fB\-c\fR|\-\-create
 Remove existing data from the database. This is the
@@ -58,49 +58,49 @@ to (default: gis).
 .TP
 \fB\-i\fR|\-\-tablespace\-index tablespacename
 Store all indices in a separate PostgreSQL tablespace named by this parameter.
-This allows to e.g. store the indices on faster storage like SSDs
+This allows to e.g. store the indices on faster storage like SSDs.
 .TP
 \fB\ \fR\-\-tablespace\-main\-data tablespacename
-Store the data tables (non slim) in the given tablespace
+Store the data tables (non slim) in the given tablespace.
 .TP
 \fB\ \fR\-\-tablespace\-main\-index tablespacename
-Store the indices of the main tables (non slim) in the given tablespace
+Store the indices of the main tables (non slim) in the given tablespace.
 .TP
 \fB\ \fR\-\-tablespace\-slim\-data tablespacename
-Store the slim mode tables in the given tablespace
+Store the slim mode tables in the given tablespace.
 .TP
 \fB\ \fR\-\-tablespace\-slim\-index tablespacename
-Store the indices of the slim mode tables in the given tablespace
+Store the indices of the slim mode tables in the given tablespace.
 .TP
 \fB\-l\fR|\-\-latlong
 Store data in degrees of latitude & longitude.
 .TP
 \fB\-m\fR|\-\-merc
-Store data in proper spherical Mercator (the default)
+Store data in proper spherical Mercator (the default).
 .TP
 \fB\-M\fR|\-\-oldmerc
-Store data in the legacy OSM Mercator format
+Store data in the legacy OSM Mercator format.
 .TP
 \fB\-E\fR|\-\-proj num
 Use projection EPSG:num
 .TP
 \fB\-u\fR|\-\-utf8\-sanitize
-Repair bad UTF8 input data (present in planet
+Repair bad UTF-8 input data (present in planet
 dumps prior to August 2007). Adds about 10% overhead.
 .TP
 \fB\-p\fR|\-\-prefix prefix_string
-Prefix for table names (default planet_osm)
+Prefix for table names (default: planet_osm).
 .TP
 \fB\-r\fR|\-\-input\-reader format
 Select input format reader. Available choices are \fBlibxml2\fR 
 (default) and \fBprimitive\fR for OSM XML format files, \fBo5m\fR for o5m formatted file
-and \fBpbf\fR for OSM PBF binary format (may not be available on all platforms)
+and \fBpbf\fR for OSM PBF binary format (may not be available on all platforms).
 .TP
 \fB\-s\fR|\-\-slim
 Store temporary data in the database. Without this mode, all temporary data is stored in
-RAM and if you do not have enough the import will not succeed successfully. With slim mode,
+RAM and if you do not have enough the import will not work successfully. With slim mode,
 you should be able to import the data even on a system with limited RAM, although if you
-do no have enough RAM to cache at least all of the nodes, the time to import the data
+do not have enough RAM to cache at least all of the nodes, the time to import the data
 will likely be greatly increased.
 .TP
 \fB\  \fR\-\-drop
@@ -109,7 +109,7 @@ greatly reduce the size of the database, as the slim mode tables typically are t
 size, if not slightly bigger than the main tables. It does not, however, reduce the
 maximum spike of disk usage during import. It can furthermore increase the import speed,
 as no indices need to be created for the slim mode tables, which (depending on hardware)
-can nearly half import time. Slim mode tables however have to be persistent if you want
+can nearly halve import time. Slim mode tables however have to be persistent if you want
 to be able to update your database, as these tables are needed for diff processing.
 .TP
 \fB\-S\fR|\-\-style /path/to/style
@@ -169,19 +169,19 @@ This includes the username, userid, timestamp and version.
 Note: this option also requires additional entries in your style file.
 .TP
 \fB\-k\fR|\-\-hstore
-Add tags without column to an additional hstore (key/value) column to PostgreSQL tables
+Add tags without column to an additional hstore (key/value) column to PostgreSQL tables.
 .TP
 \fB\-j\fR|\-\-hstore\-all
-Add all tags to an additional history (key/value) column in PostgreSQL tables
+Add all tags to an additional hstore (key/value) column in PostgreSQL tables.
 .TP
 \fB\-z\fR|\-\-hstore\-column key_name
-Add an additional history (key/value) column containing all tags
+Add an additional hstore (key/value) column containing all tags
 that start with the specified string, egg --hstore-column "name:" will
 produce an extra hstore column that contains all name:xx tags
 .TP
 \fB\  \fR\-\-hstore\-match\-only
 Only keep objects that have a value in one of the columns
-(normal action with --hstore is to keep all objects)
+(normal action with --hstore is to keep all objects).
 .TP
 \fB\  \fR\-\-hstore-add-index
 Create indices for the hstore columns during import.
@@ -220,20 +220,20 @@ server.
 \fB\-I\fR|\-\-disable-parallel-indexing
 By default osm2pgsql initiates the index building on all tables in parallel to increase
 performance. This can be disadvantages on slow disks, or if you don't have
-enough ram for PostgreSQL to perform up to 7 parallel index building processes
-(e.g. because maintenance_work_mem is set high)
+enough RAM for PostgreSQL to perform up to 7 parallel index building processes
+(e.g. because maintenance_work_mem is set high).
 .TP
 \fB\  \fR\-\-flat-nodes /path/to/nodes.cache
 The flat-nodes mode is a separate method to store slim mode node information on disk.
 Instead of storing this information in the main PostgreSQL database, this mode creates
 its own separate custom database to store the information. As this custom database
 has application level knowledge about the data to store and is not general purpose,
-it can store the data much more efficient. Storing the node information for the full
+it can store the data much more efficiently. Storing the node information for the full
 planet requires about 100GB in PostgreSQL, the same data is stored in only ~16GB using
 the flat-nodes mode. This can also increase the speed of applying diff files. This option
 activates the flat-nodes mode and specifies the location of the database file. It is a
 single large > 16GB file. This mode is only recommended for full planet imports
-as it doesn't work well with small extracts. The default is disabled
+as it doesn't work well with small extracts. The default is disabled.
 .TP
 \fB\-h\fR|\-\-help
 Help information.
