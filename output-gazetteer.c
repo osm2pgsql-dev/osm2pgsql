@@ -38,6 +38,7 @@
    "  admin_level INTEGER,"                     \
    "  housenumber TEXT,"                        \
    "  street TEXT,"                             \
+   "  addr_place TEXT,"                              \
    "  isin TEXT,"                               \
    "  postcode TEXT,"                           \
    "  country_code VARCHAR(2),"                 \
@@ -87,7 +88,7 @@ static void copy_data(const char *sql)
    /* Make sure we have an active copy */
    if (!CopyActive)
    {
-      pgsql_exec(Connection, PGRES_COPY_IN, "COPY place FROM STDIN");
+      pgsql_exec(Connection, PGRES_COPY_IN, "COPY place (osm_type, osm_id, class, type, name, admin_level, housenumber, street, addr_place, isin, postcode, country_code, extratags, geometry) FROM STDIN");
       CopyActive = 1;
    }
 
@@ -235,7 +236,7 @@ static void stop_error_copy(void)
 }
 
 static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
-   int* admin_level, struct keyval ** housenumber, struct keyval ** street, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
+   int* admin_level, struct keyval ** housenumber, struct keyval ** street, struct keyval ** addr_place, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
 {
    int placehouse = 0;
    int placebuilding = 0;
@@ -249,6 +250,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    *admin_level = ADMINLEVEL_NONE;
    *housenumber = 0;
    *street = 0;
+   *addr_place = 0;
    *isin = 0;
    int isinsize = 0;
    *postcode = 0;
@@ -383,6 +385,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "addr:street") == 0)
       {
          *street = item;
+      }
+      else if (strcmp(item->key, "addr:place") == 0)
+      {
+         *addr_place = item;
       }
       else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
                 strcmp(item->key, "country_code_iso3166_1") == 0 || 
@@ -708,7 +714,7 @@ static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *
 }
 
 static void add_place(char osm_type, osmid_t osm_id, const char *class, const char *type, struct keyval *names, struct keyval *extratags,
-   int adminlevel, struct keyval *housenumber, struct keyval *street, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
+   int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    int first;
    struct keyval *name;
@@ -771,6 +777,17 @@ static void add_place(char osm_type, osmid_t osm_id, const char *class, const ch
    if (street)
    {
       escape(sql, sizeof(sql), street->value);
+      copy_data(sql);
+      copy_data("\t");
+   }
+   else
+   {
+      copy_data("\\N\t");
+   }
+
+   if (addr_place)
+   {
+      escape(sql, sizeof(sql), addr_place->value);
       copy_data(sql);
       copy_data("\t");
    }
@@ -1045,6 +1062,7 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
    int adminlevel;
    struct keyval * housenumber;
    struct keyval * street;
+   struct keyval * addr_place;
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
@@ -1052,7 +1070,7 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
 
 
    /* Split the tags */
-   split_tags(tags, TAGINFO_NODE, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   split_tags(tags, TAGINFO_NODE, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
    /* Feed this node to the middle layer */
    Options->mid->nodes_set(id, lat, lon, tags);
@@ -1066,12 +1084,13 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
       for (place = firstItem(&places); place; place = nextItem(&places, place))
       {
-         add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+         add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
       }
    }
 
    if (housenumber) freeItem(housenumber);
    if (street) freeItem(street);
+   if (addr_place) freeItem(addr_place);
    if (isin) free(isin);
    if (postcode) freeItem(postcode);
    if (countrycode) freeItem(countrycode);
@@ -1098,6 +1117,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
    int adminlevel;
    struct keyval * housenumber;
    struct keyval * street;
+   struct keyval * addr_place;
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
@@ -1105,7 +1125,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
 
 
    /* Split the tags */
-   area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
    /* Feed this way to the middle layer */
    Options->mid->ways_set(id, ndv, ndc, tags, 0);
@@ -1129,7 +1149,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            add_place('W', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+            add_place('W', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
          }
       }
 
@@ -1142,6 +1162,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
 
    if (housenumber) freeItem(housenumber);
    if (street) freeItem(street);
+   if (addr_place) freeItem(addr_place);
    if (isin) free(isin);
    if (postcode) freeItem(postcode);
    if (countrycode) freeItem(countrycode);
@@ -1168,6 +1189,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    int adminlevel;
    struct keyval * housenumber;
    struct keyval * street;
+   struct keyval * addr_place;
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
@@ -1195,7 +1217,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    Options->mid->relations_set(id, members, member_count, tags);
 
    /* Split the tags */
-   split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &isin, &postcode, &countrycode);
+   split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
    if (delete_old)
        delete_unused_classes('R', id, &places);
@@ -1233,7 +1255,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
              {
-                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, isin, postcode, countrycode, wkt);
+                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
              }
          }
          else
@@ -1259,6 +1281,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
 
    if (housenumber) freeItem(housenumber);
    if (street) freeItem(street);
+   if (addr_place) freeItem(addr_place);
    if (isin) free(isin);
    if (postcode) freeItem(postcode);
    if (countrycode) freeItem(countrycode);
