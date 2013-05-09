@@ -1,0 +1,581 @@
+
+#include <string.h>
+#include "osmtypes.h"
+#include "keyvals.h"
+#include "tagtransform.h"
+#include "output-pgsql.h"
+
+static lua_State *L;
+const struct output_options *options;
+
+extern struct taginfo *exportList[4]; /* Indexed by enum table_id */
+extern int exportListCount[4];
+
+int transform_method = 0;
+
+static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct keyval *tags, int * polygon) {
+    int idx = 0;
+    int filter;
+    int count = 0;
+    struct keyval *item;
+    const char * key, * value;
+
+    switch (type) {
+    case OSMTYPE_NODE: {
+        lua_getglobal(L, "filter_tags_node");
+        break;
+    }
+    case OSMTYPE_WAY: {
+        lua_getglobal(L, "filter_tags_way");
+        break;
+    }
+    case OSMTYPE_RELATION: {
+        lua_getglobal(L, "filter_basic_tags_rel");
+        break;
+    }
+    }
+
+    lua_newtable(L);    /* key value table */
+
+    idx = 1;
+    while( (item = popItem(tags)) != NULL ) {
+        lua_pushstring(L, item->key);
+        lua_pushstring(L, item->value);
+        lua_rawset(L, -3);
+        freeItem(item);
+        count++;
+    }
+
+    //printf("C count %i\n", count);
+    lua_pushinteger(L, count);
+
+    if (lua_pcall(L,2,type == OSMTYPE_WAY ? 3 : 2,0)) {
+        fprintf(stderr, "Failed to execute lua function for basic tag processing: %s\n", lua_tostring(L, -1));
+        /* lua function failed */
+        return 1;
+    }
+
+    if (type == OSMTYPE_WAY) {
+        *polygon = lua_tointeger(L, -1);
+        lua_pop(L,1);
+    }
+
+    lua_pushnil(L);
+    while (lua_next(L,-2) != 0) {
+        key = lua_tostring(L,-2);
+        value = lua_tostring(L,-1);
+        addItem(tags, key, value, 0);
+        lua_pop(L,1);
+    }
+
+    filter = lua_tointeger(L, -2);
+
+    lua_pop(L,2);
+
+    return filter;
+}
+
+/* Go through the given tags and determine the union of flags. Also remove
+ * any tags from the list that we don't know about */
+static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
+        struct keyval *tags, int *polygon) {
+    int i, filter = 1;
+    int flags = 0;
+    int add_area_tag = 0;
+
+    const char *area;
+    struct keyval *item;
+    struct keyval temp;
+    initList(&temp);
+
+    /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
+    while ((item = popItem(tags)) != NULL ) {
+        if (type == OSMTYPE_RELATION) {
+            filter = 0;
+        }
+        /* Allow named islands to appear as polygons */
+        if (!strcmp("natural", item->key)
+                && !strcmp("coastline", item->value)) {
+            add_area_tag = 1;
+        }
+
+        /* Discard natural=coastline tags (we render these from a shapefile instead) */
+        if (!options->keep_coastlines && !strcmp("natural", item->key)
+                && !strcmp("coastline", item->value)) {
+            freeItem(item);
+            item = NULL;
+            continue;
+        }
+
+        for (i = 0; i < exportListCount[type]; i++) {
+            if (wildMatch(exportList[type][i].name, item->key)) {
+                if (exportList[type][i].flags & FLAG_DELETE) {
+                    freeItem(item);
+                    item = NULL;
+                    break;
+                }
+
+                filter = 0;
+                flags |= exportList[type][i].flags;
+
+                pushItem(&temp, item);
+                item = NULL;
+                break;
+            }
+        }
+
+        /** if tag not found in list of exports: */
+        if (i == exportListCount[type]) {
+            if (options->enable_hstore) {
+                /* with hstore, copy all tags... */
+                pushItem(&temp, item);
+                /* ... but if hstore_match_only is set then don't take this 
+                 as a reason for keeping the object */
+                if (!options->hstore_match_only && strcmp("osm_uid", item->key)
+                        && strcmp("osm_user", item->key)
+                        && strcmp("osm_timestamp", item->key)
+                        && strcmp("osm_version", item->key)
+                        && strcmp("osm_changeset", item->key))
+                    filter = 0;
+            } else if (options->n_hstore_columns) {
+                /* does this column match any of the hstore column prefixes? */
+                int j;
+                for (j = 0; j < options->n_hstore_columns; j++) {
+                    char *pos = strstr(item->key, options->hstore_columns[j]);
+                    if (pos == item->key) {
+                        pushItem(&temp, item);
+                        /* ... but if hstore_match_only is set then don't take this 
+                         as a reason for keeping the object */
+                        if (!options->hstore_match_only
+                                && strcmp("osm_uid", item->key)
+                                && strcmp("osm_user", item->key)
+                                && strcmp("osm_timestamp", item->key)
+                                && strcmp("osm_version", item->key)
+                                && strcmp("osm_changeset", item->key))
+                            filter = 0;
+                        break;
+                    }
+                }
+                /* if not, skip the tag */
+                if (j == options->n_hstore_columns) {
+                    freeItem(item);
+                }
+            } else {
+                freeItem(item);
+            }
+            item = NULL;
+        }
+    }
+
+    /* Move from temp list back to original list */
+    while ((item = popItem(&temp)) != NULL )
+        pushItem(tags, item);
+
+    *polygon = flags & FLAG_POLYGON;
+
+    /* Special case allowing area= to override anything else */
+    if ((area = getItem(tags, "area"))) {
+        if (!strcmp(area, "yes") || !strcmp(area, "true") || !strcmp(area, "1"))
+            *polygon = 1;
+        else if (!strcmp(area, "no") || !strcmp(area, "false")
+                || !strcmp(area, "0"))
+            *polygon = 0;
+    } else {
+        /* If we need to force this as a polygon, append an area tag */
+        if (add_area_tag) {
+            addItem(tags, "area", "yes", 0);
+            *polygon = 1;
+        }
+    }
+
+    return filter;
+}
+
+static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_tags, int member_count,
+        struct keyval *member_tags,const char **member_role,
+        int * member_superseeded, int * make_boundary, int * make_polygon) {
+
+    int i;
+    int idx = 0;
+    int filter;
+    int count = 0;
+    struct keyval *item;
+    const char * key, * value;
+
+    lua_getglobal(L, "filter_tags_relation_member");
+
+    lua_newtable(L);    /* relations key value table */
+
+    idx = 1;
+    while( (item = popItem(rel_tags)) != NULL ) {
+        lua_pushstring(L, item->key);
+        lua_pushstring(L, item->value);
+        lua_rawset(L, -3);
+        freeItem(item);
+        count++;
+    }
+
+    lua_newtable(L);    /* member tags table */
+
+    for (i = 1; i <= member_count; i++) {
+        lua_pushnumber(L, i);
+        lua_newtable(L);    /* member key value table */
+        while( (item = popItem(&(member_tags[i - 1]))) != NULL ) {
+            lua_pushstring(L, item->key);
+            lua_pushstring(L, item->value);
+            lua_rawset(L, -3);
+            freeItem(item);
+            count++;
+        }
+        lua_rawset(L, -3);
+    }
+
+    lua_newtable(L);    /* member roles table */
+
+    for (i = 0; i < member_count; i++) {
+        lua_pushnumber(L, i + 1);
+        lua_pushstring(L, member_role[i]);
+        lua_rawset(L, -3);
+    }
+
+    lua_pushnumber(L, member_count);
+
+    if (lua_pcall(L,4,5,0)) {
+        fprintf(stderr, "Failed to execute lua function for relation tag processing: %s\n", lua_tostring(L, -1));
+        /* lua function failed */
+        return 1;
+    }
+
+
+    *make_polygon = lua_tointeger(L, -1);
+    lua_pop(L,1);
+    *make_boundary = lua_tointeger(L,-1);
+    lua_pop(L,1);
+
+    lua_pushnil(L);
+    for (i = 0; i < member_count; i++) {
+        if (lua_next(L,-2)) {
+            member_superseeded[i] = lua_tointeger(L,-1);
+            lua_pop(L,1);
+        } else {
+            fprintf(stderr, "Failed to read member_superseeded from lua function");
+        }
+    }
+    lua_pop(L,2);
+
+    lua_pushnil(L);
+    while (lua_next(L,-2) != 0) {
+        key = lua_tostring(L,-2);
+        value = lua_tostring(L,-1);
+        addItem(rel_tags, key, value, 0);
+        lua_pop(L,1);
+    }
+    lua_pop(L,1);
+
+    filter = lua_tointeger(L, -1);
+
+    lua_pop(L,1);
+
+    return filter;
+}
+
+static unsigned int tagtransform_c_filter_rel_member_tags(
+        struct keyval *rel_tags, int member_count,
+        struct keyval *member_tags, const char **member_role,
+        int * member_superseeded, int * make_boundary, int * make_polygon) {
+    char *type;
+    struct keyval tags, *p, poly_tags;
+    int i;
+
+    /* Get the type, if there's no type we don't care */
+    type = getItem(rel_tags, "type");
+    if (!type)
+        return 1;
+
+    initList(&tags);
+    initList(&poly_tags);
+
+    /* Clone tags from relation */
+    p = rel_tags->next;
+    while (p != rel_tags) {
+        /* For routes, we convert name to route_name */
+        if ((strcmp(type, "route") == 0) && (strcmp(p->key, "name") == 0))
+            addItem(&tags, "route_name", p->value, 1);
+        else if (strcmp(p->key, "type")) /* drop type= */
+            addItem(&tags, p->key, p->value, 1);
+        p = p->next;
+    }
+
+    if (strcmp(type, "route") == 0) {
+        const char *state = getItem(rel_tags, "state");
+        const char *netw = getItem(rel_tags, "network");
+        int networknr = -1;
+
+        if (state == NULL ) {
+            state = "";
+        }
+
+        if (netw != NULL ) {
+            if (strcmp(netw, "lcn") == 0) {
+                networknr = 10;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "lcn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "lcn", "connection", 1);
+                } else {
+                    addItem(&tags, "lcn", "yes", 1);
+                }
+            } else if (strcmp(netw, "rcn") == 0) {
+                networknr = 11;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "rcn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "rcn", "connection", 1);
+                } else {
+                    addItem(&tags, "rcn", "yes", 1);
+                }
+            } else if (strcmp(netw, "ncn") == 0) {
+                networknr = 12;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "ncn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "ncn", "connection", 1);
+                } else {
+                    addItem(&tags, "ncn", "yes", 1);
+                }
+
+            } else if (strcmp(netw, "lwn") == 0) {
+                networknr = 20;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "lwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "lwn", "connection", 1);
+                } else {
+                    addItem(&tags, "lwn", "yes", 1);
+                }
+            } else if (strcmp(netw, "rwn") == 0) {
+                networknr = 21;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "rwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "rwn", "connection", 1);
+                } else {
+                    addItem(&tags, "rwn", "yes", 1);
+                }
+            } else if (strcmp(netw, "nwn") == 0) {
+                networknr = 22;
+                if (strcmp(state, "alternate") == 0) {
+                    addItem(&tags, "nwn", "alternate", 1);
+                } else if (strcmp(state, "connection") == 0) {
+                    addItem(&tags, "nwn", "connection", 1);
+                } else {
+                    addItem(&tags, "nwn", "yes", 1);
+                }
+            }
+        }
+
+        if (getItem(rel_tags, "preferred_color") != NULL ) {
+            const char *a = getItem(rel_tags, "preferred_color");
+            if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0
+                    || strcmp(a, "2") == 0 || strcmp(a, "3") == 0
+                    || strcmp(a, "4") == 0) {
+                addItem(&tags, "route_pref_color", a, 1);
+            } else {
+                addItem(&tags, "route_pref_color", "0", 1);
+            }
+        } else {
+            addItem(&tags, "route_pref_color", "0", 1);
+        }
+
+        if (getItem(rel_tags, "ref") != NULL ) {
+            if (networknr == 10) {
+                addItem(&tags, "lcn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 11) {
+                addItem(&tags, "rcn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 12) {
+                addItem(&tags, "ncn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 20) {
+                addItem(&tags, "lwn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 21) {
+                addItem(&tags, "rwn_ref", getItem(rel_tags, "ref"), 1);
+            } else if (networknr == 22) {
+                addItem(&tags, "nwn_ref", getItem(rel_tags, "ref"), 1);
+            }
+        }
+    } else if (strcmp(type, "boundary") == 0) {
+        /* Boundaries will get converted into multiple geometries:
+         - Linear features will end up in the line and roads tables (useful for admin boundaries)
+         - Polygon features also go into the polygon table (useful for national_forests)
+         The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately. */
+        *make_boundary = 1;
+    } else if (strcmp(type, "multipolygon") == 0
+            && getItem(&tags, "boundary")) {
+        /* Treat type=multipolygon exactly like type=boundary if it has a boundary tag. */
+        *make_boundary = 1;
+    } else if (strcmp(type, "multipolygon") == 0) {
+        *make_polygon = 1;
+
+        /* Copy the tags from the outer way(s) if the relation is untagged */
+        /* or if there is just a name tag, people seem to like naming relations */
+        if (!listHasData(&tags)
+                || ((countList(&tags) == 1) && getItem(&tags, "name"))) {
+            for (i = 0; i < member_count; i++) {
+                if (member_role[i] && !strcmp(member_role[i], "inner"))
+                    continue;
+
+                p = member_tags[i].next;
+                while (p != &(member_tags[i])) {
+                    addItem(&tags, p->key, p->value, 1);
+                    p = p->next;
+                }
+            }
+        }
+
+        /* Collect a list of polygon-like tags, these are used later to
+         identify if an inner rings looks like it should be rendered separately */
+        p = tags.next;
+        while (p != &tags) {
+            if (!strcmp(p->key, "area")) {
+                addItem(&poly_tags, p->key, p->value, 1);
+            } else {
+                for (i = 0; i < exportListCount[OSMTYPE_WAY]; i++) {
+                    if (strcmp(exportList[OSMTYPE_WAY][i].name, p->key) == 0) {
+                        if (exportList[OSMTYPE_WAY][i].flags & FLAG_POLYGON) {
+                            addItem(&poly_tags, p->key, p->value, 1);
+                        }
+                        break;
+                    }
+                }
+            }
+            p = p->next;
+        }
+    } else {
+        /* Unknown type, just exit */
+        resetList(&tags);
+        resetList(&poly_tags);
+        return 1;
+    }
+
+    /* If we are creating a multipolygon then we
+     mark each member so that we can skip them during iterate_ways
+     but only if the polygon-tags look the same as the outer ring */
+    if (make_polygon) {
+        for (i = 0; i < member_count; i++) {
+            int match = 0;
+            struct keyval *p = poly_tags.next;
+            while (p != &poly_tags) {
+                const char *v = getItem(&(member_tags[i]), p->key);
+                if (!v || strcmp(v, p->value)) {
+                    match = 0;
+                    break;
+                }
+                match = 1;
+                p = p->next;
+            }
+            if (match) {
+                member_superseeded[i] = 1;
+            } else {
+                member_superseeded[i] = 0;
+            }
+        }
+    }
+
+    resetList(rel_tags);
+    cloneList(rel_tags, &tags);
+    resetList(&tags);
+
+    return 0;
+}
+
+static int tagtransform_lua_init() {
+    L = luaL_newstate();
+    luaL_openlibs(L);
+    luaL_dofile(L, options->tag_transform_script);
+
+    lua_getglobal(L, "filter_tags_node");
+    if (!lua_isfunction (L, -1)) {
+        fprintf(stderr,"Tag transform style does not contain a function filter_tags_node\n");
+        return 1;
+    }
+    lua_pop(L,1);
+
+    lua_getglobal(L, "filter_tags_way");
+    if (!lua_isfunction (L, -1)) {
+        fprintf(stderr,"Tag transform style does not contain a function filter_tags_way\n");
+        return 1;
+    }
+    lua_pop(L,1);
+
+    lua_getglobal(L, "filter_basic_tags_rel");
+    if (!lua_isfunction (L, -1)) {
+        fprintf(stderr,"Tag transform style does not contain a function filter_basic_tags_rel\n");
+        return 1;
+    }
+
+    lua_getglobal(L, "filter_tags_relation_member");
+    if (!lua_isfunction (L, -1)) {
+        fprintf(stderr,"Tag transform style does not contain a function filter_tags_relation_member\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+void tagtransform_lua_shutdown() {
+    lua_close(L);
+}
+
+unsigned int tagtransform_filter_node_tags(struct keyval *tags) {
+    int poly;
+    if (transform_method) {
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly);
+    } else {
+        return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly);
+    }
+}
+
+/*
+ * This function gets called twice during initial import per way. Once from add_way and once from out_way
+ */
+unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon) {
+    if (transform_method) {
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon);
+    } else {
+        return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon);
+    }
+}
+
+unsigned int tagtransform_filter_rel_tags(struct keyval *tags) {
+    int poly;
+    if (transform_method) {
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly);
+    } else {
+        return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly);
+    }
+}
+
+unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon) {
+    if (transform_method) {
+        return tagtransform_lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon);
+    } else {
+        return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon);
+    }
+}
+
+int tagtransform_init(const struct output_options *opts) {
+    options = opts;
+    if (opts->tag_transform_script) {
+        transform_method = 1;
+        fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", opts->tag_transform_script);
+        return tagtransform_lua_init();
+    } else  {
+        transform_method = 0;
+        fprintf(stderr, "Using built-in tag processing pipeline\n");
+        return 0; //Nothing to initialise
+    }
+}
+
+void tagtransform_shutdown() {
+    if (transform_method)
+        tagtransform_lua_shutdown();
+}

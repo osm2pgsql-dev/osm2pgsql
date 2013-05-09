@@ -54,6 +54,7 @@ struct output_options {
   int flat_node_cache_enabled;
   int excludepoly;
   const char *flat_node_file;
+  const char *tag_transform_script;
 };
 
 struct output_t {

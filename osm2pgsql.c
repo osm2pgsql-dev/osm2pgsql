@@ -394,6 +394,7 @@ int main(int argc, char *argv[])
     const char *input_reader = "auto";
     const char **hstore_columns = NULL;
     const char *flat_nodes_file = NULL;
+    const char *tag_transform_script = NULL;
     int n_hstore_columns = 0;
     int keep_coastlines=0;
     int cache = 800;
@@ -451,6 +452,7 @@ int main(int argc, char *argv[])
             {"unlogged", 0, 0, 207},
             {"flat-nodes",1,0,209},
             {"exclude-invalid-polygon",0,0,210},
+            {"tag-transform-script",1,0,212},
             {0, 0, 0, 0}
         };
 
@@ -529,6 +531,7 @@ int main(int argc, char *argv[])
             	break;
             case 210: excludepoly = 1; exclude_broken_polygon(); break;
             case 211: enable_hstore_index = 1; break;
+            case 212: tag_transform_script = optarg; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -646,6 +649,7 @@ int main(int argc, char *argv[])
     options.flat_node_cache_enabled = flat_node_cache_enabled;
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
+    options.tag_transform_script = tag_transform_script;
 
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;

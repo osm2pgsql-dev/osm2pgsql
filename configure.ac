@@ -118,6 +118,9 @@ fi
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
+AX_PROG_LUA
+AX_LUA_HEADERS
+AX_LUA_LIBS
 
 dnl Generate Makefile
 AC_OUTPUT(Makefile legacy/Makefile)
