@@ -118,10 +118,15 @@ fi
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
-AX_PROG_LUA
-AX_LUA_HEADERS
-AX_LUA_LIBS
-
+AX_PROG_LUA([5.0],[],[],[:])
+if test "$LUA_VERSION"
+then
+    AX_LUA_HEADERS
+    AX_LUA_LIBS
+    AC_MSG_WARN([I am here 3])
+    AC_DEFINE([HAVE_LUA], [1], [Requirements for lua are met])
+    HAVE_LUA=yes
+fi
 dnl Generate Makefile
 AC_OUTPUT(Makefile legacy/Makefile)
 
@@ -134,3 +139,14 @@ To enable PBF support, the protobuf library and compiler are required.
 Look for packages named: libprotobuf-c0-dev protobuf-c-compiler
 ])
 fi
+
+if test "$HAVE_LUA" != "yes"
+then
+    AC_MSG_WARN([
+lua libraries not found. You will NOT be able to use lua scripts for tag transform.
+
+To enable lua support, the lua interpreter and libraries are required. 
+Look for packages named: liblua5.2-dev
+])
+fi
+

@@ -1,11 +1,16 @@
 
+#include <stdio.h>
 #include <string.h>
 #include "osmtypes.h"
 #include "keyvals.h"
 #include "tagtransform.h"
 #include "output-pgsql.h"
+#include "config.h"
 
+#ifdef HAVE_LUA
 static lua_State *L;
+#endif
+
 const struct output_options *options;
 
 extern struct taginfo *exportList[4]; /* Indexed by enum table_id */
@@ -14,6 +19,7 @@ extern int exportListCount[4];
 int transform_method = 0;
 
 static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct keyval *tags, int * polygon) {
+#ifdef HAVE_LUA
     int idx = 0;
     int filter;
     int count = 0;
@@ -73,7 +79,11 @@ static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct
     lua_pop(L,2);
 
     return filter;
+#else
+    return 1;
+#endif
 }
+
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
@@ -191,9 +201,11 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
     return filter;
 }
 
+
 static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_tags, int member_count,
         struct keyval *member_tags,const char **member_role,
         int * member_superseeded, int * make_boundary, int * make_polygon) {
+#ifdef HAVE_LUA
 
     int i;
     int idx = 0;
@@ -258,7 +270,7 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
             member_superseeded[i] = lua_tointeger(L,-1);
             lua_pop(L,1);
         } else {
-            fprintf(stderr, "Failed to read member_superseeded from lua function");
+            fprintf(stderr, "Failed to read member_superseeded from lua function\n");
         }
     }
     lua_pop(L,2);
@@ -277,7 +289,11 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
     lua_pop(L,1);
 
     return filter;
+#else
+    return 1;
+#endif
 }
+
 
 static unsigned int tagtransform_c_filter_rel_member_tags(
         struct keyval *rel_tags, int member_count,
@@ -488,6 +504,7 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
 }
 
 static int tagtransform_lua_init() {
+#ifdef HAVE_LUA
     L = luaL_newstate();
     luaL_openlibs(L);
     luaL_dofile(L, options->tag_transform_script);
@@ -519,10 +536,16 @@ static int tagtransform_lua_init() {
     }
 
     return 0;
+#else
+    fprintf(stderr,"Error: Could not init lua tag transform, as lua support was not compiled into this version\n");
+    return 1;
+#endif
 }
 
 void tagtransform_lua_shutdown() {
+#ifdef HAVE_LUA
     lua_close(L);
+#endif
 }
 
 unsigned int tagtransform_filter_node_tags(struct keyval *tags) {

@@ -1074,7 +1074,7 @@ static int pgsql_out_start(const struct output_options *options)
     free(sql);
 
     if (tagtransform_init(options)) {
-        fprintf(stderr, "Error: Failed to initialise lua scripts for tag processing.\n");
+        fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         exit_nicely();
     }
     expire_tiles_init(options);

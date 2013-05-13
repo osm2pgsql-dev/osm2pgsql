@@ -2,9 +2,11 @@
 #ifndef TAGTRANSFORM_H
 #define TAGTRANSFORM_H
 
+#ifdef HAVE_LUA
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#endif
 #include "output.h"
 
 #ifdef __cplusplus
