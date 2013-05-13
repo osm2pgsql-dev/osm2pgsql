@@ -111,6 +111,9 @@ files may vary.
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
 
+On PostgreSQL 9.1 and above, you can install it by running "CREATE EXTENSION postgis;"
+in your database. This command must be done by a superuser. Do not use the SQL files directly with 9.1 and above.
+
 Next we need to give the <username> access to update the postgis
 meta-data tables
 
@@ -128,7 +131,7 @@ hstore-new extension.
 $ sudo -u postgres psql <dbname> < /usr/share/postgresql/8.4/contrib/hstore.sql
 
 On PostgreSQL 9.1 and above, you can install it by running "CREATE EXTENSION hstore;"
-in your database.
+in your database. This command must also be done by a superuser.
 
 Now you can run osm2pgsql to import the OSM data.
 This will perform the following actions:
