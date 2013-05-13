@@ -709,7 +709,7 @@ int main(int argc, char *argv[])
 	    fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
 	    exit(EXIT_FAILURE);
 #endif
-          } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0) {
+          } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0 || strcasecmp(".o5c",argv[optind]+strlen(argv[optind])-4) == 0) {
               streamFile = &streamFileO5m;
           } else {
             streamFile = &streamFileXML2;
