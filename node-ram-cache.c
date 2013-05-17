@@ -432,6 +432,7 @@ void free_node_ram_cache() {
           free(blockCache);
           blockCache = 0;
       }
+      free(blocks);
       free(queue);
   }
   if ( ((allocStrategy & ALLOC_SPARSE) > 0) && ((allocStrategy & ALLOC_DENSE) == 0)) {
