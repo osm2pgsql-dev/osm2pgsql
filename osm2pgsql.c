@@ -208,7 +208,7 @@ static void long_usage(char *arg0)
     printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
     printf("                      \t\tAvailable options are:\n");
     printf("                      \t\tdense: caching strategy optimised for full planet import\n");
-    printf("                      \t\tchunked: caching strategy optimised for non-contiguous memory allocation\n");
+    printf("                      \t\tchunk: caching strategy optimised for non-contiguous memory allocation\n");
     printf("                      \t\tsparse: caching strategy optimised for small extracts\n");
     printf("                      \t\toptimized: automatically combines dense and sparse strategies for optimal storage efficiency.\n");
     printf("                      \t\t           optimized may use twice as much virtual memory, but no more physical memory\n");
@@ -216,7 +216,7 @@ static void long_usage(char *arg0)
 #ifdef __amd64__
     printf("                      \t\t   The default is \"optimized\"\n");
 #else
-    /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
+    /* use "chunk" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
     printf("                      \t\t   The default is \"sparse\"\n");
 #endif
     printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
@@ -512,9 +512,10 @@ int main(int argc, char *argv[])
                 break;
             case 204:
                 if (strcmp(optarg,"dense") == 0) alloc_chunkwise = ALLOC_DENSE;
-                if (strcmp(optarg,"chunk") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
-                if (strcmp(optarg,"sparse") == 0) alloc_chunkwise = ALLOC_SPARSE;
-                if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+                else if (strcmp(optarg,"chunk") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
+                else if (strcmp(optarg,"sparse") == 0) alloc_chunkwise = ALLOC_SPARSE;
+                else if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+                else {fprintf(stderr, "ERROR: Unrecognized cache strategy %s.\n", optarg); exit(EXIT_FAILURE); }
                 break;
             case 205:
 #ifdef HAVE_FORK                
