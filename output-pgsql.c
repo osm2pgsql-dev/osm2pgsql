@@ -90,27 +90,8 @@ int exportListCount[4];
  * is used for any feature to be shown at low zoom.
  * This includes railways and administrative boundaries too
  */
-static struct {
-    int offset;
-    const char *highway;
-    int roads;
-} layers[] = {
-    { 3, "minor",         0 },
-    { 3, "road",          0 },
-    { 3, "unclassified",  0 },
-    { 3, "residential",   0 },
-    { 4, "tertiary_link", 0 },
-    { 4, "tertiary",      0 },
-    { 6, "secondary_link",1 },
-    { 6, "secondary",     1 },
-    { 7, "primary_link",  1 },
-    { 7, "primary",       1 },
-    { 8, "trunk_link",    1 },
-    { 8, "trunk",         1 },
-    { 9, "motorway_link", 1 },
-    { 9, "motorway",      1 }
-};
-static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
+
+
 
 static int pgsql_delete_way_from_output(osmid_t osm_id);
 static int pgsql_delete_relation_from_output(osmid_t osm_id);
@@ -305,53 +286,7 @@ void copy_to_table(enum table_id table, const char *sql)
     tables[table].buflen = buflen;
 }
 
-static int add_z_order(struct keyval *tags, int *roads)
-{
-    const char *layer   = getItem(tags, "layer");
-    const char *highway = getItem(tags, "highway");
-    const char *bridge  = getItem(tags, "bridge");
-    const char *tunnel  = getItem(tags, "tunnel");
-    const char *railway = getItem(tags, "railway");
-    const char *boundary= getItem(tags, "boundary");
 
-    int z_order = 0;
-    int l;
-    unsigned int i;
-    char z[13];
-
-    l = layer ? strtol(layer, NULL, 10) : 0;
-    z_order = 10 * l;
-    *roads = 0;
-
-    if (highway) {
-        for (i=0; i<nLayers; i++) {
-            if (!strcmp(layers[i].highway, highway)) {
-                z_order += layers[i].offset;
-                *roads   = layers[i].roads;
-                break;
-            }
-        }
-    }
-
-    if (railway && strlen(railway)) {
-        z_order += 5;
-        *roads = 1;
-    }
-    /* Administrative boundaries are rendered at low zooms so we prefer to use the roads table */
-    if (boundary && !strcmp(boundary, "administrative"))
-        *roads = 1;
-
-    if (bridge && (!strcmp(bridge, "true") || !strcmp(bridge, "yes") || !strcmp(bridge, "1")))
-        z_order += 10;
-
-    if (tunnel && (!strcmp(tunnel, "true") || !strcmp(tunnel, "yes") || !strcmp(tunnel, "1")))
-        z_order -= 10;
-
-    snprintf(z, sizeof(z), "%d", z_order);
-    addItem(tags, "z_order", z, 0);
-
-    return 0;
-}
 
 
 static void pgsql_out_cleanup(void)
@@ -693,7 +628,7 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
     copy_to_table(table, "\n");
 }
 
-static int tag_indicates_polygon(enum OsmType type, const char *key)
+/*static int tag_indicates_polygon(enum OsmType type, const char *key)
 {
     int i;
 
@@ -706,7 +641,7 @@ static int tag_indicates_polygon(enum OsmType type, const char *key)
     }
 
     return 0;
-}
+}*/
 
 
 
@@ -731,7 +666,7 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
         Options->mid->way_changed(id);
     }
 
-    if (tagtransform_filter_way_tags(tags, &polygon) || add_z_order(tags, &roads))
+    if (tagtransform_filter_way_tags(tags, &polygon, &roads))
         return 0;
     /* Split long ways after around 1 degree or 100km */
     if (Options->projection == PROJ_LATLONG)
@@ -787,12 +722,10 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_co
         return 0;
     }
 
-    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon)) {
+    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads)) {
         free(members_superseeded);
         return 0;
     }
-
-    add_z_order(rel_tags, &roads);
 
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
     if (Options->projection == PROJ_LATLONG)
@@ -1297,10 +1230,11 @@ static int pgsql_add_node(osmid_t id, double lat, double lon, struct keyval *tag
 static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
   int polygon = 0;
+  int roads = 0;
 
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = tagtransform_filter_way_tags(tags, &polygon);
+  int filter = tagtransform_filter_way_tags(tags, &polygon, &roads);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */

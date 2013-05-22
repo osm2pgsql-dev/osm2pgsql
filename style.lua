@@ -1,3 +1,59 @@
+function add_z_order(keyvalues)
+   z_order = 0
+   if (keyvalues["layer"] ~= nil ) then
+      z_order = 10*keyvalues["layer"]
+   end
+   if (keyvalues["railway"] ~= nil) then
+      roads = 1
+      z_order = z_order + 5
+   end
+
+   if (keyvalues["boundary"] == "administrative") then
+      roads = 1
+   end
+
+   if ((keyvalues["bridge"] == "yes") or (keyvalues["bridge"] == "true") or (keyvalues["bridge"] == 1)) then
+      z_order = z_order + 10
+   end
+
+   if ((keyvalues["tunnel"] == "yes") or (keyvalues["tunnel"] == "true") or (keyvalues["tunnel"] == 1)) then
+      z_order = z_order - 10
+   end
+
+   if ((keyvalues["highway"] == "minor") or (keyvalues["highway"] == "road") or (keyvalues["highway"] == "unclassidied") or (keyvalues["highway"] == "residential")) then
+      z_order = z_order + 3
+   end
+   
+   if ((keyvalues["highway"] == "tertiary_link") or (keyvalues["highway"] == "tertiary")) then
+      z_order = z_order + 4
+   end
+
+   if ((keyvalues["highway"] == "secondary") or (keyvalues["highway"] == "secondary_link")) then
+      z_order = z_order + 6
+      roads = 1
+   end
+
+   if ((keyvalues["highway"] == "primary") or (keyvalues["highway"] == "primary_link")) then
+      z_order = z_order + 7
+      roads = 1
+   end
+
+   if ((keyvalues["highway"] == "trunk") or (keyvalues["highway"] == "trunk_link")) then
+      z_order = z_order + 8
+      roads = 1
+   end
+
+   if ((keyvalues["highway"] == "motorway") or (keyvalues["highway"] == "motorway_link")) then
+      z_order = z_order + 9
+      roads = 1
+   end
+
+   keyvalues["z_order"] = z_order
+
+   return keyvalues, roads
+
+end
+
 function filter_tags_node (keyvalues, nokeys)
    filter = 0
    tagcount = 0
@@ -39,10 +95,12 @@ function filter_tags_way (keyvalues, nokeys)
    filter = 0
    poly = 0
    tagcount = 0
+   roads = 0
+   
    for k,v in pairs(keyvalues) do tagcount = tagcount + 1; end
    if tagcount == 0 then
       filter = 1
-      return filter, keyvalues, poly
+      return filter, keyvalues, poly, roads
    end
 
    keyvalues["FIXME"] = nil
@@ -79,7 +137,10 @@ function filter_tags_way (keyvalues, nokeys)
       poly = 0;
    end
 
-   return filter, keyvalues, poly
+   keyvalues, roads = add_z_order(keyvalues)
+
+
+   return filter, keyvalues, poly, roads
 end
 
 function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, membercount)
@@ -87,6 +148,7 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
    filter = 0
    boundary = 0
    polygon = 0
+   roads = 0
    membersuperseeded = {}
    for i = 1, membercount do
       membersuperseeded[i] = 0
@@ -124,6 +186,8 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
          membersuperseeded[i] = superseeded
       end
    end
-   
-   return filter, keyvalues, membersuperseeded, boundary, polygon
+
+   keyvalues, roads = add_z_order(keyvalues)
+
+   return filter, keyvalues, membersuperseeded, boundary, polygon, roads
 end

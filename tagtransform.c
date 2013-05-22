@@ -11,6 +11,29 @@
 static lua_State *L;
 #endif
 
+static struct {
+    int offset;
+    const char *highway;
+    int roads;
+} layers[] = {
+    { 3, "minor",         0 },
+    { 3, "road",          0 },
+    { 3, "unclassified",  0 },
+    { 3, "residential",   0 },
+    { 4, "tertiary_link", 0 },
+    { 4, "tertiary",      0 },
+    { 6, "secondary_link",1 },
+    { 6, "secondary",     1 },
+    { 7, "primary_link",  1 },
+    { 7, "primary",       1 },
+    { 8, "trunk_link",    1 },
+    { 8, "trunk",         1 },
+    { 9, "motorway_link", 1 },
+    { 9, "motorway",      1 }
+};
+
+static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
+
 const struct output_options *options;
 
 extern struct taginfo *exportList[4]; /* Indexed by enum table_id */
@@ -18,13 +41,66 @@ extern int exportListCount[4];
 
 int transform_method = 0;
 
-static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct keyval *tags, int * polygon) {
+static int add_z_order(struct keyval *tags, int *roads) {
+    const char *layer = getItem(tags, "layer");
+    const char *highway = getItem(tags, "highway");
+    const char *bridge = getItem(tags, "bridge");
+    const char *tunnel = getItem(tags, "tunnel");
+    const char *railway = getItem(tags, "railway");
+    const char *boundary = getItem(tags, "boundary");
+
+    int z_order = 0;
+    int l;
+    unsigned int i;
+    char z[13];
+
+    l = layer ? strtol(layer, NULL, 10) : 0;
+    z_order = 10 * l;
+    *roads = 0;
+
+    if (highway) {
+        for (i = 0; i < nLayers; i++) {
+            if (!strcmp(layers[i].highway, highway)) {
+                z_order += layers[i].offset;
+                *roads = layers[i].roads;
+                break;
+            }
+        }
+    }
+
+    if (railway && strlen(railway)) {
+        z_order += 5;
+        *roads = 1;
+    }
+    /* Administrative boundaries are rendered at low zooms so we prefer to use the roads table */
+    if (boundary && !strcmp(boundary, "administrative"))
+        *roads = 1;
+
+    if (bridge
+            && (!strcmp(bridge, "true") || !strcmp(bridge, "yes")
+                    || !strcmp(bridge, "1")))
+        z_order += 10;
+
+    if (tunnel
+            && (!strcmp(tunnel, "true") || !strcmp(tunnel, "yes")
+                    || !strcmp(tunnel, "1")))
+        z_order -= 10;
+
+    snprintf(z, sizeof(z), "%d", z_order);
+    addItem(tags, "z_order", z, 0);
+
+    return 0;
+}
+
+static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct keyval *tags, int * polygon, int * roads) {
 #ifdef HAVE_LUA
     int idx = 0;
     int filter;
     int count = 0;
     struct keyval *item;
     const char * key, * value;
+
+    *polygon = 0; *roads = 0;
 
     switch (type) {
     case OSMTYPE_NODE: {
@@ -55,13 +131,15 @@ static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct
     //printf("C count %i\n", count);
     lua_pushinteger(L, count);
 
-    if (lua_pcall(L,2,type == OSMTYPE_WAY ? 3 : 2,0)) {
+    if (lua_pcall(L,2,type == OSMTYPE_WAY ? 4 : 2,0)) {
         fprintf(stderr, "Failed to execute lua function for basic tag processing: %s\n", lua_tostring(L, -1));
         /* lua function failed */
         return 1;
     }
 
     if (type == OSMTYPE_WAY) {
+        *roads = lua_tointeger(L, -1);
+        lua_pop(L,1);
         *polygon = lua_tointeger(L, -1);
         lua_pop(L,1);
     }
@@ -88,7 +166,7 @@ static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
 static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
-        struct keyval *tags, int *polygon) {
+        struct keyval *tags, int *polygon, int * roads) {
     int i, filter = 1;
     int flags = 0;
     int add_area_tag = 0;
@@ -198,13 +276,17 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
         }
     }
 
+    if (!filter && (type == OSMTYPE_WAY)) {
+        add_z_order(tags,roads);
+    }
+
     return filter;
 }
 
 
 static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_tags, int member_count,
         struct keyval *member_tags,const char **member_role,
-        int * member_superseeded, int * make_boundary, int * make_polygon) {
+        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
 #ifdef HAVE_LUA
 
     int i;
@@ -252,13 +334,15 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
 
     lua_pushnumber(L, member_count);
 
-    if (lua_pcall(L,4,5,0)) {
+    if (lua_pcall(L,4,6,0)) {
         fprintf(stderr, "Failed to execute lua function for relation tag processing: %s\n", lua_tostring(L, -1));
         /* lua function failed */
         return 1;
     }
 
-
+    *roads = lua_tointeger(L, -1);
+    lua_pop(L,1);
+    printf("roads: %i\n", *roads);
     *make_polygon = lua_tointeger(L, -1);
     lua_pop(L,1);
     *make_boundary = lua_tointeger(L,-1);
@@ -298,7 +382,7 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
 static unsigned int tagtransform_c_filter_rel_member_tags(
         struct keyval *rel_tags, int member_count,
         struct keyval *member_tags, const char **member_role,
-        int * member_superseeded, int * make_boundary, int * make_polygon) {
+        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
     char *type;
     struct keyval tags, *p, poly_tags;
     int i;
@@ -500,6 +584,8 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
     cloneList(rel_tags, &tags);
     resetList(&tags);
 
+    add_z_order(rel_tags, roads);
+
     return 0;
 }
 
@@ -549,39 +635,39 @@ void tagtransform_lua_shutdown() {
 }
 
 unsigned int tagtransform_filter_node_tags(struct keyval *tags) {
-    int poly;
+    int poly, roads;
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly);
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
     }
 }
 
 /*
  * This function gets called twice during initial import per way. Once from add_way and once from out_way
  */
-unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon) {
+unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon, int * roads) {
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon);
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
     }
 }
 
 unsigned int tagtransform_filter_rel_tags(struct keyval *tags) {
-    int poly;
+    int poly, roads;
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly);
+        return tagtransform_lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
     }
 }
 
-unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon) {
+unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
     if (transform_method) {
-        return tagtransform_lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon);
+        return tagtransform_lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
     } else {
-        return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon);
+        return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
     }
 }
 
