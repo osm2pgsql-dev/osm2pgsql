@@ -177,9 +177,14 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
     initList(&temp);
 
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
+    if (type == OSMTYPE_RELATION) {
+        filter = 0;
+    }
     while ((item = popItem(tags)) != NULL ) {
-        if (type == OSMTYPE_RELATION) {
-            filter = 0;
+        if (type == OSMTYPE_RELATION && !strcmp("type", item->key)) {
+            pushItem(&temp, item);
+            item = NULL;
+            break;
         }
         /* Allow named islands to appear as polygons */
         if (!strcmp("natural", item->key)
