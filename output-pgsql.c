@@ -726,7 +726,7 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_co
         free(members_superseeded);
         return 0;
     }
-
+    
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
     if (Options->projection == PROJ_LATLONG)
         split_at = 1;

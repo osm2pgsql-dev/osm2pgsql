@@ -170,21 +170,22 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
     int i, filter = 1;
     int flags = 0;
     int add_area_tag = 0;
+    enum OsmType export_type;
 
     const char *area;
     struct keyval *item;
     struct keyval temp;
     initList(&temp);
 
+    if (type == OSMTYPE_RELATION) {export_type = OSMTYPE_WAY;} else {export_type = type;}
+
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
-    if (type == OSMTYPE_RELATION) {
-        filter = 0;
-    }
     while ((item = popItem(tags)) != NULL ) {
         if (type == OSMTYPE_RELATION && !strcmp("type", item->key)) {
             pushItem(&temp, item);
             item = NULL;
-            break;
+            filter = 0;
+            continue;
         }
         /* Allow named islands to appear as polygons */
         if (!strcmp("natural", item->key)
@@ -200,16 +201,16 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
             continue;
         }
 
-        for (i = 0; i < exportListCount[type]; i++) {
-            if (wildMatch(exportList[type][i].name, item->key)) {
-                if (exportList[type][i].flags & FLAG_DELETE) {
+        for (i = 0; i < exportListCount[export_type]; i++) {
+            if (wildMatch(exportList[export_type][i].name, item->key)) {
+                if (exportList[export_type][i].flags & FLAG_DELETE) {
                     freeItem(item);
                     item = NULL;
                     break;
                 }
 
                 filter = 0;
-                flags |= exportList[type][i].flags;
+                flags |= exportList[export_type][i].flags;
 
                 pushItem(&temp, item);
                 item = NULL;
@@ -218,7 +219,7 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
         }
 
         /** if tag not found in list of exports: */
-        if (i == exportListCount[type]) {
+        if (i == exportListCount[export_type]) {
             if (options->enable_hstore) {
                 /* with hstore, copy all tags... */
                 pushItem(&temp, item);
@@ -347,7 +348,6 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
 
     *roads = lua_tointeger(L, -1);
     lua_pop(L,1);
-    printf("roads: %i\n", *roads);
     *make_polygon = lua_tointeger(L, -1);
     lua_pop(L,1);
     *make_boundary = lua_tointeger(L,-1);
@@ -556,6 +556,12 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
         }
     } else {
         /* Unknown type, just exit */
+        resetList(&tags);
+        resetList(&poly_tags);
+        return 1;
+    }
+
+    if (!listHasData(&tags)) {
         resetList(&tags);
         resetList(&poly_tags);
         return 1;
