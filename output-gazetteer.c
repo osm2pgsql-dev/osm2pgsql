@@ -1221,6 +1221,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    struct keyval * countrycode;
    int wkt_size;
    const char *type;
+   void * geom_ctx;
 
    type = getItem(tags, "type");
    if (!type) {
@@ -1273,10 +1274,10 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = build_geometry(id, xnodes, xcount, 1, 1, 1000000);
+      wkt_size = build_geometry(geom_ctx, id, xnodes, xcount, 1, 1, 1000000);
       for (i=0;i<wkt_size;i++)
       {
-         char *wkt = get_wkt(i);
+         char *wkt = get_wkt(geom_ctx, i);
          if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
@@ -1290,7 +1291,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          }
          free(wkt);
       }
-      clear_wkts();
+      clear_wkts(geom_ctx);
 
       for( i=0; i<count; i++ )
       {

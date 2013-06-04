@@ -10,8 +10,14 @@
 #include "wildcmp.h"
 
 #ifdef HAVE_LUA
-static lua_State *L;
+struct tagtransform_lua_ctx {
+    lua_State *L;
+};
 #endif
+
+struct tagtransform_c_ctx {
+    //empty struct for reference
+};
 
 static struct {
     int offset;
@@ -94,8 +100,10 @@ static int add_z_order(struct keyval *tags, int *roads) {
     return 0;
 }
 
-static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct keyval *tags, int * polygon, int * roads) {
+static unsigned int tagtransform_lua_filter_basic_tags(void * ctx_p, enum OsmType type, struct keyval *tags, int * polygon, int * roads) {
 #ifdef HAVE_LUA
+    struct tagtransform_lua_ctx * ctx = ctx_p;
+    struct lua_State * L = ctx->L;
     int idx = 0;
     int filter;
     int count = 0;
@@ -292,11 +300,12 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
 }
 
 
-static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_tags, int member_count,
+static unsigned int tagtransform_lua_filter_rel_member_tags(void * ctx_p, struct keyval *rel_tags, int member_count,
         struct keyval *member_tags,const char **member_role,
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
 #ifdef HAVE_LUA
-
+    struct tagtransform_lua_ctx * ctx = ctx_p;
+    struct lua_State * L = ctx->L;
     int i;
     int idx = 0;
     int filter;
@@ -655,55 +664,67 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
     return 0;
 }
 
-static int tagtransform_lua_init() {
+static void * tagtransform_lua_init() {
 #ifdef HAVE_LUA
+    lua_State *L;
+    struct tagtransform_lua_ctx * ctx = (struct tagtransform_lua_ctx *)malloc(sizeof(struct tagtransform_lua_ctx));
     L = luaL_newstate();
+    ctx->L = L;
     luaL_openlibs(L);
     luaL_dofile(L, options->tag_transform_script);
 
     lua_getglobal(L, "filter_tags_node");
     if (!lua_isfunction (L, -1)) {
         fprintf(stderr,"Tag transform style does not contain a function filter_tags_node\n");
-        return 1;
+        lua_close(L);
+        free(ctx);
+        return NULL;
     }
     lua_pop(L,1);
 
     lua_getglobal(L, "filter_tags_way");
     if (!lua_isfunction (L, -1)) {
         fprintf(stderr,"Tag transform style does not contain a function filter_tags_way\n");
-        return 1;
+        lua_close(L);
+        free(ctx);
+        return NULL;
     }
     lua_pop(L,1);
 
     lua_getglobal(L, "filter_basic_tags_rel");
     if (!lua_isfunction (L, -1)) {
         fprintf(stderr,"Tag transform style does not contain a function filter_basic_tags_rel\n");
-        return 1;
+        lua_close(L);
+        free(ctx);
+        return NULL;
     }
 
     lua_getglobal(L, "filter_tags_relation_member");
     if (!lua_isfunction (L, -1)) {
         fprintf(stderr,"Tag transform style does not contain a function filter_tags_relation_member\n");
-        return 1;
+        lua_close(L);
+        free(ctx);
+        return NULL;
     }
 
-    return 0;
+    return ctx;
 #else
     fprintf(stderr,"Error: Could not init lua tag transform, as lua support was not compiled into this version\n");
     return 1;
 #endif
 }
 
-void tagtransform_lua_shutdown() {
+void tagtransform_lua_shutdown(void * ctx_p) {
 #ifdef HAVE_LUA
-    lua_close(L);
+    struct tagtransform_lua_ctx * ctx = ctx_p;
+    lua_close(ctx->L);
 #endif
 }
 
-unsigned int tagtransform_filter_node_tags(struct keyval *tags) {
+unsigned int tagtransform_filter_node_tags(void * ctx, struct keyval *tags) {
     int poly, roads;
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
+        return tagtransform_lua_filter_basic_tags(ctx, OSMTYPE_NODE, tags, &poly, &roads);
     } else {
         return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
     }
@@ -712,32 +733,32 @@ unsigned int tagtransform_filter_node_tags(struct keyval *tags) {
 /*
  * This function gets called twice during initial import per way. Once from add_way and once from out_way
  */
-unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon, int * roads) {
+unsigned int tagtransform_filter_way_tags(void * ctx, struct keyval *tags, int * polygon, int * roads) {
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
+        return tagtransform_lua_filter_basic_tags(ctx, OSMTYPE_WAY, tags, polygon, roads);
     } else {
         return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
     }
 }
 
-unsigned int tagtransform_filter_rel_tags(struct keyval *tags) {
+unsigned int tagtransform_filter_rel_tags(void * ctx, struct keyval *tags) {
     int poly, roads;
     if (transform_method) {
-        return tagtransform_lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
+        return tagtransform_lua_filter_basic_tags(ctx, OSMTYPE_RELATION, tags, &poly, &roads);
     } else {
         return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
     }
 }
 
-unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
+unsigned int tagtransform_filter_rel_member_tags(void * ctx, struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
     if (transform_method) {
-        return tagtransform_lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
+        return tagtransform_lua_filter_rel_member_tags(ctx, rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
     } else {
         return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
     }
 }
 
-int tagtransform_init(const struct output_options *opts) {
+void * tagtransform_init(const struct output_options *opts) {
     options = opts;
     if (opts->tag_transform_script) {
         transform_method = 1;
@@ -746,11 +767,13 @@ int tagtransform_init(const struct output_options *opts) {
     } else  {
         transform_method = 0;
         fprintf(stderr, "Using built-in tag processing pipeline\n");
-        return 0; //Nothing to initialise
+        return malloc(sizeof(struct tagtransform_c_ctx)); //Nothing to initialise
     }
 }
 
-void tagtransform_shutdown() {
+void tagtransform_shutdown(void * ctx) {
     if (transform_method)
-        tagtransform_lua_shutdown();
+        tagtransform_lua_shutdown(ctx);
+    else
+        free(ctx);
 }

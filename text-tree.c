@@ -4,13 +4,22 @@
  * used by keyvals.c to store the key/value strings
  */
 #define _GNU_SOURCE
+#include "config.h"
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "text-tree.h"
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
+
 
 struct tree_context *tree_ctx = NULL;
+
+#ifdef HAVE_PTHREAD
+pthread_mutex_t lock_text_tree = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 int text_compare(const void *pa, const void *pb, void *rb_param)
 {
@@ -23,6 +32,9 @@ int text_compare(const void *pa, const void *pb, void *rb_param)
 
 struct tree_context *text_init(void)
 {
+#ifdef HAVE_PTHREAD
+    pthread_mutex_lock(&lock_text_tree);
+#endif
     struct tree_context *context;
     struct rb_table *table = rb_create (text_compare, NULL, NULL);
 
@@ -31,10 +43,14 @@ struct tree_context *text_init(void)
     assert(context);
     context->table = table;
     tree_ctx = context;
+#ifdef HAVE_PTHREAD
+    pthread_mutex_unlock(&lock_text_tree);
+#endif
+
     return context;
 }
 
-void text_free(void *pa, void *rb_param)
+static void text_free(void *pa, void *rb_param)
 {
     struct text_node *a = (struct text_node *)pa;
     rb_param = NULL;
@@ -52,13 +68,22 @@ const char *text_get(struct tree_context *context, const char *text)
     node->str = strdup(text);
     assert(node->str);
     node->ref = 0;
+#ifdef HAVE_PTHREAD
+    pthread_mutex_lock(&lock_text_tree);
+#endif
     dupe = rb_insert(context->table, (void *)node);
     if (dupe) {
         free(node->str);
         free(node);
         dupe->ref++;
+#ifdef HAVE_PTHREAD
+        pthread_mutex_unlock(&lock_text_tree);
+#endif
         return dupe->str;
     } else {
+#ifdef HAVE_PTHREAD
+        pthread_mutex_unlock(&lock_text_tree);
+#endif
         node->ref++;
         return node->str;
     }
@@ -71,6 +96,9 @@ void text_release(struct tree_context *context, const char *text)
 
     find.str = (char *)text;
     find.ref = 0;
+#ifdef HAVE_PTHREAD
+    pthread_mutex_lock(&lock_text_tree);
+#endif
     node = rb_find(context->table, (void *)&find);
     if (!node) {
         fprintf(stderr, "failed to find '%s'\n", text);
@@ -82,14 +110,23 @@ void text_release(struct tree_context *context, const char *text)
         free(node->str);
         free(node);
     }
+#ifdef HAVE_PTHREAD
+    pthread_mutex_unlock(&lock_text_tree);
+#endif
 }
 
 void text_exit(void)
 {
     struct tree_context *context = tree_ctx;
+#ifdef HAVE_PTHREAD
+    pthread_mutex_lock(&lock_text_tree);
+#endif
     rb_destroy(context->table, text_free);
     free(context);
     tree_ctx = NULL;
+#ifdef HAVE_PTHREAD
+    pthread_mutex_unlock(&lock_text_tree);
+#endif
 }
 #if 0
 int main(int argc, char **argv)

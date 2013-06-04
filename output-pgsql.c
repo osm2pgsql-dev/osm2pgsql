@@ -59,13 +59,13 @@ static struct s_table {
     unsigned int buflen;
     int copyMode;
     char *columns;
-} tables [] = {
+} global_tables [] = {
     { .name = "%s_point",   .type = "POINT"     },
     { .name = "%s_line",    .type = "LINESTRING"},
     { .name = "%s_polygon", .type = "GEOMETRY"  }, /* Actually POLGYON & MULTIPOLYGON but no way to limit to just these two */
     { .name = "%s_roads",   .type = "LINESTRING"}
 };
-#define NUM_TABLES ((signed)(sizeof(tables) / sizeof(tables[0])))
+#define NUM_TABLES ((signed)(sizeof(global_tables) / sizeof(global_tables[0])))
 
 
 static struct flagsname {
@@ -85,9 +85,56 @@ static struct flagsname {
 struct taginfo *exportList[4]; /* Indexed by enum table_id */
 int exportListCount[4];
 
-static int pgsql_delete_way_from_output(osmid_t osm_id);
+static void * geom_ctx = NULL;
+static struct relation_info * rels_buffer[32];
+static struct way_info * ways_buffer[32];
+static rels_buffer_pfree = 0;
+static rels_buffer_pfirst = 0;
+static ways_buffer_pfree = 0;
+static ways_buffer_pfirst = 0;
+
+static workers_finish = 0;
+
+struct thread_ctx {
+    void * geom_ctx;
+    void * tagtransform_ctx;
+    struct s_table * tables;
+};
+
+static struct thread_ctx global_ctx;
+
+#ifdef HAVE_PTHREAD
+/**
+ * Data structure to pass work from the main thread to the worker threads. This
+ * allows to de-synchronize the threads with the main thread feeding work into the
+ * pipe and the worker threads then taking out one element at a time and processing it.
+ * It is a circular buffer storing up to 64 entries for each way and relation
+ */
+#define WORKER_THREAD_QUEUE_SIZE 64
+static struct relation_info * rels_buffer[WORKER_THREAD_QUEUE_SIZE];
+static struct way_info * ways_buffer[WORKER_THREAD_QUEUE_SIZE];
+static rels_buffer_pfree = 0; //Pointer to the first free slot in the buffer
+static rels_buffer_pfirst = 0;//Pointer to the first full slot in the buffer
+static ways_buffer_pfree = 0; //Pointer to the first free slot in the buffer
+static ways_buffer_pfirst = 0;//Pointer to the first full slot in the buffer
+
+
+static pthread_t * worker_threads = NULL;
+pthread_mutex_t lock_worker_queue = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_worker_queue_work_available;
+pthread_cond_t cond_worker_queue_space_available;
+
+//pthread_mutex_t lock_middle_processing = PTHREAD_MUTEX_INITIALIZER;
+
+static volatile workers_finish = 0;
+#endif
+
+static int pgsql_delete_way_from_output(osmid_t osm_id, struct s_table * tables);
 static int pgsql_delete_relation_from_output(osmid_t osm_id);
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
+static int pgsql_out_connect2(const struct output_options *options, struct s_table * tables, int startTransaction);
+static void pgsql_out_close2(int stopTransaction, struct s_table * tables);
+static void pgsql_pause_copy(struct s_table *table);
 
 void read_style_file( const char *filename )
 {
@@ -227,29 +274,29 @@ static void free_style(void)
  * with most empty and one byte delimiters, without this optimisation we
  * transfer three times the amount of data necessary.
  */
-void copy_to_table(enum table_id table, const char *sql)
+static void copy_to_table(struct s_table * table, const char *sql)
 {
-    PGconn *sql_conn = tables[table].sql_conn;
+    PGconn *sql_conn = table->sql_conn;
     unsigned int len = strlen(sql);
-    unsigned int buflen = tables[table].buflen;
-    char *buffer = tables[table].buffer;
+    unsigned int buflen = table->buflen;
+    char *buffer = table->buffer;
 
     /* Return to copy mode if we dropped out */
-    if( !tables[table].copyMode )
+    if( !table->copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[table].name, tables[table].columns);
-        tables[table].copyMode = 1;
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", table->name, table->columns);
+        table->copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
-    if( (unsigned)(buflen + len) > sizeof( tables[table].buffer )-10 )
+    if( (unsigned)(buflen + len) > sizeof( table->buffer )-10 )
     {
-      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(table->name, sql_conn, buffer);
       buflen = 0;
 
       /* If new data by itself is also too big, output it immediately */
-      if( (unsigned)len > sizeof( tables[table].buffer )-10 )
+      if( (unsigned)len > sizeof( table->buffer )-10 )
       {
-        pgsql_CopyData(tables[table].name, sql_conn, sql);
+        pgsql_CopyData(table->name, sql_conn, sql);
         len = 0;
       }
     }
@@ -264,17 +311,17 @@ void copy_to_table(enum table_id table, const char *sql)
     /* If we have completed a line, output it */
     if( buflen > 0 && buffer[buflen-1] == '\n' )
     {
-      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(table->name, sql_conn, buffer);
       buflen = 0;
     }
 
-    tables[table].buflen = buflen;
+    table->buflen = buflen;
 }
 
 
 
 
-static void pgsql_out_cleanup(void)
+static void pgsql_out_cleanup(struct s_table * tables)
 {
     int i;
 
@@ -346,19 +393,18 @@ static void escape_type(char *sql, int len, const char *value, const char *type)
   }
 }
 
-static void write_hstore(enum table_id table, struct keyval *tags)
+static void write_hstore(struct s_table * table, struct keyval *tags)
 {
-    static char *sql;
-    static size_t sqllen=0;
+    char *sql;
+    size_t sqllen=0;
     size_t hlen;
     /* a clone of the tags pointer */
     struct keyval *xtags = tags;
         
     /* sql buffer */
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=malloc(sqllen);
-    }
+    sqllen=2048;
+    sql=malloc(sqllen);
+
     
     /* while this tags has a follow-up.. */
     while (xtags->next->key != NULL)
@@ -403,15 +449,15 @@ static void write_hstore(enum table_id table, struct keyval *tags)
     
     /* finish the hstore column by placing a TAB into the data stream */
     copy_to_table(table, "\t");
-    
+    free(sql);
     /* the main hstore-column has now been written */
 }
 
 /* write an hstore column to the database */
-static void write_hstore_columns(enum table_id table, struct keyval *tags)
+static void write_hstore_columns(struct s_table * table, struct keyval *tags)
 {
-    static char *sql;
-    static size_t sqllen=0;
+    char *sql;
+    int sqllen=0;
     char *shortkey;
     /* the index of the current hstore column */
     int i_hstore_column;
@@ -421,10 +467,8 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
     size_t hlen;
     
     /* sql buffer */
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=malloc(sqllen);
-    }
+    sqllen=2048;
+    sql=malloc(sqllen);
     
     /* iterate over all configured hstore colums in the options */
     for(i_hstore_column = 0; i_hstore_column < Options->n_hstore_columns; i_hstore_column++)
@@ -486,6 +530,8 @@ static void write_hstore_columns(enum table_id table, struct keyval *tags)
         copy_to_table(table, "\t");
     }
     
+    free(sql);
+
     /* all hstore-columns have now been written */
 }
 
@@ -506,7 +552,7 @@ Workaround - output SRID=4326;<WKB>
 static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
 {
 
-    int filter = tagtransform_filter_node_tags(tags);
+    int filter = tagtransform_filter_node_tags(global_ctx.tagtransform_ctx, tags);
     static char *sql;
     static size_t sqllen=0;
     int i;
@@ -521,7 +567,7 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
 
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
     sprintf(sql, "%" PRIdOSMID "\t", id);
-    copy_to_table(t_point, sql);
+    copy_to_table(&(global_tables[t_point]), sql);
 
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
@@ -538,8 +584,8 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
         else
             sprintf(sql, "\\N");
 
-        copy_to_table(t_point, sql);
-        copy_to_table(t_point, "\t");
+        copy_to_table(&(global_tables[t_point]), sql);
+        copy_to_table(&(global_tables[t_point]), "\t");
     }
     
     /* hstore columns */
@@ -547,7 +593,7 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
     
     /* check if a regular hstore is requested */
     if (Options->enable_hstore)
-        write_hstore(t_point, tags);
+        write_hstore(&(global_tables[t_point]), tags);
     
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
@@ -557,26 +603,24 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
 #endif
 
     sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
-    copy_to_table(t_point, sql);
-    copy_to_table(t_point, "\n");
+    copy_to_table(&(global_tables[t_point]), sql);
+    copy_to_table(&(global_tables[t_point]), "\n");
 
     return 0;
 }
 
 
 
-static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table)
+static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, struct s_table * table)
 {
   
-    static char *sql;
-    static size_t sqllen=0;
+    char *sql;
+    size_t sqllen=0;
     int j;
     struct keyval *tag;
 
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=malloc(sqllen);
-    }
+    sqllen=2048;
+    sql=malloc(sqllen);
     
     sprintf(sql, "%" PRIdOSMID "\t", id);
     copy_to_table(table, sql);
@@ -611,6 +655,7 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
     copy_to_table(table, sql);
     copy_to_table(table, wkt);
     copy_to_table(table, "\n");
+    free(sql);
 }
 
 /*static int tag_indicates_polygon(enum OsmType type, const char *key)
@@ -638,126 +683,168 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
-{
+static int pgsql_out_way_single(struct way_info * way, struct thread_ctx * ctx) {
     int polygon = 0, roads = 0;
     int i, wkt_size;
     double split_at;
     double area;
 
     /* If the flag says this object may exist already, delete it first */
-    if(exists) {
-        pgsql_delete_way_from_output(id);
-        Options->mid->way_changed(id);
+    if (way->exists) {
+        pgsql_delete_way_from_output(way->id, ctx->tables);
+        //TODO: This needs to be done thread-safe
+        Options->mid->way_changed(way->id);
     }
 
-    if (tagtransform_filter_way_tags(tags, &polygon, &roads))
+    if (tagtransform_filter_way_tags(ctx->tagtransform_ctx, way->tags, &polygon, &roads)) {
+        resetList(way->tags);
+        free(way->tags);
+        free(way->nodes);
+        free(way);
         return 0;
+    }
     /* Split long ways after around 1 degree or 100km */
     if (Options->projection == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;
 
-    wkt_size = get_wkt_split(nodes, count, polygon, split_at);
+    wkt_size = get_wkt_split(ctx->geom_ctx, way->nodes, way->node_count, polygon,
+            split_at);
 
-    for (i=0;i<wkt_size;i++)
-    {
-        char *wkt = get_wkt(i);
+    for (i = 0; i < wkt_size; i++) {
+        char *wkt = get_wkt(ctx->geom_ctx, i);
 
         if (wkt && strlen(wkt)) {
             /* FIXME: there should be a better way to detect polygons */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                expire_tiles_from_nodes_poly(nodes, count, id);
-                area = get_area(i);
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))
+                    || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
+                expire_tiles_from_nodes_poly(way->nodes, way->node_count,
+                        way->id);
+                area = get_area(ctx->geom_ctx, i);
                 if ((area > 0.0) && enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
-                    addItem(tags, "way_area", tmp, 0);
+                    addItem(way->tags, "way_area", tmp, 0);
                 }
-                write_wkts(id, tags, wkt, t_poly);
+                write_wkts(way->id, way->tags, wkt, &(ctx->tables[t_poly]));
             } else {
-                expire_tiles_from_nodes_line(nodes, count);
-                write_wkts(id, tags, wkt, t_line);
+                expire_tiles_from_nodes_line(way->nodes, way->node_count);
+                write_wkts(way->id, way->tags, wkt, &(ctx->tables[t_line]));
                 if (roads)
-                    write_wkts(id, tags, wkt, t_roads);
+                    write_wkts(way->id, way->tags, wkt, &(ctx->tables[t_roads]));
             }
         }
         free(wkt);
     }
-    clear_wkts();
-	
+    clear_wkts(ctx->geom_ctx);
+
+    resetList(way->tags);
+    free(way->tags);
+    free(way->nodes);
+    free(way);
+
     return 0;
 }
 
-static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
-{
-    int i, wkt_size;
-    int roads = 0;
+
+static void free_rel_struct(struct relation_info * rel) {
+    int i;
+    for( i =0; i<rel->member_count; i++ ) {
+        resetList( &(rel->member_tags[i]) );
+        free( rel->member_way_nodes[i] );
+        free( rel->member_roles[i]);
+    }
+
+    free(rel->member_ids);
+    free(rel->member_tags);
+    free(rel->member_way_node_count);
+    free(rel->member_way_nodes);
+    free(rel->member_roles);
+    resetList(rel->tags);
+    free(rel->tags);
+    free(rel);
+}
+
+
+
+static int pgsql_out_relation_single(struct relation_info * rel, struct thread_ctx * ctx) {
+    int * members_superseeded;
     int make_polygon = 0;
     int make_boundary = 0;
-    int * members_superseeded;
+    int polygon = 0, roads = 0;
+    char *type;
     double split_at;
+    int i, wkt_size;
 
-    members_superseeded = calloc(sizeof(int), member_count);
+    members_superseeded = calloc(sizeof(int), rel->member_count);
 
-    if (member_count == 0) {
+    if (rel->member_count == 0) {
         free(members_superseeded);
+        free_rel_struct(rel);
         return 0;
     }
 
-    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads)) {
+    if (tagtransform_filter_rel_member_tags(ctx->tagtransform_ctx, rel->tags, rel->member_count,
+            rel->member_tags, rel->member_roles, members_superseeded,
+            &make_boundary, &make_polygon, &roads)) {
         free(members_superseeded);
+        free_rel_struct(rel);
         return 0;
     }
-    
+
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
     if (Options->projection == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;
 
-    wkt_size = build_geometry(id, xnodes, xcount, make_polygon, Options->enable_multi, split_at);
+    wkt_size = build_geometry(ctx->geom_ctx, rel->id, rel->member_way_nodes,
+            rel->member_way_node_count, make_polygon, Options->enable_multi,
+            split_at);
 
     if (!wkt_size) {
         free(members_superseeded);
+        free_rel_struct(rel);
         return 0;
     }
 
-    for (i=0;i<wkt_size;i++) {
-        char *wkt = get_wkt(i);
+    for (i = 0; i < wkt_size; i++) {
+        char *wkt = get_wkt(ctx->geom_ctx, i);
 
         if (wkt && strlen(wkt)) {
-            expire_tiles_from_wkt(wkt, -id);
+            expire_tiles_from_wkt(wkt, -rel->id);
             /* FIXME: there should be a better way to detect polygons */
-            if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                double area = get_area(i);
+            if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))
+                    || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
+                double area = get_area(ctx->geom_ctx, i);
                 if ((area > 0.0) && enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
-                    addItem(rel_tags, "way_area", tmp, 0);
+                    addItem(rel->tags, "way_area", tmp, 0);
                 }
-                write_wkts(-id, rel_tags, wkt, t_poly);
+                write_wkts(-rel->id, rel->tags, wkt, &(ctx->tables[t_poly]));
             } else {
-                write_wkts(-id, rel_tags, wkt, t_line);
+                write_wkts(-rel->id, rel->tags, wkt, &(ctx->tables[t_line]));
                 if (roads)
-                    write_wkts(-id, rel_tags, wkt, t_roads);
+                    write_wkts(-rel->id, rel->tags, wkt, &(ctx->tables[t_roads]));
             }
         }
         free(wkt);
     }
 
-    clear_wkts();
+    clear_wkts(ctx->geom_ctx);
 
     /* Tagtransform will have marked those member ways of the relation that
      * have fully been dealt with as part of the multi-polygon entry.
      * Set them in the database as done and delete their entry to not
      * have duplicates */
     if (make_polygon) {
-        for (i=0; xcount[i]; i++) {
+        for (i = 0; rel->member_way_node_count[i]; i++) {
             if (members_superseeded[i]) {
-                Options->mid->ways_done(xid[i]);
-                pgsql_delete_way_from_output(xid[i]);
+                //TODO: Need to find a thread-safe way to do the done marking
+                Options->mid->ways_done(rel->member_ids[i]);
+                pgsql_delete_way_from_output(rel->member_ids[i], ctx->tables);
             }
         }
     }
@@ -765,35 +852,193 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_co
     free(members_superseeded);
 
     /* If we are making a boundary then also try adding any relations which form complete rings
-       The linear variants will have already been processed above */
+     The linear variants will have already been processed above */
     if (make_boundary) {
-        wkt_size = build_geometry(id, xnodes, xcount, 1, Options->enable_multi, split_at);
-        for (i=0;i<wkt_size;i++)
-        {
-            char *wkt = get_wkt(i);
+        wkt_size = build_geometry(ctx->geom_ctx, rel->id, rel->member_way_nodes,
+                rel->member_way_node_count, 1, Options->enable_multi, split_at);
+        for (i = 0; i < wkt_size; i++) {
+            char *wkt = get_wkt(ctx->geom_ctx, i);
 
             if (strlen(wkt)) {
-                expire_tiles_from_wkt(wkt, -id);
+                expire_tiles_from_wkt(wkt, -rel->id);
                 /* FIXME: there should be a better way to detect polygons */
-                if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                    double area = get_area(i);
+                if (!strncmp(wkt, "POLYGON", strlen("POLYGON"))
+                        || !strncmp(wkt, "MULTIPOLYGON",
+                                strlen("MULTIPOLYGON"))) {
+                    double area = get_area(ctx->geom_ctx, i);
                     if ((area > 0.0) && enable_way_area) {
                         char tmp[32];
                         snprintf(tmp, sizeof(tmp), "%g", area);
-                        addItem(rel_tags, "way_area", tmp, 0);
+                        addItem(rel->tags, "way_area", tmp, 0);
                     }
-                    write_wkts(-id, rel_tags, wkt, t_poly);
+                    write_wkts(-rel->id, rel->tags, wkt, &ctx->tables[t_poly]);
                 }
             }
             free(wkt);
         }
-        clear_wkts();
+        clear_wkts(ctx->geom_ctx);
     }
 
-    return 0;
+    free_rel_struct(rel);
+
+    return 1;
 }
 
-static int pgsql_out_connect(const struct output_options *options, int startTransaction) {
+/**
+ * This is the thread function for the worker threads. It takes an element from the work queue and passes it on to the
+ * actual processing function.
+ */
+#ifdef HAVE_PTHREAD
+static void * pgsql_out_worker_thread(void * pointer) {
+    struct relation_info * rel;
+    struct way_info * way;
+    struct thread_ctx ctx;
+
+
+    /*
+     * We need a new set of connections to postgresql in this thread
+     */
+    ctx.tables = malloc(sizeof(global_tables));
+    memcpy(ctx.tables, global_tables, sizeof(global_tables));
+    pgsql_out_connect2(Options, ctx.tables, 0);
+
+    ctx.geom_ctx = init_geometry_ctx(); //create a new geometry ctx for this thread
+    ctx.tagtransform_ctx = tagtransform_init(Options);
+
+    while ((workers_finish == 0) || (ways_buffer_pfirst != ways_buffer_pfree) || (rels_buffer_pfirst != rels_buffer_pfree)) {
+        pthread_mutex_lock(&lock_worker_queue);
+        while ((ways_buffer_pfirst == ways_buffer_pfree) && (rels_buffer_pfirst == rels_buffer_pfree)) {
+            pthread_cond_wait(&cond_worker_queue_work_available, &lock_worker_queue);
+            if (workers_finish) { //We are done and trying to exit.
+                pthread_mutex_unlock(&lock_worker_queue);
+                break;
+            }
+        }
+        //If we exited the while loop without there actually being work, then presumably we are done and want to exit the thread.
+        if ((ways_buffer_pfirst == ways_buffer_pfree) && (rels_buffer_pfirst == rels_buffer_pfree)) continue;
+
+        way = NULL;
+        rel = NULL;
+        if (ways_buffer_pfirst != ways_buffer_pfree) { //We have an element in the way queue, process it.
+            way = ways_buffer[ways_buffer_pfirst];
+            ways_buffer_pfirst++;
+            if (ways_buffer_pfirst > (WORKER_THREAD_QUEUE_SIZE - 1)) ways_buffer_pfirst = 0; // circular buffer wrap around
+        } else {
+            rel = rels_buffer[rels_buffer_pfirst];
+            rels_buffer_pfirst++;
+            if (rels_buffer_pfirst > (WORKER_THREAD_QUEUE_SIZE - 1)) rels_buffer_pfirst = 0; // circular buffer wrap around
+        }
+        pthread_mutex_unlock(&lock_worker_queue);
+        pthread_cond_signal(&cond_worker_queue_space_available);
+        if (way) pgsql_out_way_single(way, &ctx);
+        if (rel) pgsql_out_relation_single(rel, &ctx);
+
+    }
+    //We are done, closing worker thread.
+    pgsql_out_close2(0, ctx.tables);
+    free(ctx.tables);
+    close_geometry_ctx(ctx.geom_ctx);
+    tagtransform_shutdown(ctx.tagtransform_ctx);
+    return NULL;
+}
+#endif //HAVE_PTHREAD
+
+static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
+    int i;
+    struct way_info * way;
+    //Create a worker package to put in the queue.
+    way = (struct way_info *)malloc(sizeof(struct way_info));
+    way->id = id;
+    /* We need to duplicate the tags structure here, as the calling function of pgsql_out_way
+     * currently assumes it can free the tags. However, they can only be freed once the worker
+     * threads have actually finished the processing after which they will free the tags structure
+     * of the work package.
+     */
+    way->tags = malloc(sizeof(struct keyval));
+    initList(way->tags);
+    cloneList(way->tags, tags);
+    way->nodes = nodes;
+    way->node_count = count;
+    way->exists = exists;
+
+#if HAVE_PTHREAD
+    /* Once the worker threads have been shutdown, we don't want to use them anymore.
+     * For example because we are now in the multi-processing stage of "going over pending ways".
+     */
+    if (workers_finish == 0) {
+        /* If the worker threads have not yet been started and initialize, do it now */
+        if (!worker_threads) {
+            pgsql_pause_copy(&global_tables[t_point]);
+            pgsql_pause_copy(&global_tables[t_line]);
+            pgsql_pause_copy(&global_tables[t_roads]);
+            pgsql_pause_copy(&global_tables[t_poly]);
+            worker_threads = malloc(Options->num_procs * sizeof(pthread_t));
+            for (i = 0; i < Options->num_procs; i++) {
+                int ret = pthread_create(&(worker_threads[i]), NULL,
+                        &pgsql_out_worker_thread, NULL );
+                if (ret) {
+                    fprintf(stderr, "pthread_create() returned an error (%d)",
+                            ret);
+                    exit_nicely();
+                }
+            }
+        }
+
+        pthread_mutex_lock(&lock_worker_queue);
+        while ((ways_buffer_pfree + 1) % WORKER_THREAD_QUEUE_SIZE == ways_buffer_pfirst) {
+            //Queue is full, wait until the worker threads have processed some of it
+            //and there is space in the queue again.
+            pthread_cond_wait(&cond_worker_queue_space_available, &lock_worker_queue);
+        }
+
+        ways_buffer[ways_buffer_pfree] = way;
+        ways_buffer_pfree++;
+        if (ways_buffer_pfree > (WORKER_THREAD_QUEUE_SIZE - 1))
+            ways_buffer_pfree = 0;
+        pthread_mutex_unlock(&lock_worker_queue);
+        pthread_cond_signal(&cond_worker_queue_work_available);
+        return 0;
+    } else {
+#endif //HAVE_PTHREAD
+        /* The external callers of pgsql_out_way assume they can free the nodes
+         * array. However due to the asynchronisity of the worker thread model,
+         * the pgsql_out_way_single function frees the nodes array. Due to the
+         * mismatch in the API, duplicate the nodes array, that both caller and
+         * pgsql_out_way_single can free the array.
+         * TODO: Find a better way, by fixing upstream of pgsql_out_way()
+         */
+
+        way->nodes = malloc(sizeof(struct osmNode) * count);
+        memcpy(way->nodes, nodes, sizeof(struct osmNode) * count);
+        return pgsql_out_way_single(way, &global_ctx);
+#ifdef HAVE_PTHREAD
+    }
+#endif //HAVE_PTHREAD
+}
+
+
+static int pgsql_out_relation(struct relation_info * rel) {
+    int i;
+
+#ifdef HAVE_PTHREAD
+    if (workers_finish == 0) {
+        pthread_mutex_lock(&lock_worker_queue);
+        while ((rels_buffer_pfree + 1) % WORKER_THREAD_QUEUE_SIZE == rels_buffer_pfirst ) {
+            pthread_cond_wait(&cond_worker_queue_space_available, &lock_worker_queue);
+        }
+
+        rels_buffer[rels_buffer_pfree] = rel;
+        rels_buffer_pfree++;
+        if (rels_buffer_pfree > (WORKER_THREAD_QUEUE_SIZE - 1)) rels_buffer_pfree = 0;
+        pthread_mutex_unlock(&lock_worker_queue);
+        pthread_cond_signal(&cond_worker_queue_work_available);
+        return 0;
+    } else
+#endif
+    return pgsql_out_relation_single(rel, &global_ctx);
+}
+
+static int pgsql_out_connect2(const struct output_options *options, struct s_table * tables, int startTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
@@ -809,8 +1054,13 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+        tables[i].copyMode = 0;
     }
     return 0;
+}
+
+static int pgsql_out_connect(const struct output_options *options, int startTransaction) {
+    return pgsql_out_connect2(options, global_tables, startTransaction);
 }
 
 static int pgsql_out_start(const struct output_options *options)
@@ -838,11 +1088,11 @@ static int pgsql_out_start(const struct output_options *options)
 
         /* Substitute prefix into name of table */
         {
-            char *temp = malloc( strlen(options->prefix) + strlen(tables[i].name) + 1 );
-            sprintf( temp, tables[i].name, options->prefix );
-            tables[i].name = temp;
+            char *temp = malloc( strlen(options->prefix) + strlen(global_tables[i].name) + 1 );
+            sprintf( temp, global_tables[i].name, options->prefix );
+            global_tables[i].name = temp;
         }
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        fprintf(stderr, "Setting up table: %s\n", global_tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -850,40 +1100,40 @@ static int pgsql_out_start(const struct output_options *options)
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             exit_nicely();
         }
-        tables[i].sql_conn = sql_conn;
+        global_tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         if (!options->append) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", global_tables[i].name);
         }
         else
         {
-            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", tables[i].name);
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", global_tables[i].name);
             res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
-                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", tables[i].name);
+                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", global_tables[i].name);
                 exit_nicely();
             }
             their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
-                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", tables[i].name, their_srid, SRID);
+                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", global_tables[i].name, their_srid, SRID);
                 exit_nicely();
             }
         }
 
         /* These _tmp tables can be left behind if we run out of disk space */
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", global_tables[i].name);
 
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+        //pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
         type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
         numTags = exportListCount[type];
         exportTags = exportList[type];
         if (!options->append) {
-            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, tables[i].name );
+            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, global_tables[i].name );
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
@@ -914,11 +1164,11 @@ static int pgsql_out_start(const struct output_options *options)
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
-                        tables[i].name, SRID, tables[i].type );
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
+                        global_tables[i].name, SRID, global_tables[i].type );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", global_tables[i].name);
             /* slim mode needs this to be able to apply diffs */
             if (Options->slim && !Options->droptemp) {
-                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  tables[i].name, tables[i].name);
+                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  global_tables[i].name, global_tables[i].name);
                 if (Options->tblsmain_index) {
                     sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
                 }
@@ -927,10 +1177,10 @@ static int pgsql_out_start(const struct output_options *options)
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
-            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", tables[i].name);
+            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", global_tables[i].name);
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "Error, failed to query table %s\n%s\n", tables[i].name, sql);
+                fprintf(stderr, "Error, failed to query table %s\n%s\n", global_tables[i].name, sql);
                 exit_nicely();
             }
             for (j=0; j < numTags; j++) {
@@ -944,8 +1194,8 @@ static int pgsql_out_start(const struct output_options *options)
                     fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, tables[i].name);
                     exit_nicely();
 #else
-                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, tables[i].name);
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", tables[i].name, exportTags[j].name, exportTags[j].type);
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, global_tables[i].name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", global_tables[i].name, exportTags[j].name, exportTags[j].type);
 #endif
                 }
                 /* Note: we do not verify the type or delete unused columns */
@@ -955,7 +1205,7 @@ static int pgsql_out_start(const struct output_options *options)
 
             /* change the type of the geometry column if needed - this can only change to a more permisive type */
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", global_tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -983,14 +1233,18 @@ static int pgsql_out_start(const struct output_options *options)
     
 	if (Options->enable_hstore) strcat(sql,",tags");
 
-	tables[i].columns = strdup(sql);
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[i].name, tables[i].columns);
+	global_tables[i].columns = strdup(sql);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", global_tables[i].name, global_tables[i].columns);
 
-        tables[i].copyMode = 1;
+        global_tables[i].copyMode = 1;
     }
     free(sql);
 
-    if (tagtransform_init(options)) {
+    global_ctx.tables = global_tables;
+    global_ctx.geom_ctx = init_geometry_ctx();
+    global_ctx.tagtransform_ctx = tagtransform_init(options);
+
+    if (!global_ctx.tagtransform_ctx) {
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         exit_nicely();
     }
@@ -1026,7 +1280,7 @@ static void pgsql_pause_copy(struct s_table *table)
     table->copyMode = 0;
 }
 
-static void pgsql_out_close(int stopTransaction) {
+static void pgsql_out_close2(int stopTransaction, struct s_table * tables) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         pgsql_pause_copy(&tables[i]);
@@ -1038,13 +1292,17 @@ static void pgsql_out_close(int stopTransaction) {
     }
 }
 
+static void pgsql_out_close(int stopTransaction) {
+    pgsql_out_close2(stopTransaction, global_tables);
+}
+
 static void pgsql_out_commit(void) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
-        pgsql_pause_copy(&tables[i]);
+        pgsql_pause_copy(&global_tables[i]);
         /* Commit transaction */
-        fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
-        pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        fprintf(stderr, "Committing transaction for %s\n", global_tables[i].name);
+        pgsql_exec(global_tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
     }
 }
 
@@ -1167,20 +1425,36 @@ static void pgsql_out_stop()
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
      */
-    pgsql_out_commit();
+    //pgsql_out_commit();
+
+#ifdef HAVE_PTHREAD
+    workers_finish = 1;
+    pthread_cond_broadcast(&cond_worker_queue_work_available);
+    for (i=0; i<Options->num_procs; i++) {
+        int ret = pthread_join(worker_threads[i], NULL);
+        if (ret) {
+            fprintf(stderr, "pthread_join() returned an error (%d)", ret);
+            exit_nicely();
+        }
+    }
+    free(worker_threads);
+    worker_threads = NULL;
+#endif
+
+
     Options->mid->commit();
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
      * independent transactions
      */
-    for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+    /*for (i=0; i<NUM_TABLES; i++) {
+        PGconn *sql_conn = global_tables[i].sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
-    }
-    /* Processing any remaing to be processed ways */
+    }*/
+    /* Processing any remaining to be processed ways */
     Options->mid->iterate_ways( pgsql_out_way );
-    pgsql_out_commit();
+    //pgsql_out_commit();
     Options->mid->commit();
 
     /* Processing any remaing to be processed relations */
@@ -1190,12 +1464,14 @@ static void pgsql_out_stop()
      */    
     Options->mid->iterate_relations( pgsql_process_relation );
 
-    tagtransform_shutdown();
+    tagtransform_shutdown(global_ctx.tagtransform_ctx);
+    close_geometry_ctx(global_ctx.geom_ctx);
+    global_ctx.geom_ctx = NULL;
 
 #ifdef HAVE_PTHREAD
     if (Options->parallel_indexing) {
       for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_create(&threads[i], NULL, pgsql_out_stop_one, &tables[i]);
+          int ret = pthread_create(&threads[i], NULL, pgsql_out_stop_one, &global_tables[i]);
           if (ret) {
               fprintf(stderr, "pthread_create() returned an error (%d)", ret);
               exit_nicely();
@@ -1218,14 +1494,14 @@ static void pgsql_out_stop()
     /* No longer need to access middle layer -- release memory */
     Options->mid->stop();
     for (i=0; i<NUM_TABLES; i++)
-        pgsql_out_stop_one(&tables[i]);
+        pgsql_out_stop_one(&global_tables[i]);
 
 #ifdef HAVE_PTHREAD
     }
 #endif
 
 
-    pgsql_out_cleanup();
+    pgsql_out_cleanup(global_tables);
     free_style();
 
     expire_tiles_stop();
@@ -1246,7 +1522,7 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
 
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = tagtransform_filter_way_tags(tags, &polygon, &roads);
+  int filter = tagtransform_filter_way_tags(global_ctx.tagtransform_ctx, tags, &polygon, &roads);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -1258,7 +1534,7 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
     struct osmNode *nodes = malloc( sizeof(struct osmNode) * nd_count );
     int count = Options->mid->nodes_get_list( nodes, nds, nd_count );
     pgsql_out_way(id, tags, nodes, count, 0);
-    free(nodes);
+
   }
   return 0;
 }
@@ -1266,24 +1542,31 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
-    int i, j, count, count2;
+    struct relation_info * rel = malloc(sizeof(struct relation_info));
+    int i, j, count;
   osmid_t *xid2 = malloc( (member_count+1) * sizeof(osmid_t) );
-  osmid_t *xid;
-  const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
-  int *xcount = malloc( (member_count+1) * sizeof(int) );
-  struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
-  struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+  //osmid_t *xid;
+ //const char **xrole = malloc( (member_count+1) * sizeof(const char *) );
+  //int *xcount = malloc( (member_count+1) * sizeof(int) );
+  //struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
+  //struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
+  int filter;
+
+  rel->id = id;
+  rel->tags = malloc(sizeof(struct keyval));
+  initList(rel->tags);
+  cloneList(rel->tags, tags);
+  rel->member_roles = malloc( (member_count+1) * sizeof(const char *) );
+  rel->member_way_node_count = malloc( (member_count+1) * sizeof(int) );
+  rel->member_tags = malloc( (member_count+1) * sizeof(struct keyval) );
+  rel->member_way_nodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
 
   /* If the flag says this object may exist already, delete it first */
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  if (tagtransform_filter_rel_tags(tags)) {
-      free(xid2);
-      free(xrole);
-      free(xcount);
-      free(xtags);
-      free(xnodes);
+  if (tagtransform_filter_rel_tags(global_ctx.tagtransform_ctx, rel->tags)) {
+      free_rel_struct(rel);
       return 1;
   }
 
@@ -1298,34 +1581,23 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
     count++;
   }
 
-  count2 = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+  rel->member_count = Options->mid->ways_get_list(xid2, count, &rel->member_ids, rel->member_tags, rel->member_way_nodes, rel->member_way_node_count);
 
-  for (i = 0; i < count2; i++) {
+  for (i = 0; i < rel->member_count; i++) {
       for (j = i; j < member_count; j++) {
-          if (members[j].id == xid[i]) break;
+          if (members[j].id == rel->member_ids[i]) break;
       }
-      xrole[i] = members[j].role;
+      rel->member_roles[i] = strdup(members[j].role);
   }
-  xnodes[count2] = NULL;
-  xcount[count2] = 0;
-  xid[count2] = 0;
-  xrole[count2] = NULL;
+  rel->member_way_nodes[rel->member_count] = NULL;
+  rel->member_way_node_count[rel->member_count] = 0;
+  rel->member_ids[rel->member_count] = 0;
+  rel->member_roles[rel->member_count] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole);
-
-  for( i=0; i<count2; i++ )
-  {
-    resetList( &(xtags[i]) );
-    free( xnodes[i] );
-  }
+  pgsql_out_relation(rel);
 
   free(xid2);
-  free(xid);
-  free(xrole);
-  free(xcount);
-  free(xtags);
-  free(xnodes);
   return 0;
 }
 
@@ -1360,16 +1632,16 @@ static int pgsql_delete_node(osmid_t osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_pause_copy(&tables[t_point]);
-    if ( expire_tiles_from_db(tables[t_point].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
+    pgsql_pause_copy(&global_tables[t_point]);
+    if ( expire_tiles_from_db(global_tables[t_point].sql_conn, osm_id) != 0)
+        pgsql_exec(global_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, global_tables[t_point].name, osm_id );
     
     Options->mid->nodes_delete(osm_id);
     return 0;
 }
 
 /* Seperated out because we use it elsewhere */
-static int pgsql_delete_way_from_output(osmid_t osm_id)
+static int pgsql_delete_way_from_output(osmid_t osm_id, struct s_table * tables)
 {
     /* Optimisation: we only need this is slim mode */
     if( !Options->slim )
@@ -1377,9 +1649,9 @@ static int pgsql_delete_way_from_output(osmid_t osm_id)
     /* in droptemp mode we don't have indices and this takes ages. */
     if (Options->droptemp)
         return 0;
-    pgsql_pause_copy(&tables[t_roads]);
-    pgsql_pause_copy(&tables[t_line]);
-    pgsql_pause_copy(&tables[t_poly]);
+    pgsql_pause_copy(&(tables[t_roads]));
+    pgsql_pause_copy(&(tables[t_line]));
+    pgsql_pause_copy(&(tables[t_poly]));
     pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
     if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0)
         pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
@@ -1395,7 +1667,7 @@ static int pgsql_delete_way(osmid_t osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_delete_way_from_output(osm_id);
+    pgsql_delete_way_from_output(osm_id, global_tables);
     Options->mid->ways_delete(osm_id);
     return 0;
 }
@@ -1403,14 +1675,14 @@ static int pgsql_delete_way(osmid_t osm_id)
 /* Relations are identified by using negative IDs */
 static int pgsql_delete_relation_from_output(osmid_t osm_id)
 {
-    pgsql_pause_copy(&tables[t_roads]);
-    pgsql_pause_copy(&tables[t_line]);
-    pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, -osm_id );
-    if ( expire_tiles_from_db(tables[t_line].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
-    if ( expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
+    pgsql_pause_copy(&global_tables[t_roads]);
+    pgsql_pause_copy(&global_tables[t_line]);
+    pgsql_pause_copy(&global_tables[t_poly]);
+    pgsql_exec(global_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, global_tables[t_roads].name, -osm_id );
+    if ( expire_tiles_from_db(global_tables[t_line].sql_conn, -osm_id) != 0)
+        pgsql_exec(global_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, global_tables[t_line].name, -osm_id );
+    if ( expire_tiles_from_db(global_tables[t_poly].sql_conn, -osm_id) != 0)
+        pgsql_exec(global_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, global_tables[t_poly].name, -osm_id );
     return 0;
 }
 

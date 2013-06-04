@@ -104,6 +104,7 @@ static int _mark_tile(struct tile ** tree, int x, int y, int zoom, int this_zoom
  * Returns the number of subtiles which have all their children marked as dirty.
  */
 static int mark_tile(struct tile ** tree_head, int x, int y, int zoom) {
+    //TODO: probably needs to be wrapped in a lock
 	return _mark_tile(tree_head, x, y, zoom, 0);
 }
 

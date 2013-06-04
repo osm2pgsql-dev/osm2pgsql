@@ -29,15 +29,17 @@ extern "C" {
 
 #include "osmtypes.h"
 
+void * init_geometry_ctx();
+void close_geometry_ctx(void * ctx);
 int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
 
 char *get_wkt_simple(struct osmNode *, int count, int polygon);
-size_t get_wkt_split(struct osmNode *, int count, int polygon, double split_at);
+size_t get_wkt_split(void * ctx_p, struct osmNode *, int count, int polygon, double split_at);
 
-char* get_wkt(size_t index);
-double get_area(size_t index);
-size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
-void clear_wkts();
+char* get_wkt(void * ctx_p, size_t index);
+double get_area(void * ctx_p, size_t index);
+size_t build_geometry(void * ctx_p, osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
+void clear_wkts(void * ctx_p);
 void exclude_broken_polygon ();
 
 #ifdef __cplusplus

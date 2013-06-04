@@ -4,7 +4,7 @@
  * tags, segment lists etc 
  *
  */
-#define USE_TREE
+//# define USE_TREE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -322,9 +322,12 @@ void keyval2hstore(char *hstring, struct keyval *tags)
 
 void keyval2hstore_manual(char *hstring, char *key, char *value)
 {
-  static char* str=NULL;
-  static size_t stlen=0;
+  char* str=NULL;
+  size_t stlen=0;
   size_t len;
+
+  str = malloc(1024);
+  stlen = 1024;
  
   len=strlen(value);
   if (len>stlen) {
@@ -341,6 +344,7 @@ void keyval2hstore_manual(char *hstring, char *key, char *value)
   escape4hstore(str,key);  
   hstring+=sprintf(hstring,"\"%s\"=>",str);
   escape4hstore(str,value);
-  sprintf(hstring,"\"%s\"",str);  
+  sprintf(hstring,"\"%s\"",str);
+  free(str);
 }
 
