@@ -121,7 +121,7 @@ static void long_usage(char *arg0)
 
     printf("Usage:\n");
     printf("\t%s [options] planet.osm\n", name);
-    printf("\t%s [options] planet.osm.{gz,bz2}\n", name);
+    printf("\t%s [options] planet.osm.{pbf,gz,bz2}\n", name);
     printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
     printf("\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
     printf("suitable for use by the Mapnik renderer\n");
@@ -239,6 +239,23 @@ static void long_usage(char *arg0)
                     Projection_Info[i].descr, Projection_Info[i].option, Projection_Info[i].srs, Projection_Info[i].proj4text);
         }
     }
+    printf("\n");
+    printf("A typical command to import a full planet would be\n");
+    printf("    %s -c -d gis --slim -C <cache size> -j -G \\\n", name);
+    printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
+    printf("where\n");
+    printf("    <cache size> is 20000 on machines with 24GB or more RAM \n");
+    printf("      or about 75%% of memory in MB on machines with less\n");
+    printf("    <flat nodes> is a location where a 19GB file can be saved.\n");
+    printf("You will save time if you first update the planet with the latest data\n");
+    printf("using a program like osmupdate (http://wiki.openstreetmap.org/wiki/Osmupdate)\n");
+    printf("\n");
+    printf("A typical command to update a database imported with the above command would be \n");
+    printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wx - \\\n");
+    printf("      | %s -a -d gis --slim -j -G --flat-nodes <flat nodes> \n", name);
+    printf("where\n");
+    printf("    <flat nodes> is the same location as above.\n");
+    printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
 }
 
 const char *build_conninfo(const char *db, const char *username, const char *password, const char *host, const char *port)
