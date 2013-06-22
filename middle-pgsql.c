@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <math.h>
 #include <time.h>
+#include <errno.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -872,9 +873,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         if (pid==-1) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
-            fprintf(stderr,"WARNING: Failed to fork helper processes %i. Trying to recover.\n", p);
+            fprintf(stderr,"WARNING: Failed to fork helper process %i: %s. Trying to recover.\n", p, strerror(errno));
 #else
-            fprintf(stderr,"ERROR: Failed to fork helper processes. Can't recover! \n");
+            fprintf(stderr,"ERROR: Failed to fork helper process %i: %s. Can't recover!\n", p, strerror(errno));
             exit_nicely();
 #endif            
         }
