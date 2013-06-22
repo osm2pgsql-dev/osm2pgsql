@@ -873,9 +873,9 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         if (pid==-1) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
-            fprintf(stderr,"WARNING: Failed to fork helper processes %i: %s. Trying to recover.\n", p, strerror(errno));
+            fprintf(stderr,"WARNING: Failed to fork helper process %i: %s. Trying to recover.\n", p, strerror(errno));
 #else
-            fprintf(stderr,"ERROR: Failed to fork helper processes: %s. Can't recover!\n", strerror(errno));
+            fprintf(stderr,"ERROR: Failed to fork helper process %i: %s. Can't recover!\n", p, strerror(errno));
             exit_nicely();
 #endif            
         }
