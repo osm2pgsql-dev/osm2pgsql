@@ -17,8 +17,15 @@ struct persistentCacheHeader {
     osmid_t max_initialised_id;
 };
 
-int persistent_cache_nodes_set(osmid_t id, double lat, double lon);
-int persistent_cache_nodes_get(struct osmNode *out, osmid_t id);
-int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count);
-void init_node_persistent_cache(const struct output_options *options, const int append);
-void shutdown_node_persistent_cache();
+struct node_persistent_thread_ctx {
+    int node_cache_fd;
+    struct ramNodeBlock * readNodeBlockCache;
+    struct binary_search_array * readNodeBlockCacheIdx;
+};
+
+int persistent_cache_nodes_set(void * ctx_p, osmid_t id, double lat, double lon);
+int persistent_cache_nodes_get(void * ctx_p, struct osmNode *out, osmid_t id);
+int persistent_cache_nodes_get_list(void * ctx_p, struct osmNode *nodes, osmid_t *ndids, int nd_count);
+void writeout_dirty_nodes(void * ctx_p, osmid_t id);
+void * init_node_persistent_cache(const struct output_options *options, const int append);
+void shutdown_node_persistent_cache(void * ctx_p);

@@ -102,7 +102,11 @@ static int parse_bbox(struct osmdata_t *osmdata)
 void exit_nicely()
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
-    osmdata.out->cleanup();
+    void * buffer[255];
+    const int calls = backtrace(buffer,
+            sizeof(buffer) / sizeof(void *));
+    backtrace_symbols_fd(buffer, calls, 1);
+    osmdata.out->cleanup(NULL);
     exit(1);
 }
  

@@ -59,9 +59,9 @@ struct output_options {
 
 struct output_t {
     int (*start)(const struct output_options *options);
-    int (*connect)(const struct output_options *options, int startTransaction);
+    int (*connect)(const struct output_options *options, void * middle_ctx, int startTransaction);
     void (*stop)();
-    void (*cleanup)(void);
+    void (*cleanup)(void *);
     void (*close)(int stopTransaction);
 
     int (*node_add)(osmid_t id, double lat, double lon, struct keyval *tags);

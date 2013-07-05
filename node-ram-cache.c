@@ -442,7 +442,7 @@ void free_node_ram_cache() {
   }
 }
 
-int ram_cache_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED) {
+int ram_cache_nodes_set(void * thread_ctx, osmid_t id, double lat, double lon, struct keyval *tags UNUSED) {
     totalNodes++;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through 
      * ram_nodes_set_dense. If a block is non dense, it will automatically

@@ -658,6 +658,7 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
     resetList(rel_tags);
     cloneList(rel_tags, &tags);
     resetList(&tags);
+    resetList(&poly_tags);
 
     add_z_order(rel_tags, roads);
 
