@@ -17,8 +17,15 @@ function setup_db {
     echo "Initialising test db"
     dropdb osm2pgsql-test > /dev/null || true
     createdb -E UTF8 osm2pgsql-test
-    psql -f /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql -d osm2pgsql-test > /dev/null
-    psql -f /usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql -d osm2pgsql-test > /dev/null
+    if [ -d "/usr/share/postgresql/9.1/contrib/postgis-1.5/" ]; then
+        postgis_dir=/usr/share/postgresql/9.1/contrib/postgis-1.5
+    fi
+    if [ -z $postgis_dir ]; then
+        psql -c "CREATE EXTENSION postgis;" -d osm2pgsql-test &> /dev/null
+    else
+        psql -f $postgis_dir/postgis.sql -d osm2pgsql-test > /dev/null
+        psql -f $postgis_dir/spatial_ref_sys.sql -d osm2pgsql-test > /dev/null
+    fi
     psql -c "CREATE EXTENSION hstore;" -d osm2pgsql-test &> /dev/null
     sudo rm -rf /tmp/psql-tablespace || true
     mkdir /tmp/psql-tablespace
@@ -28,12 +35,11 @@ function setup_db {
 }
 
 function teardown_db {
+    echo "Cleaning up"
     dropdb osm2pgsql-test #To remove any objects that might still be in the table space
     psql -c "DROP TABLESPACE tablespacetest" -d postgres
     sudo rm -rf /tmp/psql-tablespace
     rm -f $test_output $test_output.*
-    dropdb osm2pgsql-test
-
 }
 
 function psql_test {
@@ -71,6 +77,10 @@ function test_osm2pgsql_slim {
     psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
     psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
     psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
+    psql_test "Length of lines imported" "SELECT sum(ST_length(way)) FROM ${dbprefix}_line;"
+    psql_test "Length of roads imported" "SELECT sum(ST_length(way)) FROM ${dbprefix}_roads;"
+    psql_test "Area of polygons imported" "SELECT sum(ST_area(way)) FROM ${dbprefix}_polygon;"
+
 
     echo "***Testing osm2pgsql diff import with the following parameters: \"" $1 "\"***"
     ./osm2pgsql --slim --append -d osm2pgsql-test $1 $planetdiff
@@ -81,6 +91,10 @@ function test_osm2pgsql_slim {
     psql_test "Number of nodes imported" "SELECT count(*) FROM ${dbprefix}_nodes;"
     psql_test "Number of ways imported" "SELECT count(*) FROM ${dbprefix}_ways;"
     psql_test "Number of relations imported" "SELECT count(*) FROM ${dbprefix}_rels;"
+    psql_test "Length of lines imported" "SELECT sum(ST_length(way)) FROM ${dbprefix}_line;"
+    psql_test "Length of roads imported" "SELECT sum(ST_length(way)) FROM ${dbprefix}_roads;"
+    psql_test "Area of polygons imported" "SELECT sum(ST_area(way)) FROM ${dbprefix}_polygon;"
+
     compare_results
 }
 
@@ -119,26 +133,24 @@ function test_osm2pgsql_nonslim {
     psql_test "Number of lines imported" "SELECT count(*) FROM planet_osm_line;"
     psql_test "Number of roads imported" "SELECT count(*) FROM planet_osm_roads;"
     psql_test "Number of polygon imported" "SELECT count(*) FROM planet_osm_polygon;"
+    psql_test "Length of lines imported" "SELECT sum(ST_length(way)) FROM planet_osm_line;"
+    psql_test "Length of roads imported" "SELECT sum(ST_length(way)) FROM planet_osm_roads;"
+    psql_test "Area of polygons imported" "SELECT sum(ST_area(way)) FROM planet_osm_polygon;"
+
+    
     compare_results
 }
 
 
 test_osm2pgsql_nonslim "-S default.style -C 100"
-test_osm2pgsql_nonslim "-S default.style -C 100"
-echo ========== OK SO FAR =============
-test_osm2pgsql_nonslim "-S default.style -l -C 100"
 test_osm2pgsql_nonslim "--slim --drop -S default.style -C 100"
+reset_results #results depend on projection, so we have to reset them
+test_osm2pgsql_nonslim "-S default.style -l -C 100"
 reset_results
 
 echo ========== NOW DOING SLIM =============
 test_osm2pgsql_slim "-S default.style -C 100"
-test_osm2pgsql_slim "-S default.style -l -C 100"
-test_osm2pgsql_slim "-k -S default.style -C 100"
-test_osm2pgsql_slim "-j -S default.style -C 100"
-test_osm2pgsql_slim "-K -S default.style -C 100"
-test_osm2pgsql_slim "-x -S default.style -C 100"
 test_osm2pgsql_slim "-p planet_osm2 -S default.style -C 100" "planet_osm2"
-test_osm2pgsql_slim "--bbox -90.0,-180.0,90.0,180.0 -S default.style -C 100"
 test_osm2pgsql_slim "--number-processes 6 -S default.style -C 100"
 test_osm2pgsql_slim "-I -S default.style -C 100"
 test_osm2pgsql_slim "-e 16:16 -S default.style -C 100"
@@ -149,9 +161,30 @@ test_osm2pgsql_slim "-S default.style -C 100 --tablespace-main-index tablespacet
 test_osm2pgsql_slim "-S default.style -C 100 --tablespace-slim-data tablespacetest"
 test_osm2pgsql_slim "-S default.style -C 100 --tablespace-slim-index tablespacetest"
 reset_results
+test_osm2pgsql_slim "-S default.style -C 100 --tag-transform-script style.lua"
+test_osm2pgsql_slim "-S default.style -C 100 --number-processes 6 --tag-transform-script style.lua"
+reset_results #Using multi-geometry effects the number of elements in the database
+test_osm2pgsql_slim "-G -S default.style -C 100"
+reset_results #Using hsotre effects the number of elements in the database
+test_osm2pgsql_slim "-k -S default.style -C 100"
+reset_results #Using hsotre effects the number of elements in the database
+test_osm2pgsql_slim "-j -S default.style -C 100"
+test_osm2pgsql_slim "-j --number-processes 6 -S default.style -C 100"
+test_osm2pgsql_slim "-j --hstore-add-index -S default.style -C 100"
+reset_results
+test_osm2pgsql_slim "-K -S default.style -C 100"
+reset_results
+test_osm2pgsql_slim "-x -S default.style -C 100"
+reset_results
+test_osm2pgsql_slim "--bbox -90.0,-180.0,90.0,180.0 -S default.style -C 100"
+reset_results
+test_osm2pgsql_slim "-S default.style -l -C 100"
+reset_results
 
-#test_osm2pgsql_gazetteer "-C 100"
-#test_osm2pgsql_gazetteer "--bbox -90.0,-180.0,90.0,180.0 -C 100"
+echo ========== NOW DOING GAZETTEER =============
+test_osm2pgsql_gazetteer "-C 100"
+reset_results
+test_osm2pgsql_gazetteer "--bbox -90.0,-180.0,90.0,180.0 -C 100"
 
 teardown_db
 
