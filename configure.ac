@@ -128,7 +128,7 @@ then
     HAVE_LUA=yes
 fi
 dnl Generate Makefile
-AC_OUTPUT(Makefile legacy/Makefile)
+AC_OUTPUT(Makefile)
 
 if test "$BUILD_READER_PBF" != "yes"
 then
