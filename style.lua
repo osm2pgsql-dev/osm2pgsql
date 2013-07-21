@@ -3,49 +3,26 @@ function add_z_order(keyvalues)
    if (keyvalues["layer"] ~= nil ) then
       z_order = 10*keyvalues["layer"]
    end
-   if (keyvalues["railway"] ~= nil) then
-      roads = 1
-      z_order = z_order + 5
-   end
 
-   if (keyvalues["boundary"] == "administrative") then
-      roads = 1
-   end
-
-   if ((keyvalues["bridge"] == "yes") or (keyvalues["bridge"] == "true") or (keyvalues["bridge"] == 1)) then
-      z_order = z_order + 10
-   end
-
-   if ((keyvalues["tunnel"] == "yes") or (keyvalues["tunnel"] == "true") or (keyvalues["tunnel"] == 1)) then
-      z_order = z_order - 10
-   end
-
-   if ((keyvalues["highway"] == "minor") or (keyvalues["highway"] == "road") or (keyvalues["highway"] == "unclassidied") or (keyvalues["highway"] == "residential")) then
-      z_order = z_order + 3
-   end
    
-   if ((keyvalues["highway"] == "tertiary_link") or (keyvalues["highway"] == "tertiary")) then
-      z_order = z_order + 4
-   end
-
-   if ((keyvalues["highway"] == "secondary") or (keyvalues["highway"] == "secondary_link")) then
-      z_order = z_order + 6
-      roads = 1
-   end
-
-   if ((keyvalues["highway"] == "primary") or (keyvalues["highway"] == "primary_link")) then
-      z_order = z_order + 7
-      roads = 1
-   end
-
-   if ((keyvalues["highway"] == "trunk") or (keyvalues["highway"] == "trunk_link")) then
-      z_order = z_order + 8
-      roads = 1
-   end
-
-   if ((keyvalues["highway"] == "motorway") or (keyvalues["highway"] == "motorway_link")) then
-      z_order = z_order + 9
-      roads = 1
+   zordering_tags = {{ 'railway', nil, 5, 1}, { 'boundary', 'administrative', 0, 1}, 
+      { 'bridge', 'yes', 10, 0 }, { 'bridge', 'true', 10, 0 }, { 'bridge', 1, 10, 0 },
+      { 'tunel', 'yes', -10, 0}, { 'tunel', 'true', -10, 0}, { 'tunel', 1, -10, 0}, 
+      { 'highway', 'minor', 3, 0}, { 'highway', 'road', 3, 0 }, { 'highway', 'unclassified', 3, 0 },
+      { 'highway', 'residential', 3, 0 }, { 'highway', 'tertiary_link', 4, 0}, { 'highway', 'tertiary', 4, 0},
+      { 'highway', 'secondary_link', 6, 1}, { 'highway', 'secondary', 6, 1},
+      { 'highway', 'primary_link', 7, 1}, { 'highway', 'primary', 7, 1},
+      { 'highway', 'trunk_link', 8, 1}, { 'highway', 'trunk', 8, 1},
+      { 'highway', 'motorway_link', 9, 1}, { 'highway', 'motorway', 9, 1},
+}
+   
+   for i,k in ipairs(zordering_tags) do
+      if ((k[2]  and keyvalues[k[1]] == k[2]) or (k[2] == nil and keyvalues[k[1]] ~= nil)) then
+         if (k[4] == 1) then
+            roads = 1
+         end
+         z_order = z_order + k[3]
+      end
    end
 
    keyvalues["z_order"] = z_order
@@ -54,14 +31,21 @@ function add_z_order(keyvalues)
 
 end
 
-function filter_tags_node (keyvalues, nokeys)
+function filter_tags_generic(keyvalues, nokeys)
    filter = 0
    tagcount = 0
 
-   keyvalues["FIXME"] = nil
-   keyvalues["note"] = nil
-   keyvalues["source"] = nil
+   if nokeys == 0 then
+      filter = 1
+      return filter, keyvalues
+   end
 
+   delete_tags = { 'FIXME', 'note', 'source' }
+
+   for i,k in ipairs(delete_tags) do
+      keyvalues[k] = nil
+   end
+   
    for k,v in pairs(keyvalues) do tagcount = tagcount + 1; end
    if tagcount == 0 then
       filter = 1
@@ -70,18 +54,16 @@ function filter_tags_node (keyvalues, nokeys)
    return filter, keyvalues
 end
 
+function filter_tags_node (keyvalues, nokeys)
+   return filter_tags_generic(keyvalues, nokeys)
+end
+
 function filter_basic_tags_rel (keyvalues, nokeys)
-   filter = 0
-   tagcount = 0
-   for i,v in pairs(keyvalues) do tagcount = tagcount + 1 end
-   if tagcount == 0 then
-      filter = 1
+
+   filter, keyvalues = filter_tags_generic(keyvalues, nokeys)
+   if filter == 1 then
       return filter, keyvalues
    end
-
-   keyvalues["FIXME"] = nil
-   keyvalues["note"] = nil
-   keyvalues["source"] = nil
 
    if ((keyvalues["type"] ~= "route") and (keyvalues["type"] ~= "multipolygon") and (keyvalues["type"] ~= "boundary")) then
       filter = 1
@@ -96,40 +78,24 @@ function filter_tags_way (keyvalues, nokeys)
    poly = 0
    tagcount = 0
    roads = 0
-   
-   for k,v in pairs(keyvalues) do tagcount = tagcount + 1; end
-   if tagcount == 0 then
-      filter = 1
+
+   filter, keyvalues = filter_tags_generic(keyvalues, nokeys)
+   if filter == 1 then
       return filter, keyvalues, poly, roads
    end
 
-   keyvalues["FIXME"] = nil
-   keyvalues["note"] = nil
-   keyvalues["source"] = nil
+   polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisure', 
+      'man_made', 'military', 'natural', 'office', 'place', 'power',
+      'public_transport', 'shop', 'sport', 'tourism', 'waterway',
+      'wetland', 'water', 'aeroway' }
 
-   if ((keyvalues["building"] ~= nil) or 
-       (keyvalues["landuse"] ~= nil) or 
-          (keyvalues["amenity"] ~= nil) or 
-          (keyvalues["harbour"] ~= nil) or 
-          (keyvalues["historic"] ~= nil) or 
-          (keyvalues["leisure"] ~= nil) or 
-          (keyvalues["man_made"] ~= nil) or 
-          (keyvalues["military"] ~= nil) or 
-          (keyvalues["natural"] ~= nil) or
-          (keyvalues["office"] ~= nil) or 
-          (keyvalues["place"] ~= nil) or 
-          (keyvalues["power"] ~= nil) or 
-          (keyvalues["public_transport"] ~= nil) or 
-          (keyvalues["shop"] ~= nil) or 
-          (keyvalues["sport"] ~= nil) or 
-          (keyvalues["tourism"] ~= nil) or 
-          (keyvalues["waterway"] ~= nil) or 
-          (keyvalues["wetland"] ~= nil) or 
-          (keyvalues["water"] ~= nil) or 
-          (keyvalues["aeroway"] ~= nil))
-      then
-      poly = 1;
+   for i,k in ipairs(polygon_keys) do
+      if keyvalues[k] then
+         poly=1
+         break
+      end
    end
+   
 
    if ((keyvalues["area"] == "yes") or (keyvalues["area"] == "1") or (keyvalues["area"] == "true")) then
       poly = 1;
