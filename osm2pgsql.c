@@ -124,138 +124,145 @@ static void long_usage(char *arg0)
     printf("\t%s [options] planet.osm.{pbf,gz,bz2}\n", name);
     printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
     printf("\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
-    printf("suitable for use by the Mapnik renderer\n");
-    printf("\nOptions:\n");
-    printf("   -a|--append\t\tAdd the OSM file into the database without removing\n");
-    printf("              \t\texisting data.\n");
-    printf("   -b|--bbox\t\tApply a bounding box filter on the imported data.\n");
-    printf("              \t\tMust be specified as: minlon,minlat,maxlon,maxlat\n");
-    printf("              \t\te.g. --bbox -0.5,51.25,0.5,51.75\n");
-    printf("   -c|--create\t\tRemove existing data from the database. This is the \n");
-    printf("              \t\tdefault if --append is not specified.\n");
-    printf("   -d|--database\tThe name of the PostgreSQL database to connect\n");
-    printf("              \t\tto (default: gis).\n");
-    printf("   -i|--tablespace-index\tThe name of the PostgreSQL tablespace where\n");
-    printf("              \t\tall indexes will be created.\n");
-    printf("              \t\tThe following options allow more fine-grained control:\n");
-    printf("      --tablespace-main-data \ttablespace for main tables\n");
-    printf("      --tablespace-main-index\ttablespace for main table indexes\n");
-    printf("      --tablespace-slim-data \ttablespace for slim mode tables\n");
-    printf("      --tablespace-slim-index\ttablespace for slim mode indexes\n");
-    printf("              \t\t(if unset, use db's default; -i is equivalent to setting\n");
-    printf("              \t\t--tablespace-main-index and --tablespace-slim-index)\n");
-    printf("   -l|--latlong\t\tStore data in degrees of latitude & longitude.\n");
-    printf("   -m|--merc\t\tStore data in proper spherical mercator (default).\n");
-    printf("   -M|--oldmerc\t\tStore data in the legacy OSM mercator format.\n");
-    printf("   -E|--proj num\tUse projection EPSG:num\n");
-    printf("   -u|--utf8-sanitize\tRepair bad UTF-8 input data (present in planet\n");
-    printf("                \tdumps prior to August 2007). Adds about 10%% overhead.\n");
-    printf("   -p|--prefix\t\tPrefix for table names (default: planet_osm).\n");
-    printf("   -s|--slim\t\tStore temporary data in the database. This greatly\n");
-    printf("            \t\treduces the RAM usage but is much slower. This switch is\n");
-    printf("            \t\trequired if you want to update with --append later.\n");
+    printf("suitable for use by the Mapnik renderer.\n\n");
 
-    if (sizeof(int*) == 4) {
-        printf("            \t\tThis program was compiled on a 32bit system, so at most\n");
-        printf("            \t\t3GB of RAM will be used. If you encounter problems\n");
-        printf("            \t\tduring import, you should try this switch.\n");
-    }
-    printf("      --drop\t\tonly with --slim: drop temporary tables after import (no updates).\n");
-    
-    printf("   -S|--style\t\tLocation of the style file. Defaults to " OSM2PGSQL_DATADIR "/default.style\n");
-    printf("   -C|--cache\t\tNow required for slim and non-slim modes: \n");
-    printf("             \t\tUse up to this many MB for caching nodes (default: 800)\n");
-    printf("   -U|--username\tPostgresql user name\n");
-    printf("             \t\tpassword can be given by prompt or PGPASS environment variable.\n");
-    printf("   -W|--password\tForce password prompt.\n");
-    printf("   -H|--host\t\tDatabase server hostname or socket location.\n");
-    printf("   -P|--port\t\tDatabase server port.\n");
-    printf("   -e|--expire-tiles [min_zoom-]max_zoom\tCreate a tile expiry list.\n");
-    printf("   -o|--expire-output filename\tOutput filename for expired tiles list.\n");
-    printf("   -r|--input-reader\tInput frontend.\n");
-    printf("              \t\tlibxml2   - Parse XML using libxml2. (default)\n");
-    printf("              \t\tprimitive - Primitive XML parsing.\n");
-#ifdef BUILD_READER_PBF
-    printf("              \t\tpbf       - OSM binary format.\n");
-#endif
-    printf("   -O|--output\t\tOutput backend.\n");
-    printf("              \t\tpgsql - Output to a PostGIS database. (default)\n");
-    printf("              \t\tgazetteer - Output to a PostGIS database suitable for gazetteer\n");
-    printf("              \t\tnull  - No output. Useful for testing.\n");
-    printf("   -x|--extra-attributes\n");
-    printf("              \t\tInclude attributes for each object in the database.\n");
-    printf("              \t\tThis includes the username, userid, timestamp and version.\n"); 
-    printf("              \t\tNote: this option also requires additional entries in your style file.\n"); 
-    printf("   -k|--hstore\t\tAdd tags without column to an additional hstore (key/value) column to postgresql tables\n");
-    printf("      --hstore-match-only\tOnly keep objects that have a value in one of the columns\n");
-    printf("      -                  \t(normal action with --hstore is to keep all objects)\n");
-    printf("   -j|--hstore-all\tAdd all tags to an additional hstore (key/value) column in postgresql tables\n");
-    printf("   -z|--hstore-column\tAdd an additional hstore (key/value) column containing all tags\n");
-    printf("                     \tthat start with the specified string, eg --hstore-column \"name:\" will\n");
-    printf("                     \tproduce an extra hstore column that contains all name:xx tags\n");
-    printf("      --hstore-add-index\tAdd index to hstore column.\n");
-    printf("   -G|--multi-geometry\tGenerate multi-geometry features in postgresql tables.\n");
-    printf("   -K|--keep-coastlines\tKeep coastline data rather than filtering it out.\n");
-    printf("              \t\tBy default natural=coastline tagged data will be discarded based on the\n");
-    printf("              \t\tassumption that post-processed Coastline Checker shapefiles will be used.\n");
-    printf("      --exclude-invalid-polygon\n");
-#ifdef HAVE_FORK
-    printf("      --number-processes\t\tSpecifies the number of parallel processes used for certain operations.\n");
-    printf("             \t\tDefault is 1.\n");
-#endif
-    printf("   -I|--disable-parallel-indexing\tDisable indexing all tables concurrently.\n");
-    printf("      --unlogged\tUse unlogged tables (lost on crash but faster). Requires PostgreSQL 9.1.\n");
-    printf("      --cache-strategy\tSpecifies the method used to cache nodes in ram.\n");
-    printf("                      \t\tAvailable options are:\n");
-    printf("                      \t\tdense: caching strategy optimised for full planet import\n");
-    printf("                      \t\tchunk: caching strategy optimised for non-contiguous memory allocation\n");
-    printf("                      \t\tsparse: caching strategy optimised for small extracts\n");
-    printf("                      \t\toptimized: automatically combines dense and sparse strategies for optimal storage efficiency.\n");
-    printf("                      \t\t           optimized may use twice as much virtual memory, but no more physical memory\n");
+    printf("%s", "\
+Common options:\n\
+   -a|--append      Add the OSM file into the database without removing\n\
+                    existing data.\n\
+   -c|--create      Remove existing data from the database. This is the\n\
+                    default if --append is not specified.\n\
+   -l|--latlong     Store data in degrees of latitude & longitude.\n\
+   -m|--merc        Store data in proper spherical mercator (default).\n\
+   -E|--proj num    Use projection EPSG:num.\n\
+   -s|--slim        Store temporary data in the database. This greatly\n\
+                    reduces the RAM usage but is much slower. This switch is\n\
+                    required if you want to update with --append later.\n\
+   -S|--style       Location of the style file. Defaults to\n");
+    printf("                    %s/default.style.\n", OSM2PGSQL_DATADIR);
+    printf("%s", "\
+   -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
+\n\
+Database options:\n\
+   -d|--database    The name of the PostgreSQL database to connect\n\
+                    to (default: gis).\n\
+   -U|--username    PostgreSQL user name (specify passsword in PGPASS\n\
+                    environment variable or use -W).\n\
+   -W|--password    Force password prompt.\n\
+   -H|--host        Database server host name or socket location.\n\
+   -P|--port        Database server port.\n");
 
-#ifdef __amd64__
-    printf("                      \t\t   The default is \"optimized\"\n");
-#else
-    /* use "chunk" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
-    printf("                      \t\t   The default is \"sparse\"\n");
-#endif
-    printf("      --flat-nodes\tSpecifies the flat file to use to persistently store node information in slim mode instead of in pgsql\n");
-    printf("                  \t\tThis file is a single > 16Gb large file. This method is only recommended for full planet imports\n");
-    printf("                   \t\tas it doesn't work well with small extracts. The default is disabled\n");
-    printf("   -h|--help\t\tHelp information.\n");
-    printf("   -v|--verbose\t\tVerbose output.\n");
-    printf("\n");
-    if(!verbose)
+    if (verbose) 
     {
-        printf("Add -v to display supported projections.\n");
-        printf("Use -E to access any espg projections (usually in /usr/share/proj/epsg).\n" );
+        printf("%s", "\
+Hstore options:\n\
+   -k|--hstore      Add tags without column to an additional hstore\n\
+                    (key/value) column\n\
+      --hstore-match-only   Only keep objects that have a value in one of\n\
+                    the columns (default with --hstore is to keep all objects)\n\
+   -j|--hstore-all  Add all tags to an additional hstore (key/value) column\n\
+   -z|--hstore-column   Add an additional hstore (key/value) column containing\n\
+                    all tags that start with the specified string, eg\n\
+                    --hstore-column \"name:\" will produce an extra hstore\n\
+                    column that contains all name:xx tags\n\
+      --hstore-add-index    Add index to hstore column.\n\
+\n\
+Obsolete options:\n\
+   -u|--utf8-sanitize   Repair bad UTF8 input data (present in planet\n\
+                    dumps prior to August 2007). Adds about 10% overhead.\n\
+   -M|--oldmerc     Store data in the legacy OSM mercator format\n\
+\n\
+Performance options:\n\
+   -i|--tablespace-index    The name of the PostgreSQL tablespace where\n\
+                    all indexes will be created.\n\
+                    The following options allow more fine-grained control:\n\
+      --tablespace-main-data    tablespace for main tables\n\
+      --tablespace-main-index   tablespace for main table indexes\n\
+      --tablespace-slim-data    tablespace for slim mode tables\n\
+      --tablespace-slim-index   tablespace for slim mode indexes\n\
+                    (if unset, use db's default; -i is equivalent to setting\n\
+                    --tablespace-main-index and --tablespace-slim-index)\n\
+      --drop        only with --slim: drop temporary tables after import \n\
+                    (no updates are possible).\n\
+      --number-processes        Specifies the number of parallel processes \n\
+                    used for certain operations (default is 1).\n\
+   -I|--disable-parallel-indexing   Disable indexing all tables concurrently.\n\
+      --unlogged    Use unlogged tables (lost on crash but faster). \n\
+                    Requires PostgreSQL 9.1.\n\
+      --cache-strategy  Specifies the method used to cache nodes in ram.\n\
+                    Available options are:\n\
+                    dense: caching strategy optimised for full planet import\n\
+                    chunk: caching strategy optimised for non-contiguous \n\
+                        memory allocation\n\
+                    sparse: caching strategy optimised for small extracts\n\
+                    optimized: automatically combines dense and sparse \n\
+                        strategies for optimal storage efficiency. This may\n\
+                        us twice as much virtual memory, but no more physical \n\
+                        memory.\n");
+#ifdef __amd64__
+    printf("                    The default is \"optimized\"\n");
+#else
+    /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
+    printf("                    The default is \"sparse\"\n");
+#endif
+    printf("%s", "\
+      --flat-nodes  Specifies the flat file to use to persistently store node \n\
+                    information in slim mode instead of in PostgreSQL.\n\
+                    This file is a single > 16Gb large file. Only recommended\n\
+                    for full planet imports. Default is disabled.\n\
+\n\
+Expiry options:\n\
+   -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
+   -o|--expire-output filename  Output filename for expired tiles list.\n\
+\n\
+Other options:\n\
+   -b|--bbox        Apply a bounding box filter on the imported data\n\
+                    Must be specified as: minlon,minlat,maxlon,maxlat\n\
+                    e.g. --bbox -0.5,51.25,0.5,51.75\n\
+   -p|--prefix      Prefix for table names (default planet_osm)\n\
+   -r|--input-reader    Input frontend.\n\
+                    libxml2   - Parse XML using libxml2. (default)\n\
+                    primitive - Primitive XML parsing.\n");
+#ifdef BUILD_READER_PBF
+    printf("                    pbf       - OSM binary format.\n");
+#endif
+    printf("\
+   -O|--output      Output backend.\n\
+                    pgsql - Output to a PostGIS database. (default)\n\
+                    gazetteer - Output to a PostGIS database for Nominatim\n\
+                    null - No output. Useful for testing.\n\
+   -x|--extra-attributes\n\
+                    Include attributes for each object in the database.\n\
+                    This includes the username, userid, timestamp and version.\n\
+                    Requires additional entries in your style file.\n\
+   -G|--multi-geometry  Generate multi-geometry features in postgresql tables.\n\
+   -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
+                    By default natural=coastline tagged data will be discarded\n\
+                    because renderers usually have shape files for them.\n\
+      --exclude-invalid-polygon   do not import polygons with invalid geometries.\n\
+   -h|--help        Help information.\n\
+   -v|--verbose     Verbose output.\n");
     }
     else
     {
-        printf("Supported projections:\n" );
-        for(i=0; i<PROJ_COUNT; i++ )
-        {
-            printf( "%-20s(%2s) SRS:%6d %s\n", 
-                    Projection_Info[i].descr, Projection_Info[i].option, Projection_Info[i].srs, Projection_Info[i].proj4text);
-        }
+        printf("\n");
+        printf("A typical command to import a full planet is\n");
+        printf("    %s -c -d gis --slim -C <cache size> -k \\\n", name);
+        printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
+        printf("where\n");
+        printf("    <cache size> is 20000 on machines with 24GB or more RAM \n");
+        printf("      or about 75%% of memory in MB on machines with less\n");
+        printf("    <flat nodes> is a location where a 19GB file can be saved.\n");
+        printf("\n");
+        printf("A typical command to update a database imported with the above command is\n");
+        printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wx - \\\n");
+        printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> \n", name);
+        printf("where\n");
+        printf("    <flat nodes> is the same location as above.\n");
+        printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
+        printf("\nRun %s --help --verbose (-h -v) for a full list of options.\n", name);
     }
-    printf("\n");
-    printf("A typical command to import a full planet would be\n");
-    printf("    %s -c -d gis --slim -C <cache size> -j -G \\\n", name);
-    printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
-    printf("where\n");
-    printf("    <cache size> is 20000 on machines with 24GB or more RAM \n");
-    printf("      or about 75%% of memory in MB on machines with less\n");
-    printf("    <flat nodes> is a location where a 19GB file can be saved.\n");
-    printf("You will save time if you first update the planet with the latest data\n");
-    printf("using a program like osmupdate (http://wiki.openstreetmap.org/wiki/Osmupdate)\n");
-    printf("\n");
-    printf("A typical command to update a database imported with the above command would be \n");
-    printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wx - \\\n");
-    printf("      | %s -a -d gis --slim -j -G --flat-nodes <flat nodes> \n", name);
-    printf("where\n");
-    printf("    <flat nodes> is the same location as above.\n");
-    printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
+
 }
 
 const char *build_conninfo(const char *db, const char *username, const char *password, const char *host, const char *port)
