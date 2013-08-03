@@ -610,12 +610,13 @@ void init_node_persistent_cache(const struct output_options *options, int append
         {
 
             #ifdef HAVE_POSIX_FALLOCATE
-            if (posix_fallocate(node_cache_fd, 0,
-                    sizeof(struct ramNode) * MAXIMUM_INITIAL_ID) != 0)
+            int fallocate_return = posix_fallocate(node_cache_fd, 0,
+                    sizeof(struct ramNode) * MAXIMUM_INITIAL_ID);
+            if (fallocate_return != 0)
             {
                 fprintf(stderr,
                         "Failed to allocate space for node cache file: %s\n",
-                        strerror(errno));
+                        strerror(fallocate_return));
                 close(node_cache_fd);
                 exit_nicely();
             }
