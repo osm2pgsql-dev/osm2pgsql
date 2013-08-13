@@ -347,8 +347,28 @@ def setupDB():
 
 
         try:
-            #TODO: Make this work with postgis 1.5 that doesn't yet support extensions
             test_cur.execute("""CREATE EXTENSION postgis;""")
+        except:
+            test_conn.rollback()
+            # Guess the directory from the postgres version.
+            # TODO: make the postgisdir configurable. Probably
+            # only works on Debian-based distributions at the moment.
+            postgisdir = ('/usr/share/postgresql/%d.%d/contrib' %
+                        (test_conn.server_version / 10000, (test_conn.server_version / 100) % 100))
+            for fl in os.listdir(postgisdir):
+                if fl.startswith('postgis'):
+                    newdir = os.path.join(postgisdir, fl)
+                    if os.path.isdir(newdir):
+                        postgisdir = newdir
+                        break
+            else:
+                raise Exception('Cannot find postgis directory.')
+            pgscript = open(os.path.join(postgisdir, 'postgis.sql'),'r').read()
+            test_cur.execute(pgscript)
+            pgscript = open(os.path.join(postgisdir, 'spatial_ref_sys.sql'), 'r').read()
+            test_cur.execute(pgscript)
+
+        try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
             test_cur.execute("""DROP TABLESPACE IF EXISTS tablespacetest;""")
             test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
