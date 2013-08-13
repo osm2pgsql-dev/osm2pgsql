@@ -301,8 +301,14 @@ def setupDB():
     try:
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
+    except Exception, e:
+        print "I am unable to connect to the database."
+        exit()
+
+    try:
         gen_cur = gen_conn.cursor()
     except Exception, e:
+        gen_conn.close()
         print "I am unable to connect to the database."
         exit()
 
@@ -312,40 +318,47 @@ def setupDB():
     except Exception, e:
         print "Failed to create osm2pgsql-test db" + e.pgerror
         exit();
-
-    gen_cur.close()
-    gen_conn.close()
+    finally:
+        gen_cur.close()
+        gen_conn.close()
 
     try:
         test_conn=psycopg2.connect("dbname='osm2pgsql-test'")
         test_conn.autocommit = True
-        test_cur = test_conn.cursor()
     except Exception, e:
         print "I am unable to connect to the database." + e
         exit()
 
     try:
-        ### This makes postgresql read from /tmp
-        ## Does this have security implications like opening this to a possible symlink attack?
-        os.mkdir("/tmp/psql-tablespace")
-        returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
+        test_cur = test_conn.cursor()
     except Exception, e:
-        print "Failed to create directory for tablespace" + str(e)
-            
-
-    try:
-        #TODO: Make this work with postgis 1.5 that doesn't yet support extensions
-        test_cur.execute("""CREATE EXTENSION postgis;""")
-        test_cur.execute("""CREATE EXTENSION hstore;""")
-        test_cur.execute("""DROP TABLESPACE IF EXISTS tablespacetest;""")
-        test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
-        
-    except Exception, e:
-        print "I am unable to create extensions: " + e.pgerror
+        print "I am unable to connect to the database." + e
+        gen_conn.close()
         exit()
 
-    test_cur.close()
-    test_conn.close()
+    try:
+        try:
+            ### This makes postgresql read from /tmp
+            ## Does this have security implications like opening this to a possible symlink attack?
+            os.mkdir("/tmp/psql-tablespace")
+            returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
+        except Exception, e:
+            print "Failed to create directory for tablespace" + str(e)
+
+
+        try:
+            #TODO: Make this work with postgis 1.5 that doesn't yet support extensions
+            test_cur.execute("""CREATE EXTENSION postgis;""")
+            test_cur.execute("""CREATE EXTENSION hstore;""")
+            test_cur.execute("""DROP TABLESPACE IF EXISTS tablespacetest;""")
+            test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
+
+        except Exception, e:
+            print "I am unable to create extensions: " + e.pgerror
+            exit()
+    finally:
+        test_cur.close()
+        test_conn.close()
 
 def tearDownDB():
     print "Cleaning up test database"
