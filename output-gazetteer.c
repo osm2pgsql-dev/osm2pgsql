@@ -322,22 +322,32 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
             pushItem(names, item);
          }
       }
+      else if (strcmp(item->key, "emergency") == 0 ||
+               strcmp(item->key, "tourism") == 0 ||
+               strcmp(item->key, "historic") == 0 ||
+               strcmp(item->key, "military") == 0 ||
+               strcmp(item->key, "natural") == 0)
+      {
+         if (strcmp(item->value, "no") && strcmp(item->value, "yes"))
+         {
+            pushItem(places, item);
+         }
+         else
+         {
+            freeItem(item);
+         }
+      }
       else if (strcmp(item->key, "aerialway") == 0 ||
                strcmp(item->key, "aeroway") == 0 ||
                strcmp(item->key, "amenity") == 0 ||
                strcmp(item->key, "boundary") == 0 ||
                strcmp(item->key, "bridge") == 0 ||
                strcmp(item->key, "craft") == 0 ||
-               strcmp(item->key, "emergency") == 0 ||
                strcmp(item->key, "highway") == 0 ||
-               strcmp(item->key, "historic") == 0 ||
                strcmp(item->key, "leisure") == 0 ||
-               strcmp(item->key, "military") == 0 ||
-               strcmp(item->key, "natural") == 0 ||
                strcmp(item->key, "office") == 0 ||
                strcmp(item->key, "railway") == 0 ||
                strcmp(item->key, "shop") == 0 ||
-               strcmp(item->key, "tourism") == 0 ||
                strcmp(item->key, "tunnel") == 0 ||
                strcmp(item->key, "waterway") == 0 )
       {
