@@ -8,6 +8,8 @@ full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
 multipoly_import_file="tests/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
 diff_import_file="tests/000466354.osc.gz"
 
+created_tablespace = 0
+
 #****************************************************************
 #****************************************************************
 sql_test_statements=[
@@ -182,8 +184,11 @@ class BaseTestCase(unittest.TestCase):
         try:
             for i in seq:
                 self.assertEqual(sql_test_statements[i][0], i, "test case numbers don't match up")
-                self.cur.execute(sql_test_statements[i][2])
-                res = self.cur.fetchone()
+                try:
+                    self.cur.execute(sql_test_statements[i][2])
+                    res = self.cur.fetchone()
+                except Exception, e:
+                    self.assertEqual(0, 1, "Failed to execute " + sql_test_statements[i][1] + " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
                 self.assertEqual( res[0], sql_test_statements[i][3],
                                   "Failed " + sql_test_statements[i][1] + ", expected " + str(sql_test_statements[i][3]) + " but was " + str(res[0]) +
                                   " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
@@ -338,10 +343,23 @@ def setupDB():
 
     try:
         try:
-            ### This makes postgresql read from /tmp
-            ## Does this have security implications like opening this to a possible symlink attack?
-            os.mkdir("/tmp/psql-tablespace")
-            returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
+            global created_tablespace
+            test_cur.execute("""SELECT spcname FROM pg_tablespace WHERE spcname = 'tablespacetest'""")
+            if test_cur.fetchone():
+                print "We already have a tablespace, can use that"
+                created_tablespace = 0
+            else:
+                print "For the test, we need to create a tablespace. This needs root privilidges"
+                created_tablespace = 1
+                ### This makes postgresql read from /tmp
+                ## Does this have security implications like opening this to a possible symlink attack?
+                try:
+                    os.mkdir("/tmp/psql-tablespace")
+                    returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
+                    test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
+                except Exception, e:
+                    os.rmdir("/tmp/psql-tablespace")
+                    self.assertEqual(0, 1, "Failed to create tablespace")
         except Exception, e:
             print "Failed to create directory for tablespace" + str(e)
 
@@ -370,8 +388,6 @@ def setupDB():
 
         try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
-            test_cur.execute("""DROP TABLESPACE IF EXISTS tablespacetest;""")
-            test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
 
         except Exception, e:
             print "I am unable to create extensions: " + e.pgerror
@@ -392,15 +408,16 @@ def tearDownDB():
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
-        gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
+        if (created_tablespace == 1):
+            gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
     except Exception, e:
         print "Failed to clean up osm2pgsql-test db" + e.pgerror
         exit();
 
     gen_cur.close()
     gen_conn.close()
-
-    returncode = subprocess.call(["/usr/bin/sudo", "/bin/rmdir", "/tmp/psql-tablespace"])
+    if (created_tablespace == 1):
+        returncode = subprocess.call(["/usr/bin/sudo", "/bin/rmdir", "/tmp/psql-tablespace"])
 
 
 
