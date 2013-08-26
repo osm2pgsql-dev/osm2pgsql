@@ -390,7 +390,7 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
     char *type;
     struct keyval tags, *p, poly_tags;
-    int i;
+    int i, j;
 
     /* Get the type, if there's no type we don't care */
     type = getItem(rel_tags, "type");
@@ -520,22 +520,6 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
     } else if (strcmp(type, "multipolygon") == 0) {
         *make_polygon = 1;
 
-        /* Copy the tags from the outer way(s) if the relation is untagged */
-        /* or if there is just a name tag, people seem to like naming relations */
-        if (!listHasData(&tags)
-                || ((countList(&tags) == 1) && getItem(&tags, "name"))) {
-            for (i = 0; i < member_count; i++) {
-                if (member_role[i] && !strcmp(member_role[i], "inner"))
-                    continue;
-
-                p = member_tags[i].next;
-                while (p != &(member_tags[i])) {
-                    addItem(&tags, p->key, p->value, 1);
-                    p = p->next;
-                }
-            }
-        }
-
         /* Collect a list of polygon-like tags, these are used later to
          identify if an inner rings looks like it should be rendered separately */
         p = tags.next;
@@ -554,6 +538,31 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
             }
             p = p->next;
         }
+
+        /* Copy the tags from the outer way(s) if the relation is untagged (with
+         * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
+        if (!listHasData(&poly_tags)) {
+            for (i = 0; i < member_count; i++) {
+                if (member_role[i] && !strcmp(member_role[i], "inner"))
+                    continue;
+
+                p = member_tags[i].next;
+                while (p != &(member_tags[i])) {
+                    addItem(&tags, p->key, p->value, 1);
+                    /* We need to check if this itself is a polygon tag and add it to the poly_tags list */
+                    for (j = 0; j < exportListCount[OSMTYPE_WAY]; j++) {
+                        if (strcmp(exportList[OSMTYPE_WAY][j].name, p->key) == 0) {
+                            if (exportList[OSMTYPE_WAY][j].flags & FLAG_POLYGON) {
+                                addItem(&poly_tags, p->key, p->value, 1);
+                            }
+                            break;
+                        }
+                    }
+                    p = p->next;
+                }
+            }
+        }
+
     } else {
         /* Unknown type, just exit */
         resetList(&tags);
