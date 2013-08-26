@@ -117,7 +117,11 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         # Failes to do correct error checking. This needs fixing in osm2pgsql
         # self.addTest(BasicSlimTestCase("Parallel processing with failing database conneciton (connection limit exceeded)", ["--number-processes", "32", "-C100"], [0,1,2,3],[6,7,8,9]))
         # Counts are expected to be different in hstore, needs adjusted tests
-        # self.addTest(BasicSlimTestCase("Hstore", ["-k"], [0,1,2,3],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("Hstore match only", ["-k", "--hstore-match-only"], [0,1,2,3],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("Hstore name column", ["-z", "name:"], [0,1,2,3],[6,7,8,9]))
+        #self.addTest(BasicSlimTestCase("Hstore", ["-k"], [0,1,2,3],[6,7,8,9]))
+        #self.addTest(BasicSlimTestCase("Hstore all", ["-j"], [0,1,2,3],[6,7,8,9]))
+        
         self.addTest(BasicSlimTestCase("--tablespace-main-data", ["--tablespace-main-data", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-slim-data", ["--tablespace-slim-data", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
@@ -142,6 +146,7 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
         self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48],[]))
         self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50],[]))
         self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48],[]))
+        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48],[]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48],[]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48],[]))
 
@@ -201,22 +206,27 @@ class BaseNonSlimTestCase(BaseTestCase):
     
     def setUpGeneric(self, parameters, file):
         returncode = subprocess.call(["./osm2pgsql", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file])
+        self.assertEqual( returncode, 0, "Execution of osm2pgsql with options: " + str(parameters) + " failed")
 
 class BaseSlimTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
         returncode = subprocess.call(["./osm2pgsql", "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
+        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim with options: " + str(parameters) + " failed")
 
     def updateGeneric(self, parameters, file):
         returncode = subprocess.call(["./osm2pgsql", "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
+        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim --append with options: " + str(parameters) + " failed")
 
 class BaseGazetteerTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
         returncode = subprocess.call(["./osm2pgsql", "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
+        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim -Ogazetteer with options: " + str(parameters) + " failed")
 
     def updateGeneric(self, parameters, file):
         returncode = subprocess.call(["./osm2pgsql", "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
+        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim -Ogazetteer --append with options: " + str(parameters) + " failed")
 
 #****************************************************************
 class BasicNonSlimTestCase(BaseNonSlimTestCase):
