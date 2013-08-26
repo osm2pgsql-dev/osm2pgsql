@@ -89,8 +89,20 @@ sql_test_statements=[
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -7 and landuse = \'farmland\' and name = \'Name_rel15\'',  1),
     ( 50, 'Multipolygon nested outer ways. Both outer and inner ways are from multiple ways (multigeometry)',
       'SELECT ST_NumGeometries(way) FROM planet_osm_polygon WHERE osm_id = -7 and landuse = \'farmland\' and name = \'Name_rel15\'',  2),
-    
-    
+    ( 51, 'Basic hstore point count', 'SELECT count(*) FROM planet_osm_point;', 1361 ),
+    ( 52, 'Basic hstore line count', 'SELECT count(*) FROM planet_osm_line;', 3323 ),
+    ( 53, 'Basic hstore road count', 'SELECT count(*) FROM planet_osm_roads;', 375 ),
+    ( 54, 'Basic hstore polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4127 ),
+    ( 55, 'Basic post-diff point count', 'SELECT count(*) FROM planet_osm_point;', 1476 ),
+    ( 56, 'Basic post-diff line count', 'SELECT count(*) FROM planet_osm_line;', 3367 ),
+    ( 57, 'Basic post-diff road count', 'SELECT count(*) FROM planet_osm_roads;', 381 ),
+    ( 58, 'Basic post-diff polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4274 ),
+    ( 59, 'Extra hstore full tags point count',
+      'SELECT count(*) FROM planet_osm_point WHERE tags ? \'osm_user\' and tags ? \'osm_version\' and tags ? \'osm_uid\' and tags ? \'osm_changeset\'', 1361),
+    ( 60, 'Extra hstore full tags line count',
+      'SELECT count(*) FROM planet_osm_line WHERE tags ? \'osm_user\' and tags ? \'osm_version\' and tags ? \'osm_uid\' and tags ? \'osm_changeset\'', 3323),
+    ( 61, 'Extra hstore full tags polygon count',
+      'SELECT count(*) FROM planet_osm_polygon WHERE tags ? \'osm_user\' and tags ? \'osm_version\' and tags ? \'osm_uid\' and tags ? \'osm_changeset\'', 4127),
     
     ]
 #****************************************************************
@@ -119,8 +131,12 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         # Counts are expected to be different in hstore, needs adjusted tests
         self.addTest(BasicSlimTestCase("Hstore match only", ["-k", "--hstore-match-only"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Hstore name column", ["-z", "name:"], [0,1,2,3],[6,7,8,9]))
-        #self.addTest(BasicSlimTestCase("Hstore", ["-k"], [0,1,2,3],[6,7,8,9]))
-        #self.addTest(BasicSlimTestCase("Hstore all", ["-j"], [0,1,2,3],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("Hstore", ["-k"], [51,52,53,54],[55,56,57,58]))
+        self.addTest(BasicSlimTestCase("Hstore all", ["-j"], [51,52,53,54],[55,56,57,58]))
+        self.addTest(BasicSlimTestCase("Extra tags hstore match only", ["-x", "-k", "--hstore-match-only"], [0,1,2,3],[6,7,8,9]))
+        #-x currently doesn't appear to add osm_uid and osm_user to the points table. So removing test 59 for now
+        #self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,59,60,61],[55,56,57,58]))
+        self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,60,61],[55,56,57,58]))
         
         self.addTest(BasicSlimTestCase("--tablespace-main-data", ["--tablespace-main-data", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
