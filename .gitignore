@@ -31,3 +31,4 @@ legacy/Makefile
 libtool
 .deps/
 stamp-h1
+INSTALL
