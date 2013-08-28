@@ -104,7 +104,8 @@ static struct table_desc tables [] = {
                "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
-.prepare_intarray = "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n",
+.prepare_intarray = "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
+               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n",
          .copy = "COPY %p_ways FROM STDIN;\n",
       .analyze = "ANALYZE %p_ways;\n",
          .stop =  "COMMIT;\n"
@@ -1217,6 +1218,7 @@ static int pgsql_rels_delete(osmid_t osm_id)
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
+    pgsql_execPrepared(way_table->sql_conn, "rel_delete_mark", 1, paramValues, PGRES_COMMAND_OK );
     pgsql_execPrepared(rel_table->sql_conn, "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
     return 0;
 }
@@ -1683,7 +1685,7 @@ static int pgsql_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
         }
 
-        if (tables[i].prepare_intarray) {
+        if (Append && tables[i].prepare_intarray) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
         }
 

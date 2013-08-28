@@ -7,6 +7,7 @@ import subprocess
 full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
 multipoly_import_file="tests/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
 diff_import_file="tests/000466354.osc.gz"
+diff_multipoly_import_file="tests/test_multipolygon_diff.osc" #This file contains a number of different multi-polygon diff processing test cases
 
 created_tablespace = 0
 
@@ -111,7 +112,18 @@ sql_test_statements=[
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -24 and "natural" = \'water\'', 18501),
     ( 65, 'Multipolygon non copying of tags from outer with polygon tags on relation (presence of way)',
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 83 and "landuse" = \'farmland\'', 24859),
-    
+    ( 66, 'Multipolygon diff moved point of outer way case (Tags from outer way)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -15 and landuse = \'residential\' and name = \'Name_way\'', 24749),
+    ( 67, 'Multipolygon diff moved point of inner way case (Tags from relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -1 and landuse = \'residential\' and name = \'Name_rel\'', 13948),
+    ( 68, 'Multipolygon point of inner way case (Tags from relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -25 and landuse = \'farmland\' and name = \'my name\'', 23884),
+    ( 69, 'Multipolygon point of inner way case (Tags from relation)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 90', 0),
+    ( 70, 'Multipolygon diff remove relation (tagged outer way gets re added)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 90 and landuse = \'farmland\'', 32624),
+    ( 71, 'Multipolygon diff remove relation',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -25', 0),
     
     ]
 #****************************************************************
@@ -168,14 +180,20 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
         unittest.TestSuite.__init__(self,map(ThirdTestCase,
                                              ("testOne",
                                               "testTwo")))
-        self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65],[]))
-        self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65],[]))
-        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65],[]))
-        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65],[]))
+        self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
+        self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 66, 67, 70, 71]))
+        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
+        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],[]))
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],[]))
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71]))
 
 
 class CompleteTestSuite(unittest.TestSuite):
@@ -315,6 +333,9 @@ class MultipolygonSlimTestCase(BaseSlimTestCase):
         print "****************************************"
         print "Running initial import for " + self.name
         self.executeStatements(self.initialStatements)
+        print "Running diff-import for " + self.name
+        self.updateGeneric(self.parameters, diff_multipoly_import_file)
+        self.executeStatements(self.postDiffStatements)
 
 
 class BasicGazetteerTestCase(BaseGazetteerTestCase):

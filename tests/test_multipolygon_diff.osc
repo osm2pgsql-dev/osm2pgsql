@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osmChange version="0.6" generator="Osmosis 0.40.1">
+  <modify>
+    <node id="7" version="2" timestamp="2013-08-07T15:58:06Z" uid="5" user="Test123" changeset="1" lat="-0.0010452" lon="-0.0031759"/>
+    <node id="88" version="2" timestamp="2013-08-07T15:58:07Z" uid="5" user="Test123" changeset="1" lat="-0.0034521" lon="-0.0025154"/>
+    <way id="15" version="1" timestamp="2013-08-07T15:58:09Z" uid="5" user="Test123" changeset="1">
+      <nd ref="182"/>
+      <nd ref="164"/>
+      <nd ref="162"/>
+      <tag k="landuse" v="residential"/>
+    </way>
+    <way id="66" version="1" timestamp="2013-08-07T15:58:10Z" uid="5" user="Test123" changeset="1">
+      <nd ref="181"/>
+      <nd ref="124"/>
+      <nd ref="121"/>
+    </way>
+  </modify>
+  <create>
+    <way id="101426" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="2">
+      <nd ref="162"/>
+      <nd ref="178"/>
+      <nd ref="182"/>
+      <tag k="landuse" v="residential"/>
+    </way>
+    <way id="101420" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
+      <nd ref="121"/>
+      <nd ref="179"/>
+      <nd ref="181"/>
+    </way>
+  </create>
+  <modify>
+    <relation id="14" version="2" timestamp="2013-08-07T15:58:12Z" uid="5" user="Test123" changeset="1">
+      <member type="way" ref="66" role="outer"/>
+      <member type="way" ref="101420" role="outer"/>
+      <member type="way" ref="6" role="inner"/>
+      <tag k="landuse" v="residential"/>
+      <tag k="name" v="Name_way5"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="17" version="2" timestamp="2013-08-07T15:58:12Z" uid="5" user="Test123" changeset="1">
+      <member type="way" ref="2" role="outer"/>
+      <member type="way" ref="15" role="inner"/>
+      <member type="way" ref="101426" role="inner"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+  </modify>
+  <delete>
+    <relation id="25" version="1" timestamp="2013-08-28T05:06:10Z" uid="5" user="Test123" changeset="4">
+      <member type="way" ref="90" role="outer"/>
+      <member type="way" ref="91" role="inner"/>
+      <tag k="brand" v="my brand"/>
+      <tag k="name" v="my name"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+  </delete>
+</osmChange>
