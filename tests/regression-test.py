@@ -27,7 +27,7 @@ sql_test_statements=[
     ( 10, 'Absence of nodes table', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_nodes\'', 0),
     ( 11, 'Absence of way table', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_ways\'', 0),
     ( 12, 'Absence of rel line', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_rels\'', 0),
-    ( 13, 'Basic polygon area', 'SELECT round(cast(ST_Area(way) as numeric),0) FROM planet_osm_polygon;', 5138688),
+    ( 13, 'Basic polygon area', 'SELECT round(sum(cast(ST_Area(way) as numeric)),0) FROM planet_osm_polygon;', 1223787843),
     ( 14, 'Gazetteer place count', 'SELECT count(*) FROM place', 4709),
     ( 15, 'Gazetteer place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 988),
     ( 16, 'Gazetteer place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3699),
@@ -124,7 +124,46 @@ sql_test_statements=[
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 90 and landuse = \'farmland\'', 32624),
     ( 71, 'Multipolygon diff remove relation',
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -25', 0),
-    
+    ( 72, 'Multipolygon tags on both inner and outer (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -34 and "natural" = \'water\'', 15245),
+    ( 73, 'Multipolygon tags on both inner and outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 113', 0),
+    ( 74, 'Multipolygon tags on both inner and outer (abscence of inner)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 118', 0),
+    ( 75, 'Multipolygon tags on both inner and outer diff change outer (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -34 and "landuse" = \'farmland\'', 15245),
+    ( 76, 'Multipolygon tags on both inner and outer diff change outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 113', 0),
+    ( 77, 'Multipolygon tags on both inner and outer diff change on outer (creation of inner)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 118 and "natural" = \'water\'', 1234),
+    ( 78, 'Multipolygon tags on outer (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -33 and "natural" = \'water\'', 15614),
+    ( 79, 'Multipolygon tags on outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 114', 0),
+    ( 80, 'Multipolygon tags on outer change of way tags (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -33 and "landuse" = \'cemetery\'', 15614),
+    ( 81, 'Multipolygon tags on outer (abscence of old relation)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -33 and "natural" = \'water\'', 0),
+    ( 82, 'Multipolygon tags on relation two outer (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -29 and "natural" = \'water\'', 68492),
+    ( 83, 'Multipolygon tags on relation two outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 109', 0),
+    ( 84, 'Multipolygon tags on relation two outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 104', 0),
+    ( 85, 'Multipolygon tags on relation two outer diff delete way (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -29 and "natural" = \'water\'', 29153),
+    ( 86, 'Multipolygon tags on relation two outer (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -35 and "natural" = \'water\'', 28730),
+    ( 87, 'Multipolygon tags on relation two outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 107', 0),
+    ( 88, 'Multipolygon tags on relation two outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 102', 0),
+    ( 89, 'Multipolygon tags on relation two outer diff remove way from relation (presence of relation)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -35 and "natural" = \'water\'', 15737),
+    ( 90, 'Multipolygon tags on relation two outer diff remove way from relation (presence of single way)',
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 102 and "natural" = \'water\'', 12994),
+    ( 91, 'Basic line length', 'SELECT round(sum(ST_Length(way))) FROM planet_osm_line;', 4269394),
+    ( 92, 'Basic line length', 'SELECT round(sum(ST_Length(way))) FROM planet_osm_roads;', 2032023),
     ]
 #****************************************************************
 #****************************************************************
@@ -135,8 +174,8 @@ class NonSlimRenderingTestSuite(unittest.TestSuite):
         unittest.TestSuite.__init__(self,map(ThirdTestCase,
                                              ("testOne",
                                               "testTwo")))
-        self.addTest(BasicNonSlimTestCase("basic case",[], [0,1,2,3,10,13]))
-        self.addTest(BasicNonSlimTestCase("slim --drop case",["--slim","--drop"], [0,1,2,3, 10, 11, 12, 13]))
+        self.addTest(BasicNonSlimTestCase("basic case",[], [0,1,2,3,10,13, 91, 92]))
+        self.addTest(BasicNonSlimTestCase("slim --drop case",["--slim","--drop"], [0,1,2,3, 10, 11, 12, 13, 91, 92]))
         self.addTest(BasicNonSlimTestCase("lat lon projection",["-l"], [0,4,5,3,10, 11, 12]))
 
 
@@ -145,8 +184,8 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         unittest.TestSuite.__init__(self,map(ThirdTestCase,
                                              ("testOne",
                                               "testTwo")))
-        self.addTest(BasicSlimTestCase("basic case", [], [0,1,2,3],[6,7,8,9]))
-        self.addTest(BasicSlimTestCase("Parallel processing", ["--number-processes", "8", "-C100"], [0,1,2,3],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("basic case", [], [0,1,2,3,13, 91, 92],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("Parallel processing", ["--number-processes", "8", "-C100"], [0,1,2,3,13,91,92],[6,7,8,9]))
         # Failes to do correct error checking. This needs fixing in osm2pgsql
         # self.addTest(BasicSlimTestCase("Parallel processing with failing database conneciton (connection limit exceeded)", ["--number-processes", "32", "-C100"], [0,1,2,3],[6,7,8,9]))
         # Counts are expected to be different in hstore, needs adjusted tests
@@ -159,10 +198,10 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         #self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,59,60,61],[55,56,57,58]))
         self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,60,61],[55,56,57,58]))
         
-        self.addTest(BasicSlimTestCase("--tablespace-main-data", ["--tablespace-main-data", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
-        self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
-        self.addTest(BasicSlimTestCase("--tablespace-slim-data", ["--tablespace-slim-data", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
-        self.addTest(BasicSlimTestCase("--tablespace-slim-index", ["--tablespace-slim-index", "tablespacetest"], [0,1,2,3],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("--tablespace-main-data", ["--tablespace-main-data", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("--tablespace-slim-data", ["--tablespace-slim-data", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
+        self.addTest(BasicSlimTestCase("--tablespace-slim-index", ["--tablespace-slim-index", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
         # Lua processing is not exactly equivalent at the moment, so counts are differetn. Needs fixing
         #self.addTest(BasicSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3],[6,7,8,9]))
 
@@ -180,20 +219,23 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
         unittest.TestSuite.__init__(self,map(ThirdTestCase,
                                              ("testOne",
                                               "testTwo")))
-        self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
-        self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 66, 67, 70, 71]))
-        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
-        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"], [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71]))
+        #Case 77 currently doesn't work
+        self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
+        self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
+        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
+        self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71]))
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65],
-                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71]))
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
 
 
 class CompleteTestSuite(unittest.TestSuite):
@@ -236,15 +278,17 @@ class BaseTestCase(unittest.TestCase):
                 self.assertEqual(sql_test_statements[i][0], i, "test case numbers don't match up")
                 try:
                     self.cur.execute(sql_test_statements[i][2])
-                    res = self.cur.fetchone()
+                    res = self.cur.fetchall()
                 except Exception, e:
                     self.assertEqual(0, 1, str(sql_test_statements[i][0]) + ": Failed to execute " + sql_test_statements[i][1] +
                                      " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
-                if (res == None) or (len(res) != 1):
-                        self.assertEqual(0, 1, str(sql_test_statements[i][0]) + ": Sql statement returned wrong number of results: " +
+                if (res == None):
+                        self.assertEqual(0, 1, str(sql_test_statements[i][0]) + ": Sql statement returned no results: " +
                                          sql_test_statements[i][1] + " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
-                self.assertEqual( res[0], sql_test_statements[i][3],
-                                  str(sql_test_statements[i][0]) + ": Failed " + sql_test_statements[i][1] + ", expected " + str(sql_test_statements[i][3]) + " but was " + str(res[0]) +
+                self.assertEqual(len(res), 1, str(sql_test_statements[i][0]) + ": Sql statement returned more than one result: " +
+                                 str(res) + "  -- " + sql_test_statements[i][1] + " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
+                self.assertEqual( res[0][0], sql_test_statements[i][3],
+                                  str(sql_test_statements[i][0]) + ": Failed " + sql_test_statements[i][1] + ", expected " + str(sql_test_statements[i][3]) + " but was " + str(res[0][0]) +
                                   " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
         finally:
             self.dbClose()
