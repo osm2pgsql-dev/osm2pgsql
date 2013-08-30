@@ -186,6 +186,8 @@ class SlimRenderingTestSuite(unittest.TestSuite):
                                               "testTwo")))
         self.addTest(BasicSlimTestCase("basic case", [], [0,1,2,3,13, 91, 92],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Parallel processing", ["--number-processes", "8", "-C100"], [0,1,2,3,13,91,92],[6,7,8,9]))
+        #It looks like --cache-strategy=dense is broken, as it it produces wrong geometries.
+        #self.addTest(BasicSlimTestCase("Parallel processing with non 100% node-cache", ["--number-processes", "8", "-C1", "--cache-strategy=dense"], [0,1,2,3,13,91,92],[6,7,8,9]))
         # Failes to do correct error checking. This needs fixing in osm2pgsql
         # self.addTest(BasicSlimTestCase("Parallel processing with failing database conneciton (connection limit exceeded)", ["--number-processes", "32", "-C100"], [0,1,2,3],[6,7,8,9]))
         # Counts are expected to be different in hstore, needs adjusted tests
