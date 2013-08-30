@@ -3,6 +3,18 @@
   <modify>
     <node id="7" version="2" timestamp="2013-08-07T15:58:06Z" uid="5" user="Test123" changeset="1" lat="-0.0010452" lon="-0.0031759"/>
     <node id="88" version="2" timestamp="2013-08-07T15:58:07Z" uid="5" user="Test123" changeset="1" lat="-0.0034521" lon="-0.0025154"/>
+  </modify>
+  <create>
+    <node id="110739" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0117967" lon="0.0073064"/>
+    <node id="110737" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011878" lon="0.0082495"/>
+    <node id="110735" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0113739" lon="0.0083145"/>
+    <node id="110734" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0111951" lon="0.0072739"/>
+    <node id="110730" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.011943" lon="0.0068349"/>
+    <node id="110728" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0124308" lon="0.0088023"/>
+    <node id="110726" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0110162" lon="0.0088673"/>
+    <node id="110725" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5" lat="-0.0108536" lon="0.0067049"/>
+  </create>
+  <modify>
     <way id="15" version="1" timestamp="2013-08-07T15:58:09Z" uid="5" user="Test123" changeset="1">
       <nd ref="182"/>
       <nd ref="164"/>
@@ -15,17 +27,86 @@
       <nd ref="121"/>
     </way>
   </modify>
+  <delete>
+    <way id="97" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5">
+      <nd ref="251"/>
+      <nd ref="235"/>
+    </way>
+  </delete>
+  <modify>
+    <way id="100" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
+      <nd ref="251"/>
+      <nd ref="235"/>
+      <nd ref="238"/>
+    </way>
+  </modify>
+  <delete>
+    <way id="104" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="5">
+      <nd ref="242"/>
+      <nd ref="243"/>
+      <nd ref="278"/>
+      <nd ref="269"/>
+      <nd ref="242"/>
+    </way>
+  </delete>
+  <modify>
+    <way id="106" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
+      <nd ref="250"/>
+      <nd ref="249"/>
+      <nd ref="288"/>
+      <nd ref="282"/>
+      <nd ref="250"/>
+      <tag k="landuse" v="farmland"/>
+    </way>
+    <way id="113" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
+      <nd ref="240"/>
+      <nd ref="237"/>
+      <nd ref="261"/>
+      <nd ref="257"/>
+      <nd ref="240"/>
+      <tag k="landuse" v="farmland"/>
+    </way>
+    <way id="114" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
+      <nd ref="236"/>
+      <nd ref="234"/>
+      <nd ref="265"/>
+      <nd ref="263"/>
+      <nd ref="236"/>
+      <tag k="landuse" v="cemetery"/>
+    </way>
+    <way id="119" version="1" timestamp="2013-08-30T00:11:07Z" uid="5" user="Test123" changeset="5">
+      <nd ref="304"/>
+      <nd ref="308"/>
+      <nd ref="322"/>
+      <nd ref="321"/>
+      <nd ref="304"/>
+    </way>
+  </modify>
   <create>
+    <way id="101420" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
+      <nd ref="121"/>
+      <nd ref="179"/>
+      <nd ref="181"/>
+    </way>
     <way id="101426" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="2">
       <nd ref="162"/>
       <nd ref="178"/>
       <nd ref="182"/>
       <tag k="landuse" v="residential"/>
     </way>
-    <way id="101420" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
-      <nd ref="121"/>
-      <nd ref="179"/>
-      <nd ref="181"/>
+    <way id="110736" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
+      <nd ref="110734"/>
+      <nd ref="110735"/>
+      <nd ref="110737"/>
+      <nd ref="110739"/>
+      <nd ref="110734"/>
+    </way>
+    <way id="110727" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
+      <nd ref="110725"/>
+      <nd ref="110726"/>
+      <nd ref="110728"/>
+      <nd ref="110730"/>
+      <nd ref="110725"/>
     </way>
   </create>
   <modify>
@@ -45,7 +126,7 @@
     </relation>
   </modify>
   <delete>
-    <relation id="25" version="1" timestamp="2013-08-28T05:06:10Z" uid="5" user="Test123" changeset="4">
+    <relation id="25" version="1" timestamp="2013-08-30T00:51:24Z" uid="5" user="Test123" changeset="4">
       <member type="way" ref="90" role="outer"/>
       <member type="way" ref="91" role="inner"/>
       <tag k="brand" v="my brand"/>
@@ -53,4 +134,52 @@
       <tag k="type" v="multipolygon"/>
     </relation>
   </delete>
+  <modify>
+    <relation id="26" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="106" role="outer"/>
+      <member type="way" ref="111" role="inner"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="27" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="110736" role="inner"/>
+      <member type="way" ref="110727" role="outer"/>
+      <member type="way" ref="116" role="outer"/>
+      <member type="way" ref="108" role="inner"/>
+      <tag k="natural" v="heath"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="28" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="105" role="outer"/>
+      <member type="way" ref="117" role="inner"/>
+      <tag k="landuse" v="cemetery"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="29" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="109" role="outer"/>
+      <tag k="natural" v="water"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="30" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="92" role="outer"/>
+      <member type="way" ref="93" role="outer"/>
+      <member type="way" ref="98" role="outer"/>
+      <member type="way" ref="99" role="outer"/>
+      <member type="way" ref="94" role="outer"/>
+      <member type="way" ref="100" role="outer"/>
+      <member type="way" ref="96" role="outer"/>
+      <member type="way" ref="95" role="outer"/>
+      <tag k="natural" v="water"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="35" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="107" role="outer"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+    <relation id="36" version="1" timestamp="2013-08-30T00:11:08Z" uid="5" user="Test123" changeset="5">
+      <member type="way" ref="119" role="outer"/>
+      <member type="way" ref="115" role="inner"/>
+      <tag k="landuse" v="farmland"/>
+      <tag k="type" v="multipolygon"/>
+    </relation>
+  </modify>
 </osmChange>
