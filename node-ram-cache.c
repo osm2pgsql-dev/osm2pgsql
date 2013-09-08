@@ -164,6 +164,8 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
     int offset = id2offset(id);
     int i = 0;
 
+    if (maxBlocks == 0) return 1;
+
     if (!blocks[block].nodes) {
         if (((allocStrategy & ALLOC_SPARSE) > 0) && ( usedBlocks < maxBlocks) && ( cacheUsed > cacheSize)) {
             /* TODO: It is more memory efficient to drop nodes from the sparse node cache than from the dense node cache */
@@ -353,8 +355,8 @@ void init_node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale ) {
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
-    maxBlocks = (cacheSize/(PER_BLOCK*sizeof(struct ramNode))) | 1;
-    maxSparseTuples = (cacheSize/sizeof(struct ramNodeID)) | 1;
+    maxBlocks = (cacheSize/(PER_BLOCK*sizeof(struct ramNode)));
+    maxSparseTuples = (cacheSize/sizeof(struct ramNodeID));
     
     allocStrategy = strategy;
     scale = fixpointscale;
