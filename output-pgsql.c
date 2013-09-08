@@ -1089,9 +1089,18 @@ static void *pgsql_out_stop_one(void *arg)
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
         fprintf(stderr, "Creating geometry index on  %s\n", table->name);
         if (Options->tblsmain_index) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            /* Use fillfactor 100 for un-updatable imports */
+            if (Options->slim && !Options->droptemp) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            } else {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+            }
         } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
+            if (Options->slim && !Options->droptemp) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
+            } else {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name, table->name);
+            }
         }
 
         /* slim mode needs this to be able to apply diffs */
@@ -1109,16 +1118,33 @@ static void *pgsql_out_stop_one(void *arg)
             fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
             if (Options->tblsmain_index) {
                 if (HSTORE_NONE != (Options->enable_hstore))
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                    if (Options->slim && !Options->droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                    } else {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                    }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
+                    if (Options->slim && !Options->droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
                                table->name, i_column,table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
+                    } else {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") WITH (FILLFACTOR=100) TABLESPACE %s;\n",
+                               table->name, i_column,table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
+                    }
                 }
             } else {
                 if (HSTORE_NONE != (Options->enable_hstore))
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name, table->name);
+                    if (Options->slim && !Options->droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name, table->name);
+                    } else {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) WITH (FILLFACTOR=100);\n", table->name, table->name);
+                    }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                    if (Options->slim && !Options->droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                    } else {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") WITH (FILLFACTOR=100);\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                    }
                 }
             }
         }
