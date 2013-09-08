@@ -19,6 +19,7 @@ echo
 echo Copying Executable...
 echo
 
+cp -rfv default.style cygwin-package || { stat=$?; echo "Packaging failed, aborting" >&2; exit $stat; }
 cp -rfv 900913.sql cygwin-package || { stat=$?; echo "Packaging failed, aborting" >&2; exit $stat; }
 cp -rfv README cygwin-package || { stat=$?; echo "Packaging failed, aborting" >&2; exit $stat; }
 cp -rfv .libs/osm2pgsql.exe cygwin-package || { stat=$?; echo "Packaging failed, aborting" >&2; exit $stat; }
