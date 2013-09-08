@@ -1,0 +1,211 @@
+# This osm2pgsql style file is one that will generate no columns from tags
+# It is designed as a starting point for you to develop your own, or for 
+# use where all OSM tags are in hstore.
+
+# See default.style for documentation on all the flags
+
+# OsmType  Tag                 Type    Flags
+# Insert your own columns here, or change phstore to polygon below
+way         area:highway            text    phstore
+node,way    aeroway                 text    phstore
+node,way    amenity                 text    phstore
+node,way    building                text    phstore
+way         building:part           text    phstore
+node,way    harbour                 text    phstore
+node,way    historic                text    phstore
+node,way    landuse                 text    phstore
+node,way    leisure                 text    phstore
+node,way    man_made                text    phstore
+node,way    military                text    phstore
+node,way    natural                 text    phstore
+node,way    office                  text    phstore
+node,way    place                   text    phstore
+node,way    power                   text    phstore
+node,way    public_transport        text    phstore
+node,way    shop                    text    phstore
+node,way    sport                   text    phstore
+node,way    tourism                 text    phstore
+node,way    water                   text    phstore
+node,way    waterway                text    phstore
+node,way    wetland                 text    phstore
+node,way    z_order                 int4    linear  # This is calculated during import
+way         way_area                real            # This is calculated during import
+
+# Deleted tags
+# These are tags that are generally regarded as useless for most rendering.
+# Most of them are from imports or intended as internal information for mappers
+# Some of them are automatically deleted by editors.
+# If you want some of them, perhaps for a debugging layer, just delete the lines.
+
+# These tags are used by mappers to keep track of data.
+# They aren't very useful for rendering.
+node,way    note                    text    delete
+node,way    note:ja                 text    delete
+node,way    note:en                 text    delete
+node,way    note:es                 text    delete
+node,way    source                  text    delete
+node,way    source_ref              text    delete
+node,way    source:addr             text    delete
+node,way    source:date             text    delete
+node,way    source:loc              text    delete
+node,way    source:name             text    delete
+node,way    source:file             text    delete
+node,way    attribution             text    delete
+node,way    comment                 text    delete
+node,way    fixme                   text    delete
+
+# Tags generally dropped by editors, not otherwise covered
+node,way    created_by              text    delete
+node,way    odbl                    text    delete
+node,way    odbl:note               text    delete
+node,way    SK53_bulk:load          text    delete
+
+# Lots of import tags
+# TIGER (US)
+node,way    tiger:cfcc              text    delete
+node,way    tiger:county            text    delete
+node,way    tiger:name_base         text    delete
+node,way    tiger:name_base_1       text    delete
+node,way    tiger:name_type         text    delete
+node,way    tiger:name_type_1       text    delete
+node,way    tiger:name_direction_prefix text    delete
+node,way    tiger:name_direction_prefix_1 text    delete
+node,way    tiger:name_direction_suffix text    delete
+node,way    tiger:name_direction_suffix_1 text    delete
+node,way    tiger:reviewed          text    delete
+node,way    tiger:separated         text    delete
+node,way    tiger:source            text    delete
+node,way    tiger:tlid              text    delete
+node,way    tiger:upload_uuid       text    delete
+node,way    tiger:zip_left          text    delete
+node,way    tiger:zip_left_1        text    delete
+node,way    tiger:zip_right         text    delete
+node,way    tiger:zip_right_1         text    delete
+
+# NHD (US)
+# NHD has been converted every way imaginable
+node,way    NHD:ComID               text    delete
+node,way    NHD:FCode               text    delete
+node,way    NHD:FDate               text    delete
+node,way    NHD:FTYPE               text    delete
+node,way    NHD:Permanent_          text    delete
+node,way    NHD:RESOLUTION          text    delete
+node,way    NHD:ReachCode           text    delete
+node,way    NHD:Resolution          text    delete
+node,way    NHD:way_id              text    delete
+node,way    nhd:com_id              text    delete
+node,way    nhd:fcode               text    delete
+node,way    nhd:fdate               text    delete
+node,way    nhd:ftype               text    delete
+node,way    nhd:reach_code          text    delete
+# GNIS (US)
+node,way    gnis:county_id          text    delete
+node,way    gnis:created            text    delete
+node,way    gnis:fcode              text    delete
+#node,way    gnis:feature_id         text    delete # You may want to drop this, but it has some uses
+node,way    gnis:ftype              text    delete
+node,way    gnis:state_id           text    delete
+
+# Geobase (CA)
+node,way    geobase:acquisitionTechnique text delete
+node,way    geobase:uuid            text    delete
+node,way    geobase:datasetName     text    delete
+# NHN (CA)
+node,way    accuracy:meters         text    delete
+node,way    sub_sea:type            text    delete
+node,way    waterway:type           text    delete
+
+# KSJ2 (JA)
+# See also note:ja and source_ref above
+node,way    KSJ2:ADS                text    delete
+node,way    KSJ2:ARE                text    delete
+node,way    KSJ2:AdminArea          text    delete
+node,way    KSJ2:COP_label          text    delete
+node,way    KSJ2:DFD                text    delete
+node,way    KSJ2:INT                text    delete
+node,way    KSJ2:INT_label          text    delete
+node,way    KSJ2:LOC                text    delete
+node,way    KSJ2:LPN                text    delete
+node,way    KSJ2:OPC                text    delete
+node,way    KSJ2:PubFacAdmin        text    delete
+node,way    KSJ2:RAC                text    delete
+node,way    KSJ2:RAC_label          text    delete
+node,way    KSJ2:RIC                text    delete
+node,way    KSJ2:RIN                text    delete
+node,way    KSJ2:WSC                text    delete
+node,way    KSJ2:coordinate         text    delete
+node,way    KSJ2:curve_id           text    delete
+node,way    KSJ2:curve_type         text    delete
+node,way    KSJ2:filename           text    delete
+node,way    KSJ2:lake_id            text    delete
+node,way    KSJ2:lat                text    delete
+node,way    KSJ2:long               text    delete
+node,way    KSJ2:river_id           text    delete
+# Yahoo/ALPS (JA)
+node,way    yh:LINE_NAME            text    delete
+node,way    yh:LINE_NUM             text    delete
+node,way    yh:STRUCTURE            text    delete
+node,way    yh:TOTYUMONO            text    delete
+node,way    yh:TYPE                 text    delete
+node,way    yh:WIDTH                text    delete
+node,way    yh:WIDTH_RANK           text    delete
+
+# osak (DK)
+node,way    osak:identifier         text    delete
+node,way    osak:municipality_no    text    delete
+node,way    osak:revision           text    delete
+node,way    osak:street_no          text    delete
+node,way    osak:subdivision        text    delete
+
+# kms (DK)
+node,way    kms:county_name         text    delete
+node,way    kms:county_no           text    delete
+node,way    kms:house_no            text    delete
+node,way    kms:last_updated        text    delete
+node,way    kms:municipality_name   text    delete
+node,way    kms:municipality_no     text    delete
+node,way    kms:parish_name         text    delete
+node,way    kms:parish_no           text    delete
+node,way    kms:street_name         text    delete
+node,way    kms:street_no           text    delete
+node,way    kms:zip_name            text    delete
+node,way    kms:zip_no              text    delete
+
+# ngbe (ES)
+# See also note:es and source:file above
+node,way    ngbe:codigo             text    delete
+node,way    ngbe:grupo              text    delete
+node,way    ngbe:hojabcn25          text    delete
+node,way    ngbe:huso               text    delete
+node,way    ngbe:id                 text    delete
+node,way    ngbe:lat_ed50           text    delete
+node,way    ngbe:lon_ed50           text    delete
+node,way    ngbe:subgrupo           text    delete
+node,way    ngbe:tema               text    delete
+node,way    ngbe:tipotexto          text    delete
+node,way    ngbe:version            text    delete
+node,way    ngbe:xutm_ed50          text    delete
+node,way    ngbe:yutm_ed50          text    delete
+
+# naptan (UK)
+node,way    naptan:verified         text    delete
+node,way    naptan:AtcoCode         text    delete
+node,way    naptan:CommonName       text    delete
+node,way    naptan:Bearing          text    delete
+node,way    naptan:Street           text    delete
+node,way    naptan:Indicator        text    delete
+node,way    naptan:NaptanCode       text    delete
+
+# Corine (CLC) (Europe)
+node,way    CLC:code                text    delete
+node,way    CLC:year                text    delete
+node,way    CLC:id                  text    delete
+node,way    CLC:shapeId             text    delete
+node,way    CLC:explanation         text    delete
+
+# misc
+node,way    3dshapes:ggmodelk       text    delete
+node,way    AND_nosr_r              text    delete
+node,way    import                  text    delete
+node,way    it:fvg:ctrn:code        text    delete
+node,way    it:fvg:ctrn:revision    text    delete
