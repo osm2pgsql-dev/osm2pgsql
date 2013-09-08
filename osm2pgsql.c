@@ -603,6 +603,10 @@ int main(int argc, char *argv[])
 
     if (cache < 0) cache = 0;
 
+    if (cache == 0) {
+        fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
+    }
+
     if (num_procs < 1) num_procs = 1;
 
     if (pass_prompt)
