@@ -1,3 +1,15 @@
+polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisure', 
+      'man_made', 'military', 'natural', 'office', 'place', 'power',
+      'public_transport', 'shop', 'sport', 'tourism', 'waterway',
+      'wetland', 'water', 'aeroway' }
+
+generic_keys = {'access','addr:housename','addr:housenumber','addr:interpolation','admin_level','aerialway','aeroway','amenity','area','barrier',
+   'bicycle','brand','bridge','boundary','building','capital','construction','covered','culvert','cutting','denomination','disused','ele',
+   'embarkment','foot','generation:source','harbour','highway','historic','hours','intermittent','junction','landuse','layer','leisure','lock',
+   'man_made','military','motor_car','name','natural','office','oneway','operator','place','poi','population','power','power_source','public_transport',
+   'railway','ref','religion','route','service','shop','sport','surface','toll','tourism','tower:type', 'tracktype','tunnel','water','waterway',
+   'wetland','width','wood','type'}
+
 function add_z_order(keyvalues)
    z_order = 0
    if (keyvalues["layer"] ~= nil ) then
@@ -46,7 +58,9 @@ function filter_tags_generic(keyvalues, nokeys)
       keyvalues[k] = nil
    end
    
-   for k,v in pairs(keyvalues) do tagcount = tagcount + 1; end
+   for k,v in pairs(keyvalues) do
+      for i, k2 in ipairs(generic_keys) do if k2 == k then tagcount = tagcount + 1; end end
+   end
    if tagcount == 0 then
       filter = 1
    end
@@ -84,10 +98,6 @@ function filter_tags_way (keyvalues, nokeys)
       return filter, keyvalues, poly, roads
    end
 
-   polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisure', 
-      'man_made', 'military', 'natural', 'office', 'place', 'power',
-      'public_transport', 'shop', 'sport', 'tourism', 'waterway',
-      'wetland', 'water', 'aeroway' }
 
    for i,k in ipairs(polygon_keys) do
       if keyvalues[k] then
@@ -131,11 +141,15 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
       boundary = 1
    elseif (type == "multipolygon") then
       polygon = 1
-      tagcount = 0;
-      for i,v in pairs(keyvalues) do tagcount = tagcount + 1 end
-      if ((tagcount == 0) or (tagcount == 1 and keyvalues["name"])) then
+      polytagcount = 0;
+      for i,k in ipairs(polygon_keys) do
+         if keyvalues[k] then
+            polytagcount = polytagcount + 1
+         end
+      end
+      if (polytagcount == 0) then
          for i = 1,membercount do
-            if (roles[i] == "outer") then 
+            if (roles[i] == "outer") then
                for k,v in pairs(keyvaluemembers[i]) do
                   keyvalues[k] = v
                end
@@ -146,7 +160,12 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
          superseeded = 1
          for k,v in pairs(keyvaluemembers[i]) do
             if ((keyvalues[k] == nil) or (keyvalues[k] ~= v)) then
-               superseeded = 0;
+               for j,k2 in ipairs(generic_keys) do
+                  if (k == k2) then
+                     superseeded = 0;
+                     break
+                  end
+               end
             end
          end
          membersuperseeded[i] = superseeded
