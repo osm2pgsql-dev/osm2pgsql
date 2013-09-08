@@ -48,11 +48,11 @@
 # With --hstore any tags without a column will be added to the hstore column.
 # This will also cause all objects to be kept.
 #
-# With --hstore-match-only the behavior for tags is the same, but objects are 
+# With --hstore-match-only the behavior for tags is the same, but objects are
 # only kept if they have a non-NULL value in one of the columns.
 #
 # With --hstore-all all tags are added to the hstore column unless they appear
-# in the style file with a delete flag, causing duplication between the normal 
+# in the style file with a delete flag, causing duplication between the normal
 # columns and the hstore column.
 #
 # Special database columns
@@ -88,7 +88,7 @@ node,way   aeroway      text         polygon
 node,way   amenity      text         polygon
 node,way   area         text         # hard coded support for area=1/yes => polygon is in osm2pgsql
 node,way   barrier      text         linear
-node,way   bicycle      text         
+node,way   bicycle      text
 node,way   brand        text         linear
 node,way   bridge       text         linear
 node,way   boundary     text         linear
