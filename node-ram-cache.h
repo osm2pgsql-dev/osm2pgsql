@@ -17,7 +17,7 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
 static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((int)((x) * scale))
+#define DOUBLE_TO_FIX(x) ((int)((x) * scale + 0.4))
 #define FIX_TO_DOUBLE(x) (((double)x) / scale)
 
 #define UNUSED  __attribute__ ((unused))
