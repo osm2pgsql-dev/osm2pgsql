@@ -338,15 +338,13 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
                 addIntItem(&(osmdata->tags), "osm_version", denseinfo->version[node_id], 0);
                 addIntItem(&(osmdata->tags), "osm_changeset", deltachangeset, 0);
                 
-#if 0
-                /* TODO */
                 if (deltauid != -1) { /* osmosis devs failed to read the specs */
-                    printuser(string_table->s[deltauser_sid]);
-                    printnumericattribute("osm_uid", deltauid);
+                    char * valstr;
+                    addIntItem(&(osmdata->tags), "osm_uid", deltauid, 0);
+                    valstr = calloc(string_table->s[deltauser_sid].len + 1, 1);
+                    memcpy(valstr, string_table->s[deltauser_sid].data, string_table->s[deltauser_sid].len);
+                    addItem(&(osmdata->tags), "osm_user", valstr,  0);
                 }
-                
-                printtimestamp("osm_timestamp", deltatimestamp);
-#endif
             }
             
             if (l < dense->n_keys_vals) {
