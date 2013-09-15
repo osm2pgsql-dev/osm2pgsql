@@ -146,7 +146,7 @@ then
 lua libraries not found. You will NOT be able to use lua scripts for tag transform.
 
 To enable lua support, the lua interpreter and libraries are required. 
-Look for packages named: liblua5.2-dev
+Look for packages named: liblua5.2-dev and lua5.2
 ])
 fi
 
