@@ -123,7 +123,6 @@ if test "$LUA_VERSION"
 then
     AX_LUA_HEADERS
     AX_LUA_LIBS
-    AC_MSG_WARN([I am here 3])
     AC_DEFINE([HAVE_LUA], [1], [Requirements for lua are met])
     HAVE_LUA=yes
 fi
