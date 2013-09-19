@@ -337,13 +337,28 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
             freeItem(item);
          }
       }
+      else if (strcmp(item->key, "highway") == 0)
+      {
+         if (strcmp(item->value, "no") &&
+             strcmp(item->value, "turning_circle") &&
+             strcmp(item->value, "traffic_signals") &&
+             strcmp(item->value, "mini_roundabout") &&
+             strcmp(item->value, "noexit") &&
+             strcmp(item->value, "crossing"))
+         {
+             pushItem(places, item);
+         }
+         else
+         {
+             freeItem(item);
+         }
+      }
       else if (strcmp(item->key, "aerialway") == 0 ||
                strcmp(item->key, "aeroway") == 0 ||
                strcmp(item->key, "amenity") == 0 ||
                strcmp(item->key, "boundary") == 0 ||
                strcmp(item->key, "bridge") == 0 ||
                strcmp(item->key, "craft") == 0 ||
-               strcmp(item->key, "highway") == 0 ||
                strcmp(item->key, "leisure") == 0 ||
                strcmp(item->key, "office") == 0 ||
                strcmp(item->key, "railway") == 0 ||
