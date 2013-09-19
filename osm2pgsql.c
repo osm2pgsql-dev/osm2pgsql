@@ -230,7 +230,15 @@ Other options:\n\
    -O|--output      Output backend.\n\
                     pgsql - Output to a PostGIS database. (default)\n\
                     gazetteer - Output to a PostGIS database for Nominatim\n\
-                    null - No output. Useful for testing.\n\
+                    null - No output. Useful for testing.\n");
+#ifdef HAVE_LUA
+    printf("\
+      --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\
+                    The script contains callback functions for nodes, ways and relations, which each\n\
+                    take a set of tags and returns a transformed, filtered set of tags which are then\n\
+                    written to the database.\n");
+#endif
+    printf("\
    -x|--extra-attributes\n\
                     Include attributes for each object in the database.\n\
                     This includes the username, userid, timestamp and version.\n\
