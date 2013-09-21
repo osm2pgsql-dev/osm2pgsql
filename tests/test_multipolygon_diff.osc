@@ -81,6 +81,14 @@
       <nd ref="321"/>
       <nd ref="304"/>
     </way>
+    <way id='120' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='5'>
+      <nd ref='262' />
+      <nd ref='266' />
+      <nd ref='294' />
+      <nd ref='284' />
+      <nd ref='262' />
+      <tag k='natural' v='water' />
+    </way>
   </modify>
   <create>
     <way id="101420" version="1" timestamp="2013-08-07T15:58:08Z" uid="5" user="Test123" changeset="1">
