@@ -626,8 +626,13 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
             while (p != &(member_tags[i])) {
                 const char *v = getItem(&tags, p->key);
                 if (!v || strcmp(v, p->value)) {
-                    match = 0;
-                    break;
+                    /* z_order and osm_ are automatically generated tags, so ignore them */
+                    if ((strcmp(p->key, "z_order") != 0) && (strcmp(p->key, "osm_user") != 0) && 
+                        (strcmp(p->key, "osm_version") != 0) && (strcmp(p->key, "osm_uid") != 0) &&
+                        (strcmp(p->key, "osm_changeset"))) {
+                        match = 0;
+                        break;
+                    }
                 }
                 p = p->next;
             }

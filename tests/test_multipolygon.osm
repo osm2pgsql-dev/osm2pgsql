@@ -338,6 +338,22 @@
   <node id='336' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.008946969558746297' lon='0.016817960881232087' />
   <node id='337' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.007590902612892312' lon='0.016558712785936455' />
   <node id='338' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.00761084477389342' lon='0.014225479928275758' />
+  <node id='339' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010043788408379788' lon='-0.0017481911741705812' />
+  <node id='340' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010063730569249365' lon='-0.001209752822402728' />
+  <node id='341' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009784540316965457' lon='-0.001149926338872966' />
+  <node id='342' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009784540316965457' lon='-0.001708306851817407' />
+  <node id='343' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010342920821294321' lon='-0.002147034397702325' />
+  <node id='344' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010342920821294321' lon='-0.001030273371813443' />
+  <node id='345' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009525292225350803' lon='-8.109095988709837E-4' />
+  <node id='346' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.00946546574264261' lon='-0.0020074392694662147' />
+  <node id='347' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.00996401976488934' lon='-0.003722465130652713' />
+  <node id='348' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010023846247508995' lon='-0.002944720844765814' />
+  <node id='349' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009704771673412807' lon='-0.002904836522412638' />
+  <node id='350' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009664887351629419' lon='-0.003562927841240015' />
+  <node id='351' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010263152177877675' lon='-0.004041539709478108' />
+  <node id='352' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.010283094338733707' lon='-0.002665530588293592' />
+  <node id='353' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009425581420831412' lon='-0.0025857619435872437' />
+  <node id='354' timestamp='2013-09-21T00:11:07Z' uid='5' user='Test123' visible='true' version='1' changeset='9' lat='-0.009365754938106057' lon='-0.004001655387124934' />
   <way id='1' timestamp='2013-08-07T15:58:08Z' uid='5' user='Test123' visible='true' version='1' changeset='1'>
     <nd ref='12' />
     <nd ref='7' />
@@ -1062,7 +1078,7 @@
     <nd ref='262' />
     <tag k='natural' v='heath' />
   </way>
-    <way id='121' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='5'>
+  <way id='121' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='5'>
     <nd ref='323' />
     <nd ref='326' />
     <tag k='natural' v='water' />
@@ -1143,6 +1159,38 @@
     <nd ref='337' />
     <tag k='man_made' v='pier' />
     <tag k='natural' v='water' />
+  </way>
+    <way id='137' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <nd ref='342' />
+    <nd ref='341' />
+    <nd ref='340' />
+    <nd ref='339' />
+    <nd ref='342' />
+    <tag k='landuse' v='forest' />
+  </way>
+  <way id='138'  timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <nd ref='346' />
+    <nd ref='345' />
+    <nd ref='344' />
+    <nd ref='343' />
+    <nd ref='346' />
+    <tag k='landuse' v='forest' />
+  </way>
+  <way id='139'  timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <nd ref='350' />
+    <nd ref='349' />
+    <nd ref='348' />
+    <nd ref='347' />
+    <nd ref='350' />
+    <tag k='landuse' v='forest' />
+  </way>
+  <way id='140' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <nd ref='354' />
+    <nd ref='353' />
+    <nd ref='352' />
+    <nd ref='351' />
+    <nd ref='354' />
+    <tag k='landuse' v='forest' />
   </way>
   <relation id='1' timestamp='2013-08-07T15:58:11Z' uid='5' user='Test123' visible='true' version='1' changeset='1'>
     <member type='way' ref='71' role='outer' />
@@ -1421,7 +1469,7 @@
     <member type='way' ref='115' role='inner' />
     <tag k='type' v='multipolygon' />
   </relation>
-    <relation id='37' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+  <relation id='37' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
     <member type='way' ref='128' role='outer' />
     <member type='way' ref='126' role='outer' />
     <member type='way' ref='125' role='outer' />
@@ -1441,6 +1489,19 @@
     <member type='way' ref='131' role='inner' />
     <member type='way' ref='130' role='inner' />
     <member type='way' ref='129' role='inner' />
+    <tag k='type' v='multipolygon' />
+  </relation>
+  <relation id='39' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <member type='way' ref='138' role='outer' />
+    <member type='way' ref='137' role='inner' />
+    <tag k='landuse' v='forest' />
+    <tag k='name' v='relation_name' />
+    <tag k='type' v='multipolygon' />
+  </relation>
+  <relation id='40' timestamp='2013-08-30T00:11:08Z' uid='5' user='Test123' visible='true' version='1' changeset='9'>
+    <member type='way' ref='140' role='outer' />
+    <member type='way' ref='139' role='inner' />
+    <tag k='landuse' v='forest' />
     <tag k='type' v='multipolygon' />
   </relation>
 
