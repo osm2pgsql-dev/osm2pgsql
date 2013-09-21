@@ -172,6 +172,19 @@ sql_test_statements=[
     ( 98, 'Diff import number of hstore roads tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_roads;', 2465),
     ( 99, 'Diff import number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11167),
     ( 100, 'Diff import number of hstore polygons tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_polygon;', 9860),
+    #**** Tests to check if inner polygon appears when outer tags change after initially identicall inner and outer way tags in a multi-polygon ****
+    #**** These tests are currently broken and noted in trac ticket #2853 ****
+    ( 101, 'Multipolygon identical tags on inner and outer (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -31 and "natural" = \'heath\'', 32702),
+    ( 102, 'Multipolygon identical tags on inner and outer (abscence of outer)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 120', 0),
+    ( 103, 'Multipolygon identical tags on inner and outer (abscence of inner)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 112', 0),
+    ( 104, 'Multipolygon identical tags on inner and outer (presence of relation), post diff',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -31 and "natural" = \'water\'', 32702),
+    ( 105, 'Multipolygon identical tags on inner and outer (presece of inner)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = 112 and "natural" = \'heath\'', 1234),
+    
     ]
 #****************************************************************
 #****************************************************************
@@ -233,7 +246,8 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
                                              ("testOne",
                                               "testTwo")))
         #Case 77 currently doesn't work
-        self.addTest(MultipolygonSlimTestCase("basic case", [], [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+        self.addTest(MultipolygonSlimTestCase("basic case", [],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"],
                                               [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
@@ -289,7 +303,7 @@ class BaseTestCase(unittest.TestCase):
         self.dbConnect()
         try:
             for i in seq:
-                self.assertEqual(sql_test_statements[i][0], i, "test case numbers don't match up")
+                self.assertEqual(sql_test_statements[i][0], i, "test case numbers don't match up: " + str(i) + " =/=" + str(sql_test_statements[i][0]))
                 try:
                     self.cur.execute(sql_test_statements[i][2])
                     res = self.cur.fetchall()
