@@ -389,8 +389,9 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
         struct keyval *member_tags, const char **member_role,
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
     char *type;
-    struct keyval tags, *p, poly_tags;
+    struct keyval tags, *p, *q, *qq, poly_tags;
     int i, j;
+    int first_outerway, contains_tag;
 
     /* Get the type, if there's no type we don't care */
     type = getItem(rel_tags, "type");
@@ -542,27 +543,66 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
         /* Copy the tags from the outer way(s) if the relation is untagged (with
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
         if (!listHasData(&poly_tags)) {
+            first_outerway = 1;
             for (i = 0; i < member_count; i++) {
                 if (member_role[i] && !strcmp(member_role[i], "inner"))
                     continue;
 
-                p = member_tags[i].next;
-                while (p != &(member_tags[i])) {
-                    addItem(&tags, p->key, p->value, 1);
-                    /* We need to check if this itself is a polygon tag and add it to the poly_tags list */
-                    for (j = 0; j < exportListCount[OSMTYPE_WAY]; j++) {
-                        if (strcmp(exportList[OSMTYPE_WAY][j].name, p->key) == 0) {
-                            if (exportList[OSMTYPE_WAY][j].flags & FLAG_POLYGON) {
-                                addItem(&poly_tags, p->key, p->value, 1);
-                            }
+                /* insert all tags of the first outerway to the potential list of copied tags. */
+                if (first_outerway) {
+                    p = member_tags[i].next;
+                    while (p != &(member_tags[i])) {
+                        addItem(&poly_tags, p->key, p->value, 1);                        
+                        p = p->next;
+                    }
+                } else {
+                    /* Check if all of the tags in the list of potential tags are present on this way,
+                       otherwise remove from the list of potential tags. Tags need to be present on
+                       all outer ways to be copied over to the relation */
+                    q = poly_tags.next; 
+                    while (q != &poly_tags) {
+                        p = getTag(&(member_tags[i]), q->key);
+                        if ((p != NULL) && (strcmp(q->value, p->value) == 0)) {
+                            q = q->next;
+                        } else {
+                            /* This tag is not present on all member outer ways, so don't copy it over to relation */
+                            qq = q->next;
+                            removeTag(q);
+                            q = qq;
+                        }
+                    }
+                }
+                first_outerway = 0;
+            }
+            /* Copy the list identified outer way tags over to the relation */
+            q = poly_tags.next; 
+            while (q != &poly_tags) {
+                addItem(&tags, q->key, q->value, 1);                        
+                q = q->next;
+            }
+
+            /* We need to re-check and only keep polygon tags in the list of polytags */
+            q = poly_tags.next; 
+            while (q != &poly_tags) {
+                contains_tag = 0;
+                for (j = 0; j < exportListCount[OSMTYPE_WAY]; j++) {
+                    if (strcmp(exportList[OSMTYPE_WAY][j].name, q->key) == 0) {
+                        if (exportList[OSMTYPE_WAY][j].flags & FLAG_POLYGON) {
+                            contains_tag = 1;
                             break;
                         }
                     }
-                    p = p->next;
+                }
+                if (contains_tag == 0) {
+                    qq = q->next;
+                    removeTag(q);
+                    q = qq;
+                } else {
+                    q = q->next;
                 }
             }
         }
-
+        resetList(&poly_tags);
     } else {
         /* Unknown type, just exit */
         resetList(&tags);
@@ -581,15 +621,14 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
      but only if the polygon-tags look the same as the outer ring */
     if (make_polygon) {
         for (i = 0; i < member_count; i++) {
-            int match = 0;
-            struct keyval *p = poly_tags.next;
-            while (p != &poly_tags) {
-                const char *v = getItem(&(member_tags[i]), p->key);
+            int match = 1;
+            struct keyval *p = member_tags[i].next;
+            while (p != &(member_tags[i])) {
+                const char *v = getItem(&tags, p->key);
                 if (!v || strcmp(v, p->value)) {
                     match = 0;
                     break;
                 }
-                match = 1;
                 p = p->next;
             }
             if (match) {
