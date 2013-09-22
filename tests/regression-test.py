@@ -17,17 +17,17 @@ sql_test_statements=[
     ( 0, 'Basic point count', 'SELECT count(*) FROM planet_osm_point;', 1342 ),
     ( 1, 'Basic line count', 'SELECT count(*) FROM planet_osm_line;', 3300 ),
     ( 2, 'Basic road count', 'SELECT count(*) FROM planet_osm_roads;', 375 ),
-    ( 3, 'Basic polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4127 ),
+    ( 3, 'Basic polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4128 ),
     ( 4,  'Basic latlon line count', 'SELECT count(*) FROM planet_osm_line;', 3298 ),
     ( 5, 'Basic latlon road count', 'SELECT count(*) FROM planet_osm_roads;', 374 ),
     ( 6, 'Basic post-diff point count', 'SELECT count(*) FROM planet_osm_point;', 1457 ),
     ( 7, 'Basic post-diff line count', 'SELECT count(*) FROM planet_osm_line;', 3344 ),
     ( 8, 'Basic post-diff road count', 'SELECT count(*) FROM planet_osm_roads;', 381 ),
-    ( 9, 'Basic post-diff polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4274 ),
+    ( 9, 'Basic post-diff polygon count', 'SELECT count(*) FROM planet_osm_polygon;', 4275 ),
     ( 10, 'Absence of nodes table', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_nodes\'', 0),
     ( 11, 'Absence of way table', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_ways\'', 0),
     ( 12, 'Absence of rel line', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_rels\'', 0),
-    ( 13, 'Basic polygon area', 'SELECT round(sum(cast(ST_Area(way) as numeric)),0) FROM planet_osm_polygon;', 1223787932),
+    ( 13, 'Basic polygon area', 'SELECT round(sum(cast(ST_Area(way) as numeric)),0) FROM planet_osm_polygon;', 1223800814),
     ( 14, 'Gazetteer place count', 'SELECT count(*) FROM place', 4500),
     ( 15, 'Gazetteer place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 779),
     ( 16, 'Gazetteer place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3699),
@@ -184,7 +184,36 @@ sql_test_statements=[
       'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -31 and "natural" = \'water\'', 32702),
     ( 105, 'Multipolygon identical tags on inner and outer (presece of inner)',
       'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = 112 and "natural" = \'heath\'', 1234),
-    
+    #**** Test to check that only polygon tags that are present on all outer ways get copied over to the multi-polygon relation ****
+    ( 106, 'Multipolygon copy outer tags (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\'', 29340),
+    ( 107, 'Multipolygon copy outer tags (absence of partial outer tags)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\' and "man_made" = \'pier\'', 0),
+    ( 108, 'Multipolygon copy outer tags (absence of multi-polygon tagged outer way)',
+      'SELECT count(*) FROM planet_osm_line WHERE osm_id = 134 OR osm_id = 133', 0),
+    ( 109, 'Multipolygon copy outer tags (presence of additionally tagged outer way)',
+      'SELECT round(sum(ST_length(way))) FROM planet_osm_line WHERE (osm_id = 136 OR osm_id = 132) AND "man_made" = \'pier\'', 407),
+    ( 110, 'Multipolygon copy outer tags (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -37 and "natural" = \'water\'', 29952),
+    ( 111, 'Multipolygon copy outer tags (absence of partial outer tags)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -37 and "natural" = \'water\' and "man_made" = \'pier\'', 0),
+    ( 112, 'Multipolygon copy outer tags (absence of multi-polygon tagged outer way)',
+      'SELECT count(*) FROM planet_osm_line WHERE osm_id = 128 OR osm_id = 125', 0),
+    ( 113, 'Multipolygon copy outer tags (presence of additionally tagged outer way)',
+      'SELECT round(sum(ST_length(way))) FROM planet_osm_line WHERE (osm_id = 126 OR osm_id = 124) AND "man_made" = \'pier\'', 276),
+    ( 114, 'Multipolygon copy outer tags (absence of multi-polygon tagged inner way)',
+      'SELECT count(*) FROM planet_osm_line WHERE osm_id = 123 OR osm_id = 121', 0),
+    ( 115, 'Multipolygon copy outer tags (presence of additionally tagged inner way)',
+      'SELECT round(sum(ST_length(way))) FROM planet_osm_line WHERE (osm_id = 127 OR osm_id = 122) AND "man_made" = \'pier\'', 318),
+    #**** Test to check that if polygon tags are on both outer ways and relation, polygons don't get duplicated in the db ****
+    ( 116, 'Multipolygon tags on both outer and relation (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -39 and "landuse" = \'forest\'', 10379),
+    ( 117, 'Multipolygon tags on both outer and relation (absence of outer way)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 138', 0),
+    ( 118, 'Multipolygon tags on both outer and relation with additional tags on relation (presence of relation)',
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -40 and "landuse" = \'forest\'', 12397),
+    ( 119, 'Multipolygon tags on both outer and relation with additional tags on relation (absence of outer way)',
+      'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 140', 0),
     ]
 #****************************************************************
 #****************************************************************
@@ -247,22 +276,34 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
                                               "testTwo")))
         #Case 77 currently doesn't work
         self.addTest(MultipolygonSlimTestCase("basic case", [],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("multi geometry", ["-G"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 45, 46, 47, 49, 50, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("hstore case", ["-k"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("hstore case", ["-k", "--hstore-match-only"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
+        self.addTest(MultipolygonSlimTestCase("Extra tags hstore match only", ["-x", "-k", "--hstore-match-only"],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
+                                              [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
+        self.addTest(MultipolygonSlimTestCase("Extra tags hstore match only", ["-x", "-j"],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
+                                               106,107,108,109,110,111,112,113,114,115,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63,64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
         self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"],
-                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69,72,73,74,78,79,82,83,84,86,87,88],
+                                              [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69,72,73,74,78,79,82,83,84,86,87,88,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,66,67,70,71,75,76,79,80,81,83,84,85,87,89,90]))
 
 
