@@ -118,14 +118,15 @@ fi
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
-AX_PROG_LUA([5.0],[],[],[:])
-if test "$LUA_VERSION"
-then
-    AX_LUA_HEADERS
-    AX_LUA_LIBS
-    AC_DEFINE([HAVE_LUA], [1], [Requirements for lua are met])
-    HAVE_LUA=yes
-fi
+AX_PROG_LUA([5.0],[],[
+    AX_LUA_HEADERS([
+        AX_LUA_LIBS([
+            AC_DEFINE([HAVE_LUA], [1], [Requirements for lua are met])
+            HAVE_LUA=yes
+        ],[AC_MSG_WARN([cannot find Lua libs])])
+    ],[AC_MSG_WARN([cannot find Lua includes])])
+],[AC_MSG_WARN([cannot find Lua interpreter])])
+
 dnl Generate Makefile
 AC_OUTPUT(Makefile)
 
