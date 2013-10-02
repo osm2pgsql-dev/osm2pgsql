@@ -154,6 +154,7 @@ static void stop_copy(void)
    return;
 }
 
+#if 0
 static void copy_error_data(const char *sql)
 {
    unsigned int sqlLen = strlen(sql);
@@ -231,6 +232,7 @@ static void stop_error_copy(void)
 
    return;
 }
+#endif
 
 static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
    int* admin_level, struct keyval ** housenumber, struct keyval ** street, struct keyval ** addr_place, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
@@ -890,6 +892,7 @@ static void add_place(char osm_type, osmid_t osm_id, const char *class, const ch
    return;
 }
 
+#if 0
 static void add_polygon_error(char osm_type, osmid_t osm_id, const char *class, const char *type, 
   struct keyval *names, const char *countrycode, const char *wkt)
 {
@@ -959,6 +962,7 @@ static void add_polygon_error(char osm_type, osmid_t osm_id, const char *class, 
 
    return;
 }
+#endif
 
 
 static void delete_place(char osm_type, osmid_t osm_id)
