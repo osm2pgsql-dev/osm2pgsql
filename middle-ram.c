@@ -58,7 +58,6 @@ struct ramRel {
 static struct ramWay     *ways[NUM_BLOCKS];
 static struct ramRel     *rels[NUM_BLOCKS];
 
-static int node_blocks;
 static int way_blocks;
 
 static int way_out_count;

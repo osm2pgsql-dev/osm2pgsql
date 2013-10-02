@@ -701,11 +701,10 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
 static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
     int i, wkt_size;
-    int polygon = 0, roads = 0;
+    int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
     int * members_superseeded;
-    char *type;
     double split_at;
 
     members_superseeded = calloc(sizeof(int), member_count);
@@ -1280,7 +1279,6 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
   struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
-  int filter;
 
   /* If the flag says this object may exist already, delete it first */
   if(exists)

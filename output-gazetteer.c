@@ -64,9 +64,6 @@ static unsigned int BufferLen = 0;
 static PGconn *ConnectionDelete = NULL;
 
 static PGconn *ConnectionError = NULL;
-static int CopyErrorActive = 0;
-static char BufferError[BUFFER_SIZE];
-static unsigned int BufferErrorLen = 0;
 
 static FILE * hLog = NULL;
 

@@ -116,7 +116,6 @@ static void short_usage(char *arg0)
 
 static void long_usage(char *arg0)
 {
-    int i;
     const char *name = basename(arg0);
 
     printf("Usage:\n");
