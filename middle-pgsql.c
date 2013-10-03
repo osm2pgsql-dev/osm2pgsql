@@ -469,6 +469,7 @@ static int middle_nodes_set(osmid_t id, double lat, double lon, struct keyval *t
 }
 
 
+#if 0
 static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
 {
     PGresult   *res;
@@ -499,6 +500,7 @@ static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
     PQclear(res);
     return 0;
 }
+#endif
 
 /* Currently not used 
 static int middle_nodes_get(struct osmNode *out, osmid_t id)

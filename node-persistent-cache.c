@@ -615,7 +615,7 @@ void init_node_persistent_cache(const struct output_options *options, int append
             {
                 if (err == ENOSPC) {
                     fprintf(stderr, "Failed to allocate space for node cache file: No space on disk\n");
-                } else if (err = EFBIG) {
+                } else if (err == EFBIG) {
                     fprintf(stderr, "Failed to allocate space for node cache file: File is too big\n");
                 } else {
                     fprintf(stderr, "Failed to allocate space for node cache file: Internal error %i\n", err);

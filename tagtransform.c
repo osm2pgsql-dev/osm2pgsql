@@ -1,11 +1,13 @@
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "osmtypes.h"
 #include "keyvals.h"
 #include "tagtransform.h"
 #include "output-pgsql.h"
 #include "config.h"
+#include "wildcmp.h"
 
 #ifdef HAVE_LUA
 static lua_State *L;
