@@ -1,0 +1,1795 @@
+2010-11-06 21:04 +0000 [r24100]  giggls:
+
+	* Auto-detect filetype pbf/osm based on file extension if no Input
+	  frontend has been explicitely selected
+
+2010-11-06 20:37 +0000 [r24099]  hholzgra:
+
+	* * improved configure setup (including automake and libtool) *
+	  support for different input readers besides libxml2 OSM XML
+	  parsing * "primitive" XML parser integrated into the main binary
+	  * OSM PBF parser
+
+2010-11-03 10:51 +0000 [r24039]  twain:
+
+	* add extra operator column to word
+
+2010-10-24 00:37 +0000 [r23798]  twain:
+
+	* hstore version of gazetteer output
+
+2010-10-20 23:47 +0000 [r23731]  twain:
+
+	* set CPPFLAGS correctly for non-standard paths
+
+2010-10-19 10:06 +0000 [r23687]  twain:
+
+	* max admin rank, better postcode defaults
+
+2010-10-18 13:40 +0000 [r23678]  ldp:
+
+	* Remove 3 unused (and undocumented) keys
+
+2010-10-02 13:26 +0000 [r23440]  jonb:
+
+	* fix warning about incorrect pointer assignment at osm2pgsql.c:818
+
+2010-09-20 20:59 +0000 [r23286]  ldp:
+
+	* Delete osm.xml. This shouldn't be in here.
+
+2010-09-19 11:35 +0000 [r23264]  stevechilton:
+
+	* add service=drive-through
+
+2010-09-18 12:07 +0000 [r23247]  rodo:
+
+	* Add packages names for Debian
+
+2010-09-17 21:09 +0000 [r23243]  stevechilton:
+
+	* add service=drive-through
+
+2010-09-15 16:19 +0000 [r23186]  twain:
+
+	* Minor javascript fixes. Introduce new search plans for searching
+	  by 'special' words
+
+2010-09-10 18:19 +0000 [r23099]  twain:
+
+	* check the indexing process didn't generate any errors (second
+	  attempt)
+
+2010-09-10 18:13 +0000 [r23098]  frederik:
+
+	* real programmers don't do syntax checks ;)
+
+2010-09-10 18:08 +0000 [r23097]  twain:
+
+	* check the indexing process didn't generate any errors
+
+2010-09-09 14:14 +0000 [r23085]  frederik:
+
+	* fixed twain47's version and commited to svn
+
+2010-09-09 12:21 +0000 [r23080]  twain:
+
+	* check resulting geometry is a polygon of some type
+
+2010-09-04 16:48 +0000 [r22986]  twain:
+
+	* remove reference to natural earth
+
+2010-09-04 14:41 +0000 [r22984]  twain:
+
+	* performance improvements for initial load of data
+
+2010-08-22 12:57 +0000 [r22731]  twain:
+
+	* remove debug messages
+
+2010-08-21 12:24 +0000 [r22718]  twain:
+
+	* switch to c code for toekn generation revert change to
+	  administrative typo improvements to incremental update code
+
+2010-08-21 11:39 +0000 [r22717]  frederik:
+
+	* fix typo
+
+2010-08-21 11:22 +0000 [r22716]  frederik:
+
+	* comment out replace operations which are already covered by the
+	  transliteration module
+
+2010-08-20 15:05 +0000 [r22710]  twain:
+
+	* switch to multi-threaded indexing
+
+2010-08-19 22:19 +0000 [r22701]  rodo:
+
+	* Fix #3169 by applying patch
+
+2010-08-17 22:42 +0000 [r22679]  frederik:
+
+	* readme moved to wiki
+
+2010-08-17 10:59 +0000 [r22669]  twain:
+
+	* manage Osmosis import from within util.update.php note the new
+	  log table 'import_osmosis_log' created in gazetteer-tables.sql
+
+2010-08-17 10:11 +0000 [r22668]  frederik:
+
+	* add capability to load .osc files directly
+
+2010-08-17 09:55 +0000 [r22667]  frederik:
+
+	* typo
+
+2010-08-16 12:57 +0000 [r22658]  frederik:
+
+	* make explicit that slim mode has to be used.
+
+2010-08-16 12:21 +0000 [r22655]  frederik:
+
+	* remove references to postgres user "twain"
+
+2010-08-03 12:12 +0000 [r22556]  twain:
+
+	* update mime type headers (as per #3088)
+
+2010-07-19 08:02 +0000 [r22371]  mazdermind:
+
+	* add hstore-column option, which allows to create specific hstore
+	  columns for sub tags. '--hstore-column name:' will for example
+	  create a column "name:" with all the values of name:xx tags ind
+	  the form of xx=>Value for any name:xx tagged to an element. This
+	  changeset also includes changes to the regular hstore code by
+	  moving it to a separate function and also extending keyvals.c/h
+	  with an inline wrapper-function.
+
+2010-07-16 13:24 +0000 [r22349]  gravitystorm:
+
+	* Updated table definitions from twain47 to reflect changes made in
+	  [22221]
+
+2010-07-16 13:18 +0000 [r22348]  gravitystorm:
+
+	* If you change the build system remember to update the README
+
+2010-07-16 12:32 +0000 [r22347]  gravitystorm:
+
+	* fix typo in district
+
+2010-07-14 11:40 +0000 [r22308]  twain:
+
+	* Finally add warning about postgresql 8.4
+
+2010-07-12 14:16 +0000 [r22285]  twain:
+
+	* move to processing git rather than svg multi-lingual generate
+	  'near' and 'in' tokens
+
+2010-07-10 08:30 +0000 [r22268]  frederik:
+
+	* osm2pgsql version without libxml
+
+2010-07-07 14:59 +0000 [r22222]  twain:
+
+	* handle broken language list in IE
+
+2010-07-07 14:51 +0000 [r22221]  twain:
+
+	* handle house name / number collisions by showing both
+
+2010-07-07 13:35 +0000 [r22220]  twain:
+
+	* improved multi-processor indexing
+
+2010-07-07 13:20 +0000 [r22219]  twain:
+
+	* improved multi-processor indexing
+
+2010-07-07 08:25 +0000 [r22213]  giggls:
+
+	* Put binary into correct places according to debian policy
+
+2010-06-24 14:47 +0000 [r21987]  twain:
+
+	* improve presentation of update status - time remaining extra
+	  options to specify max load / blocking processes on command line
+
+2010-06-11 22:47 +0000 [r21661]  giggls:
+
+	* * remove malloc.h for proper compi8lation on Macosx * allow for
+	  postgresql password to be specified in PGPASS Environment
+	  Variable instead of interactive input
+
+2010-06-09 20:30 +0000 [r21630]  rodo:
+
+	* Add an option to Create indexes on a different tablespace, close
+	  #2988
+
+2010-05-27 17:27 +0000 [r21470]  twain:
+
+	* fix pointer error
+
+2010-05-27 15:43 +0000 [r21464]  twain:
+
+	* move string replacements to c module
+
+2010-05-20 08:58 +0000 [r21381]  rodo:
+
+	* Do not warn about slim option on 32nits system if option is
+	  enabled
+
+2010-05-15 22:28 +0000 [r21290]  jonb:
+
+	* osm2pgsql: Add C++ compiler into autoconf. Rename DATADIR to
+	  prevent clash with mingw32 objidl.h header. Fix some mingw32
+	  compile issues.
+
+2010-05-15 21:38 +0000 [r21289]  jonb:
+
+	* osm2pgsql: Raise maximum tag size in style file to 63 characters
+
+2010-05-05 15:34 +0000 [r21135]  frederik:
+
+	* fix osm2pgsql debian packaging, and make it buildable for ubuntu
+	  lucid
+
+2010-04-09 13:48 +0000 [r20873]  giggls:
+
+	* * add brief explanation of hstore functionality * make phstore
+	  flag actually do what it is supposed to do * remove obsolete
+	  function add_parking_node
+
+2010-04-07 17:51 +0000 [r20823]  feixm:
+
+	* When running on 32bit systems, userprocess can allocate as much
+	  as 3GB of virtual address space. This is due to 3GB/1GB split on
+	  32bit linux machines. No matter how much physical RAM you have,
+	  you end up on 3GB limit. This is quite low limit when importing
+	  anything big as country OSM file or the whole planet OSM. If we
+	  know this, we should warn user in syntax help, during runtime and
+	  even when we start throwing std::bad_alloc during conversion.
+
+2010-04-06 18:48 +0000 [r20802]  strk:
+
+	* Autoconf for osm2pgsql
+
+2010-04-02 12:13 +0000 [r20775]  giggls:
+
+	* change "char sql[2048]" to "static char *sql" and do dynamic
+	  allocation the reason is, that hstore rows can get really long,
+	  thus dynamic allocation prevents them to get cut and (hopefully)
+	  also prevents likely buffer overflows as well.
+
+2010-03-20 20:06 +0000 [r20565]  giggls:
+
+	* We need to be able to mark polygons as such also in hstore only
+	  mode where no additional tag columns should be added. For this
+	  reason we introduce a new flag called phstore which will do the
+	  same as the polygon flag but without adding a column for the tag
+	  specified in the stylefile.
+
+2010-03-16 08:26 +0000 [r20505]  giggls:
+
+	* \r und \n in hstore value needs to be escaped for pgsql copy
+	  import as well
+
+2010-03-15 14:47 +0000 [r20493]  giggls:
+
+	* TAB in hstore value needs to be escaped for pgsql copy import
+
+2010-03-14 14:31 +0000 [r20475]  giggls:
+
+	* Add an experimental feature to generate hstore enabled PgSQL
+	  tables. At least in theory this will allow for 3-column output
+	  tables now. Tested with the following environment: * non slim
+	  mode * hstore-new (http://pgfoundry.org/projects/hstore-new/ *
+	  PgSQL 8.4/PostGIS 1.4
+
+2010-03-11 22:00 +0000 [r20429]  frederik:
+
+	* patch not needed any longer
+
+2010-03-11 13:53 +0000 [r20418]  twain:
+
+	* only do address intrapolation in append mode
+
+2010-03-08 13:40 +0000 [r20370]  twain:
+
+	* add reverse and reverse.php to the block list
+
+2010-03-08 13:32 +0000 [r20369]  gslater:
+
+	* Add robots.txt, add form action
+
+2010-03-03 14:32 +0000 [r20255]  twain:
+
+	* applied #2769 search field should have focus patch (firefishy)
+
+2010-02-26 14:23 +0000 [r20163]  twain:
+
+	* change json output to be complaint (no comments allowed)
+
+2010-02-26 14:09 +0000 [r20161]  frederik:
+
+	* fix json compliance
+
+2010-02-25 18:41 +0000 [r20149]  twain:
+
+	* new name options, fix error when importing new data
+
+2010-02-24 12:17 +0000 [r20134]  twain:
+
+	* Improve install documentation
+
+2010-02-16 14:25 +0000 [r20035]  twain:
+
+	* More detailed loging. Tweaks to how house numbers are pressented.
+	  Fix json output (incorrect address details)
+
+2010-02-16 14:19 +0000 [r20034]  twain:
+
+	* improve handling of house numbers, more install documentation
+	  (thanks to Frans Hals)
+
+2010-02-11 23:50 +0000 [r19974]  jonb:
+
+	* osm2pgsql: Complain if we got an error while reading the style
+	  file or were unable to parse any valid columns
+
+2010-01-27 00:01 +0000 [r19640]  twain:
+
+	* broken output for [lat,lon] searches, attempting to search on
+	  blank queries
+
+2010-01-26 14:45 +0000 [r19633]  twain:
+
+	* suggest alternatives for missing words
+
+2010-01-23 17:58 +0000 [r19603-19604]  twain:
+
+	* minor runtime warning
+
+	* extra error checking, smaller indexing partitions
+
+2010-01-11 15:34 +0000 [r19407]  twain:
+
+	* More logging, improved UK postcodes, fix more_url
+
+2010-01-11 02:20 +0000 [r19398]  ldp:
+
+	* Make shop into type polygon, to have closed ways with no
+	  polygon-enforcing tags (eg. missing building=yes) still show up
+	  in the polygon table.
+
+2010-01-05 13:45 +0000 [r19281]  twain:
+
+	* rounding error in generation of bounding box
+
+2009-12-19 23:23 +0000 [r19148]  jonb:
+
+	* osm2pgsql: Apply multipolygon patch from Twain with a few
+	  changes.
+
+2009-12-19 17:16 +0000 [r19147]  jonb:
+
+	* Overhaul the osm2pgsql readme text
+
+2009-12-19 16:31 +0000 [r19145]  jonb:
+
+	* Disable the new osm_{user,uid,timestamp,version} columns since
+	  the --extra-attributes option is off by default
+
+2009-12-19 16:21 +0000 [r19144]  jonb:
+
+	* Allow user,uid,version & timestamp attributes to be imported from
+	  osm objects. Fixes #2405.
+
+2009-12-18 14:56 +0000 [r19133]  twain:
+
+	* expose 'more_url' in xml format
+
+2009-12-18 14:26 +0000 [r19132]  twain:
+
+	* fix bug in finding 'bus stop wilhelmshaven' introduced in recent
+	  commit
+
+2009-12-17 18:47 +0000 [r19128]  twain:
+
+	* support for various lat,lon formats as part of the query i.e.
+	  village near 48,7.7
+
+2009-12-17 17:46 +0000 [r19127]  twain:
+
+	* correct error handling for missing osm points
+
+2009-12-17 15:54 +0000 [r19126]  twain:
+
+	* ignore empty search phrases
+
+2009-12-14 22:12 +0000 [r19092]  twain:
+
+	* OSM Copright notice in XML reverse geocode by OSM ID (not just
+	  lat/lon) improved debuging information added IP block lists
+
+2009-12-14 22:04 +0000 [r19091]  twain:
+
+	* multi-language amenities, one off import of specific
+	  nodes/ways/relations
+
+2009-12-04 00:11 +0000 [r18937]  twain:
+
+	* Order results by distance to specified location (#2519)
+
+2009-12-01 17:16 +0000 [r18884]  twain:
+
+	* revert accidentally committed multi-polygon patch
+
+2009-11-30 12:11 +0000 [r18873]  twain:
+
+	* add test in the associatedStreet code to ensure associatedStreet
+	  is actually a road
+
+2009-11-29 16:24 +0000 [r18851]  twain:
+
+	* missing library commands
+
+2009-11-28 21:03 +0000 [r18846]  twain:
+
+	* Fix quote type problems in JSON formating (#2508)
+
+2009-11-28 20:29 +0000 [r18845]  twain:
+
+	* fix problems reported with running script first time
+
+2009-11-28 20:24 +0000 [r18844]  twain:
+
+	* some missed files
+
+2009-11-28 18:17 +0000 [r18843]  twain:
+
+	* missing name space for vector
+
+2009-11-28 16:24 +0000 [r18840]  twain:
+
+	* lots of minor changes since going live
+
+2009-11-15 18:13 +0000 [r18632]  jonb:
+
+	* Clear out tag list after parsing a changeset otherwise the
+	  accumulated tags will appear on the first node. Fixes ticket
+	  #2426
+
+2009-11-12 12:23 +0000 [r18558]  ldp:
+
+	* Add shop=*, as a first step to be able to render them.
+
+2009-11-08 15:09 +0000 [r18509-18510]  twain:
+
+	* changes to indexing
+
+	* reverse geocoding and output format changes
+
+2009-11-04 08:52 +0000 [r18451]  frederik:
+
+	* bump version to 0.69
+
+2009-11-03 23:55 +0000 [r18440]  frederik:
+
+	* new! now with even fewer annoying debug print statements!
+
+2009-11-03 23:32 +0000 [r18439]  frederik:
+
+	* Allow creation of expiry lists for 900913 tiles even if your
+	  target projection is not 900913 (e.g. you have your PostGIS table
+	  in lat/lon). Also fixes another bug in the old projection code
+	  where expire_from_bbox would not expire the whole box properly
+	  (expire-tiles.c around line 333, should have used min/max lon/lat
+	  but used min lon/lat twice).
+
+2009-11-03 09:55 +0000 [r18437]  frederik:
+
+	* fix a bug that would sometimes expire tiles at the other end of
+	  the world instead of those where a change has occurred.
+
+2009-10-28 22:27 +0000 [r18353]  jonb:
+
+	* osm2pgsql: Update code to use DROP TABLE IF EXISTS. This avoids
+	  errors in the postgresql logs and requires postgresql-8.2+. Fixes
+	  ticket #2379. Update version to 0.68
+
+2009-10-27 19:28 +0000 [r18316]  jonb:
+
+	* Add double quotes around the column name when performing lookup
+	  otherwsie postgres may convert it to lower case
+
+2009-10-27 14:58 +0000 [r18309]  twain:
+
+	* gazetteer diff updates
+
+2009-10-27 14:10 +0000 [r18308]  twain:
+
+	* code cleanup and support for diff updates
+
+2009-10-15 08:22 +0000 [r18167]  frederik:
+
+	* fix error message
+
+2009-10-07 19:23 +0000 [r18009]  jonb:
+
+	* osm2pgsql: Split very long ways into multiple segments. Mapnik
+	  has some rendering artifacts for very long ways, this is the
+	  cause of #2234. Currently ways are split after about 100km or 1
+	  degree. This should help the rendering performance too since
+	  these large and often complex ways have enormous bounding boxes
+	  and are therefore fetched when rendering many tiles. The bounding
+	  box of each segment is typically a lot smaller than the complete
+	  way.
+
+2009-10-06 20:46 +0000 [r18001]  jonb:
+
+	* Apply fix from Milo to display projection information when
+	  executed with: -h -v. Fixes #2357
+
+2009-10-04 12:47 +0000 [r17981]  jonb:
+
+	* Update projection strings to match proj-4.7.1 definitions.
+
+2009-10-02 20:09 +0000 [r17947]  jonb:
+
+	* Cascade node changes all the way through to relations. Previously
+	  a node change might only trigger updates to ways without these
+	  then triggering a relation update.
+
+2009-09-17 16:55 +0000 [r17671]  twain:
+
+	* Missed out the readme file
+
+2009-09-17 15:06 +0000 [r17669]  twain:
+
+	* missed table name change
+
+2009-09-17 15:01 +0000 [r17668]  twain:
+
+	* Refactored website (php), minor indexing changes, documentation
+
+2009-09-04 19:47 +0000 [r17459]  ldp:
+
+	* Add operator for nodes,ways
+
+2009-09-04 18:52 +0000 [r17456]  jonb:
+
+	* Disable add_parking_node() in osm2pgsql since the current osm.xml
+	  renders the symbol on parking areas now.
+
+2009-09-01 15:14 +0000 [r17424]  tomhughes:
+
+	* Fix buffer overflow.
+
+2009-08-28 17:53 +0000 [r17326]  jonb:
+
+	* Update osm2pgsql version to 0.67, the previous change to
+	  planet_osm_nodes in the previous commit may break things so a
+	  version bump is a good idea
+
+2009-08-28 17:06 +0000 [r17325]  jonb:
+
+	* Use fixed point storage for node positions in planet_osm_nodes.
+	  This reduces the DB size which should make things a little bit
+	  faster too.
+
+2009-08-07 11:42 +0000 [r16911]  twain:
+
+	* add script to show how an address was constructed
+
+2009-07-19 08:15 +0000 [r16573]  avar:
+
+	* If this parser parses a style file with more than MAX_STYLES
+	  it'll start writing into unallocated memory and segfault. This
+	  fix should change it to malloc/realloc but I don't have the time
+	  now, so I'll just extend the memory it's taking up.
+
+2009-07-14 16:47 +0000 [r16498]  twain:
+
+	* extra chars in postgresql transliteration function introduces
+	  ranked sql generation graphical updates to search page support
+	  for house numbers and ways/nodes connected using relations
+
+2009-07-08 11:01 +0000 [r16380]  twain:
+
+	* Addition of support for Karlsruhe schema / house numbers Various
+	  minor bug fixes
+
+2009-07-01 22:47 +0000 [r16258]  twain:
+
+	* New version of gazetteer, performance and scaleing updates
+
+2009-06-02 12:58 +0000 [r15538]  twain:
+
+	* Misc missing characters
+
+2009-06-02 12:36 +0000 [r15536]  twain:
+
+	* Added Hangul Syllables to transliteration table
+
+2009-06-01 14:19 +0000 [r15460]  twain:
+
+	* correct escape sequence
+
+2009-05-30 11:09 +0000 [r15323-15325]  twain:
+
+	* correct spelling of gazatteer folder
+
+	* adding multi-language support and relations
+
+2009-05-22 19:00 +0000 [r15176]  jonb:
+
+	* osm2pgsql: consider area key as indicating a polygon. This fixes
+	  some multipolygon cases with: highway=pedestrian, area=yes
+
+2009-05-22 18:40 +0000 [r15173]  joerg:
+
+	* ubuntu-hardy has older debhelper
+
+2009-05-22 18:36 +0000 [r15172]  jonb:
+
+	* osm2pgsql: Still allow multipolygons to inherit tags from the
+	  outer way even if the relation has a name tag. I've seen several
+	  examples where people have added a name tag to a relation even
+	  though the wiki says they should be untagged.
+
+2009-05-20 18:54 +0000 [r15131]  jonb:
+
+	* Update osm2pgsql to ignore <changeset> elements
+
+2009-05-19 22:59 +0000 [r15119]  jonb:
+
+	* osm2pgsql: prevent route relation name from getting into the name
+	  column, we just want it in route_name, fixes ticket #1703
+
+2009-05-19 21:52 +0000 [r15118]  jonb:
+
+	* osm2pgsql 0.66: Allow final mod & output steps to run in
+	  parallel. Display more information about final index creation
+	  steps. Fix bug which caused diff updates of multipolygon
+	  relations to leave some incorrect ways behind. Form polygons from
+	  boundary relations if the ways form a closed ring.
+
+2009-05-10 13:42 +0000 [r14997]  jonb:
+
+	* Fix polygon ring directions using geos normalize()
+
+2009-05-08 13:51 +0000 [r14965]  frederik:
+
+	* Make sure that osm2pgsql does not attempt to append data to a
+	  table when it already has data in a different SRS. Without this
+	  patch it is perfectly possible for the mindless user (Y.T.) to
+	  create a table with -l and later append to it without -l, which
+	  will land you with a "select distinct srid(way) from
+	  planet_osm_point" returning two SRSs. Mapnik's queries will then
+	  fail with an "Operation on two geometries with different SRIDs"
+	  error. Note, this patch only checks the default SRID given in the
+	  geometry_columns table.
+
+2009-05-01 16:54 +0000 [r14863]  jonb:
+
+	* fix projection help output. osm2pgsql option for old-style
+	  mrecator is -M
+
+2009-04-30 16:20 +0000 [r14846-14847]  zere:
+
+	* Fixed bug in bzip handling near end-of-file, plus better error
+	  reporting.
+
+	* Fixed compiler warnings about unused parameters.
+
+2009-04-30 13:36 +0000 [r14843]  tomhughes:
+
+	* Initial work on generating a gazetteer database.
+
+2009-04-30 13:34 +0000 [r14842]  zere:
+
+	* Changed terminology for choosable backend.
+
+2009-04-30 13:26 +0000 [r14841]  zere:
+
+	* Use bzip2 interface directly, rather than through the zlib
+	  compatibility interface to deal with multiple streams in
+	  pbzip2-generated files. Also added a 'null' output for testing
+	  purposes.
+
+2009-04-22 19:58 +0000 [r14703]  stevechilton:
+
+	* service added for parking_aisle
+
+2009-03-22 13:19 +0000 [r14211]  guenther:
+
+	* - changed path for geoinfo.db in mapnik-osm-updater.sh
+
+2009-03-21 22:27 +0000 [r14207]  joerg:
+
+	* use new name osm2poidb for gpsdrive-update-osm-poi-db; more tests
+	  if executables exist; --no-mirror also for geofabrik imports
+
+2009-03-13 21:36 +0000 [r14072]  frederik:
+
+	* simple stand-alone debian packaging for osm2pgsql
+
+2009-03-09 06:47 +0000 [r14039]  guenther:
+
+	* - updated mapnik-osm-updater script for new gpsdrive poi database
+
+2009-03-01 21:41 +0000 [r13945]  stevechilton:
+
+	* add construction to default.style
+
+2009-02-25 18:46 +0000 [r13898]  jonb:
+
+	* osm2pgsql: When processing boundary relations, create
+	  linestrings, not polygons geometries, even if they form a closed
+	  ring.
+
+2009-02-16 12:16 +0000 [r13756]  jochen:
+
+	* database istn't hardcoded any more
+
+2009-02-15 19:44 +0000 [r13745]  jonb:
+
+	* osm2pgsql: Add ability to generate new columns from default.style
+	  when operating in append mode
+
+2009-02-15 18:46 +0000 [r13744]  jonb:
+
+	* osm2pgsql: Attempt to make code work with columns in unexpected
+	  order, e.g. if default.style updated. Not fully automatted, you
+	  still need to manually create any new columns
+
+2009-02-14 11:33 +0000 [r13721]  jonb:
+
+	* osm2pgsql: Fix likely cause of crash reported by cmarqu. This
+	  would trigger if you defined too many coluns defined in your
+	  default.style.
+
+2009-02-11 20:28 +0000 [r13671]  jonb:
+
+	* osm2pgsql: remove from some targets since they dont work well
+	  with mmm:nnn svnversion strings
+
+2009-02-11 20:24 +0000 [r13670]  jonb:
+
+	* osm2plsql: Use svnversion for version string. Update to version
+	  0.65. Fix compile warning about basename. Switch default error
+	  message to direct people at using --help instead of flooding them
+	  with all options
+
+2009-02-11 17:28 +0000 [r13668]  stevehill:
+
+	* Replace the in-memory dirty tile store with something a bit more
+	  efficient. Also adds support for specifying a range of zoom
+	  levels - i.e. "-o 0-17". The output dirty tile list will use the
+	  lowest zoom level which accurately describes the tiles which have
+	  been expired.
+
+2009-02-10 20:40 +0000 [r13653]  jonb:
+
+	* Perform polygon processing on relations with type=boundary
+
+2009-02-08 20:47 +0000 [r13616]  stevechilton:
+
+	* add capital and lock to default.style
+
+2009-02-08 20:44 +0000 [r13615]  jonb:
+
+	* osm2pgsql: Tweak geos includes to work with geos-3. Hopefully
+	  this should continue to work with geos-2.2 as well
+
+2009-02-08 20:19 +0000 [r13613]  stevehill:
+
+	* Link to the OPM expire_tiles.py script
+
+2009-02-08 20:12 +0000 [r13612]  stevehill:
+
+	* Adds tile expiry support - see
+	  http://lists.openstreetmap.org/pipermail/dev/2009-February/013934.html
+	  This introduces 2 new commandline options: "-e <zoomlevel>" and
+	  "-o <dirty tile list output file>". So, specifying "-e 17 -o
+	  /tmp/dirty_tiles" when importing a delta will cause osm2pgsql to
+	  generate a list of all zoom level 17 tiles which the delta has
+	  made dirty and store it in /tmp/dirty_tiles. Proviso: for
+	  polygons, it currently takes a simplistic approach of drawing a
+	  bounding box around the whole polygon and marking every tile in
+	  the box as dirty. If the bounding box is large (over 30x30Km) the
+	  polygon is treated as a line instead, so only the perimeter will
+	  be marked as dirty (this is so that huge polygons don't expire
+	  vast numbers of tiles and is based on the assumption that we
+	  probably aren't going to shade the area of massive polygons). The
+	  dirty tile list is maintained in memory as a binary tree and
+	  dumped to disk at the end of the run.
+
+2009-02-07 23:36 +0000 [r13578]  jonb:
+
+	* Declate out_pgsql as extern in header file. Rename __unused since
+	  it may clash with other definitions.
+
+2009-02-02 22:22 +0000 [r13511]  jonb:
+
+	* osm2pgsql: fixes #1550. Don't inherit tags from ways if the
+	  multipolygon has its own tags. Don't match inner way tags if
+	  there are no poly_tags to match against
+
+2009-02-01 11:39 +0000 [r13474]  stevechilton:
+
+	* add three addr: lines
+
+2009-01-31 21:34 +0000 [r13470]  jonb:
+
+	* osm2pgsql: Fix relation processing in non-slim mode. It now needs
+	  more memory during the processing since it needs to remember ways
+	  even if they dont have any tags
+
+2009-01-27 22:59 +0000 [r13407]  jonb:
+
+	* Add barrier for latest osm.xml
+
+2009-01-13 13:55 +0000 [r13189]  guenther:
+
+	* - fixed bug in mapnik-osm-updater.sh preventing generation of poi
+	  database
+
+2009-01-04 17:27 +0000 [r12912]  jonb:
+
+	* Fix compile problem by removing output-gazetteer.h reference
+
+2009-01-02 23:58 +0000 [r12828]  tomhughes:
+
+	* Allow osm2pgsql to process planetdiff files.
+
+2008-12-29 12:06 +0000 [r12661]  guenther:
+
+	* - updated creation of poi database in mapnik-osm-updater.sh
+
+2008-12-29 11:21 +0000 [r12659]  guenther:
+
+	* - updated part for generation of gpsdrive POI database in
+	  mapnik-osm-updater.sh
+
+2008-12-21 10:10 +0000 [r12447]  joerg:
+
+	* show more directory levels of GeoFabrik with option
+	  --all-planet-geofabrik=\?
+
+2008-12-21 09:08 +0000 [r12446]  joerg:
+
+	* add creation of spatial_ref_sys in more cases
+
+2008-12-21 08:47 +0000 [r12445]  joerg:
+
+	* also include spatial_ref_sys.sql, check for more possible postgis
+	  versions
+
+2008-12-16 22:12 +0000 [r12383]  jonb:
+
+	* Add ele column as used by latest osm.xml
+
+2008-12-02 23:10 +0000 [r12197]  jonb:
+
+	* Add historic= as polygon
+
+2008-12-02 07:15 +0000 [r12182]  joerg:
+
+	* Add the 900913 File to postgress; change order for granting
+	  rights; check for file existence of lwpostgis
+
+2008-11-23 12:46 +0000 [r12049]  ksharp:
+
+	* Fixed case of README.txt in Makefile and SPEC file, fixed make
+	  clean to remove generated SPEC file.
+
+2008-11-23 01:25 +0000 [r12044]  joerg:
+
+	* Add support for Ubuntu new Postgis
+
+2008-11-23 01:16 +0000 [r12043]  joerg:
+
+	* Type; missing `
+
+2008-11-16 12:51 +0000 [r11942]  jonb:
+
+	* Update default.style. We now want to render aerialway on points
+	  too
+
+2008-10-28 15:08 +0000 [r11520]  martinvoosterhout:
+
+	* Fix reference to fixed table name planet_osm. Not sure how this
+	  one slipped through.
+
+2008-10-22 23:24 +0000 [r11410]  jonb:
+
+	* osm2pgsql: Treat lines and polygons the same way when trying to
+	  work out if the way should go into the roads table. This allows
+	  ways with both waterway and boundary set to be rendered
+	  correctly. Also allow tagged islands to appear. Swap order of
+	  entries in the layer table to put the most common ones near the
+	  front which will speed up the matching.
+
+2008-10-19 15:37 +0000 [r11320]  martinvoosterhout:
+
+	* Add escaping for \r.
+
+2008-10-19 14:18 +0000 [r11315-11316]  joerg:
+
+	* mapnik-osm-updater.sh: improve searching for tools
+
+	* mapnik-osm-updater.sh: adapt searching for tools
+
+2008-10-07 22:42 +0000 [r11078]  jonb:
+
+	* Add 'disused' column into osm2pgsql style
+
+2008-09-30 21:25 +0000 [r11007]  jonb:
+
+	* Convert waterway into a polygon to match latest osm.xml
+
+2008-09-08 17:33 +0000 [r10564]  guenther:
+
+	* - replaced script for gpsdrive extensions by binary in
+	  mapnik-osm-updater.sh
+
+2008-09-03 20:43 +0000 [r10464]  martinvoosterhout:
+
+	* Turns all creates into modifies for osmChange files. Technically
+	  wrong but it matches what osmosis does and should probably be the
+	  default until the whole snapshot thing gets sorted out.
+
+2008-09-02 21:25 +0000 [r10429]  jonb:
+
+	* Add power_source column for latest osm.xml
+
+2008-09-02 11:03 +0000 [r10387]  martinvoosterhout:
+
+	* Remove the special cases where extra things need to get prepared
+	  when you have intarray. An extra field in the table is much nicer
+	  then nasty if statements.
+
+2008-08-30 15:32 +0000 [r10338]  martinvoosterhout:
+
+	* Allow the location of the style file to be specified on the
+	  command line. Patch by Roeland Douma.
+
+2008-08-26 19:27 +0000 [r10184]  martinvoosterhout:
+
+	* Typo in index creation.
+
+2008-08-25 21:24 +0000 [r10149]  martinvoosterhout:
+
+	* The optimisation steps should not be applied in append mode since
+	  they will take forever on a complete database and patching is
+	  supposed to be quick.
+
+2008-08-25 21:06 +0000 [r10148]  martinvoosterhout:
+
+	* Use GIN indexes instead of GIST. This means we require a newer
+	  version of PostgreSQL but GiST is way too slow here. Also don't
+	  try ANALYSE after each endCopy, takes far too long when just
+	  applying a patch.
+
+2008-08-12 21:44 +0000 [r9756]  jonb:
+
+	* Add postgis definition for the 900913 spherical mercator
+	  projection we use. Import like: psql gis <900913.sql or \i
+	  900913.sql
+
+2008-08-03 20:09 +0000 [r9441]  andreas:
+
+	* add missing include to compile with gcc-4.3
+
+2008-07-27 20:06 +0000 [r9315-9316]  jonb:
+
+	* osm2pgsql: Drop any left over tmp tables at start of import
+
+	* Add aerialway as linear way type to osm2pgsql default.style
+
+2008-07-24 00:15 +0000 [r9267]  jonb:
+
+	* osm2pgsql: Comment out debug lines
+
+2008-07-24 00:11 +0000 [r9266]  jonb:
+
+	* osm2pgsql: Fix up crash in relation handling. The list of members
+	  does not match the x' arrays if one or more members is a node or
+	  relation, do all processing on the arrays instead (maybe the
+	  member structure can be expanded in future to make this more
+	  generic but this requires changes where xnodes is used in
+	  build_geometry etc).
+
+2008-07-24 00:07 +0000 [r9265]  jonb:
+
+	* osm2pgsql: Move type definitions to a more appropriate location
+
+2008-07-23 00:54 +0000 [r9252]  jonb:
+
+	* osm2pgsql: Update multi-polygon algorithm to detect multipolygons
+	  with different tags on the inner rings and emit these as ways to
+	  be rendered seperately.
+
+2008-07-23 00:31 +0000 [r9251]  jonb:
+
+	* osm2pgsql: reduce frequency of out-of-order node warning. Turns
+	  out this just effects the cache efficiency not the operation of
+	  the overall processing. This is fine for small files like the
+	  ones from Josm. Closes #1058
+
+2008-07-21 09:49 +0000 [r9211]  tomhughes:
+
+	* Only prompt for a password if -W/--password is given. This is
+	  what psql does and it allows for implicit authentication as a
+	  different user using -U without -W.
+
+2008-07-14 20:41 +0000 [r9013]  jonb:
+
+	* osm2pgsql: Re-order arithmetic expression to avoid overflow at
+	  --cache 2048. Fix compile warning
+
+2008-07-11 13:50 +0000 [r8944]  martinvoosterhout:
+
+	* Commit all the necessary changes to make saving and restoring of
+	  relations work. This means that when a way that is part of a
+	  relation changes the relation will be properly reconstructed.
+
+2008-07-10 09:51 +0000 [r8907]  martinvoosterhout:
+
+	* We can't prepare the statement until the table is created, which
+	  makes the program break on a clean database. Hopefully it really
+	  does work now...
+
+2008-07-09 18:01 +0000 [r8887]  martinvoosterhout:
+
+	* Clearly you can't even prepare statements relying on intarray if
+	  you don't have it. Change code so it all works without properly,
+	  as long as you don't try to apply patches.
+
+2008-07-09 15:28 +0000 [r8885-8886]  martinvoosterhout:
+
+	* When a prepared statement fails, log the parameters for debugging
+	  purposes.
+
+	* Finally, add the code to process modifies and deletes from
+	  patches. Almost everything should work, except if a member of a
+	  relation is changed, the relation isn't updated. If the relation
+	  is updated though, it will pick up the new members so it could in
+	  principle be worked around by reloading all the relations
+	  afterwards. In addition there were the following changes: *
+	  Fixing escaping bugs since forever when output-pgsql uses
+	  prepared statement mode. * The ways table gets a partial index on
+	  pending, for performance. * Only bother with the intarray stuff
+	  if we're creating tables. Hope nothing else got borked.
+
+2008-07-09 12:01 +0000 [r8871]  martinvoosterhout:
+
+	* Add the necessary infrastructure to build the GIST indexes for
+	  finding ways that need updating when a node moved and things like
+	  that. It tests for the intarray module and warns if it doesn't
+	  find it. It's not an error to run without since the user may be
+	  using slim mode to save memory. Perhaps in time we should look
+	  into a seperating the slim and the patching mode more clearly.
+
+2008-07-09 11:02 +0000 [r8867]  martinvoosterhout:
+
+	* Add support for process delete commands for ways and nodes. This
+	  is the easy part since we don't need to search for objects
+	  depending on them (the diff should contains modifications for
+	  them anyway). Relations not done because the whole save/restore
+	  for them does not exist at all at the moment. In the process
+	  output-pgsql needed to be taught how to handle jumping in and out
+	  of COPY mode.
+
+2008-07-09 09:34 +0000 [r8863]  martinvoosterhout:
+
+	* Commit parser changes to support the loading of diffs. Supports
+	  both osmChange and JOSM though it doesn't support placeholders
+	  (it's not clear that's useful in this context). Anything other
+	  than creating still results in an error so far, so it doesn't
+	  change anything from a practical point of view yet. In passing,
+	  fix a bug where the append option didn't work in slim mode.
+
+2008-06-18 21:01 +0000 [r8319-8320]  jonb:
+
+	* osm2pgsql: Up-rev to 0.55 for the new default projection change
+
+	* osm2pgsql: Make spherical mercator the default, old format is now
+	  -M|--oldmerc
+
+2008-06-17 21:38 +0000 [r8288]  joerg:
+
+	* Revert wrong header change. We need the C(not C++) Header to
+	  determine the Version Number of geos
+
+2008-06-17 21:34 +0000 [r8287]  jonb:
+
+	* Add tracktype which is required by latest osm.xml
+
+2008-06-12 10:30 +0000 [r8186]  guenther:
+
+	* - adding poi key
+
+2008-06-10 23:18 +0000 [r8159]  joerg:
+
+	* use 0 instead of 0{@{}}, since it is deprecated in newer perl
+
+2008-06-09 12:36 +0000 [r8143]  stevehill:
+
+	* Added "road" to layers.
+
+2008-06-05 21:09 +0000 [r8109]  jonb:
+
+	* osm2pgsql: Allow printf style arguments to pgsql_exec(). Use
+	  table specific temporary name during final data indexing
+
+2008-05-28 07:13 +0000 [r7976]  martinvoosterhout:
+
+	* Add some changes from Edgemaster for MinGW support, see #926
+
+2008-05-27 22:32 +0000 [r7975]  jonb:
+
+	* osm2pgsql: Make -C option work (instead of just --cache). Remove
+	  commented out ifdef lines for old slim mode
+
+2008-05-26 21:08 +0000 [r7948]  jonb:
+
+	* Add explicit support for area= into osm2pgsql
+
+2008-05-26 19:33 +0000 [r7947]  jonb:
+
+	* Update osm2pgsql to remove minor memory leak of style data. Free
+	  up mid-layer memory before doing final step which only touches
+	  the final DB. Move boundary data into roads table. Document use
+	  of roads table for low-zoom features. Make final DB step
+	  multi-threaded. Update default.style to work with existing mapnik
+	  code + osm.xml (otherwise Mapnik fails to handle string/integer
+	  comparisons in admin_level).
+
+2008-05-18 08:31 +0000 [r7850]  martinvoosterhout:
+
+	* Give relations a negative ID in the database so they don't clash
+	  with other objects.
+
+2008-05-18 08:10 +0000 [r7849]  martinvoosterhout:
+
+	* Add support for route relations. It has some special processing
+	  for bicycle routes which I just copied from the gravitystorm
+	  code. For normal relations like bus routes it should work also.
+	  To actually use bicycle relations the user will need to uncomment
+	  the relevent columns in the style file.
+
+2008-05-03 14:13 +0000 [r7641]  martinvoosterhout:
+
+	* Fix bug that was reversing all the ways due to subtle interaction
+	  of ordering of nodes. Old code assumed the nodes would be
+	  provided in reverse order.
+
+2008-04-29 21:54 +0000 [r7596]  joerg:
+
+	* applications/utils/mapnik-osm-updater.sh: use the directory
+	  /usr/share/openstreetmap/ for the default.styles
+
+2008-04-29 21:41 +0000 [r7595]  joerg:
+
+	* comment out creation of users, because it might break the system
+
+2008-04-29 21:11 +0000 [r7593]  joerg:
+
+	* export/osm2pgsql/mapnik-osm-updater.sh: go to right directory for
+	  asm2pqsql call
+
+2008-04-29 20:57 +0000 [r7591-7592]  joerg:
+
+	* mapnik default.style:remove gpsdrive line
+
+	* mapnik default.style: move to /usr/share/openstreetmap-utils for
+	  debian package
+
+2008-04-28 22:14 +0000 [r7570]  joerg:
+
+	* mapnik-osm-updater.sh: adapt to new osm2pqsql; add more error
+	  checks, fix wrong usage of command users
+
+2008-04-19 21:54 +0000 [r7444]  martinvoosterhout:
+
+	* Add code to coalesce output COPY data into larger blocks to avoid
+	  excessive overhead. Also start using some of the pgsql.c helper
+	  functions to reduce the amount of code for the standard error
+	  checking.
+
+2008-04-19 14:53 +0000 [r7440]  martinvoosterhout:
+
+	* Store empty tag lists as NULLs, to try and squeeze out some more
+	  space savings.
+
+2008-04-19 14:18 +0000 [r7436]  martinvoosterhout:
+
+	* Use the same filter_tags code for nodes as we do for ways. Apart
+	  from simplifying the code it stops us storing useless tags data
+	  in the nodes table (including all the hugely long tiger tags).
+
+2008-04-17 10:33 +0000 [r7397]  martinvoosterhout:
+
+	* Try harder to get large file pointers working
+
+2008-04-15 20:35 +0000 [r7371]  martinvoosterhout:
+
+	* Make the style file's use of tags more strict, we now define a
+	  strict set of flags which are used and the remainder are warned
+	  about. In particular we have the 'delete' flag which indicates
+	  the tag should be ignored entirely. Additionally we now look
+	  through all the tags in filter_tags and remove any we don't know
+	  about. This is primarily for slim mode, stuff which it doesn't
+	  understand should be deleted to save space.
+
+2008-04-13 10:33 +0000 [r7350]  martinvoosterhout:
+
+	* Patch from David Stubbs so that columns defined as integers Just
+	  Work(tm). We parse the string directly to an integer if the
+	  column is defined as int4.
+
+2008-04-12 17:05 +0000 [r7345]  martinvoosterhout:
+
+	* Add a caching level to the slim-mode with configurable size, so
+	  it actually has decent performance. It is implemented as a lossy
+	  sparse array with a priority queue tracking how much of each
+	  block is used to ensure we maximize the number of nodes we fit in
+	  the given amount of memory. Also rearrange some header
+	  definitions.
+
+2008-04-11 19:14 +0000 [r7334]  martinvoosterhout:
+
+	* Update version number so people know what they're running
+
+2008-04-11 12:10 +0000 [r7331]  martinvoosterhout:
+
+	* Commit many new changes to osm2pgsql, including: - list of tags
+	  read from file - slim mode works again - relations properly
+	  supported - more efficient DB usage It includes some
+	  restructuring of the code, in particular, the output module
+	  manages the mid-level now and the main program doesn't call it at
+	  all. This moves many of the previous hacks to the output module
+	  which can manage the mid-level as appropriate for its output
+	  (i.e. slim mode requires different semantics from ram mode)
+
+2008-03-22 17:58 +0000 [r7141]  martinvoosterhout:
+
+	* Add support for a -E|--proj option which allows users to use any
+	  epsg projection that be used by proj4's +init=epsg:<num> format.
+	  Should help all those people wanting to do maps in different
+	  projections.
+
+2008-03-19 20:00 +0000 [r7120]  jonb:
+
+	* osm2pgsql: Add 'width' key
+
+2008-03-14 11:55 +0000 [r7083]  guenther:
+
+	* - added creation of poi column to --all* options in
+	  mapnik-osm-updater.sh
+
+2008-03-09 18:50 +0000 [r7064]  guenther:
+
+	* - added script to add gpsdrive poi-types to mapnik database. use
+	  the option --add-gpsdrive-types to activate this feature. this is
+	  recommended, if you create the database for use with gpsdrive.
+
+2008-03-07 21:17 +0000 [r7048]  jonb:
+
+	* osm2pgsql: Treat man_made & power as possible areas. Longer term
+	  we'll probably need to drop this linear/area designation from
+	  osm2pgsql since more keys are being used for both.
+
+2008-03-04 22:46 +0000 [r7032]  jonb:
+
+	* osm2pgsql: request from cmarqu to add wood= into DB
+
+2008-02-18 23:41 +0000 [r6920]  jonb:
+
+	* osm2pgsql: Add authentication options (user, host, port,
+	  password).
+
+2008-02-16 19:31 +0000 [r6893]  jonb:
+
+	* osm2pgsql: Convert boundary keys into a linear feature to match
+	  the current osm.xml. The bulk of boundaries are defined by
+	  multiple ways. If we want polygons then we'll need some way to
+	  join these to form closed areas.
+
+2008-02-09 19:21 +0000 [r6816]  jonb:
+
+	* osm2pgsql: Add option to filter import with bounding box
+
+2008-01-31 23:51 +0000 [r6734]  jonb:
+
+	* osm2pgsql: Add power= to exported list
+
+2008-01-03 19:40 +0000 [r6239]  joerg:
+
+	* mapnik-osm-updater.sh: add support for automatically downloading
+	  and installing smaller planet excerpts from Frederiks Geofabrik
+	  Page
+
+2007-12-30 10:48 +0000 [r6191]  joerg:
+
+	* mapnik-osm-updater.sh: Add option to only download and import
+	  euope extract
+
+2007-12-21 23:16 +0000 [r6138-6139]  jonb:
+
+	* osm2pgsql: Comment out the broken --slim mode. Export access=
+	  tag. Only create automatic parking symbols if there is no defined
+	  access= tag or access=public
+
+	* osm2pgsql: Update Makefile with Solaris compatability fixes from
+	  Martin Spott
+
+2007-12-20 15:59 +0000 [r6116]  jochen:
+
+	* added svn:ignore stuff
+
+2007-12-18 23:11 +0000 [r6089]  jonb:
+
+	* osm2pgsql: Add keys for military, embankment, cutting &
+	  admin_level
+
+2007-12-16 17:41 +0000 [r6078]  jochen:
+
+	* changed name of readme.txt to README.txt so that it sticks out
+	  more
+
+2007-12-15 15:41 +0000 [r6068]  jochen:
+
+	* typo fixed
+
+2007-12-10 22:02 +0000 [r6012]  jonb:
+
+	* osm2pgsql: Apply gcc-4.3 compile fix from Martin Michlmayr &
+	  Andreas Putzo
+
+2007-12-04 22:15 +0000 [r5901]  jonb:
+
+	* osm2pgsql: Add religion into exported tags
+
+2007-11-30 17:02 +0000 [r5834]  jonb:
+
+	* osm2pgsql: make tunnel=yes be equivalent to layer=-1 for
+	  rendering order
+
+2007-11-23 17:00 +0000 [r5716]  martinvoosterhout:
+
+	* Update the readme to inform users about the new features and how
+	  to use them. Also rename the default projection to "WGS84
+	  Mercator" which better describes what it actually is.
+
+2007-11-23 16:54 +0000 [r5715]  martinvoosterhout:
+
+	* Add support for a --prefix option so that you can easily run
+	  multiple mapnik instances out of the one DB. The default is
+	  ofcourse still "planet_osm" so if you don't use it you won't see
+	  a difference. I did however need to change the names of the
+	  indexes so they don't clash also, but this is unlikely to break
+	  anything.
+
+2007-11-20 08:51 +0000 [r5633]  martinvoosterhout:
+
+	* Restructure the projection code so it can support more
+	  projections, primarily the true spherical mercator used by
+	  Google, TileCache and others. Add the -m option to select this.
+	  The default is still the incorrect projection used before. Also
+	  display the used projection during processing. Finally some minor
+	  cleanups to fix some warnings about undefined functions.
+
+2007-11-19 07:11 +0000 [r5594]  joerg:
+
+	* mapnik-osm-updater.sh: correct Error checking
+
+2007-11-14 11:12 +0000 [r5506]  joerg:
+
+	* osm2pgsql/mapnik-osm-updater.sh: add option for bz2 dump files
+
+2007-11-14 11:09 +0000 [r5505]  joerg:
+
+	* osm2pgsql/mapnik-osm-updater.sh: have two options for
+	  with/without updatechek on import
+
+2007-11-11 15:29 +0000 [r5456]  martinvoosterhout:
+
+	* Fix the pgsql output so it sets the right projection in the
+	  database. Usually not terribly important (which is why it's been
+	  broken this long) but if you start trying to do more
+	  sophisticated operations on the data it's better if the
+	  projection is what it says it is.
+
+2007-10-28 21:24 +0000 [r5223]  joerg:
+
+	* mapnik-osm-updater.sh: rename options - instead of _; allow empty
+	  username, write logfile while importing, add updateifchanged
+	  option
+
+2007-10-24 22:06 +0000 [r5160]  jonb:
+
+	* osm2pgsql: Drop unused index on z_order. Change clustering to use
+	  temporary table which is faster (but uses more temporary disk
+	  space). Remove Vacuums since we do not remove or update data.
+
+2007-10-14 20:10 +0000 [r5002]  joerg:
+
+	* mapnik-osm-updater: search for planet-mirror.pl
+
+2007-10-14 10:56 +0000 [r4986]  joerg:
+
+	* mapnik-osm-updater: Add check against own userid and root
+
+2007-10-14 10:33 +0000 [r4983]  joerg:
+
+	* move mapnik-osm-updater.sh to utils where it better fits
+
+2007-10-12 21:18 +0000 [r4955]  jonb:
+
+	* mod_tile: Apache module and rendering daemon for serving OSM
+	  tiles
+
+2007-10-10 21:48 +0000 [r4935]  jonb:
+
+	* osm2pgsql: check for null pointer
+
+2007-10-10 21:18 +0000 [r4934]  jonb:
+
+	* osm2pgsql: Need to look for type=multipolygon not a multipolygon
+	  key (was breaking all polygons with holes)
+
+2007-10-10 21:04 +0000 [r4933]  jonb:
+
+	* osm2pgsql: Reverse direction of one-way streets (bug #559)
+
+2007-10-09 22:10 +0000 [r4917]  jonb:
+
+	* osm2pgsql: Ensure we only process multipolygon relations. Add
+	  pre-filter to reduce memory usage by writing out ways which
+	  should never be part of a multipolygon instead of storing them
+
+2007-10-09 19:44 +0000 [r4914]  jonb:
+
+	* osm2pgsql: Trap duplicate points and ways which end up with only
+	  a single node. These remove some exceptions
+
+2007-10-09 01:05 +0000 [r4903]  jonb:
+
+	* osm2pgsql: Catch exceptions thrown by geos
+
+2007-10-08 23:23 +0000 [r4901]  jonb:
+
+	* osm2pgsql: Swap lat/lon on parking nodes
+
+2007-10-08 22:11 +0000 [r4897]  jonb:
+
+	* osm2pgsql: Fix some memory leaks. Remove debug output
+
+2007-10-08 22:05 +0000 [r4895]  jonb:
+
+	* osm2pgsql: update to handle polygons with holes in 0.5 API
+	  (described using relations). The code is nasty but appears to
+	  work on small datasets.
+
+2007-10-07 11:24 +0000 [r4842]  gabriel:
+
+	* Make changes for 0.5.
+
+2007-10-03 19:30 +0000 [r4816]  jonb:
+
+	* osm2pgsql: Reduce memory usage by processing ways during the XML
+	  reading
+
+2007-09-07 22:22 +0000 [r4485]  jonb:
+
+	* osm2pgsql 0.07: Make UTF8sanitize optional since it is generally
+	  no longer required. Add option to output in latlong format
+
+2007-09-03 22:26 +0000 [r4441]  jonb:
+
+	* osm2pgsql version 0.06. Add command line options to select
+	  database name, slim memory usage and appending of data. Ignore
+	  bound tag. Improve stdin reading.
+
+2007-09-02 23:00 +0000 [r4426]  jonb:
+
+	* osm2pgsql: Version 0.05. Cleaup progress output
+
+2007-09-02 22:25 +0000 [r4424]  jonb:
+
+	* osm2pgsql: Allow multiple .osm files to be imported
+	  simultaneoulsy, e.g. for lots of Tiger county.osm.gz files
+
+2007-08-27 14:49 +0000 [r4319]  martinvoosterhout:
+
+	* Whoops, got the test wrong last commit :)
+
+2007-08-27 14:45 +0000 [r4318]  martinvoosterhout:
+
+	* Patch supplied by David Siegel on the mailing list, with
+	  editorialisation by moi.
+
+2007-08-23 18:46 +0000 [r4286]  jonb:
+
+	* osm2pgsql: polygon area now used to determine the rendering order
+
+2007-08-19 18:45 +0000 [r4231]  jonb:
+
+	* osm2pgsql 0.04: Further improve handling of polygons with holes.
+	  Reduce memory usage by about 10%
+
+2007-08-19 00:16 +0000 [r4221]  jonb:
+
+	* osm2pgsql version 0.03: Handle polygons with holes correctly. Fix
+	  minor memory leak.
+
+2007-08-12 21:05 +0000 [r4092]  jonb:
+
+	* osm2pgsql: Add boundary & tunnel. Enable polygon flag on a few
+	  columns. Sort key table
+
+2007-08-12 19:03 +0000 [r4090]  jonb:
+
+	* osm2pgsql: Remove hard coded maximum IDs. Support negative IDs.
+	  Add RPM build target
+
+2007-08-09 21:26 +0000 [r4059]  jonb:
+
+	* osm2pgsql: Remove warning flags which cause problems with older
+	  GCC
+
+2007-08-03 14:56 +0000 [r3899]  joerg:
+
+	* add some linefeeds to error messages to make them easier readable
+
+2007-08-01 21:17 +0000 [r3887]  jonb:
+
+	* osm2pgsql: increase max IDs to work with latest planet dump
+
+2007-07-28 21:32 +0000 [r3826]  jonb:
+
+	* osm2pgsql: tidy up pgsql code, fix a few warnings and add some
+	  disabled code to render multiple name tags. No functional changes
+
+2007-06-20 21:05 +0000 [r3280]  jonb:
+
+	* osm2pgsql: Increase max IDs in middle-ram
+
+2007-05-28 21:25 +0000 [r3052]  jonb:
+
+	* osm2pgsql: improve help text, allow - to be used again
+
+2007-05-28 21:16 +0000 [r3051]  jonb:
+
+	* osm2pgsql: enable O_LARGEFILE
+
+2007-05-23 21:02 +0000 [r3008]  artem:
+
+	* added rendering direction arrows for oneway={yes,true,-1}
+
+2007-05-20 20:48 +0000 [r2966]  jonb:
+
+	* osm2pgsql: Add fix for motorway shields. Move landuse to -1. Make
+	  tables public
+
+2007-05-14 19:21 +0000 [r2904]  jonb:
+
+	* mapnik layer= implementation for areas/polygons
+
+2007-05-07 21:35 +0000 [r2827]  jonb:
+
+	* osm2pgsql - make experimental version current, move previous
+	  implementation to legacy
+
+2007-05-07 20:59 +0000 [r2826]  jonb:
+
+	* osm2pgsql: Mac OS-X and GEOS-3 compatability tweaks
+
+2007-05-07 13:47 +0000 [r2813]  jonb:
+
+	* osm2pgsql/mapnik database changed to store data in mercator.
+	  Saving reprojection during rendering
+
+2007-05-07 13:34 +0000 [r2812]  jonb:
+
+	* osm2pgsql update build_geometry.cpp for get_centroid()
+
+2007-05-06 18:19 +0000 [r2797]  jonb:
+
+	* osm2pgsql exprimental update. Increase max IDs. Implement "add
+	  parking node for polygons with amenity=parking" as per latest
+	  setup_z_order script. First step towards an incremental update
+	  process.
+
+2007-05-05 23:06 +0000 [r2770]  jonb:
+
+	* osm2pgsql - add bz2 and UTF8sanitizer support directly into this
+	  code
+
+2007-04-21 06:29 +0000 [r2605]  joerg:
+
+	* move utils to applications. This way it should be easier to build
+	  Packages
+
+2007-04-14 11:39 +0000 [r2498]  jochen:
+
+	* Movev lots of stuff into export directory
+
+2007-03-25 00:42 +0000 [r2334]  jonb:
+
+	* osm2pgsql exp: Make sure all polygon table contains only polygons
+
+2007-03-24 15:55 +0000 [r2331-2332]  jonb:
+
+	* Automatic GEOS2/3 detection
+
+	* Add info on requirements and building
+
+2007-03-24 15:42 +0000 [r2330]  jonb:
+
+	* Automatic GEOS version detection
+
+2007-03-23 20:56 +0000 [r2323]  jonb:
+
+	* Switch to printf(%.15g) to give more precision on generated
+	  points
+
+2007-03-22 20:20 +0000 [r2320]  jonb:
+
+	* Replace asprintf. Increase max IDs by 10% to give room for future
+	  growth
+
+2007-03-22 10:27 +0000 [r2316]  ksharp:
+
+	* Fixing accidental change to Makefile
+
+2007-03-22 10:17 +0000 [r2314]  ksharp:
+
+	* Added the polygons directory containing the extract-polygon.pl
+	  script, a README, and an example polygon.
+
+2007-03-21 00:25 +0000 [r2310]  jonb:
+
+	* Add GEOS_TWO from non-experimental version
+
+2007-03-21 00:11 +0000 [r2309]  jonb:
+
+	* Split implementation into middle and output layers. Choice of RAM
+	  or PGSQL middle layers offers speed vs memory tradeoff.
+	  Implements new point/line/poly tables with z_order for latest
+	  osm.xml
+
+2007-03-17 12:46 +0000 [r2269]  nick:
+
+	* Added foot, horse, motorcar, bicycle and residence tags
+
+2007-03-16 12:37 +0000 [r2267]  artem:
+
+	* Use GEOS_TWO flag to control version being used e.g.
+	  CXXFLAGS="-DGEOS_TWO" make
+
+2007-03-13 14:06 +0000 [r2253]  artem:
+
+	* wropping geos stuff in try/catch
+
+2007-03-13 12:39 +0000 [r2252]  artem:
+
+	* latest osm2pgsql generates one table per geometry type
+
+2007-03-10 13:28 +0000 [r2249]  jonb:
+
+	* Direct database version of osm2pgsql
+
+2007-03-10 13:17 +0000 [r2248]  jonb:
+
+	* Clone osm2pgsql files to experimental directory
+
+2007-03-09 10:31 +0000 [r2243]  artem:
+
+	* use geos-config to setup compile flags
+
+2007-03-09 00:26 +0000 [r2242]  jonb:
+
+	* Remove duplicate suppression code since this provides little
+	  benefit now that the Tiger data has been removed (the source of
+	  almost all the duplicate data). This allows the removal of the
+	  AVL & BST code and the ID field from the node/segment/way
+	  sctrucutres. This saves some memory and simplifies the code.
+	  Fixed a memory leak in WKT which forgot to free the segment item.
+	  Added counters for maximum node/segment/way IDs. Split the
+	  assert(id) checks to make it obvious which is failing. Cleaned up
+	  some white space.
+
+2007-02-27 12:13 +0000 [r2180]  artem:
+
+	* we cannot use anythig appart from 'text' data type
+
+2007-02-27 10:52 +0000 [r2178-2179]  artem:
+
+	* added 'bridge','building' and 'layer' tags
+
+	* applied geos-2.2.3.patch (slightly modified) from jonb
+
+2007-02-24 19:26 +0000 [r2160]  artem:
+
+	* cluster planet on spatial index for extra speed
+
+2007-02-24 14:50 +0000 [r2159]  jonb:
+
+	* Fix empty segment logic
+
+2007-02-24 08:40 +0000 [r2158]  artem:
+
+	* use geos to create geometries
+
+2007-02-21 23:14 +0000 [r2153]  jonb:
+
+	* Make mapnik & osm2pgsql use NULL instead of empty strings in db
+
+2007-02-21 22:43 +0000 [r2152]  artem:
+
+	* Added myself in place of unknown author
+
+2007-02-12 19:42 +0000 [r2104]  jonb:
+
+	* osm2pgsql polygons for closed ways only
+
+2007-02-11 15:58 +0000 [r2099]  jonb:
+
+	* osm2pgql filter duplicate segments in ways
+
+2007-01-17 14:08 +0000 [r1918]  steve:
+
+	* up the max seg ids
+
+2006-12-04 20:34 +0000 [r1734]  nick:
+
+	* man_made added
+
+2006-12-03 01:01 +0000 [r1718]  jonb:
+
+	* Improved version of osm2pgsql. Adds 'natural' attribute. Some
+	  alogorithm improvments to reduce run time. Optional duplicate way
+	  detection (at expense of RAM usage).
+
+2006-11-28 21:35 +0000 [r1669]  nick:
+
+	* added natural type
+
+2006-11-27 20:38 +0000 [r1655]  jonb:
+
+	* Initial high level description of code and algorithm.
+
+2006-11-22 15:10 +0000 [r1623]  steve:
+
+	* add railways
+
+2006-11-22 12:36 +0000 [r1622]  steve:
+
+	* add ops to geom col
+
+2006-11-22 11:41 +0000 [r1621]  steve:
+
+	* change varchars to text
+
+2006-11-19 18:34 +0000 [r1604]  jonb:
+
+	* Handle missing nodes and segments instead of putting 0,0 into
+	  linestrings which was causing lots of rogue lines to appear on
+	  the map. Improved linestring generation for non-contiguous ways.
+	  Added a GIST index into the SQL output. Corrected usage info and
+	  added a gzip example. Removed some redundant lines.
+
+2006-11-17 10:12 +0000 [r1577]  jonb:
+
+	* Initial version of C implmentation of OSM to Postgresql converter
+
