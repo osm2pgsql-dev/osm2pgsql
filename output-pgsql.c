@@ -85,14 +85,6 @@ static struct flagsname {
 struct taginfo *exportList[4]; /* Indexed by enum table_id */
 int exportListCount[4];
 
-/* Data to generate z-order column and road table
- * The name of the roads table is misleading, this table
- * is used for any feature to be shown at low zoom.
- * This includes railways and administrative boundaries too
- */
-
-
-
 static int pgsql_delete_way_from_output(osmid_t osm_id);
 static int pgsql_delete_relation_from_output(osmid_t osm_id);
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
