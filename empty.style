@@ -4,8 +4,13 @@
 
 # See default.style for documentation on all the flags
 
-# OsmType  Tag                 Type    Flags
+# OsmType   Tag                     Type    Flags
 # Insert your own columns here, or change phstore to polygon below
+way         abandoned:aeroway       text    phstore
+way         abandoned:amenity       text    phstore
+way         abandoned:building      text    phstore
+way         abandoned:landuse       text    phstore
+way         abandoned:power         text    phstore
 way         area:highway            text    phstore
 node,way    aeroway                 text    phstore
 node,way    amenity                 text    phstore

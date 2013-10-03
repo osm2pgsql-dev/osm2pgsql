@@ -145,6 +145,16 @@ node,way   wood         text         linear
 node,way   z_order      int4         linear # This is calculated during import
 way        way_area     real                # This is calculated during import
 
+# Area tags
+# We don't make columns for these tags, but objects with them are areas.
+# Mainly for use with hstore
+way         abandoned:aeroway       text    phstore
+way         abandoned:amenity       text    phstore
+way         abandoned:building      text    phstore
+way         abandoned:landuse       text    phstore
+way         abandoned:power         text    phstore
+way         area:highway            text    phstore
+
 # Deleted tags
 # These are tags that are generally regarded as useless for most rendering.
 # Most of them are from imports or intended as internal information for mappers
