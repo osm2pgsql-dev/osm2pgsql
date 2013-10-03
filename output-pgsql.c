@@ -693,11 +693,10 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
 static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
     int i, wkt_size;
-    int polygon = 0, roads = 0;
+    int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
     int * members_superseeded;
-    char *type;
     double split_at;
 
     members_superseeded = calloc(sizeof(int), member_count);
@@ -1109,12 +1108,13 @@ static void *pgsql_out_stop_one(void *arg)
         if (Options->enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
             if (Options->tblsmain_index) {
-                if (HSTORE_NONE != (Options->enable_hstore))
+                if (HSTORE_NONE != (Options->enable_hstore)) {
                     if (Options->slim && !Options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
                     }
+                }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
                     if (Options->slim && !Options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
@@ -1125,12 +1125,13 @@ static void *pgsql_out_stop_one(void *arg)
                     }
                 }
             } else {
-                if (HSTORE_NONE != (Options->enable_hstore))
+                if (HSTORE_NONE != (Options->enable_hstore)) {
                     if (Options->slim && !Options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name, table->name);
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) WITH (FILLFACTOR=100);\n", table->name, table->name);
                     }
+                }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
                     if (Options->slim && !Options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
@@ -1272,7 +1273,6 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   int *xcount = malloc( (member_count+1) * sizeof(int) );
   struct keyval *xtags  = malloc( (member_count+1) * sizeof(struct keyval) );
   struct osmNode **xnodes = malloc( (member_count+1) * sizeof(struct osmNode*) );
-  int filter;
 
   /* If the flag says this object may exist already, delete it first */
   if(exists)

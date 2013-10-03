@@ -55,6 +55,7 @@ static uint32_t get_length(FILE *input)
   return ntohl(*((size_t *)buf));
 }
 
+#if 0
 static void *realloc_or_free(void *p, size_t len)
 {
   void *new = realloc(p, len);
@@ -65,6 +66,7 @@ static void *realloc_or_free(void *p, size_t len)
 
   return new;
 }
+#endif
 
 static BlockHeader *read_header(FILE *input, void *buf)
 {    
