@@ -26,7 +26,7 @@
 #include <cmath>
 #include <exception>
 
-#if defined(__CYGWIN__)
+#if defined(__CYGWIN__) || defined(__MINGW32__)
 #define GEOS_INLINE
 #endif
 
