@@ -56,8 +56,6 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
                 protobuf_c_prefix=/usr/local
             elif test -f /usr/include/google/protobuf-c/protobuf-c.h ; then
                 protobuf_c_prefix=/usr
-            else
-                protobuf_c_prefix=""
             fi
             protobuf_c_requested="yes"
         elif test -d "$withval"; then
@@ -84,15 +82,13 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
         AC_HELP_STRING([--with-protobuf-c-inc=@<:@DIR@:>@],
             [path to protobuf-c library headers]
         ),
-        [protobuf_c_include_dir="$withval"],
-        [protobuf_c_include_dir=""]
+        [protobuf_c_include_dir="$withval"]
     )
     AC_ARG_WITH([protobuf-c-lib],
         AC_HELP_STRING([--with-protobuf-c-lib=@<:@ARG@:>@],
             [link options for protobuf-c library]
         ),
-        [protobuf_c_lib_flags="$withval"],
-        [protobuf_c_lib_flags=""]
+        [protobuf_c_lib_libs="$withval"]
     )
 
     PROTOBUF_C_CFLAGS=""
@@ -110,7 +106,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
         protobuf_c_lib_libs="-lprotobuf-c"
         run_protobuf_c_test="yes"
     elif test "$protobuf_c_requested" = "yes"; then
-        if test -n "$protobuf_c_include_dir" -a -n "$protobuf_c_lib_flags" -a -n "$protobuf_c_lib_libs"; then
+        if test -n "$protobuf_c_include_dir" -a -n "$protobuf_c_lib_libs"; then
             run_protobuf_c_test="yes"
         fi
     else
