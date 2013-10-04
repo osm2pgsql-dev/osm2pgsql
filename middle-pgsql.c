@@ -1044,10 +1044,13 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         out_options->out->close(1);
         if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
         exit(0);
+    }
+#ifdef HAVE_FORK
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
         fprintf(stderr, "\nAll child processes exited\n");
     }
+#endif
 
 #if HAVE_MMAP
     munmap(info, sizeof(struct progress_info)*noProcs);
@@ -1411,10 +1414,13 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         out_options->out->close(0);
         if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
         exit(0);
+    }
+#ifdef HAVE_FORK
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
         fprintf(stderr, "\nAll child processes exited\n");
     }
+#endif
 
 #if HAVE_MMAP
     munmap(info, sizeof(struct progress_info)*noProcs);
