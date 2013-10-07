@@ -525,9 +525,11 @@ int main(int argc, char *argv[])
             case 'o': expire_tiles_filename=optarg; break;
             case 'O': output_backend = optarg; break;
             case 'x': osmdata.extra_attributes=1; break;
-            case 'k': enable_hstore=HSTORE_NORM; break;
+            case 'k':  if (enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
+                enable_hstore=HSTORE_NORM; break;
             case 208: hstore_match_only = 1; break;
-            case 'j': enable_hstore=HSTORE_ALL; break;
+            case 'j': if (enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
+                enable_hstore=HSTORE_ALL; break;
             case 'z': 
                 n_hstore_columns++;
                 hstore_columns = (const char**)realloc(hstore_columns, sizeof(char *) * n_hstore_columns);
