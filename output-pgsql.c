@@ -1142,7 +1142,6 @@ static void *pgsql_out_stop_one(void *arg)
             }
         }
         fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
         time(&end);
         fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name, (int)(end - start));
