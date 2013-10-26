@@ -402,6 +402,7 @@ int main(int argc, char *argv[])
     int alloc_chunkwise = ALLOC_SPARSE;
 #endif
     int num_procs = 1;
+    int num_threads = 1;
     int droptemp = 0;
     int unlogged = 0;
     int excludepoly = 0;
@@ -557,6 +558,12 @@ int main(int argc, char *argv[])
             case 205:
 #ifdef HAVE_FORK                
                 num_procs = atoi(optarg);
+                num_threads = num_procs;
+                /* The worker threads don't scale very well, and it appears though beyond
+                 * about 6 threads, there is no further speedup, or even a slowdown with more threads
+                 * "going over pending ways however does benefit from more processes, so limit the
+                 * number of threads to 6 until we can figure out what the barrier for scaling is */
+                if (num_threads > 6) num_threads = 6;
 #else
                 fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
 #endif
@@ -621,6 +628,7 @@ int main(int argc, char *argv[])
     }
 
     if (num_procs < 1) num_procs = 1;
+    if (num_threads < 1) num_threads = 1;
 
     if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
@@ -686,6 +694,7 @@ int main(int argc, char *argv[])
     options.parallel_indexing = parallel_indexing;
     options.alloc_chunkwise = alloc_chunkwise;
     options.num_procs = num_procs;
+    options.num_threads = num_threads;
     options.droptemp = droptemp;
     options.unlogged = unlogged;
     options.flat_node_cache_enabled = flat_node_cache_enabled;

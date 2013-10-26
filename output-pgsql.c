@@ -1491,7 +1491,7 @@ static void pgsql_out_stop()
 #ifdef HAVE_PTHREAD
     workers_finish = 1;
     pthread_cond_broadcast(&cond_worker_queue_work_available);
-    for (i=0; i<Options->num_procs; i++) {
+    for (i=0; i<Options->num_threads; i++) {
         int ret = pthread_join(worker_threads[i], NULL);
         if (ret) {
             fprintf(stderr, "pthread_join() returned an error (%d)", ret);
@@ -1589,8 +1589,8 @@ static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *
         pgsql_pause_copy(&global_tables[t_line]);
         pgsql_pause_copy(&global_tables[t_roads]);
         pgsql_pause_copy(&global_tables[t_poly]);
-        worker_threads = calloc(Options->num_procs, sizeof(pthread_t));
-        for (i = 0; i < Options->num_procs; i++) {
+        worker_threads = calloc(Options->num_threads, sizeof(pthread_t));
+        for (i = 0; i < Options->num_threads; i++) {
             int * thread_id = malloc(sizeof(int));
             *thread_id = i + 1; //thread_id is the global_ctx thread.
             int ret = pthread_create(&(worker_threads[i]), NULL,
