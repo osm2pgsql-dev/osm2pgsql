@@ -134,6 +134,8 @@ static int ram_relations_set(void * thread_ctx, osmid_t id, struct member *membe
     struct member *ptr;
     int block  = id2block(id);
     int offset = id2offset(id);
+    int i;
+
     if (!rels[block]) {
         rels[block] = calloc(PER_BLOCK, sizeof(struct ramRel));
         if (!rels[block]) {
@@ -156,14 +158,23 @@ static int ram_relations_set(void * thread_ctx, osmid_t id, struct member *membe
 
     cloneList(rels[block][offset].tags, tags);
 
-    if (!rels[block][offset].members)
+    if (!rels[block][offset].members) {
+    	for (i = 0; i < rels[block][offset].member_count; i++) {
+    		if (rels[block][offset].members[i].role)
+    			free ( rels[block][offset].members[i].role );
+    	}
       free( rels[block][offset].members );
+    }
 
     ptr = malloc(sizeof(struct member) * member_count);
     if (ptr) {
         memcpy( ptr, members, sizeof(struct member) * member_count );
         rels[block][offset].member_count = member_count;
         rels[block][offset].members = ptr;
+        for (i = 0; i < member_count; i++) {
+        	rels[block][offset].members[i].role = strdup(members[i].role);
+        }
+
     } else {
         fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
         exit_nicely();
@@ -189,7 +200,7 @@ static int ram_nodes_get_list(void * thread_ctx, struct osmNode *nodes, osmid_t 
 
 static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int))
 {
-    int block, offset;
+    int block, offset, i;
 
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
@@ -204,6 +215,9 @@ static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *mem
                     fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
 
                 callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
+            }
+            for (i = 0; i < rels[block][offset].member_count; i++) {
+            	if (rels[block][offset].members[i].role) free( rels[block][offset].members[i].role );
             }
             free(rels[block][offset].members);
             rels[block][offset].members = NULL;
