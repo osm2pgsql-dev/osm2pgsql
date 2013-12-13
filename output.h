@@ -50,6 +50,7 @@ struct output_options {
   int num_procs;
   int num_threads;
   int droptemp; /* drop slim mode temp tables after act */
+  int cluster; /* type of clustering of geometries for faster rendering */
   int unlogged; /* use unlogged tables where possible */
   int hstore_match_only; /* only copy rows that match an explicitly listed key */
   int flat_node_cache_enabled;

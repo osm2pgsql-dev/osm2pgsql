@@ -875,7 +875,9 @@ static int pgsql_out_relation_single(struct relation_info * rel, struct thread_c
             if (members_superseeded[i]) {
                 //TODO: Need to find a thread-safe way to do the done marking
                 Options->mid->ways_done(ctx->middle_ctx, rel->member_ids[i]);
-                pgsql_delete_way_from_output(rel->member_ids[i], ctx->tables);
+                if (Options->append) {
+                	pgsql_delete_way_from_output(rel->member_ids[i], ctx->tables);
+                }
             }
         }
     }
@@ -1223,14 +1225,6 @@ static int pgsql_out_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         global_tables[i].name, SRID, global_tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", global_tables[i].name);
-            /* slim mode needs this to be able to apply diffs */
-            if (Options->slim && !Options->droptemp) {
-                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  global_tables[i].name, global_tables[i].name);
-                if (Options->tblsmain_index) {
-                    sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
-                }
-	            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
-            }
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
@@ -1382,22 +1376,27 @@ static void *pgsql_out_stop_one(void *arg)
     pgsql_pause_copy(table);
     if (!Options->append)
     {
-        time_t start, end;
+        time_t start, end, start_command, end_command;
         time(&start);
         fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
-        fprintf(stderr, "Analyzing %s finished\n", table->name);
-        if (Options->tblsmain_data) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
-                        "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name, Options->tblsmain_data, table->name);
-        } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
+        time(&end_command);
+        fprintf(stderr, "Analyzing %s finished. Took %li seconds\n", table->name, (end_command - start));
+
+        if (Options->cluster == 2) {
+        	fprintf(stderr, "Creating geohash index on  %s\n", table->name);
+        	time(&start_command);
+        	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_geohash ON %s (st_geohash(st_transform(way,4326),15));\n", table->name, table->name);
+        	time(&end_command);
+        	fprintf(stderr, "Created geohash index for  %s. Took %li seconds.\n", table->name, (end_command - start_command));
+        	fprintf(stderr, "Clustering on geohash index on  %s\n", table->name);
+        	time(&start_command);
+        	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CLUSTER %s USING %s_geohash;\n", table->name, table->name);
+        	time(&end_command);
+        	fprintf(stderr, "Clustered on geometry index for  %s. Took %li seconds.\n", table->name, (end_command - start_command));
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
         fprintf(stderr, "Creating geometry index on  %s\n", table->name);
+        time(&start_command);
         if (Options->tblsmain_index) {
             /* Use fillfactor 100 for un-updatable imports */
             if (Options->slim && !Options->droptemp) {
@@ -1412,20 +1411,36 @@ static void *pgsql_out_stop_one(void *arg)
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name, table->name);
             }
         }
+        time(&end_command);
+        fprintf(stderr, "Created geometry index on  %s. Took %li seconds.\n", table->name, (end_command - start_command));
+
+        fprintf(stderr,"Clustering: %i\n", Options->cluster );
+        if (Options->cluster == 1) {
+        	fprintf(stderr, "Clustering on geometry index for  %s\n", table->name);
+        	time(&start_command);
+        	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CLUSTER %s USING %s_index;\n", table->name, table->name);
+        	time(&end_command);
+        	fprintf(stderr, "Clustered on geometry index for  %s. Took %li seconds.\n", table->name, (end_command - start_command));
+        }
 
         /* slim mode needs this to be able to apply diffs */
         if (Options->slim && !Options->droptemp)
         {
             fprintf(stderr, "Creating osm_id index on  %s\n", table->name);
+            time(&start_command);
             if (Options->tblsmain_index) {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
             } else {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
             }
+            time(&end_command);
+            fprintf(stderr, "Creating osm_id index on  %s. Took %li seconds.\n", table->name, (end_command - start_command));
+
         }
         /* Create hstore index if selected */
         if (Options->enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
+            time(&start_command);
             if (Options->tblsmain_index) {
                 if (HSTORE_NONE != (Options->enable_hstore)) {
                     if (Options->slim && !Options->droptemp) {
@@ -1459,6 +1474,8 @@ static void *pgsql_out_stop_one(void *arg)
                     }
                 }
             }
+            time(&end_command);
+            fprintf(stderr, "Creating hstore indexes on  %s. Took %li seconds\n", table->name, (end_command - start_command));
         }
         fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
@@ -1529,6 +1546,8 @@ static void pgsql_out_stop()
     close_geometry_ctx(global_ctx.geom_ctx);
     global_ctx.geom_ctx = NULL;
 
+
+
 #ifdef HAVE_PTHREAD
     if (Options->parallel_indexing) {
       for (i=0; i<NUM_TABLES; i++) {
@@ -1538,8 +1557,11 @@ static void pgsql_out_stop()
               exit_nicely();
           }
       }
-  
-      /* No longer need to access middle layer -- release memory */
+
+      /* No longer need to access middle layer -- release memory.
+       * This is a very long operation, as it also creates the indexes on the
+       * slim tables. So only do this after we have started the threads for
+       * the processing of the output tables, so that this can happen in parallel */
       Options->mid->stop();
   
       for (i=0; i<NUM_TABLES; i++) {
@@ -1551,11 +1573,10 @@ static void pgsql_out_stop()
       }
     } else {
 #endif
-
-    /* No longer need to access middle layer -- release memory */
-    Options->mid->stop();
-    for (i=0; i<NUM_TABLES; i++)
-        pgsql_out_stop_one(&global_tables[i]);
+    	/* No longer need to access middle layer -- release memory */
+    	Options->mid->stop();
+    	for (i=0; i<NUM_TABLES; i++)
+    		pgsql_out_stop_one(&global_tables[i]);
 
 #ifdef HAVE_PTHREAD
     }
@@ -1723,9 +1744,10 @@ static int pgsql_delete_way_from_output(osmid_t osm_id, struct s_table * tables)
     pgsql_pause_copy(&(tables[t_roads]));
     pgsql_pause_copy(&(tables[t_line]));
     pgsql_pause_copy(&(tables[t_poly]));
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
-    if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0)
+    if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0) {
         pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
+        pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
+    }
     if ( expire_tiles_from_db(tables[t_poly].sql_conn, osm_id) != 0)
         pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
     return 0;

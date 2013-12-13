@@ -404,6 +404,7 @@ int main(int argc, char *argv[])
     int num_procs = 1;
     int num_threads = 1;
     int droptemp = 0;
+    int cluster = 1;
     int unlogged = 0;
     int excludepoly = 0;
     time_t start, end;
@@ -489,6 +490,7 @@ int main(int argc, char *argv[])
             {"flat-nodes",1,0,209},
             {"exclude-invalid-polygon",0,0,210},
             {"tag-transform-script",1,0,212},
+            {"cluster", 1, 0, 213},
             {0, 0, 0, 0}
         };
 
@@ -577,6 +579,12 @@ int main(int argc, char *argv[])
             case 210: excludepoly = 1; exclude_broken_polygon(); break;
             case 211: enable_hstore_index = 1; break;
             case 212: tag_transform_script = optarg; break;
+            case 213:
+            	if (strcmp(optarg,"none") == 0) cluster = 0;
+            	else if (strcmp(optarg,"gist") == 0) cluster = 1;
+            	else if (strcmp(optarg,"geohash") == 0) cluster = 2;
+            	else {fprintf(stderr, "ERROR: Unrecognized cluster strategy %s.\n", optarg); exit(EXIT_FAILURE); }
+            	break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -697,6 +705,7 @@ int main(int argc, char *argv[])
     options.num_threads = num_threads;
     options.droptemp = droptemp;
     options.unlogged = unlogged;
+    options.cluster = cluster;
     options.flat_node_cache_enabled = flat_node_cache_enabled;
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
