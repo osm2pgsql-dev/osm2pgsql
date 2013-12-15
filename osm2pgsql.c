@@ -711,6 +711,8 @@ int main(int argc, char *argv[])
     options.excludepoly = excludepoly;
     options.tag_transform_script = tag_transform_script;
 
+    setDeduplicateStrings(!slim);
+
     if (strcmp("pgsql", output_backend) == 0) {
       osmdata.out = &out_pgsql;
     } else if (strcmp("gazetteer", output_backend) == 0) {

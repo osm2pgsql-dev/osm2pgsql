@@ -14,7 +14,13 @@
 #include "keyvals.h"
 #include "text-tree.h"
 
-static const deduplicate_strings;
+static int deduplicate_strings;
+
+void setDeduplicateStrings(int dedup) {
+    if (dedup) fprintf(stderr, "Deduplicating tag strings to save memory.\n");
+    else fprintf(stderr, "Storing tag strings verbatim.\n");
+    deduplicate_strings = dedup;
+}
 
 void initList(struct keyval *head)
 {
