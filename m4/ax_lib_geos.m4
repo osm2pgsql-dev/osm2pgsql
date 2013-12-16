@@ -90,10 +90,10 @@ AC_DEFUN([AX_LIB_GEOS],
             GEOS_VERSION=`$GEOS_CONFIG --version`
 
             dnl Headers are in a different package in Debian, so check again.
+            ac_save_CPPFLAGS="$CPPFLAGS"
             CPPFLAGS="$CPPFLAGS $GEOS_CFLAGS"
             AC_CHECK_HEADER([geos/version.h], [],
                              [AC_MSG_ERROR([development headers for geos not found])])
-            echo $ac_save_CPPFLAGS
             CPPFLAGS="$ac_save_CPPFLAGS"
 
             AC_DEFINE([HAVE_GEOS], [1],
