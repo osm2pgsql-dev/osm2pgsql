@@ -85,10 +85,12 @@ You must create a PostgreSQL user and a database with the
 PostGIS functions enabled. This requires access as the
 database administrator, normally the 'postgres' user.
 
-PostGIS version 2.0 or greater is suggested for databases in
-production. 1.5.x will work but 2.0 contains enhancements that
-should increase speed and reliability as well as add new features
-that style sheet authors can use.
+PostgreSQL 9.1 and PostGIS 2.0 or later are strongly suggested 
+for databases in production. It is generally best to run the 
+latest released versions if possible. PostgreSQL 8.4 and PostGIS 1.5 
+will work but are substantially slower. Additionally, PostGIS 2.0 
+contains enhancements that increase reliability as well as add new 
+features that style sheet authors can use.
 
 The default name for this database is 'gis' but this may
 be changed by using the osm2pgsql --database option.
