@@ -76,6 +76,8 @@ e.g. on Fedora:
 on Debian:
 # aptitude install libxml2-dev libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev protobuf-c-compiler libprotobuf-c0-dev autoconf automake libtool make g++
 
+To use lua tag transforms you need a lua interpreter and development packages installed on your system. These are normally lua5.2 and liblua5.2-dev
+
 On most Unix-like systems the program can be compiled by
 running './autogen.sh && ./configure && make'.
 
