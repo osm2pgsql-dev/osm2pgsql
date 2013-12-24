@@ -19,7 +19,7 @@ function add_z_order(keyvalues)
    
    zordering_tags = {{ 'railway', nil, 5, 1}, { 'boundary', 'administrative', 0, 1}, 
       { 'bridge', 'yes', 10, 0 }, { 'bridge', 'true', 10, 0 }, { 'bridge', 1, 10, 0 },
-      { 'tunel', 'yes', -10, 0}, { 'tunel', 'true', -10, 0}, { 'tunel', 1, -10, 0}, 
+      { 'tunnel', 'yes', -10, 0}, { 'tunnel', 'true', -10, 0}, { 'tunnel', 1, -10, 0}, 
       { 'highway', 'minor', 3, 0}, { 'highway', 'road', 3, 0 }, { 'highway', 'unclassified', 3, 0 },
       { 'highway', 'residential', 3, 0 }, { 'highway', 'tertiary_link', 4, 0}, { 'highway', 'tertiary', 4, 0},
       { 'highway', 'secondary_link', 6, 1}, { 'highway', 'secondary', 6, 1},
