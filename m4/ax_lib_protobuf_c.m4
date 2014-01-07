@@ -125,7 +125,7 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
         LDFLAGS="$LDFLAGS $protobuf_c_lib_flags"
 
         saved_LIBS="$LIBS"
-        LIBS="$LIBS $protobuf_c_lib_libs"
+        LIBS="$protobuf_c_lib_libs $LIBS"
 
         dnl
         dnl Check protobuf_c headers
