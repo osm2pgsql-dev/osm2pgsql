@@ -484,7 +484,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
-          strcmp(item->key, "addr:country")== 0 ||
+          strcmp(item->key, "addr:suburb")== 0 ||
           strcmp(item->key, "addr:county")== 0 ||
           strcmp(item->key, "addr:city") == 0 ||
           strcmp(item->key, "addr:state_code") == 0 ||
