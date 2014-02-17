@@ -48,7 +48,9 @@ struct output_options {
   int parallel_indexing;
   int alloc_chunkwise;
   int num_procs;
+  int num_threads;
   int droptemp; /* drop slim mode temp tables after act */
+  int cluster; /* type of clustering of geometries for faster rendering */
   int unlogged; /* use unlogged tables where possible */
   int hstore_match_only; /* only copy rows that match an explicitly listed key */
   int flat_node_cache_enabled;
@@ -59,9 +61,9 @@ struct output_options {
 
 struct output_t {
     int (*start)(const struct output_options *options);
-    int (*connect)(const struct output_options *options, int startTransaction);
+    int (*connect)(const struct output_options *options, void * middle_ctx, int startTransaction);
     void (*stop)();
-    void (*cleanup)(void);
+    void (*cleanup)(void *);
     void (*close)(int stopTransaction);
 
     int (*node_add)(osmid_t id, double lat, double lon, struct keyval *tags);

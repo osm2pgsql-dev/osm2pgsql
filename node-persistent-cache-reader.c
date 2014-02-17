@@ -17,13 +17,16 @@
 #include "node-ram-cache.h"
 #include "binarysearcharray.h"
 
+void * thread_ctx;
+static struct output_options options;
+
 void exit_nicely()
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
     exit(1);
 }
 
-void test_get_node_list(int itterations, int max_size, int process_number) {
+void test_get_node_list(void * thread_ctx, int itterations, int max_size, int process_number) {
     int i, j, node_cnt, node_cnt_total;
     struct osmNode *nodes;
     struct timeval start, stop;
@@ -43,7 +46,7 @@ void test_get_node_list(int itterations, int max_size, int process_number) {
             osmids[j] = random() % (1 << 31);
         }
         gettimeofday(&start, NULL);
-        persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+        persistent_cache_nodes_get_list(thread_ctx, nodes,osmids,node_cnt);
         gettimeofday(&stop, NULL);
         double duration = ((stop.tv_sec - start.tv_sec)*1000000.0 + (stop.tv_usec - start.tv_usec))/1000000.0;
         printf("Process %i: Got nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt / duration);
@@ -55,9 +58,16 @@ void test_get_node_list(int itterations, int max_size, int process_number) {
     printf("Process %i: Got a total of nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt_total / duration);
 }
 
+static void * node_persistent_worker_thread(void * pointer) {
+    void * thread_ctx;
+    int * tid = pointer;
+    thread_ctx = init_node_persistent_cache(&options, 1);
+    test_get_node_list(thread_ctx, 10,200,*tid);
+}
+
 int main(int argc, char *argv[]) {
 	int i,p;
-	struct output_options options;
+
 	struct osmNode node;
 	struct osmNode *nodes;
 	struct timeval start;
@@ -71,14 +81,14 @@ int main(int argc, char *argv[]) {
 
 
 	if (argc > 3) {
-	    init_node_persistent_cache(&options, 1);
+	    thread_ctx = init_node_persistent_cache(&options, 1);
 		node_cnt = argc - 2;
 		nodes = malloc(sizeof(struct osmNode) * node_cnt);
 		osmids = malloc(sizeof(osmid_t) * node_cnt);
 		for (i = 0; i < node_cnt; i++) {
 			osmids[i] = atoi(argv[2 + i]);
 		}
-		persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+		persistent_cache_nodes_get_list(thread_ctx, nodes,osmids,node_cnt);
 		for (i = 0; i < node_cnt; i++) {
 			printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 		}
@@ -89,9 +99,9 @@ int main(int argc, char *argv[]) {
         setstate(state);
 
 	    printf("Testing mode\n");
-	    init_node_persistent_cache(&options, 1);
-	    test_get_node_list(10, 200, 0);
-	    shutdown_node_persistent_cache();
+	    thread_ctx = init_node_persistent_cache(&options, 1);
+	    //test_get_node_list(thread_ctx, 10, 200, 0);// TODO: uncomment
+	    shutdown_node_persistent_cache(thread_ctx);
 #ifdef HAVE_FORK
 	    printf("Testing using multiple processes\n");
 	    int noProcs = 4;
@@ -109,11 +119,11 @@ int main(int argc, char *argv[]) {
 	    gettimeofday(&start, NULL);
 	    initstate(start.tv_usec, state, 8);
 	    setstate(state);
-	    init_node_persistent_cache(&options, 1);
-	    test_get_node_list(10,200,p);
+	    thread_ctx = init_node_persistent_cache(&options, 1);
+	    //test_get_node_list(thread_ctx, 10,200,p); //TODO: uncomment
 
 	    if (pid == 0) {
-	        shutdown_node_persistent_cache();
+	        shutdown_node_persistent_cache(thread_ctx);
 	        fprintf(stderr,"Exiting process %i\n", p);
 	        exit(0);
 	    } else {
@@ -122,10 +132,23 @@ int main(int argc, char *argv[]) {
         free(state);
 	    fprintf(stderr, "\nAll child processes exited\n");
 #endif
+#ifdef HAVE_PTHREAD
+	    printf("Testing using multi-threading\n");
+	    noProcs = 20;
+	    pthread_t * worker_threads = malloc(sizeof(pthread_t) * noProcs);
+	    for (p = 0; p < noProcs; p++) {
+	        int * tid = malloc(sizeof(int));
+	        *tid = p;
+	        pthread_create(&(worker_threads[p]),NULL,node_persistent_worker_thread, tid);
+	    }
+	    for (p = 0; p < noProcs; p++) {
+	        pthread_join(worker_threads[p], NULL);
+	    }
+#endif
 	} else {
-	    init_node_persistent_cache(&options, 1);
+	    thread_ctx = init_node_persistent_cache(&options, 1);
 		if (strstr(argv[2],",") == NULL) {
-			persistent_cache_nodes_get(&node, atoi(argv[2]));
+			persistent_cache_nodes_get(thread_ctx, &node, atoi(argv[2]));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
 		} else {
 			char * node_list = malloc(sizeof(char) * (strlen(argv[2]) + 1));
@@ -142,7 +165,7 @@ int main(int argc, char *argv[]) {
 				char * tmp = strtok(NULL,",");
 				osmids[i] = atoi(tmp);
 			}
-			persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+			persistent_cache_nodes_get_list(thread_ctx, nodes,osmids,node_cnt);
 			for (i = 0; i < node_cnt; i++) {
 				printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 			}
@@ -150,6 +173,6 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	shutdown_node_persistent_cache();
+	shutdown_node_persistent_cache(thread_ctx);
     return 0;
 }

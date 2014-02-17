@@ -4,7 +4,7 @@
  * tags, segment lists etc 
  *
  */
-#define USE_TREE
+//#define USE_TREE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,10 +12,15 @@
 #include <assert.h>
 #include <string.h>
 #include "keyvals.h"
-
-#ifdef USE_TREE
 #include "text-tree.h"
-#endif
+
+static int deduplicate_strings;
+
+void setDeduplicateStrings(int dedup) {
+    if (dedup) fprintf(stderr, "Deduplicating tag strings to save memory.\n");
+    else fprintf(stderr, "Storing tag strings verbatim.\n");
+    deduplicate_strings = dedup;
+}
 
 void initList(struct keyval *head)
 {
@@ -33,13 +38,13 @@ void freeItem(struct keyval *p)
     if (!p) 
         return;
 
-#ifdef USE_TREE
-    text_release(tree_ctx, p->key);
-    text_release(tree_ctx, p->value);
-#else
-    free(p->key);
-    free(p->value);
-#endif
+    if (deduplicate_strings) {
+        text_release(tree_ctx, p->key);
+        text_release(tree_ctx, p->value);
+    } else {
+        free(p->key);
+        free(p->value);
+    }
     free(p);
 }
 
@@ -172,13 +177,13 @@ void updateItem(struct keyval *head, const char *name, const char *value)
     item = head->next;
     while(item != head) {
         if (!strcmp(item->key, name)) {
-#ifdef USE_TREE
-            text_release(tree_ctx, item->value);
-            item->value = (char *)text_get(tree_ctx,value);
-#else
-            free(item->value);
-            item->value = strdup(value);
-#endif
+            if (deduplicate_strings) {
+                text_release(tree_ctx, item->value);
+                item->value = (char *)text_get(tree_ctx,value);
+            } else {
+                free(item->value);
+                item->value = strdup(value);
+            }
             return;
         }
         item = item->next;
@@ -244,29 +249,20 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
         return 2;
     }
 
-#ifdef USE_TREE
-    item->key   = (char *)text_get(tree_ctx,name);
-    item->value = (char *)text_get(tree_ctx,value);
-#else
-    item->key   = strdup(name);
-    item->value = strdup(value);
-#endif
+    if (deduplicate_strings) {
+        item->key   = (char *)text_get(tree_ctx,name);
+        item->value = (char *)text_get(tree_ctx,value);
+    } else {
+        item->key   = strdup(name);
+        item->value = strdup(value);
+    }
     item->has_column=0;
 
-
-#if 1
     /* Add to head */
     item->next = head->next;
     item->prev = head;
     head->next->prev = item;
     head->next = item;
-#else
-    /* Add to tail */
-    item->prev = head->prev;
-    item->next = head;
-    head->prev->next = item;
-    head->prev = item;
-#endif
     return 0;
 }
 
@@ -322,9 +318,12 @@ void keyval2hstore(char *hstring, struct keyval *tags)
 
 void keyval2hstore_manual(char *hstring, char *key, char *value)
 {
-  static char* str=NULL;
-  static size_t stlen=0;
+  char* str=NULL;
+  size_t stlen=0;
   size_t len;
+
+  str = malloc(1024);
+  stlen = 1024;
  
   len=strlen(value);
   if (len>stlen) {
@@ -341,6 +340,7 @@ void keyval2hstore_manual(char *hstring, char *key, char *value)
   escape4hstore(str,key);  
   hstring+=sprintf(hstring,"\"%s\"=>",str);
   escape4hstore(str,value);
-  sprintf(hstring,"\"%s\"",str);  
+  sprintf(hstring,"\"%s\"",str);
+  free(str);
 }
 

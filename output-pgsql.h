@@ -22,6 +22,40 @@ struct taginfo {
     int count;
 };
 
+struct relation_info2 {
+    osmid_t id;
+    struct keyval *tags;
+    struct member *members;
+    int member_count;
+    int exists;
+};
+
+struct relation_info {
+    osmid_t id;
+    struct keyval * tags;
+    int member_count;
+    const char ** member_roles;
+    struct keyval * member_tags;
+    int * member_way_node_count;
+    struct osmNode ** member_way_nodes;
+    osmid_t * member_ids;
+};
+
+struct way_info {
+    osmid_t id;
+    struct keyval * tags;
+    struct osmNode *nodes;
+    int node_count;
+    int exists;
+};
+
+struct way_info2 {
+    osmid_t id;
+    osmid_t *nds;
+    int nd_count;
+    struct keyval *tags;
+};
+
 extern struct output_t out_pgsql;
 
 #endif

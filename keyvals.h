@@ -20,6 +20,8 @@ struct keyval {
     struct keyval *prev;
 };
 
+void setDeduplicateStrings(int dedup);
+
 void initList(struct keyval *head);
 void freeItem(struct keyval *p);
 unsigned int countList(struct keyval *head);
