@@ -243,6 +243,7 @@ int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
 	memcpy(username, user.data, user.len);
 
 	addItem(head, "osm_user", username, 0);
+    free(username);
       }
 
       /* TODO timestamp */
@@ -346,6 +347,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
                     valstr = calloc(string_table->s[deltauser_sid].len + 1, 1);
                     memcpy(valstr, string_table->s[deltauser_sid].data, string_table->s[deltauser_sid].len);
                     addItem(&(osmdata->tags), "osm_user", valstr,  0);
+                    free(valstr);
                 }
             }
             
