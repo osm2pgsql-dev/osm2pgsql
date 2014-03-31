@@ -237,6 +237,7 @@ static void stop_error_copy(void)
 static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
    int* admin_level, struct keyval ** housenumber, struct keyval ** street, struct keyval ** addr_place, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
 {
+   size_t subval;
    int placehouse = 0;
    int placebuilding = 0;
    int placeadmin = 0;
@@ -467,11 +468,24 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
              addItem(places, "place", "houses", 1);
           }
       }
+      else if (strcmp(item->key, "tiger:county") == 0)
+      {
+         /* strip the state and replace it with a county suffix to ensure that
+            the tag only matches against counties and not against some town
+            with the same name.
+          */
+         subval = strcspn(item->value, ",");
+         *isin = realloc(*isin, isinsize + 9 + subval);
+         *(*isin+isinsize) = ',';
+         strncpy(*isin+1+isinsize, item->value, subval);
+         strcpy(*isin+1+isinsize+subval, " county");
+         isinsize += 8 + subval;
+         freeItem(item);
+      }
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
-          strcmp(item->key, "addr:country")== 0 ||
+          strcmp(item->key, "addr:suburb")== 0 ||
           strcmp(item->key, "addr:county")== 0 ||
-          strcmp(item->key, "tiger:county")== 0 ||
           strcmp(item->key, "addr:city") == 0 ||
           strcmp(item->key, "addr:state_code") == 0 ||
           strcmp(item->key, "addr:state") == 0)
