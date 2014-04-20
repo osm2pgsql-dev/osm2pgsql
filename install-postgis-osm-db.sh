@@ -21,6 +21,11 @@ fi
 
     sudo -u postgres createlang plpgsql $DBNAME || true
 
+    if [ -e /usr/share/postgresql/9.3/extension/postgis.control ]; then
+        echo "Initializing Spatial Extentions for postgresql 9.3"
+        echo "CREATE EXTENSION postgis;" | sudo -u postgres psql $DBNAME
+        echo "Initializing hstore"
+        echo "CREATE EXTENSION hstore;" | sudo -u postgres psql $DBNAME
     if [ -e /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql ] ; then
         echo "Initializing Spatial Extentions for postgresql 9.1"
         file_postgis=/usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
@@ -44,7 +49,7 @@ fi
         echo "Initializing hstore"
         file_hstore=/usr/share/postgresql/8.4/contrib/hstore.sql
         sudo -u postgres psql $DBNAME <$file_hstore >/dev/null 2>&1
-    fi
+    fi fi
     
     echo "Setting ownership to user $DBOWNER"
 
