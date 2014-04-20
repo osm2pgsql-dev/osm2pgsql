@@ -245,8 +245,10 @@ char * get_wkt(size_t index)
     char *result;
     result = (char*) std::malloc( wkts[index].length() + 1);
     // At least give some idea of why we about to seg fault
-    if (!result) std::cerr << std::endl << "Unable to allocate memory: " << (wkts[index].length() + 1) << std::endl;
-    std::strcpy(result, wkts[index].c_str());
+    if (!result)
+        std::cerr << std::endl << "Unable to allocate memory: " << (wkts[index].length() + 1) << std::endl;
+    else
+        std::strcpy(result, wkts[index].c_str());
     return result;
 }
 
