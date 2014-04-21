@@ -45,7 +45,6 @@ osmid_t binary_search_get(struct binary_search_array * array, int key)
     {
         return array->array[idx].value;
     }
-    exit(1);
 }
 
 void binary_search_remove(struct binary_search_array * array, int key)

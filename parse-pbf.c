@@ -29,7 +29,6 @@
 #include <time.h>
 
 #include <zlib.h>
-#include <bzlib.h>
 
 #include "osmtypes.h"
 #include "output.h"
@@ -156,30 +155,8 @@ static size_t uncompress_blob(Blob *bmsg, void *buf, int32_t max_size)
 
     return bmsg->raw_size;
   } else if (bmsg->has_bzip2_data) {
-    int ret;
-    bz_stream strm;
-    strm.bzalloc = NULL;
-    strm.bzfree = NULL;
-    strm.opaque = NULL;
-    strm.avail_in = bmsg->bzip2_data.len;
-    strm.next_in = (char *) bmsg->bzip2_data.data;
-    strm.avail_out = bmsg->raw_size;
-    strm.next_out = buf;
-
-    ret = BZ2_bzDecompressInit(&strm, 0, 0);
-    if (ret != BZ_OK) {
-      fprintf(stderr, "Bzip2 init failed\n");
-      return 0;
-    }
-
-    (void)BZ2_bzDecompressEnd(&strm);
-        
-    if (ret != BZ_STREAM_END) {
-      fprintf(stderr, "Bzip2 compression failed\n");
-      return 0;
-    }
-
-    return bmsg->raw_size;
+    fprintf(stderr, "Can't uncompress bz2 data\n");
+    return 0;
   } else if (bmsg->has_lzma_data) {
     fprintf(stderr, "Can't uncompress LZMA data\n");
     return 0;
