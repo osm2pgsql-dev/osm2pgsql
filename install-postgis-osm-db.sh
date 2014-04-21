@@ -26,7 +26,7 @@ fi
         echo "CREATE EXTENSION postgis;" | sudo -u postgres psql $DBNAME
         echo "Initializing hstore"
         echo "CREATE EXTENSION hstore;" | sudo -u postgres psql $DBNAME
-    if [ -e /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql ] ; then
+    else if [ -e /usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql ] ; then
         echo "Initializing Spatial Extentions for postgresql 9.1"
         file_postgis=/usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
         file_spatial_ref=/usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
