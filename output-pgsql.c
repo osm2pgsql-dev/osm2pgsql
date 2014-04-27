@@ -875,9 +875,7 @@ static int pgsql_out_relation_single(struct relation_info * rel, struct thread_c
             if (members_superseeded[i]) {
                 //TODO: Need to find a thread-safe way to do the done marking
                 Options->mid->ways_done(ctx->middle_ctx, rel->member_ids[i]);
-                if (Options->append) {
-                	pgsql_delete_way_from_output(rel->member_ids[i], ctx->tables);
-                }
+                pgsql_delete_way_from_output(rel->member_ids[i], ctx->tables);
             }
         }
     }
@@ -1225,6 +1223,14 @@ static int pgsql_out_start(const struct output_options *options)
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
                         global_tables[i].name, SRID, global_tables[i].type );
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", global_tables[i].name);
+            /* slim mode needs this to be able to apply diffs */
+            if (Options->slim && !Options->droptemp) {
+            	sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  global_tables[i].name, global_tables[i].name);
+            	if (Options->tblsmain_index) {
+            		sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
+            	}
+            	pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
+            }
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
@@ -1423,20 +1429,6 @@ static void *pgsql_out_stop_one(void *arg)
         	fprintf(stderr, "Clustered on geometry index for  %s. Took %li seconds.\n", table->name, (end_command - start_command));
         }
 
-        /* slim mode needs this to be able to apply diffs */
-        if (Options->slim && !Options->droptemp)
-        {
-            fprintf(stderr, "Creating osm_id index on  %s\n", table->name);
-            time(&start_command);
-            if (Options->tblsmain_index) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
-            } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
-            }
-            time(&end_command);
-            fprintf(stderr, "Creating osm_id index on  %s. Took %li seconds.\n", table->name, (end_command - start_command));
-
-        }
         /* Create hstore index if selected */
         if (Options->enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
