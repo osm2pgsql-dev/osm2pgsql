@@ -259,6 +259,12 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
 	    addItem(&(osmdata->tags), "osm_timestamp", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
+
+        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
+        if (xtmp) {
+	    addItem(&(osmdata->tags), "osm_changeset", (char *)xtmp, 0);
+            xmlFree(xtmp);
+        }
     }
 }
 

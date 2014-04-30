@@ -631,7 +631,7 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
                     /* z_order and osm_ are automatically generated tags, so ignore them */
                     if ((strcmp(p->key, "z_order") != 0) && (strcmp(p->key, "osm_user") != 0) && 
                         (strcmp(p->key, "osm_version") != 0) && (strcmp(p->key, "osm_uid") != 0) &&
-                        (strcmp(p->key, "osm_changeset"))) {
+                        (strcmp(p->key, "osm_changeset")) && (strcmp(p->key, "osm_timestamp") != 0)) {
                         match = 0;
                         break;
                     }
