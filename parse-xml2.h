@@ -23,7 +23,7 @@
 */
 
 #ifndef PARSE_XML2_H
-#define PARSE_XML2_h
+#define PARSE_XML2_H
 
 int streamFileXML2(char *filename, int sanitize, struct osmdata_t *osmdata);
 

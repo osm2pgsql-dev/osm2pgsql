@@ -1,3 +1,6 @@
+#ifndef NODE_PERSISTENT_CACHE_H
+#define NODE_PERSISTENT_CACHE_H
+
 #define MAXIMUM_INITIAL_ID 2600000000
 
 #define READ_NODE_CACHE_SIZE 10000
@@ -22,3 +25,5 @@ int persistent_cache_nodes_get(struct osmNode *out, osmid_t id);
 int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count);
 void init_node_persistent_cache(const struct output_options *options, const int append);
 void shutdown_node_persistent_cache();
+
+#endif
