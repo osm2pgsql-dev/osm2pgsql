@@ -1246,7 +1246,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       return 0;
    }
 
-   if (!strcmp(type, "associatedStreet") || !strcmp(type, "relatedStreet"))
+   if (!strcmp(type, "associatedStreet"))
    {
       Options->mid->relations_set(id, members, member_count, tags);
       if (delete_old) delete_unused_classes('R', id, 0); 
