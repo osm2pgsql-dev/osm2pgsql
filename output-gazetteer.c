@@ -363,8 +363,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                strcmp(item->key, "office") == 0 ||
                strcmp(item->key, "railway") == 0 ||
                strcmp(item->key, "shop") == 0 ||
-               strcmp(item->key, "tunnel") == 0 ||
-               strcmp(item->key, "waterway") == 0 )
+               strcmp(item->key, "tunnel") == 0 )
       {
          if (strcmp(item->value, "no"))
          {
@@ -378,6 +377,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          {
             freeItem(item);
          }
+      }
+      else if (strcmp(item->key, "waterway") == 0 &&
+               strcmp(item->value, "riverbank") != 0)
+      {
+            pushItem(places, item);
       }
       else if (strcmp(item->key, "place") == 0) 
       {
@@ -1249,7 +1253,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       return 0;
    }
 
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon")) {
+   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && strcmp(type, "waterway")) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
@@ -1291,7 +1295,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       for (i=0;i<wkt_size;i++)
       {
          char *wkt = get_wkt(i);
-         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
+         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || !strcmp(type, "waterway")))
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
              {
