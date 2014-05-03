@@ -6,6 +6,9 @@ AC_PREREQ(2.61)
 
 AX_CONFIG_NICE
 
+dnl Allow maintainer mode to be disabled (debian build scripts do this)
+AM_MAINTAINER_MODE([enable])
+
 dnl use automake to generate standard Makefiles
 AM_INIT_AUTOMAKE([1.9.6 dist-bzip2 std-options check-news])
 

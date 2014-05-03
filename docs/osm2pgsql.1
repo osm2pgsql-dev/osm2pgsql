@@ -36,7 +36,7 @@ database up to date.
 .PP
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
-options starting with two dashes (`-').
+options starting with two dashes (`\-').
 A summary of options is included below.
 .TP
 \fB\-a\fR|\-\-append
@@ -58,7 +58,7 @@ to (default: gis).
 .TP
 \fB\-i\fR|\-\-tablespace\-index tablespacename
 Store all indices in a separate PostgreSQL tablespace named by this parameter.
-This allows to e.g. store the indices on faster storage like SSDs.
+This allows one to e.g. store the indices on faster storage like SSDs.
 .TP
 \fB\ \fR\-\-tablespace\-main\-data tablespacename
 Store the data tables (non slim) in the given tablespace.
@@ -85,7 +85,7 @@ Store data in the legacy OSM Mercator format.
 Use projection EPSG:num
 .TP
 \fB\-u\fR|\-\-utf8\-sanitize
-Repair bad UTF-8 input data (present in planet
+Repair bad UTF\-8 input data (present in planet
 dumps prior to August 2007). Adds about 10% overhead.
 .TP
 \fB\-p\fR|\-\-prefix prefix_string
@@ -119,11 +119,11 @@ imported into database columns and which tags get dropped. Defaults to /usr/shar
 \fB\-C\fR|\-\-cache num
 Only for slim mode: Use up to num many MB of RAM for caching nodes. Giving osm2pgsql sufficient cache
 to store all imported nodes typically greatly increases the speed of the import. Each cached node
-requires 8 bytes of cache, plus about 10% - 30% overhead. For a current OSM full planet import with
+requires 8 bytes of cache, plus about 10% \- 30% overhead. For a current OSM full planet import with
 its ~ 1.9 billion nodes, a good value would be 17000 if you have enough RAM. If you don't have enough
 RAM, it is likely beneficial to give osm2pgsql close to the full available amount of RAM. Defaults to 800. 
 .TP
-\fB\  \fR\-\-cache-strategy strategy
+\fB\  \fR\-\-cache\-strategy strategy
 There are a number of different modes in which osm2pgsql can organize its
 node cache in RAM. These are optimized for different assumptions of the data
 and the hardware resources available. Currently available strategies are
@@ -150,16 +150,16 @@ Database server hostname or socket location.
 \fB\-P\fR|\-\-port num
 Database server port.
 .TP
-\fB\-e\fR|\-\-expire-tiles [min_zoom-]max-zoom 
+\fB\-e\fR|\-\-expire\-tiles [min_zoom\-]max\-zoom
 Create a tile expiry list.
 .TP
-\fB\-o\fR|\-\-expire-output /path/to/expire.list
+\fB\-o\fR|\-\-expire\-output /path/to/expire.list
 Output file name for expired tiles list.
 .TP
 \fB\-o\fR|\-\-output
-Specifies the output back-end or database schema to use. Currently
+Specifies the output back\-end or database schema to use. Currently
 osm2pgsql supports \fBpgsql\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
-the default output back-end / schema and is optimized for rendering with Mapnik.
+the default output back\-end / schema and is optimized for rendering with Mapnik.
 \fBgazetteer\fR is a db schema optimized for geocoding and is used by Nominatim.
 \fBnull\fR does not write any output and is only useful for testing.
 .TP
@@ -176,27 +176,27 @@ Add all tags to an additional hstore (key/value) column in PostgreSQL tables.
 .TP
 \fB\-z\fR|\-\-hstore\-column key_name
 Add an additional hstore (key/value) column containing all tags
-that start with the specified string, egg --hstore-column "name:" will
+that start with the specified string, eg \-\-hstore\-column "name:" will
 produce an extra hstore column that contains all name:xx tags
 .TP
 \fB\  \fR\-\-hstore\-match\-only
 Only keep objects that have a value in one of the columns
-(normal action with --hstore is to keep all objects).
+(normal action with \-\-hstore is to keep all objects).
 .TP
-\fB\  \fR\-\-hstore-add-index
+\fB\  \fR\-\-hstore\-add\-index
 Create indices for the hstore columns during import.
 .TP
 \fB\-G\fR|\-\-melts\-geometry
-Normally osm2pgsql splits multi-part geometries into separate database rows per part.
+Normally osm2pgsql splits multi\-part geometries into separate database rows per part.
 A single OSM id can therefore have several rows. With this option, PostgreSQL instead
-generates multi-geometry features in the PostgreSQL tables.
+generates multi\-geometry features in the PostgreSQL tables.
 .TP
-\fB\-K\fR|\-\-keep-coastlines
+\fB\-K\fR|\-\-keep\-coastlines
 Keep coastline data rather than filtering it out.
 By default natural=coastline tagged data will be discarded based on the
 assumption that post-processed Coastline Checker shape files will be used.
 .TP
-\fB\  \fR\-\-exclude-invalid-polygon
+\fB\  \fR\-\-exclude\-invalid\-polygon
 OpenStreetMap data is defined in terms of nodes, ways and relations and not in
 terms of actual geometric features. Osm2pgsql therefore tries to build postgis
 geometries out of this data representation. However not all ways and relations
@@ -207,31 +207,31 @@ simply dropped from the database.
 .TP
 \fB\  \fR\-\-unlogged
 Use postgresql's unlogged tables for storing data. This requires PostgreSQL 9.1
-or above. Data written to unlogged tables is not written to PostgreSQL's write-ahead log,
+or above. Data written to unlogged tables is not written to PostgreSQL's write\-ahead log,
 which makes them considerably faster than ordinary tables. However, they are not
-crash-safe: an unlogged table is automatically truncated after a crash or unclean shutdown.
+crash\-safe: an unlogged table is automatically truncated after a crash or unclean shutdown.
 .TP
 \fB\  \fR\-\-number\-processes num
 Specifies the number of parallel processes used for certain operations. If disks are
 fast enough e.g. if you have an SSD, then this can greatly increase speed of
-the "going over pending ways" and "going over pending relations" stages on a multi-core
-server. 
+the "going over pending ways" and "going over pending relations" stages on a multi\-core
+server.
 .TP
-\fB\-I\fR|\-\-disable-parallel-indexing
+\fB\-I\fR|\-\-disable\-parallel\-indexing
 By default osm2pgsql initiates the index building on all tables in parallel to increase
 performance. This can be disadvantages on slow disks, or if you don't have
 enough RAM for PostgreSQL to perform up to 7 parallel index building processes
 (e.g. because maintenance_work_mem is set high).
 .TP
-\fB\  \fR\-\-flat-nodes /path/to/nodes.cache
-The flat-nodes mode is a separate method to store slim mode node information on disk.
+\fB\  \fR\-\-flat\-nodes /path/to/nodes.cache
+The flat\-nodes mode is a separate method to store slim mode node information on disk.
 Instead of storing this information in the main PostgreSQL database, this mode creates
 its own separate custom database to store the information. As this custom database
 has application level knowledge about the data to store and is not general purpose,
 it can store the data much more efficiently. Storing the node information for the full
 planet requires about 100GB in PostgreSQL, the same data is stored in only ~16GB using
-the flat-nodes mode. This can also increase the speed of applying diff files. This option
-activates the flat-nodes mode and specifies the location of the database file. It is a
+the flat\-nodes mode. This can also increase the speed of applying diff files. This option
+activates the flat\-nodes mode and specifies the location of the database file. It is a
 single large > 16GB file. This mode is only recommended for full planet imports
 as it doesn't work well with small extracts. The default is disabled.
 .TP
@@ -244,11 +244,11 @@ Add \fB\-v\fR to display supported projections.
 Verbose output.
 .PP
 .SH SUPPORTED PROJECTIONS
-Latlong             (-l) SRS:  4326 (none)
-.br       
+Latlong             (\-l) SRS:  4326 (none)
+.br
 WGS84 Mercator      (  ) SRS:  3395 +proj=merc +datum=WGS84  +k=1.0 +units=m +over +no_defs
 .br
-Spherical Mercator  (-m) SRS:900913 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
+Spherical Mercator  (\-m) SRS:900913 +proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
 .PP
 .SH SEE ALSO
 .BR proj (1),
