@@ -369,28 +369,34 @@ class BaseTestCase(unittest.TestCase):
 class BaseNonSlimTestCase(BaseTestCase):
     
     def setUpGeneric(self, parameters, file):
-        returncode = subprocess.call(["./osm2pgsql", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file])
-        self.assertEqual( returncode, 0, "Execution of osm2pgsql with options: " + str(parameters) + " failed")
+        proc = subprocess.Popen(["./osm2pgsql", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outp, outerr) = proc.communicate()
+        self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
 class BaseSlimTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
-        returncode = subprocess.call(["./osm2pgsql", "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
-        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim with options: " + str(parameters) + " failed")
+        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outp, outerr) = proc.communicate()
+        self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        returncode = subprocess.call(["./osm2pgsql", "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
-        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim --append with options: " + str(parameters) + " failed")
-
+        proc = subprocess.Popen(["./osm2pgsql", "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outp, outerr) = proc.communicate()
+        self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
+        
 class BaseGazetteerTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
-        returncode = subprocess.call(["./osm2pgsql", "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
-        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim -Ogazetteer with options: " + str(parameters) + " failed")
+        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outp, outerr) = proc.communicate()
+        self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        returncode = subprocess.call(["./osm2pgsql", "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file])
-        self.assertEqual( returncode, 0, "Execution of osm2pgsql --slim -Ogazetteer --append with options: " + str(parameters) + " failed")
+        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (outp, outerr) = proc.communicate()
+        self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
+        
 
 #****************************************************************
 class BasicNonSlimTestCase(BaseNonSlimTestCase):
