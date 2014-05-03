@@ -226,6 +226,7 @@ class NonSlimRenderingTestSuite(unittest.TestSuite):
                                               "testTwo")))
         self.addTest(BasicNonSlimTestCase("basic case",[], [0,1,2,3,10,13, 91, 92]))
         self.addTest(BasicNonSlimTestCase("slim --drop case",["--slim","--drop"], [0,1,2,3, 10, 11, 12, 13, 91, 92]))
+        self.addTest(BasicNonSlimTestCase("Hstore index drop", ["--slim", "--hstore", "--hstore-add-index", "--drop"], [51,52,53,54]))
         self.addTest(BasicNonSlimTestCase("lat lon projection",["-l"], [0,4,5,3,10, 11, 12]))
         #Failing test 3,13 due to difference in handling mixture of tags on ways and relations, where the correct behaviour is non obvious
         #self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3,10,13,91,92]))
@@ -248,6 +249,7 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         self.addTest(BasicSlimTestCase("Hstore name column", ["-z", "name:"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Hstore", ["-k"], [51,52,53,54],[55,56,57,58]))
         self.addTest(BasicSlimTestCase("Hstore all", ["-j"], [51,52,53,54,93,94,95,96],[55,56,57,58, 97, 98, 99, 100]))
+        self.addTest(BasicSlimTestCase("Hstore index", ["--hstore", "--hstore-add-index"], [51,52,53,54],[55,56,57,58]))        
         #tests dont check for osm_timestamp which is currently missing in the pbf parser
         self.addTest(BasicSlimTestCase("Extra tags hstore match only", ["-x", "-k", "--hstore-match-only"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,59,60,61],[55,56,57,58]))
