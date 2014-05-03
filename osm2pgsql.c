@@ -352,7 +352,7 @@ void printStatus(struct osmdata_t *osmdata)
     end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
     end_way = osmdata->start_rel > 0 ? osmdata->start_rel : now;
     end_rel =  now;
-    fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2f/s)",
+    fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2fk/s)",
             osmdata->count_node/1000,
             (double)osmdata->count_node/1000.0/((int)(end_nodes - osmdata->start_node) > 0 ? (double)(end_nodes - osmdata->start_node) : 1.0),
             osmdata->count_way/1000,
