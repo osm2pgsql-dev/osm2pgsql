@@ -532,7 +532,7 @@ def setupDB():
                 print "We already have a tablespace, can use that"
                 created_tablespace = 0
             else:
-                print "For the test, we need to create a tablespace. This needs root privilidges"
+                print "For the test, we need to create a tablespace. This needs root privileges"
                 created_tablespace = 1
                 ### This makes postgresql read from /tmp
                 ## Does this have security implications like opening this to a possible symlink attack?
