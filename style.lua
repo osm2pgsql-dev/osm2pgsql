@@ -12,7 +12,7 @@ generic_keys = {'access','addr:housename','addr:housenumber','addr:interpolation
 
 function add_z_order(keyvalues)
    z_order = 0
-   if (keyvalues["layer"] ~= nil ) then
+   if (keyvalues["layer"] ~= nil and tonumber(keyvalues["layer"])) then
       z_order = 10*keyvalues["layer"]
    end
 
