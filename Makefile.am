@@ -63,4 +63,5 @@ distclean-local:
 	@rm -f config.nice
 
 test:
-	python tests/regression-test.py
+	tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.pbf
+	tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.bz2
