@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import unittest
 import psycopg2
 import os
@@ -602,6 +604,19 @@ def tearDownDB():
     if (created_tablespace == 1):
         returncode = subprocess.call(["/usr/bin/sudo", "/bin/rmdir", "/tmp/psql-tablespace"])
 
+
+if __name__ == "__main__":
+
+    from optparse import OptionParser
+
+    parser = OptionParser()
+    parser.add_option("-f", dest="osm_file", action="store", metavar="FILE",
+                      default=full_import_file,
+                      help="Import a specific osm file [default=%default]")
+    (options, args) = parser.parse_args()
+
+    if options.osm_file:
+        full_import_file = options.osm_file
 
 
 ts2 = CompleteTestSuite()
