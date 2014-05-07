@@ -207,7 +207,9 @@ AC_DEFUN([AX_LIB_PROTOBUF_C],
       CFLAGS="$CFLAGS $PROTOBUF_C_CFLAGS"
       AX_COMPARE_VERSION([$protobuf_c_wanted_version], [ge], [0.14],
          [AC_CHECK_MEMBER([ProtobufCFieldDescriptor.packed],,
-                          [protobuf_c_version_ok="no"],
+                          [AC_CHECK_MEMBER([ProtobufCFieldDescriptor.flags],,
+                                           [protobuf_c_version_ok="no"],
+                                           [[#include <protobuf-c/protobuf-c.h>]])],
                           [[#include <google/protobuf-c/protobuf-c.h>]
          ])
       ])
