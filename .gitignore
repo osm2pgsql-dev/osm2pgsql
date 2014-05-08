@@ -43,6 +43,7 @@ test-driver
 test-suite.log
 tests/.dirstamp
 tests/test-parse-xml2
+tests/test-middle-ram
 tests/*.log
 tests/*.trs
 
