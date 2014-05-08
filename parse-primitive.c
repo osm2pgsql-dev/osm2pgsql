@@ -449,7 +449,7 @@ static void process(char *line, struct osmdata_t *osmdata) {
     }
 }
 
-int streamFilePrimitive(char *filename, int sanitize UNUSED, struct osmdata_t *osmdata) {
+int streamFilePrimitive(const char *filename, int sanitize UNUSED, struct osmdata_t *osmdata) {
     struct Input *i;
     char buffer[65536];
     int bufsz = 0;

@@ -379,7 +379,7 @@ static void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
     xmlFree(name);
 }
 
-int streamFileXML2(char *filename, int sanitize, struct osmdata_t *osmdata) {
+int streamFileXML2(const char *filename, int sanitize, struct osmdata_t *osmdata) {
     xmlTextReaderPtr reader;
     int ret = 0;
 

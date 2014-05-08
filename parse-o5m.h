@@ -25,7 +25,7 @@
 #ifndef PARSE_O5M_H
 #define PARSE_O5M_H
 
-int streamFileO5m(char *filename,int sanitize,struct osmdata_t *osmdata);
+int streamFileO5m(const char *filename,int sanitize,struct osmdata_t *osmdata);
 
 #endif
 

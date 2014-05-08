@@ -25,6 +25,6 @@
 #ifndef PARSE_PRIMITIVE_H
 #define PARSE_PRIMITIVE_H
 
-int streamFilePrimitive(char *filename, int sanitize, struct osmdata_t *osmdata);
+int streamFilePrimitive(const char *filename, int sanitize, struct osmdata_t *osmdata);
 
 #endif

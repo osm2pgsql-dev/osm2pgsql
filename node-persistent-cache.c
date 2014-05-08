@@ -571,7 +571,12 @@ void init_node_persistent_cache(const struct output_options *options, int append
             node_cache_fname);
 
     readNodeBlockCacheIdx = init_search_array(READ_NODE_CACHE_SIZE);
-    
+    if (readNodeBlockCacheIdx == NULL)
+    {
+	fprintf(stderr, "Unable to initialise binary search array\n");
+	exit_nicely();
+    }
+
     /* Setup the file for the node position cache */
     if (append_mode)
     {

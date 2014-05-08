@@ -77,6 +77,6 @@ void printStatus(struct osmdata_t *osmdata);
 int node_wanted(struct osmdata_t *osmdata, double lat, double lon);
 
 /* exit_nicely - called to cleanup after fatal error */
-void exit_nicely(void);
+void exit_nicely();
 
 #endif

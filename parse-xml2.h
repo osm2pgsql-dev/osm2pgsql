@@ -25,6 +25,18 @@
 #ifndef PARSE_XML2_H
 #define PARSE_XML2_H
 
-int streamFileXML2(char *filename, int sanitize, struct osmdata_t *osmdata);
+/* Open and incrementally read an XML file.
+ *
+ * Parameters:
+ *  - filename: the path to the XML file to stream.
+ *  - sanitize: if non-zero, use a parser which attempts to sanitize bad UTF-8
+ *      characters.
+ *  - osmdata: as the file is parsed, it will call functions on `osmdata->out`
+ *      based on the action and type of object, e.g: `node_add`, `relation_modify`,
+ *      and so on.
+ *
+ * Return value: 0 on success. A non-zero value indicates failure.
+ */
+int streamFileXML2(const char *filename, int sanitize, struct osmdata_t *osmdata);
 
 #endif

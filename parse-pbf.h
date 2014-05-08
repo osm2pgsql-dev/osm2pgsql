@@ -25,6 +25,6 @@
 #ifndef PARSE_PBF_H
 #define PARSE_PBF_H
 
-int streamFilePbf(char *filename, int sanitize, struct osmdata_t *osmdata);
+int streamFilePbf(const char *filename, int sanitize, struct osmdata_t *osmdata);
 
 #endif

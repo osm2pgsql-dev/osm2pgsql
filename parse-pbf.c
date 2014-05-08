@@ -527,7 +527,7 @@ int processOsmData(struct osmdata_t *osmdata, void *data, size_t length)
 
 
 
-int streamFilePbf(char *filename, int sanitize UNUSED, struct osmdata_t *osmdata)
+int streamFilePbf(const char *filename, int sanitize UNUSED, struct osmdata_t *osmdata)
 {
   void *header = NULL;
   void *blob = NULL;

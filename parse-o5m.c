@@ -626,7 +626,7 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
 
 
 
-int streamFileO5m(char *filename,int sanitize,struct osmdata_t *osmdata) {
+int streamFileO5m(const char *filename,int sanitize,struct osmdata_t *osmdata) {
     /* open and parse an .o5m file; */
     /* return: ==0: ok; !=0: error; */
     int otype;  /*  type of currently processed object; */

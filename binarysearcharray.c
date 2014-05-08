@@ -100,7 +100,7 @@ struct binary_search_array * init_search_array(int capacity)
     array->array = calloc(capacity + 1, sizeof(struct key_val_tuple));
     if (!array->array) {
         fprintf(stderr, "Out of memory trying to allocate %li bytes for binary search array\n", ((capacity + 1) * sizeof(struct key_val_tuple)));
-        exit_nicely();
+	return NULL;
     }
     array->capacity = capacity;
     array->size = 0;
