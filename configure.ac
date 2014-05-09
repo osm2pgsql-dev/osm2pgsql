@@ -121,6 +121,12 @@ fi
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
+dnl Check for Boost libraries
+AX_BOOST_BASE
+AX_BOOST_SYSTEM
+AX_BOOST_FILESYSTEM
+
+dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
     AX_LUA_HEADERS([
         AX_LUA_LIBS([
