@@ -44,6 +44,7 @@ test-suite.log
 tests/.dirstamp
 tests/test-parse-xml2
 tests/test-middle-ram
+tests/test-middle-pgsql
 tests/*.log
 tests/*.trs
 

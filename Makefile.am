@@ -62,12 +62,15 @@ nodecachefilereader_LDADD = libosm2pgsql.la
 
 check_PROGRAMS = \
 	tests/test-parse-xml2 \
-	tests/test-middle-ram
+	tests/test-middle-ram \
+	tests/test-middle-pgsql
 
 tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp 
 tests_test_parse_xml2_LDADD = libosm2pgsql.la
 tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
 tests_test_middle_ram_LDADD = libosm2pgsql.la
+tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests.cpp
+tests_test_middle_pgsql_LDADD = libosm2pgsql.la
 
 TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
@@ -110,6 +113,7 @@ GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS
 osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
 
 osm2pgsql_DATA = default.style 900913.sql

@@ -1566,6 +1566,9 @@ static int pgsql_start(const struct output_options *options)
 
     scale = options->scale;
     Append = options->append;
+    // reset this on every start to avoid options from last run
+    // staying set for the second.
+    build_indexes = 0;
 
     out_options = options;
     
