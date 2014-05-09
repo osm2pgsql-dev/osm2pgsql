@@ -125,7 +125,7 @@ struct tempdb
           << "exist. Please create the temporary tablespace. On Linux, you can "
           << "do this by running:\n"
           << "  sudo mkdir -p /tmp/psql-tablespace\n"
-          << "  sudo /bin/chown postgres.postgres tmp/psql-tablespace\n"
+          << "  sudo /bin/chown postgres.postgres /tmp/psql-tablespace\n"
           << "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION "
           << "'/tmp/psql-tablespace'\" postgres\n";
       throw std::runtime_error(out.str());

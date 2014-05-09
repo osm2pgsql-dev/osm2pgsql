@@ -321,7 +321,7 @@ osm2pgsql against it. To allow that to happen, you first need to set
 up a testing tablespace like this:
 
 # sudo mkdir -p /tmp/psql-tablespace
-# sudo /bin/chown postgres.postgres tmp/psql-tablespace
+# sudo /bin/chown postgres.postgres /tmp/psql-tablespace
 # psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
 
 And ensure that PostgreSQL is running and that your user is a
