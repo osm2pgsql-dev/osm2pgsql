@@ -5,10 +5,7 @@
 #include <cassert>
 #include <list>
 
-extern "C" {
-#include "osmtypes.h"
-}
-
+#include "osmtypes.hpp"
 #include "tests/middle-tests.hpp"
 
 int test_node_set(middle_t *mid)

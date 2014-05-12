@@ -4,12 +4,10 @@
 #include <string.h>
 #include <cassert>
 
-extern "C" {
-#include "osmtypes.h"
-#include "parse-xml2.h"
-#include "output.h"
-#include "text-tree.h"
-}
+#include "osmtypes.hpp"
+#include "parse-xml2.hpp"
+#include "output.hpp"
+#include "text-tree.hpp"
 
 void exit_nicely()
 {

@@ -8,12 +8,10 @@
 #include <memory>
 #include <cstdarg>
 
-extern "C" {
-#include "osmtypes.h"
-#include "middle.h"
-#include "output.h"
-#include "middle-pgsql.h"
-}
+#include "osmtypes.hpp"
+#include "middle.hpp"
+#include "output.hpp"
+#include "middle-pgsql.hpp"
 
 #include <libpq-fe.h>
 #include <sys/types.h>

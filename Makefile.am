@@ -3,61 +3,61 @@ ACLOCAL_AMFLAGS = -I m4
 bin_PROGRAMS = osm2pgsql nodecachefilereader
 noinst_LTLIBRARIES = libosm2pgsql.la
 
-osm2pgsql_SOURCES = osm2pgsql.c \
-	binarysearcharray.h \
-	build_geometry.h \
-	expire-tiles.h \
-	input.h \
-	keyvals.h \
-	middle-pgsql.h \
-	middle-ram.h \
-	middle.h \
-	node-persistent-cache.h \
-	node-ram-cache.h \
-	osmtypes.h \
-	output-gazetteer.h \
-	output-null.h \
-	output-pgsql.h \
-	output.h \
-	parse-o5m.h \
-	parse-primitive.h \
-	parse-xml2.h \
-	pgsql.h \
-	rb.h \
-	reprojection.h \
-	sanitizer.h \
-	sprompt.h \
-	text-tree.h
+osm2pgsql_SOURCES = osm2pgsql.cpp \
+	binarysearcharray.hpp \
+	build_geometry.hpp \
+	expire-tiles.hpp \
+	input.hpp \
+	keyvals.hpp \
+	middle-pgsql.hpp \
+	middle-ram.hpp \
+	middle.hpp \
+	node-persistent-cache.hpp \
+	node-ram-cache.hpp \
+	osmtypes.hpp \
+	output-gazetteer.hpp \
+	output-null.hpp \
+	output-pgsql.hpp \
+	output.hpp \
+	parse-o5m.hpp \
+	parse-primitive.hpp \
+	parse-xml2.hpp \
+	pgsql.hpp \
+	rb.hpp \
+	reprojection.hpp \
+	sanitizer.hpp \
+	sprompt.hpp \
+	text-tree.hpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
 
 libosm2pgsql_la_SOURCES = \
-	UTF8sanitizer.c \
-	binarysearcharray.c \
+	UTF8sanitizer.cpp \
+	binarysearcharray.cpp \
 	build_geometry.cpp \
-	expire-tiles.c \
-	input.c \
-	keyvals.c \
-	middle-pgsql.c \
-	middle-ram.c \
-	node-persistent-cache.c \
-	node-ram-cache.c \
-	osmtypes.c \
-	output-gazetteer.c \
-	output-null.c \
-	output-pgsql.c \
-	parse-o5m.c \
-	parse-primitive.c \
-	parse-xml2.c \
-	pgsql.c \
-	rb.c \
-	reprojection.c \
-	sprompt.c \
-	tagtransform.c \
-	text-tree.c \
-	wildcmp.c
+	expire-tiles.cpp \
+	input.cpp \
+	keyvals.cpp \
+	middle-pgsql.cpp \
+	middle-ram.cpp \
+	node-persistent-cache.cpp \
+	node-ram-cache.cpp \
+	osmtypes.cpp \
+	output-gazetteer.cpp \
+	output-null.cpp \
+	output-pgsql.cpp \
+	parse-o5m.cpp \
+	parse-primitive.cpp \
+	parse-xml2.cpp \
+	pgsql.cpp \
+	rb.cpp \
+	reprojection.cpp \
+	sprompt.cpp \
+	tagtransform.cpp \
+	text-tree.cpp \
+	wildcmp.cpp
 
-nodecachefilereader_SOURCES = node-persistent-cache-reader.c
+nodecachefilereader_SOURCES = node-persistent-cache-reader.cpp
 nodecachefilereader_LDADD = libosm2pgsql.la
 
 check_PROGRAMS = \
@@ -77,8 +77,8 @@ TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = sh
 
 if READER_PBF
-osm2pgsql_SOURCES += parse-pbf.h fileformat.pb-c.h osmformat.pb-c.h
-libosm2pgsql_la_SOURCES += parse-pbf.c fileformat.pb-c.c osmformat.pb-c.c
+osm2pgsql_SOURCES += parse-pbf.hpp fileformat.pb-c.h osmformat.pb-c.h
+libosm2pgsql_la_SOURCES += parse-pbf.cpp fileformat.pb-c.c osmformat.pb-c.c
 
 fileformat.pb-c.c: protobuf/fileformat.proto
 	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<

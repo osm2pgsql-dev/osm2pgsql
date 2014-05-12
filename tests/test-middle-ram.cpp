@@ -5,13 +5,11 @@
 #include <cassert>
 #include <stdexcept>
 
-extern "C" {
-#include "osmtypes.h"
-#include "middle.h"
-#include "output.h"
-#include "middle-ram.h"
-#include "node-ram-cache.h"
-}
+#include "osmtypes.hpp"
+#include "middle.hpp"
+#include "output.hpp"
+#include "middle-ram.hpp"
+#include "node-ram-cache.hpp"
 
 #include "tests/middle-tests.hpp"
 

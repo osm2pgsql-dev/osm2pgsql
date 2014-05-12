@@ -66,7 +66,7 @@ using namespace geos::operation::linemerge;
 using namespace geos;
 #endif
 
-#include "build_geometry.h"
+#include "build_geometry.hpp"
 
 typedef std::auto_ptr<Geometry> geom_ptr;
 
