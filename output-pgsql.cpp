@@ -661,7 +661,7 @@ static int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes,
     /* If the flag says this object may exist already, delete it first */
     if(exists) {
         pgsql_delete_way_from_output(id);
-        Options->mid->way_changed(id);
+        dynamic_cast<slim_middle_t *>(Options->mid)->way_changed(id);
     }
 
     if (tagtransform_filter_way_tags(tags, &polygon, &roads))
@@ -1350,9 +1350,7 @@ static int pgsql_add_relation(osmid_t id, struct member *members, int member_cou
   if (!type)
       return 0;
 
-  /* In slim mode we remember these */
-  if(Options->mid->relations_set)
-    Options->mid->relations_set(id, members, member_count, tags);
+  Options->mid->relations_set(id, members, member_count, tags);
     
   /* Only a limited subset of type= is supported, ignore other */
   if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
@@ -1377,7 +1375,7 @@ static int pgsql_delete_node(osmid_t osm_id)
     if ( expire_tiles_from_db(tables[t_point].sql_conn, osm_id) != 0)
         pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
     
-    Options->mid->nodes_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->nodes_delete(osm_id);
     return 0;
 }
 
@@ -1409,7 +1407,7 @@ static int pgsql_delete_way(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
-    Options->mid->ways_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->ways_delete(osm_id);
     return 0;
 }
 
@@ -1435,7 +1433,7 @@ static int pgsql_delete_relation(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
-    Options->mid->relations_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->relations_delete(osm_id);
     return 0;
 }
 
@@ -1451,7 +1449,7 @@ static int pgsql_modify_node(osmid_t osm_id, double lat, double lon, struct keyv
     }
     pgsql_delete_node(osm_id);
     pgsql_add_node(osm_id, lat, lon, tags);
-    Options->mid->node_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->node_changed(osm_id);
     return 0;
 }
 
@@ -1464,7 +1462,7 @@ static int pgsql_modify_way(osmid_t osm_id, osmid_t *nodes, int node_count, stru
     }
     pgsql_delete_way(osm_id);
     pgsql_add_way(osm_id, nodes, node_count, tags);
-    Options->mid->way_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->way_changed(osm_id);
     return 0;
 }
 
@@ -1477,7 +1475,7 @@ static int pgsql_modify_relation(osmid_t osm_id, struct member *members, int mem
     }
     pgsql_delete_relation(osm_id);
     pgsql_add_relation(osm_id, members, member_count, tags);
-    Options->mid->relation_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(Options->mid)->relation_changed(osm_id);
     return 0;
 }
 

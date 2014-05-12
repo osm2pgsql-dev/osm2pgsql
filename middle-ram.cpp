@@ -14,6 +14,8 @@
 #include <assert.h>
 #include <libpq-fe.h>
 
+#include <stdexcept>
+
 #include "osmtypes.hpp"
 #include "middle.hpp"
 #include "middle-ram.hpp"
@@ -81,7 +83,11 @@ static int block2id(int block, int offset)
 
 #define UNUSED  __attribute__ ((unused))
 
-static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
+int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
+    return ram_cache_nodes_set(id, lat, lon, tags);
+}
+
+int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
 {
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -124,7 +130,7 @@ static int ram_ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *t
     return 0;
 }
 
-static int ram_relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     struct keyval *p;
     struct member *ptr;
@@ -168,7 +174,7 @@ static int ram_relations_set(osmid_t id, struct member *members, int member_coun
     return 0;
 }
 
-static int ram_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
     int i, count;
 
@@ -183,7 +189,7 @@ static int ram_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_coun
     return count;
 }
 
-static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int))
+void middle_ram_t::iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int))
 {
     int block, offset;
 
@@ -214,7 +220,7 @@ static void ram_iterate_relations(int (*callback)(osmid_t id, struct member *mem
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
-static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+void middle_ram_t::iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     int block, offset, ndCount = 0;
     struct osmNode *nodes;
@@ -233,7 +239,7 @@ static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, st
                 if (ways[block][offset].pending) {
                     /* First element contains number of nodes */
                     nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
-                    ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
+                    ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
                     if (nodes) {
                         osmid_t id = block2id(block, offset);
@@ -260,7 +266,7 @@ static void ram_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, st
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
-static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
+int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct osmNode *nodes;
@@ -271,7 +277,7 @@ static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **no
     if (ways[block][offset].ndids) {
         /* First element contains number of nodes */
         nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
-        ndCount = ram_nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
+        ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
         if (ndCount) {
             cloneList( tags_ptr, ways[block][offset].tags );
@@ -284,14 +290,14 @@ static int ram_ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **no
     return 1;
 }
 
-static int ram_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
+int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
     int count = 0;
     int i;
     *way_ids = (osmid_t *)malloc( sizeof(osmid_t) * (way_count + 1));
     initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
         
-        if (ram_ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
+        if (ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
             (*way_ids)[count] = ids[i];
             count++;
             initList(&(tag_ptr[count]));
@@ -301,7 +307,7 @@ static int ram_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, str
 }
 
 /* Marks the way so that iterate ways skips it */
-static int ram_ways_done(osmid_t id)
+int middle_ram_t::ways_done(osmid_t id)
 {
     int block = id2block(id), offset = id2offset(id);
 
@@ -312,17 +318,22 @@ static int ram_ways_done(osmid_t id)
     return 0;
 }
 
-static void ram_analyze(void)
+void middle_ram_t::analyze(void)
 {
     /* No need */
 }
 
-static void ram_end(void)
+void middle_ram_t::cleanup(void)
 {
     /* No need */
 }
 
-static int ram_start(const struct output_options *options)
+void middle_ram_t::end(void)
+{
+    /* No need */
+}
+
+int middle_ram_t::start(const struct output_options *options)
 {
     /* latlong has a range of +-180, mercator +-20000
        The fixed poing scaling needs adjusting accordingly to
@@ -336,7 +347,7 @@ static int ram_start(const struct output_options *options)
     return 0;
 }
 
-static void ram_stop(void)
+void middle_ram_t::stop(void)
 {
     int i, j;
     free_node_ram_cache();
@@ -357,37 +368,13 @@ static void ram_stop(void)
     }
 }
 
-static void ram_commit(void) {
+void middle_ram_t::commit(void) {
 }
 
-struct middle_t make_mid_ram() {
-    middle_t mid;
-    memset(&mid, 0, sizeof mid);
-    
-    mid.start             = ram_start;
-    mid.stop              = ram_stop;
-    mid.end               = ram_end;
-    mid.cleanup           = ram_stop;
-    mid.analyze           = ram_analyze;
-    mid.commit            = ram_commit;
-    mid.nodes_set         = ram_cache_nodes_set;
-#if 0
-    mid.nodes_get         = ram_nodes_get;
-#endif
-    mid.nodes_get_list    = ram_nodes_get_list;
-    mid.ways_set          = ram_ways_set;
-    mid.ways_get          = ram_ways_get;
-    mid.ways_get_list     = ram_ways_get_list;
-    mid.ways_done         = ram_ways_done;
-
-    mid.relations_set     = ram_relations_set;
-#if 0
-    mid.iterate_nodes     = ram_iterate_nodes;
-#endif
-    mid.iterate_ways      = ram_iterate_ways;
-    mid.iterate_relations = ram_iterate_relations;
-
-    return mid;
+middle_ram_t::middle_ram_t() {
 }
 
-struct middle_t mid_ram = make_mid_ram();
+middle_ram_t::~middle_ram_t() {
+}
+
+struct middle_ram_t mid_ram;

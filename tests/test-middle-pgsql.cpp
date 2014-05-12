@@ -145,9 +145,7 @@ struct tempdb
   }
 
   ~tempdb() {
-    if (mid_pgsql.stop != NULL) {
-      mid_pgsql.stop();
-    }
+    mid_pgsql.stop();
     if (m_conn) {
       m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
     }

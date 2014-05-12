@@ -66,12 +66,21 @@ static PGconn *ConnectionError = NULL;
 
 static FILE * hLog = NULL;
 
+static slim_middle_t *slim_mid = NULL;
+
 static void require_slim_mode(void)
 {
    if (!Options->slim)
    {
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
       exit_nicely();
+   }
+   if (slim_mid == NULL) {
+       slim_mid = dynamic_cast<slim_middle_t *>(Options->mid);
+       if (slim_mid == NULL) {
+           fprintf(stderr, "Internal error - expecting a slim mode middle, but got NULL.\n");
+           exit_nicely();
+       }
    }
 
    return;
@@ -1351,7 +1360,7 @@ static int gazetteer_delete_node(osmid_t id)
    delete_place('N', id);
 
    /* Feed this delete to the middle layer */
-   Options->mid->nodes_delete(id);
+   slim_mid->nodes_delete(id);
 
    return 0;
 }
@@ -1365,7 +1374,7 @@ static int gazetteer_delete_way(osmid_t id)
    delete_place('W', id);
 
    /* Feed this delete to the middle layer */
-   Options->mid->ways_delete(id);
+   slim_mid->ways_delete(id);
 
    return 0;
 }
@@ -1379,7 +1388,7 @@ static int gazetteer_delete_relation(osmid_t id)
    delete_place('R', id);
 
    /* Feed this delete to the middle layer */
-   Options->mid->relations_delete(id);
+   slim_mid->relations_delete(id);
 
    return 0;
 }
@@ -1387,21 +1396,21 @@ static int gazetteer_delete_relation(osmid_t id)
 static int gazetteer_modify_node(osmid_t id, double lat, double lon, struct keyval *tags)
 {
    require_slim_mode();
-   Options->mid->nodes_delete(id);
+   slim_mid->nodes_delete(id);
    return gazetteer_process_node(id, lat, lon, tags, 1);
 }
 
 static int gazetteer_modify_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    require_slim_mode();
-   Options->mid->ways_delete(id);
+   slim_mid->ways_delete(id);
    return gazetteer_process_way(id, ndv, ndc, tags, 1);
 }
 
 static int gazetteer_modify_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    require_slim_mode();
-   Options->mid->relations_delete(id);
+   slim_mid->relations_delete(id);
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 

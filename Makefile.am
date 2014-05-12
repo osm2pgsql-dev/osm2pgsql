@@ -38,6 +38,7 @@ libosm2pgsql_la_SOURCES = \
 	expire-tiles.cpp \
 	input.cpp \
 	keyvals.cpp \
+	middle.cpp \
 	middle-pgsql.cpp \
 	middle-ram.cpp \
 	node-persistent-cache.cpp \

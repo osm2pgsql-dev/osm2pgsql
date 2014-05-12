@@ -593,7 +593,7 @@ int main(int argc, char *argv[])
     options.slim = slim;
     options.projection = project_getprojinfo()->srs;
     options.scale = (projection==PROJ_LATLONG)?10000000:100;
-    options.mid = slim ? &mid_pgsql : &mid_ram;
+    options.mid = slim ? ((middle_t *)&mid_pgsql) : ((middle_t *)&mid_ram);
     options.cache = cache;
     options.style = style;
     options.tblsmain_index = tblsmain_index;

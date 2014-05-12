@@ -204,7 +204,7 @@ static int pgsql_connect(const struct output_options *options) {
     return 0;
 }
 
-static void pgsql_cleanup(void)
+void middle_pgsql_t::cleanup(void)
 {
     int i;
 
@@ -455,7 +455,7 @@ static int pgsql_endCopy( struct table_desc *table)
     return 0;
 }
 
-static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags)
+static int local_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags)
 {
     /* Four params: id, lat, lon, tags */
     const char *paramValues[4];
@@ -494,59 +494,14 @@ static int pgsql_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
     return 0;
 }
 
-static int middle_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
+int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     ram_cache_nodes_set( id, lat, lon, tags );
 
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : pgsql_nodes_set(id, lat, lon, tags);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
-
-
-#if 0
-static int pgsql_nodes_get(struct osmNode *out, osmid_t id)
-{
-    PGresult   *res;
-    char tmp[16];
-    char const *paramValues[1];
-    PGconn *sql_conn = node_table->sql_conn;
-
-    /* Make sure we're out of copy mode */
-    pgsql_endCopy( node_table );
-
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    paramValues[0] = tmp;
- 
-    res = pgsql_execPrepared(sql_conn, "get_node", 1, paramValues, PGRES_TUPLES_OK);
-
-    if (PQntuples(res) != 1) {
-        PQclear(res);
-        return 1;
-    } 
-
-#ifdef FIXED_POINT
-    out->lat = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 0), NULL, 10));
-    out->lon = FIX_TO_DOUBLE(strtol(PQgetvalue(res, 0, 1), NULL, 10));
-#else
-    out->lat = strtod(PQgetvalue(res, 0, 0), NULL);
-    out->lon = strtod(PQgetvalue(res, 0, 1), NULL);
-#endif
-    PQclear(res);
-    return 0;
-}
-#endif
-
-/* Currently not used 
-static int middle_nodes_get(struct osmNode *out, osmid_t id)
-{
-    / * Check cache first * /
-    if( ram_cache_nodes_get( out, id ) == 0 )
-        return 0;
-
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get(out, id) : pgsql_nodes_get(out, id);
-}*/
-
 
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
-static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+static int local_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
     char tmp[16];
     char *tmp2; 
@@ -652,12 +607,12 @@ static int pgsql_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_co
     return count;
 }
 
-static int middle_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get_list(nodes, ndids, nd_count) : pgsql_nodes_get_list(nodes, ndids, nd_count);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
 
-static int pgsql_nodes_delete(osmid_t osm_id)
+static int local_nodes_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -670,12 +625,12 @@ static int pgsql_nodes_delete(osmid_t osm_id)
     return 0;
 }
 
-static int middle_nodes_delete(osmid_t osm_id)
+int middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
-    return ((out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(osm_id, NAN, NAN) : pgsql_nodes_delete(osm_id));
+    return ((out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
 }
 
-static int pgsql_node_changed(osmid_t osm_id)
+int middle_pgsql_t::node_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -690,7 +645,7 @@ static int pgsql_node_changed(osmid_t osm_id)
     return 0;
 }
 
-static int pgsql_ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
+int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
 {
     /* Three params: id, nodes, tags, pending */
     const char *paramValues[4];
@@ -720,7 +675,7 @@ static int pgsql_ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct key
 }
 
 /* Caller is responsible for freeing nodesptr & resetList(tags) */
-static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
+int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
 {
     PGresult   *res;
     char tmp[16];
@@ -749,14 +704,12 @@ static int pgsql_ways_get(osmid_t id, struct keyval *tags, struct osmNode **node
     *nodes_ptr = (struct osmNode *)malloc(sizeof(struct osmNode) * num_nodes);
     pgsql_parse_nodes( PQgetvalue(res, 0, 0), list, num_nodes);
     
-    *count_ptr = out_options->flat_node_cache_enabled ?
-    		persistent_cache_nodes_get_list(*nodes_ptr, list, num_nodes) :
-    		pgsql_nodes_get_list( *nodes_ptr, list, num_nodes);
+    *count_ptr = nodes_get_list(*nodes_ptr, list, num_nodes);
     PQclear(res);
     return 0;
 }
 
-static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) {
+int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) {
 
     char tmp[16];
     char *tmp2; 
@@ -813,9 +766,7 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
                 nodes_ptr[count] = (struct osmNode *)malloc(sizeof(struct osmNode) * num_nodes);
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list, num_nodes);
                 
-                count_ptr[count] = out_options->flat_node_cache_enabled ?
-                    persistent_cache_nodes_get_list(nodes_ptr[count], list, num_nodes) :
-                    pgsql_nodes_get_list( nodes_ptr[count], list, num_nodes);
+                count_ptr[count] = nodes_get_list(nodes_ptr[count], list, num_nodes);
 
                 count++;
                 initList(&(tags[count]));
@@ -830,7 +781,7 @@ static int pgsql_ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, s
     return count;
 }
 
-static int pgsql_ways_done(osmid_t id)
+int middle_pgsql_t::ways_done(osmid_t id)
 {
     char tmp[16];
     char const *paramValues[1];
@@ -847,7 +798,7 @@ static int pgsql_ways_done(osmid_t id)
     return 0;
 }
 
-static int pgsql_ways_delete(osmid_t osm_id)
+int middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -860,7 +811,7 @@ static int pgsql_ways_delete(osmid_t osm_id)
     return 0;
 }
 
-static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+void middle_pgsql_t::iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
 {
     int noProcs = out_options->num_procs;
     int pid = 0;
@@ -1044,11 +995,11 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
         }
 
         initList(&tags);
-        if( pgsql_ways_get(id, &tags, &nodes, &nd_count) )
+        if( ways_get(id, &tags, &nodes, &nd_count) )
           continue;
           
         callback(id, &tags, nodes, nd_count, exists);
-        pgsql_ways_done( id );
+        ways_done( id );
 
         free(nodes);
         resetList(&tags);
@@ -1074,7 +1025,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
 
     if ((pid == 0) && (noProcs > 1)) {
-        pgsql_cleanup();
+        cleanup();
         out_options->out->close(1);
         if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
         exit(0);
@@ -1095,7 +1046,7 @@ static void pgsql_iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, 
     PQclear(res_ways);
 }
 
-static int pgsql_way_changed(osmid_t osm_id)
+int middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -1108,7 +1059,7 @@ static int pgsql_way_changed(osmid_t osm_id)
     return 0;
 }
 
-static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     /* Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6];
@@ -1177,7 +1128,7 @@ static int pgsql_rels_set(osmid_t id, struct member *members, int member_count, 
 }
 
 /* Caller is responsible for freeing members & resetList(tags) */
-static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags)
+int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags)
 {
     PGresult   *res;
     char tmp[16];
@@ -1231,7 +1182,7 @@ static int pgsql_rels_get(osmid_t id, struct member **members, int *member_count
     return 0;
 }
 
-static int pgsql_rels_done(osmid_t id)
+int middle_pgsql_t::relations_done(osmid_t id)
 {
     char tmp[16];
     char const *paramValues[1];
@@ -1248,7 +1199,7 @@ static int pgsql_rels_done(osmid_t id)
     return 0;
 }
 
-static int pgsql_rels_delete(osmid_t osm_id)
+int middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -1263,7 +1214,7 @@ static int pgsql_rels_delete(osmid_t osm_id)
     return 0;
 }
 
-static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists))
+void middle_pgsql_t::iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists))
 {
     PGresult   *res_rels;
     int noProcs = out_options->num_procs;
@@ -1420,11 +1371,11 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
         }
 
         initList(&tags);
-        if( pgsql_rels_get(id, &members, &member_count, &tags) )
+        if(relations_get(id, &members, &member_count, &tags) )
           continue;
           
         callback(id, members, member_count, &tags, exists);
-        pgsql_rels_done( id );
+        relations_done( id );
 
         free(members);
         resetList(&tags);
@@ -1444,7 +1395,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
     fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
 
     if ((pid == 0) && (noProcs > 1)) {
-        pgsql_cleanup();
+        cleanup();
         out_options->out->close(0);
         if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
         exit(0);
@@ -1464,7 +1415,7 @@ static void pgsql_iterate_relations(int (*callback)(osmid_t id, struct member *m
 
 }
 
-static int pgsql_rel_changed(osmid_t osm_id)
+int middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -1477,7 +1428,7 @@ static int pgsql_rel_changed(osmid_t osm_id)
     return 0;
 }
 
-static void pgsql_analyze(void)
+void middle_pgsql_t::analyze(void)
 {
     int i;
 
@@ -1490,7 +1441,7 @@ static void pgsql_analyze(void)
     }
 }
 
-static void pgsql_end(void)
+void middle_pgsql_t::end(void)
 {
     int i;
 
@@ -1594,7 +1545,7 @@ static void set_prefix_and_tbls(const struct output_options *options, const char
 static int build_indexes;
 
 
-static int pgsql_start(const struct output_options *options)
+int middle_pgsql_t::start(const struct output_options *options)
 {
     PGresult   *res;
     int i;
@@ -1741,7 +1692,7 @@ static int pgsql_start(const struct output_options *options)
     return 0;
 }
 
-static void pgsql_commit(void) {
+void middle_pgsql_t::commit(void) {
     int i;
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
@@ -1798,7 +1749,7 @@ static void *pgsql_stop_one(void *arg)
     return NULL;
 }
 
-static void pgsql_stop(void)
+void middle_pgsql_t::stop(void)
 {
     int i;
 #ifdef HAVE_PTHREAD
@@ -1828,40 +1779,11 @@ static void pgsql_stop(void)
         pgsql_stop_one(&tables[i]);
 #endif
 }
+
+middle_pgsql_t::middle_pgsql_t() {
+}
  
-struct middle_t mid_pgsql = {
-        .start             = pgsql_start,
-        .stop              = pgsql_stop,
-        .cleanup           = pgsql_cleanup,
-        .analyze           = pgsql_analyze,
-        .end               = pgsql_end,
-        .commit            = pgsql_commit,
-
-        .nodes_set         = middle_nodes_set,
-#if 0
-        .nodes_get         = middle_nodes_get,
-#endif
-        .nodes_get_list    = middle_nodes_get_list,
-        .nodes_delete	   = middle_nodes_delete,
-        .node_changed      = pgsql_node_changed,
-
-        .ways_set          = pgsql_ways_set,
-        .ways_get          = pgsql_ways_get,
-        .ways_get_list     = pgsql_ways_get_list,
-        .ways_done         = pgsql_ways_done,
-        .ways_delete       = pgsql_ways_delete,
-        .way_changed       = pgsql_way_changed,
-
-        .relations_set     = pgsql_rels_set,
-#if 0
-        .relations_get     = pgsql_rels_get,
-#endif
-        .relations_done    = pgsql_rels_done,
-        .relations_delete  = pgsql_rels_delete,
-        .relation_changed  = pgsql_rel_changed,
-#if 0
-        .iterate_nodes     = pgsql_iterate_nodes,
-#endif
-        .iterate_ways      = pgsql_iterate_ways,
-        .iterate_relations = pgsql_iterate_relations
-};
+middle_pgsql_t::~middle_pgsql_t() {
+}
+ 
+middle_pgsql_t mid_pgsql;
