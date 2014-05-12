@@ -3,6 +3,7 @@
 import unittest
 import psycopg2
 import os
+import fnmatch
 from pwd import getpwnam
 import subprocess
 
@@ -483,6 +484,22 @@ class BasicGazetteerTestCase(BaseGazetteerTestCase):
         self.executeStatements(self.postDiffStatements)
 
 
+#****************************************************************
+#****************************************************************
+def findContribSql(filename):
+
+    # Try to get base dir for postgres contrib
+    try:
+        postgis_base_dir = os.popen('pg_config | grep -m 1 "^INCLUDEDIR ="').read().strip().split(' ')[2].split('/include')[0]
+    except:
+        postgis_base_dir = '/usr'
+
+    # Search for the actual sql file
+    for root, dirs, files in os.walk(postgis_base_dir):
+        if 'share' in root and 'postgresql' in root and 'contrib' in root and len(fnmatch.filter(files, filename)) > 0:
+            return '/'.join([root, filename])
+    else:
+        raise Exception('Cannot find %s searching under %s' % (filename, postgis_base_dir))
 
 #****************************************************************
 #****************************************************************
@@ -527,6 +544,8 @@ def setupDB():
         exit()
 
     try:
+
+        # Check the tablespace
         try:
             global created_tablespace
             test_cur.execute("""SELECT spcname FROM pg_tablespace WHERE spcname = 'tablespacetest'""")
@@ -548,35 +567,28 @@ def setupDB():
         except Exception, e:
             print "Failed to create directory for tablespace" + str(e)
 
-
+        # Check for postgis
         try:
             test_cur.execute("""CREATE EXTENSION postgis;""")
         except:
             test_conn.rollback()
-            # Guess the directory from the postgres version.
-            # TODO: make the postgisdir configurable. Probably
-            # only works on Debian-based distributions at the moment.
-            postgisdir = ('/usr/share/postgresql/%d.%d/contrib' %
-                        (test_conn.server_version / 10000, (test_conn.server_version / 100) % 100))
-            for fl in os.listdir(postgisdir):
-                if fl.startswith('postgis'):
-                    newdir = os.path.join(postgisdir, fl)
-                    if os.path.isdir(newdir):
-                        postgisdir = newdir
-                        break
-            else:
-                raise Exception('Cannot find postgis directory.')
-            pgscript = open(os.path.join(postgisdir, 'postgis.sql'),'r').read()
-            test_cur.execute(pgscript)
-            pgscript = open(os.path.join(postgisdir, 'spatial_ref_sys.sql'), 'r').read()
+
+            pgis = findContribSql('postgis.sql')
+            pgscript = open(pgis).read()
             test_cur.execute(pgscript)
 
+            srs = findContribSql('spatial_ref_sys.sql')
+            pgscript = open(srs).read()
+            test_cur.execute(pgscript)
+
+        # Check for hstore support
         try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
-
         except Exception, e:
-            print "I am unable to create extensions: " + e.pgerror
-            exit()
+            hst = findContribSql('hstore.sql')
+            pgscript = open(hst).read()
+            test_cur.execute(pgscript)
+
     finally:
         test_cur.close()
         test_conn.close()
