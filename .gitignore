@@ -1,4 +1,5 @@
 *.o
+*~
 Makefile.in
 aclocal.m4
 autom4te.cache/
@@ -36,3 +37,17 @@ libtool
 .deps/
 stamp-h1
 INSTALL
+
+log
+test-driver
+test-suite.log
+tests/.dirstamp
+tests/test-parse-xml2
+tests/test-middle-ram
+tests/test-middle-pgsql
+tests/*.log
+tests/*.trs
+
+.libs/
+*.lo
+libosm2pgsql.la

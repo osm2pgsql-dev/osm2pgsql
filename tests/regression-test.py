@@ -510,21 +510,21 @@ def setupDB():
         gen_conn.autocommit = True
     except Exception, e:
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur = gen_conn.cursor()
     except Exception, e:
         gen_conn.close()
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         gen_cur.execute("""CREATE DATABASE \"osm2pgsql-test\" WITH ENCODING 'UTF8'""")
     except Exception, e:
         print "Failed to create osm2pgsql-test db" + e.pgerror
-        exit();
+        exit(1);
     finally:
         gen_cur.close()
         gen_conn.close()
@@ -534,36 +534,31 @@ def setupDB():
         test_conn.autocommit = True
     except Exception, e:
         print "I am unable to connect to the database." + e
-        exit()
+        exit(1)
 
     try:
         test_cur = test_conn.cursor()
     except Exception, e:
         print "I am unable to connect to the database." + e
         gen_conn.close()
-        exit()
+        exit(1)
 
     try:
 
         # Check the tablespace
         try:
             global created_tablespace
+            created_tablespace = 0
+
             test_cur.execute("""SELECT spcname FROM pg_tablespace WHERE spcname = 'tablespacetest'""")
             if test_cur.fetchone():
                 print "We already have a tablespace, can use that"
-                created_tablespace = 0
             else:
-                print "For the test, we need to create a tablespace. This needs root privileges"
-                created_tablespace = 1
-                ### This makes postgresql read from /tmp
-                ## Does this have security implications like opening this to a possible symlink attack?
-                try:
-                    os.mkdir("/tmp/psql-tablespace")
-                    returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
-                    test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
-                except Exception, e:
-                    os.rmdir("/tmp/psql-tablespace")
-                    self.assertEqual(0, 1, "Failed to create tablespace")
+                print "The test needs a temporary tablespace to run in, but it does not exist. Please create the temporary tablespace. On Linux, you can do this by running:"
+                print "  sudo mkdir -p /tmp/psql-tablespace"
+                print "  sudo /bin/chown postgres.postgres tmp/psql-tablespace"
+                print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
+                exit(77)
         except Exception, e:
             print "Failed to create directory for tablespace" + str(e)
 
@@ -601,7 +596,7 @@ def tearDownDB():
         gen_cur = gen_conn.cursor()
     except Exception, e:
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
@@ -609,7 +604,7 @@ def tearDownDB():
             gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
     except Exception, e:
         print "Failed to clean up osm2pgsql-test db" + e.pgerror
-        exit();
+        exit(1);
 
     gen_cur.close()
     gen_conn.close()

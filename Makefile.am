@@ -1,14 +1,85 @@
 ACLOCAL_AMFLAGS = -I m4
 
 bin_PROGRAMS = osm2pgsql nodecachefilereader
+noinst_LTLIBRARIES = libosm2pgsql.la
 
-osm2pgsql_SOURCES = build_geometry.cpp input.c middle.h middle-ram.h output-gazetteer.h output-pgsql.c rb.c sanitizer.h text-tree.h build_geometry.h input.h middle-pgsql.c osm2pgsql.c output.h output-pgsql.h rb.h sprompt.c UTF8sanitizer.c expire-tiles.c keyvals.c middle-pgsql.h osmtypes.h output-null.c parse-o5m.c parse-o5m.h parse-primitive.c parse-primitive.h parse-xml2.c parse-xml2.h pgsql.c reprojection.c sprompt.h expire-tiles.h keyvals.h middle-ram.c output-gazetteer.c output-null.h pgsql.h reprojection.h text-tree.c node-ram-cache.c wildcmp.c node-ram-cache.h node-persistent-cache.c node-persistent-cache.h binarysearcharray.c binarysearcharray.h tagtransform.c 
+osm2pgsql_SOURCES = osm2pgsql.cpp \
+	binarysearcharray.hpp \
+	build_geometry.hpp \
+	expire-tiles.hpp \
+	input.hpp \
+	keyvals.hpp \
+	middle-pgsql.hpp \
+	middle-ram.hpp \
+	middle.hpp \
+	node-persistent-cache.hpp \
+	node-ram-cache.hpp \
+	osmtypes.hpp \
+	output-gazetteer.hpp \
+	output-null.hpp \
+	output-pgsql.hpp \
+	output.hpp \
+	parse-o5m.hpp \
+	parse-primitive.hpp \
+	parse-xml2.hpp \
+	pgsql.hpp \
+	rb.hpp \
+	reprojection.hpp \
+	sanitizer.hpp \
+	sprompt.hpp \
+	text-tree.hpp
 
-nodecachefilereader_SOURCES = node-persistent-cache-reader.c node-persistent-cache.c node-ram-cache.c binarysearcharray.c
+osm2pgsql_LDADD = libosm2pgsql.la
 
+libosm2pgsql_la_SOURCES = \
+	UTF8sanitizer.cpp \
+	binarysearcharray.cpp \
+	build_geometry.cpp \
+	expire-tiles.cpp \
+	input.cpp \
+	keyvals.cpp \
+	middle.cpp \
+	middle-pgsql.cpp \
+	middle-ram.cpp \
+	node-persistent-cache.cpp \
+	node-ram-cache.cpp \
+	osmtypes.cpp \
+	output-gazetteer.cpp \
+	output-null.cpp \
+	output-pgsql.cpp \
+	parse-o5m.cpp \
+	parse-primitive.cpp \
+	parse-xml2.cpp \
+	pgsql.cpp \
+	rb.cpp \
+	reprojection.cpp \
+	sprompt.cpp \
+	tagtransform.cpp \
+	text-tree.cpp \
+	wildcmp.cpp
+
+nodecachefilereader_SOURCES = node-persistent-cache-reader.cpp
+nodecachefilereader_LDADD = libosm2pgsql.la
+
+check_PROGRAMS = \
+	tests/test-parse-xml2 \
+	tests/test-middle-ram \
+	tests/test-middle-pgsql
+
+tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp 
+tests_test_parse_xml2_LDADD = libosm2pgsql.la
+tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
+tests_test_middle_ram_LDADD = libosm2pgsql.la
+tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests.cpp
+tests_test_middle_pgsql_LDADD = libosm2pgsql.la
+
+TESTS = $(check_PROGRAMS) tests/regression-test.sh
+TEST_EXTENSIONS = .sh
+SH_LOG_COMPILER = sh
 
 if READER_PBF
-osm2pgsql_SOURCES += parse-pbf.c parse-pbf.h fileformat.pb-c.c fileformat.pb-c.h osmformat.pb-c.c osmformat.pb-c.h
+osm2pgsql_SOURCES += parse-pbf.hpp fileformat.pb-c.h osmformat.pb-c.h
+libosm2pgsql_la_SOURCES += parse-pbf.cpp fileformat.pb-c.c osmformat.pb-c.c
 
 fileformat.pb-c.c: protobuf/fileformat.proto
 	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<
@@ -37,9 +108,14 @@ endif
 osm2pgsqldir = $(datadir)/osm2pgsql
 
 AM_CFLAGS = @PTHREAD_CFLAGS@ @LFS_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ @PROTOBUF_C_CFLAGS@ @ZLIB_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -DVERSION='"@PACKAGE_VERSION@"' @LUA_INCLUDE@
-AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@
+AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@ @BOOST_CPPFLAGS@
 
-AM_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_C_LDFLAGS@ @PROTOBUF_C_LIBS@ -L/usr/lib/x86_64-linux-gnu @LUA_LIB@
+GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_C_LDFLAGS@ @PROTOBUF_C_LIBS@ -L/usr/lib/x86_64-linux-gnu @LUA_LIB@ @BOOST_LDFLAGS@ @BOOST_FILESYSTEM_LIB@ @BOOST_SYSTEM_LIB@ -lstdc++
+osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
+nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
 
 osm2pgsql_DATA = default.style 900913.sql
 
@@ -62,6 +138,4 @@ distclean-local:
 	@rm -f $(PACKAGE).spec
 	@rm -f config.nice
 
-test:
-	tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.pbf
-	tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.bz2
+test: check
