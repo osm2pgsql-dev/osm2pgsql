@@ -6,7 +6,7 @@
 #include <ctype.h>
 #include "wildcmp.hpp"
 
-static int subMatch(char *str, char *wild)
+static int subMatch(const char *str, const char *wild)
 /* Returns number of characters that match between str and wild up
  * to the next wildcard in wild (or up to end of string.). */
 {
@@ -27,7 +27,7 @@ for(;;)
     }
 }
 
-int wildMatch(char *wildCard, char *string)
+int wildMatch(const char *wildCard, const char *string)
 /* does a case sensitive wild card match with a string.
  * * matches any string or no character.
  * ? matches any single character.
