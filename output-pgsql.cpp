@@ -287,7 +287,7 @@ void copy_to_table(enum table_id table, const char *sql)
 
 
 
-static void pgsql_out_cleanup(void)
+void output_pgsql_t::cleanup(void)
 {
     int i;
 
@@ -806,7 +806,7 @@ static int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_co
     return 0;
 }
 
-static int pgsql_out_connect(const struct output_options *options, int startTransaction) {
+int output_pgsql_t::connect(const struct output_options *options, int startTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
@@ -826,7 +826,7 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
     return 0;
 }
 
-static int pgsql_out_start(const struct output_options *options)
+int output_pgsql_t::start(const struct output_options *options)
 {
     char *sql, tmp[256];
     PGresult   *res;
@@ -1039,7 +1039,7 @@ static void pgsql_pause_copy(struct s_table *table)
     table->copyMode = 0;
 }
 
-static void pgsql_out_close(int stopTransaction) {
+void output_pgsql_t::close(int stopTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         pgsql_pause_copy(&tables[i]);
@@ -1169,7 +1169,7 @@ static void *pgsql_out_stop_one(void *arg)
     return NULL;
 }
 
-static void pgsql_out_stop()
+void output_pgsql_t::stop()
 {
     int i;
 #ifdef HAVE_PTHREAD
@@ -1238,13 +1238,13 @@ static void pgsql_out_stop()
 #endif
 
 
-    pgsql_out_cleanup();
+    cleanup();
     free_style();
 
     expire_tiles_stop();
 }
 
-static int pgsql_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
+int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
   Options->mid->nodes_set(id, lat, lon, tags);
   pgsql_out_node(id, tags, lat, lon);
@@ -1252,7 +1252,7 @@ static int pgsql_add_node(osmid_t id, double lat, double lon, struct keyval *tag
   return 0;
 }
 
-static int pgsql_add_way(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
+int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
   int polygon = 0;
   int roads = 0;
@@ -1342,7 +1342,7 @@ static int pgsql_process_relation(osmid_t id, struct member *members, int member
   return 0;
 }
 
-static int pgsql_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
   const char *type = getItem(tags, "type");
 
@@ -1364,7 +1364,7 @@ static int pgsql_add_relation(osmid_t id, struct member *members, int member_cou
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
  * contain the change for that also. */
-static int pgsql_delete_node(osmid_t osm_id)
+int output_pgsql_t::node_delete(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1399,7 +1399,7 @@ static int pgsql_delete_way_from_output(osmid_t osm_id)
     return 0;
 }
 
-static int pgsql_delete_way(osmid_t osm_id)
+int output_pgsql_t::way_delete(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1425,7 +1425,7 @@ static int pgsql_delete_relation_from_output(osmid_t osm_id)
     return 0;
 }
 
-static int pgsql_delete_relation(osmid_t osm_id)
+int output_pgsql_t::relation_delete(osmid_t osm_id)
 {
     if( !Options->slim )
     {
@@ -1440,60 +1440,49 @@ static int pgsql_delete_relation(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-static int pgsql_modify_node(osmid_t osm_id, double lat, double lon, struct keyval *tags)
+int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_delete_node(osm_id);
-    pgsql_add_node(osm_id, lat, lon, tags);
+    node_delete(osm_id);
+    node_add(osm_id, lat, lon, tags);
     dynamic_cast<slim_middle_t *>(Options->mid)->node_changed(osm_id);
     return 0;
 }
 
-static int pgsql_modify_way(osmid_t osm_id, osmid_t *nodes, int node_count, struct keyval *tags)
+int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_delete_way(osm_id);
-    pgsql_add_way(osm_id, nodes, node_count, tags);
+    way_delete(osm_id);
+    way_add(osm_id, nodes, node_count, tags);
     dynamic_cast<slim_middle_t *>(Options->mid)->way_changed(osm_id);
     return 0;
 }
 
-static int pgsql_modify_relation(osmid_t osm_id, struct member *members, int member_count, struct keyval *tags)
+int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int member_count, struct keyval *tags)
 {
     if( !Options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_delete_relation(osm_id);
-    pgsql_add_relation(osm_id, members, member_count, tags);
+    relation_delete(osm_id);
+    relation_add(osm_id, members, member_count, tags);
     dynamic_cast<slim_middle_t *>(Options->mid)->relation_changed(osm_id);
     return 0;
 }
 
-struct output_t out_pgsql = {
-        .start           = pgsql_out_start,
-        .connect         = pgsql_out_connect,
-        .stop            = pgsql_out_stop,
-        .cleanup         = pgsql_out_cleanup,
-        .close           = pgsql_out_close,
-        .node_add        = pgsql_add_node,
-        .way_add         = pgsql_add_way,
-        .relation_add    = pgsql_add_relation,
-        
-        .node_modify     = pgsql_modify_node,
-        .way_modify      = pgsql_modify_way,
-        .relation_modify = pgsql_modify_relation,
+output_pgsql_t::output_pgsql_t() {
+}
 
-        .node_delete     = pgsql_delete_node,
-        .way_delete      = pgsql_delete_way,
-        .relation_delete = pgsql_delete_relation
-};
+output_pgsql_t::~output_pgsql_t() {
+}
+
+output_pgsql_t out_pgsql;

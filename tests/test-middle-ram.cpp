@@ -8,6 +8,7 @@
 #include "osmtypes.hpp"
 #include "middle.hpp"
 #include "output.hpp"
+#include "output-null.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
 
@@ -21,7 +22,7 @@ void exit_nicely()
 
 int main(int argc, char *argv[]) {
   try {
-    struct output_t out_test; memset(&out_test, 0, sizeof out_test);
+    struct output_null_t out_test;
     struct output_options options; memset(&options, 0, sizeof options);
     
     options.out = &out_test;

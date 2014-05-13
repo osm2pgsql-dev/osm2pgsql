@@ -10,6 +10,7 @@
 #include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "build_geometry.hpp"
+#include "output-gazetteer.hpp"
 
 #define BUFFER_SIZE 4096
 
@@ -1002,7 +1003,12 @@ static void delete_place(char osm_type, osmid_t osm_id)
    return;
 }
 
-static int gazetteer_out_start(const struct output_options *options)
+int output_gazetteer_t::connect(const struct output_options *options, int startTransaction) {
+    // do nothing, connection is actually handled in start()
+    return 0;
+}
+
+int output_gazetteer_t::start(const struct output_options *options)
 {
    /* Save option handle */
    Options = options;
@@ -1075,7 +1081,11 @@ static int gazetteer_out_start(const struct output_options *options)
    return 0;
 }
 
-static void gazetteer_out_stop(void)
+void output_gazetteer_t::close(int) {
+    // do nothing here, closing is actually handled in the stop() method.
+}
+
+void output_gazetteer_t::stop(void)
 {
    /* Process any remaining ways and relations */
 
@@ -1100,7 +1110,7 @@ static void gazetteer_out_stop(void)
    return;
 }
 
-static void gazetteer_out_cleanup(void)
+void output_gazetteer_t::cleanup(void)
 {
    return;
 }
@@ -1155,7 +1165,7 @@ static int gazetteer_process_node(osmid_t id, double lat, double lon, struct key
    return 0;
 }
 
-static int gazetteer_add_node(osmid_t id, double lat, double lon, struct keyval *tags)
+int output_gazetteer_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
     return gazetteer_process_node(id, lat, lon, tags, 0);
 }
@@ -1227,7 +1237,7 @@ static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyva
    return 0;
 }
 
-static int gazetteer_add_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
+int output_gazetteer_t::way_add(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
     return gazetteer_process_way(id, ndv, ndc, tags, 0);
 }
@@ -1346,12 +1356,12 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    return 0;
 }
 
-static int gazetteer_add_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) 
+int output_gazetteer_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) 
 {
     return gazetteer_process_relation(id, members, member_count, tags, 0);
 }
 
-static int gazetteer_delete_node(osmid_t id)
+int output_gazetteer_t::node_delete(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1365,7 +1375,7 @@ static int gazetteer_delete_node(osmid_t id)
    return 0;
 }
 
-static int gazetteer_delete_way(osmid_t id)
+int output_gazetteer_t::way_delete(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1379,7 +1389,7 @@ static int gazetteer_delete_way(osmid_t id)
    return 0;
 }
 
-static int gazetteer_delete_relation(osmid_t id)
+int output_gazetteer_t::relation_delete(osmid_t id)
 {
    /* Make sure we are in slim mode */
    require_slim_mode();
@@ -1393,48 +1403,31 @@ static int gazetteer_delete_relation(osmid_t id)
    return 0;
 }
 
-static int gazetteer_modify_node(osmid_t id, double lat, double lon, struct keyval *tags)
+int output_gazetteer_t::node_modify(osmid_t id, double lat, double lon, struct keyval *tags)
 {
    require_slim_mode();
    slim_mid->nodes_delete(id);
    return gazetteer_process_node(id, lat, lon, tags, 1);
 }
 
-static int gazetteer_modify_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
+int output_gazetteer_t::way_modify(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    require_slim_mode();
    slim_mid->ways_delete(id);
    return gazetteer_process_way(id, ndv, ndc, tags, 1);
 }
 
-static int gazetteer_modify_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    require_slim_mode();
    slim_mid->relations_delete(id);
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-struct output_t make_gazetteer() {
-    output_t gaz;
-    memset(&gaz, 0, sizeof gaz);
-
-    gaz.start = gazetteer_out_start;
-    gaz.stop = gazetteer_out_stop;
-    gaz.cleanup = gazetteer_out_cleanup;
-    
-    gaz.node_add = gazetteer_add_node;
-    gaz.way_add = gazetteer_add_way;
-    gaz.relation_add = gazetteer_add_relation;
-    
-    gaz.node_modify = gazetteer_modify_node;
-    gaz.way_modify = gazetteer_modify_way;
-    gaz.relation_modify = gazetteer_modify_relation;
-    
-    gaz.node_delete = gazetteer_delete_node;
-    gaz.way_delete = gazetteer_delete_way;
-    gaz.relation_delete = gazetteer_delete_relation;
-
-    return gaz;
+output_gazetteer_t::output_gazetteer_t() {
 }
 
-struct output_t out_gazetteer = make_gazetteer();
+output_gazetteer_t::~output_gazetteer_t() {
+}
+
+output_gazetteer_t out_gazetteer;

@@ -7,75 +7,68 @@
 
 #include "osmtypes.hpp"
 #include "output.hpp"
+#include "output-null.hpp"
 
 #define UNUSED  __attribute__ ((unused))
 
-static void null_out_cleanup(void) {
+void output_null_t::cleanup(void) {
 }
 
-static int null_out_start(const struct output_options *opt UNUSED) {
+int output_null_t::start(const struct output_options *opt UNUSED) {
     return 0;
 }
 
-static void null_out_stop() {
+void output_null_t::stop() {
 }
 
-static int null_add_node(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::node_add(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_add_way(osmid_t a UNUSED, osmid_t *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::way_add(osmid_t a UNUSED, osmid_t *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_add_relation(osmid_t a UNUSED, struct member *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::relation_add(osmid_t a UNUSED, struct member *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
   return 0;
 }
 
-static int null_delete_node(osmid_t i UNUSED) {
+int output_null_t::node_delete(osmid_t i UNUSED) {
   return 0;
 }
 
-static int null_delete_way(osmid_t i UNUSED) {
+int output_null_t::way_delete(osmid_t i UNUSED) {
   return 0;
 }
 
-static int null_delete_relation(osmid_t i UNUSED) {
+int output_null_t::relation_delete(osmid_t i UNUSED) {
   return 0;
 }
 
-static int null_modify_node(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::node_modify(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
-static int null_modify_way(osmid_t a UNUSED, osmid_t * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::way_modify(osmid_t a UNUSED, osmid_t * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
-static int null_modify_relation(osmid_t a UNUSED, struct member * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
   return 0;
 }
 
-struct output_t make_null() {
-    output_t nul;
-    memset(&nul, 0, sizeof nul);
-
-    nul.start           = null_out_start;
-    nul.stop            = null_out_stop;
-    nul.cleanup         = null_out_cleanup;
-    nul.node_add        = null_add_node;
-    nul.way_add         = null_add_way;
-    nul.relation_add    = null_add_relation;
-    
-    nul.node_modify     = null_modify_node;
-    nul.way_modify      = null_modify_way;
-    nul.relation_modify = null_modify_relation;
-    
-    nul.node_delete     = null_delete_node;
-    nul.way_delete      = null_delete_way;
-    nul.relation_delete = null_delete_relation;
-
-    return nul;
+int output_null_t::connect(const struct output_options *options, int startTransaction) {
+    return 0;
 }
 
-struct output_t out_null = make_null();
+void output_null_t::close(int stopTransaction) {
+    // nothing
+}
+
+output_null_t::output_null_t() {
+}
+
+output_null_t::~output_null_t() {
+}
+
+output_null_t out_null;

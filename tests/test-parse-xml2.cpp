@@ -15,35 +15,56 @@ void exit_nicely()
     exit(1);
 }
 
-static uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
+struct test_output_t : public output_t {
+    uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
-int test_node_add(osmid_t id, double lat, double lon, struct keyval *tags)
-{
-  assert(id > 0);
-  sum_ids += id;
-  num_nodes += 1;
-  return 0;
-}
+    test_output_t()
+        : sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+          num_nds(0), num_members(0) {
+    }
 
-int test_way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags)
-{
-  assert(id > 0);
-  sum_ids += id;
-  num_ways += 1;
-  assert(node_count >= 0);
-  num_nds += uint64_t(node_count);
-  return 0;
-}
+    virtual ~test_output_t() {
+    }
 
-int test_relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
-{
-  assert(id > 0);
-  sum_ids += id;
-  num_relations += 1;
-  assert(member_count >= 0);
-  num_members += uint64_t(member_count);
-  return 0;
-}
+    int node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
+        assert(id > 0);
+        sum_ids += id;
+        num_nodes += 1;
+        return 0;
+    }
+
+    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+        assert(id > 0);
+        sum_ids += id;
+        num_ways += 1;
+        assert(node_count >= 0);
+        num_nds += uint64_t(node_count);
+        return 0;
+    }
+    
+    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+        assert(id > 0);
+        sum_ids += id;
+        num_relations += 1;
+        assert(member_count >= 0);
+        num_members += uint64_t(member_count);
+        return 0;
+    }
+
+    int start(const struct output_options *options) { return 0; }
+    int connect(const struct output_options *options, int startTransaction) { return 0; }
+    void stop() { }
+    void cleanup(void) { }
+    void close(int stopTransaction) { }
+
+    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
+    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) { return 0; }
+    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
+
+    int node_delete(osmid_t id) { return 0; }
+    int way_delete(osmid_t id) { return 0; }
+    int relation_delete(osmid_t id) { return 0; }
+};
 
 void assert_equal(uint64_t actual, uint64_t expected) {
   if (actual != expected) {
@@ -62,23 +83,12 @@ int main(int argc, char *argv[]) {
 
   std::string inputfile = std::string(srcdir) + std::string("/tests/test_multipolygon.osm");
 
-  sum_ids = 0;
-  num_nodes = 0;
-  num_ways = 0;
-  num_relations = 0;
-  num_nds = 0;
-  num_members = 0;
-
   // need this to avoid segfault!
   text_init();
 
-  struct output_t out_test; memset(&out_test, 0, sizeof out_test);
+  struct test_output_t out_test;
   struct osmdata_t osmdata; memset(&osmdata, 0, sizeof osmdata);
   struct output_options options; memset(&options, 0, sizeof options);
-
-  out_test.node_add = &test_node_add;
-  out_test.way_add = &test_way_add;
-  out_test.relation_add = &test_relation_add;
 
   osmdata.filetype = FILETYPE_NONE;
   osmdata.action   = ACTION_NONE;
@@ -96,12 +106,12 @@ int main(int argc, char *argv[]) {
     return ret;
   }
 
-  assert_equal(sum_ids,       73514L);
-  assert_equal(num_nodes,       353L);
-  assert_equal(num_ways,        140L);
-  assert_equal(num_relations,    40L);
-  assert_equal(num_nds,         495L);
-  assert_equal(num_members,     146L);
+  assert_equal(out_test.sum_ids,       73514L);
+  assert_equal(out_test.num_nodes,       353L);
+  assert_equal(out_test.num_ways,        140L);
+  assert_equal(out_test.num_relations,    40L);
+  assert_equal(out_test.num_nds,         495L);
+  assert_equal(out_test.num_members,     146L);
   
   return 0;
 }

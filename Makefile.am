@@ -44,6 +44,7 @@ libosm2pgsql_la_SOURCES = \
 	node-persistent-cache.cpp \
 	node-ram-cache.cpp \
 	osmtypes.cpp \
+	output.cpp \
 	output-gazetteer.cpp \
 	output-null.cpp \
 	output-pgsql.cpp \
