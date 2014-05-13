@@ -659,9 +659,10 @@ int main(int argc, char *argv[])
 
     //read in the input files one by one
     while (optind < argc) {
-        //figure how we are going to read the input based on its type
+        //figure how we are going to read the input
         stream_input_file_t streamFile = get_input_reader(input_reader, argv[optind]);
 
+        //read the actual input
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time(&start);
         if (streamFile(argv[optind], sanitize, &osmdata) != 0)

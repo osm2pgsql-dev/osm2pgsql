@@ -116,7 +116,6 @@ void read_style_file( const char *filename )
   int fields;
   struct taginfo temp;
   char buffer[1024];
-  int flag = 0;
 
   exportList[OSMTYPE_NODE] = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
   exportList[OSMTYPE_WAY]  = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
@@ -128,14 +127,17 @@ void read_style_file( const char *filename )
     exit_nicely();
   }
   
+  //for each line of the style file
   while( fgets( buffer, sizeof(buffer), in) != NULL )
   {
     lineno++;
     
+    //find where a comment starts and terminate the string there
     str = strchr( buffer, '#' );
     if( str )
       *str = '\0';
-      
+
+    //grab the expected fields for this row
     fields = sscanf( buffer, "%23s %63s %23s %127s", osmtype, tag, datatype, flags );
     if( fields <= 0 )  /* Blank line */
       continue;
@@ -144,10 +146,14 @@ void read_style_file( const char *filename )
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
       exit_nicely();
     }
+
+    //place to keep info about this tag
     temp.name = strdup(tag);
     temp.type = strdup(datatype);
-    
     temp.flags = 0;
+    temp.count = 0;
+    
+    //split the flags column on commas and keep track of which flags you've seen in a bit mask
     for( str = strtok( flags, ",\r\n" ); str; str = strtok(NULL, ",\r\n") )
     {
       for( i=0; i<NUM_FLAGS; i++ )
@@ -161,37 +167,47 @@ void read_style_file( const char *filename )
       if( i == NUM_FLAGS )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
     }
+
+    //only allow wildcards for with the delete flag
     if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') != NULL) || (strchr(temp.name,'*') != NULL))) {
         fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name);
         exit_nicely();
     }
     
+    //turn off generating the way_area tag if the delete flag is specified on it
     if ((0==strcmp(temp.name,"way_area")) && (temp.flags==FLAG_DELETE)) {
         enable_way_area=0;
     }
 
-    temp.count = 0;
     /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
+    bool kept = false;
     
+    //keep this tag info if it applies to nodes
     if( strstr( osmtype, "node" ) )
     {
       memcpy( &exportList[ OSMTYPE_NODE ][ exportListCount[ OSMTYPE_NODE ] ], &temp, sizeof(temp) );
       exportListCount[ OSMTYPE_NODE ]++;
-      flag = 1;
+      kept = true;
     }
+
+    //keep this tag info if it applies to ways
     if( strstr( osmtype, "way" ) )
     {
       memcpy( &exportList[ OSMTYPE_WAY ][ exportListCount[ OSMTYPE_WAY ] ], &temp, sizeof(temp) );
       exportListCount[ OSMTYPE_WAY ]++;
-      flag = 1;
+      kept = true;
     }
-    if( !flag )
+
+    //do we really want to completely quit on an unusable line?
+    if( !kept )
     {
       fprintf( stderr, "Weird style line %d\n", lineno );
       exit_nicely();
     }
     num_read++;
   }
+
+
   if (ferror(in)) {
       perror(filename);
       exit_nicely();
