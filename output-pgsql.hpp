@@ -7,6 +7,7 @@
 #define OUTPUT_PGSQL_H
 
 #include "output.hpp"
+#include <vector>
 
 #define FLAG_POLYGON 1    /* For polygon table */
 #define FLAG_LINEAR  2    /* For lines table */
@@ -23,6 +24,10 @@ struct taginfo {
 };
 
 struct output_pgsql_t : public output_t {
+    enum table_id {
+        t_point = 0, t_line, t_poly, t_roads, t_MAX
+    };
+    
     output_pgsql_t();
     virtual ~output_pgsql_t();
 
@@ -47,10 +52,18 @@ struct output_pgsql_t : public output_t {
     void *pgsql_out_stop_one(void *arg);
 
 private:
-    enum table_id {
-        t_point, t_line, t_poly, t_roads
+
+    struct table {
+        table(const char *name_, const char *type_);
+        char *name;
+        const char *type;
+        struct pg_conn *sql_conn;
+        unsigned int buflen;
+        int copyMode;
+        char *columns;
+        char buffer[1024];
     };
-    
+
     struct way_cb_func : public middle_t::way_cb_func {
         output_pgsql_t *m_ptr;
         way_cb_func(output_pgsql_t *ptr);
@@ -75,16 +88,18 @@ private:
     int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
+    void pgsql_pause_copy(table *table);
 
     void pgsql_out_commit(void);
     void copy_to_table(enum table_id table, const char *sql);
-    void write_hstore(enum output_pgsql_t::table_id table, struct keyval *tags);
-
+    void write_hstore(enum table_id table, struct keyval *tags);
 
     const struct output_options *m_options;
 
     /* enable output of a generated way_area tag to either hstore or its own column */
     int m_enable_way_area;
+
+    std::vector<table> m_tables;
 };
 
 extern output_pgsql_t out_pgsql;

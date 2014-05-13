@@ -43,31 +43,15 @@
    style file with more styles than this */
 #define MAX_STYLES 1000
 
-/* Tables to output */
-struct s_table {
-    s_table(const char *name_, const char *type_)
-        : name(strdup(name_)), type(type_),
-          sql_conn(NULL), buflen(0), copyMode(0),
-          columns(NULL) {
-        memset(buffer, 0, sizeof buffer);
-    }
-    char *name;
-    const char *type;
-    PGconn *sql_conn;
-    unsigned int buflen;
-    int copyMode;
-    char *columns;
-    char buffer[1024];
-};
+#define NUM_TABLES (output_pgsql_t::t_MAX)
 
-static s_table tables [] = {
-    s_table("%s_point",   "POINT"),
-    s_table("%s_line",    "LINESTRING"),
-    s_table("%s_polygon", "GEOMETRY"  ), /* Actually POLGYON & MULTIPOLYGON but no way to limit to just these two */
-    s_table("%s_roads",   "LINESTRING")
-};
-#define NUM_TABLES ((signed)(sizeof(tables) / sizeof(tables[0])))
-
+output_pgsql_t::table::table(const char *name_, const char *type_)
+    : name(strdup(name_)), type(type_),
+      sql_conn(NULL), buflen(0), copyMode(0),
+      columns(NULL)
+{
+    memset(buffer, 0, sizeof buffer);
+}
 
 struct flagsname {
     flagsname(const char *name_, int flag_)
@@ -88,8 +72,8 @@ static flagsname tagflags[] = {
 
 
 
-struct taginfo *exportList[4]; /* Indexed by enum table_id */
-int exportListCount[4];
+struct taginfo *exportList[NUM_TABLES]; /* Indexed by enum table_id */
+int exportListCount[NUM_TABLES];
 
 static int pgsql_delete_way_from_output(osmid_t osm_id);
 static int pgsql_delete_relation_from_output(osmid_t osm_id);
@@ -237,27 +221,27 @@ static void free_style(void)
  */
 void output_pgsql_t::copy_to_table(enum table_id table, const char *sql)
 {
-    PGconn *sql_conn = tables[table].sql_conn;
+    PGconn *sql_conn = m_tables[table].sql_conn;
     unsigned int len = strlen(sql);
-    unsigned int buflen = tables[table].buflen;
-    char *buffer = tables[table].buffer;
+    unsigned int buflen = m_tables[table].buflen;
+    char *buffer = m_tables[table].buffer;
 
     /* Return to copy mode if we dropped out */
-    if( !tables[table].copyMode )
+    if( !m_tables[table].copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[table].name, tables[table].columns);
-        tables[table].copyMode = 1;
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[table].name, m_tables[table].columns);
+        m_tables[table].copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
-    if( (unsigned)(buflen + len) > sizeof( tables[table].buffer )-10 )
+    if( (unsigned)(buflen + len) > sizeof( m_tables[table].buffer )-10 )
     {
-      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(m_tables[table].name, sql_conn, buffer);
       buflen = 0;
 
       /* If new data by itself is also too big, output it immediately */
-      if( (unsigned)len > sizeof( tables[table].buffer )-10 )
+      if( (unsigned)len > sizeof( m_tables[table].buffer )-10 )
       {
-        pgsql_CopyData(tables[table].name, sql_conn, sql);
+        pgsql_CopyData(m_tables[table].name, sql_conn, sql);
         len = 0;
       }
     }
@@ -272,11 +256,11 @@ void output_pgsql_t::copy_to_table(enum table_id table, const char *sql)
     /* If we have completed a line, output it */
     if( buflen > 0 && buffer[buflen-1] == '\n' )
     {
-      pgsql_CopyData(tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(m_tables[table].name, sql_conn, buffer);
       buflen = 0;
     }
 
-    tables[table].buflen = buflen;
+    m_tables[table].buflen = buflen;
 }
 
 
@@ -287,9 +271,9 @@ void output_pgsql_t::cleanup(void)
     int i;
 
     for (i=0; i<NUM_TABLES; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-            tables[i].sql_conn = NULL;
+        if (m_tables[i].sql_conn) {
+            PQfinish(m_tables[i].sql_conn);
+            m_tables[i].sql_conn = NULL;
         }
     }
 }
@@ -812,9 +796,9 @@ int output_pgsql_t::connect(const struct output_options *options, int startTrans
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             return 1;
         }
-        tables[i].sql_conn = sql_conn;
+        m_tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i].name);
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
@@ -833,6 +817,13 @@ int output_pgsql_t::start(const struct output_options *options)
     int numTags;
     struct taginfo *exportTags;
 
+    /* Tables to output */
+    m_tables.reserve(NUM_TABLES);
+    m_tables.push_back(table("%s_point",   "POINT"));
+    m_tables.push_back(table("%s_line",    "LINESTRING"));
+    m_tables.push_back(table("%s_polygon", "GEOMETRY"  )); /* Actually POLGYON & MULTIPOLYGON but no way to limit to just these two */
+    m_tables.push_back(table("%s_roads",   "LINESTRING"));
+
     m_options = options;
 
     m_enable_way_area = read_style_file( options->style );
@@ -846,11 +837,11 @@ int output_pgsql_t::start(const struct output_options *options)
 
         /* Substitute prefix into name of table */
         {
-            char *temp = (char *)malloc( strlen(options->prefix) + strlen(tables[i].name) + 1 );
-            sprintf( temp, tables[i].name, options->prefix );
-            tables[i].name = temp;
+            char *temp = (char *)malloc( strlen(options->prefix) + strlen(m_tables[i].name) + 1 );
+            sprintf( temp, m_tables[i].name, options->prefix );
+            m_tables[i].name = temp;
         }
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        fprintf(stderr, "Setting up table: %s\n", m_tables[i].name);
         sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -858,32 +849,32 @@ int output_pgsql_t::start(const struct output_options *options)
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             exit_nicely();
         }
-        tables[i].sql_conn = sql_conn;
+        m_tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         if (!options->append) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", m_tables[i].name);
         }
         else
         {
-            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", tables[i].name);
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", m_tables[i].name);
             res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
-                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", tables[i].name);
+                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", m_tables[i].name);
                 exit_nicely();
             }
             their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
-                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", tables[i].name, their_srid, SRID);
+                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", m_tables[i].name, their_srid, SRID);
                 exit_nicely();
             }
         }
 
         /* These _tmp tables can be left behind if we run out of disk space */
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", m_tables[i].name);
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
@@ -891,7 +882,7 @@ int output_pgsql_t::start(const struct output_options *options)
         numTags = exportListCount[type];
         exportTags = exportList[type];
         if (!options->append) {
-            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, tables[i].name );
+            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i].name );
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
@@ -922,11 +913,11 @@ int output_pgsql_t::start(const struct output_options *options)
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
-                        tables[i].name, SRID, tables[i].type );
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
+                        m_tables[i].name, SRID, m_tables[i].type );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", m_tables[i].name);
             /* slim mode needs this to be able to apply diffs */
             if (m_options->slim && !m_options->droptemp) {
-                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  tables[i].name, tables[i].name);
+                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  m_tables[i].name, m_tables[i].name);
                 if (m_options->tblsmain_index) {
                     sprintf(sql + strlen(sql), " TABLESPACE %s\n", m_options->tblsmain_index);
                 }
@@ -935,10 +926,10 @@ int output_pgsql_t::start(const struct output_options *options)
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
-            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", tables[i].name);
+            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", m_tables[i].name);
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "Error, failed to query table %s\n%s\n", tables[i].name, sql);
+                fprintf(stderr, "Error, failed to query table %s\n%s\n", m_tables[i].name, sql);
                 exit_nicely();
             }
             for (j=0; j < numTags; j++) {
@@ -949,11 +940,11 @@ int output_pgsql_t::start(const struct output_options *options)
                 sprintf(tmp, "\"%s\"", exportTags[j].name);
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
-                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, tables[i].name);
+                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, m_tables[i].name);
                     exit_nicely();
 #else
-                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, tables[i].name);
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", tables[i].name, exportTags[j].name, exportTags[j].type);
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, m_tables[i].name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i].name, exportTags[j].name, exportTags[j].type);
 #endif
                 }
                 /* Note: we do not verify the type or delete unused columns */
@@ -963,7 +954,7 @@ int output_pgsql_t::start(const struct output_options *options)
 
             /* change the type of the geometry column if needed - this can only change to a more permisive type */
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -991,10 +982,10 @@ int output_pgsql_t::start(const struct output_options *options)
     
 	if (m_options->enable_hstore) strcat(sql,",tags");
 
-	tables[i].columns = strdup(sql);
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[i].name, tables[i].columns);
+	m_tables[i].columns = strdup(sql);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[i].name, m_tables[i].columns);
 
-        tables[i].copyMode = 1;
+        m_tables[i].copyMode = 1;
     }
     free(sql);
 
@@ -1009,7 +1000,7 @@ int output_pgsql_t::start(const struct output_options *options)
     return 0;
 }
 
-static void pgsql_pause_copy(struct s_table *table)
+void output_pgsql_t::pgsql_pause_copy(output_pgsql_t::table *table)
 {
     PGresult   *res;
     int stop;
@@ -1037,29 +1028,29 @@ static void pgsql_pause_copy(struct s_table *table)
 void output_pgsql_t::close(int stopTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
-        pgsql_pause_copy(&tables[i]);
+        pgsql_pause_copy(&m_tables[i]);
         /* Commit transaction */
         if (stopTransaction)
-            pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
-        PQfinish(tables[i].sql_conn);
-        tables[i].sql_conn = NULL;
+            pgsql_exec(m_tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        PQfinish(m_tables[i].sql_conn);
+        m_tables[i].sql_conn = NULL;
     }
 }
 
 void output_pgsql_t::pgsql_out_commit(void) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
-        pgsql_pause_copy(&tables[i]);
+        pgsql_pause_copy(&m_tables[i]);
         /* Commit transaction */
-        fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
-        pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        fprintf(stderr, "Committing transaction for %s\n", m_tables[i].name);
+        pgsql_exec(m_tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
     }
 }
 
 void *output_pgsql_t::pgsql_out_stop_one(void *arg)
 {
     int i_column;
-    struct s_table *table = (struct s_table *)arg;
+    output_pgsql_t::table *table = (output_pgsql_t::table *)arg;
     PGconn *sql_conn = table->sql_conn;
 
     if( table->buflen != 0 )
@@ -1209,7 +1200,7 @@ void output_pgsql_t::stop()
      * independent transactions
      */
     for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+        PGconn *sql_conn = m_tables[i].sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
     /* Processing any remaing to be processed ways */
@@ -1233,7 +1224,7 @@ void output_pgsql_t::stop()
       pthread_thunk thunks[NUM_TABLES];
       for (i=0; i<NUM_TABLES; i++) {
           thunks[i].obj = this;
-          thunks[i].ptr = &tables[i];
+          thunks[i].ptr = &m_tables[i];
       }
 
       for (i=0; i<NUM_TABLES; i++) {
@@ -1260,7 +1251,7 @@ void output_pgsql_t::stop()
     /* No longer need to access middle layer -- release memory */
     m_options->mid->stop();
     for (i=0; i<NUM_TABLES; i++)
-        pgsql_out_stop_one(&tables[i]);
+        pgsql_out_stop_one(&m_tables[i]);
 
 #ifdef HAVE_PTHREAD
     }
@@ -1400,9 +1391,9 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         exit_nicely();
     }
-    pgsql_pause_copy(&tables[t_point]);
-    if ( expire_tiles_from_db(tables[t_point].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
+    pgsql_pause_copy(&m_tables[t_point]);
+    if ( expire_tiles_from_db(m_tables[t_point].sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point].name, osm_id );
     
     dynamic_cast<slim_middle_t *>(m_options->mid)->nodes_delete(osm_id);
     return 0;
@@ -1417,14 +1408,14 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     /* in droptemp mode we don't have indices and this takes ages. */
     if (m_options->droptemp)
         return 0;
-    pgsql_pause_copy(&tables[t_roads]);
-    pgsql_pause_copy(&tables[t_line]);
-    pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
-    if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
-    if ( expire_tiles_from_db(tables[t_poly].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
+    pgsql_pause_copy(&m_tables[t_roads]);
+    pgsql_pause_copy(&m_tables[t_line]);
+    pgsql_pause_copy(&m_tables[t_poly]);
+    pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, osm_id );
+    if ( expire_tiles_from_db(m_tables[t_line].sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, osm_id );
+    if ( expire_tiles_from_db(m_tables[t_poly].sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, osm_id );
     return 0;
 }
 
@@ -1443,14 +1434,14 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 /* Relations are identified by using negative IDs */
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
-    pgsql_pause_copy(&tables[t_roads]);
-    pgsql_pause_copy(&tables[t_line]);
-    pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, -osm_id );
-    if ( expire_tiles_from_db(tables[t_line].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
-    if ( expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
+    pgsql_pause_copy(&m_tables[t_roads]);
+    pgsql_pause_copy(&m_tables[t_line]);
+    pgsql_pause_copy(&m_tables[t_poly]);
+    pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, -osm_id );
+    if ( expire_tiles_from_db(m_tables[t_line].sql_conn, -osm_id) != 0)
+        pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, -osm_id );
+    if ( expire_tiles_from_db(m_tables[t_poly].sql_conn, -osm_id) != 0)
+        pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, -osm_id );
     return 0;
 }
 
