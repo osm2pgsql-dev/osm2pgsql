@@ -53,6 +53,12 @@ output_pgsql_t::table::table(const char *name_, const char *type_)
     memset(buffer, 0, sizeof buffer);
 }
 
+/* NOTE: section below for flags genuinely is static and
+ * constant, so there's no need to hoist this into a per
+ * class variable. It doesn't get modified, so it's safe
+ * to share across threads and its lifetime is the whole
+ * program.
+ */
 struct flagsname {
     flagsname(const char *name_, int flag_)
         : name(strdup(name_)), flag(flag_) {
@@ -61,7 +67,7 @@ struct flagsname {
     int flag;
 };
 
-static flagsname tagflags[] = {
+static const flagsname tagflags[] = {
     flagsname("polygon", FLAG_POLYGON),
     flagsname("linear",  FLAG_LINEAR),
     flagsname("nocache", FLAG_NOCACHE),
