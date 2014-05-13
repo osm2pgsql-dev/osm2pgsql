@@ -34,11 +34,17 @@ struct middle_t {
 
     virtual int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
 
-    typedef int (*way_callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
-    typedef int (*relation_callback)(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists);
+    struct way_cb_func {
+        virtual ~way_cb_func();
+        virtual int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) = 0;
+    };
+    struct rel_cb_func {
+        virtual ~rel_cb_func();
+        virtual int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists) = 0;
+    };
 
-    virtual void iterate_ways(way_callback callback) = 0;
-    virtual void iterate_relations(relation_callback callback) = 0;
+    virtual void iterate_ways(way_cb_func &cb) = 0;
+    virtual void iterate_relations(rel_cb_func &cb) = 0;
 };
 
 struct slim_middle_t : public middle_t {

@@ -811,7 +811,7 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
     int noProcs = out_options->num_procs;
     int pid = 0;
@@ -1214,7 +1214,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists))
+void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     PGresult   *res_rels;
     int noProcs = out_options->num_procs;

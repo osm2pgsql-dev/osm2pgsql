@@ -39,8 +39,8 @@ struct middle_ram_t : public middle_t {
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    void iterate_ways(way_callback callback);
-    void iterate_relations(relation_callback callback);
+    void iterate_ways(way_cb_func &cb);
+    void iterate_relations(rel_cb_func &cb);
 };
 
 extern middle_ram_t mid_ram;

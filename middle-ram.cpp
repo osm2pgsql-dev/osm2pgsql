@@ -189,7 +189,7 @@ int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_c
     return count;
 }
 
-void middle_ram_t::iterate_relations(int (*callback)(osmid_t id, struct member *members, int member_count, struct keyval *tags, int))
+void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     int block, offset;
 
@@ -220,7 +220,7 @@ void middle_ram_t::iterate_relations(int (*callback)(osmid_t id, struct member *
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
-void middle_ram_t::iterate_ways(int (*callback)(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists))
+void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
 {
     int block, offset, ndCount = 0;
     struct osmNode *nodes;

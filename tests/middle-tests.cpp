@@ -49,15 +49,16 @@ int test_node_set(middle_t *mid)
   return 0;
 }
 
-// urgh, static variables... need to get rid of these as soon as possible...
-static std::list<osmid_t> pending_ways;
-
-int way_callback(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
-{
-  // TODO: figure out exists - seems to be a useless variable?
-  pending_ways.push_back(id);
-  return 0; // looks like this is ignored anyway?
-}
+struct way_cb_func : public middle_t::way_cb_func {
+    std::list<osmid_t> pending_ways;
+    
+    int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
+    {
+        // TODO: figure out exists - seems to be a useless variable?
+        pending_ways.push_back(id);
+        return 0; // looks like this is ignored anyway?
+    }
+};
 
 int test_way_set(middle_t *mid)
 {
@@ -116,10 +117,11 @@ int test_way_set(middle_t *mid)
   }
 
   // first, try with no pending ways
-  pending_ways.clear();
-  mid->iterate_ways(&way_callback);
-  if (!pending_ways.empty()) {
-    std::cerr << "ERROR: Was expecting no pending ways, but got " << pending_ways.size()
+  way_cb_func way_cb;
+  way_cb.pending_ways.clear();
+  mid->iterate_ways(way_cb);
+  if (!way_cb.pending_ways.empty()) {
+    std::cerr << "ERROR: Was expecting no pending ways, but got " << way_cb.pending_ways.size()
               << " from middle.\n";
     return 1;
   }
@@ -135,11 +137,11 @@ int test_way_set(middle_t *mid)
   status = mid->ways_set(way_id, nds, nd_count, &tags[0], 1);
   if (status != 0) { std::cerr << "ERROR: Unable to set way pending.\n"; return 1; }
 
-  pending_ways.clear();
-  mid->iterate_ways(&way_callback);
-  if (pending_ways.size() != 1) {
+  way_cb.pending_ways.clear();
+  mid->iterate_ways(way_cb);
+  if (way_cb.pending_ways.size() != 1) {
     std::cerr << "ERROR: Was expecting a single pending way, but got " 
-              << pending_ways.size() << " from middle.\n";
+              << way_cb.pending_ways.size() << " from middle.\n";
     return 1;
   }
 
@@ -157,11 +159,11 @@ int test_way_set(middle_t *mid)
       if (status != 0) { std::cerr << "ERROR: Unable to set way not pending.\n"; return 1; }
       status = slim->node_changed(nds[0]);
       if (status != 0) { std::cerr << "ERROR: Unable to reset node.\n"; return 1; }
-      pending_ways.clear();
-      slim->iterate_ways(&way_callback);
-      if (pending_ways.size() != 1) {
+      way_cb.pending_ways.clear();
+      slim->iterate_ways(way_cb);
+      if (way_cb.pending_ways.size() != 1) {
           std::cerr << "ERROR: Was expecting a single pending way from node update, but got " 
-                    << pending_ways.size() << " from middle.\n";
+                    << way_cb.pending_ways.size() << " from middle.\n";
           return 1;
       }
   }
