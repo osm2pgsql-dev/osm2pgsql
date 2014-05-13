@@ -265,7 +265,7 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
 
     lat = lat_offset + (node->lat * granularity);
     lon = lon_offset + (node->lon * granularity);
-    if (node_wanted(osmdata, lat, lon)) {
+    if (osmdata->node_wanted(lat, lon)) {
         reproject(&lat, &lon);
         
         osmdata->out->node_add(node->id, lat, lon, &(osmdata->tags));
@@ -279,7 +279,7 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
         }
         osmdata->count_node++;
         if (osmdata->count_node%10000 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
     }
   }
 
@@ -344,7 +344,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
             
             lat = lat_offset + (deltalat * granularity);
             lon = lon_offset + (deltalon * granularity);
-            if (node_wanted(osmdata, lat, lon)) {
+            if (osmdata->node_wanted(lat, lon)) {
                 reproject(&lat, &lon);
                 
                 osmdata->out->node_add(deltaid, lat, lon, &(osmdata->tags));
@@ -358,7 +358,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
                 }
                 osmdata->count_node++;
                 if (osmdata->count_node%10000 == 0)
-                    printStatus(osmdata);
+                    osmdata->printStatus();
             }
         }
     }
@@ -387,7 +387,7 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
       osmdata->nds[osmdata->nd_count++] = deltaref;
 	    
       if( osmdata->nd_count >= osmdata->nd_max )
-	realloc_nodes(osmdata);
+	osmdata->realloc_nodes();
     }
 
     for (key_id = 0; key_id < way->n_keys; key_id++) {
@@ -411,7 +411,7 @@ int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringT
 	}
     osmdata->count_way++;
     if (osmdata->count_way%1000 == 0)
-      printStatus(osmdata);
+      osmdata->printStatus();
   }
 
   return 1;
@@ -462,7 +462,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
       osmdata->member_count++;
 	  
       if( osmdata->member_count >= osmdata->member_max ) {
-	realloc_members(osmdata);
+	osmdata->realloc_members();
       }
     }
 
@@ -491,7 +491,7 @@ int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, St
 	}
     osmdata->count_rel++;
     if (osmdata->count_rel%10 == 0)
-      printStatus(osmdata);
+      osmdata->printStatus();
   }
 
   return 1;

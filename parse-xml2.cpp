@@ -119,7 +119,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         }
         osmdata->count_node++;
         if (osmdata->count_node%10000 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
 
         xmlFree(xid);
         xmlFree(xlon);
@@ -157,7 +157,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         }
         osmdata->count_way++;
         if (osmdata->count_way%1000 == 0)
-        printStatus(osmdata);
+        osmdata->printStatus();
 
         osmdata->nd_count = 0;
         xmlFree(xid);
@@ -169,7 +169,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
 
         if( osmdata->nd_count >= osmdata->nd_max )
-          realloc_nodes(osmdata);
+          osmdata->realloc_nodes();
         xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
@@ -185,7 +185,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         }
         osmdata->count_rel++;
         if (osmdata->count_rel%10 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
 
         osmdata->member_count = 0;
         xmlFree(xid);
@@ -212,7 +212,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         osmdata->member_count++;
 
         if( osmdata->member_count >= osmdata->member_max )
-          realloc_members(osmdata);
+          osmdata->realloc_members();
         xmlFree(xid);
         xmlFree(xrole);
         xmlFree(xtype);
@@ -276,7 +276,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
 static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-      if (node_wanted(osmdata, osmdata->node_lat, osmdata->node_lon)) {
+      if (osmdata->node_wanted(osmdata->node_lat, osmdata->node_lon)) {
 	  reproject(&(osmdata->node_lat), &(osmdata->node_lon));
             if( osmdata->action == ACTION_CREATE )
 	        osmdata->out->node_add(osmdata->osm_id, osmdata->node_lat, osmdata->node_lon, &(osmdata->tags));
@@ -317,7 +317,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             exit_nicely();
         }
         resetList(&(osmdata->tags));
-        resetMembers(osmdata);
+        osmdata->resetMembers();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "nd")) {
@@ -325,13 +325,13 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
     } else if (xmlStrEqual(name, BAD_CAST "member")) {
 	/* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "osmChange")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "planetdiff")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */

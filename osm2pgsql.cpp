@@ -33,6 +33,7 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <time.h>
+#include <stdexcept>
 
 #include <libpq-fe.h>
 
@@ -62,43 +63,8 @@
 
 int verbose;
 
-struct osmdata_t make_empty_osmdata() {
-    osmdata_t val;
-    memset(&val, 0, sizeof val);
-
-    val.filetype = FILETYPE_NONE;
-    val.action   = ACTION_NONE;
-    val.bbox     = NULL;
-
-    return val;
-};
-
-/* Data structure carrying all parsing related variables */
-static struct osmdata_t osmdata = make_empty_osmdata();
-
-static int parse_bbox(struct osmdata_t *osmdata)
-{
-    int n;
-
-    if (!osmdata->bbox)
-        return 0;
-
-    n = sscanf(osmdata->bbox, "%lf,%lf,%lf,%lf", &(osmdata->minlon), &(osmdata->minlat), &(osmdata->maxlon), &(osmdata->maxlat));
-    if (n != 4) {
-        fprintf(stderr, "Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
-        return 1;
-    }
-    if (osmdata->maxlon <= osmdata->minlon) {
-        fprintf(stderr, "Bounding box failed due to maxlon <= minlon\n");
-        return 1;
-    }
-    if (osmdata->maxlat <= osmdata->minlat) {
-        fprintf(stderr, "Bounding box failed due to maxlat <= minlat\n");
-        return 1;
-    }
-    fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", osmdata->minlon, osmdata->minlat, osmdata->maxlon, osmdata->maxlat);
-    return 0;
-}
+//TODO: move this typedef to a shared parsing header
+typedef int (*stream_input_file_t)(const char *, int, struct osmdata_t *);
 
 static void short_usage(char *arg0)
 {
@@ -302,8 +268,61 @@ const char *build_conninfo(const char *db, const char *username, const char *pas
 void exit_nicely()
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
-    osmdata.out->cleanup();
     exit(1);
+}
+
+output_t* get_output(const char* output_backend)
+{
+	if (strcmp("pgsql", output_backend) == 0) {
+	  return &out_pgsql;
+	} else if (strcmp("gazetteer", output_backend) == 0) {
+	  return &out_gazetteer;
+	} else if (strcmp("null", output_backend) == 0) {
+	  return &out_null;
+	} else {
+	  fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
+	  exit(EXIT_FAILURE);
+	}
+}
+
+stream_input_file_t get_input_reader(const char* input_reader, const char* filename)
+{
+	// if input_reader is forced to a specific iput format
+	if (strcmp("auto", input_reader) != 0) {
+		if (strcmp("libxml2", input_reader) == 0) {
+			return &streamFileXML2;
+		} else if (strcmp("primitive", input_reader) == 0) {
+			return &streamFilePrimitive;
+#ifdef BUILD_READER_PBF
+		} else if (strcmp("pbf", input_reader) == 0) {
+			return &streamFilePbf;
+#endif
+		} else if (strcmp("o5m", input_reader) == 0) {
+			return &streamFileO5m;
+		} else {
+			fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
+#ifdef BUILD_READER_PBF
+							", pbf"
+#endif
+							"].\n", input_reader);
+			exit(EXIT_FAILURE);
+		}
+	} // if input_reader is not forced by -r switch try to auto-detect it by file extension
+	else {
+		if (strcasecmp(".pbf", filename + strlen(filename) - 4) == 0) {
+#ifdef BUILD_READER_PBF
+			return &streamFilePbf;
+#else
+			fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
+			exit(EXIT_FAILURE);
+#endif
+		} else if (strcasecmp(".o5m", filename + strlen(filename) - 4) == 0
+				|| strcasecmp(".o5c", filename + strlen(filename) - 4) == 0) {
+			return &streamFileO5m;
+		} else {
+			return &streamFileXML2;
+		}
+	}
 }
  
 int main(int argc, char *argv[])
@@ -362,8 +381,9 @@ int main(int argc, char *argv[])
     int cache = 800;
     struct output_options options;
     PGconn *sql_conn;
+    const char *bbox=NULL;
+    int extra_attributes=0;
     
-    int (*streamFile)(const char *, int, struct osmdata_t *);
 
     fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
 
@@ -424,7 +444,7 @@ int main(int argc, char *argv[])
 
         switch (c) {
             case 'a': append=1;   break;
-            case 'b': osmdata.bbox=optarg; break;
+            case 'b': bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
             case 's': slim=1;     break;
@@ -455,7 +475,7 @@ int main(int argc, char *argv[])
                 break;
             case 'o': expire_tiles_filename=optarg; break;
             case 'O': output_backend = optarg; break;
-            case 'x': osmdata.extra_attributes=1; break;
+            case 'x': extra_attributes=1; break;
             case 'k':  if (enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
                 enable_hstore=HSTORE_NORM; break;
             case 208: hstore_match_only = 1; break;
@@ -556,7 +576,7 @@ int main(int argc, char *argv[])
     }
 
     
-
+    // Check the database
     conninfo = build_conninfo(db, username, password, host, port);
     sql_conn = PQconnectdb(conninfo);
     if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -568,24 +588,15 @@ int main(int argc, char *argv[])
         fprintf(stderr, "you are using PostgreSQL %d.%d.%d.\n", PQserverVersion(sql_conn) / 10000, (PQserverVersion(sql_conn) / 100) % 100, PQserverVersion(sql_conn) % 100);
         exit(EXIT_FAILURE);
     }
-
     PQfinish(sql_conn);
 
     text_init();
-    initList(&osmdata.tags);
-
-    osmdata.count_node = osmdata.max_node = 0;
-    osmdata.count_way  = osmdata.max_way  = 0;
-    osmdata.count_rel  = osmdata.max_rel  = 0;
 
     LIBXML_TEST_VERSION
 
     project_init(projection);
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
         project_getprojinfo()->srs, project_getprojinfo()->descr );
-
-    if (parse_bbox(&osmdata))
-        return 1;
 
     options.conninfo = conninfo;
     options.prefix = prefix;
@@ -619,45 +630,25 @@ int main(int argc, char *argv[])
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
     options.tag_transform_script = tag_transform_script;
+    options.out = get_output(output_backend);
 
-    if (strcmp("pgsql", output_backend) == 0) {
-      osmdata.out = &out_pgsql;
-    } else if (strcmp("gazetteer", output_backend) == 0) {
-      osmdata.out = &out_gazetteer;
-    } else if (strcmp("null", output_backend) == 0) {
-      osmdata.out = &out_null;
-    } else {
-      fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
-      exit(EXIT_FAILURE);
+    //setup the output
+    osmdata_t osmdata;
+    try
+    {
+    	osmdata.init(options.out, extra_attributes, bbox);
     }
-    options.out = osmdata.out;
-
-    if (strcmp("auto", input_reader) != 0) {
-      if (strcmp("libxml2", input_reader) == 0) {
-        streamFile = &streamFileXML2;
-      } else if (strcmp("primitive", input_reader) == 0) {
-        streamFile = &streamFilePrimitive;
-#ifdef BUILD_READER_PBF
-      } else if (strcmp("pbf", input_reader) == 0) {
-        streamFile = &streamFilePbf;
-#endif
-      } else if (strcmp("o5m", input_reader) == 0) {
-          streamFile = &streamFileO5m;
-      } else {
-        fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
-#ifdef BUILD_READER_PBF
-	      ", pbf"
-#endif
-	      "].\n", input_reader);
-      exit(EXIT_FAILURE);
-      }
+    catch(std::exception& e)
+    {
+    	fprintf(stderr, "%s", e.what());
+    	return 1;
     }
 
+    //start it up
     time(&overall_start);
     osmdata.out->start(&options);
-
-    realloc_nodes(&osmdata);
-    realloc_members(&osmdata);
+    osmdata.realloc_nodes();
+    osmdata.realloc_members();
 
     if (sizeof(int*) == 4 && options.slim != 1) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
@@ -666,24 +657,11 @@ int main(int argc, char *argv[])
         fprintf(stderr, "!! mode using parameter -s.\n");
     }
 
+    //read in the input files one by one
     while (optind < argc) {
-        /* if input_reader is not forced by -r switch try to auto-detect it
-           by file extension */
-        if (strcmp("auto", input_reader) == 0) {
+        //figure how we are going to read the input based on its type
+        stream_input_file_t streamFile = get_input_reader(input_reader, argv[optind]);
 
-          if (strcasecmp(".pbf",argv[optind]+strlen(argv[optind])-4) == 0) {
-#ifdef BUILD_READER_PBF
-            streamFile = &streamFilePbf;
-#else
-	    fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
-	    exit(EXIT_FAILURE);
-#endif
-          } else if (strcasecmp(".o5m",argv[optind]+strlen(argv[optind])-4) == 0 || strcasecmp(".o5c",argv[optind]+strlen(argv[optind])-4) == 0) {
-              streamFile = &streamFileO5m;
-          } else {
-            streamFile = &streamFileXML2;
-          }
-        }
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time(&start);
         if (streamFile(argv[optind], sanitize, &osmdata) != 0)
@@ -710,10 +688,7 @@ int main(int argc, char *argv[])
                 osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
     }
     osmdata.out->stop();
-    
-    free(osmdata.nds);
-    free(osmdata.members);
-    
+
     /* free the column pointer buffer */
     free(hstore_columns);
 

@@ -26,6 +26,8 @@ typedef int32_t osmid_t;
 
 #include "keyvals.hpp"
 
+struct output_t;
+
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
 
 struct osmNode {
@@ -43,41 +45,46 @@ typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETD
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
 struct osmdata_t {
-  osmid_t count_node,    max_node;
-  osmid_t count_way,     max_way;
-  osmid_t count_rel,     max_rel;
-	time_t  start_node, start_way, start_rel;
+	public:
+		osmdata_t();
+		~osmdata_t();
 
-  struct output_t *out;
+		void init(output_t* out_, const int& extra_attributes_, const char* bbox_);
+		void realloc_nodes();
+		void realloc_members();
+		void resetMembers();
+		void printStatus();
+		int node_wanted(double lat, double lon);
 
-/* Since {node,way} elements are not nested we can guarantee the 
-   values in an end tag must match those of the corresponding 
-   start tag and can therefore be cached.
-*/
-  double node_lon, node_lat;
-  struct keyval tags;
-  osmid_t *nds;
-  int nd_count, nd_max;
-  struct member *members;
-  int member_count, member_max;
-  osmid_t osm_id;
-  filetypes_t filetype;
-  actions_t action;
-  int extra_attributes;
 
-    /* Bounding box to filter imported data */
-  const char *bbox;
+		osmid_t count_node,    max_node;
+		osmid_t count_way,     max_way;
+		osmid_t count_rel,     max_rel;
+		time_t  start_node, start_way, start_rel;
 
-  double minlon, minlat, maxlon, maxlat;
+		struct output_t *out;
 
-  int parallel_indexing;
+		/* Since {node,way} elements are not nested we can guarantee the
+		values in an end tag must match those of the corresponding
+		start tag and can therefore be cached.
+		*/
+		double node_lon, node_lat;
+		struct keyval tags;
+		osmid_t *nds;
+		int nd_count, nd_max;
+		struct member *members;
+		int member_count, member_max;
+		osmid_t osm_id;
+		filetypes_t filetype;
+		actions_t action;
+		int extra_attributes;
+		int parallel_indexing;
+
+	private:
+		void parse_bbox(const char* bbox_);
+		bool bbox;
+		double minlon, minlat, maxlon, maxlat;
 };
-
-void realloc_nodes(struct osmdata_t *osmdata);
-void realloc_members(struct osmdata_t *osmdata);
-void resetMembers(struct osmdata_t *osmdata);
-void printStatus(struct osmdata_t *osmdata);
-int node_wanted(struct osmdata_t *osmdata, double lat, double lon);
 
 /* exit_nicely - called to cleanup after fatal error */
 void exit_nicely();

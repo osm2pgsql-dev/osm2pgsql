@@ -205,7 +205,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         
         osmdata->count_node++;
         if (osmdata->count_node%10000 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
 
     } else if (!strcmp(name, "tag")) {
         xk = extractAttribute(token, tokens, "k");
@@ -237,7 +237,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         
         osmdata->count_way++;
         if (osmdata->count_way%1000 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
 
         osmdata->nd_count = 0;
     } else if (!strcmp(name, "nd")) {
@@ -247,7 +247,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
 
         if( osmdata->nd_count >= osmdata->nd_max )
-          realloc_nodes(osmdata);
+          osmdata->realloc_nodes();
     } else if (!strcmp(name, "relation")) {
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
@@ -263,7 +263,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
         osmdata->count_rel++;
         if (osmdata->count_rel%10 == 0)
-            printStatus(osmdata);
+            osmdata->printStatus();
 
         osmdata->member_count = 0;
     } else if (!strcmp(name, "member")) {
@@ -289,7 +289,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         osmdata->member_count++;
 
         if( osmdata->member_count >= osmdata->member_max )
-            realloc_members(osmdata);
+        	osmdata->realloc_members();
     } else if (!strcmp(name, "add") ||
                !strcmp(name, "create")) {
         osmdata->action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
@@ -339,7 +339,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 static void EndElement(const char *name, struct osmdata_t *osmdata)
 {
     if (!strcmp(name, "node")) {
-      if (node_wanted(osmdata, osmdata->node_lat, osmdata->node_lon)) {
+      if (osmdata->node_wanted(osmdata->node_lat, osmdata->node_lon)) {
 	reproject(&(osmdata->node_lat), &(osmdata->node_lon));
             if( osmdata->action == ACTION_CREATE )
 	      osmdata->out->node_add(osmdata->osm_id, osmdata->node_lat, osmdata->node_lon, &(osmdata->tags));
@@ -380,7 +380,7 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
 	  exit_nicely();
         }
         resetList(&(osmdata->tags));
-        resetMembers(osmdata);
+        osmdata->resetMembers();
     } else if (!strcmp(name, "tag")) {
         /* ignore */
     } else if (!strcmp(name, "nd")) {
@@ -388,13 +388,13 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
     } else if (!strcmp(name, "member")) {
 	/* ignore */
     } else if (!strcmp(name, "osm")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "osmChange")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "planetdiff")) {
-        printStatus(osmdata);
+        osmdata->printStatus();
         osmdata->filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "bound")) {
         /* ignore */
