@@ -1727,7 +1727,10 @@ static void *pgsql_stop_one(void *arg)
                see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html */
             if (insertpos && PQserverVersion(sql_conn) >= 80400) {
                 fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
-                strncpy(buffer, table->array_indexes, (insertpos - table->array_indexes));
+                size_t n_chars = insertpos - table->array_indexes;
+                strncpy(buffer, table->array_indexes, n_chars);
+                // strncpy doesn't necessarily null-terminate, so we need to add that
+                buffer[n_chars] = '\0';
                 strcat(buffer, " WITH (FASTUPDATE=OFF)");
                 strcat(buffer, insertpos);
             } else {
