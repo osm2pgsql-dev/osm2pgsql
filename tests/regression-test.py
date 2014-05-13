@@ -627,9 +627,19 @@ if __name__ == "__main__":
 
 
 ts2 = CompleteTestSuite()
+success = False
 try:
     setupDB()
     runner = unittest.TextTestRunner()
-    runner.run(ts2)
+    result = runner.run(ts2)
+    success = result.wasSuccessful()
+
 finally:
     tearDownDB()
+
+if success:
+    print "All tests passed :-)"
+    exit(0)
+else:
+    print "Some tests failed :-("
+    exit(1)
