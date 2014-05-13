@@ -82,6 +82,9 @@ private:
 
 
     const struct output_options *m_options;
+
+    /* enable output of a generated way_area tag to either hstore or its own column */
+    int m_enable_way_area;
 };
 
 extern output_pgsql_t out_pgsql;

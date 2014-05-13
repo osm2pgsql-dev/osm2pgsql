@@ -43,9 +43,6 @@
    style file with more styles than this */
 #define MAX_STYLES 1000
 
-/* enable output of a generated way_area tag to either hstore or its own column */
-static int enable_way_area=1;
-
 /* Tables to output */
 struct s_table {
     s_table(const char *name_, const char *type_)
@@ -98,7 +95,7 @@ static int pgsql_delete_way_from_output(osmid_t osm_id);
 static int pgsql_delete_relation_from_output(osmid_t osm_id);
 static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
 
-void read_style_file( const char *filename )
+int read_style_file( const char *filename )
 {
   FILE *in;
   int lineno = 0;
@@ -113,6 +110,7 @@ void read_style_file( const char *filename )
   struct taginfo temp;
   char buffer[1024];
   int flag = 0;
+  int enable_way_area = 1;
 
   exportList[OSMTYPE_NODE] = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
   exportList[OSMTYPE_WAY]  = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
@@ -197,6 +195,7 @@ void read_style_file( const char *filename )
       exit_nicely();
   }
   fclose(in);
+  return enable_way_area;
 }
 
 static void free_style_refs(const char *name, const char *type)
@@ -679,7 +678,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 expire_tiles_from_nodes_poly(nodes, count, id);
                 area = get_area(i);
-                if ((area > 0.0) && enable_way_area) {
+                if ((area > 0.0) && m_enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
@@ -741,7 +740,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 double area = get_area(i);
-                if ((area > 0.0) && enable_way_area) {
+                if ((area > 0.0) && m_enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(rel_tags, "way_area", tmp, 0);
@@ -786,7 +785,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                 /* FIXME: there should be a better way to detect polygons */
                 if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                     double area = get_area(i);
-                    if ((area > 0.0) && enable_way_area) {
+                    if ((area > 0.0) && m_enable_way_area) {
                         char tmp[32];
                         snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(rel_tags, "way_area", tmp, 0);
@@ -836,7 +835,7 @@ int output_pgsql_t::start(const struct output_options *options)
 
     m_options = options;
 
-    read_style_file( options->style );
+    m_enable_way_area = read_style_file( options->style );
 
     sql_len = 2048;
     sql = (char *)malloc(sql_len);
