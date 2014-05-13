@@ -1479,21 +1479,28 @@ static int pgsql_modify_relation(osmid_t osm_id, struct member *members, int mem
     return 0;
 }
 
-struct output_t out_pgsql = {
-        .start           = pgsql_out_start,
-        .connect         = pgsql_out_connect,
-        .stop            = pgsql_out_stop,
-        .cleanup         = pgsql_out_cleanup,
-        .close           = pgsql_out_close,
-        .node_add        = pgsql_add_node,
-        .way_add         = pgsql_add_way,
-        .relation_add    = pgsql_add_relation,
-        
-        .node_modify     = pgsql_modify_node,
-        .way_modify      = pgsql_modify_way,
-        .relation_modify = pgsql_modify_relation,
+struct output_t make_pgsql() {
+    output_t pgsql;
+    memset(&pgsql, 0, sizeof pgsql);
 
-        .node_delete     = pgsql_delete_node,
-        .way_delete      = pgsql_delete_way,
-        .relation_delete = pgsql_delete_relation
-};
+	pgsql.start           = pgsql_out_start;
+	pgsql.connect         = pgsql_out_connect;
+	pgsql.stop            = pgsql_out_stop;
+	pgsql.cleanup         = pgsql_out_cleanup;
+	pgsql.close           = pgsql_out_close;
+	pgsql.node_add        = pgsql_add_node;
+	pgsql.way_add         = pgsql_add_way;
+	pgsql.relation_add    = pgsql_add_relation;
+
+	pgsql.node_modify     = pgsql_modify_node;
+	pgsql.way_modify      = pgsql_modify_way;
+	pgsql.relation_modify = pgsql_modify_relation;
+
+	pgsql.node_delete     = pgsql_delete_node;
+	pgsql.way_delete      = pgsql_delete_way;
+	pgsql.relation_delete = pgsql_delete_relation;
+
+    return pgsql;
+}
+
+struct output_t out_pgsql = make_pgsql();
