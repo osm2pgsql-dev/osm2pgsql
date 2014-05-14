@@ -12,8 +12,6 @@
 #include "build_geometry.hpp"
 #include "output-gazetteer.hpp"
 
-#define BUFFER_SIZE 4096
-
 #define SRID (project_getprojinfo()->srs)
 
 #define CREATE_KEYVALUETYPE_TYPE                \
@@ -54,22 +52,7 @@
 #define TAGINFO_WAY  0x2u
 #define TAGINFO_AREA 0x4u
 
-
-static const struct output_options *Options = NULL;
-static PGconn *Connection = NULL;
-static int CopyActive = 0;
-static char Buffer[BUFFER_SIZE];
-static unsigned int BufferLen = 0;
-
-static PGconn *ConnectionDelete = NULL;
-
-static PGconn *ConnectionError = NULL;
-
-static FILE * hLog = NULL;
-
-static slim_middle_t *slim_mid = NULL;
-
-static void require_slim_mode(void)
+void output_gazetteer_t::require_slim_mode(void)
 {
    if (!Options->slim)
    {
@@ -87,7 +70,7 @@ static void require_slim_mode(void)
    return;
 }
 
-static void copy_data(const char *sql)
+void output_gazetteer_t::copy_data(const char *sql)
 {
    unsigned int sqlLen = strlen(sql);
 
@@ -131,7 +114,7 @@ static void copy_data(const char *sql)
    return;
 }
 
-static void stop_copy(void)
+void output_gazetteer_t::stop_copy(void)
 {
    PGresult *res;
 
@@ -715,7 +698,7 @@ void escape_array_record(char *out, int len, const char *in)
         fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
 }
 
-static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places) {
+void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places) {
     int i,sz, slen;
     PGresult   *res;
     char tmp[16];
@@ -764,7 +747,7 @@ static void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *
     }
 }
 
-static void add_place(char osm_type, osmid_t osm_id, const char *key_class, const char *type, struct keyval *names, struct keyval *extratags,
+void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *key_class, const char *type, struct keyval *names, struct keyval *extratags,
    int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    int first;
@@ -992,7 +975,7 @@ static void add_polygon_error(char osm_type, osmid_t osm_id, const char *key_cla
 #endif
 
 
-static void delete_place(char osm_type, osmid_t osm_id)
+void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
 {
    /* Stop any active copy */
    stop_copy();
@@ -1115,7 +1098,7 @@ void output_gazetteer_t::cleanup(void)
    return;
 }
 
-static int gazetteer_process_node(osmid_t id, double lat, double lon, struct keyval *tags, int delete_old)
+int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lon, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1170,7 +1153,7 @@ int output_gazetteer_t::node_add(osmid_t id, double lat, double lon, struct keyv
     return gazetteer_process_node(id, lat, lon, tags, 0);
 }
 
-static int gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags, int delete_old)
+int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1242,7 +1225,7 @@ int output_gazetteer_t::way_add(osmid_t id, osmid_t *ndv, int ndc, struct keyval
     return gazetteer_process_way(id, ndv, ndc, tags, 0);
 }
 
-static int gazetteer_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int delete_old)
+int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int delete_old)
 {
    struct keyval names;
    struct keyval places;
@@ -1424,7 +1407,17 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-output_gazetteer_t::output_gazetteer_t() {
+output_gazetteer_t::output_gazetteer_t() 
+    : Options(NULL),
+      Connection(NULL),
+      ConnectionDelete(NULL),
+      ConnectionError(NULL),
+      CopyActive(0),
+      BufferLen(0),
+      hLog(NULL),
+      slim_mid(NULL)
+{
+    memset(Buffer, 0, BUFFER_SIZE);
 }
 
 output_gazetteer_t::~output_gazetteer_t() {
