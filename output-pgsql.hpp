@@ -8,6 +8,7 @@
 
 #include "output.hpp"
 #include "taginfo.hpp"
+#include "buffer.hpp"
 #include <vector>
 
 #define FLAG_POLYGON 1    /* For polygon table */
@@ -59,13 +60,15 @@ private:
 
     struct way_cb_func : public middle_t::way_cb_func {
         output_pgsql_t *m_ptr;
-        way_cb_func(output_pgsql_t *ptr);
+        buffer &m_sql;
+        way_cb_func(output_pgsql_t *ptr, buffer &sql);
         virtual ~way_cb_func();
         int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
     };
     struct rel_cb_func : public middle_t::rel_cb_func  {
         output_pgsql_t *m_ptr;
-        rel_cb_func(output_pgsql_t *ptr);
+        buffer &m_sql;
+        rel_cb_func(output_pgsql_t *ptr, buffer &sql);
         virtual ~rel_cb_func();
         int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists);
     };
@@ -73,20 +76,20 @@ private:
     friend struct way_cb_func;
     friend struct rel_cb_func;
     
-    void write_hstore_columns(enum table_id table, struct keyval *tags);
-    void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table);
-    int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
-    int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
-    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole);
-    int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
+    void write_hstore_columns(enum table_id table, struct keyval *tags, buffer &sql);
+    void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table, buffer &sql);
+    int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon, buffer &sql);
+    int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql);
+    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql);
+    int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
     void pgsql_pause_copy(table *table);
 
     void pgsql_out_commit(void);
     void copy_to_table(enum table_id table, const char *sql);
-    void write_hstore(enum table_id table, struct keyval *tags);
-    void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, char *sql, size_t &sqllen);
+    void write_hstore(enum table_id table, struct keyval *tags, buffer &sql);
+    void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, buffer &sql);
 
     const struct output_options *m_options;
 
@@ -96,6 +99,8 @@ private:
     std::vector<table> m_tables;
     
     export_list *m_export_list;
+
+    buffer m_sql;
 };
 
 extern output_pgsql_t out_pgsql;

@@ -34,6 +34,7 @@
 #include "node-ram-cache.hpp"
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
+#include "buffer.hpp"
 
 #include <boost/bind.hpp>
 #include <iostream>
@@ -258,27 +259,19 @@ void output_pgsql_t::cleanup(void)
 }
 
 /* Escape data appropriate to the type */
-static void escape_type(char *sql, int len, const char *value, const char *type) {
+static void escape_type(buffer &sql, const char *value, const char *type) {
   int items;
-  static int tmplen=0;
-  static char *tmpstr;
-
-  if (len > tmplen) {
-      tmpstr=(char *)realloc(tmpstr,len);
-      tmplen=len;
-  }
-  strcpy(tmpstr,value);
 
   if ( !strcmp(type, "int4") ) {
     int from, to; 
     /* For integers we take the first number, or the average if it's a-b */
     items = sscanf(value, "%d-%d", &from, &to);
     if ( items == 1 ) {
-      sprintf(sql, "%d", from);
+      sql.printf("%d", from);
     } else if ( items == 2 ) {
-      sprintf(sql, "%d", (from + to) / 2);
+      sql.printf("%d", (from + to) / 2);
     } else {
-      sprintf(sql, "\\N");
+      sql.printf("\\N");
     }
   } else {
     /*
@@ -293,44 +286,40 @@ static void escape_type(char *sql, int len, const char *value, const char *type)
       int i,slen;
       float from,to;
 
-      slen=strlen(value);
-      for (i=0;i<slen;i++) if (tmpstr[i]==',') tmpstr[i]='.';
+      // we're just using sql as a temporary buffer here.
+      sql.cpy(value);
 
-      items = sscanf(tmpstr, "%f-%f", &from, &to);
+      slen=sql.len();
+      for (i=0;i<slen;i++) if (sql.buf[i]==',') sql.buf[i]='.';
+
+      items = sscanf(sql.buf, "%f-%f", &from, &to);
       if ( items == 1 ) {
-	if ((tmpstr[slen-2]=='f') && (tmpstr[slen-1]=='t')) {
+	if ((sql.buf[slen-2]=='f') && (sql.buf[slen-1]=='t')) {
 	  from*=0.3048;
 	}
-	sprintf(sql, "%f", from);
+	sql.printf("%f", from);
       } else if ( items == 2 ) {
-	if ((tmpstr[slen-2]=='f') && (tmpstr[slen-1]=='t')) {
+	if ((sql.buf[slen-2]=='f') && (sql.buf[slen-1]=='t')) {
 	  from*=0.3048;
 	  to*=0.3048;
 	}
-	sprintf(sql, "%f", (from + to) / 2);
+	sql.printf("%f", (from + to) / 2);
       } else {
-	sprintf(sql, "\\N");
+	sql.printf("\\N");
       }
     } else {
-      escape(sql, len, value);
+      escape(sql, value);
     }
   }
 }
 
-void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct keyval *tags)
+void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct keyval *tags,
+                                  buffer &sql)
 {
-    static char *sql;
-    static size_t sqllen=0;
     size_t hlen;
     /* a clone of the tags pointer */
     struct keyval *xtags = tags;
         
-    /* sql buffer */
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=(char *)malloc(sqllen);
-    }
-    
     /* while this tags has a follow-up.. */
     while (xtags->next->key != NULL)
     {
@@ -355,14 +344,13 @@ void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct ke
       hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
       
       /* if the sql buffer is too small */
-      if (hlen > sqllen) {
-        sqllen = hlen;
-        sql = (char *)realloc(sql, sqllen);
+      if (hlen > sql.capacity()) {
+        sql.reserve(hlen);
       }
         
       /* pack the tag with its value into the hstore */
       keyval2hstore(sql, xtags->next);
-      copy_to_table(table, sql);
+      copy_to_table(table, sql.buf);
 
       /* update the tag-pointer to point to the next tag */
       xtags = xtags->next;
@@ -379,10 +367,9 @@ void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct ke
 }
 
 /* write an hstore column to the database */
-void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *tags)
+void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *tags,
+                                          buffer &sql)
 {
-    static char *sql;
-    static size_t sqllen=0;
     char *shortkey;
     /* the index of the current hstore column */
     int i_hstore_column;
@@ -390,12 +377,6 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
     struct keyval *xtags;
     char *pos;
     size_t hlen;
-    
-    /* sql buffer */
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=(char *)malloc(sqllen);
-    }
     
     /* iterate over all configured hstore colums in the options */
     for(i_hstore_column = 0; i_hstore_column < m_options->n_hstore_columns; i_hstore_column++)
@@ -425,15 +406,14 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
                 hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
                 
                 /* if the sql buffer is too small */
-                if (hlen > sqllen) {
+                if (hlen > sql.capacity()) {
                     /* resize it */
-                    sqllen=hlen;
-                    sql=(char *)realloc(sql,sqllen);
+                    sql.reserve(hlen);
                 }
                 
                 /* and pack the shortkey with its value into the hstore */
                 keyval2hstore_manual(sql, shortkey, xtags->next->value);
-                copy_to_table(table, sql);
+                copy_to_table(table, sql.buf);
                 
                 /* update the tag-pointer to point to the next tag */
                 xtags=xtags->next;
@@ -461,7 +441,7 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
 }
 
 void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
-                                 struct keyval *tags, char *sql, size_t &sqllen) {
+                                 struct keyval *tags, buffer &sql) {
     std::vector<taginfo> &infos = m_export_list->get(info_table);
     for (int i=0; i < infos.size(); i++) {
         taginfo &info = infos[i];
@@ -472,15 +452,15 @@ void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
         struct keyval *tag = NULL;
         if (tag = getTag(tags, info.name.c_str()))
         {
-            escape_type(sql, sqllen, tag->value, info.type.c_str());
+            escape_type(sql, tag->value, info.type.c_str());
             info.count++;
             if (HSTORE_NORM==m_options->enable_hstore)
                 tag->has_column=1;
         }
         else
-            sprintf(sql, "\\N");
+            sql.printf("\\N");
 
-        copy_to_table(table, sql);
+        copy_to_table(table, sql.buf);
         copy_to_table(table, "\t");
     }
 }
@@ -498,34 +478,28 @@ psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
 Workaround - output SRID=4326;<WKB>
 */
 
-int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
+int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon,
+                                   buffer &sql)
 {
 
     int filter = tagtransform_filter_node_tags(tags, m_export_list);
-    static char *sql;
-    static size_t sqllen=0;
     int i;
     struct keyval *tag;
 
     if (filter) return 1;
 
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=(char *)malloc(sqllen);
-    }
-
     expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
-    sprintf(sql, "%" PRIdOSMID "\t", id);
-    copy_to_table(t_point, sql);
+    sql.printf("%" PRIdOSMID "\t", id);
+    copy_to_table(t_point, sql.buf);
 
-    export_tags(t_point, OSMTYPE_NODE, tags, sql, sqllen);
+    export_tags(t_point, OSMTYPE_NODE, tags, sql);
     
     /* hstore columns */
-    write_hstore_columns(t_point, tags);
+    write_hstore_columns(t_point, tags, sql);
     
     /* check if a regular hstore is requested */
     if (m_options->enable_hstore)
-        write_hstore(t_point, tags);
+        write_hstore(t_point, tags, sql);
     
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
@@ -534,8 +508,8 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
     node_lat = FIX_TO_DOUBLE(DOUBLE_TO_FIX(node_lat));
 #endif
 
-    sprintf(sql, "SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
-    copy_to_table(t_point, sql);
+    sql.printf("SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
+    copy_to_table(t_point, sql.buf);
     copy_to_table(t_point, "\n");
 
     return 0;
@@ -543,33 +517,26 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
 
 
 
-void output_pgsql_t::write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table)
+void output_pgsql_t::write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table,
+                                buffer &sql)
 {
-  
-    static char *sql;
-    static size_t sqllen=0;
     int j;
     struct keyval *tag;
 
-    if (sqllen==0) {
-      sqllen=2048;
-      sql=(char *)malloc(sqllen);
-    }
-    
-    sprintf(sql, "%" PRIdOSMID "\t", id);
-    copy_to_table(table, sql);
+    sql.printf("%" PRIdOSMID "\t", id);
+    copy_to_table(table, sql.buf);
 
-    export_tags(table, OSMTYPE_WAY, tags, sql, sqllen);
+    export_tags(table, OSMTYPE_WAY, tags, sql);
 
     /* hstore columns */
-    write_hstore_columns(table, tags);
+    write_hstore_columns(table, tags, sql);
     
     /* check if a regular hstore is requested */
     if (m_options->enable_hstore)
-        write_hstore(table, tags);
+        write_hstore(table, tags, sql);
 
-    sprintf(sql, "SRID=%d;", SRID);
-    copy_to_table(table, sql);
+    sql.printf("SRID=%d;", SRID);
+    copy_to_table(table, sql.buf);
     copy_to_table(table, wkt);
     copy_to_table(table, "\n");
 }
@@ -599,7 +566,7 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
+int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql)
 {
     int polygon = 0, roads = 0;
     int i, wkt_size;
@@ -636,12 +603,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
                 }
-                write_wkts(id, tags, wkt, t_poly);
+                write_wkts(id, tags, wkt, t_poly, sql);
             } else {
                 expire_tiles_from_nodes_line(nodes, count);
-                write_wkts(id, tags, wkt, t_line);
+                write_wkts(id, tags, wkt, t_line, sql);
                 if (roads)
-                    write_wkts(id, tags, wkt, t_roads);
+                    write_wkts(id, tags, wkt, t_roads, sql);
             }
         }
         free(wkt);
@@ -651,7 +618,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     return 0;
 }
 
-int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
+int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql)
 {
     int i, wkt_size;
     int roads = 0;
@@ -698,11 +665,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(rel_tags, "way_area", tmp, 0);
                 }
-                write_wkts(-id, rel_tags, wkt, t_poly);
+                write_wkts(-id, rel_tags, wkt, t_poly, sql);
             } else {
-                write_wkts(-id, rel_tags, wkt, t_line);
+                write_wkts(-id, rel_tags, wkt, t_line, sql);
                 if (roads)
-                    write_wkts(-id, rel_tags, wkt, t_roads);
+                    write_wkts(-id, rel_tags, wkt, t_roads, sql);
             }
         }
         free(wkt);
@@ -743,7 +710,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                         snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(rel_tags, "way_area", tmp, 0);
                     }
-                    write_wkts(-id, rel_tags, wkt, t_poly);
+                    write_wkts(-id, rel_tags, wkt, t_poly, sql);
                 }
             }
             free(wkt);
@@ -1142,16 +1109,16 @@ extern "C" void *pthread_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr) : m_ptr(ptr) {}
+output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::way_cb_func::~way_cb_func() {}
 int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
-    return m_ptr->pgsql_out_way(id, tags, nodes, count, exists);
+    return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
 }
 
-output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr) : m_ptr(ptr) {}
+output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
-    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists);
+    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
 }
 
 void output_pgsql_t::stop()
@@ -1176,8 +1143,9 @@ void output_pgsql_t::stop()
         PGconn *sql_conn = m_tables[i].sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
+    buffer sql;
     /* Processing any remaing to be processed ways */
-    way_cb_func way_callback(this);
+    way_cb_func way_callback(this, sql);
     m_options->mid->iterate_ways( way_callback );
     pgsql_out_commit();
     m_options->mid->commit();
@@ -1187,7 +1155,7 @@ void output_pgsql_t::stop()
      * extended transactions, as the delete_way_from_output, called
      * from process_relation, can deadlock if using multi-processing.
      */
-    rel_cb_func rel_callback(this);
+    rel_cb_func rel_callback(this, sql);
     m_options->mid->iterate_relations( rel_callback );
 
     tagtransform_shutdown();
@@ -1240,7 +1208,7 @@ void output_pgsql_t::stop()
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
   m_options->mid->nodes_set(id, lat, lon, tags);
-  pgsql_out_node(id, tags, lat, lon);
+  pgsql_out_node(id, tags, lat, lon, m_sql);
 
   return 0;
 }
@@ -1263,14 +1231,14 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
     /* Get actual node data and generate output */
     struct osmNode *nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * nd_count );
     int count = m_options->mid->nodes_get_list( nodes, nds, nd_count );
-    pgsql_out_way(id, tags, nodes, count, 0);
+    pgsql_out_way(id, tags, nodes, count, 0, m_sql);
     free(nodes);
   }
   return 0;
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
+int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql)
 {
     int i, j, count, count2;
     osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
@@ -1318,7 +1286,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
   xrole[count2] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole);
+  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole, sql);
 
   for( i=0; i<count2; i++ )
   {
@@ -1350,7 +1318,7 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
     return 0;
 
 
-  return pgsql_process_relation(id, members, member_count, tags, 0);
+  return pgsql_process_relation(id, members, member_count, tags, 0, m_sql);
 }
 #define UNUSED  __attribute__ ((unused))
 

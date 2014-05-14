@@ -8,6 +8,8 @@
 #ifndef KEYVAL_H
 #define KEYVAL_H
 
+#include "buffer.hpp"
+
 struct keyval {
     char *key;
     char *value;
@@ -36,6 +38,6 @@ void resetList(struct keyval *head);
 struct keyval *getMatches(struct keyval *head, const char *name);
 void updateItem(struct keyval *head, const char *name, const char *value);
 void cloneList( struct keyval *target, struct keyval *source );
-void keyval2hstore(char *hstring, struct keyval *tags);
-void keyval2hstore_manual(char *hstring, char *key, char *value);
+void keyval2hstore(buffer &hstring, struct keyval *tags);
+void keyval2hstore_manual(buffer &hstring, char *key, char *value);
 #endif

@@ -8,6 +8,33 @@
 #include "osmtypes.hpp" /* For exit_nicely() */
 #include "pgsql.hpp"
 
+void escape(buffer &buf, const char *in) {
+    size_t count = 0;
+    const char *old_in = in;
+
+    // count the number of characters we will need
+    while (*in) { 
+        switch(*in) {
+            case '\\':
+            case '\n':
+            case '\r':
+            case '\t':
+                count += 2;
+                break;
+            default:
+                count += 1;
+                break;
+        }
+        in++;
+    }
+
+    // make sure that we have enough capacity to avoid
+    // truncation.
+    buf.reserve(count);
+
+    escape(buf.buf, buf.capacity(), old_in);
+}
+
 void escape(char *out, int len, const char *in)
 { 
     /* Apply escaping of TEXT COPY data
