@@ -23,10 +23,6 @@
 #ifndef BUILD_GEOMETRY_H
 #define BUILD_GEOMETRY_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #include "osmtypes.hpp"
 
 int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
@@ -39,9 +35,5 @@ double get_area(size_t index);
 size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
 void clear_wkts();
 void exclude_broken_polygon ();
-
-#ifdef __cplusplus
-}
-#endif
    
 #endif 
