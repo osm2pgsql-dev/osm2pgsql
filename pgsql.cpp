@@ -29,8 +29,9 @@ void escape(buffer &buf, const char *in) {
     }
 
     // make sure that we have enough capacity to avoid
-    // truncation.
-    buf.reserve(count);
+    // truncation. the escape function requires count to
+    // be less than (length + 3) characters, so we add 4.
+    buf.reserve(count + 4);
 
     escape(buf.buf, buf.capacity(), old_in);
 }
