@@ -176,10 +176,10 @@ const struct output_options *out_options;
 #define HELPER_STATE_CONNECTED 2
 #define HELPER_STATE_FAILED 3
 
-static int pgsql_connect(const struct output_options *options) {
-    int i;
+namespace {
+int pgsql_connect(const struct output_options *options) {
     /* We use a connection per table to enable the use of COPY */
-    for (i=0; i<num_tables; i++) {
+    for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn;
         sql_conn = PQconnectdb(options->conninfo);
 
@@ -204,19 +204,7 @@ static int pgsql_connect(const struct output_options *options) {
     return 0;
 }
 
-void middle_pgsql_t::cleanup(void)
-{
-    int i;
-
-    for (i=0; i<num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-            tables[i].sql_conn = NULL;
-        }
-    }
-}
-
-char *pgsql_store_nodes(osmid_t *nds, int nd_count)
+char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
 {
   static char *buffer;
   static int buflen;
@@ -256,7 +244,7 @@ _restart:
 }
 
 /* Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
-static char *escape_tag( char *ptr, const char *in, int escape )
+inline char *escape_tag( char *ptr, const char *in, const int& escape )
 {
   while( *in )
   {
@@ -298,7 +286,7 @@ static char *escape_tag( char *ptr, const char *in, int escape )
 }
 
 /* escape means we return '\N' for copy mode, otherwise we return just NULL */
-const char *pgsql_store_tags(struct keyval *tags, int escape)
+const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
 {
   static char *buffer;
   static int buflen;
@@ -357,7 +345,7 @@ _restart:
 
 /* Decodes a portion of an array literal from postgres */
 /* Argument should point to beginning of literal, on return points to delimiter */
-static const char *decode_upto( const char *src, char *dst )
+inline const char *decode_upto( const char *src, char *dst )
 {
   int quoted = (*src == '"');
   if( quoted ) src++;
@@ -382,7 +370,7 @@ static const char *decode_upto( const char *src, char *dst )
   return src;
 }
 
-static void pgsql_parse_tags( const char *string, struct keyval *tags )
+void pgsql_parse_tags( const char *string, struct keyval *tags )
 {
   char key[1024];
   char val[1024];
@@ -406,7 +394,7 @@ static void pgsql_parse_tags( const char *string, struct keyval *tags )
 }
 
 /* Parses an array of integers */
-static void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
+void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
 {
   int count = 0;
   const char *string = src;
@@ -429,7 +417,7 @@ static void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
   }
 }
 
-static int pgsql_endCopy( struct table_desc *table)
+int pgsql_endCopy( struct table_desc *table)
 {
     PGresult *res;
     PGconn *sql_conn;
@@ -455,7 +443,7 @@ static int pgsql_endCopy( struct table_desc *table)
     return 0;
 }
 
-static int local_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags)
+int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags)
 {
     /* Four params: id, lat, lon, tags */
     const char *paramValues[4];
@@ -494,14 +482,8 @@ static int local_nodes_set(osmid_t id, double lat, double lon, struct keyval *ta
     return 0;
 }
 
-int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
-    ram_cache_nodes_set( id, lat, lon, tags );
-
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
-}
-
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
-static int local_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count)
 {
     char tmp[16];
     char *tmp2; 
@@ -605,6 +587,25 @@ static int local_nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_co
     free(nodespg);
 
     return count;
+}
+}
+
+void middle_pgsql_t::cleanup(void)
+{
+    int i;
+
+    for (i=0; i<num_tables; i++) {
+        if (tables[i].sql_conn) {
+            PQfinish(tables[i].sql_conn);
+            tables[i].sql_conn = NULL;
+        }
+    }
+}
+
+int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
+    ram_cache_nodes_set( id, lat, lon, tags );
+
+    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
 int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)

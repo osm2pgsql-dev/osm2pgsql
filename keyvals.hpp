@@ -22,7 +22,7 @@ struct keyval {
 
 void initList(struct keyval *head);
 void freeItem(struct keyval *p);
-unsigned int countList(struct keyval *head);
+unsigned int countList(const struct keyval *head);
 int listHasData(struct keyval *head);
 char *getItem(struct keyval *head, const char *name);
 struct keyval *getTag(struct keyval *head, const char *name);

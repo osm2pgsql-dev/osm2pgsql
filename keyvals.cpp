@@ -44,7 +44,7 @@ void freeItem(struct keyval *p)
 }
 
 
-unsigned int countList(struct keyval *head) 
+unsigned int countList(const struct keyval *head)
 {
     struct keyval *p;
     unsigned int count = 0;	
