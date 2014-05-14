@@ -92,7 +92,6 @@ int read_style_file( const char *filename, export_list *exlist )
   int fields;
   struct taginfo temp;
   char buffer[1024];
-  int flag = 0;
   int enable_way_area = 1;
 
   in = fopen( filename, "rt" );
@@ -102,14 +101,17 @@ int read_style_file( const char *filename, export_list *exlist )
     exit_nicely();
   }
   
+  //for each line of the style file
   while( fgets( buffer, sizeof(buffer), in) != NULL )
   {
     lineno++;
     
+    //find where a comment starts and terminate the string there
     str = strchr( buffer, '#' );
     if( str )
       *str = '\0';
-      
+
+    //grab the expected fields for this row
     fields = sscanf( buffer, "%23s %63s %23s %127s", osmtype, tag, datatype, flags );
     if( fields <= 0 )  /* Blank line */
       continue;
@@ -118,10 +120,14 @@ int read_style_file( const char *filename, export_list *exlist )
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
       exit_nicely();
     }
+
+    //place to keep info about this tag
     temp.name.assign(tag);
     temp.type.assign(datatype);
-    
     temp.flags = 0;
+    temp.count = 0;
+    
+    //split the flags column on commas and keep track of which flags you've seen in a bit mask
     for( str = strtok( flags, ",\r\n" ); str; str = strtok(NULL, ",\r\n") )
     {
       for( i=0; i<NUM_FLAGS; i++ )
@@ -135,6 +141,7 @@ int read_style_file( const char *filename, export_list *exlist )
       if( i == NUM_FLAGS )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
     }
+
     if ((temp.flags != FLAG_DELETE) && 
         ((temp.name.find('?') != std::string::npos) || 
          (temp.name.find('*') != std::string::npos))) {
@@ -146,26 +153,33 @@ int read_style_file( const char *filename, export_list *exlist )
         enable_way_area=0;
     }
 
-    temp.count = 0;
     /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
+    bool kept = false;
     
+    //keep this tag info if it applies to nodes
     if( strstr( osmtype, "node" ) )
     {
         exlist->add(OSMTYPE_NODE, temp);
-        flag = 1;
+        kept = true;
     }
+
+    //keep this tag info if it applies to ways
     if( strstr( osmtype, "way" ) )
     {
         exlist->add(OSMTYPE_WAY, temp);
-        flag = 1;
+        kept = true;
     }
-    if( !flag )
+
+    //do we really want to completely quit on an unusable line?
+    if( !kept )
     {
       fprintf( stderr, "Weird style line %d\n", lineno );
       exit_nicely();
     }
     num_read++;
   }
+
+
   if (ferror(in)) {
       perror(filename);
       exit_nicely();

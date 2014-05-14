@@ -1,76 +1,131 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdexcept>
 #include "osmtypes.hpp"
+#include "output.hpp"
 
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096
 
-void realloc_nodes(struct osmdata_t *osmdata)
+osmdata_t::osmdata_t()
 {
-  if( osmdata->nd_max == 0 )
-    osmdata->nd_max = INIT_MAX_NODES;
+	extra_attributes = minlon = minlat = maxlon = maxlat = osm_id = nd_max = 0;
+	count_node = max_node = count_way = max_way = count_rel = max_rel = 0;
+	parallel_indexing = start_node = start_way = start_rel = 0;
+	nd_count = nd_max = node_lon = node_lat = member_count = member_max = 0;
+	out = NULL;
+	members = NULL;
+	nds = NULL;
+
+	filetype = FILETYPE_NONE;
+	action   = ACTION_NONE;
+}
+
+osmdata_t::~osmdata_t()
+{
+	if(out != NULL)
+		out->cleanup();
+	if(nds != NULL)
+		free(nds);
+	if(members != NULL)
+		free(members);
+}
+
+void osmdata_t::init(output_t* out_, const int& extra_attributes_, const char* bbox_)
+{
+	out = out_;
+	extra_attributes = extra_attributes_;
+
+	parse_bbox(bbox_);
+
+	initList(&tags);
+}
+
+void osmdata_t::parse_bbox(const char* bbox_)
+{
+	//bounding box is optional
+	bbox = bbox_ != NULL;
+	if (bbox_)
+	{
+		int n = sscanf(bbox_, "%lf,%lf,%lf,%lf", &(minlon), &(minlat), &(maxlon), &(maxlat));
+		if (n != 4)
+			throw std::runtime_error("Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
+
+		if (maxlon <= minlon)
+			throw std::runtime_error("Bounding box failed due to maxlon <= minlon\n");
+
+		if (maxlat <= minlat)
+			throw std::runtime_error("Bounding box failed due to maxlat <= minlat\n");
+
+		fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", minlon, minlat, maxlon, maxlat);
+	}
+}
+void osmdata_t::realloc_nodes()
+{
+  if( nd_max == 0 )
+    nd_max = INIT_MAX_NODES;
   else
-    osmdata->nd_max <<= 1;
+    nd_max <<= 1;
     
-  osmdata->nds = (osmid_t *)realloc( osmdata->nds, osmdata->nd_max * sizeof( osmdata->nds[0] ) );
-  if( !osmdata->nds )
+  nds = (osmid_t *)realloc( nds, nd_max * sizeof( nds[0] ) );
+  if( !nds )
   {
-    fprintf( stderr, "Failed to expand node list to %d\n", osmdata->nd_max );
+    fprintf( stderr, "Failed to expand node list to %d\n", nd_max );
     exit_nicely();
   }
 }
 
-void realloc_members(struct osmdata_t *osmdata)
+void osmdata_t::realloc_members()
 {
-  if( osmdata->member_max == 0 )
-    osmdata->member_max = INIT_MAX_NODES;
+  if( member_max == 0 )
+    member_max = INIT_MAX_NODES;
   else
-    osmdata->member_max <<= 1;
+    member_max <<= 1;
     
-  osmdata->members = (struct member *)realloc( osmdata->members, osmdata->member_max * sizeof( osmdata->members[0] ) );
-  if( !osmdata->members )
+  members = (struct member *)realloc( members, member_max * sizeof( members[0] ) );
+  if( !members )
   {
-    fprintf( stderr, "Failed to expand member list to %d\n", osmdata->member_max );
+    fprintf( stderr, "Failed to expand member list to %d\n", member_max );
     exit_nicely();
   }
 }
 
-void resetMembers(struct osmdata_t *osmdata)
+void osmdata_t::resetMembers()
 {
   unsigned i;
-  for(i = 0; i < osmdata->member_count; i++ )
-    free( osmdata->members[i].role );
+  for(i = 0; i < member_count; i++ )
+    free( members[i].role );
 }
 
-void printStatus(struct osmdata_t *osmdata)
+void osmdata_t::printStatus()
 {
     time_t now;
     time_t end_nodes;
     time_t end_way;
     time_t end_rel;
     time(&now);
-    end_nodes = osmdata->start_way > 0 ? osmdata->start_way : now;
-    end_way = osmdata->start_rel > 0 ? osmdata->start_rel : now;
+    end_nodes = start_way > 0 ? start_way : now;
+    end_way = start_rel > 0 ? start_rel : now;
     end_rel =  now;
     fprintf(stderr, "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2f/s)",
-            osmdata->count_node/1000,
-            (double)osmdata->count_node/1000.0/((int)(end_nodes - osmdata->start_node) > 0 ? (double)(end_nodes - osmdata->start_node) : 1.0),
-            osmdata->count_way/1000,
-            osmdata->count_way > 0 ? (double)osmdata->count_way/1000.0/
-            ((double)(end_way - osmdata->start_way) > 0.0 ? (double)(end_way - osmdata->start_way) : 1.0) : 0.0,
-            osmdata->count_rel,
-            osmdata->count_rel > 0 ? (double)osmdata->count_rel/
-            ((double)(end_rel - osmdata->start_rel) > 0.0 ? (double)(end_rel - osmdata->start_rel) : 1.0) : 0.0);
+            count_node/1000,
+            (double)count_node/1000.0/((int)(end_nodes - start_node) > 0 ? (double)(end_nodes - start_node) : 1.0),
+            count_way/1000,
+            count_way > 0 ? (double)count_way/1000.0/
+            ((double)(end_way - start_way) > 0.0 ? (double)(end_way - start_way) : 1.0) : 0.0,
+            count_rel,
+            count_rel > 0 ? (double)count_rel/
+            ((double)(end_rel - start_rel) > 0.0 ? (double)(end_rel - start_rel) : 1.0) : 0.0);
 }
 
-int node_wanted(struct osmdata_t *osmdata, double lat, double lon)
+int osmdata_t::node_wanted(double lat, double lon)
 {
-    if (!osmdata->bbox)
+    if (!bbox)
         return 1;
 
-    if (lat < osmdata->minlat || lat > osmdata->maxlat)
+    if (lat < minlat || lat > maxlat)
         return 0;
-    if (lon < osmdata->minlon || lon > osmdata->maxlon)
+    if (lon < minlon || lon > maxlon)
         return 0;
     return 1;
 }

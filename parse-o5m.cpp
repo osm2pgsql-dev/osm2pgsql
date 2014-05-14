@@ -768,7 +768,7 @@ return 1;
         time(&osmdata->start_node);
       }
       osmdata->count_node++;
-      if(osmdata->count_node%10000==0) printStatus(osmdata);
+      if(osmdata->count_node%10000==0) osmdata->printStatus();
       break;
     case 1:  /* way */
       if(osmdata->osm_id>osmdata->max_way)
@@ -777,7 +777,7 @@ return 1;
         time(&osmdata->start_way);
       }
       osmdata->count_way++;
-      if(osmdata->count_way%1000==0) printStatus(osmdata);
+      if(osmdata->count_way%1000==0) osmdata->printStatus();
       break;
     case 2:  /* relation */
       if(osmdata->osm_id>osmdata->max_rel)
@@ -786,7 +786,7 @@ return 1;
         time(&osmdata->start_rel);
       }
       osmdata->count_rel++;
-      if(osmdata->count_rel%10==0) printStatus(osmdata);
+      if(osmdata->count_rel%10==0) osmdata->printStatus();
       break;
     default: ;
       }
@@ -845,7 +845,7 @@ return 1;
           /* read node body */
         osmdata->node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         osmdata->node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
-        if(!node_wanted(osmdata,osmdata->node_lat,osmdata->node_lon)) {
+        if(!osmdata->node_wanted(osmdata->node_lat,osmdata->node_lon)) {
           resetList(&(osmdata->tags));
   continue;
           }
@@ -860,7 +860,7 @@ return 1;
         while(bufp<bp) {  /* for all noderefs of this way */
           osmdata->nds[osmdata->nd_count++]= o5rid[0]+= pbf_sint64(&bufp);
           if(osmdata->nd_count>=osmdata->nd_max)
-            realloc_nodes(osmdata);
+            osmdata->realloc_nodes();
         }  /* end   for all noderefs of this way */
       }  /* end   way */
 
@@ -892,7 +892,7 @@ return 1;
           osmdata->members[osmdata->member_count].role= rr;
           osmdata->member_count++;
           if(osmdata->member_count>=osmdata->member_max)
-            realloc_members(osmdata);
+            osmdata->realloc_members();
         }  /* end   for all references of this relation */
       }  /* end   relation */
 
@@ -949,7 +949,7 @@ return 1;
   }  /* end   read input file */
 
   /* close the input file */
-  printStatus(osmdata);
+  osmdata->printStatus();
   read_close();
   return 0;
 }  /* streamFileO5m() */

@@ -87,17 +87,12 @@ int main(int argc, char *argv[]) {
   text_init();
 
   struct test_output_t out_test;
-  struct osmdata_t osmdata; memset(&osmdata, 0, sizeof osmdata);
+  struct osmdata_t osmdata;
   struct output_options options; memset(&options, 0, sizeof options);
 
-  osmdata.filetype = FILETYPE_NONE;
-  osmdata.action   = ACTION_NONE;
-  osmdata.bbox     = NULL;
-  osmdata.out = &out_test;
-
-  initList(&osmdata.tags);
-  realloc_nodes(&osmdata);
-  realloc_members(&osmdata);
+  osmdata.init(&out_test, 0, NULL);
+  osmdata.realloc_nodes();
+  osmdata.realloc_members();
 
   options.out = osmdata.out;
 
