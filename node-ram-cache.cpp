@@ -86,7 +86,7 @@ int nodesCacheHits, nodesCacheLookups;
 
 static int warn_node_order;
 
-static int ram_cache_nodes_get_sparse(struct osmNode *out, osmid_t id);
+static int ram_cache_nodes_get_sparse(struct osmNode *out, const osmid_t& id);
 
 static int id2block(osmid_t id)
 {
@@ -297,7 +297,7 @@ static int ram_cache_nodes_set_dense(osmid_t id, double lat, double lon, struct 
 }
 
 
-static int ram_cache_nodes_get_sparse(struct osmNode *out, osmid_t id) {
+static int ram_cache_nodes_get_sparse(struct osmNode *out, const osmid_t& id) {
     int64_t pivotPos = sizeSparseTuples >> 1;
     int64_t minPos = 0;
     int64_t maxPos = sizeSparseTuples;
@@ -327,7 +327,7 @@ static int ram_cache_nodes_get_sparse(struct osmNode *out, osmid_t id) {
     return 1;    
 }
 
-static int ram_cache_nodes_get_dense(struct osmNode *out, osmid_t id) {
+static int ram_cache_nodes_get_dense(struct osmNode *out, const osmid_t& id) {
     int block  = id2block(id);
     int offset = id2offset(id);
     
@@ -456,7 +456,7 @@ int ram_cache_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags 
     return 1;
 }
 
-int ram_cache_nodes_get(struct osmNode *out, osmid_t id) {
+int ram_cache_nodes_get(struct osmNode *out, const osmid_t& id) {
     nodesCacheLookups++;
 
     if ((allocStrategy & ALLOC_DENSE) > 0) {
