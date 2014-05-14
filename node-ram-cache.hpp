@@ -48,6 +48,6 @@ struct ramNodeBlock {
 void init_node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
 void free_node_ram_cache();
 int ram_cache_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
-int ram_cache_nodes_get(struct osmNode *out, const osmid_t& id);
+int ram_cache_nodes_get(struct osmNode *out, osmid_t id);
 
 #endif
