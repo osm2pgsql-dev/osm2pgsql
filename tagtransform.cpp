@@ -8,6 +8,7 @@
 #include "output-pgsql.hpp"
 #include "config.h"
 #include "wildcmp.hpp"
+#include "taginfo_impl.hpp"
 
 #ifdef HAVE_LUA
 extern "C" {
@@ -43,9 +44,6 @@ static struct {
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 const struct output_options *options;
-
-extern struct taginfo *exportList[4]; /* Indexed by enum table_id */
-extern int exportListCount[4];
 
 int transform_method = 0;
 
@@ -173,8 +171,10 @@ static unsigned int tagtransform_lua_filter_basic_tags(enum OsmType type, struct
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
-static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
-        struct keyval *tags, int *polygon, int * roads) {
+static unsigned int tagtransform_c_filter_basic_tags(
+    enum OsmType type, struct keyval *tags, int *polygon, int * roads,
+    const export_list *exlist) {
+
     int i, filter = 1;
     int flags = 0;
     int add_area_tag = 0;
@@ -209,16 +209,18 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
             continue;
         }
 
-        for (i = 0; i < exportListCount[export_type]; i++) {
-            if (wildMatch(exportList[export_type][i].name, item->key)) {
-                if (exportList[export_type][i].flags & FLAG_DELETE) {
+        const std::vector<taginfo> &infos = exlist->get(export_type);
+        for (i = 0; i < infos.size(); i++) {
+            const taginfo &info = infos[i];
+            if (wildMatch(info.name.c_str(), item->key)) {
+                if (info.flags & FLAG_DELETE) {
                     freeItem(item);
                     item = NULL;
                     break;
                 }
 
                 filter = 0;
-                flags |= exportList[export_type][i].flags;
+                flags |= info.flags;
 
                 pushItem(&temp, item);
                 item = NULL;
@@ -227,7 +229,7 @@ static unsigned int tagtransform_c_filter_basic_tags(enum OsmType type,
         }
 
         /** if tag not found in list of exports: */
-        if (i == exportListCount[export_type]) {
+        if (i == infos.size()) {
             if (options->enable_hstore) {
                 /* with hstore, copy all tags... */
                 pushItem(&temp, item);
@@ -395,7 +397,8 @@ static unsigned int tagtransform_lua_filter_rel_member_tags(struct keyval *rel_t
 static unsigned int tagtransform_c_filter_rel_member_tags(
         struct keyval *rel_tags, int member_count,
         struct keyval *member_tags, const char **member_role,
-        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
+        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads,
+        const export_list *exlist) {
     char *type;
     struct keyval tags, *p, *q, *qq, poly_tags;
     int i, j;
@@ -536,9 +539,11 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
             if (!strcmp(p->key, "area")) {
                 addItem(&poly_tags, p->key, p->value, 1);
             } else {
-                for (i = 0; i < exportListCount[OSMTYPE_WAY]; i++) {
-                    if (strcmp(exportList[OSMTYPE_WAY][i].name, p->key) == 0) {
-                        if (exportList[OSMTYPE_WAY][i].flags & FLAG_POLYGON) {
+                const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
+                for (i = 0; i < infos.size(); i++) {
+                    const taginfo &info = infos[i];
+                    if (strcmp(info.name.c_str(), p->key) == 0) {
+                        if (info.flags & FLAG_POLYGON) {
                             addItem(&poly_tags, p->key, p->value, 1);
                         }
                         break;
@@ -593,9 +598,11 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
             q = poly_tags.next; 
             while (q != &poly_tags) {
                 contains_tag = 0;
-                for (j = 0; j < exportListCount[OSMTYPE_WAY]; j++) {
-                    if (strcmp(exportList[OSMTYPE_WAY][j].name, q->key) == 0) {
-                        if (exportList[OSMTYPE_WAY][j].flags & FLAG_POLYGON) {
+                const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
+                for (j = 0; j < infos.size(); j++) {
+                    const taginfo &info = infos[j];
+                    if (strcmp(info.name.c_str(), q->key) == 0) {
+                        if (info.flags & FLAG_POLYGON) {
                             contains_tag = 1;
                             break;
                         }
@@ -706,40 +713,41 @@ void tagtransform_lua_shutdown() {
 #endif
 }
 
-unsigned int tagtransform_filter_node_tags(struct keyval *tags) {
+unsigned int tagtransform_filter_node_tags(struct keyval *tags, const export_list *exlist) {
     int poly, roads;
     if (transform_method) {
         return tagtransform_lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads, exlist);
     }
 }
 
 /*
  * This function gets called twice during initial import per way. Once from add_way and once from out_way
  */
-unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon, int * roads) {
+unsigned int tagtransform_filter_way_tags(struct keyval *tags, int * polygon, int * roads,
+                                          const export_list *exlist) {
     if (transform_method) {
         return tagtransform_lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist);
     }
 }
 
-unsigned int tagtransform_filter_rel_tags(struct keyval *tags) {
+unsigned int tagtransform_filter_rel_tags(struct keyval *tags, const export_list *exlist) {
     int poly, roads;
     if (transform_method) {
         return tagtransform_lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
     } else {
-        return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
+        return tagtransform_c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads, exlist);
     }
 }
 
-unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
+unsigned int tagtransform_filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads, const export_list *exlist) {
     if (transform_method) {
         return tagtransform_lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
     } else {
-        return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
+        return tagtransform_c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads, exlist);
     }
 }
 

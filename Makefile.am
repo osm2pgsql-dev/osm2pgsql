@@ -55,6 +55,7 @@ libosm2pgsql_la_SOURCES = \
 	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \
+	taginfo.cpp \
 	tagtransform.cpp \
 	text-tree.cpp \
 	wildcmp.cpp

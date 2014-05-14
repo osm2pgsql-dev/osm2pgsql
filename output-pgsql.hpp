@@ -7,6 +7,7 @@
 #define OUTPUT_PGSQL_H
 
 #include "output.hpp"
+#include "taginfo.hpp"
 #include <vector>
 
 #define FLAG_POLYGON 1    /* For polygon table */
@@ -14,14 +15,6 @@
 #define FLAG_NOCACHE 4    /* Optimisation: don't bother remembering this one */
 #define FLAG_DELETE  8    /* These tags should be simply deleted on sight */
 #define FLAG_PHSTORE 17   /* polygons without own column but listed in hstore this implies FLAG_POLYGON */
-
-/* Table columns, representing key= tags */
-struct taginfo {
-    char *name;
-    char *type;
-    int flags;
-    int count;
-};
 
 struct output_pgsql_t : public output_t {
     enum table_id {
@@ -93,6 +86,7 @@ private:
     void pgsql_out_commit(void);
     void copy_to_table(enum table_id table, const char *sql);
     void write_hstore(enum table_id table, struct keyval *tags);
+    void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, char *sql, size_t &sqllen);
 
     const struct output_options *m_options;
 
@@ -100,6 +94,8 @@ private:
     int m_enable_way_area;
 
     std::vector<table> m_tables;
+    
+    export_list *m_export_list;
 };
 
 extern output_pgsql_t out_pgsql;

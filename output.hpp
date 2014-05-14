@@ -10,6 +10,7 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
+#include <boost/noncopyable.hpp>
 #include "middle.hpp"
 #include "keyvals.hpp"
 
@@ -57,7 +58,7 @@ struct output_options {
   const char *tag_transform_script;
 };
 
-struct output_t {
+struct output_t : public boost::noncopyable {
     virtual ~output_t();
 
     virtual int start(const struct output_options *options) = 0;

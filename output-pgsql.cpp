@@ -32,9 +32,11 @@
 #include "expire-tiles.hpp"
 #include "wildcmp.hpp"
 #include "node-ram-cache.hpp"
+#include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
 
 #include <boost/bind.hpp>
+#include <iostream>
 
 #define SRID (project_getprojinfo()->srs)
 
@@ -76,16 +78,7 @@ static const flagsname tagflags[] = {
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
-
-
-struct taginfo *exportList[NUM_TABLES]; /* Indexed by enum table_id */
-int exportListCount[NUM_TABLES];
-
-static int pgsql_delete_way_from_output(osmid_t osm_id);
-static int pgsql_delete_relation_from_output(osmid_t osm_id);
-static int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
-
-int read_style_file( const char *filename )
+int read_style_file( const char *filename, export_list *exlist )
 {
   FILE *in;
   int lineno = 0;
@@ -101,9 +94,6 @@ int read_style_file( const char *filename )
   char buffer[1024];
   int flag = 0;
   int enable_way_area = 1;
-
-  exportList[OSMTYPE_NODE] = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
-  exportList[OSMTYPE_WAY]  = (struct taginfo *)malloc( sizeof(struct taginfo) * MAX_STYLES );
 
   in = fopen( filename, "rt" );
   if( !in )
@@ -128,8 +118,8 @@ int read_style_file( const char *filename )
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
       exit_nicely();
     }
-    temp.name = strdup(tag);
-    temp.type = strdup(datatype);
+    temp.name.assign(tag);
+    temp.type.assign(datatype);
     
     temp.flags = 0;
     for( str = strtok( flags, ",\r\n" ); str; str = strtok(NULL, ",\r\n") )
@@ -145,12 +135,14 @@ int read_style_file( const char *filename )
       if( i == NUM_FLAGS )
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
     }
-    if ((temp.flags!=FLAG_DELETE) && ((strchr(temp.name,'?') != NULL) || (strchr(temp.name,'*') != NULL))) {
-        fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name);
+    if ((temp.flags != FLAG_DELETE) && 
+        ((temp.name.find('?') != std::string::npos) || 
+         (temp.name.find('*') != std::string::npos))) {
+        fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name.c_str());
         exit_nicely();
     }
     
-    if ((0==strcmp(temp.name,"way_area")) && (temp.flags==FLAG_DELETE)) {
+    if ((temp.name == "way_area") && (temp.flags==FLAG_DELETE)) {
         enable_way_area=0;
     }
 
@@ -159,15 +151,13 @@ int read_style_file( const char *filename )
     
     if( strstr( osmtype, "node" ) )
     {
-      memcpy( &exportList[ OSMTYPE_NODE ][ exportListCount[ OSMTYPE_NODE ] ], &temp, sizeof(temp) );
-      exportListCount[ OSMTYPE_NODE ]++;
-      flag = 1;
+        exlist->add(OSMTYPE_NODE, temp);
+        flag = 1;
     }
     if( strstr( osmtype, "way" ) )
     {
-      memcpy( &exportList[ OSMTYPE_WAY ][ exportListCount[ OSMTYPE_WAY ] ], &temp, sizeof(temp) );
-      exportListCount[ OSMTYPE_WAY ]++;
-      flag = 1;
+        exlist->add(OSMTYPE_WAY, temp);
+        flag = 1;
     }
     if( !flag )
     {
@@ -186,37 +176,6 @@ int read_style_file( const char *filename )
   }
   fclose(in);
   return enable_way_area;
-}
-
-static void free_style_refs(const char *name, const char *type)
-{
-    /* Find and remove any other references to these pointers
-       This would be way easier if we kept a single list of styles
-       Currently this scales with n^2 number of styles */
-    int i,j;
-
-    for (i=0; i<NUM_TABLES; i++) {
-        for(j=0; j<exportListCount[i]; j++) {
-            if (exportList[i][j].name == name)
-                exportList[i][j].name = NULL;
-            if (exportList[i][j].type == type)
-                exportList[i][j].type = NULL;
-        }
-    }
-}
-
-static void free_style(void)
-{
-    int i, j;
-    for (i=0; i<NUM_TABLES; i++) {
-        for(j=0; j<exportListCount[i]; j++) {
-            free(exportList[i][j].name);
-            free(exportList[i][j].type);
-            free_style_refs(exportList[i][j].name, exportList[i][j].type);
-        }
-    }
-    for (i=0; i<NUM_TABLES; i++)
-        free(exportList[i]);
 }
 
 /* Handles copying out, but coalesces the data into large chunks for
@@ -487,6 +446,30 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
     /* all hstore-columns have now been written */
 }
 
+void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
+                                 struct keyval *tags, char *sql, size_t &sqllen) {
+    std::vector<taginfo> &infos = m_export_list->get(info_table);
+    for (int i=0; i < infos.size(); i++) {
+        taginfo &info = infos[i];
+        if (info.flags & FLAG_DELETE)
+            continue;
+        if ((info.flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+            continue;
+        struct keyval *tag = NULL;
+        if (tag = getTag(tags, info.name.c_str()))
+        {
+            escape_type(sql, sqllen, tag->value, info.type.c_str());
+            info.count++;
+            if (HSTORE_NORM==m_options->enable_hstore)
+                tag->has_column=1;
+        }
+        else
+            sprintf(sql, "\\N");
+
+        copy_to_table(table, sql);
+        copy_to_table(table, "\t");
+    }
+}
 
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
@@ -504,7 +487,7 @@ Workaround - output SRID=4326;<WKB>
 int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
 {
 
-    int filter = tagtransform_filter_node_tags(tags);
+    int filter = tagtransform_filter_node_tags(tags, m_export_list);
     static char *sql;
     static size_t sqllen=0;
     int i;
@@ -521,24 +504,7 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
     sprintf(sql, "%" PRIdOSMID "\t", id);
     copy_to_table(t_point, sql);
 
-    for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
-        if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
-            continue;
-        if( (exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
-            continue;
-        if ((tag = getTag(tags, exportList[OSMTYPE_NODE][i].name)))
-        {
-            escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_NODE][i].type);
-            exportList[OSMTYPE_NODE][i].count++;
-            if (HSTORE_NORM==m_options->enable_hstore)
-                tag->has_column=1;
-        }
-        else
-            sprintf(sql, "\\N");
-
-        copy_to_table(t_point, sql);
-        copy_to_table(t_point, "\t");
-    }
+    export_tags(t_point, OSMTYPE_NODE, tags, sql, sqllen);
     
     /* hstore columns */
     write_hstore_columns(t_point, tags);
@@ -579,32 +545,15 @@ void output_pgsql_t::write_wkts(osmid_t id, struct keyval *tags, const char *wkt
     sprintf(sql, "%" PRIdOSMID "\t", id);
     copy_to_table(table, sql);
 
-    for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
-            if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
-                continue;
-            if( (exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
-                continue;
-            if ((tag = getTag(tags, exportList[OSMTYPE_WAY][j].name)))
-            {
-                exportList[OSMTYPE_WAY][j].count++;
-                escape_type(sql, sqllen, tag->value, exportList[OSMTYPE_WAY][j].type);
-                if (HSTORE_NORM==m_options->enable_hstore)
-                    tag->has_column=1;
-            }
-            else
-                sprintf(sql, "\\N");
+    export_tags(table, OSMTYPE_WAY, tags, sql, sqllen);
 
-            copy_to_table(table, sql);
-            copy_to_table(table, "\t");
-    }
-    
     /* hstore columns */
     write_hstore_columns(table, tags);
     
     /* check if a regular hstore is requested */
     if (m_options->enable_hstore)
         write_hstore(table, tags);
-    
+
     sprintf(sql, "SRID=%d;", SRID);
     copy_to_table(table, sql);
     copy_to_table(table, wkt);
@@ -649,7 +598,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         dynamic_cast<slim_middle_t *>(m_options->mid)->way_changed(id);
     }
 
-    if (tagtransform_filter_way_tags(tags, &polygon, &roads))
+    if (tagtransform_filter_way_tags(tags, &polygon, &roads, m_export_list))
         return 0;
     /* Split long ways after around 1 degree or 100km */
     if (m_options->projection == PROJ_LATLONG)
@@ -704,7 +653,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         return 0;
     }
 
-    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads)) {
+    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list)) {
         free(members_superseeded);
         return 0;
     }
@@ -821,7 +770,6 @@ int output_pgsql_t::start(const struct output_options *options)
     int i_hstore_column;
     enum OsmType type;
     int numTags;
-    struct taginfo *exportTags;
 
     /* Tables to output */
     m_tables.reserve(NUM_TABLES);
@@ -832,7 +780,9 @@ int output_pgsql_t::start(const struct output_options *options)
 
     m_options = options;
 
-    m_enable_way_area = read_style_file( options->style );
+    m_export_list = new export_list;
+
+    m_enable_way_area = read_style_file( options->style, m_export_list );
 
     sql_len = 2048;
     sql = (char *)malloc(sql_len);
@@ -885,16 +835,17 @@ int output_pgsql_t::start(const struct output_options *options)
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
         type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
-        numTags = exportListCount[type];
-        exportTags = exportList[type];
+        const std::vector<taginfo> &infos = m_export_list->get(type);
+        numTags = infos.size();
         if (!options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i].name );
             for (j=0; j < numTags; j++) {
-                if( exportTags[j].flags & FLAG_DELETE )
+                const taginfo &info = infos[j];
+                if( info.flags & FLAG_DELETE )
                     continue;
-                if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+                if( (info.flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
                     continue;
-                sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
+                sprintf(tmp, ",\"%s\" %s", info.name.c_str(), info.type.c_str());
                 if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
                     sql_len *= 2;
                     sql = (char *)realloc(sql, sql_len);
@@ -939,18 +890,19 @@ int output_pgsql_t::start(const struct output_options *options)
                 exit_nicely();
             }
             for (j=0; j < numTags; j++) {
-                if( exportTags[j].flags & FLAG_DELETE )
+                const taginfo &info = infos[j];
+                if( info.flags & FLAG_DELETE )
                     continue;
-                if( (exportTags[j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+                if( (info.flags & FLAG_PHSTORE) == FLAG_PHSTORE)
                     continue;
-                sprintf(tmp, "\"%s\"", exportTags[j].name);
+                sprintf(tmp, "\"%s\"", info.name.c_str());
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
-                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, m_tables[i].name);
+                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", info.name.c_str(), m_tables[i].name);
                     exit_nicely();
 #else
-                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, m_tables[i].name);
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i].name, exportTags[j].name, exportTags[j].type);
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", info.name.c_str(), m_tables[i].name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i].name, info.name.c_str(), info.type.c_str());
 #endif
                 }
                 /* Note: we do not verify the type or delete unused columns */
@@ -965,11 +917,12 @@ int output_pgsql_t::start(const struct output_options *options)
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
         for (j=0; j < numTags; j++) {
-            if( exportTags[j].flags & FLAG_DELETE )
+            const taginfo &info = infos[j];
+            if( info.flags & FLAG_DELETE )
                 continue;
-            if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+            if( (info.flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
                 continue;
-            sprintf(tmp, ",\"%s\"", exportTags[j].name);
+            sprintf(tmp, ",\"%s\"", info.name.c_str());
 
             if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
                 sql_len *= 2;
@@ -1265,7 +1218,7 @@ void output_pgsql_t::stop()
 
 
     cleanup();
-    free_style();
+    delete m_export_list;
 
     expire_tiles_stop();
 }
@@ -1285,7 +1238,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = tagtransform_filter_way_tags(tags, &polygon, &roads);
+  int filter = tagtransform_filter_way_tags(tags, &polygon, &roads, m_export_list);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -1317,7 +1270,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  if (tagtransform_filter_rel_tags(tags)) {
+  if (tagtransform_filter_rel_tags(tags, m_export_list)) {
       free(xid2);
       free(xrole);
       free(xcount);
