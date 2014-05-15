@@ -9,8 +9,11 @@
 #include "tagtransform.hpp"
 #include "buffer.hpp"
 #include "build_geometry.hpp"
+#include "reprojection.hpp"
+#include "expire-tiles.hpp"
 
 #include <vector>
+#include <boost/shared_ptr.hpp>
 
 #define FLAG_POLYGON 1    /* For polygon table */
 #define FLAG_LINEAR  2    /* For lines table */
@@ -26,7 +29,7 @@ struct output_pgsql_t : public output_t {
     output_pgsql_t();
     virtual ~output_pgsql_t();
 
-    int start(const struct output_options *options);
+    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
     int connect(const struct output_options *options, int startTransaction);
     void stop();
     void cleanup(void);
@@ -105,6 +108,9 @@ private:
     buffer m_sql;
 
     build_geometry builder;
+
+    boost::shared_ptr<reprojection> reproj;
+    boost::shared_ptr<expire_tiles> expire;
 };
 
 extern output_pgsql_t out_pgsql;

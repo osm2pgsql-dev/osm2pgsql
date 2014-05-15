@@ -32,7 +32,6 @@
 
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "reprojection.hpp"
 
 extern "C" {
 #include "fileformat.pb-c.h"
@@ -266,7 +265,7 @@ int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, String
     lat = lat_offset + (node->lat * granularity);
     lon = lon_offset + (node->lon * granularity);
     if (osmdata->node_wanted(lat, lon)) {
-        reproject(&lat, &lon);
+        osmdata->proj->reproject(&lat, &lon);
         
         osmdata->out->node_add(node->id, lat, lon, &(osmdata->tags));
         
@@ -345,7 +344,7 @@ int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, S
             lat = lat_offset + (deltalat * granularity);
             lon = lon_offset + (deltalon * granularity);
             if (osmdata->node_wanted(lat, lon)) {
-                reproject(&lat, &lon);
+                osmdata->proj->reproject(&lat, &lon);
                 
                 osmdata->out->node_add(deltaid, lat, lon, &(osmdata->tags));
                 

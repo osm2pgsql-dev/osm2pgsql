@@ -20,24 +20,11 @@
 /** must match expire.tiles.c */
 #define EARTH_CIRCUMFERENCE              40075016.68
 
-/** The projection of the source data. Always lat/lon (EPSG:4326). */
-static projPJ pj_source = NULL;
-
-/** The target projection (used in the PostGIS tables). Controlled by the -l/-M/-m/-E options. */
-static projPJ pj_target = NULL;
-
-/** The projection used for tiles. Currently this is fixed to be Spherical 
- *  Mercator. You will usually have tiles in the same projection as used
- *  for PostGIS, but it is theoretically possible to have your PostGIS data
- *  in, say, lat/lon but still create tiles in Spherical Mercator.
- */
-static projPJ pj_tile = NULL;
-
-static int Proj;
-
 Projection_Info::Projection_Info(const char *descr_, const char *proj4text_, int srs_, const char *option_)
     : descr(descr_), proj4text(proj4text_), srs(srs_), option(option_) {
 }
+
+namespace {
 
 const struct Projection_Info Projection_Infos[] = {
     /*PROJ_LATLONG*/ Projection_Info( 
@@ -56,17 +43,16 @@ const struct Projection_Info Projection_Infos[] = {
         /*srs      */ 900913, 
         /*option   */ "-m" )
 };
-static struct Projection_Info *custom_projection = NULL;
 
-/** defined in expire-tiles.c; depends on the zoom level selected for expiry. */
-extern int map_width; 
+} // anonymous namespace
 
 /* Positive numbers refer the to the table above, negative numbers are
    assumed to refer to EPSG codes and it uses the proj4 to find those. */
-void project_init(int proj)
+reprojection::reprojection(int proj)
+    : Proj(proj), pj_source(NULL), pj_target(NULL), pj_tile(NULL),
+      custom_projection(NULL)
 {
     char buffer[32];
-    Proj = proj;
     
     /* hard-code the source projection to be lat/lon, since OSM XML always 
      * has coordinates in degrees. */
@@ -107,11 +93,6 @@ void project_init(int proj)
     if (proj >= 0)
         return;
 
-    if (custom_projection != NULL) {
-        // yuck. but we know we actually allocated this, so it's okay.
-        free((char *)custom_projection->descr);
-        free(custom_projection);
-    }
     if (snprintf(buffer, sizeof(buffer), "EPSG:%d", -proj) >= (int)sizeof(buffer))
     {
         fprintf(stderr, "Buffer overflow computing projection description\n");
@@ -121,19 +102,23 @@ void project_init(int proj)
         strdup(buffer),
         pj_get_def(pj_target, 0),
         -proj, "-E");
-
-    return;
 }
 
-void project_exit(void)
+reprojection::~reprojection()
 {
     pj_free(pj_source);
     pj_source = NULL;
     pj_free(pj_target);
     pj_target = NULL;
+    pj_free(pj_tile);
+    pj_tile = NULL;
+
+    if (custom_projection != NULL) {
+        delete custom_projection;
+    }
 }
 
-struct Projection_Info const *project_getprojinfo(void)
+struct Projection_Info const *reprojection::project_getprojinfo(void)
 {
   if( Proj >= 0 )
     return &Projection_Infos[Proj];
@@ -141,7 +126,7 @@ struct Projection_Info const *project_getprojinfo(void)
     return custom_projection;
 }
 
-void reproject(double *lat, double *lon)
+void reprojection::reproject(double *lat, double *lon)
 {
     double x[1], y[1], z[1];
     
@@ -183,10 +168,11 @@ void reproject(double *lat, double *lon)
 /** 
  * Converts from (target) coordinates to tile coordinates.
  *
- * The zoom level for the coordinates is implicitly given in the global
+ * The zoom level for the coordinates is explicitly given in the
  * variable map_width.
  */
-void coords_to_tile(double *tilex, double *tiley, double lon, double lat)
+void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, double lat,
+                                  int map_width)
 {
     double x[1], y[1], z[1];
     

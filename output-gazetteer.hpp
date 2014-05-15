@@ -3,12 +3,15 @@
 
 #include "output.hpp"
 #include "build_geometry.hpp"
+#include "reprojection.hpp"
+
+#include <boost/shared_ptr.hpp>
 
 struct output_gazetteer_t : public output_t {
     output_gazetteer_t();
     virtual ~output_gazetteer_t();
 
-    int start(const struct output_options *options);
+    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
     int connect(const struct output_options *options, int startTransaction);
     void stop();
     void cleanup(void);
@@ -62,6 +65,8 @@ private:
     char Buffer[BUFFER_SIZE];
 
     build_geometry builder;
+
+    boost::shared_ptr<reprojection> reproj;
 };
 
 extern output_gazetteer_t out_gazetteer;

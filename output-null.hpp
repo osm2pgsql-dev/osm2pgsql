@@ -10,7 +10,7 @@ struct output_null_t : public output_t {
     output_null_t();
     virtual ~output_null_t();
 
-    int start(const struct output_options *options);
+    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
     int connect(const struct output_options *options, int startTransaction);
     void stop();
     void cleanup(void);

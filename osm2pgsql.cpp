@@ -592,17 +592,31 @@ int main(int argc, char *argv[])
 
     text_init();
 
-    LIBXML_TEST_VERSION
+    LIBXML_TEST_VERSION;
 
-    project_init(projection);
+    output_t *out = get_output(output_backend);
+
+    //setup the output
+    osmdata_t osmdata;
+    try
+    {
+    	osmdata.init(out, extra_attributes, bbox, projection);
+    }
+    catch(std::exception& e)
+    {
+    	fprintf(stderr, "%s", e.what());
+    	return 1;
+    }
+
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
-        project_getprojinfo()->srs, project_getprojinfo()->descr );
+            osmdata.proj->project_getprojinfo()->srs,
+            osmdata.proj->project_getprojinfo()->descr );
 
     options.conninfo = conninfo;
     options.prefix = prefix;
     options.append = append;
     options.slim = slim;
-    options.projection = project_getprojinfo()->srs;
+    options.projection = osmdata.proj->project_getprojinfo()->srs;
     options.scale = (projection==PROJ_LATLONG)?10000000:100;
     options.mid = slim ? ((middle_t *)&mid_pgsql) : ((middle_t *)&mid_ram);
     options.cache = cache;
@@ -630,23 +644,11 @@ int main(int argc, char *argv[])
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
     options.tag_transform_script = tag_transform_script;
-    options.out = get_output(output_backend);
-
-    //setup the output
-    osmdata_t osmdata;
-    try
-    {
-    	osmdata.init(options.out, extra_attributes, bbox);
-    }
-    catch(std::exception& e)
-    {
-    	fprintf(stderr, "%s", e.what());
-    	return 1;
-    }
+    options.out = out;
 
     //start it up
     time(&overall_start);
-    osmdata.out->start(&options);
+    osmdata.out->start(&options, osmdata.proj);
     osmdata.realloc_nodes();
     osmdata.realloc_members();
 
@@ -693,7 +695,6 @@ int main(int argc, char *argv[])
     /* free the column pointer buffer */
     free(hstore_columns);
 
-    project_exit();
     text_exit();
     fprintf(stderr, "\n");
     time(&overall_end);

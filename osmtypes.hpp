@@ -25,6 +25,9 @@ typedef int32_t osmid_t;
 #endif
 
 #include "keyvals.hpp"
+#include "reprojection.hpp"
+
+#include <boost/shared_ptr.hpp>
 
 struct output_t;
 
@@ -49,7 +52,7 @@ struct osmdata_t {
 		osmdata_t();
 		~osmdata_t();
 
-		void init(output_t* out_, const int& extra_attributes_, const char* bbox_);
+		void init(output_t* out_, const int& extra_attributes_, const char* bbox_, int projection);
 		void realloc_nodes();
 		void realloc_members();
 		void resetMembers();
@@ -79,7 +82,8 @@ struct osmdata_t {
 		actions_t action;
 		int extra_attributes;
 		int parallel_indexing;
-
+		boost::shared_ptr<reprojection> proj;
+    
 	private:
 		void parse_bbox(const char* bbox_);
 		bool bbox;

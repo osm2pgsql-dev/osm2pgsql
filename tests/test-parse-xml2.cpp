@@ -51,7 +51,7 @@ struct test_output_t : public output_t {
         return 0;
     }
 
-    int start(const struct output_options *options) { return 0; }
+    int start(const struct output_options *options, boost::shared_ptr<reprojection> r) { return 0; }
     int connect(const struct output_options *options, int startTransaction) { return 0; }
     void stop() { }
     void cleanup(void) { }
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
   struct osmdata_t osmdata;
   struct output_options options; memset(&options, 0, sizeof options);
 
-  osmdata.init(&out_test, 0, NULL);
+  osmdata.init(&out_test, 0, NULL, PROJ_SPHERE_MERC);
   osmdata.realloc_nodes();
   osmdata.realloc_members();
 

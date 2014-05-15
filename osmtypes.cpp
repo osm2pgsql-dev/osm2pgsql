@@ -31,7 +31,8 @@ osmdata_t::~osmdata_t()
 		free(members);
 }
 
-void osmdata_t::init(output_t* out_, const int& extra_attributes_, const char* bbox_)
+void osmdata_t::init(output_t* out_, const int& extra_attributes_, const char* bbox_,
+                     int projection)
 {
 	out = out_;
 	extra_attributes = extra_attributes_;
@@ -39,6 +40,8 @@ void osmdata_t::init(output_t* out_, const int& extra_attributes_, const char* b
 	parse_bbox(bbox_);
 
 	initList(&tags);
+
+        proj.reset(new reprojection(projection));
 }
 
 void osmdata_t::parse_bbox(const char* bbox_)

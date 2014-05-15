@@ -12,7 +12,7 @@
 #include "build_geometry.hpp"
 #include "output-gazetteer.hpp"
 
-#define SRID (project_getprojinfo()->srs)
+#define SRID (reproj->project_getprojinfo()->srs)
 
 #define CREATE_KEYVALUETYPE_TYPE                \
    "CREATE TYPE keyvalue AS ("                  \
@@ -991,8 +991,9 @@ int output_gazetteer_t::connect(const struct output_options *options, int startT
     return 0;
 }
 
-int output_gazetteer_t::start(const struct output_options *options)
+int output_gazetteer_t::start(const struct output_options *options, boost::shared_ptr<reprojection> r)
 {
+   reproj = r;
    builder.set_exclude_broken_polygon(options->excludepoly);
 
    /* Save option handle */

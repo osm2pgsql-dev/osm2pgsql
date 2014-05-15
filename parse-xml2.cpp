@@ -35,7 +35,6 @@
 
 #include "osmtypes.hpp"
 #include "sanitizer.hpp"
-#include "reprojection.hpp"
 #include "input.hpp"
 #include "output.hpp"
 
@@ -277,7 +276,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
       if (osmdata->node_wanted(osmdata->node_lat, osmdata->node_lon)) {
-	  reproject(&(osmdata->node_lat), &(osmdata->node_lon));
+	  osmdata->proj->reproject(&(osmdata->node_lat), &(osmdata->node_lon));
             if( osmdata->action == ACTION_CREATE )
 	        osmdata->out->node_add(osmdata->osm_id, osmdata->node_lat, osmdata->node_lon, &(osmdata->tags));
             else if( osmdata->action == ACTION_MODIFY )
