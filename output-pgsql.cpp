@@ -1103,7 +1103,7 @@ struct pthread_thunk {
     void *ptr;
 };
 
-extern "C" void *pthread_stop_one(void *arg) {
+extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
     pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
     return thunk->obj->pgsql_out_stop_one(thunk->ptr);
 };
@@ -1169,7 +1169,7 @@ void output_pgsql_t::stop()
       }
 
       for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_create(&threads[i], NULL, pthread_stop_one, &thunks[i]);
+          int ret = pthread_create(&threads[i], NULL, pthread_output_pgsql_stop_one, &thunks[i]);
           if (ret) {
               fprintf(stderr, "pthread_create() returned an error (%d)", ret);
               exit_nicely();

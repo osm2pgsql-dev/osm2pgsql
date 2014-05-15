@@ -10,6 +10,7 @@
 #define MIDDLE_PGSQL_H
 
 #include "middle.hpp"
+#include <vector>
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
@@ -43,6 +44,48 @@ struct middle_pgsql_t : public slim_middle_t {
 
     void iterate_ways(way_cb_func &cb);
     void iterate_relations(rel_cb_func &cb);
+
+    void *pgsql_stop_one(void *arg);
+
+    struct table_desc {
+        table_desc(const char *name_ = NULL,
+                   const char *start_ = NULL, 
+                   const char *create_ = NULL,
+                   const char *create_index_ = NULL,
+                   const char *prepare_ = NULL,
+                   const char *prepare_intarray_ = NULL,
+                   const char *copy_ = NULL,
+                   const char *analyze_ = NULL,
+                   const char *stop_ = NULL,
+                   const char *array_indexes_ = NULL);
+        
+        const char *name;
+        const char *start;
+        const char *create;
+        const char *create_index;
+        const char *prepare;
+        const char *prepare_intarray;
+        const char *copy;
+        const char *analyze;
+        const char *stop;
+        const char *array_indexes;
+        
+        int copyMode;    /* True if we are in copy mode */
+        int transactionMode;    /* True if we are in an extended transaction */
+        struct pg_conn *sql_conn;
+    };
+private:
+    int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
+    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count);
+    int local_nodes_delete(osmid_t osm_id);
+
+    std::vector<table_desc> tables;
+    int num_tables;
+    struct table_desc *node_table, *way_table, *rel_table;
+
+    int Append;
+
+    const struct output_options *out_options;
 };
 
 extern middle_pgsql_t mid_pgsql;

@@ -55,119 +55,30 @@ enum table_id {
     t_node, t_way, t_rel
 } ;
 
-struct table_desc {
-    table_desc(const char *name_ = NULL,
-               const char *start_ = NULL, 
-               const char *create_ = NULL,
-               const char *create_index_ = NULL,
-               const char *prepare_ = NULL,
-               const char *prepare_intarray_ = NULL,
-               const char *copy_ = NULL,
-               const char *analyze_ = NULL,
-               const char *stop_ = NULL,
-               const char *array_indexes_ = NULL)
-        : name(name_),
-          start(start_),
-          create(create_),
-          create_index(create_index_),
-          prepare(prepare_),
-          prepare_intarray(prepare_intarray_),
-          copy(copy_),
-          analyze(analyze_),
-          stop(stop_),
-          array_indexes(array_indexes_),
-          copyMode(0),
-          transactionMode(0),
-          sql_conn(NULL)
-    {}
-
-    const char *name;
-    const char *start;
-    const char *create;
-    const char *create_index;
-    const char *prepare;
-    const char *prepare_intarray;
-    const char *copy;
-    const char *analyze;
-    const char *stop;
-    const char *array_indexes;
-
-    int copyMode;    /* True if we are in copy mode */
-    int transactionMode;    /* True if we are in an extended transaction */
-    PGconn *sql_conn;
-};
-
-static table_desc tables [] = {
-    /*table = t_node,*/
-    table_desc(
-            /*name*/ "%p_nodes",
-           /*start*/ "BEGIN;\n",
-#ifdef FIXED_POINT
-          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
-         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#else
-          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
-         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#endif
-               "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
-               "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
-               "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
-/*prepare_intarray*/ NULL,
-            /*copy*/ "COPY %p_nodes FROM STDIN;\n",
-         /*analyze*/ "ANALYZE %p_nodes;\n",
-            /*stop*/ "COMMIT;\n"
-        ),
-    table_desc(
-        /*table t_way,*/
-            /*name*/ "%p_ways",
-           /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
-    /*create_index*/ "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
-         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
-               "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
-               "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
-               "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
-               "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
-/*prepare_intarray*/ "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
-               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n",
-            /*copy*/ "COPY %p_ways FROM STDIN;\n",
-         /*analyze*/ "ANALYZE %p_ways;\n",
-            /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n"
-        ),
-    table_desc(
-        /*table = t_rel,*/
-            /*name*/ "%p_rels",
-           /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
-    /*create_index*/ "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
-         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
-               "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
-               "PREPARE rel_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_rels AS SELECT id FROM %p_rels WHERE pending;\n"
-               "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
-/*prepare_intarray*/
-                "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n",
-            /*copy*/ "COPY %p_rels FROM STDIN;\n",
-         /*analyze*/ "ANALYZE %p_rels;\n",
-            /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n"
-        )
-};
-
-static const int num_tables = sizeof(tables)/sizeof(tables[0]);
-static struct table_desc *node_table = &tables[t_node];
-static struct table_desc *way_table  = &tables[t_way];
-static struct table_desc *rel_table  = &tables[t_rel];
-
-static int Append;
-
-const struct output_options *out_options;
+middle_pgsql_t::table_desc::table_desc(const char *name_,
+                                       const char *start_, 
+                                       const char *create_,
+                                       const char *create_index_,
+                                       const char *prepare_,
+                                       const char *prepare_intarray_,
+                                       const char *copy_,
+                                       const char *analyze_,
+                                       const char *stop_,
+                                       const char *array_indexes_)
+    : name(name_),
+      start(start_),
+      create(create_),
+      create_index(create_index_),
+      prepare(prepare_),
+      prepare_intarray(prepare_intarray_),
+      copy(copy_),
+      analyze(analyze_),
+      stop(stop_),
+      array_indexes(array_indexes_),
+      copyMode(0),
+      transactionMode(0),
+      sql_conn(NULL)
+{}
 
 #define HELPER_STATE_UNINITIALIZED -1
 #define HELPER_STATE_FORKED -2
@@ -177,7 +88,10 @@ const struct output_options *out_options;
 #define HELPER_STATE_FAILED 3
 
 namespace {
-int pgsql_connect(const struct output_options *options) {
+int pgsql_connect(std::vector<middle_pgsql_t::table_desc> &tables,
+                  const struct output_options *options) {
+    const int num_tables = tables.size();
+
     /* We use a connection per table to enable the use of COPY */
     for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn;
@@ -417,7 +331,7 @@ void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
   }
 }
 
-int pgsql_endCopy( struct table_desc *table)
+int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
 {
     PGresult *res;
     PGconn *sql_conn;
@@ -442,8 +356,9 @@ int pgsql_endCopy( struct table_desc *table)
     }
     return 0;
 }
+} // anonymous namespace
 
-int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags)
+int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags)
 {
     /* Four params: id, lat, lon, tags */
     const char *paramValues[4];
@@ -483,7 +398,7 @@ int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, con
 }
 
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
-int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count)
+int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count)
 {
     char tmp[16];
     char *tmp2; 
@@ -588,7 +503,6 @@ int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int&
 
     return count;
 }
-}
 
 void middle_pgsql_t::cleanup(void)
 {
@@ -613,7 +527,7 @@ int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd
     return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
 
-static int local_nodes_delete(osmid_t osm_id)
+int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -872,7 +786,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 #endif
     if ((pid == 0) && (noProcs > 1)) {
         /* After forking, need to reconnect to the postgresql db */
-        if ((pgsql_connect(out_options) != 0) || (out_options->out->connect(out_options, 1) != 0)) {
+        if ((pgsql_connect(tables, out_options) != 0) || (out_options->out->connect(out_options, 1) != 0)) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #else
@@ -1270,7 +1184,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     }
 #endif
     if ((pid == 0) && (noProcs > 1)) {
-        if ((out_options->out->connect(out_options, 0) != 0) || (pgsql_connect(out_options) != 0)) {
+        if ((out_options->out->connect(out_options, 0) != 0) || (pgsql_connect(tables, out_options) != 0)) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #endif
@@ -1705,7 +1619,7 @@ void middle_pgsql_t::commit(void) {
     }
 }
 
-static void *pgsql_stop_one(void *arg)
+void *middle_pgsql_t::pgsql_stop_one(void *arg)
 {
     time_t start, end;
     
@@ -1753,6 +1667,20 @@ static void *pgsql_stop_one(void *arg)
     return NULL;
 }
 
+namespace {
+/* Using pthreads requires us to shoe-horn everything into various void*
+ * pointers. Improvement for the future: just use boost::thread. */
+struct pthread_thunk {
+    middle_pgsql_t *obj;
+    void *ptr;
+};
+
+extern "C" void *pthread_middle_pgsql_stop_one(void *arg) {
+    pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
+    return thunk->obj->pgsql_stop_one(thunk->ptr);
+};
+} // anonymous namespace
+
 void middle_pgsql_t::stop(void)
 {
     int i;
@@ -1764,13 +1692,20 @@ void middle_pgsql_t::stop(void)
     if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
 
 #ifdef HAVE_PTHREAD
+    pthread_thunk thunks[num_tables];
     for (i=0; i<num_tables; i++) {
-        int ret = pthread_create(&threads[i], NULL, pgsql_stop_one, &tables[i]);
+        thunks[i].obj = this;
+        thunks[i].ptr = &tables[i];
+    }
+
+    for (i=0; i<num_tables; i++) {
+        int ret = pthread_create(&threads[i], NULL, pthread_middle_pgsql_stop_one, &thunks[i]);
         if (ret) {
             fprintf(stderr, "pthread_create() returned an error (%d)", ret);
             exit_nicely();
         }
     }
+
     for (i=0; i<num_tables; i++) {
         int ret = pthread_join(threads[i], NULL);
         if (ret) {
@@ -1784,7 +1719,78 @@ void middle_pgsql_t::stop(void)
 #endif
 }
 
-middle_pgsql_t::middle_pgsql_t() {
+middle_pgsql_t::middle_pgsql_t()
+    : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
+      Append(0), out_options(NULL)
+{
+    /*table = t_node,*/
+    tables.push_back(table_desc(
+            /*name*/ "%p_nodes",
+           /*start*/ "BEGIN;\n",
+#ifdef FIXED_POINT
+          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
+    /*create_index*/ NULL,
+         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
+#else
+          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
+    /*create_index*/ NULL,
+         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
+#endif
+               "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
+               "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
+               "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
+/*prepare_intarray*/ NULL,
+            /*copy*/ "COPY %p_nodes FROM STDIN;\n",
+         /*analyze*/ "ANALYZE %p_nodes;\n",
+            /*stop*/ "COMMIT;\n"
+                         ));
+    tables.push_back(table_desc(
+        /*table t_way,*/
+            /*name*/ "%p_ways",
+           /*start*/ "BEGIN;\n",
+          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
+    /*create_index*/ "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
+         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
+               "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
+               "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
+               "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
+               "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
+/*prepare_intarray*/ "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
+               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n",
+            /*copy*/ "COPY %p_ways FROM STDIN;\n",
+         /*analyze*/ "ANALYZE %p_ways;\n",
+            /*stop*/  "COMMIT;\n",
+   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n"
+                         ));
+    tables.push_back(table_desc(
+        /*table = t_rel,*/
+            /*name*/ "%p_rels",
+           /*start*/ "BEGIN;\n",
+          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
+    /*create_index*/ "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
+         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+               "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
+               "PREPARE rel_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
+               "PREPARE pending_rels AS SELECT id FROM %p_rels WHERE pending;\n"
+               "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
+/*prepare_intarray*/
+                "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n",
+            /*copy*/ "COPY %p_rels FROM STDIN;\n",
+         /*analyze*/ "ANALYZE %p_rels;\n",
+            /*stop*/  "COMMIT;\n",
+   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n"
+                         ));
+
+    // set up the rest of the variables from the tables.
+    num_tables = tables.size();
+    assert(num_tables == 3);
+
+    node_table = &tables[0];
+    way_table = &tables[1];
+    rel_table = &tables[2];
 }
  
 middle_pgsql_t::~middle_pgsql_t() {
