@@ -12,7 +12,7 @@
 #include "taginfo_impl.hpp"
 
 
-static struct {
+static const struct {
     int offset;
     const char *highway;
     int roads;
