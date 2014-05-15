@@ -27,18 +27,6 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 #define FIXED_POINT
 
-struct ramWay {
-    struct keyval *tags;
-    osmid_t *ndids;
-    int pending;
-};
-
-struct ramRel {
-    struct keyval *tags;
-    struct member *members;
-    int member_count;
-};
-
 /* Object storage now uses 2 levels of storage arrays.
  *
  * - Low level storage of 2^16 (~65k) objects in an indexed array
@@ -56,14 +44,6 @@ struct ramRel {
 #define BLOCK_SHIFT 10
 #define PER_BLOCK  (1 << BLOCK_SHIFT)
 #define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
-
-static struct ramWay     *ways[NUM_BLOCKS];
-static struct ramRel     *rels[NUM_BLOCKS];
-
-static int way_blocks;
-
-static int way_out_count;
-static int rel_out_count;
 
 static osmid_t id2block(osmid_t id)
 {
@@ -371,7 +351,11 @@ void middle_ram_t::stop(void)
 void middle_ram_t::commit(void) {
 }
 
-middle_ram_t::middle_ram_t() {
+middle_ram_t::middle_ram_t() 
+    : ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0) 
+{
+    ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
+    rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);
 }
 
 middle_ram_t::~middle_ram_t() {

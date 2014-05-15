@@ -9,6 +9,8 @@
 #ifndef MIDDLE_RAM_H
 #define MIDDLE_RAM_H
 
+#include <vector>
+
 struct middle_ram_t : public middle_t {
     middle_ram_t();
     virtual ~middle_ram_t();
@@ -41,6 +43,27 @@ struct middle_ram_t : public middle_t {
 
     void iterate_ways(way_cb_func &cb);
     void iterate_relations(rel_cb_func &cb);
+
+private:
+    struct ramWay {
+        struct keyval *tags;
+        osmid_t *ndids;
+        int pending;
+    };
+    
+    struct ramRel {
+        struct keyval *tags;
+        struct member *members;
+        int member_count;
+    };
+
+    std::vector<ramWay *> ways;
+    std::vector<ramRel *> rels;
+
+    int way_blocks;
+
+    int way_out_count;
+    int rel_out_count;
 };
 
 extern middle_ram_t mid_ram;
