@@ -10,9 +10,12 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
-#include <boost/noncopyable.hpp>
 #include "middle.hpp"
 #include "keyvals.hpp"
+#include "reprojection.hpp"
+
+#include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 
 /* Variants for generation of hstore column */
 /* No hstore column */
@@ -61,7 +64,7 @@ struct output_options {
 struct output_t : public boost::noncopyable {
     virtual ~output_t();
 
-    virtual int start(const struct output_options *options) = 0;
+    virtual int start(const struct output_options *options, boost::shared_ptr<reprojection> r) = 0;
     virtual int connect(const struct output_options *options, int startTransaction) = 0;
     virtual void stop() = 0;
     virtual void cleanup(void) = 0;

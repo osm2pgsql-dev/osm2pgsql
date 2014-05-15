@@ -38,7 +38,6 @@
 #include <fcntl.h>
 
 #include "osmtypes.hpp"
-#include "reprojection.hpp"
 #include "output.hpp"
 
 #define inline
@@ -849,7 +848,7 @@ return 1;
           resetList(&(osmdata->tags));
   continue;
           }
-        reproject(&(osmdata->node_lat),&(osmdata->node_lon));
+        osmdata->proj->reproject(&(osmdata->node_lat),&(osmdata->node_lon));
       }  /* end   node */
 
       /* read noderefs (for ways only) */

@@ -14,7 +14,7 @@
 void output_null_t::cleanup(void) {
 }
 
-int output_null_t::start(const struct output_options *opt UNUSED) {
+int output_null_t::start(const struct output_options *opt UNUSED, boost::shared_ptr<reprojection> r UNUSED) {
     return 0;
 }
 

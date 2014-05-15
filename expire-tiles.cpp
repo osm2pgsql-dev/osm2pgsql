@@ -24,17 +24,7 @@
 #define TILE_EXPIRY_LEEWAY		0.1		/* How many tiles worth of space to leave either side of a changed feature */
 #define EXPIRE_TILES_MAX_BBOX		20000		/* Maximum width or height of a bounding box (metres) */
 
-struct tile {
-	int		complete[2][2];	/* Flags */
-	struct tile *	subtiles[2][2];
-};
-
-int map_width; /* not "static" since used in reprojection.c! */
-static double				tile_width;
-static const struct output_options *	Options;
-static struct tile *			dirty = NULL;
-static int				outcount;
-
+namespace {
 /*
  * We store the dirty tiles in an in-memory tree during runtime
  * and dump them out to a file at the end.  This allows us to easilly drop
@@ -50,7 +40,7 @@ static int				outcount;
  * which are easilly accommodated.
  */
 
-static int calc_complete(struct tile * tile) {
+int calc_complete(struct expire_tiles::tile * tile) {
 	int	c;
 
 	c = tile->complete[0][0];
@@ -60,7 +50,7 @@ static int calc_complete(struct tile * tile) {
 	return c;
 }
 
-static void destroy_tree(struct tile * tree) {
+void destroy_tree(struct expire_tiles::tile * tree) {
 	if (! tree) return;
 	if (tree->subtiles[0][0]) destroy_tree(tree->subtiles[0][0]);
 	if (tree->subtiles[0][1]) destroy_tree(tree->subtiles[0][1]);
@@ -73,13 +63,13 @@ static void destroy_tree(struct tile * tree) {
  * Mark a tile as dirty.
  * Returns the number of subtiles which have all their children marked as dirty.
  */
-static int _mark_tile(struct tile ** tree, int x, int y, int zoom, int this_zoom) {
+int _mark_tile(struct expire_tiles::tile ** tree, int x, int y, int zoom, int this_zoom) {
 	int	zoom_diff = zoom - this_zoom;
 	int	rel_x;
 	int	rel_y;
 	int	complete;
 
-	if (! *tree) *tree = (struct tile *)calloc(1, sizeof(**tree));
+	if (! *tree) *tree = (struct expire_tiles::tile *)calloc(1, sizeof(**tree));
 	zoom_diff = (zoom - this_zoom) - 1;
 	rel_x = (x >> zoom_diff) & 1;
 	rel_y = (y >> zoom_diff) & 1;
@@ -103,11 +93,11 @@ static int _mark_tile(struct tile ** tree, int x, int y, int zoom, int this_zoom
  * Mark a tile as dirty.
  * Returns the number of subtiles which have all their children marked as dirty.
  */
-static int mark_tile(struct tile ** tree_head, int x, int y, int zoom) {
+int mark_tile(struct expire_tiles::tile ** tree_head, int x, int y, int zoom) {
 	return _mark_tile(tree_head, x, y, zoom, 0);
 }
 
-static void output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom) {
+int output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
 	int	y_min;
 	int	x_iter;
 	int	y_iter;
@@ -125,16 +115,16 @@ static void output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zo
 	for (x_iter = x << zoom_diff; x_iter < x_max; x_iter++) {
 		for (y_iter = y_min; y_iter < y_max; y_iter++) {
 			outcount++;
-			if ((outcount <= 1) || (! (outcount % 1000))) {
-				fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
-				fflush(stderr);
-			}
-			fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
+                        if ((outcount <= 1) || ((outcount % 1000) == 0)) {
+                            fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
+                            fflush(stderr);
+                        }
+                        fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
 		}
 	}
 }
 
-static void _output_and_destroy_tree(FILE * outfile, struct tile * tree, int x, int y, int this_zoom, int min_zoom) {
+void _output_and_destroy_tree(FILE * outfile, struct expire_tiles::tile * tree, int x, int y, int this_zoom, int min_zoom, int &outcount) {
 	int	sub_x = x << 1;
 	int	sub_y = y << 1;
 	FILE *	ofile;
@@ -143,40 +133,42 @@ static void _output_and_destroy_tree(FILE * outfile, struct tile * tree, int x, 
 
 	ofile = outfile;
 	if ((tree->complete[0][0]) && outfile) {
-		output_dirty_tile(outfile, sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
+		output_dirty_tile(outfile, sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom, outcount);
 		ofile = NULL;
 	}
-	if (tree->subtiles[0][0]) _output_and_destroy_tree(ofile, tree->subtiles[0][0], sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
+	if (tree->subtiles[0][0]) _output_and_destroy_tree(ofile, tree->subtiles[0][0], sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom, outcount);
 
 	ofile = outfile;
 	if ((tree->complete[0][1]) && outfile) {
-		output_dirty_tile(outfile, sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
+		output_dirty_tile(outfile, sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom, outcount);
 		ofile = NULL;
 	}
-	if (tree->subtiles[0][1]) _output_and_destroy_tree(ofile, tree->subtiles[0][1], sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
+	if (tree->subtiles[0][1]) _output_and_destroy_tree(ofile, tree->subtiles[0][1], sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom, outcount);
 
 	ofile = outfile;
 	if ((tree->complete[1][0]) && outfile) {
-		output_dirty_tile(outfile, sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
+		output_dirty_tile(outfile, sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom, outcount);
 		ofile = NULL;
 	}
-	if (tree->subtiles[1][0]) _output_and_destroy_tree(ofile, tree->subtiles[1][0], sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
+	if (tree->subtiles[1][0]) _output_and_destroy_tree(ofile, tree->subtiles[1][0], sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom, outcount);
 
 	ofile = outfile;
 	if ((tree->complete[1][1]) && outfile) {
-		output_dirty_tile(outfile, sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
+		output_dirty_tile(outfile, sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom, outcount);
 		ofile = NULL;
 	}
-	if (tree->subtiles[1][1]) _output_and_destroy_tree(ofile, tree->subtiles[1][1], sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
+	if (tree->subtiles[1][1]) _output_and_destroy_tree(ofile, tree->subtiles[1][1], sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom, outcount);
 
 	free(tree);
 }
 
-static void output_and_destroy_tree(FILE * outfile, struct tile * tree) {
-	_output_and_destroy_tree(outfile, tree, 0, 0, 0, Options->expire_tiles_zoom_min);
+} // anonymous namespace
+
+void expire_tiles::output_and_destroy_tree(FILE * outfile, struct tile * tree) {
+    _output_and_destroy_tree(outfile, tree, 0, 0, 0, Options->expire_tiles_zoom_min, outcount);
 }
 
-void expire_tiles_stop(void) {
+expire_tiles::~expire_tiles() {
 	FILE *	outfile;
 
 	if (Options->expire_tiles_zoom < 0) return;
@@ -190,18 +182,20 @@ void expire_tiles_stop(void) {
 	dirty = NULL;
 }
 
-void expire_tiles_init(const struct output_options *options) {
-	Options = options;
+expire_tiles::expire_tiles(const struct output_options *options) 
+    : Options(options), map_width(0), tile_width(0),
+      dirty(NULL), outcount(0)
+{
 	if (Options->expire_tiles_zoom < 0) return;
 	map_width = 1 << Options->expire_tiles_zoom;
 	tile_width = EARTH_CIRCUMFERENCE / map_width;
 }
 
-static void expire_tile(int x, int y) {
+void expire_tiles::expire_tile(int x, int y) {
 	mark_tile(&dirty, x, y, Options->expire_tiles_zoom);
 }
 
-static int normalise_tile_x_coord(int x) {
+int expire_tiles::normalise_tile_x_coord(int x) {
 	x %= map_width;
 	if (x < 0) x = (map_width - x) + 1;
 	return x;
@@ -210,7 +204,7 @@ static int normalise_tile_x_coord(int x) {
 /*
  * Expire tiles that a line crosses
  */
-static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, double lat_b) {
+void expire_tiles::from_line(double lon_a, double lat_a, double lon_b, double lat_b) {
 	double	tile_x_a;
 	double	tile_y_a;
 	double	tile_x_b;
@@ -231,8 +225,8 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 	int	y;
 	int	norm_x;
 
-    coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a);
-    coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b);
+        reproj->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
+        reproj->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
 
 	if (tile_x_a > tile_x_b) {
 		/* We always want the line to go from left to right - swap the ends if it doesn't */
@@ -293,7 +287,7 @@ static void expire_tiles_from_line(double lon_a, double lat_a, double lon_b, dou
 /*
  * Expire tiles within a bounding box
  */
-int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, double max_lat) {
+int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, double max_lat) {
 	double		width;
 	double		height;
 	int		min_tile_x;
@@ -314,8 +308,8 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	if (width > HALF_EARTH_CIRCUMFERENCE + 1) {
 		/* Over half the planet's width within the bounding box - assume the
            box crosses the international date line and split it into two boxes */
-		ret = expire_tiles_from_bbox(-HALF_EARTH_CIRCUMFERENCE, min_lat, min_lon, max_lat);
-		ret += expire_tiles_from_bbox(max_lon, min_lat, HALF_EARTH_CIRCUMFERENCE, max_lat);
+		ret = from_bbox(-HALF_EARTH_CIRCUMFERENCE, min_lat, min_lon, max_lat);
+		ret += from_bbox(max_lon, min_lat, HALF_EARTH_CIRCUMFERENCE, max_lat);
 		return ret;
 	}
 
@@ -324,12 +318,12 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 
 
 	/* Convert the box's Mercator coordinates into tile coordinates */
-    coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat);
-    min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
-    min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
-    coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat);
-    max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
-    max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
+        reproj->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
+        min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
+        min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
+        reproj->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
+        max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
+        max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
 	if (min_tile_x < 0) min_tile_x = 0;
 	if (min_tile_y < 0) min_tile_y = 0;
 	if (max_tile_x > map_width) max_tile_x = map_width;
@@ -343,7 +337,7 @@ int expire_tiles_from_bbox(double min_lon, double min_lat, double max_lon, doubl
 	return 0;
 }
 
-void expire_tiles_from_nodes_line(struct osmNode * nodes, int count) {
+void expire_tiles::from_nodes_line(struct osmNode * nodes, int count) {
 	int	i;
 	double	last_lat;
 	double	last_lon;
@@ -353,11 +347,11 @@ void expire_tiles_from_nodes_line(struct osmNode * nodes, int count) {
 	last_lat = nodes[0].lat;
 	last_lon = nodes[0].lon;
 	if (count < 2) {
-		expire_tiles_from_bbox(last_lon, last_lat, last_lon, last_lat);
+		from_bbox(last_lon, last_lat, last_lon, last_lat);
 		return;
 	}
 	for (i = 1; i < count; i ++) {
-		expire_tiles_from_line(last_lon, last_lat, nodes[i].lon, nodes[i].lat);
+		from_line(last_lon, last_lat, nodes[i].lon, nodes[i].lat);
 		last_lat = nodes[i].lat;
 		last_lon = nodes[i].lon;
 	}
@@ -366,7 +360,7 @@ void expire_tiles_from_nodes_line(struct osmNode * nodes, int count) {
 /*
  * Calculate a bounding box from a list of nodes and expire all tiles within it
  */
-void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm_id) {
+void expire_tiles::from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm_id) {
 	int	i;
 	int	got_coords = 0;
 	double	min_lon = 0.0;
@@ -383,27 +377,27 @@ void expire_tiles_from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm
 		got_coords = 1;
 	}
 	if (got_coords) {
-		if (expire_tiles_from_bbox(min_lon, min_lat, max_lon, max_lat)) {
+		if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {
 			/* Bounding box too big - just expire tiles on the line */
 			fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
-			expire_tiles_from_nodes_line(nodes, count);
+			from_nodes_line(nodes, count);
 		}
 	}
 }
 
-static void expire_tiles_from_xnodes_poly(struct osmNode ** xnodes, int * xcount, osmid_t osm_id) {
+void expire_tiles::from_xnodes_poly(struct osmNode ** xnodes, int * xcount, osmid_t osm_id) {
 	int	i;
 
-        for (i = 0; xnodes[i]; i++) expire_tiles_from_nodes_poly(xnodes[i], xcount[i], osm_id);
+        for (i = 0; xnodes[i]; i++) from_nodes_poly(xnodes[i], xcount[i], osm_id);
 }
 
-static void expire_tiles_from_xnodes_line(struct osmNode ** xnodes, int * xcount) {
+void expire_tiles::from_xnodes_line(struct osmNode ** xnodes, int * xcount) {
 	int	i;
 
-        for (i = 0; xnodes[i]; i++) expire_tiles_from_nodes_line(xnodes[i], xcount[i]);
+        for (i = 0; xnodes[i]; i++) from_nodes_line(xnodes[i], xcount[i]);
 }
 
-void expire_tiles_from_wkt(const char * wkt, osmid_t osm_id) {
+void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id) {
 	struct osmNode **	xnodes;
 	int *			xcount;
 	int			polygon;
@@ -411,8 +405,8 @@ void expire_tiles_from_wkt(const char * wkt, osmid_t osm_id) {
 
 	if (Options->expire_tiles_zoom < 0) return;
 	if (! build_geometry::parse_wkt(wkt, &xnodes, &xcount, &polygon)) {
-		if (polygon) expire_tiles_from_xnodes_poly(xnodes, xcount, osm_id);
-		else expire_tiles_from_xnodes_line(xnodes, xcount);
+		if (polygon) from_xnodes_poly(xnodes, xcount, osm_id);
+		else from_xnodes_line(xnodes, xcount);
 		for (i = 0; xnodes[i]; i++) free(xnodes[i]);
 		free(xnodes);
 		free(xcount);
@@ -429,7 +423,7 @@ void expire_tiles_from_wkt(const char * wkt, osmid_t osm_id) {
  * of elements that refer to the osm_id.
 
  */
-int expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
+int expire_tiles::from_db(PGconn * sql_conn, osmid_t osm_id) {
     PGresult *	res;
     char *		wkt;
     int i, noElements = 0;
@@ -448,7 +442,7 @@ int expire_tiles_from_db(PGconn * sql_conn, osmid_t osm_id) {
 
     for (i = 0; i < noElements; i++) {
         wkt = PQgetvalue(res, i, 0);
-        expire_tiles_from_wkt(wkt, osm_id);
+        from_wkt(wkt, osm_id);
     }
     PQclear(res);
     return noElements;

@@ -40,7 +40,7 @@
 #include <boost/bind.hpp>
 #include <iostream>
 
-#define SRID (project_getprojinfo()->srs)
+#define SRID (reproj->project_getprojinfo()->srs)
 
 /* FIXME: Shouldn't malloc this all to begin with but call realloc()
    as required. The program will most likely segfault if it reads a
@@ -489,7 +489,7 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
 
     if (filter) return 1;
 
-    expire_tiles_from_bbox(node_lon, node_lat, node_lon, node_lat);
+    expire->from_bbox(node_lon, node_lat, node_lon, node_lat);
     sql.printf("%" PRIdOSMID "\t", id);
     copy_to_table(t_point, sql.buf);
 
@@ -597,7 +597,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         if (wkt && strlen(wkt)) {
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                expire_tiles_from_nodes_poly(nodes, count, id);
+                expire->from_nodes_poly(nodes, count, id);
                 area = builder.get_area(i);
                 if ((area > 0.0) && m_enable_way_area) {
                     char tmp[32];
@@ -606,7 +606,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
                 }
                 write_wkts(id, tags, wkt, t_poly, sql);
             } else {
-                expire_tiles_from_nodes_line(nodes, count);
+                expire->from_nodes_line(nodes, count);
                 write_wkts(id, tags, wkt, t_line, sql);
                 if (roads)
                     write_wkts(id, tags, wkt, t_roads, sql);
@@ -657,7 +657,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         char *wkt = builder.get_wkt(i);
 
         if (wkt && strlen(wkt)) {
-            expire_tiles_from_wkt(wkt, -id);
+            expire->from_wkt(wkt, -id);
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 double area = builder.get_area(i);
@@ -702,7 +702,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             char *wkt = builder.get_wkt(i);
 
             if (strlen(wkt)) {
-                expire_tiles_from_wkt(wkt, -id);
+                expire->from_wkt(wkt, -id);
                 /* FIXME: there should be a better way to detect polygons */
                 if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                     double area = builder.get_area(i);
@@ -742,7 +742,7 @@ int output_pgsql_t::connect(const struct output_options *options, int startTrans
     return 0;
 }
 
-int output_pgsql_t::start(const struct output_options *options)
+int output_pgsql_t::start(const struct output_options *options, boost::shared_ptr<reprojection> r)
 {
     char *sql, tmp[256];
     PGresult   *res;
@@ -753,6 +753,7 @@ int output_pgsql_t::start(const struct output_options *options)
     enum OsmType type;
     int numTags;
 
+    reproj = r;
     builder.set_exclude_broken_polygon(options->excludepoly);
 
     /* Tables to output */
@@ -940,7 +941,7 @@ int output_pgsql_t::start(const struct output_options *options)
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         exit_nicely();
     }
-    expire_tiles_init(options);
+    expire.reset(new expire_tiles(options));
 
     options->mid->start(options);
 
@@ -1207,7 +1208,7 @@ void output_pgsql_t::stop()
     cleanup();
     delete m_export_list;
 
-    expire_tiles_stop();
+    expire.reset();
 }
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
@@ -1338,7 +1339,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_pause_copy(&m_tables[t_point]);
-    if ( expire_tiles_from_db(m_tables[t_point].sql_conn, osm_id) != 0)
+    if ( expire->from_db(m_tables[t_point].sql_conn, osm_id) != 0)
         pgsql_exec(m_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point].name, osm_id );
     
     dynamic_cast<slim_middle_t *>(m_options->mid)->nodes_delete(osm_id);
@@ -1358,9 +1359,9 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     pgsql_pause_copy(&m_tables[t_line]);
     pgsql_pause_copy(&m_tables[t_poly]);
     pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, osm_id );
-    if ( expire_tiles_from_db(m_tables[t_line].sql_conn, osm_id) != 0)
+    if ( expire->from_db(m_tables[t_line].sql_conn, osm_id) != 0)
         pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, osm_id );
-    if ( expire_tiles_from_db(m_tables[t_poly].sql_conn, osm_id) != 0)
+    if ( expire->from_db(m_tables[t_poly].sql_conn, osm_id) != 0)
         pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, osm_id );
     return 0;
 }
@@ -1384,9 +1385,9 @@ int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
     pgsql_pause_copy(&m_tables[t_line]);
     pgsql_pause_copy(&m_tables[t_poly]);
     pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, -osm_id );
-    if ( expire_tiles_from_db(m_tables[t_line].sql_conn, -osm_id) != 0)
+    if ( expire->from_db(m_tables[t_line].sql_conn, -osm_id) != 0)
         pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, -osm_id );
-    if ( expire_tiles_from_db(m_tables[t_poly].sql_conn, -osm_id) != 0)
+    if ( expire->from_db(m_tables[t_poly].sql_conn, -osm_id) != 0)
         pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, -osm_id );
     return 0;
 }
