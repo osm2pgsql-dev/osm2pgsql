@@ -141,8 +141,8 @@ struct tempdb
     m_conninfo = (boost::format("dbname=%1%") % m_db_name).str();
     conn_ptr db = conn::connect(m_conninfo);
 
-    setup_extension(db, "postgis");
-    setup_extension(db, "hstore");
+    setup_extension(db, "postgis", "postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql", NULL);
+    setup_extension(db, "hstore", NULL);
   }
 
   ~tempdb() {
