@@ -64,7 +64,7 @@ static int block2id(int block, int offset)
 #define UNUSED  __attribute__ ((unused))
 
 int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
-    return ram_cache_nodes_set(id, lat, lon, tags);
+    return cache->set(id, lat, lon, tags);
 }
 
 int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
@@ -161,7 +161,7 @@ int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_c
     count = 0;
     for( i=0; i<nd_count; i++ )
     {
-        if (ram_cache_nodes_get(&nodes[count], ndids[i]))
+        if (cache->get(&nodes[count], ndids[i]))
             continue;
 
         count++;
@@ -320,7 +320,7 @@ int middle_ram_t::start(const struct output_options *options)
        be stored accurately in an int */
     scale = options->scale;
 
-    init_node_ram_cache( options->alloc_chunkwise, options->cache, scale);
+    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache, scale));
     
     fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
 
@@ -330,7 +330,7 @@ int middle_ram_t::start(const struct output_options *options)
 void middle_ram_t::stop(void)
 {
     int i, j;
-    free_node_ram_cache();
+    cache.reset(NULL);
 
     for (i=0; i<NUM_BLOCKS; i++) {
         if (ways[i]) {
@@ -352,7 +352,8 @@ void middle_ram_t::commit(void) {
 }
 
 middle_ram_t::middle_ram_t() 
-    : ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0) 
+    : ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0),
+      cache()
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
     rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);

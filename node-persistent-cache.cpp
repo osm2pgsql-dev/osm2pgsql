@@ -31,21 +31,7 @@
   #endif
 #endif
 
-static int node_cache_fd;
-static const char * node_cache_fname;
-static int append_mode;
-
-struct persistentCacheHeader cacheHeader;
-static struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
-static struct ramNodeBlock * readNodeBlockCache;
-static struct binary_search_array * readNodeBlockCacheIdx;
-
-
-static int scale_;
-static int cache_already_written = 0;
-
-
-static void writeout_dirty_nodes(osmid_t id)
+void node_persistent_cache::writeout_dirty_nodes(osmid_t id)
 {
     int i;
 
@@ -139,7 +125,7 @@ static void ramNodes_clear(struct ramNode * nodes, int size)
 /**
  * Find the cache block with the lowest usage count for replacement
  */
-static int persistent_cache_replace_block()
+int node_persistent_cache::replace_block()
 {
     int min_used = INT_MAX;
     int block_id = -1;
@@ -169,7 +155,7 @@ static int persistent_cache_replace_block()
 /**
  * Find cache block number by block_offset
  */
-static int persistent_cache_find_block(osmid_t block_offset)
+int node_persistent_cache::find_block(osmid_t block_offset)
 {
     int idx = binary_search_get(readNodeBlockCacheIdx, block_offset);
     return idx;
@@ -178,7 +164,7 @@ static int persistent_cache_find_block(osmid_t block_offset)
 /**
  * Initialise the persistent cache with NaN values to identify which IDs are valid or not
  */
-static void persistent_cache_expand_cache(osmid_t block_offset)
+void node_persistent_cache::expand_cache(osmid_t block_offset)
 {
     osmid_t i;
     struct ramNode * dummyNodes = (struct ramNode *)malloc(
@@ -227,12 +213,12 @@ static void persistent_cache_expand_cache(osmid_t block_offset)
 }
 
 
-static void persistent_cache_nodes_prefetch_async(osmid_t id)
+void node_persistent_cache::nodes_prefetch_async(osmid_t id)
 {
 #ifdef HAVE_POSIX_FADVISE
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
-    osmid_t block_id = persistent_cache_find_block(block_offset);
+    osmid_t block_id = find_block(block_offset);
 
     if (block_id < 0)
         {   /* The needed block isn't in cache already, so initiate loading */
@@ -241,7 +227,7 @@ static void persistent_cache_nodes_prefetch_async(osmid_t id)
         /* Make sure the node cache is correctly initialised for the block that will be read */
         if (cacheHeader.max_initialised_id
                 < ((block_offset + 1) << READ_NODE_BLOCK_SHIFT))
-            persistent_cache_expand_cache(block_offset);
+            expand_cache(block_offset);
 
         if (posix_fadvise(node_cache_fd, (block_offset << READ_NODE_BLOCK_SHIFT) * sizeof(struct ramNode)
                       + sizeof(struct persistentCacheHeader), READ_NODE_BLOCK_SIZE * sizeof(struct ramNode),
@@ -256,10 +242,10 @@ static void persistent_cache_nodes_prefetch_async(osmid_t id)
 /**
  * Load block offset in a synchronous way.
  */
-static int persistent_cache_load_block(osmid_t block_offset)
+int node_persistent_cache::load_block(osmid_t block_offset)
 {
 
-    int block_id = persistent_cache_replace_block();
+    int block_id = replace_block();
 
     if (readNodeBlockCache[block_id].dirty)
     {
@@ -292,7 +278,7 @@ static int persistent_cache_load_block(osmid_t block_offset)
     if (cacheHeader.max_initialised_id
             < ((block_offset + 1) << READ_NODE_BLOCK_SHIFT))
     {
-        persistent_cache_expand_cache(block_offset);
+        expand_cache(block_offset);
     }
 
     /* Read the block into cache */
@@ -317,7 +303,7 @@ static int persistent_cache_load_block(osmid_t block_offset)
     return block_id;
 }
 
-static void persisten_cache_nodes_set_create_writeout_block()
+void node_persistent_cache::nodes_set_create_writeout_block()
 {
     if (write(node_cache_fd, writeNodeBlock.nodes,
               WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
@@ -364,7 +350,7 @@ static void persisten_cache_nodes_set_create_writeout_block()
 #endif
 }
 
-static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
+int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
 {
     osmid_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
     int i;
@@ -376,7 +362,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
     {
         if (writeNodeBlock.dirty)
         {
-            persisten_cache_nodes_set_create_writeout_block();
+            nodes_set_create_writeout_block();
             writeNodeBlock.used = 0;
             writeNodeBlock.dirty = 0;
             /* After writing out the node block, the file pointer is at the next block level */
@@ -396,7 +382,7 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
         for (i = writeNodeBlock.block_offset; i < block_offset; i++)
         {
             ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
-            persisten_cache_nodes_set_create_writeout_block();
+            nodes_set_create_writeout_block();
         }
 
         ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
@@ -416,14 +402,14 @@ static int persistent_cache_nodes_set_create(osmid_t id, double lat, double lon)
     return 0;
 }
 
-static int persistent_cache_nodes_set_append(osmid_t id, double lat, double lon)
+int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
 {
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
-    int block_id = persistent_cache_find_block(block_offset);
+    int block_id = find_block(block_offset);
 
     if (block_id < 0)
-        block_id = persistent_cache_load_block(block_offset);
+        block_id = load_block(block_offset);
 
 #ifdef FIXED_POINT
     if (isnan(lat) && isnan(lon))
@@ -450,23 +436,23 @@ static int persistent_cache_nodes_set_append(osmid_t id, double lat, double lon)
     return 1;
 }
 
-int persistent_cache_nodes_set(osmid_t id, double lat, double lon)
+int node_persistent_cache::set(osmid_t id, double lat, double lon)
 {
     return append_mode ?
-            persistent_cache_nodes_set_append(id, lat, lon) :
-            persistent_cache_nodes_set_create(id, lat, lon);
+        set_append(id, lat, lon) :
+        set_create(id, lat, lon);
 }
 
-int persistent_cache_nodes_get(struct osmNode *out, osmid_t id)
+int node_persistent_cache::get(struct osmNode *out, osmid_t id)
 {
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
-    osmid_t block_id = persistent_cache_find_block(block_offset);
+    osmid_t block_id = find_block(block_offset);
 
     if (block_id < 0)
     {
         writeout_dirty_nodes(id);
-        block_id = persistent_cache_load_block(block_offset);
+        block_id = load_block(block_offset);
     }
 
     readNodeBlockCache[block_id].used++;
@@ -504,7 +490,7 @@ int persistent_cache_nodes_get(struct osmNode *out, osmid_t id)
     return 0;
 }
 
-int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
+int node_persistent_cache::get_list(struct osmNode *nodes, osmid_t *ndids,
         int nd_count)
 {
     int count = 0;
@@ -512,7 +498,7 @@ int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
     for (i = 0; i < nd_count; i++)
     {
         /* Check cache first */
-        if (ram_cache_nodes_get(&nodes[i], ndids[i]) == 0)
+        if (ram_cache && (ram_cache->get(&nodes[i], ndids[i]) == 0))
         {
             count++;
         }
@@ -530,12 +516,12 @@ int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
         /* In order to have a higher OS level I/O queue depth
            issue posix_fadvise(WILLNEED) requests for all I/O */
         if (isnan(nodes[i].lat) && isnan(nodes[i].lon))
-            persistent_cache_nodes_prefetch_async(ndids[i]);
+            nodes_prefetch_async(ndids[i]);
     }
     for (i = 0; i < nd_count; i++)
     {
         if ((isnan(nodes[i].lat) && isnan(nodes[i].lon))
-                && (persistent_cache_nodes_get(&(nodes[i]), ndids[i]) == 0))
+                && (get(&(nodes[i]), ndids[i]) == 0))
             count++;
     }
 
@@ -561,7 +547,11 @@ int persistent_cache_nodes_get_list(struct osmNode *nodes, osmid_t *ndids,
     return count;
 }
 
-void init_node_persistent_cache(const struct output_options *options, int append)
+node_persistent_cache::node_persistent_cache(const struct output_options *options, int append,
+                                             boost::shared_ptr<node_ram_cache> ptr)
+    : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
+      writeNodeBlock(), readNodeBlockCache(NULL), readNodeBlockCacheIdx(NULL),
+      scale_(0), cache_already_written(0), ram_cache(ptr)
 {
     int i, err;
     scale_ = options->scale;
@@ -706,7 +696,7 @@ void init_node_persistent_cache(const struct output_options *options, int append
     }
 }
 
-void shutdown_node_persistent_cache()
+node_persistent_cache::~node_persistent_cache()
 {
     int i;
     writeout_dirty_nodes(-1);

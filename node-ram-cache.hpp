@@ -8,6 +8,8 @@
 #ifndef NODE_RAM_CACHE_H
 #define NODE_RAM_CACHE_H
 
+#include <boost/noncopyable.hpp>
+
 #define ALLOC_SPARSE 1
 #define ALLOC_DENSE 2
 #define ALLOC_DENSE_CHUNK 4
@@ -44,10 +46,43 @@ struct ramNodeBlock {
     int dirty;
 };
 
+struct node_ram_cache : public boost::noncopyable
+{
+    node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
+    ~node_ram_cache();
 
-void init_node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
-void free_node_ram_cache();
-int ram_cache_nodes_set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
-int ram_cache_nodes_get(struct osmNode *out, osmid_t id);
+    int set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
+    int get(struct osmNode *out, osmid_t id);
+
+private:
+    void percolate_up( int pos );
+    struct ramNode *next_chunk(size_t count, size_t size);
+    int set_sparse(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
+    int set_dense(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
+    int get_sparse(struct osmNode *out, osmid_t id);
+    int get_dense(struct osmNode *out, osmid_t id);
+
+    int allocStrategy;
+
+    struct ramNodeBlock *blocks;
+    int usedBlocks;
+    /* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
+    int maxBlocks;
+    char *blockCache;
+    
+    struct ramNodeBlock **queue;
+    
+    
+    struct ramNodeID *sparseBlock;
+    int64_t maxSparseTuples;
+    int64_t sizeSparseTuples;
+    
+    
+    int64_t cacheUsed, cacheSize;
+    osmid_t storedNodes, totalNodes;
+    int nodesCacheHits, nodesCacheLookups;
+    
+    int warn_node_order;
+};
 
 #endif

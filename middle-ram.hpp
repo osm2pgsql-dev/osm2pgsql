@@ -9,6 +9,9 @@
 #ifndef MIDDLE_RAM_H
 #define MIDDLE_RAM_H
 
+#include "middle.hpp"
+#include "node-ram-cache.hpp"
+#include <memory>
 #include <vector>
 
 struct middle_ram_t : public middle_t {
@@ -64,6 +67,8 @@ private:
 
     int way_out_count;
     int rel_out_count;
+
+    std::auto_ptr<node_ram_cache> cache;
 };
 
 extern middle_ram_t mid_ram;

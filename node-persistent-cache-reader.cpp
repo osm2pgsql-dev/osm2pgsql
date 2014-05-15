@@ -23,7 +23,8 @@ void exit_nicely()
     exit(1);
 }
 
-void test_get_node_list(int itterations, int max_size, int process_number) {
+void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
+                        int itterations, int max_size, int process_number) {
     int i, j, node_cnt, node_cnt_total;
     struct osmNode *nodes;
     struct timeval start, stop;
@@ -43,7 +44,7 @@ void test_get_node_list(int itterations, int max_size, int process_number) {
             osmids[j] = random() % (1 << 31);
         }
         gettimeofday(&start, NULL);
-        persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+        cache->get_list(nodes,osmids,node_cnt);
         gettimeofday(&stop, NULL);
         double duration = ((stop.tv_sec - start.tv_sec)*1000000.0 + (stop.tv_usec - start.tv_usec))/1000000.0;
         printf("Process %i: Got nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt / duration);
@@ -67,18 +68,19 @@ int main(int argc, char *argv[]) {
 	options.scale = 100;
 	options.flat_node_cache_enabled = 1;
 	options.flat_node_file = argv[1];
-	init_node_ram_cache(0,10,100);
+        boost::shared_ptr<node_ram_cache> ram_cache(new node_ram_cache(0, 10, 100));
+        boost::shared_ptr<node_persistent_cache> cache;
 
 
 	if (argc > 3) {
-	    init_node_persistent_cache(&options, 1);
+                cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		node_cnt = argc - 2;
 		nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
 		osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
 		for (i = 0; i < node_cnt; i++) {
 			osmids[i] = atoi(argv[2 + i]);
 		}
-		persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+		cache->get_list(nodes,osmids,node_cnt);
 		for (i = 0; i < node_cnt; i++) {
 			printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 		}
@@ -89,9 +91,9 @@ int main(int argc, char *argv[]) {
         setstate(state);
 
 	    printf("Testing mode\n");
-	    init_node_persistent_cache(&options, 1);
-	    test_get_node_list(10, 200, 0);
-	    shutdown_node_persistent_cache();
+            cache.reset(new node_persistent_cache(&options, 1, ram_cache));
+	    test_get_node_list(cache, 10, 200, 0);
+            cache.reset();
 #ifdef HAVE_FORK
 	    printf("Testing using multiple processes\n");
 	    int noProcs = 4;
@@ -109,11 +111,11 @@ int main(int argc, char *argv[]) {
 	    gettimeofday(&start, NULL);
 	    initstate(start.tv_usec, state, 8);
 	    setstate(state);
-	    init_node_persistent_cache(&options, 1);
-	    test_get_node_list(10,200,p);
+            cache.reset(new node_persistent_cache(&options, 1, ram_cache));
+	    test_get_node_list(cache, 10,200,p);
 
 	    if (pid == 0) {
-	        shutdown_node_persistent_cache();
+                cache.reset();
 	        fprintf(stderr,"Exiting process %i\n", p);
 	        exit(0);
 	    } else {
@@ -123,9 +125,9 @@ int main(int argc, char *argv[]) {
 	    fprintf(stderr, "\nAll child processes exited\n");
 #endif
 	} else {
-	    init_node_persistent_cache(&options, 1);
+                cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		if (strstr(argv[2],",") == NULL) {
-			persistent_cache_nodes_get(&node, atoi(argv[2]));
+			cache->get(&node, atoi(argv[2]));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
 		} else {
                     char * node_list = (char *)malloc(sizeof(char) * (strlen(argv[2]) + 1));
@@ -142,7 +144,7 @@ int main(int argc, char *argv[]) {
 				char * tmp = strtok(NULL,",");
 				osmids[i] = atoi(tmp);
 			}
-			persistent_cache_nodes_get_list(nodes,osmids,node_cnt);
+			cache->get_list(nodes,osmids,node_cnt);
 			for (i = 0; i < node_cnt; i++) {
 				printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 			}
@@ -150,6 +152,8 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	shutdown_node_persistent_cache();
+        cache.reset();
+        ram_cache.reset();
+
     return 0;
 }

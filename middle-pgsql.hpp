@@ -10,7 +10,11 @@
 #define MIDDLE_PGSQL_H
 
 #include "middle.hpp"
+#include "node-ram-cache.hpp"
+#include "node-persistent-cache.hpp"
+#include <memory>
 #include <vector>
+#include <boost/shared_ptr.hpp>
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
@@ -86,6 +90,9 @@ private:
     int Append;
 
     const struct output_options *out_options;
+
+    boost::shared_ptr<node_ram_cache> cache;
+    boost::shared_ptr<node_persistent_cache> persistent_cache;
 };
 
 extern middle_pgsql_t mid_pgsql;

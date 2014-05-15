@@ -419,7 +419,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     sprintf(tmp2, "{");
     for( i=0; i<nd_count; i++ ) {
         /* Check cache first */ 
-        if( ram_cache_nodes_get( &nodes[i], ndids[i]) == 0 ) {
+        if( cache->get( &nodes[i], ndids[i]) == 0 ) {
             count++;
             continue;
         }
@@ -517,14 +517,14 @@ void middle_pgsql_t::cleanup(void)
 }
 
 int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
-    ram_cache_nodes_set( id, lat, lon, tags );
+    cache->set( id, lat, lon, tags );
 
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
 int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
-    return (out_options->flat_node_cache_enabled) ? persistent_cache_nodes_get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
 
 int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -542,7 +542,7 @@ int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 
 int middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
-    return ((out_options->flat_node_cache_enabled) ? persistent_cache_nodes_set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
+    return ((out_options->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
 }
 
 int middle_pgsql_t::node_changed(osmid_t osm_id)
@@ -752,7 +752,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
-    if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
     res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
@@ -798,7 +798,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options,1); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
     /* Only start an extended transaction on the ways table,
      * which should cover the bulk of the update statements.
@@ -942,7 +942,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     if ((pid == 0) && (noProcs > 1)) {
         cleanup();
         out_options->out->close(1);
-        if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
+        if (out_options->flat_node_cache_enabled) persistent_cache.reset();
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
@@ -1155,7 +1155,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
     res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
 
@@ -1194,7 +1194,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) init_node_persistent_cache(out_options, 1); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
 #if HAVE_MMAP 
     if (noProcs > 1) { 
@@ -1312,7 +1312,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     if ((pid == 0) && (noProcs > 1)) {
         cleanup();
         out_options->out->close(0);
-        if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
+        if (out_options->flat_node_cache_enabled) persistent_cache.reset();
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
@@ -1475,8 +1475,8 @@ int middle_pgsql_t::start(const struct output_options *options)
 
     out_options = options;
     
-    init_node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale);
-    if (options->flat_node_cache_enabled) init_node_persistent_cache(options, options->append);
+    cache.reset(new node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, scale));
+    if (options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(options, options->append, cache));
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", scale, options->cache);
     
@@ -1688,8 +1688,8 @@ void middle_pgsql_t::stop(void)
     pthread_t threads[num_tables];
 #endif
 
-    free_node_ram_cache();
-    if (out_options->flat_node_cache_enabled) shutdown_node_persistent_cache();
+    cache.reset();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
 #ifdef HAVE_PTHREAD
     pthread_thunk thunks[num_tables];
@@ -1721,7 +1721,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
-      Append(0), out_options(NULL)
+      Append(0), out_options(NULL), cache(), persistent_cache()
 {
     /*table = t_node,*/
     tables.push_back(table_desc(
