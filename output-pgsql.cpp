@@ -588,17 +588,17 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     else
         split_at = 100 * 1000;
 
-    wkt_size = get_wkt_split(nodes, count, polygon, split_at);
+    wkt_size = builder.get_wkt_split(nodes, count, polygon, split_at);
 
     for (i=0;i<wkt_size;i++)
     {
-        char *wkt = get_wkt(i);
+        char *wkt = builder.get_wkt(i);
 
         if (wkt && strlen(wkt)) {
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
                 expire_tiles_from_nodes_poly(nodes, count, id);
-                area = get_area(i);
+                area = builder.get_area(i);
                 if ((area > 0.0) && m_enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
@@ -614,7 +614,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         }
         free(wkt);
     }
-    clear_wkts();
+    builder.clear_wkts();
 	
     return 0;
 }
@@ -646,7 +646,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     else
         split_at = 100 * 1000;
 
-    wkt_size = build_geometry(id, xnodes, xcount, make_polygon, m_options->enable_multi, split_at);
+    wkt_size = builder.build(id, xnodes, xcount, make_polygon, m_options->enable_multi, split_at);
 
     if (!wkt_size) {
         free(members_superseeded);
@@ -654,13 +654,13 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     }
 
     for (i=0;i<wkt_size;i++) {
-        char *wkt = get_wkt(i);
+        char *wkt = builder.get_wkt(i);
 
         if (wkt && strlen(wkt)) {
             expire_tiles_from_wkt(wkt, -id);
             /* FIXME: there should be a better way to detect polygons */
             if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                double area = get_area(i);
+                double area = builder.get_area(i);
                 if ((area > 0.0) && m_enable_way_area) {
                     char tmp[32];
                     snprintf(tmp, sizeof(tmp), "%g", area);
@@ -676,7 +676,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         free(wkt);
     }
 
-    clear_wkts();
+    builder.clear_wkts();
 
     /* Tagtransform will have marked those member ways of the relation that
      * have fully been dealt with as part of the multi-polygon entry.
@@ -696,16 +696,16 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     /* If we are making a boundary then also try adding any relations which form complete rings
        The linear variants will have already been processed above */
     if (make_boundary) {
-        wkt_size = build_geometry(id, xnodes, xcount, 1, m_options->enable_multi, split_at);
+        wkt_size = builder.build(id, xnodes, xcount, 1, m_options->enable_multi, split_at);
         for (i=0;i<wkt_size;i++)
         {
-            char *wkt = get_wkt(i);
+            char *wkt = builder.get_wkt(i);
 
             if (strlen(wkt)) {
                 expire_tiles_from_wkt(wkt, -id);
                 /* FIXME: there should be a better way to detect polygons */
                 if (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))) {
-                    double area = get_area(i);
+                    double area = builder.get_area(i);
                     if ((area > 0.0) && m_enable_way_area) {
                         char tmp[32];
                         snprintf(tmp, sizeof(tmp), "%g", area);
@@ -716,7 +716,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             }
             free(wkt);
         }
-        clear_wkts();
+        builder.clear_wkts();
     }
 
     return 0;
@@ -752,6 +752,8 @@ int output_pgsql_t::start(const struct output_options *options)
     int i_hstore_column;
     enum OsmType type;
     int numTags;
+
+    builder.set_exclude_broken_polygon(options->excludepoly);
 
     /* Tables to output */
     m_tables.reserve(NUM_TABLES);

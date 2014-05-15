@@ -514,7 +514,7 @@ int main(int argc, char *argv[])
             	flat_node_cache_enabled = 1;
             	flat_nodes_file = optarg;
             	break;
-            case 210: excludepoly = 1; exclude_broken_polygon(); break;
+            case 210: excludepoly = 1; break;
             case 211: enable_hstore_index = 1; break;
             case 212: tag_transform_script = optarg; break;
             case 'V': exit(EXIT_SUCCESS);

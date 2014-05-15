@@ -25,15 +25,31 @@
 
 #include "osmtypes.hpp"
 
-int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
+#include <vector>
+#include <string>
+#include <boost/noncopyable.hpp>
 
-char *get_wkt_simple(struct osmNode *, int count, int polygon);
-size_t get_wkt_split(struct osmNode *, int count, int polygon, double split_at);
+struct build_geometry : public boost::noncopyable
+{
+    build_geometry();
+    ~build_geometry();
 
-char* get_wkt(size_t index);
-double get_area(size_t index);
-size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
-void clear_wkts();
-void exclude_broken_polygon ();
-   
+    static int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
+    
+    char *get_wkt_simple(struct osmNode *, int count, int polygon);
+    size_t get_wkt_split(struct osmNode *, int count, int polygon, double split_at);
+    
+    char* get_wkt(size_t index);
+    double get_area(size_t index);
+    size_t build(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
+    void clear_wkts();
+    void set_exclude_broken_polygon(int exclude);
+
+private:
+    std::vector<std::string> wkts;
+    std::vector<double> areas;
+    
+    int excludepoly;
+};
+
 #endif 

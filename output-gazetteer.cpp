@@ -993,6 +993,8 @@ int output_gazetteer_t::connect(const struct output_options *options, int startT
 
 int output_gazetteer_t::start(const struct output_options *options)
 {
+   builder.set_exclude_broken_polygon(options->excludepoly);
+
    /* Save option handle */
    Options = options;
 
@@ -1190,7 +1192,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
       nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
 
       /* Get the geometry of the object */
-      if ((wkt = get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
+      if ((wkt = builder.get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
@@ -1292,10 +1294,10 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = build_geometry(id, xnodes, xcount, 1, 1, 1000000);
+      wkt_size = builder.build(id, xnodes, xcount, 1, 1, 1000000);
       for (i=0;i<wkt_size;i++)
       {
-         char *wkt = get_wkt(i);
+         char *wkt = builder.get_wkt(i);
          if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || !strcmp(type, "waterway")))
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
@@ -1309,7 +1311,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          }
          free(wkt);
       }
-      clear_wkts();
+      builder.clear_wkts();
 
       for( i=0; i<count; i++ )
       {

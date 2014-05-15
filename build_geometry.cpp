@@ -70,12 +70,66 @@ using namespace geos;
 
 typedef std::auto_ptr<Geometry> geom_ptr;
 
-static std::vector<std::string> wkts;
-static std::vector<double> areas;
+namespace {
+// helper method to add the WKT for a geometry to the
+// global wkts list - used primarily for polygons.
+void add_wkt(geom_ptr &geom, double area, 
+             std::vector<std::string> &wkts, std::vector<double> &areas) {
+    WKTWriter wktw;
+    std::string wkt = wktw.write(geom.get());
+    wkts.push_back(wkt);
+    areas.push_back(area);
+}
 
-static int excludepoly = 0;
+// helper method to add the WKT for a line built from a
+// coordinate sequence to the global wkts list.
+void add_wkt_line(GeometryFactory &gf, std::auto_ptr<CoordinateSequence> &segment, 
+                  std::vector<std::string> &wkts, std::vector<double> &areas) {
+    WKTWriter wktw;
+    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+    std::string wkt = wktw.write(geom.get());
+    wkts.push_back(wkt);
+    areas.push_back(0);
+    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+}
 
-char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
+int coords2nodes(CoordinateSequence * coords, struct osmNode ** nodes) {
+    size_t			num_coords;
+    size_t			i;
+    Coordinate		coord;
+
+    num_coords = coords->getSize();
+    *nodes = (struct osmNode *) malloc(num_coords * sizeof(struct osmNode));
+
+    for (i = 0; i < num_coords; i++) {
+        coord = coords->getAt(i);
+        (*nodes)[i].lon = coord.x;
+        (*nodes)[i].lat = coord.y;
+    }
+    return num_coords;
+}
+
+struct polygondata
+{
+    Polygon*        polygon;
+    LinearRing*     ring;
+    double          area;
+    int             iscontained;
+    unsigned        containedbyid;
+};
+
+int polygondata_comparearea(const void* vp1, const void* vp2)
+{
+    const polygondata* p1 = (const polygondata*)vp1;
+    const polygondata* p2 = (const polygondata*)vp2;
+
+    if (p1->area == p2->area) return 0;
+    if (p1->area > p2->area) return -1;
+    return 1;
+}
+} // anonymous namespace
+
+char *build_geometry::get_wkt_simple(osmNode *nodes, int count, int polygon) {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
 
@@ -123,27 +177,7 @@ char *get_wkt_simple(osmNode *nodes, int count, int polygon) {
     }
 }
 
-// helper method to add the WKT for a geometry to the
-// global wkts list - used primarily for polygons.
-void add_wkt(geom_ptr &geom, double area) {
-    WKTWriter wktw;
-    std::string wkt = wktw.write(geom.get());
-    wkts.push_back(wkt);
-    areas.push_back(area);
-}
-
-// helper method to add the WKT for a line built from a
-// coordinate sequence to the global wkts list.
-void add_wkt_line(GeometryFactory &gf, std::auto_ptr<CoordinateSequence> &segment) {
-    WKTWriter wktw;
-    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
-    std::string wkt = wktw.write(geom.get());
-    wkts.push_back(wkt);
-    areas.push_back(0);
-    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-}
-
-size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
+size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
     double area;
@@ -171,7 +205,7 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
             }
             geom->normalize(); // Fix direction of ring
             area = geom->getArea();
-            add_wkt(geom, area);
+            add_wkt(geom, area, wkts, areas);
 
         } else {
             if (coords->getSize() < 2)
@@ -198,7 +232,7 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
                     const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
                                                   frac * (this_pt.y - prev_pt.y) + prev_pt.y);
                     segment->add(interpolated);
-                    add_wkt_line(gf, segment);
+                    add_wkt_line(gf, segment, wkts, areas);
                     segment->add(interpolated);
                   }
                   // reset the distance based on the final splitting point for
@@ -216,7 +250,7 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
 
                 // on the last iteration, close out the line.
                 if (i == coords->getSize()-1) {
-                  add_wkt_line(gf, segment);
+                    add_wkt_line(gf, segment, wkts, areas);
                 }
             }
         }
@@ -239,7 +273,7 @@ size_t get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
 }
 
 
-char * get_wkt(size_t index)
+char *build_geometry::get_wkt(size_t index)
 {
 //   return wkts[index].c_str();
     char *result;
@@ -252,34 +286,18 @@ char * get_wkt(size_t index)
     return result;
 }
 
-double get_area(size_t index)
+double build_geometry::get_area(size_t index)
 {
     return areas[index];
 }
 
-void clear_wkts()
+void build_geometry::clear_wkts()
 {
    wkts.clear();
    areas.clear();
 }
 
-static int coords2nodes(CoordinateSequence * coords, struct osmNode ** nodes) {
-    size_t			num_coords;
-    size_t			i;
-    Coordinate		coord;
-
-    num_coords = coords->getSize();
-    *nodes = (struct osmNode *) malloc(num_coords * sizeof(struct osmNode));
-
-    for (i = 0; i < num_coords; i++) {
-        coord = coords->getAt(i);
-        (*nodes)[i].lon = coord.x;
-        (*nodes)[i].lat = coord.y;
-    }
-    return num_coords;
-}
-
-int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
+int build_geometry::parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
     GeometryFactory		gf;
     WKTReader		reader(&gf);
     std::string		wkt_string(wkt);
@@ -342,26 +360,7 @@ int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * 
     return 0;
 }
 
-struct polygondata
-{
-    Polygon*        polygon;
-    LinearRing*     ring;
-    double          area;
-    int             iscontained;
-    unsigned        containedbyid;
-};
-
-static int polygondata_comparearea(const void* vp1, const void* vp2)
-{
-    const polygondata* p1 = (const polygondata*)vp1;
-    const polygondata* p2 = (const polygondata*)vp2;
-
-    if (p1->area == p2->area) return 0;
-    if (p1->area > p2->area) return -1;
-    return 1;
-}
-
-size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at) {
+size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at) {
     size_t wkt_size = 0;
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
@@ -593,7 +592,14 @@ size_t build_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int 
     return wkt_size;
 }
 
-void exclude_broken_polygon ()
+void build_geometry::set_exclude_broken_polygon(int exclude)
 {
-    excludepoly = 1;
+    excludepoly = exclude;
+}
+
+build_geometry::build_geometry()
+    : wkts(), areas(), excludepoly(0) {
+}
+
+build_geometry::~build_geometry() {
 }

@@ -2,6 +2,7 @@
 #define OUTPUT_GAZETTEER_H
 
 #include "output.hpp"
+#include "build_geometry.hpp"
 
 struct output_gazetteer_t : public output_t {
     output_gazetteer_t();
@@ -59,6 +60,8 @@ private:
     slim_middle_t *slim_mid;
 
     char Buffer[BUFFER_SIZE];
+
+    build_geometry builder;
 };
 
 extern output_gazetteer_t out_gazetteer;

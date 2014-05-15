@@ -8,6 +8,8 @@
 
 #include "tagtransform.hpp"
 #include "buffer.hpp"
+#include "build_geometry.hpp"
+
 #include <vector>
 
 #define FLAG_POLYGON 1    /* For polygon table */
@@ -101,6 +103,8 @@ private:
     export_list *m_export_list;
 
     buffer m_sql;
+
+    build_geometry builder;
 };
 
 extern output_pgsql_t out_pgsql;
