@@ -6,8 +6,7 @@
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
-#include "output.hpp"
-#include "taginfo.hpp"
+#include "tagtransform.hpp"
 #include "buffer.hpp"
 #include <vector>
 
@@ -92,6 +91,7 @@ private:
     void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, buffer &sql);
 
     const struct output_options *m_options;
+    tagtransform *m_tagtransform;
 
     /* enable output of a generated way_area tag to either hstore or its own column */
     int m_enable_way_area;

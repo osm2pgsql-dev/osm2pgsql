@@ -15,6 +15,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <time.h>
+#include <stdexcept>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -450,7 +451,7 @@ void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
         if ((info.flags & FLAG_PHSTORE) == FLAG_PHSTORE)
             continue;
         struct keyval *tag = NULL;
-        if (tag = getTag(tags, info.name.c_str()))
+        if ((tag = getTag(tags, info.name.c_str())))
         {
             escape_type(sql, tag->value, info.type.c_str());
             info.count++;
@@ -482,7 +483,7 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
                                    buffer &sql)
 {
 
-    int filter = tagtransform_filter_node_tags(tags, m_export_list);
+    int filter = m_tagtransform->filter_node_tags(tags, m_export_list);
     int i;
     struct keyval *tag;
 
@@ -579,7 +580,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         dynamic_cast<slim_middle_t *>(m_options->mid)->way_changed(id);
     }
 
-    if (tagtransform_filter_way_tags(tags, &polygon, &roads, m_export_list))
+    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
         return 0;
     /* Split long ways after around 1 degree or 100km */
     if (m_options->projection == PROJ_LATLONG)
@@ -634,7 +635,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         return 0;
     }
 
-    if (tagtransform_filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list)) {
+    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list)) {
         free(members_superseeded);
         return 0;
     }
@@ -929,7 +930,11 @@ int output_pgsql_t::start(const struct output_options *options)
     }
     free(sql);
 
-    if (tagtransform_init(options)) {
+    try {
+    	m_tagtransform = new tagtransform(options);
+    }
+    catch(std::runtime_error& e) {
+    	fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         exit_nicely();
     }
@@ -1158,8 +1163,6 @@ void output_pgsql_t::stop()
     rel_cb_func rel_callback(this, sql);
     m_options->mid->iterate_relations( rel_callback );
 
-    tagtransform_shutdown();
-
 #ifdef HAVE_PTHREAD
     if (m_options->parallel_indexing) {
       pthread_thunk thunks[NUM_TABLES];
@@ -1220,7 +1223,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = tagtransform_filter_way_tags(tags, &polygon, &roads, m_export_list);
+  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -1252,7 +1255,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  if (tagtransform_filter_rel_tags(tags, m_export_list)) {
+  if (m_tagtransform->filter_rel_tags(tags, m_export_list)) {
       free(xid2);
       free(xrole);
       free(xcount);
@@ -1444,6 +1447,8 @@ output_pgsql_t::output_pgsql_t() {
 }
 
 output_pgsql_t::~output_pgsql_t() {
+    if(m_tagtransform != NULL)
+    	delete m_tagtransform;
 }
 
 output_pgsql_t out_pgsql;
