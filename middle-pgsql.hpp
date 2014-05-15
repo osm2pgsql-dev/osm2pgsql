@@ -93,6 +93,8 @@ private:
 
     boost::shared_ptr<node_ram_cache> cache;
     boost::shared_ptr<node_persistent_cache> persistent_cache;
+
+    int build_indexes;
 };
 
 extern middle_pgsql_t mid_pgsql;

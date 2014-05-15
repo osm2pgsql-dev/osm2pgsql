@@ -1457,8 +1457,6 @@ static void set_prefix_and_tbls(const struct output_options *options, const char
     *string = strdup(buffer);
 }
 
-static int build_indexes;
-
 
 int middle_pgsql_t::start(const struct output_options *options)
 {
@@ -1721,7 +1719,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
-      Append(0), out_options(NULL), cache(), persistent_cache()
+      Append(0), out_options(NULL), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(
