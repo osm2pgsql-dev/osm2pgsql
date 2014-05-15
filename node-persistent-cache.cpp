@@ -18,6 +18,7 @@
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
 #include "binarysearcharray.hpp"
+#include "util.hpp"
 
 #ifdef __APPLE__
   #define lseek64 lseek
@@ -390,8 +391,8 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
         writeNodeBlock.block_offset = block_offset;
     }
 #ifdef FIXED_POINT
-    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = DOUBLE_TO_FIX(lat);
-    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = DOUBLE_TO_FIX(lon);
+    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = util::double_to_fix(lat, scale_);
+    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = util::double_to_fix(lon, scale_);
 #else
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = lat;
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = lon;
@@ -422,9 +423,9 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
     else
     {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat =
-                DOUBLE_TO_FIX(lat);
+                util::double_to_fix(lat, scale_);
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon =
-                DOUBLE_TO_FIX(lon);
+                util::double_to_fix(lon, scale_);
     }
 #else
     readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat = lat;
@@ -468,9 +469,9 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
     else
     {
         out->lat =
-                FIX_TO_DOUBLE(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat);
+                util::fix_to_double(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat, scale_);
         out->lon =
-                FIX_TO_DOUBLE(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon);
+                util::fix_to_double(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon, scale_);
         return 0;
     }
 #else

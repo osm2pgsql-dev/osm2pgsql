@@ -36,6 +36,7 @@
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
 #include "buffer.hpp"
+#include "util.hpp"
 
 #include <boost/bind.hpp>
 #include <iostream>
@@ -504,9 +505,8 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
     
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
-    scale = m_options->scale;
-    node_lon = FIX_TO_DOUBLE(DOUBLE_TO_FIX(node_lon));
-    node_lat = FIX_TO_DOUBLE(DOUBLE_TO_FIX(node_lat));
+    node_lon = util::fix_to_double(util::double_to_fix(node_lon, m_options->scale), m_options->scale);
+    node_lat = util::fix_to_double(util::double_to_fix(node_lat, m_options->scale), m_options->scale);
 #endif
 
     sql.printf("SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);

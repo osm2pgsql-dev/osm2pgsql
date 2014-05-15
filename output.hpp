@@ -22,7 +22,12 @@
 /* create a hstore column for all tags */
 #define HSTORE_ALL 2
 
+/* Scale is chosen such that 40,000 * SCALE < 2^32          */
+static const int DEFAULT_SCALE = 100;
+
 struct output_options {
+  output_options():scale(DEFAULT_SCALE){};
+
   const char *conninfo;  /* Connection info string */
   const char *prefix;    /* prefix for table names */
   int scale;       /* scale for converting coordinates to fixed point */

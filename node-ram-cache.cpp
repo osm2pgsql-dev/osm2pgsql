@@ -14,6 +14,7 @@
 #include "osmtypes.hpp"
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
+#include "util.hpp"
 
 
 
@@ -123,8 +124,8 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval
     }
     sparseBlock[sizeSparseTuples].id = id;
 #ifdef FIXED_POINT
-    sparseBlock[sizeSparseTuples].coord.lat = DOUBLE_TO_FIX(lat);
-    sparseBlock[sizeSparseTuples].coord.lon = DOUBLE_TO_FIX(lon);
+    sparseBlock[sizeSparseTuples].coord.lat = util::double_to_fix(lat, scale_);
+    sparseBlock[sizeSparseTuples].coord.lon = util::double_to_fix(lon, scale_);
 #else
     sparseBlock[sizeSparseTuples].coord.lat = lat;
     sparseBlock[sizeSparseTuples].coord.lon = lon;
@@ -166,8 +167,8 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
                         if (queue[usedBlocks -1]->nodes[i].lat || queue[usedBlocks -1]->nodes[i].lon) {
                             set_sparse(block2id(queue[usedBlocks - 1]->block_offset,i), 
 #ifdef FIXED_POINT
-                                                       FIX_TO_DOUBLE(queue[usedBlocks -1]->nodes[i].lat),
-                                                       FIX_TO_DOUBLE(queue[usedBlocks -1]->nodes[i].lon), 
+                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lat, scale_),
+                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lon, scale_),
 #else
                                                        queue[usedBlocks -1]->nodes[i].lat,
                                                        queue[usedBlocks -1]->nodes[i].lon, 
@@ -261,8 +262,8 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
     }
     
 #ifdef FIXED_POINT
-    blocks[block].nodes[offset].lat = DOUBLE_TO_FIX(lat);
-    blocks[block].nodes[offset].lon = DOUBLE_TO_FIX(lon);
+    blocks[block].nodes[offset].lat = util::double_to_fix(lat, scale_);
+    blocks[block].nodes[offset].lon = util::double_to_fix(lon, scale_);
 #else
     blocks[block].nodes[offset].lat = lat;
     blocks[block].nodes[offset].lon = lon;
@@ -281,8 +282,8 @@ int node_ram_cache::get_sparse(struct osmNode *out, osmid_t id) {
     while (minPos <= maxPos) {
         if ( sparseBlock[pivotPos].id == id ) {
 #ifdef FIXED_POINT
-            out->lat = FIX_TO_DOUBLE(sparseBlock[pivotPos].coord.lat);
-            out->lon = FIX_TO_DOUBLE(sparseBlock[pivotPos].coord.lon);
+            out->lat = util::fix_to_double(sparseBlock[pivotPos].coord.lat, scale_);
+            out->lon = util::fix_to_double(sparseBlock[pivotPos].coord.lon, scale_);
 #else
             out->lat = sparseBlock[pivotPos].coord.lat;
             out->lon = sparseBlock[pivotPos].coord.lon;
@@ -314,8 +315,8 @@ int node_ram_cache::get_dense(struct osmNode *out, osmid_t id) {
         return 1;
     
 #ifdef FIXED_POINT
-    out->lat = FIX_TO_DOUBLE(blocks[block].nodes[offset].lat);
-    out->lon = FIX_TO_DOUBLE(blocks[block].nodes[offset].lon);
+    out->lat = util::fix_to_double(blocks[block].nodes[offset].lat, scale_);
+    out->lon = util::fix_to_double(blocks[block].nodes[offset].lon, scale_);
 #else
     out->lat = blocks[block].nodes[offset].lat;
     out->lon = blocks[block].nodes[offset].lon;
@@ -327,7 +328,7 @@ int node_ram_cache::get_dense(struct osmNode *out, osmid_t id) {
 
 node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale )
     : allocStrategy(ALLOC_DENSE), blocks(NULL), usedBlocks(0),
-      maxBlocks(0), blockCache(NULL), queue(NULL), sparseBlock(NULL),
+      maxBlocks(0), blockCache(NULL), queue(NULL), scale_(fixpointscale), sparseBlock(NULL),
       maxSparseTuples(0), sizeSparseTuples(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
@@ -340,7 +341,6 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     maxSparseTuples = (cacheSize/sizeof(struct ramNodeID));
     
     allocStrategy = strategy;
-    scale = fixpointscale;
     
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");

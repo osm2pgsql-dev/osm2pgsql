@@ -20,8 +20,8 @@
 #include "middle.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
-
 #include "output-pgsql.hpp"
+#include "util.hpp"
 
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
@@ -318,11 +318,9 @@ int middle_ram_t::start(const struct output_options *options)
     /* latlong has a range of +-180, mercator +-20000
        The fixed poing scaling needs adjusting accordingly to
        be stored accurately in an int */
-    scale = options->scale;
-
-    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache, scale));
+    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache, options->scale));
     
-    fprintf( stderr, "Mid: Ram, scale=%d\n", scale );
+    fprintf( stderr, "Mid: Ram, scale=%d\n", options->scale );
 
     return 0;
 }

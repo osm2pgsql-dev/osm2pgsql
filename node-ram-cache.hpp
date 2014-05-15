@@ -15,14 +15,10 @@
 #define ALLOC_DENSE_CHUNK 4
 #define ALLOC_LOSSY 8
 
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
-static int scale = 100;
-#define DOUBLE_TO_FIX(x) ((int)((x) * scale + 0.4))
-#define FIX_TO_DOUBLE(x) (((double)x) / scale)
-
 #define UNUSED  __attribute__ ((unused))
+
+/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
+#define FIXED_POINT
 
 struct ramNode {
 #ifdef FIXED_POINT
@@ -72,6 +68,7 @@ private:
     
     struct ramNodeBlock **queue;
     
+    int scale_;
     
     struct ramNodeID *sparseBlock;
     int64_t maxSparseTuples;
