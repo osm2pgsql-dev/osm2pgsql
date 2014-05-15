@@ -71,7 +71,7 @@ int listHasData(struct keyval *head)
 }
 
 
-char *getItem(struct keyval *head, const char *name)
+char *getItem(const struct keyval *head, const char *name)
 {
     struct keyval *p;
 

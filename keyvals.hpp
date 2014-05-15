@@ -26,7 +26,7 @@ void initList(struct keyval *head);
 void freeItem(struct keyval *p);
 unsigned int countList(const struct keyval *head);
 int listHasData(struct keyval *head);
-char *getItem(struct keyval *head, const char *name);
+char *getItem(const struct keyval *head, const char *name);
 struct keyval *getTag(struct keyval *head, const char *name);
 void removeTag(struct keyval *tag);
 struct keyval *firstItem(struct keyval *head);
