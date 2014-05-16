@@ -87,13 +87,8 @@ int main(int argc, char *argv[]) {
   text_init();
 
   struct test_output_t out_test;
-  struct osmdata_t osmdata;
+  struct osmdata_t osmdata(&out_test, 0, NULL, PROJ_SPHERE_MERC);
   struct output_options options; memset(&options, 0, sizeof options);
-
-  osmdata.init(&out_test, 0, NULL, PROJ_SPHERE_MERC);
-  osmdata.realloc_nodes();
-  osmdata.realloc_members();
-
   options.out = &out_test;
 
   int ret = streamFileXML2(inputfile.c_str(), 0, &osmdata);

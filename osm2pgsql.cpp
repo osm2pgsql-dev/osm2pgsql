@@ -559,12 +559,12 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION;
 
-    //setup the output
+    //setup the backend
     output_t* out = get_output(output_backend);
-    osmdata_t osmdata;
+    osmdata_t* osmdata;
     try
     {
-    	osmdata.init(out, extra_attributes, bbox, options.projection);
+    	osmdata = new osmdata_t(out, extra_attributes, bbox, options.projection);
     }
     catch(std::exception& e)
     {
@@ -576,17 +576,17 @@ int main(int argc, char *argv[])
     middle_t* mid = options.slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
 
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
-            osmdata.proj->project_getprojinfo()->srs,
-            osmdata.proj->project_getprojinfo()->descr );
+            osmdata->proj->project_getprojinfo()->srs,
+            osmdata->proj->project_getprojinfo()->descr );
 
     options.scale = (options.projection==PROJ_LATLONG)?10000000:100;
-    options.projection = osmdata.proj->project_getprojinfo()->srs;
+    options.projection = osmdata->proj->project_getprojinfo()->srs;
     options.mid = mid;
     options.out = out;
 
     //start it up
     time_t overall_start = time(NULL);
-    out->start(&options, osmdata.proj);
+    out->start(&options, osmdata->proj);
 
     //read in the input files one by one
     while (optind < argc) {
@@ -596,7 +596,7 @@ int main(int argc, char *argv[])
         //read the actual input
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time_t start = time(NULL);
-        if (streamFile(argv[optind], sanitize, &osmdata) != 0)
+        if (streamFile(argv[optind], sanitize, osmdata) != 0)
             exit_nicely();
         fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         optind++;
@@ -606,19 +606,12 @@ int main(int argc, char *argv[])
     xmlMemoryDump();
     
     //show stats
-    if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
-        time_t now = time(NULL);
-        time_t end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
-        time_t end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
-        time_t end_rel =  now;
-        fprintf(stderr, "\n");
-        fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
-                osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);
-        fprintf(stderr, "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_way, osmdata.max_way,
-                osmdata.count_way > 0 ? (int)(end_way - osmdata.start_way) : 0);
-        fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_rel, osmdata.max_rel,
-                osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
+    if (osmdata->count_node || osmdata->count_way || osmdata->count_rel) {
+        osmdata->printSummary();
     }
+
+    /* done with osmdata_t */
+    delete osmdata;
 
     /* done with output_*_t */
     out->stop();

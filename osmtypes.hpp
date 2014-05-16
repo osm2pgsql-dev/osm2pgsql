@@ -49,14 +49,14 @@ typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } action
 
 struct osmdata_t {
 	public:
-		osmdata_t();
+		osmdata_t(output_t* out_, const int& extra_attributes_, const char* bbox_, int projection);
 		~osmdata_t();
 
-		void init(output_t* out_, const int& extra_attributes_, const char* bbox_, int projection);
 		void realloc_nodes();
 		void realloc_members();
 		void resetMembers();
 		void printStatus();
+		void printSummary();
 		int node_wanted(double lat, double lon);
 
 
