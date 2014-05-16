@@ -40,7 +40,10 @@ void osmdata_t::init(output_t* out_, const int& extra_attributes_, const char* b
 
 	initList(&tags);
 
-        proj.reset(new reprojection(projection));
+	proj.reset(new reprojection(projection));
+
+	realloc_nodes();
+	realloc_members();
 }
 
 void osmdata_t::parse_bbox(const char* bbox_)

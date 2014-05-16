@@ -40,10 +40,10 @@
 
 #include "parse-xml2.hpp"
 
-
+namespace {
 
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
-static actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata )
+actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata )
 {
     actions_t new_action;
     xmlChar *action;
@@ -65,37 +65,48 @@ static actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata
     return new_action;
 }
 
-static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata)
+void SetFiletype(const xmlChar* name, osmdata_t* osmdata)
+{
+	if (xmlStrEqual(name, BAD_CAST "osm"))
+	{
+		osmdata->filetype = FILETYPE_OSM;
+		osmdata->action = ACTION_CREATE;
+	}
+	else if (xmlStrEqual(name, BAD_CAST "osmChange"))
+	{
+		osmdata->filetype = FILETYPE_OSMCHANGE;
+		osmdata->action = ACTION_NONE;
+	}
+	else if (xmlStrEqual(name, BAD_CAST "planetdiff"))
+	{
+		osmdata->filetype = FILETYPE_PLANETDIFF;
+		osmdata->action = ACTION_NONE;
+	}
+	else
+	{
+		fprintf( stderr, "Unknown XML document type: %s\n", name );
+		exit_nicely();
+	}
+}
+
+void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata)
 {
     xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
     char *k;
 
+    //first time in we figure out what kind of data this is
     if (osmdata->filetype == FILETYPE_NONE)
     {
-        if (xmlStrEqual(name, BAD_CAST "osm"))
-        {
-            osmdata->filetype = FILETYPE_OSM;
-            osmdata->action = ACTION_CREATE;
-        }
-        else if (xmlStrEqual(name, BAD_CAST "osmChange"))
-        {
-            osmdata->filetype = FILETYPE_OSMCHANGE;
-            osmdata->action = ACTION_NONE;
-        }
-        else if (xmlStrEqual(name, BAD_CAST "planetdiff"))
-        {
-            osmdata->filetype = FILETYPE_PLANETDIFF;
-            osmdata->action = ACTION_NONE;
-        }
-        else
-        {
-            fprintf( stderr, "Unknown XML document type: %s\n", name );
-            exit_nicely();
-        }
+        SetFiletype(name, osmdata);
         return;
     }
     
+    //remember which this was for collecting tags at the end
+    bool can_have_attribs = false;
+
     if (xmlStrEqual(name, BAD_CAST "node")) {
+    	can_have_attribs = true;
+
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
         xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
@@ -123,25 +134,8 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         xmlFree(xid);
         xmlFree(xlon);
         xmlFree(xlat);
-    } else if (xmlStrEqual(name, BAD_CAST "tag")) {
-        xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
-        assert(xk);
-
-        /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
-        if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
-            char *p;
-            xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
-            assert(xv);
-            k  = (char *)xmlStrdup(xk);
-            while ((p = strchr(k, ' ')))
-                *p = '_';
-
-            addItem(&(osmdata->tags), k, (char *)xv, 0);
-            xmlFree(k);
-            xmlFree(xv);
-        }
-        xmlFree(xk);
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
+    	can_have_attribs = true;
 
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
@@ -161,16 +155,9 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
         osmdata->nd_count = 0;
         xmlFree(xid);
 
-    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
-        assert(xid);
-
-        osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
-
-        if( osmdata->nd_count >= osmdata->nd_max )
-          osmdata->realloc_nodes();
-        xmlFree(xid);
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
+    	can_have_attribs = true;
+
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
         assert(xid);
         osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
@@ -188,30 +175,57 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
 
         osmdata->member_count = 0;
         xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "member")) {
-	xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
-	assert(xrole);
+    } else if (xmlStrEqual(name, BAD_CAST "tag")) {
+        xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
+        assert(xk);
 
-	xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
-	assert(xtype);
+        /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
+        if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
+            char *p;
+            xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
+            assert(xv);
+            k  = (char *)xmlStrdup(xk);
+            while ((p = strchr(k, ' ')))
+                *p = '_';
 
+            addItem(&(osmdata->tags), k, (char *)xv, 0);
+            xmlFree(k);
+            xmlFree(xv);
+        }
+        xmlFree(xk);
+    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
         xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
         assert(xid);
 
-        osmdata->members[osmdata->member_count].id   = strtoosmid( (char *)xid, NULL, 0 );
-        osmdata->members[osmdata->member_count].role = strdup( (char *)xrole );
-        
-        /* Currently we are only interested in 'way' members since these form polygons with holes */
-	if (xmlStrEqual(xtype, BAD_CAST "way"))
-	    osmdata->members[osmdata->member_count].type = OSMTYPE_WAY;
-	if (xmlStrEqual(xtype, BAD_CAST "node"))
-	    osmdata->members[osmdata->member_count].type = OSMTYPE_NODE;
-	if (xmlStrEqual(xtype, BAD_CAST "relation"))
-	    osmdata->members[osmdata->member_count].type = OSMTYPE_RELATION;
+        osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
+
+        if( osmdata->nd_count >= osmdata->nd_max )
+          osmdata->realloc_nodes();
+        xmlFree(xid);
+    } else if (xmlStrEqual(name, BAD_CAST "member")) {
+        xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
+        assert(xrole);
+
+        xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
+        assert(xtype);
+
+        xid = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
+        assert(xid);
+
+        osmdata->members[osmdata->member_count].id = strtoosmid((char *) xid, NULL, 0);
+        osmdata->members[osmdata->member_count].role = strdup((char *) xrole);
+
+		/* Currently we are only interested in 'way' members since these form polygons with holes */
+        if (xmlStrEqual(xtype, BAD_CAST "way"))
+            osmdata->members[osmdata->member_count].type = OSMTYPE_WAY;
+        if (xmlStrEqual(xtype, BAD_CAST "node"))
+            osmdata->members[osmdata->member_count].type = OSMTYPE_NODE;
+        if (xmlStrEqual(xtype, BAD_CAST "relation"))
+            osmdata->members[osmdata->member_count].type = OSMTYPE_RELATION;
         osmdata->member_count++;
 
-        if( osmdata->member_count >= osmdata->member_max )
-          osmdata->realloc_members();
+        if (osmdata->member_count >= osmdata->member_max)
+            osmdata->realloc_members();
         xmlFree(xid);
         xmlFree(xrole);
         xmlFree(xtype);
@@ -233,9 +247,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
     }
 
     /* Collect extra attribute information and add as tags */
-    if (osmdata->extra_attributes && (xmlStrEqual(name, BAD_CAST "node") ||
-				      xmlStrEqual(name, BAD_CAST "way") ||
-				      xmlStrEqual(name, BAD_CAST "relation")))
+    if (osmdata->extra_attributes && can_have_attribs)
     {
         xmlChar *xtmp;
 
@@ -272,7 +284,7 @@ static void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct os
 }
 
 
-static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
+void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
       if (osmdata->node_wanted(osmdata->node_lat, osmdata->node_lon)) {
@@ -352,7 +364,7 @@ static void EndElement(const xmlChar *name, struct osmdata_t *osmdata)
     }
 }
 
-static void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
+void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
     xmlChar *name;
     name = xmlTextReaderName(reader);
     if (name == NULL)
@@ -360,12 +372,12 @@ static void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
 	
     switch(xmlTextReaderNodeType(reader)) {
         case XML_READER_TYPE_ELEMENT:
-	    StartElement(reader, name, osmdata);
+        	StartElement(reader, name, osmdata);
             if (xmlTextReaderIsEmptyElement(reader))
-	        EndElement(name, osmdata); /* No end_element for self closing tags! */
+            	EndElement(name, osmdata); /* No end_element for self closing tags! */
             break;
         case XML_READER_TYPE_END_ELEMENT:
-	    EndElement(name, osmdata);
+        	EndElement(name, osmdata);
             break;
         case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
             /* Ignore */
@@ -376,6 +388,8 @@ static void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
     }
 
     xmlFree(name);
+}
+
 }
 
 int streamFileXML2(const char *filename, int sanitize, struct osmdata_t *osmdata) {

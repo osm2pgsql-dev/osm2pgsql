@@ -13,6 +13,7 @@
 #include "middle.hpp"
 #include "keyvals.hpp"
 #include "reprojection.hpp"
+#include "node-ram-cache.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
@@ -29,7 +30,46 @@
 static const int DEFAULT_SCALE = 100;
 
 struct output_options {
-  output_options():scale(DEFAULT_SCALE){};
+  /* construct with sensible defaults */
+  output_options():
+	  conninfo(NULL),
+	  prefix("planet_osm"),
+	  scale(DEFAULT_SCALE),
+	  projection(PROJ_SPHERE_MERC),
+	  append(0),
+	  slim(0),
+	  cache(800),
+	  mid(NULL),
+	  out(NULL),
+	  tblsmain_index(NULL),
+	  tblsslim_index(NULL),
+	  tblsmain_data(NULL),
+	  tblsslim_data(NULL),
+	  style(OSM2PGSQL_DATADIR "/default.style"),
+	  expire_tiles_zoom(-1),
+	  expire_tiles_zoom_min(-1),
+	  expire_tiles_filename("dirty_tiles"),
+	  enable_hstore(HSTORE_NONE),
+	  enable_hstore_index(0),
+	  enable_multi(0),
+	  hstore_columns(NULL),
+	  n_hstore_columns(0),
+	  keep_coastlines(0),
+	  parallel_indexing(1),
+#ifdef __amd64__
+	  alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
+#else
+	  alloc_chunkwise(ALLOC_SPARSE),
+#endif
+	  num_procs(1),
+	  droptemp(0),
+	  unlogged(0),
+	  hstore_match_only(0),
+	  flat_node_cache_enabled(0),
+	  excludepoly(0),
+	  flat_node_file(NULL),
+	  tag_transform_script(NULL)
+  {};
 
   const char *conninfo;  /* Connection info string */
   const char *prefix;    /* prefix for table names */
@@ -40,10 +80,10 @@ struct output_options {
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
   struct output_t *out;  /* Output type used */ //TODO: we must remove this so that the middle cant call into the out
-  const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables */
-  const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables */
-  const char *tblsmain_data;     /* Pg Tablespace to store main tables */
-  const char *tblsslim_data;     /* Pg Tablespace to store slim tables */
+  const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
+  const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
+  const char *tblsmain_data;     /* Pg Tablespace to store main tables (no default TABLESPACE)*/
+  const char *tblsslim_data;     /* Pg Tablespace to store slim tables (no default TABLESPACE)*/
   const char *style;     /* style file to use */
   int expire_tiles_zoom;	/* Zoom level for tile expiry list */
   int expire_tiles_zoom_min;	/* Minimum zoom level for tile expiry list */

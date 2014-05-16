@@ -327,60 +327,22 @@ stream_input_file_t get_input_reader(const char* input_reader, const char* filen
  
 int main(int argc, char *argv[])
 {
-    int append=0;
+	output_options options;
+
     int create=0;
-    int slim=0;
     int sanitize=0;
     int long_usage_bool=0;
     int pass_prompt=0;
-    int projection = PROJ_SPHERE_MERC;
-    int expire_tiles_zoom = -1;
-    int expire_tiles_zoom_min = -1;
-    int enable_hstore = HSTORE_NONE;
-    int enable_hstore_index = 0;
-    int hstore_match_only = 0;
-    int enable_multi = 0;
-    int parallel_indexing = 1;
-    int flat_node_cache_enabled = 0;
-#ifdef __amd64__
-    int alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
-#else
-    int alloc_chunkwise = ALLOC_SPARSE;
-#endif
-    int num_procs = 1;
-    int droptemp = 0;
-    int unlogged = 0;
-    int excludepoly = 0;
-    time_t start, end;
-    time_t overall_start, overall_end;
-    time_t now;
-    time_t end_nodes;
-    time_t end_way;
-    time_t end_rel;
-    const char *expire_tiles_filename = "dirty_tiles";
     const char *db = "gis";
     const char *username=NULL;
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
-    const char *tblsmain_index = NULL; /* no default TABLESPACE for index on main tables */
-    const char *tblsmain_data = NULL;  /* no default TABLESPACE for main tables */
-    const char *tblsslim_index = NULL; /* no default TABLESPACE for index on slim mode tables */
-    const char *tblsslim_data = NULL;  /* no default TABLESPACE for slim mode tables */
-    const char *prefix = "planet_osm";
-    const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
     const char *output_backend = "pgsql";
     const char *input_reader = "auto";
-    const char **hstore_columns = NULL;
-    const char *flat_nodes_file = NULL;
-    const char *tag_transform_script = NULL;
-    int n_hstore_columns = 0;
-    int keep_coastlines=0;
-    int cache = 800;
     const char *bbox=NULL;
     int extra_attributes=0;
-    
 
     fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
 
@@ -440,80 +402,80 @@ int main(int argc, char *argv[])
             break;
 
         switch (c) {
-            case 'a': append=1;   break;
+            case 'a': options.append=1;   break;
             case 'b': bbox=optarg; break;
             case 'c': create=1;   break;
             case 'v': verbose=1;  break;
-            case 's': slim=1;     break;
-            case 'K': keep_coastlines=1;     break;
+            case 's': options.slim=1;     break;
+            case 'K': options.keep_coastlines=1;     break;
             case 'u': sanitize=1; break;
-            case 'l': projection=PROJ_LATLONG;  break;
-            case 'm': projection=PROJ_SPHERE_MERC; break;
-            case 'M': projection=PROJ_MERC; break;
-            case 'E': projection=-atoi(optarg); break;
-            case 'p': prefix=optarg; break;
+            case 'l': options.projection=PROJ_LATLONG;  break;
+            case 'm': options.projection=PROJ_SPHERE_MERC; break;
+            case 'M': options.projection=PROJ_MERC; break;
+            case 'E': options.projection=-atoi(optarg); break;
+            case 'p': options.prefix=optarg; break;
             case 'd': db=optarg;  break;
-            case 'C': cache = atoi(optarg); break;
+            case 'C': options.cache = atoi(optarg); break;
             case 'U': username=optarg; break;
             case 'W': pass_prompt=1; break;
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
-            case 'S': style=optarg; break;
-            case 'i': tblsmain_index=tblsslim_index=optarg; break;
-            case 200: tblsslim_data=optarg; break;    
-            case 201: tblsslim_index=optarg; break;    
-            case 202: tblsmain_data=optarg; break;    
-            case 203: tblsmain_index=optarg; break;    
+            case 'S': options.style=optarg; break;
+            case 'i': options.tblsmain_index=options.tblsslim_index=optarg; break;
+            case 200: options.tblsslim_data=optarg; break;
+            case 201: options.tblsslim_index=optarg; break;
+            case 202: options.tblsmain_data=optarg; break;
+            case 203: options.tblsmain_index=optarg; break;
             case 'e':
-                expire_tiles_zoom_min = atoi(optarg);
+            	options.expire_tiles_zoom_min = atoi(optarg);
                 temparg = strchr(optarg, '-');
-                if (temparg) expire_tiles_zoom = atoi(temparg + 1);
-                if (expire_tiles_zoom < expire_tiles_zoom_min) expire_tiles_zoom = expire_tiles_zoom_min;
+                if (temparg) options.expire_tiles_zoom = atoi(temparg + 1);
+                if (options.expire_tiles_zoom < options.expire_tiles_zoom_min) options.expire_tiles_zoom = options.expire_tiles_zoom_min;
                 break;
-            case 'o': expire_tiles_filename=optarg; break;
+            case 'o': options.expire_tiles_filename=optarg; break;
             case 'O': output_backend = optarg; break;
             case 'x': extra_attributes=1; break;
-            case 'k':  if (enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
-                enable_hstore=HSTORE_NORM; break;
-            case 208: hstore_match_only = 1; break;
-            case 'j': if (enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
-                enable_hstore=HSTORE_ALL; break;
+            case 'k':  if (options.enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
+            options.enable_hstore=HSTORE_NORM; break;
+            case 208: options.hstore_match_only = 1; break;
+            case 'j': if (options.enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
+            options.enable_hstore=HSTORE_ALL; break;
             case 'z': 
-                n_hstore_columns++;
-                hstore_columns = (const char**)realloc(hstore_columns, sizeof(char *) * n_hstore_columns);
-                hstore_columns[n_hstore_columns-1] = optarg;
+            	options.n_hstore_columns++;
+            	options.hstore_columns = (const char**)realloc(options.hstore_columns, sizeof(char *) * options.n_hstore_columns);
+            	options.hstore_columns[options.n_hstore_columns-1] = optarg;
                 break;
-            case 'G': enable_multi=1; break;
+            case 'G': options.enable_multi=1; break;
             case 'r': input_reader = optarg; break;
             case 'h': long_usage_bool=1; break;
             case 'I': 
 #ifdef HAVE_PTHREAD
-                parallel_indexing=0; 
+            	options.parallel_indexing=0;
 #endif
                 break;
             case 204:
-                if (strcmp(optarg,"dense") == 0) alloc_chunkwise = ALLOC_DENSE;
-                else if (strcmp(optarg,"chunk") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
-                else if (strcmp(optarg,"sparse") == 0) alloc_chunkwise = ALLOC_SPARSE;
-                else if (strcmp(optarg,"optimized") == 0) alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+                if (strcmp(optarg,"dense") == 0) options.alloc_chunkwise = ALLOC_DENSE;
+                else if (strcmp(optarg,"chunk") == 0) options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
+                else if (strcmp(optarg,"sparse") == 0) options.alloc_chunkwise = ALLOC_SPARSE;
+                else if (strcmp(optarg,"optimized") == 0) options.alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
                 else {fprintf(stderr, "ERROR: Unrecognized cache strategy %s.\n", optarg); exit(EXIT_FAILURE); }
                 break;
             case 205:
 #ifdef HAVE_FORK                
-                num_procs = atoi(optarg);
+            	options.num_procs = atoi(optarg);
 #else
                 fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
 #endif
                 break;
-            case 206: droptemp = 1; break;
-            case 207: unlogged = 1; break;
+            case 206: options.droptemp = 1; break;
+            case 207: options.unlogged = 1; break;
             case 209:
-            	flat_node_cache_enabled = 1;
-            	flat_nodes_file = optarg;
+            	options.flat_node_cache_enabled = 1;
+            	options.flat_node_file = optarg;
             	break;
-            case 210: excludepoly = 1; break;
-            case 211: enable_hstore_index = 1; break;
-            case 212: tag_transform_script = optarg; break;
+            case 210: options.excludepoly = 1; break;
+            case 211: options.enable_hstore_index = 1; break;
+            case 212: options.tag_transform_script = optarg; break;
             case 'V': exit(EXIT_SUCCESS);
             case '?':
             default:
@@ -532,39 +494,43 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    if (append && create) {
+    if (options.append && create) {
         fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
         exit(EXIT_FAILURE);
     }
 
-    if (droptemp && !slim) {
+    if (options.droptemp && !options.slim) {
         fprintf(stderr, "Error: --drop only makes sense with --slim.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (unlogged && !create) {
+    if (options.unlogged && !create) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
-        unlogged = 0;
+        options.unlogged = 0;
     }
 
-    if (enable_hstore == HSTORE_NONE && !n_hstore_columns && hstore_match_only)
+    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns && options.hstore_match_only)
     {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
-        hstore_match_only = 0;
+        options.hstore_match_only = 0;
     }
 
-    if (enable_hstore_index && enable_hstore  == HSTORE_NONE && !n_hstore_columns) {
+    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
-        enable_hstore_index = 0;
+        options.enable_hstore_index = 0;
     }
 
-    if (cache < 0) cache = 0;
+    if (options.cache < 0) options.cache = 0;
 
-    if (cache == 0) {
+    if (options.cache == 0) {
         fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
     }
-
-    if (num_procs < 1) num_procs = 1;
+    if (sizeof(int*) == 4 && options.slim != 1) {
+        fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
+        fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
+        fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
+        fprintf(stderr, "!! mode using parameter -s.\n");
+    }
 
     if (pass_prompt)
         password = simple_prompt("Password:", 100, 0);
@@ -572,15 +538,17 @@ int main(int argc, char *argv[])
         password = getenv("PGPASS");
     }
 
+    if (options.num_procs < 1) options.num_procs = 1;
+
     
     // Check the database
-    const char *conninfo = build_conninfo(db, username, password, host, port);
-    PGconn *sql_conn = PQconnectdb(conninfo);
+    options.conninfo = build_conninfo(db, username, password, host, port);
+    PGconn *sql_conn = PQconnectdb(options.conninfo);
     if (PQstatus(sql_conn) != CONNECTION_OK) {
         fprintf(stderr, "Error: Connection to database failed: %s\n", PQerrorMessage(sql_conn));
         exit(EXIT_FAILURE);
     }
-    if (unlogged && PQserverVersion(sql_conn) < 90100) {
+    if (options.unlogged && PQserverVersion(sql_conn) < 90100) {
         fprintf(stderr, "Error: --unlogged works only with PostgreSQL 9.1 and above, but\n");
         fprintf(stderr, "you are using PostgreSQL %d.%d.%d.\n", PQserverVersion(sql_conn) / 10000, (PQserverVersion(sql_conn) / 100) % 100, PQserverVersion(sql_conn) % 100);
         exit(EXIT_FAILURE);
@@ -596,7 +564,7 @@ int main(int argc, char *argv[])
     osmdata_t osmdata;
     try
     {
-    	osmdata.init(out, extra_attributes, bbox, projection);
+    	osmdata.init(out, extra_attributes, bbox, options.projection);
     }
     catch(std::exception& e)
     {
@@ -605,59 +573,20 @@ int main(int argc, char *argv[])
     }
 
     //setup the middle
-    middle_t* mid = slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
+    middle_t* mid = options.slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
 
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
             osmdata.proj->project_getprojinfo()->srs,
             osmdata.proj->project_getprojinfo()->descr );
 
-    output_options options;
-    options.conninfo = conninfo;
-    options.prefix = prefix;
-    options.append = append;
-    options.slim = slim;
+    options.scale = (options.projection==PROJ_LATLONG)?10000000:100;
     options.projection = osmdata.proj->project_getprojinfo()->srs;
-    options.scale = (projection==PROJ_LATLONG)?10000000:100;
     options.mid = mid;
-    options.cache = cache;
-    options.style = style;
-    options.tblsmain_index = tblsmain_index;
-    options.tblsmain_data = tblsmain_data;
-    options.tblsslim_index = tblsslim_index;
-    options.tblsslim_data = tblsslim_data;
-    options.expire_tiles_zoom = expire_tiles_zoom;
-    options.expire_tiles_zoom_min = expire_tiles_zoom_min;
-    options.expire_tiles_filename = expire_tiles_filename;
-    options.enable_multi = enable_multi;
-    options.enable_hstore = enable_hstore;
-    options.enable_hstore_index = enable_hstore_index;
-    options.hstore_match_only = hstore_match_only;
-    options.hstore_columns = hstore_columns;
-    options.n_hstore_columns = n_hstore_columns;
-    options.keep_coastlines = keep_coastlines;
-    options.parallel_indexing = parallel_indexing;
-    options.alloc_chunkwise = alloc_chunkwise;
-    options.num_procs = num_procs;
-    options.droptemp = droptemp;
-    options.unlogged = unlogged;
-    options.flat_node_cache_enabled = flat_node_cache_enabled;
-    options.flat_node_file = flat_nodes_file;
-    options.excludepoly = excludepoly;
-    options.tag_transform_script = tag_transform_script;
-    options.out = osmdata.out;
+    options.out = out;
 
     //start it up
-    time(&overall_start);
+    time_t overall_start = time(NULL);
     out->start(&options, osmdata.proj);
-    osmdata.realloc_nodes();
-    osmdata.realloc_members();
-
-    if (sizeof(int*) == 4 && options.slim != 1) {
-        fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
-        fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
-        fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
-        fprintf(stderr, "!! mode using parameter -s.\n");
-    }
 
     //read in the input files one by one
     while (optind < argc) {
@@ -666,22 +595,22 @@ int main(int argc, char *argv[])
 
         //read the actual input
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        time(&start);
+        time_t start = time(NULL);
         if (streamFile(argv[optind], sanitize, &osmdata) != 0)
             exit_nicely();
-        time(&end);
-        fprintf(stderr, "  parse time: %ds\n", (int)(end - start));
+        fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         optind++;
     }
 
     xmlCleanupParser();
     xmlMemoryDump();
     
+    //show stats
     if (osmdata.count_node || osmdata.count_way || osmdata.count_rel) {
-        time(&now);
-        end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
-        end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
-        end_rel =  now;
+        time_t now = time(NULL);
+        time_t end_nodes = osmdata.start_way > 0 ? osmdata.start_way : now;
+        time_t end_way = osmdata.start_rel > 0 ? osmdata.start_rel : now;
+        time_t end_rel =  now;
         fprintf(stderr, "\n");
         fprintf(stderr, "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_node, osmdata.max_node,
                 osmdata.count_node > 0 ? (int)(end_nodes - osmdata.start_node) : 0);
@@ -700,12 +629,10 @@ int main(int argc, char *argv[])
     delete mid;
 
     /* free the column pointer buffer */
-    free(hstore_columns);
+    free(options.hstore_columns);
 
     text_exit();
-    fprintf(stderr, "\n");
-    time(&overall_end);
-    fprintf(stderr, "Osm2pgsql took %ds overall\n", (int)(overall_end - overall_start));
+    fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
 
     return 0;
 }

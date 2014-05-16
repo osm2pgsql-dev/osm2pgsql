@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
   osmdata.realloc_nodes();
   osmdata.realloc_members();
 
-  options.out = osmdata.out;
+  options.out = &out_test;
 
   int ret = streamFileXML2(inputfile.c_str(), 0, &osmdata);
   if (ret != 0) {
