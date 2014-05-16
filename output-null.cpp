@@ -70,5 +70,3 @@ output_null_t::output_null_t() {
 
 output_null_t::~output_null_t() {
 }
-
-output_null_t out_null;

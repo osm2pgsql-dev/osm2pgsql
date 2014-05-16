@@ -1793,5 +1793,3 @@ middle_pgsql_t::middle_pgsql_t()
  
 middle_pgsql_t::~middle_pgsql_t() {
 }
- 
-middle_pgsql_t mid_pgsql;

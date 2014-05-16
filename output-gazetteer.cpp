@@ -1425,5 +1425,3 @@ output_gazetteer_t::output_gazetteer_t()
 
 output_gazetteer_t::~output_gazetteer_t() {
 }
-
-output_gazetteer_t out_gazetteer;

@@ -146,7 +146,6 @@ struct tempdb
   }
 
   ~tempdb() {
-    mid_pgsql.stop();
     if (m_conn) {
       m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
     }
@@ -218,20 +217,21 @@ int main(int argc, char *argv[]) {
     return 77; // <-- code to skip this test.
   }
 
-  try {
-    struct output_null_t out_test;
-    struct output_options options; memset(&options, 0, sizeof options);
-    
-    options.out = &out_test;
-    options.conninfo = db->conninfo().c_str();
-    options.scale = 10000000;
-    options.mid = &mid_pgsql;
-    options.num_procs = 1;
-    options.prefix = "osm2pgsql_test";
-    options.tblsslim_index = "tablespacetest";
-    options.tblsslim_data = "tablespacetest";
-    options.slim = 1;
+  struct output_null_t out_test;
+  struct output_options options; memset(&options, 0, sizeof options);
+  struct middle_pgsql_t mid_pgsql;
 
+  options.out = &out_test;
+  options.conninfo = db->conninfo().c_str();
+  options.scale = 10000000;
+  options.mid = &mid_pgsql;
+  options.num_procs = 1;
+  options.prefix = "osm2pgsql_test";
+  options.tblsslim_index = "tablespacetest";
+  options.tblsslim_data = "tablespacetest";
+  options.slim = 1;
+
+  try {
     // start an empty table to make the middle create the
     // tables it needs. we then run the test in "append" mode.
     mid_pgsql.start(&options);
@@ -246,10 +246,10 @@ int main(int argc, char *argv[]) {
     int status = 0;
     
     status = test_node_set(&mid_pgsql);
-    if (status != 0) { throw std::runtime_error("test_node_set failed."); }
+    if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_node_set failed."); }
     
     status = test_way_set(&mid_pgsql);
-    if (status != 0) { throw std::runtime_error("test_node_set failed."); }
+    if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_node_set failed."); }
     
     mid_pgsql.commit();
     mid_pgsql.stop();

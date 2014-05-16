@@ -274,11 +274,11 @@ void exit_nicely()
 output_t* get_output(const char* output_backend)
 {
 	if (strcmp("pgsql", output_backend) == 0) {
-	  return &out_pgsql;
+	  return new output_pgsql_t();
 	} else if (strcmp("gazetteer", output_backend) == 0) {
-	  return &out_gazetteer;
+	  return new output_gazetteer_t();
 	} else if (strcmp("null", output_backend) == 0) {
-	  return &out_null;
+	  return new output_null_t();
 	} else {
 	  fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
 	  exit(EXIT_FAILURE);
@@ -367,7 +367,6 @@ int main(int argc, char *argv[])
     const char *tblsmain_data = NULL;  /* no default TABLESPACE for main tables */
     const char *tblsslim_index = NULL; /* no default TABLESPACE for index on slim mode tables */
     const char *tblsslim_data = NULL;  /* no default TABLESPACE for slim mode tables */
-    const char *conninfo = NULL;
     const char *prefix = "planet_osm";
     const char *style = OSM2PGSQL_DATADIR "/default.style";
     const char *temparg;
@@ -379,8 +378,6 @@ int main(int argc, char *argv[])
     int n_hstore_columns = 0;
     int keep_coastlines=0;
     int cache = 800;
-    struct output_options options;
-    PGconn *sql_conn;
     const char *bbox=NULL;
     int extra_attributes=0;
     
@@ -577,8 +574,8 @@ int main(int argc, char *argv[])
 
     
     // Check the database
-    conninfo = build_conninfo(db, username, password, host, port);
-    sql_conn = PQconnectdb(conninfo);
+    const char *conninfo = build_conninfo(db, username, password, host, port);
+    PGconn *sql_conn = PQconnectdb(conninfo);
     if (PQstatus(sql_conn) != CONNECTION_OK) {
         fprintf(stderr, "Error: Connection to database failed: %s\n", PQerrorMessage(sql_conn));
         exit(EXIT_FAILURE);
@@ -594,9 +591,8 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION;
 
-    output_t *out = get_output(output_backend);
-
     //setup the output
+    output_t* out = get_output(output_backend);
     osmdata_t osmdata;
     try
     {
@@ -608,17 +604,21 @@ int main(int argc, char *argv[])
     	return 1;
     }
 
+    //setup the middle
+    middle_t* mid = slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
+
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
             osmdata.proj->project_getprojinfo()->srs,
             osmdata.proj->project_getprojinfo()->descr );
 
+    output_options options;
     options.conninfo = conninfo;
     options.prefix = prefix;
     options.append = append;
     options.slim = slim;
     options.projection = osmdata.proj->project_getprojinfo()->srs;
     options.scale = (projection==PROJ_LATLONG)?10000000:100;
-    options.mid = slim ? ((middle_t *)&mid_pgsql) : ((middle_t *)&mid_ram);
+    options.mid = mid;
     options.cache = cache;
     options.style = style;
     options.tblsmain_index = tblsmain_index;
@@ -644,11 +644,11 @@ int main(int argc, char *argv[])
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
     options.tag_transform_script = tag_transform_script;
-    options.out = out;
+    options.out = osmdata.out;
 
     //start it up
     time(&overall_start);
-    osmdata.out->start(&options, osmdata.proj);
+    out->start(&options, osmdata.proj);
     osmdata.realloc_nodes();
     osmdata.realloc_members();
 
@@ -690,7 +690,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n", osmdata.count_rel, osmdata.max_rel,
                 osmdata.count_rel > 0 ? (int)(end_rel - osmdata.start_rel) : 0);
     }
-    osmdata.out->stop();
+
+    /* done with output_*_t */
+    out->stop();
+    out->cleanup();
+    delete out;
+
+    /* done with middle_*_t */
+    delete mid;
 
     /* free the column pointer buffer */
     free(hstore_columns);

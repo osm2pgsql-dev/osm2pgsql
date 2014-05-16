@@ -24,6 +24,7 @@ int main(int argc, char *argv[]) {
   try {
     struct output_null_t out_test;
     struct output_options options; memset(&options, 0, sizeof options);
+    struct middle_ram_t mid_ram;
     
     options.out = &out_test;
     options.scale = 10000000;

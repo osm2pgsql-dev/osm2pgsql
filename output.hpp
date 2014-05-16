@@ -39,7 +39,7 @@ struct output_options {
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */
   struct middle_t *mid;  /* Mid storage to use */
-  struct output_t *out;  /* Output type used */
+  struct output_t *out;  /* Output type used */ //TODO: we must remove this so that the middle cant call into the out
   const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables */
   const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables */
   const char *tblsmain_data;     /* Pg Tablespace to store main tables */

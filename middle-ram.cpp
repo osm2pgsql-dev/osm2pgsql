@@ -359,5 +359,3 @@ middle_ram_t::middle_ram_t()
 
 middle_ram_t::~middle_ram_t() {
 }
-
-struct middle_ram_t mid_ram;

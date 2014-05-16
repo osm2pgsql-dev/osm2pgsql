@@ -1453,5 +1453,3 @@ output_pgsql_t::~output_pgsql_t() {
     if(m_tagtransform != NULL)
     	delete m_tagtransform;
 }
-
-output_pgsql_t out_pgsql;

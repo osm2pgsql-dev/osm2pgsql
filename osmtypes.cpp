@@ -16,6 +16,7 @@ osmdata_t::osmdata_t()
 	out = NULL;
 	members = NULL;
 	nds = NULL;
+	bbox = false;
 
 	filetype = FILETYPE_NONE;
 	action   = ACTION_NONE;
@@ -23,8 +24,6 @@ osmdata_t::osmdata_t()
 
 osmdata_t::~osmdata_t()
 {
-	if(out != NULL)
-		out->cleanup();
 	if(nds != NULL)
 		free(nds);
 	if(members != NULL)
