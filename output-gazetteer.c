@@ -1239,12 +1239,15 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
    struct keyval * countrycode;
    int wkt_size;
    const char *type;
+   int cmp_waterway;
 
    type = getItem(tags, "type");
    if (!type) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
+
+   cmp_waterway = strcmp(type, "waterway");
 
    if (!strcmp(type, "associatedStreet"))
    {
@@ -1253,7 +1256,7 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       return 0;
    }
 
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && strcmp(type, "waterway")) {
+   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && cmp_waterway) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
@@ -1291,24 +1294,38 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = build_geometry(id, xnodes, xcount, 1, 1, 1000000);
-      for (i=0;i<wkt_size;i++)
+      if (cmp_waterway)
       {
-         char *wkt = get_wkt(i);
-         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || !strcmp(type, "waterway")))
-         {
-             for (place = firstItem(&places); place; place = nextItem(&places, place))
+          wkt_size = build_geometry(id, xnodes, xcount, 1, 1, 1000000);
+          for (i=0;i<wkt_size;i++)
+          {
+             char *wkt = get_wkt(i);
+             if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON"))))
              {
-                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
+                 for (place = firstItem(&places); place; place = nextItem(&places, place))
+                 {
+                    add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
+                 }
              }
-         }
-         else
-         {
-             /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
-         }
-         free(wkt);
+             else
+             {
+                 /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
+             }
+             free(wkt);
+          }
+          clear_wkts();
+      } else {
+          /* waterways result in multilinestrings */
+          char *wkt = get_multiline_geometry(id, xnodes, xcount);
+          if (wkt && strlen(wkt))
+          {
+              for (place = firstItem(&places); place; place = nextItem(&places, place))
+              {
+                 add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
+              }
+          }
+          free(wkt);
       }
-      clear_wkts();
 
       for( i=0; i<count; i++ )
       {

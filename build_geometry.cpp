@@ -597,3 +597,44 @@ void exclude_broken_polygon ()
 {
     excludepoly = 1;
 }
+
+char *get_multiline_geometry(osmid_t osm_id, struct osmNode **xnodes, int *xcount) {
+    std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
+    GeometryFactory gf;
+    geom_ptr geom;
+
+    try
+    {
+        for (int c=0; xnodes[c]; c++) {
+            std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+            for (int i = 0; i < xcount[c]; i++) {
+                struct osmNode *nodes = xnodes[c];
+                Coordinate c;
+                c.x = nodes[i].lon;
+                c.y = nodes[i].lat;
+                coords->add(c, 0);
+            }
+            if (coords->getSize() > 1) {
+                geom = geom_ptr(gf.createLineString(coords.release()));
+                lines->push_back(geom.release());
+            }
+        }
+
+        geom_ptr mline (gf.createMultiLineString(lines.release()));
+        WKTWriter writer;
+
+        std::string wkt = writer.write(mline.get());
+        return strdup(wkt.c_str());
+    }
+    catch (std::exception& e)
+      {
+	std::cerr << std::endl << "Standard exception processing relation id "<< osm_id << ": " << e.what()  << std::endl;
+      }
+    catch (...)
+      {
+        std::cerr << std::endl << "Exception caught processing relation id " << osm_id << std::endl;
+      }
+
+    return 0;
+}
+
