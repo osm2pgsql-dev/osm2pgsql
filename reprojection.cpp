@@ -202,3 +202,8 @@ void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, doub
     *tiley = map_width * (0.5 - y[0] / EARTH_CIRCUMFERENCE);
 }
 
+int reprojection::get_proj_id() const
+{
+	return Proj;
+}
+

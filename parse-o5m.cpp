@@ -37,7 +37,7 @@
 #include <time.h>
 #include <fcntl.h>
 
-#include "osmtypes.hpp"
+#include "parse-o5m.hpp"
 #include "output.hpp"
 
 #define inline
@@ -625,9 +625,19 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
   end   Module str_   string read module
   ------------------------------------------------------------ */
 
+parse_o5m_t::parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+{
 
+}
 
-int streamFileO5m(const char *filename,int sanitize,struct osmdata_t *osmdata) {
+parse_o5m_t::~parse_o5m_t()
+{
+
+}
+
+int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) {
     /* open and parse an .o5m file; */
     /* return: ==0: ok; !=0: error; */
     int otype;  /*  type of currently processed object; */
@@ -679,18 +689,18 @@ return 1;
       }
     p= strchr(filename,0)-4;  /* get end of filename */
     if(memcmp(read_bufp,"\xff\xe0\0x04""o5m2",7)==0)
-      osmdata->filetype= FILETYPE_OSM;
+      filetype= FILETYPE_OSM;
     else if(memcmp(read_bufp,"\xff\xe0\0x04""o5c2",7)==0)
-      osmdata->filetype= FILETYPE_OSMCHANGE;
+      filetype= FILETYPE_OSMCHANGE;
     else if(p>=filename && strcmp(p,".o5m")==0)
-      osmdata->filetype= FILETYPE_OSM;
+      filetype= FILETYPE_OSM;
     else if(p>=filename && (strcmp(p,".o5c")==0 || strcmp(p,".o5h")==0))
-      osmdata->filetype= FILETYPE_OSMCHANGE;
+      filetype= FILETYPE_OSMCHANGE;
     else {
       WARN("File type not specified. Assuming .o5m")
-      osmdata->filetype= FILETYPE_OSM;
+      filetype= FILETYPE_OSM;
       }
-    if(osmdata->filetype==FILETYPE_OSM)
+    if(filetype==FILETYPE_OSM)
       PINFO("Processing .o5m file (not a change file).")
     else
       PINFO("Processing .o5c change file.")
@@ -749,43 +759,43 @@ return 1;
     hiscset= 0;
     hisuid= 0;
     hisuser= NULL;
-    osmdata->nd_count= 0;
-    osmdata->member_count= 0;
+    nd_count= 0;
+    member_count= 0;
 
     /* read object id */
     bufp++;
     l= pbf_uint32(&bufp);
     read_bufp= bufe= bufp+l;
-    osmdata->osm_id= o5id+= pbf_sint64(&bufp);
+    osm_id= o5id+= pbf_sint64(&bufp);
 
     /* do statistics on object id */
     switch(otype) {
     case 0:  /* node */
-      if(osmdata->osm_id>osmdata->max_node)
-        osmdata->max_node= osmdata->osm_id;
-      if (osmdata->count_node == 0) {
-        time(&osmdata->start_node);
+      if(osm_id>max_node)
+        max_node= osm_id;
+      if (count_node == 0) {
+        time(&start_node);
       }
-      osmdata->count_node++;
-      if(osmdata->count_node%10000==0) osmdata->printStatus();
+      count_node++;
+      if(count_node%10000==0) printStatus();
       break;
     case 1:  /* way */
-      if(osmdata->osm_id>osmdata->max_way)
-        osmdata->max_way= osmdata->osm_id;
-      if (osmdata->count_way == 0) {
-        time(&osmdata->start_way);
+      if(osm_id>max_way)
+        max_way= osm_id;
+      if (count_way == 0) {
+        time(&start_way);
       }
-      osmdata->count_way++;
-      if(osmdata->count_way%1000==0) osmdata->printStatus();
+      count_way++;
+      if(count_way%1000==0) printStatus();
       break;
     case 2:  /* relation */
-      if(osmdata->osm_id>osmdata->max_rel)
-        osmdata->max_rel= osmdata->osm_id;
-      if (osmdata->count_rel == 0) {
-        time(&osmdata->start_rel);
+      if(osm_id>max_rel)
+        max_rel= osm_id;
+      if (count_rel == 0) {
+        time(&start_rel);
       }
-      osmdata->count_rel++;
-      if(osmdata->count_rel%10==0) osmdata->printStatus();
+      count_rel++;
+      if(count_rel%10==0) printStatus();
       break;
     default: ;
       }
@@ -796,18 +806,18 @@ return 1;
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      addItem(&(osmdata->tags),"osm_version",tmpstr,0);
+      addItem(&(tags),"osm_version",tmpstr,0);
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        addItem(&(osmdata->tags),"osm_timestamp",tmpstr, 0);
+        addItem(&(tags),"osm_timestamp",tmpstr, 0);
         if(histime!=0) {
             hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          addItem(&(osmdata->tags),"osm_uid",tmpstr,0);
-          addItem(&(osmdata->tags),"osm_user",hisuser,0);
+          addItem(&(tags),"osm_uid",tmpstr,0);
+          addItem(&(tags),"osm_user",hisuser,0);
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -815,40 +825,40 @@ return 1;
     /* perform action */
     if(bufp>=bufe) {
         /* just the id and history, i.e. this is a delete request */
-      osmdata->action= ACTION_DELETE;
+      action= ACTION_DELETE;
       switch(otype) {
       case 0:  /* node */
-        osmdata->out->node_delete(osmdata->osm_id);
+        osmdata->out->node_delete(osm_id);
         break;
       case 1:  /* way */
-        osmdata->out->way_delete(osmdata->osm_id);
+        osmdata->out->way_delete(osm_id);
         break;
       case 2:  /* relation */
-        osmdata->out->relation_delete(osmdata->osm_id);
+        osmdata->out->relation_delete(osm_id);
         break;
       default: ;
         }
-      resetList(&(osmdata->tags));
+      resetList(&(tags));
       continue;  /* end processing for this object */
     }  /* end   delete request */
     else {  /* not a delete request */
 
         /* determine action */
-      if(osmdata->filetype==FILETYPE_OSMCHANGE && hisver>1)
-        osmdata->action= ACTION_MODIFY;
+      if(filetype==FILETYPE_OSMCHANGE && hisver>1)
+        action= ACTION_MODIFY;
       else
-        osmdata->action= ACTION_CREATE;
+        action= ACTION_CREATE;
 
       /* read coordinates (for nodes only) */
       if(otype==0) {  /* node */
           /* read node body */
-        osmdata->node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
-        osmdata->node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
-        if(!osmdata->node_wanted(osmdata->node_lat,osmdata->node_lon)) {
-          resetList(&(osmdata->tags));
+        node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
+        node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
+        if(!node_wanted(node_lat,node_lon)) {
+          resetList(&(tags));
   continue;
           }
-        osmdata->proj->reproject(&(osmdata->node_lat),&(osmdata->node_lon));
+        proj->reproject(&(node_lat),&(node_lon));
       }  /* end   node */
 
       /* read noderefs (for ways only) */
@@ -857,9 +867,9 @@ return 1;
         bp= bufp+l;
         if(bp>bufe) bp= bufe;  /* (format error) */
         while(bufp<bp) {  /* for all noderefs of this way */
-          osmdata->nds[osmdata->nd_count++]= o5rid[0]+= pbf_sint64(&bufp);
-          if(osmdata->nd_count>=osmdata->nd_max)
-            osmdata->realloc_nodes();
+          nds[nd_count++]= o5rid[0]+= pbf_sint64(&bufp);
+          if(nd_count>=nd_max)
+            realloc_nodes();
         }  /* end   for all noderefs of this way */
       }  /* end   way */
 
@@ -878,20 +888,20 @@ return 1;
           rt= (*rr++ -'0')%3;
           switch(rt) {
           case 0:  /* node */
-            osmdata->members[osmdata->member_count].type= OSMTYPE_NODE;
+            members[member_count].type= OSMTYPE_NODE;
             break;
           case 1:  /* way */
-            osmdata->members[osmdata->member_count].type= OSMTYPE_WAY;
+            members[member_count].type= OSMTYPE_WAY;
             break;
           case 2:  /* relation */
-            osmdata->members[osmdata->member_count].type= OSMTYPE_RELATION;
+            members[member_count].type= OSMTYPE_RELATION;
             break;
             }
-          osmdata->members[osmdata->member_count].id= o5rid[rt]+= ri;
-          osmdata->members[osmdata->member_count].role= rr;
-          osmdata->member_count++;
-          if(osmdata->member_count>=osmdata->member_max)
-            osmdata->realloc_members();
+          members[member_count].id= o5rid[rt]+= ri;
+          members[member_count].role= rr;
+          member_count++;
+          if(member_count>=member_max)
+            realloc_members();
         }  /* end   for all references of this relation */
       }  /* end   relation */
 
@@ -907,48 +917,48 @@ return 1;
             /* replace all blanks in key by underlines */
             p++;
             }
-          addItem(&(osmdata->tags),k,v,0);
+          addItem(&(tags),k,v,0);
           }
       }  /* end   for all tags of this object */
 
       /* write object into database */
       switch(otype) {
       case 0:  /* node */
-        if(osmdata->action==ACTION_CREATE)
-          osmdata->out->node_add(osmdata->osm_id,
-            osmdata->node_lat,osmdata->node_lon,&(osmdata->tags));
+        if(action==ACTION_CREATE)
+          osmdata->out->node_add(osm_id,
+            node_lat,node_lon,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->node_modify(osmdata->osm_id,
-            osmdata->node_lat,osmdata->node_lon,&(osmdata->tags));
+          osmdata->out->node_modify(osm_id,
+            node_lat,node_lon,&(tags));
         break;
       case 1:  /* way */
-        if(osmdata->action==ACTION_CREATE)
-          osmdata->out->way_add(osmdata->osm_id,
-            osmdata->nds,osmdata->nd_count,&(osmdata->tags));
+        if(action==ACTION_CREATE)
+          osmdata->out->way_add(osm_id,
+            nds,nd_count,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->way_modify(osmdata->osm_id,
-            osmdata->nds,osmdata->nd_count,&(osmdata->tags));
+          osmdata->out->way_modify(osm_id,
+            nds,nd_count,&(tags));
         break;
       case 2:  /* relation */ 
-        if(osmdata->action==ACTION_CREATE)
-          osmdata->out->relation_add(osmdata->osm_id,
-            osmdata->members,osmdata->member_count,&(osmdata->tags));
+        if(action==ACTION_CREATE)
+          osmdata->out->relation_add(osm_id,
+            members,member_count,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->relation_modify(osmdata->osm_id,
-            osmdata->members,osmdata->member_count,&(osmdata->tags));
+          osmdata->out->relation_modify(osm_id,
+            members,member_count,&(tags));
         break;
       default: ;
         }
 
       /* reset temporary storage lists */
-      resetList(&(osmdata->tags));
+      resetList(&(tags));
 
     }  /* end   not a delete request */
 
   }  /* end   read input file */
 
   /* close the input file */
-  osmdata->printStatus();
+  printStatus();
   read_close();
   return 0;
 }  /* streamFileO5m() */

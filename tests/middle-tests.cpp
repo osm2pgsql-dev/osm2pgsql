@@ -6,6 +6,7 @@
 #include <list>
 
 #include "osmtypes.hpp"
+#include "keyvals.hpp"
 #include "tests/middle-tests.hpp"
 
 int test_node_set(middle_t *mid)

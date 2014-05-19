@@ -25,6 +25,21 @@
 #ifndef PARSE_PRIMITIVE_H
 #define PARSE_PRIMITIVE_H
 
-int streamFilePrimitive(const char *filename, int sanitize, struct osmdata_t *osmdata);
+#include "parse.hpp"
+
+class parse_primitive_t: public parse_t
+{
+public:
+	parse_primitive_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+				const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags);
+	virtual ~parse_primitive_t();
+	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
+protected:
+	parse_primitive_t();
+	actions_t ParseAction(char **token, int tokens, struct osmdata_t *osmdata);
+	void StartElement(char *name, char *line, struct osmdata_t *osmdata);
+	void EndElement(const char *name, struct osmdata_t *osmdata);
+	void process(char *line, struct osmdata_t *osmdata);
+};
 
 #endif

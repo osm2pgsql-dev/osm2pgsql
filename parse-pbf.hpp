@@ -25,6 +25,27 @@
 #ifndef PARSE_PBF_H
 #define PARSE_PBF_H
 
-int streamFilePbf(const char *filename, int sanitize, struct osmdata_t *osmdata);
+#include "parse.hpp"
+
+extern "C" {
+#include "fileformat.pb-c.h"
+#include "osmformat.pb-c.h"
+}
+
+class parse_pbf_t: public parse_t
+{
+public:
+	parse_pbf_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+				const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags);
+	virtual ~parse_pbf_t();
+	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
+protected:
+	parse_pbf_t();
+	int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
+	int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
+	int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
+	int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
+	int processOsmData(struct osmdata_t *osmdata, void *data, size_t length);
+};
 
 #endif

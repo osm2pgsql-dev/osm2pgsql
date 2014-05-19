@@ -19,7 +19,9 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	output-null.hpp \
 	output-pgsql.hpp \
 	output.hpp \
+	parse.hpp \
 	parse-o5m.hpp \
+	parse-pbf.hpp \
 	parse-primitive.hpp \
 	parse-xml2.hpp \
 	pgsql.hpp \
@@ -27,7 +29,8 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	reprojection.hpp \
 	sanitizer.hpp \
 	sprompt.hpp \
-	text-tree.hpp
+	text-tree.hpp \
+	util.hpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
 
@@ -49,7 +52,9 @@ libosm2pgsql_la_SOURCES = \
 	output-gazetteer.cpp \
 	output-null.cpp \
 	output-pgsql.cpp \
+	parse.cpp \
 	parse-o5m.cpp \
+	parse-pbf.cpp \
 	parse-primitive.cpp \
 	parse-xml2.cpp \
 	pgsql.cpp \
@@ -59,6 +64,7 @@ libosm2pgsql_la_SOURCES = \
 	taginfo.cpp \
 	tagtransform.cpp \
 	text-tree.cpp \
+	util.cpp \
 	wildcmp.cpp
 
 nodecachefilereader_SOURCES = node-persistent-cache-reader.cpp

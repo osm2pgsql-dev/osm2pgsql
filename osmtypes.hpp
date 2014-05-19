@@ -7,7 +7,7 @@
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <time.h>
+#include <boost/shared_ptr.hpp>
 #include <config.h>
 
 /* Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs. */
@@ -24,12 +24,6 @@ typedef int32_t osmid_t;
 #define POSTGRES_OSMID_TYPE "int4"
 #endif
 
-#include "keyvals.hpp"
-#include "reprojection.hpp"
-
-#include <boost/shared_ptr.hpp>
-
-struct output_t;
 
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
 
@@ -44,50 +38,20 @@ struct member {
     char *role;
 };
 
-typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
-typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
+//forward declaration needed here
+struct output_t;
 
-struct osmdata_t {
+class osmdata_t {
 	public:
-		osmdata_t(output_t* out_, const int& extra_attributes_, const char* bbox_, int projection);
+		osmdata_t(output_t* out_);
 		~osmdata_t();
-
-		void realloc_nodes();
-		void realloc_members();
-		void resetMembers();
-		void printStatus();
-		void printSummary();
-		int node_wanted(double lat, double lon);
-
-
-		osmid_t count_node,    max_node;
-		osmid_t count_way,     max_way;
-		osmid_t count_rel,     max_rel;
-		time_t  start_node, start_way, start_rel;
-
-		struct output_t *out;
-
-		/* Since {node,way} elements are not nested we can guarantee the
-		values in an end tag must match those of the corresponding
-		start tag and can therefore be cached.
-		*/
-		double node_lon, node_lat;
-		struct keyval tags;
-		osmid_t *nds;
-		int nd_count, nd_max;
-		struct member *members;
-		int member_count, member_max;
-		osmid_t osm_id;
-		filetypes_t filetype;
-		actions_t action;
-		int extra_attributes;
-		int parallel_indexing;
-		boost::shared_ptr<reprojection> proj;
     
+		//TODO: move output to be a private/protected member
+		// then steal from it its mid object and its important functions
+		// such as add/mod/del. then make output a vector of multiple
+		output_t *out;
 	private:
-		void parse_bbox(const char* bbox_);
-		bool bbox;
-		double minlon, minlat, maxlon, maxlat;
+
 };
 
 /* exit_nicely - called to cleanup after fatal error */

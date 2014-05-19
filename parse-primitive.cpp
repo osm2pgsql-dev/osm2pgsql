@@ -41,9 +41,10 @@ in a production environment.
 #include <assert.h>
 #include <ctype.h>
 
-#include "osmtypes.hpp"
+
 #include "sanitizer.hpp"
 #include "input.hpp"
+#include "parse-primitive.hpp"
 #include "output.hpp"
 
 
@@ -103,12 +104,12 @@ char *extractAttribute(char **token, int tokens, const char *attname)
 }
 
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
-static actions_t ParseAction(char **token, int tokens, struct osmdata_t *osmdata)
+actions_t parse_primitive_t::ParseAction(char **token, int tokens, struct osmdata_t *osmdata)
 {
     actions_t new_action;
     char *action;
-    if( osmdata->filetype == FILETYPE_OSMCHANGE || osmdata->filetype == FILETYPE_PLANETDIFF )
-        return osmdata->action;
+    if( filetype == FILETYPE_OSMCHANGE || filetype == FILETYPE_PLANETDIFF )
+        return ACTION_NONE;
     new_action = ACTION_NONE;
     action = extractAttribute(token, tokens, "action");
     if( action == NULL )
@@ -125,7 +126,7 @@ static actions_t ParseAction(char **token, int tokens, struct osmdata_t *osmdata
     return new_action;
 }
 
-static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
+void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *osmdata)
 {
     char *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
     char *token[255];
@@ -133,23 +134,23 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
     int quote = 0;
     char *i;
 
-    if (osmdata->filetype == FILETYPE_NONE)
+    if (filetype == FILETYPE_NONE)
     {
         if (!strcmp(name, "?xml")) return;
         if (!strcmp(name, "osm"))
         {
-            osmdata->filetype = FILETYPE_OSM;
-            osmdata->action = ACTION_CREATE;
+            filetype = FILETYPE_OSM;
+            action = ACTION_CREATE;
         }
         else if (!strcmp(name, "osmChange"))
         {
-            osmdata->filetype = FILETYPE_OSMCHANGE;
-            osmdata->action = ACTION_NONE;
+            filetype = FILETYPE_OSMCHANGE;
+            action = ACTION_NONE;
         }
         else if (!strcmp(name, "planetdiff"))
         {
-            osmdata->filetype = FILETYPE_PLANETDIFF;
-            osmdata->action = ACTION_NONE;
+            filetype = FILETYPE_PLANETDIFF;
+            action = ACTION_NONE;
         }
         else
         {
@@ -190,21 +191,21 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         xlat = extractAttribute(token, tokens, "lat");
         assert(xid); assert(xlon); assert(xlat);
 
-        osmdata->osm_id  = strtoosmid((char *)xid, NULL, 10);
-        osmdata->node_lon = strtod((char *)xlon, NULL);
-        osmdata->node_lat = strtod((char *)xlat, NULL);
-        osmdata->action = ParseAction(token, tokens, osmdata);
+        osm_id  = strtoosmid((char *)xid, NULL, 10);
+        node_lon = strtod((char *)xlon, NULL);
+        node_lat = strtod((char *)xlat, NULL);
+        action = ParseAction(token, tokens, osmdata);
 
-        if (osmdata->osm_id > osmdata->max_node)
-            osmdata->max_node = osmdata->osm_id;
+        if (osm_id > max_node)
+            max_node = osm_id;
 
-        if (osmdata->count_node == 0) {
-            time(&osmdata->start_node);
+        if (count_node == 0) {
+            time(&start_node);
         }
         
-        osmdata->count_node++;
-        if (osmdata->count_node%10000 == 0)
-            osmdata->printStatus();
+        count_node++;
+        if (count_node%10000 == 0)
+            printStatus();
 
     } else if (!strcmp(name, "tag")) {
         xk = extractAttribute(token, tokens, "k");
@@ -218,53 +219,53 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
             while ((p = strchr(xk, ' ')))
                 *p = '_';
 
-            addItem(&(osmdata->tags), xk, (char *)xv, 0);
+            addItem(&(tags), xk, (char *)xv, 0);
         }
     } else if (!strcmp(name, "way")) {
 
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
-        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
-        osmdata->action = ParseAction(token, tokens, osmdata);
+        osm_id   = strtoosmid((char *)xid, NULL, 10);
+        action = ParseAction(token, tokens, osmdata);
 
-        if (osmdata->osm_id > osmdata->max_way)
-            osmdata->max_way = osmdata->osm_id;
+        if (osm_id > max_way)
+            max_way = osm_id;
         
-        if (osmdata->count_way == 0) {
-            time(&osmdata->start_way);
+        if (count_way == 0) {
+            time(&start_way);
         }
         
-        osmdata->count_way++;
-        if (osmdata->count_way%1000 == 0)
-            osmdata->printStatus();
+        count_way++;
+        if (count_way%1000 == 0)
+            printStatus();
 
-        osmdata->nd_count = 0;
+        nd_count = 0;
     } else if (!strcmp(name, "nd")) {
         xid  = extractAttribute(token, tokens, "ref");
         assert(xid);
 
-        osmdata->nds[osmdata->nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
+        nds[nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
 
-        if( osmdata->nd_count >= osmdata->nd_max )
-          osmdata->realloc_nodes();
+        if( nd_count >= nd_max )
+          realloc_nodes();
     } else if (!strcmp(name, "relation")) {
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
-        osmdata->osm_id   = strtoosmid((char *)xid, NULL, 10);
-        osmdata->action = ParseAction(token, tokens, osmdata);
+        osm_id   = strtoosmid((char *)xid, NULL, 10);
+        action = ParseAction(token, tokens, osmdata);
 
-        if (osmdata->osm_id > osmdata->max_rel)
-            osmdata->max_rel = osmdata->osm_id;
+        if (osm_id > max_rel)
+            max_rel = osm_id;
         
-        if (osmdata->count_rel == 0) {
-            time(&osmdata->start_rel);
+        if (count_rel == 0) {
+            time(&start_rel);
         }
 
-        osmdata->count_rel++;
-        if (osmdata->count_rel%10 == 0)
-            osmdata->printStatus();
+        count_rel++;
+        if (count_rel%10 == 0)
+            printStatus();
 
-        osmdata->member_count = 0;
+        member_count = 0;
     } else if (!strcmp(name, "member")) {
         xrole = extractAttribute(token, tokens, "role");
         assert(xrole);
@@ -275,27 +276,27 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
         xid  = extractAttribute(token, tokens, "ref");
         assert(xid);
 
-        osmdata->members[osmdata->member_count].id   = strtoosmid( (char *)xid, NULL, 0 );
-        osmdata->members[osmdata->member_count].role = strdup( (char *)xrole );
+        members[member_count].id   = strtoosmid( (char *)xid, NULL, 0 );
+        members[member_count].role = strdup( (char *)xrole );
 
         /* Currently we are only interested in 'way' members since these form polygons with holes */
         if (!strcmp(xtype, "way"))
-            osmdata->members[osmdata->member_count].type = OSMTYPE_WAY;
+            members[member_count].type = OSMTYPE_WAY;
         else if (!strcmp(xtype, "node"))
-            osmdata->members[osmdata->member_count].type = OSMTYPE_NODE;
+            members[member_count].type = OSMTYPE_NODE;
         else if (!strcmp(xtype, "relation"))
-            osmdata->members[osmdata->member_count].type = OSMTYPE_RELATION;
-        osmdata->member_count++;
+            members[member_count].type = OSMTYPE_RELATION;
+        member_count++;
 
-        if( osmdata->member_count >= osmdata->member_max )
-        	osmdata->realloc_members();
+        if( member_count >= member_max )
+        	realloc_members();
     } else if (!strcmp(name, "add") ||
                !strcmp(name, "create")) {
-        osmdata->action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
+        action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
     } else if (!strcmp(name, "modify")) {
-        osmdata->action = ACTION_MODIFY;
+        action = ACTION_MODIFY;
     } else if (!strcmp(name, "delete")) {
-        osmdata->action = ACTION_DELETE;
+        action = ACTION_DELETE;
     } else if (!strcmp(name, "bound")) {
         /* ignore */
     } else if (!strcmp(name, "bounds")) {
@@ -307,7 +308,7 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
     }
 
     /* Collect extra attribute information and add as tags */
-    if (osmdata->extra_attributes && (!strcmp(name, "node") ||
+    if (extra_attributes && (!strcmp(name, "node") ||
 				      !strcmp(name, "way") ||
 				      !strcmp(name, "relation")))
     {
@@ -315,71 +316,71 @@ static void StartElement(char *name, char *line, struct osmdata_t *osmdata)
 
         xtmp = extractAttribute(token, tokens, "user");
         if (xtmp) {
-	  addItem(&(osmdata->tags), "osm_user", (char *)xtmp, 0);
+	  addItem(&(tags), "osm_user", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "uid");
         if (xtmp) {
-	  addItem(&(osmdata->tags), "osm_uid", (char *)xtmp, 0);
+	  addItem(&(tags), "osm_uid", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "version");
         if (xtmp) {
-	  addItem(&(osmdata->tags), "osm_version", (char *)xtmp, 0);
+	  addItem(&(tags), "osm_version", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "timestamp");
         if (xtmp) {
-	  addItem(&(osmdata->tags), "osm_timestamp", (char *)xtmp, 0);
+	  addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
         }
     }
 }
 
-static void EndElement(const char *name, struct osmdata_t *osmdata)
+void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
 {
     if (!strcmp(name, "node")) {
-      if (osmdata->node_wanted(osmdata->node_lat, osmdata->node_lon)) {
-	osmdata->proj->reproject(&(osmdata->node_lat), &(osmdata->node_lon));
-            if( osmdata->action == ACTION_CREATE )
-	      osmdata->out->node_add(osmdata->osm_id, osmdata->node_lat, osmdata->node_lon, &(osmdata->tags));
-            else if( osmdata->action == ACTION_MODIFY )
-	      osmdata->out->node_modify(osmdata->osm_id, osmdata->node_lat, osmdata->node_lon, &(osmdata->tags));
-            else if( osmdata->action == ACTION_DELETE )
-	      osmdata->out->node_delete(osmdata->osm_id);
+      if (node_wanted(node_lat, node_lon)) {
+	proj->reproject(&(node_lat), &(node_lon));
+            if( action == ACTION_CREATE )
+	      osmdata->out->node_add(osm_id, node_lat, node_lon, &(tags));
+            else if( action == ACTION_MODIFY )
+	      osmdata->out->node_modify(osm_id, node_lat, node_lon, &(tags));
+            else if( action == ACTION_DELETE )
+	      osmdata->out->node_delete(osm_id);
             else
             {
-	      fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osmdata->osm_id );
+	      fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osm_id );
 	      exit_nicely();
             }
         }
-      resetList(&(osmdata->tags));
+      resetList(&(tags));
     } else if (!strcmp(name, "way")) {
-      if( osmdata->action == ACTION_CREATE )
-	osmdata->out->way_add(osmdata->osm_id, osmdata->nds, osmdata->nd_count, &(osmdata->tags) );
-        else if( osmdata->action == ACTION_MODIFY )
-	  osmdata->out->way_modify(osmdata->osm_id, osmdata->nds, osmdata->nd_count, &(osmdata->tags) );
-        else if( osmdata->action == ACTION_DELETE )
-            osmdata->out->way_delete(osmdata->osm_id);
+      if( action == ACTION_CREATE )
+	osmdata->out->way_add(osm_id, nds, nd_count, &(tags) );
+        else if( action == ACTION_MODIFY )
+	  osmdata->out->way_modify(osm_id, nds, nd_count, &(tags) );
+        else if( action == ACTION_DELETE )
+            osmdata->out->way_delete(osm_id);
         else
         {
-            fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osmdata->osm_id );
+            fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
             exit_nicely();
         }
-      resetList(&(osmdata->tags));
+      resetList(&(tags));
     } else if (!strcmp(name, "relation")) {
-        if( osmdata->action == ACTION_CREATE )
-	  osmdata->out->relation_add(osmdata->osm_id, osmdata->members, osmdata->member_count, &(osmdata->tags));
-        else if( osmdata->action == ACTION_MODIFY )
-	  osmdata->out->relation_modify(osmdata->osm_id, osmdata->members, osmdata->member_count, &(osmdata->tags));
-        else if( osmdata->action == ACTION_DELETE )
-	  osmdata->out->relation_delete(osmdata->osm_id);
+        if( action == ACTION_CREATE )
+	  osmdata->out->relation_add(osm_id, members, member_count, &(tags));
+        else if( action == ACTION_MODIFY )
+	  osmdata->out->relation_modify(osm_id, members, member_count, &(tags));
+        else if( action == ACTION_DELETE )
+	  osmdata->out->relation_delete(osm_id);
         else
         {
-	  fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osmdata->osm_id );
+	  fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
 	  exit_nicely();
         }
-        resetList(&(osmdata->tags));
-        osmdata->resetMembers();
+        resetList(&(tags));
+        resetMembers();
     } else if (!strcmp(name, "tag")) {
         /* ignore */
     } else if (!strcmp(name, "nd")) {
@@ -387,35 +388,35 @@ static void EndElement(const char *name, struct osmdata_t *osmdata)
     } else if (!strcmp(name, "member")) {
 	/* ignore */
     } else if (!strcmp(name, "osm")) {
-        osmdata->printStatus();
-        osmdata->filetype = FILETYPE_NONE;
+        printStatus();
+        filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "osmChange")) {
-        osmdata->printStatus();
-        osmdata->filetype = FILETYPE_NONE;
+        printStatus();
+        filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "planetdiff")) {
-        osmdata->printStatus();
-        osmdata->filetype = FILETYPE_NONE;
+        printStatus();
+        filetype = FILETYPE_NONE;
     } else if (!strcmp(name, "bound")) {
         /* ignore */
     } else if (!strcmp(name, "bounds")) {
         /* ignore */
     } else if (!strcmp(name, "changeset")) {
         /* ignore */
-      resetList(&(osmdata->tags)); /* We may have accumulated some tags even if we ignored the changeset */
+      resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (!strcmp(name, "add")) {
-        osmdata->action = ACTION_NONE;
+        action = ACTION_NONE;
     } else if (!strcmp(name, "create")) {
-        osmdata->action = ACTION_NONE;
+        action = ACTION_NONE;
     } else if (!strcmp(name, "modify")) {
-        osmdata->action = ACTION_NONE;
+        action = ACTION_NONE;
     } else if (!strcmp(name, "delete")) {
-        osmdata->action = ACTION_NONE;
+        action = ACTION_NONE;
     } else {
         fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
     }
 }
 
-static void process(char *line, struct osmdata_t *osmdata) {
+void parse_primitive_t::process(char *line, struct osmdata_t *osmdata) {
     char *lt = strchr(line, '<');
     if (lt)
     {
@@ -448,7 +449,19 @@ static void process(char *line, struct osmdata_t *osmdata) {
     }
 }
 
-int streamFilePrimitive(const char *filename, int sanitize UNUSED, struct osmdata_t *osmdata) {
+parse_primitive_t::parse_primitive_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+{
+
+}
+
+parse_primitive_t::~parse_primitive_t()
+{
+
+}
+
+int parse_primitive_t::streamFile(const char *filename, const int UNUSED, osmdata_t *osmdata) {
     struct Input *i;
     char buffer[65536];
     int bufsz = 0;

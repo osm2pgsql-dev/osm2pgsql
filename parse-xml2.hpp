@@ -37,6 +37,27 @@
  *
  * Return value: 0 on success. A non-zero value indicates failure.
  */
-int streamFileXML2(const char *filename, int sanitize, struct osmdata_t *osmdata);
+
+#include "parse.hpp"
+
+#include <libxml/xmlstring.h>
+#include <libxml/xmlreader.h>
+
+class parse_xml2_t: public parse_t
+{
+public:
+	parse_xml2_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+			const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags);
+	virtual ~parse_xml2_t();
+	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
+protected:
+	parse_xml2_t();
+	actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata );
+	void SetFiletype(const xmlChar* name, osmdata_t* osmdata);
+	void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata);
+	void EndElement(const xmlChar *name, struct osmdata_t *osmdata);
+	void processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata);
+};
+
 
 #endif

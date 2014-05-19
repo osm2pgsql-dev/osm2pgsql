@@ -29,6 +29,7 @@ struct reprojection : public boost::noncopyable
     struct Projection_Info const* project_getprojinfo(void);
     void reproject(double *lat, double *lon);
     void coords_to_tile(double *tilex, double *tiley, double lon, double lat, int map_width);
+    int get_proj_id() const;
 
 private:
     int Proj;

@@ -53,18 +53,13 @@
 #include "text-tree.hpp"
 #include "input.hpp"
 #include "sprompt.hpp"
-#include "parse-xml2.hpp"
-#include "parse-primitive.hpp"
-#include "parse-o5m.hpp"
+#include "parse.hpp"
 
 #ifdef BUILD_READER_PBF
 #  include "parse-pbf.hpp"
 #endif
 
 int verbose;
-
-//TODO: move this typedef to a shared parsing header
-typedef int (*stream_input_file_t)(const char *, int, struct osmdata_t *);
 
 static void short_usage(char *arg0)
 {
@@ -285,45 +280,6 @@ output_t* get_output(const char* output_backend)
 	}
 }
 
-stream_input_file_t get_input_reader(const char* input_reader, const char* filename)
-{
-	// if input_reader is forced to a specific iput format
-	if (strcmp("auto", input_reader) != 0) {
-		if (strcmp("libxml2", input_reader) == 0) {
-			return &streamFileXML2;
-		} else if (strcmp("primitive", input_reader) == 0) {
-			return &streamFilePrimitive;
-#ifdef BUILD_READER_PBF
-		} else if (strcmp("pbf", input_reader) == 0) {
-			return &streamFilePbf;
-#endif
-		} else if (strcmp("o5m", input_reader) == 0) {
-			return &streamFileO5m;
-		} else {
-			fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
-#ifdef BUILD_READER_PBF
-							", pbf"
-#endif
-							"].\n", input_reader);
-			exit(EXIT_FAILURE);
-		}
-	} // if input_reader is not forced by -r switch try to auto-detect it by file extension
-	else {
-		if (strcasecmp(".pbf", filename + strlen(filename) - 4) == 0) {
-#ifdef BUILD_READER_PBF
-			return &streamFilePbf;
-#else
-			fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
-			exit(EXIT_FAILURE);
-#endif
-		} else if (strcasecmp(".o5m", filename + strlen(filename) - 4) == 0
-				|| strcasecmp(".o5c", filename + strlen(filename) - 4) == 0) {
-			return &streamFileO5m;
-		} else {
-			return &streamFileXML2;
-		}
-	}
-}
  
 int main(int argc, char *argv[])
 {
@@ -559,44 +515,35 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION;
 
-    //setup the backend
+    //setup the backend (output)
     output_t* out = get_output(output_backend);
-    osmdata_t* osmdata;
-    try
-    {
-    	osmdata = new osmdata_t(out, extra_attributes, bbox, options.projection);
-    }
-    catch(std::exception& e)
-    {
-    	fprintf(stderr, "%s", e.what());
-    	return 1;
-    }
+    osmdata_t osmdata(out);
 
     //setup the middle
     middle_t* mid = options.slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
 
-    fprintf(stderr, "Using projection SRS %d (%s)\n", 
-            osmdata->proj->project_getprojinfo()->srs,
-            osmdata->proj->project_getprojinfo()->descr );
+    //setup the front (input)
+    parse_delegate_t parser(extra_attributes, bbox, options.projection);
 
-    options.scale = (options.projection==PROJ_LATLONG)?10000000:100;
-    options.projection = osmdata->proj->project_getprojinfo()->srs;
+    fprintf(stderr, "Using projection SRS %d (%s)\n", 
+    		parser.getProjection()->project_getprojinfo()->srs,
+    		parser.getProjection()->project_getprojinfo()->descr );
+
+    options.projection = parser.getProjection()->project_getprojinfo()->srs;
+    options.scale = (parser.getProjection()->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
     options.mid = mid;
     options.out = out;
 
     //start it up
     time_t overall_start = time(NULL);
-    out->start(&options, osmdata->proj);
+    out->start(&options, parser.getProjection());
 
     //read in the input files one by one
     while (optind < argc) {
-        //figure how we are going to read the input
-        stream_input_file_t streamFile = get_input_reader(input_reader, argv[optind]);
-
         //read the actual input
         fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
         time_t start = time(NULL);
-        if (streamFile(argv[optind], sanitize, osmdata) != 0)
+        if (parser.streamFile(input_reader, argv[optind], sanitize, &osmdata) != 0)
             exit_nicely();
         fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         optind++;
@@ -606,12 +553,7 @@ int main(int argc, char *argv[])
     xmlMemoryDump();
     
     //show stats
-    if (osmdata->count_node || osmdata->count_way || osmdata->count_rel) {
-        osmdata->printSummary();
-    }
-
-    /* done with osmdata_t */
-    delete osmdata;
+    parser.printSummary();
 
     /* done with output_*_t */
     out->stop();

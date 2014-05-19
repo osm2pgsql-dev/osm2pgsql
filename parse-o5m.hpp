@@ -25,7 +25,18 @@
 #ifndef PARSE_O5M_H
 #define PARSE_O5M_H
 
-int streamFileO5m(const char *filename,int sanitize,struct osmdata_t *osmdata);
+#include "parse.hpp"
+
+class parse_o5m_t: public parse_t
+{
+public:
+	parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
+				const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags);
+	virtual ~parse_o5m_t();
+	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
+protected:
+	parse_o5m_t();
+};
 
 #endif
 

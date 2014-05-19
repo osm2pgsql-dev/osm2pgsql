@@ -8,6 +8,7 @@
 #include "parse-xml2.hpp"
 #include "output.hpp"
 #include "text-tree.hpp"
+#include "keyvals.hpp"
 
 void exit_nicely()
 {
@@ -87,11 +88,15 @@ int main(int argc, char *argv[]) {
   text_init();
 
   struct test_output_t out_test;
-  struct osmdata_t osmdata(&out_test, 0, NULL, PROJ_SPHERE_MERC);
+  struct osmdata_t osmdata(&out_test);
   struct output_options options; memset(&options, 0, sizeof options);
   options.out = &out_test;
+  boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
+  keyval tags;
+  initList(&tags);
+  parse_xml2_t parser(0, false, projection, 0, 0, 0, 0, tags);
 
-  int ret = streamFileXML2(inputfile.c_str(), 0, &osmdata);
+  int ret = parser.streamFile(inputfile.c_str(), 0, &osmdata);
   if (ret != 0) {
     return ret;
   }
