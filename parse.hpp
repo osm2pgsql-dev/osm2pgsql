@@ -71,7 +71,7 @@ protected:
 	start tag and can therefore be cached.
 	*/
 	double node_lon, node_lat;
-	keyval tags;
+	keyval& tags;
 	osmid_t *nds;
 	int nd_count, nd_max;
 	member *members;
