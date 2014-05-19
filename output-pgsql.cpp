@@ -583,7 +583,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
         return 0;
     /* Split long ways after around 1 degree or 100km */
-    if (m_options->projection == PROJ_LATLONG)
+    if (m_options->projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;
@@ -641,7 +641,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     }
     
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
-    if (m_options->projection == PROJ_LATLONG)
+    if (m_options->projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;

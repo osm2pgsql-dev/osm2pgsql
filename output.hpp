@@ -35,7 +35,7 @@ struct output_options {
 	  conninfo(NULL),
 	  prefix("planet_osm"),
 	  scale(DEFAULT_SCALE),
-	  projection(PROJ_SPHERE_MERC),
+	  projection(new reprojection(PROJ_SPHERE_MERC)),
 	  append(0),
 	  slim(0),
 	  cache(800),
@@ -74,7 +74,7 @@ struct output_options {
   const char *conninfo;  /* Connection info string */
   const char *prefix;    /* prefix for table names */
   int scale;       /* scale for converting coordinates to fixed point */
-  int projection;  /* SRS of projection */
+  boost::shared_ptr<reprojection> projection;  /* SRS of projection */
   int append;      /* Append to existing data */
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */

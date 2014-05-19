@@ -365,10 +365,10 @@ int main(int argc, char *argv[])
             case 's': options.slim=1;     break;
             case 'K': options.keep_coastlines=1;     break;
             case 'u': sanitize=1; break;
-            case 'l': options.projection=PROJ_LATLONG;  break;
-            case 'm': options.projection=PROJ_SPHERE_MERC; break;
-            case 'M': options.projection=PROJ_MERC; break;
-            case 'E': options.projection=-atoi(optarg); break;
+            case 'l': options.projection.reset(new reprojection(PROJ_LATLONG));  break;
+            case 'm': options.projection.reset(new reprojection(PROJ_SPHERE_MERC)); break;
+            case 'M': options.projection.reset(new reprojection(PROJ_MERC)); break;
+            case 'E': options.projection.reset(new reprojection(-atoi(optarg))); break;
             case 'p': options.prefix=optarg; break;
             case 'd': db=optarg;  break;
             case 'C': options.cache = atoi(optarg); break;
@@ -526,11 +526,10 @@ int main(int argc, char *argv[])
     parse_delegate_t parser(extra_attributes, bbox, options.projection);
 
     fprintf(stderr, "Using projection SRS %d (%s)\n", 
-    		parser.getProjection()->project_getprojinfo()->srs,
-    		parser.getProjection()->project_getprojinfo()->descr );
+    		options.projection->project_getprojinfo()->srs,
+    		options.projection->project_getprojinfo()->descr );
 
-    options.projection = parser.getProjection()->project_getprojinfo()->srs;
-    options.scale = (parser.getProjection()->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
     options.mid = mid;
     options.out = out;
 

@@ -17,7 +17,7 @@ class parse_t;
 class parse_delegate_t
 {
 public:
-	parse_delegate_t(const int extra_attributes, const char* bbox, const int projection);
+	parse_delegate_t(const int extra_attributes, const char* bbox, boost::shared_ptr<reprojection> projection);
 	~parse_delegate_t();
 
 	int streamFile(const char* input_reader, const char* filename, const int sanitize, osmdata_t *osmdata);

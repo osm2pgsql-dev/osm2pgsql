@@ -13,14 +13,13 @@
 
 
 
-parse_delegate_t::parse_delegate_t(const int extra_attributes, const char* bbox, const int projection):
-m_extra_attributes(extra_attributes), m_count_node(0), m_max_node(0),
+parse_delegate_t::parse_delegate_t(const int extra_attributes, const char* bbox, boost::shared_ptr<reprojection> projection):
+m_extra_attributes(extra_attributes), m_proj(projection), m_count_node(0), m_max_node(0),
 m_count_way(0), m_max_way(0), m_count_rel(0), m_max_rel(0), m_start_node(0), m_start_way(0), m_start_rel(0)
 {
 	m_bbox = bbox != NULL;
 	parse_bbox(bbox);
 	initList(&m_tags);
-	m_proj.reset(new reprojection(projection));
 }
 
 parse_delegate_t::~parse_delegate_t()
