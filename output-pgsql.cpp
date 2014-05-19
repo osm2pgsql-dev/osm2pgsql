@@ -941,7 +941,7 @@ int output_pgsql_t::start()
     }
     expire.reset(new expire_tiles(m_options));
 
-    m_mid->start();
+    m_mid->start(this);
 
     return 0;
 }

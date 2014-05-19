@@ -1057,7 +1057,7 @@ int output_gazetteer_t::start()
    }
 
    /* Setup middle layer */
-   m_mid->start();
+   m_mid->start(this);
 
    hLog = fopen("log", "w");
 

@@ -1459,8 +1459,9 @@ static void set_prefix_and_tbls(const struct output_options *options, const char
 }
 
 
-int middle_pgsql_t::start()
+int middle_pgsql_t::start(output_t* out_)
 {
+    out = out_;
     PGresult   *res;
     int i;
     int dropcreate = !out->get_options()->append;
@@ -1715,8 +1716,8 @@ void middle_pgsql_t::stop(void)
 #endif
 }
 
-middle_pgsql_t::middle_pgsql_t(output_t* out_)
-    : slim_middle_t(out_), tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
+middle_pgsql_t::middle_pgsql_t()
+    : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
       Append(0), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/

@@ -104,7 +104,7 @@ struct output_options {
 
 class output_t : public boost::noncopyable {
 public:
-	output_t(middle_t* mid_, const output_options* options_);
+    output_t(middle_t* mid_, const output_options* options_);
     virtual ~output_t();
 
     virtual int start() = 0;
@@ -128,6 +128,7 @@ public:
     virtual const output_options* get_options()const;
 
 protected:
+    output_t();
     middle_t* m_mid;
     const output_options* m_options;
 };

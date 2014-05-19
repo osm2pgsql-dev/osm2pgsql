@@ -313,8 +313,9 @@ void middle_ram_t::end(void)
     /* No need */
 }
 
-int middle_ram_t::start()
+int middle_ram_t::start(output_t* out_)
 {
+    out = out_;
     /* latlong has a range of +-180, mercator +-20000
        The fixed poing scaling needs adjusting accordingly to
        be stored accurately in an int */
@@ -349,8 +350,8 @@ void middle_ram_t::stop(void)
 void middle_ram_t::commit(void) {
 }
 
-middle_ram_t::middle_ram_t(output_t* out_):
-	middle_t(out_), ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache()
+middle_ram_t::middle_ram_t():
+    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache()
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
     rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);

@@ -217,31 +217,29 @@ int main(int argc, char *argv[]) {
     return 77; // <-- code to skip this test.
   }
 
-  struct output_null_t out_test;
-  struct output_options options; memset(&options, 0, sizeof options);
   struct middle_pgsql_t mid_pgsql;
-
-  options.out = &out_test;
+  struct output_options options; memset(&options, 0, sizeof options);
   options.conninfo = db->conninfo().c_str();
   options.scale = 10000000;
-  options.mid = &mid_pgsql;
   options.num_procs = 1;
   options.prefix = "osm2pgsql_test";
   options.tblsslim_index = "tablespacetest";
   options.tblsslim_data = "tablespacetest";
   options.slim = 1;
 
+  struct output_null_t out_test(&mid_pgsql, &options);
+
   try {
     // start an empty table to make the middle create the
     // tables it needs. we then run the test in "append" mode.
-    mid_pgsql.start(&options);
+    mid_pgsql.start(&out_test);
     mid_pgsql.commit();
     mid_pgsql.stop();
 
     options.append = 1; /* <- needed because we're going to change the
                          *    data and check that the updates fire. */
 
-    mid_pgsql.start(&options);
+    mid_pgsql.start(&out_test);
     
     int status = 0;
     

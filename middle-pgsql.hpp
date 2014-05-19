@@ -17,10 +17,10 @@
 #include <boost/shared_ptr.hpp>
 
 struct middle_pgsql_t : public slim_middle_t {
-    middle_pgsql_t(output_t* out_);
+    middle_pgsql_t();
     virtual ~middle_pgsql_t();
 
-    int start(void);
+    int start(output_t* out_);
     void stop(void);
     void cleanup(void);
     void analyze(void);

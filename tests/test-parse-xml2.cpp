@@ -19,8 +19,8 @@ void exit_nicely()
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
-    test_output_t()
-        : sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+    test_output_t(middle_t* mid_,const output_options* options_)
+        : output_t(mid_, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
 
@@ -52,8 +52,8 @@ struct test_output_t : public output_t {
         return 0;
     }
 
-    int start(const struct output_options *options, boost::shared_ptr<reprojection> r) { return 0; }
-    int connect(const struct output_options *options, int startTransaction) { return 0; }
+    int start() { return 0; }
+    int connect(int startTransaction) { return 0; }
     void stop() { }
     void cleanup(void) { }
     void close(int stopTransaction) { }
@@ -87,11 +87,13 @@ int main(int argc, char *argv[]) {
   // need this to avoid segfault!
   text_init();
 
-  struct test_output_t out_test;
-  struct osmdata_t osmdata(&out_test);
   struct output_options options; memset(&options, 0, sizeof options);
-  options.out = &out_test;
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
+  options.projection = projection;
+
+  struct test_output_t out_test(NULL, &options);
+  struct osmdata_t osmdata(NULL, &out_test);
+
   keyval tags;
   initList(&tags);
   parse_xml2_t parser(0, false, projection, 0, 0, 0, 0, tags);

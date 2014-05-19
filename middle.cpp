@@ -1,14 +1,6 @@
 #include "middle.hpp"
 
-middle_t::middle_t(output_t* out_):out(out_) {
-
-}
-
 middle_t::~middle_t() {
-}
-
-slim_middle_t::slim_middle_t(output_t* out_):middle_t(out_) {
-
 }
 
 slim_middle_t::~slim_middle_t() {
