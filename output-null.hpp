@@ -6,12 +6,13 @@
 
 #include "output.hpp"
 
-struct output_null_t : public output_t {
-    output_null_t();
+class output_null_t : public output_t {
+public:
+    output_null_t(middle_t* mid_, const output_options* options);
     virtual ~output_null_t();
 
-    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
-    int connect(const struct output_options *options, int startTransaction);
+    int start();
+    int connect(int startTransaction);
     void stop();
     void cleanup(void);
     void close(int stopTransaction);

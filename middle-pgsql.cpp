@@ -371,7 +371,7 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
       int length = strlen(tag_buf) + 64;
       buffer = (char *)alloca( length );
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out->get_options()->scale), util::double_to_fix(lon, out->get_options()->scale), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
@@ -385,9 +385,9 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
     ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
     paramValues[1] = ptr;
 #ifdef FIXED_POINT
-    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
+    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out->get_options()->scale) ) + 1;
     paramValues[2] = ptr;
-    sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
+    sprintf( ptr, "%d", util::double_to_fix(lon, out->get_options()->scale) );
 #else
     ptr += sprintf( ptr, "%.10f", lat ) + 1;
     paramValues[2] = ptr;
@@ -458,8 +458,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     for (i = 0; i < countPG; i++) {
         ndidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
 #ifdef FIXED_POINT 
-        nodespg[i].lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
-        nodespg[i].lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
+        nodespg[i].lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out->get_options()->scale);
+        nodespg[i].lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out->get_options()->scale);
 #else 
         nodespg[i].lat = strtod(PQgetvalue(res, i, 1), NULL); 
         nodespg[i].lon = strtod(PQgetvalue(res, i, 2), NULL); 
@@ -520,12 +520,12 @@ void middle_pgsql_t::cleanup(void)
 int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     cache->set( id, lat, lon, tags );
 
-    return (out_options->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
+    return (out->get_options()->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
 int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
-    return (out_options->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
+    return (out->get_options()->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
 
 int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -543,7 +543,7 @@ int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 
 int middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
-    return ((out_options->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
+    return ((out->get_options()->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
 }
 
 int middle_pgsql_t::node_changed(osmid_t osm_id)
@@ -729,7 +729,7 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
-    int noProcs = out_options->num_procs;
+    int noProcs = out->get_options()->num_procs;
     int pid = 0;
     PGresult   *res_ways;
     int i, p, count = 0;
@@ -753,7 +753,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
 
     res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
@@ -787,7 +787,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 #endif
     if ((pid == 0) && (noProcs > 1)) {
         /* After forking, need to reconnect to the postgresql db */
-        if ((pgsql_connect(tables, out_options) != 0) || (out_options->out->connect(out_options, 1) != 0)) {
+        if ((pgsql_connect(tables, out->get_options()) != 0) || (out->connect(1) != 0)) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #else
@@ -799,7 +799,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(),1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
     /* Only start an extended transaction on the ways table,
      * which should cover the bulk of the update statements.
@@ -942,8 +942,8 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 
     if ((pid == 0) && (noProcs > 1)) {
         cleanup();
-        out_options->out->close(1);
-        if (out_options->flat_node_cache_enabled) persistent_cache.reset();
+        out->close(1);
+        if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
@@ -1133,7 +1133,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     PGresult   *res_rels;
-    int noProcs = out_options->num_procs;
+    int noProcs = out->get_options()->num_procs;
     int pid;
     int i, p, count = 0;
     /* The flag we pass to indicate that the way in question might exist already in the database */
@@ -1156,7 +1156,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
 
     res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
 
@@ -1185,7 +1185,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     }
 #endif
     if ((pid == 0) && (noProcs > 1)) {
-        if ((out_options->out->connect(out_options, 0) != 0) || (pgsql_connect(tables, out_options) != 0)) {
+        if ((out->connect(0) != 0) || (pgsql_connect(tables, out->get_options()) != 0)) {
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #endif
@@ -1195,7 +1195,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
         p = 0;
     }
 
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(), 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
 #if HAVE_MMAP 
     if (noProcs > 1) { 
@@ -1312,8 +1312,8 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 
     if ((pid == 0) && (noProcs > 1)) {
         cleanup();
-        out_options->out->close(0);
-        if (out_options->flat_node_cache_enabled) persistent_cache.reset();
+        out->close(0);
+        if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
         exit(0);
     } else {
         for (p = 0; p < noProcs; p++) wait(NULL);
@@ -1459,42 +1459,40 @@ static void set_prefix_and_tbls(const struct output_options *options, const char
 }
 
 
-int middle_pgsql_t::start(const struct output_options *options)
+int middle_pgsql_t::start()
 {
     PGresult   *res;
     int i;
-    int dropcreate = !options->append;
+    int dropcreate = !out->get_options()->append;
     char * sql;
 
-    Append = options->append;
+    Append = out->get_options()->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
     build_indexes = 0;
-
-    out_options = options;
     
-    cache.reset(new node_ram_cache( options->alloc_chunkwise | ALLOC_LOSSY, options->cache, out_options->scale));
-    if (options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(options, options->append, cache));
+    cache.reset(new node_ram_cache( out->get_options()->alloc_chunkwise | ALLOC_LOSSY, out->get_options()->cache, out->get_options()->scale));
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(), out->get_options()->append, cache));
 
-    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", options->scale, options->cache);
+    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out->get_options()->scale, out->get_options()->cache);
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
                         
-        set_prefix_and_tbls(options, &(tables[i].name));
-        set_prefix_and_tbls(options, &(tables[i].start));
-        set_prefix_and_tbls(options, &(tables[i].create));
-        set_prefix_and_tbls(options, &(tables[i].create_index));
-        set_prefix_and_tbls(options, &(tables[i].prepare));
-        set_prefix_and_tbls(options, &(tables[i].prepare_intarray));
-        set_prefix_and_tbls(options, &(tables[i].copy));
-        set_prefix_and_tbls(options, &(tables[i].analyze));
-        set_prefix_and_tbls(options, &(tables[i].stop));
-        set_prefix_and_tbls(options, &(tables[i].array_indexes));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].name));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].start));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].create));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].create_index));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].prepare));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].prepare_intarray));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].copy));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].analyze));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].stop));
+        set_prefix_and_tbls(out->get_options(), &(tables[i].array_indexes));
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(options->conninfo);
+        sql_conn = PQconnectdb(out->get_options()->conninfo);
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -1543,7 +1541,7 @@ int middle_pgsql_t::start(const struct output_options *options)
             }
             PQclear(res);
 
-            if (options->append)
+            if (out->get_options()->append)
             {
                 sql = (char *)malloc (2048);
                 snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
@@ -1568,7 +1566,7 @@ int middle_pgsql_t::start(const struct output_options *options)
                 PQclear(res);
             }
 
-            if(!options->append)
+            if(!out->get_options()->append)
                 build_indexes = 1;
         }
         if (dropcreate) {
@@ -1627,7 +1625,7 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     fprintf(stderr, "Stopping table: %s\n", table->name);
     pgsql_endCopy(table);
     time(&start);
-    if (!out_options->droptemp)
+    if (!out->get_options()->droptemp)
     {
         if (build_indexes && table->array_indexes) {
             char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
@@ -1687,7 +1685,7 @@ void middle_pgsql_t::stop(void)
 #endif
 
     cache.reset();
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
+    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
 
 #ifdef HAVE_PTHREAD
     pthread_thunk thunks[num_tables];
@@ -1717,9 +1715,9 @@ void middle_pgsql_t::stop(void)
 #endif
 }
 
-middle_pgsql_t::middle_pgsql_t()
-    : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
-      Append(0), out_options(NULL), cache(), persistent_cache(), build_indexes(0)
+middle_pgsql_t::middle_pgsql_t(output_t* out_)
+    : slim_middle_t(out_), tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
+      Append(0), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(

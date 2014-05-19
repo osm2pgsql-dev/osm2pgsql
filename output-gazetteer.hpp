@@ -7,12 +7,13 @@
 
 #include <boost/shared_ptr.hpp>
 
-struct output_gazetteer_t : public output_t {
-    output_gazetteer_t();
+class output_gazetteer_t : public output_t {
+public:
+    output_gazetteer_t(middle_t* mid_, const output_options* options_);
     virtual ~output_gazetteer_t();
 
-    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
-    int connect(const struct output_options *options, int startTransaction);
+    int start();
+    int connect(int startTransaction);
     void stop();
     void cleanup(void);
     void close(int stopTransaction);
@@ -48,8 +49,6 @@ private:
                               int delete_old);
     int gazetteer_process_relation(osmid_t id, struct member *members, int member_count,
                                    struct keyval *tags, int delete_old);
-
-    const struct output_options *Options;
 
     struct pg_conn *Connection;
     struct pg_conn *ConnectionDelete;

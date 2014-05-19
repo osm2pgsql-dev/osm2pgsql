@@ -313,14 +313,14 @@ void middle_ram_t::end(void)
     /* No need */
 }
 
-int middle_ram_t::start(const struct output_options *options)
+int middle_ram_t::start()
 {
     /* latlong has a range of +-180, mercator +-20000
        The fixed poing scaling needs adjusting accordingly to
        be stored accurately in an int */
-    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache, options->scale));
+    cache.reset(new node_ram_cache(out->get_options()->alloc_chunkwise, out->get_options()->cache, out->get_options()->scale));
     
-    fprintf( stderr, "Mid: Ram, scale=%d\n", options->scale );
+    fprintf( stderr, "Mid: Ram, scale=%d\n", out->get_options()->scale );
 
     return 0;
 }
@@ -349,9 +349,8 @@ void middle_ram_t::stop(void)
 void middle_ram_t::commit(void) {
 }
 
-middle_ram_t::middle_ram_t() 
-    : ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0),
-      cache()
+middle_ram_t::middle_ram_t(output_t* out_):
+	middle_t(out_), ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache()
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
     rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);

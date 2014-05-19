@@ -39,8 +39,6 @@ struct output_options {
 	  append(0),
 	  slim(0),
 	  cache(800),
-	  mid(NULL),
-	  out(NULL),
 	  tblsmain_index(NULL),
 	  tblsslim_index(NULL),
 	  tblsmain_data(NULL),
@@ -78,8 +76,6 @@ struct output_options {
   int append;      /* Append to existing data */
   int slim;        /* In slim mode */
   int cache;       /* Memory usable for cache in MB */
-  struct middle_t *mid;  /* Mid storage to use */
-  struct output_t *out;  /* Output type used */ //TODO: we must remove this so that the middle cant call into the out
   const char *tblsmain_index;     /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
   const char *tblsslim_index;     /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
   const char *tblsmain_data;     /* Pg Tablespace to store main tables (no default TABLESPACE)*/
@@ -106,11 +102,13 @@ struct output_options {
   const char *tag_transform_script;
 };
 
-struct output_t : public boost::noncopyable {
+class output_t : public boost::noncopyable {
+public:
+	output_t(middle_t* mid_, const output_options* options_);
     virtual ~output_t();
 
-    virtual int start(const struct output_options *options, boost::shared_ptr<reprojection> r) = 0;
-    virtual int connect(const struct output_options *options, int startTransaction) = 0;
+    virtual int start() = 0;
+    virtual int connect(int startTransaction) = 0;
     virtual void stop() = 0;
     virtual void cleanup(void) = 0;
     virtual void close(int stopTransaction) = 0;
@@ -126,6 +124,12 @@ struct output_t : public boost::noncopyable {
     virtual int node_delete(osmid_t id) = 0;
     virtual int way_delete(osmid_t id) = 0;
     virtual int relation_delete(osmid_t id) = 0;
+
+    virtual const output_options* get_options()const;
+
+protected:
+    middle_t* m_mid;
+    const output_options* m_options;
 };
 
 unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon);

@@ -577,7 +577,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     /* If the flag says this object may exist already, delete it first */
     if(exists) {
         pgsql_delete_way_from_output(id);
-        dynamic_cast<slim_middle_t *>(m_options->mid)->way_changed(id);
+        dynamic_cast<slim_middle_t *>(m_mid)->way_changed(id);
     }
 
     if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
@@ -685,7 +685,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
-                m_options->mid->ways_done(xid[i]);
+                m_mid->ways_done(xid[i]);
                 pgsql_delete_way_from_output(xid[i]);
             }
         }
@@ -722,11 +722,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     return 0;
 }
 
-int output_pgsql_t::connect(const struct output_options *options, int startTransaction) {
+int output_pgsql_t::connect(int startTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn;
-        sql_conn = PQconnectdb(options->conninfo);
+        sql_conn = PQconnectdb(m_options->conninfo);
         
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -742,7 +742,7 @@ int output_pgsql_t::connect(const struct output_options *options, int startTrans
     return 0;
 }
 
-int output_pgsql_t::start(const struct output_options *options, boost::shared_ptr<reprojection> r)
+int output_pgsql_t::start()
 {
     char *sql, tmp[256];
     PGresult   *res;
@@ -753,8 +753,8 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
     enum OsmType type;
     int numTags;
 
-    reproj = r;
-    builder.set_exclude_broken_polygon(options->excludepoly);
+    reproj = m_options->projection;
+    builder.set_exclude_broken_polygon(m_options->excludepoly);
 
     /* Tables to output */
     m_tables.reserve(NUM_TABLES);
@@ -763,11 +763,9 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
     m_tables.push_back(table("%s_polygon", "GEOMETRY"  )); /* Actually POLGYON & MULTIPOLYGON but no way to limit to just these two */
     m_tables.push_back(table("%s_roads",   "LINESTRING"));
 
-    m_options = options;
-
     m_export_list = new export_list;
 
-    m_enable_way_area = read_style_file( options->style, m_export_list );
+    m_enable_way_area = read_style_file( m_options->style, m_export_list );
 
     sql_len = 2048;
     sql = (char *)malloc(sql_len);
@@ -778,12 +776,12 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
 
         /* Substitute prefix into name of table */
         {
-            char *temp = (char *)malloc( strlen(options->prefix) + strlen(m_tables[i].name) + 1 );
-            sprintf( temp, m_tables[i].name, options->prefix );
+            char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i].name) + 1 );
+            sprintf( temp, m_tables[i].name, m_options->prefix );
             m_tables[i].name = temp;
         }
         fprintf(stderr, "Setting up table: %s\n", m_tables[i].name);
-        sql_conn = PQconnectdb(options->conninfo);
+        sql_conn = PQconnectdb(m_options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -793,7 +791,7 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
         m_tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
-        if (!options->append) {
+        if (!m_options->append) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", m_tables[i].name);
         }
         else
@@ -822,7 +820,7 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
         type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
         const std::vector<taginfo> &infos = m_export_list->get(type);
         numTags = infos.size();
-        if (!options->append) {
+        if (!m_options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i].name );
             for (j=0; j < numTags; j++) {
                 const taginfo &info = infos[j];
@@ -934,16 +932,16 @@ int output_pgsql_t::start(const struct output_options *options, boost::shared_pt
     free(sql);
 
     try {
-    	m_tagtransform = new tagtransform(options);
+    	m_tagtransform = new tagtransform(m_options);
     }
     catch(std::runtime_error& e) {
     	fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         exit_nicely();
     }
-    expire.reset(new expire_tiles(options));
+    expire.reset(new expire_tiles(m_options));
 
-    options->mid->start(options);
+    m_mid->start();
 
     return 0;
 }
@@ -1141,7 +1139,7 @@ void output_pgsql_t::stop()
      * as well as see the newly created tables.
      */
     pgsql_out_commit();
-    m_options->mid->commit();
+    m_mid->commit();
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
@@ -1154,9 +1152,9 @@ void output_pgsql_t::stop()
     buffer sql;
     /* Processing any remaing to be processed ways */
     way_cb_func way_callback(this, sql);
-    m_options->mid->iterate_ways( way_callback );
+    m_mid->iterate_ways( way_callback );
     pgsql_out_commit();
-    m_options->mid->commit();
+    m_mid->commit();
 
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
@@ -1164,7 +1162,7 @@ void output_pgsql_t::stop()
      * from process_relation, can deadlock if using multi-processing.
      */
     rel_cb_func rel_callback(this, sql);
-    m_options->mid->iterate_relations( rel_callback );
+    m_mid->iterate_relations( rel_callback );
 
 #ifdef HAVE_PTHREAD
     if (m_options->parallel_indexing) {
@@ -1183,7 +1181,7 @@ void output_pgsql_t::stop()
       }
   
       /* No longer need to access middle layer -- release memory */
-      m_options->mid->stop();
+      m_mid->stop();
   
       for (i=0; i<NUM_TABLES; i++) {
           int ret = pthread_join(threads[i], NULL);
@@ -1196,7 +1194,7 @@ void output_pgsql_t::stop()
 #endif
 
     /* No longer need to access middle layer -- release memory */
-    m_options->mid->stop();
+    m_mid->stop();
     for (i=0; i<NUM_TABLES; i++)
         pgsql_out_stop_one(&m_tables[i]);
 
@@ -1213,7 +1211,7 @@ void output_pgsql_t::stop()
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
-  m_options->mid->nodes_set(id, lat, lon, tags);
+  m_mid->nodes_set(id, lat, lon, tags);
   pgsql_out_node(id, tags, lat, lon, m_sql);
 
   return 0;
@@ -1230,13 +1228,13 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
-  m_options->mid->ways_set(id, nds, nd_count, tags, (!filter && polygon) ? 1 : 0);
+  m_mid->ways_set(id, nds, nd_count, tags, (!filter && polygon) ? 1 : 0);
 
   if( !polygon && !filter )
   {
     /* Get actual node data and generate output */
     struct osmNode *nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * nd_count );
-    int count = m_options->mid->nodes_get_list( nodes, nds, nd_count );
+    int count = m_mid->nodes_get_list( nodes, nds, nd_count );
     pgsql_out_way(id, tags, nodes, count, 0, m_sql);
     free(nodes);
   }
@@ -1278,7 +1276,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
     count++;
   }
 
-  count2 = m_options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+  count2 = m_mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
 
   for (i = 0; i < count2; i++) {
       for (j = i; j < member_count; j++) {
@@ -1317,7 +1315,7 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
   if (!type)
       return 0;
 
-  m_options->mid->relations_set(id, members, member_count, tags);
+  m_mid->relations_set(id, members, member_count, tags);
     
   /* Only a limited subset of type= is supported, ignore other */
   if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
@@ -1342,7 +1340,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
     if ( expire->from_db(m_tables[t_point].sql_conn, osm_id) != 0)
         pgsql_exec(m_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point].name, osm_id );
     
-    dynamic_cast<slim_middle_t *>(m_options->mid)->nodes_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->nodes_delete(osm_id);
     return 0;
 }
 
@@ -1374,7 +1372,7 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
-    dynamic_cast<slim_middle_t *>(m_options->mid)->ways_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->ways_delete(osm_id);
     return 0;
 }
 
@@ -1400,7 +1398,7 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
-    dynamic_cast<slim_middle_t *>(m_options->mid)->relations_delete(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->relations_delete(osm_id);
     return 0;
 }
 
@@ -1416,7 +1414,7 @@ int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct k
     }
     node_delete(osm_id);
     node_add(osm_id, lat, lon, tags);
-    dynamic_cast<slim_middle_t *>(m_options->mid)->node_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->node_changed(osm_id);
     return 0;
 }
 
@@ -1429,7 +1427,7 @@ int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, s
     }
     way_delete(osm_id);
     way_add(osm_id, nodes, node_count, tags);
-    dynamic_cast<slim_middle_t *>(m_options->mid)->way_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->way_changed(osm_id);
     return 0;
 }
 
@@ -1442,11 +1440,11 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     }
     relation_delete(osm_id);
     relation_add(osm_id, members, member_count, tags);
-    dynamic_cast<slim_middle_t *>(m_options->mid)->relation_changed(osm_id);
+    dynamic_cast<slim_middle_t *>(m_mid)->relation_changed(osm_id);
     return 0;
 }
 
-output_pgsql_t::output_pgsql_t() {
+output_pgsql_t::output_pgsql_t(middle_t* mid_, const output_options* options_):output_t(mid_, options_) {
 }
 
 output_pgsql_t::~output_pgsql_t() {

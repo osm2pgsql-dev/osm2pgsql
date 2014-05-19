@@ -17,10 +17,10 @@
 #include <boost/shared_ptr.hpp>
 
 struct middle_pgsql_t : public slim_middle_t {
-    middle_pgsql_t();
+    middle_pgsql_t(output_t* out_);
     virtual ~middle_pgsql_t();
 
-    int start(const struct output_options *options);
+    int start(void);
     void stop(void);
     void cleanup(void);
     void analyze(void);
@@ -89,14 +89,10 @@ private:
 
     int Append;
 
-    const struct output_options *out_options;
-
     boost::shared_ptr<node_ram_cache> cache;
     boost::shared_ptr<node_persistent_cache> persistent_cache;
 
     int build_indexes;
 };
-
-extern middle_pgsql_t mid_pgsql;
 
 #endif

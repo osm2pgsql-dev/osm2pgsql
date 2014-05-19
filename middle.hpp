@@ -14,9 +14,10 @@ struct member;
 struct output_options;
 
 struct middle_t {
+	middle_t(output_t* out_);
     virtual ~middle_t();
 
-    virtual int start(const struct output_options *options) = 0;
+    virtual int start(void) = 0;
     virtual void stop(void) = 0;
     virtual void cleanup(void) = 0;
     virtual void analyze(void) = 0;
@@ -45,9 +46,12 @@ struct middle_t {
 
     virtual void iterate_ways(way_cb_func &cb) = 0;
     virtual void iterate_relations(rel_cb_func &cb) = 0;
+
+    output_t* out;
 };
 
 struct slim_middle_t : public middle_t {
+	slim_middle_t(output_t* out_);
     virtual ~slim_middle_t();
 
     virtual int nodes_delete(osmid_t id) = 0;

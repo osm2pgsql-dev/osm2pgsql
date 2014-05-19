@@ -54,13 +54,13 @@
 
 void output_gazetteer_t::require_slim_mode(void)
 {
-   if (!Options->slim)
+   if (!m_options->slim)
    {
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
       exit_nicely();
    }
    if (slim_mid == NULL) {
-       slim_mid = dynamic_cast<slim_middle_t *>(Options->mid);
+       slim_mid = dynamic_cast<slim_middle_t *>(m_mid);
        if (slim_mid == NULL) {
            fprintf(stderr, "Internal error - expecting a slim mode middle, but got NULL.\n");
            exit_nicely();
@@ -986,21 +986,18 @@ void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
    return;
 }
 
-int output_gazetteer_t::connect(const struct output_options *options, int startTransaction) {
+int output_gazetteer_t::connect(int startTransaction) {
     // do nothing, connection is actually handled in start()
     return 0;
 }
 
-int output_gazetteer_t::start(const struct output_options *options, boost::shared_ptr<reprojection> r)
+int output_gazetteer_t::start()
 {
-   reproj = r;
-   builder.set_exclude_broken_polygon(options->excludepoly);
-
-   /* Save option handle */
-   Options = options;
+   reproj = m_options->projection;
+   builder.set_exclude_broken_polygon(m_options->excludepoly);
 
    /* Connection to the database */
-   Connection = PQconnectdb(options->conninfo);
+   Connection = PQconnectdb(m_options->conninfo);
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -1013,7 +1010,7 @@ int output_gazetteer_t::start(const struct output_options *options, boost::share
    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
 
    /* (Re)create the table unless we are appending */
-   if (!Options->append)
+   if (!m_options->append)
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
@@ -1028,18 +1025,18 @@ int output_gazetteer_t::start(const struct output_options *options, boost::share
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
-      if (Options->tblsmain_data)
+      if (m_options->tblsmain_data)
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                      CREATE_PLACE_TABLE, "TABLESPACE", Options->tblsmain_data);
+                      CREATE_PLACE_TABLE, "TABLESPACE", m_options->tblsmain_data);
       }
       else
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE, "", "");
       }
-      if (Options->tblsmain_index)
+      if (m_options->tblsmain_index)
       {
-          pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, "TABLESPACE", Options->tblsmain_index);
+          pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options->tblsmain_index);
       }
       else
       {
@@ -1049,7 +1046,7 @@ int output_gazetteer_t::start(const struct output_options *options, boost::share
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    } else {
-      ConnectionDelete = PQconnectdb(options->conninfo);
+      ConnectionDelete = PQconnectdb(m_options->conninfo);
       if (PQstatus(ConnectionDelete) != CONNECTION_OK)
       { 
           fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
@@ -1060,7 +1057,7 @@ int output_gazetteer_t::start(const struct output_options *options, boost::share
    }
 
    /* Setup middle layer */
-   options->mid->start(options);
+   m_mid->start();
 
    hLog = fopen("log", "w");
 
@@ -1071,13 +1068,13 @@ void output_gazetteer_t::close(int) {
     // do nothing here, closing is actually handled in the stop() method.
 }
 
-void output_gazetteer_t::stop(void)
+void output_gazetteer_t::stop()
 {
    /* Process any remaining ways and relations */
 
    /* No longer need to access middle layer */
-   Options->mid->commit();
-   Options->mid->stop();
+   m_mid->commit();
+   m_mid->stop();
 
    /* Stop any active copy */
    stop_copy();
@@ -1121,7 +1118,7 @@ int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lo
    split_tags(tags, TAGINFO_NODE, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
    /* Feed this node to the middle layer */
-   Options->mid->nodes_set(id, lat, lon, tags);
+   m_mid->nodes_set(id, lat, lon, tags);
 
    if (delete_old)
        delete_unused_classes('N', id, &places);
@@ -1176,7 +1173,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
    area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
    /* Feed this way to the middle layer */
-   Options->mid->ways_set(id, ndv, ndc, tags, 0);
+   m_mid->ways_set(id, ndv, ndc, tags, 0);
 
    if (delete_old)
        delete_unused_classes('W', id, &places);
@@ -1190,7 +1187,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
     
       /* Fetch the node details */
       nodev = (struct osmNode *)malloc(ndc * sizeof(struct osmNode));
-      nodec = Options->mid->nodes_get_list(nodev, ndv, ndc);
+      nodec = m_mid->nodes_get_list(nodev, ndv, ndc);
 
       /* Get the geometry of the object */
       if ((wkt = builder.get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
@@ -1252,7 +1249,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
 
    if (!strcmp(type, "associatedStreet"))
    {
-      Options->mid->relations_set(id, members, member_count, tags);
+      m_mid->relations_set(id, members, member_count, tags);
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
@@ -1262,7 +1259,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       return 0;
    }
 
-   Options->mid->relations_set(id, members, member_count, tags);
+   m_mid->relations_set(id, members, member_count, tags);
 
    /* Split the tags */
    split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
@@ -1290,7 +1287,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          count++;
       }
 
-      count = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+      count = m_mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
 
       xnodes[count] = NULL;
       xcount[count] = 0;
@@ -1410,8 +1407,8 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-output_gazetteer_t::output_gazetteer_t() 
-    : Options(NULL),
+output_gazetteer_t::output_gazetteer_t(middle_t* mid_, const output_options* options_)
+    : output_t(mid_, options_),
       Connection(NULL),
       ConnectionDelete(NULL),
       ConnectionError(NULL),

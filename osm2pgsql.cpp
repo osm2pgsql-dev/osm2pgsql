@@ -266,14 +266,14 @@ void exit_nicely()
     exit(1);
 }
 
-output_t* get_output(const char* output_backend)
+output_t* get_output(const char* output_backend, const output_options* options, middle_t* mid)
 {
 	if (strcmp("pgsql", output_backend) == 0) {
-	  return new output_pgsql_t();
+	  return new output_pgsql_t(mid, options);
 	} else if (strcmp("gazetteer", output_backend) == 0) {
-	  return new output_gazetteer_t();
+	  return new output_gazetteer_t(mid, options);
 	} else if (strcmp("null", output_backend) == 0) {
-	  return new output_null_t();
+	  return new output_null_t(mid, options);
 	} else {
 	  fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
 	  exit(EXIT_FAILURE);
@@ -496,6 +496,7 @@ int main(int argc, char *argv[])
 
     if (options.num_procs < 1) options.num_procs = 1;
 
+    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
     
     // Check the database
     options.conninfo = build_conninfo(db, username, password, host, port);
@@ -515,12 +516,13 @@ int main(int argc, char *argv[])
 
     LIBXML_TEST_VERSION;
 
-    //setup the backend (output)
-    output_t* out = get_output(output_backend);
-    osmdata_t osmdata(out);
-
     //setup the middle
     middle_t* mid = options.slim ? ((middle_t *)new middle_pgsql_t()) : ((middle_t *)new middle_ram_t());
+
+    //setup the backend (output)
+    output_t* out = get_output(output_backend, &options, mid);
+
+    osmdata_t osmdata(mid, out);
 
     //setup the front (input)
     parse_delegate_t parser(extra_attributes, bbox, options.projection);
@@ -529,13 +531,9 @@ int main(int argc, char *argv[])
     		options.projection->project_getprojinfo()->srs,
     		options.projection->project_getprojinfo()->descr );
 
-    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
-    options.mid = mid;
-    options.out = out;
-
     //start it up
     time_t overall_start = time(NULL);
-    out->start(&options, parser.getProjection());
+    out->start();
 
     //read in the input files one by one
     while (optind < argc) {

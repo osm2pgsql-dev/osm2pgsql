@@ -39,17 +39,19 @@ struct member {
 };
 
 //forward declaration needed here
+struct middle_t;
 struct output_t;
 
 class osmdata_t {
 	public:
-		osmdata_t(output_t* out_);
+		osmdata_t(middle_t* mid_, output_t* out_);
 		~osmdata_t();
     
 		//TODO: move output to be a private/protected member
 		// then steal from it its mid object and its important functions
 		// such as add/mod/del. then make output a vector of multiple
-		output_t *out;
+		middle_t* mid;
+		output_t* out;
 	private:
 
 };

@@ -21,18 +21,19 @@
 #define FLAG_DELETE  8    /* These tags should be simply deleted on sight */
 #define FLAG_PHSTORE 17   /* polygons without own column but listed in hstore this implies FLAG_POLYGON */
 
-struct output_pgsql_t : public output_t {
+class output_pgsql_t : public output_t {
+public:
     enum table_id {
         t_point = 0, t_line, t_poly, t_roads, t_MAX
     };
     
-    output_pgsql_t();
+    output_pgsql_t(middle_t* mid_, const output_options* options_);
     virtual ~output_pgsql_t();
 
-    int start(const struct output_options *options, boost::shared_ptr<reprojection> r);
-    int connect(const struct output_options *options, int startTransaction);
+    int start();
+    int connect(int startTransaction);
     void stop();
-    void cleanup(void);
+    void cleanup();
     void close(int stopTransaction);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
@@ -95,7 +96,6 @@ private:
     void write_hstore(enum table_id table, struct keyval *tags, buffer &sql);
     void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, buffer &sql);
 
-    const struct output_options *m_options;
     tagtransform *m_tagtransform;
 
     /* enable output of a generated way_area tag to either hstore or its own column */
@@ -112,7 +112,5 @@ private:
     boost::shared_ptr<reprojection> reproj;
     boost::shared_ptr<expire_tiles> expire;
 };
-
-extern output_pgsql_t out_pgsql;
 
 #endif

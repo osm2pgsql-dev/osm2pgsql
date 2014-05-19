@@ -15,10 +15,10 @@
 #include <vector>
 
 struct middle_ram_t : public middle_t {
-    middle_ram_t();
+    middle_ram_t(output_t* out_);
     virtual ~middle_ram_t();
 
-    int start(const struct output_options *options);
+    int start(void);
     void stop(void);
     void cleanup(void);
     void analyze(void);

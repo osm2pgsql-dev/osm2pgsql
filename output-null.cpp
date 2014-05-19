@@ -11,10 +11,10 @@
 
 #define UNUSED  __attribute__ ((unused))
 
-void output_null_t::cleanup(void) {
+void output_null_t::cleanup() {
 }
 
-int output_null_t::start(const struct output_options *opt UNUSED, boost::shared_ptr<reprojection> r UNUSED) {
+int output_null_t::start() {
     return 0;
 }
 
@@ -57,7 +57,7 @@ int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, i
   return 0;
 }
 
-int output_null_t::connect(const struct output_options *options, int startTransaction) {
+int output_null_t::connect(int startTransaction) {
     return 0;
 }
 
@@ -65,7 +65,7 @@ void output_null_t::close(int stopTransaction) {
     // nothing
 }
 
-output_null_t::output_null_t() {
+output_null_t::output_null_t(middle_t* mid_, const output_options* options_): output_t(mid_, options_) {
 }
 
 output_null_t::~output_null_t() {
