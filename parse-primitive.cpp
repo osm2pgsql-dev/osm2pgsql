@@ -104,23 +104,23 @@ char *extractAttribute(char **token, int tokens, const char *attname)
 }
 
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
-actions_t parse_primitive_t::ParseAction(char **token, int tokens, struct osmdata_t *osmdata)
+actions_t parse_primitive_t::ParseAction(char **token, int tokens)
 {
     actions_t new_action;
-    char *action;
+    char *action_text;
     if( filetype == FILETYPE_OSMCHANGE || filetype == FILETYPE_PLANETDIFF )
-        return ACTION_NONE;
+        return action;
     new_action = ACTION_NONE;
-    action = extractAttribute(token, tokens, "action");
-    if( action == NULL )
+    action_text = extractAttribute(token, tokens, "action");
+    if( action_text == NULL )
         new_action = ACTION_CREATE;
-    else if( strcmp((char *)action, "modify") == 0 )
+    else if( strcmp((char *)action_text, "modify") == 0 )
         new_action = ACTION_MODIFY;
-    else if( strcmp((char *)action, "delete") == 0 )
+    else if( strcmp((char *)action_text, "delete") == 0 )
         new_action = ACTION_DELETE;
     else
     {
-        fprintf( stderr, "Unknown value for action: %s\n", (char*)action );
+        fprintf( stderr, "Unknown value for action: %s\n", (char*)action_text );
         exit_nicely();
     }
     return new_action;
@@ -194,7 +194,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         osm_id  = strtoosmid((char *)xid, NULL, 10);
         node_lon = strtod((char *)xlon, NULL);
         node_lat = strtod((char *)xlat, NULL);
-        action = ParseAction(token, tokens, osmdata);
+        action = ParseAction(token, tokens);
 
         if (osm_id > max_node)
             max_node = osm_id;
@@ -226,7 +226,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
         osm_id   = strtoosmid((char *)xid, NULL, 10);
-        action = ParseAction(token, tokens, osmdata);
+        action = ParseAction(token, tokens);
 
         if (osm_id > max_way)
             max_way = osm_id;
@@ -252,7 +252,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         xid  = extractAttribute(token, tokens, "id");
         assert(xid);
         osm_id   = strtoosmid((char *)xid, NULL, 10);
-        action = ParseAction(token, tokens, osmdata);
+        action = ParseAction(token, tokens);
 
         if (osm_id > max_rel)
             max_rel = osm_id;

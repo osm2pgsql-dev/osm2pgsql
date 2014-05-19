@@ -52,7 +52,7 @@ public:
 	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
 protected:
 	parse_xml2_t();
-	actions_t ParseAction( xmlTextReaderPtr reader, struct osmdata_t *osmdata );
+	actions_t ParseAction( xmlTextReaderPtr reader);
 	void SetFiletype(const xmlChar* name, osmdata_t* osmdata);
 	void StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata);
 	void EndElement(const xmlChar *name, struct osmdata_t *osmdata);

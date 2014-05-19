@@ -36,7 +36,7 @@ public:
 	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
 protected:
 	parse_primitive_t();
-	actions_t ParseAction(char **token, int tokens, struct osmdata_t *osmdata);
+	actions_t ParseAction(char **token, int tokens);
 	void StartElement(char *name, char *line, struct osmdata_t *osmdata);
 	void EndElement(const char *name, struct osmdata_t *osmdata);
 	void process(char *line, struct osmdata_t *osmdata);
