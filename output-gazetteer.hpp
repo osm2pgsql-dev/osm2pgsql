@@ -4,7 +4,6 @@
 #include "output.hpp"
 #include "build_geometry.hpp"
 #include "reprojection.hpp"
-#include "pgsql-id-tracker.hpp"
 
 #include <boost/shared_ptr.hpp>
 
@@ -67,8 +66,6 @@ private:
     build_geometry builder;
 
     boost::shared_ptr<reprojection> reproj;
-
-    pgsql_id_tracker ways_tracker, rels_tracker;
 };
 
 extern output_gazetteer_t out_gazetteer;

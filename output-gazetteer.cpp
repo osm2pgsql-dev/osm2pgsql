@@ -1174,7 +1174,6 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
 
    /* Feed this way to the middle layer */
    m_mid->ways_set(id, ndv, ndc, tags);
-   ways_tracker.done(id);
 
    if (delete_old)
        delete_unused_classes('W', id, &places);
