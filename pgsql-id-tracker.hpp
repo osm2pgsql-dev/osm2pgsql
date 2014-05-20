@@ -12,10 +12,17 @@ struct pgsql_id_tracker : public boost::noncopyable {
                      bool owns_table);
     ~pgsql_id_tracker();
 
-    void done(osmid_t id);
-    bool is_done(osmid_t id);
+    void mark(osmid_t id);
+    bool is_marked(osmid_t id);
+
+    osmid_t pop_mark();
+
+    void commit();
+    void force_release(); // to avoid brain-damages with fork()
 
 private:
+    void unmark(osmid_t id);
+
     struct pimpl;
     boost::scoped_ptr<pimpl> impl;
 };

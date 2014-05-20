@@ -117,23 +117,13 @@ int test_way_set(middle_t *mid)
     }
   }
 
-  // the way we just inserted should be pending
+  // the way we just inserted should not be pending
   way_cb_func way_cb;
   way_cb.pending_ways.clear();
   mid->iterate_ways(way_cb);
-  if (way_cb.pending_ways.size() != 1) {
-    std::cerr << "ERROR: Was expecting a single pending way, but got " 
-              << way_cb.pending_ways.size() << " from middle.\n";
-    return 1;
-  }
-
-  // but it shouldn't be pending a second time.
-  way_cb.pending_ways.clear();
-  mid->iterate_ways(way_cb);
   if (way_cb.pending_ways.size() != 0) {
-    std::cerr << "ERROR: Was expecting no pending ways in second "
-              << "iteration, but got " << way_cb.pending_ways.size()
-              << " from middle.\n";
+    std::cerr << "ERROR: Was expecting no pending ways, but got " 
+              << way_cb.pending_ways.size() << " from middle.\n";
     return 1;
   }
 

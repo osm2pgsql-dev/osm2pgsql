@@ -69,7 +69,7 @@ int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *t
 
 int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
-    int pending = 1;
+    int pending = 0;
     int block  = id2block(id);
     int offset = id2offset(id);
     struct keyval *p;

@@ -40,6 +40,7 @@
 
 #include <boost/bind.hpp>
 #include <iostream>
+#include <limits>
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -685,7 +686,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
-                ways_tracker->done(xid[i]);
+                ways_done_tracker->mark(xid[i]);
                 pgsql_delete_way_from_output(xid[i]);
             }
         }
@@ -740,8 +741,10 @@ int output_pgsql_t::connect(int startTransaction) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
 
-    ways_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways", false));
-    rels_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels", false));
+    if (ways_pending_tracker) { ways_pending_tracker->force_release(); }
+    if (ways_done_tracker) { ways_done_tracker->force_release(); }
+    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", false));
+    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", false));
 
     return 0;
 }
@@ -945,8 +948,8 @@ int output_pgsql_t::start()
     }
     expire.reset(new expire_tiles(m_options));
 
-    ways_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways", true));
-    rels_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels", true));
+    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", true));
+    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
 
     m_mid->start(this);
 
@@ -1122,24 +1125,51 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
+output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql)
+    : m_ptr(ptr), m_sql(sql),
+      m_next_internal_id(m_ptr->ways_pending_tracker->pop_mark()) {
+}
 output_pgsql_t::way_cb_func::~way_cb_func() {}
 int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
-    if (m_ptr->ways_tracker->is_done(id)) {
+    if (m_next_internal_id < id) {
+        run_internal_until(id, exists);
+    }
+
+    if (m_next_internal_id == id) {
+        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
+    }
+
+    if (m_ptr->ways_done_tracker->is_marked(id)) {
         return 0;
     } else {
         return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
     }
 }
 
+void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
+    struct keyval tags_int;
+    struct osmNode *nodes_int;
+    int count_int;
+    
+    while (m_next_internal_id < id) {
+        initList(&tags_int);
+        if (!m_ptr->m_mid->ways_get(m_next_internal_id, &tags_int, &nodes_int, &count_int)) {
+            if (!m_ptr->ways_done_tracker->is_marked(m_next_internal_id)) {
+                m_ptr->pgsql_out_way(m_next_internal_id, &tags_int, nodes_int, count_int, exists, m_sql);
+            }
+            
+            free(nodes_int);
+        }
+        resetList(&tags_int);
+        
+        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
+    }
+}
+
 output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
-    if (m_ptr->rels_tracker->is_done(id)) {
-        return 0;
-    } else {
-        return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
-    }
+    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
 }
 
 void output_pgsql_t::stop()
@@ -1155,6 +1185,9 @@ void output_pgsql_t::stop()
      */
     pgsql_out_commit();
     m_mid->commit();
+    ways_pending_tracker->commit();
+    ways_done_tracker->commit();
+    
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
@@ -1168,8 +1201,13 @@ void output_pgsql_t::stop()
     /* Processing any remaing to be processed ways */
     way_cb_func way_callback(this, sql);
     m_mid->iterate_ways( way_callback );
+    way_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
+                                    m_options->append);
+
     pgsql_out_commit();
     m_mid->commit();
+    ways_pending_tracker->commit();
+    ways_done_tracker->commit();
 
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
@@ -1244,7 +1282,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
   m_mid->ways_set(id, nds, nd_count, tags);
-  if (filter || !polygon) { ways_tracker->done(id); }
+  if (!filter && polygon) { ways_pending_tracker->mark(id); }
 
   if( !polygon && !filter )
   {

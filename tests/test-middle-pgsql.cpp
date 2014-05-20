@@ -247,7 +247,7 @@ int main(int argc, char *argv[]) {
     if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_node_set failed."); }
     
     status = test_way_set(&mid_pgsql);
-    if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_node_set failed."); }
+    if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_way_set failed."); }
     
     mid_pgsql.commit();
     mid_pgsql.stop();
