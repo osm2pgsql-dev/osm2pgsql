@@ -6,7 +6,10 @@
 #include <boost/scoped_ptr.hpp>
 
 struct pgsql_id_tracker : public boost::noncopyable {
-    pgsql_id_tracker();
+    pgsql_id_tracker(const char *conninfo, 
+                     const char *prefix, 
+                     const char *type,
+                     bool owns_table);
     ~pgsql_id_tracker();
 
     void done(osmid_t id);

@@ -685,7 +685,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
-                ways_tracker.done(xid[i]);
+                ways_tracker->done(xid[i]);
                 pgsql_delete_way_from_output(xid[i]);
             }
         }
@@ -739,6 +739,10 @@ int output_pgsql_t::connect(int startTransaction) {
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
+
+    ways_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways", false));
+    rels_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels", false));
+
     return 0;
 }
 
@@ -941,6 +945,9 @@ int output_pgsql_t::start()
     }
     expire.reset(new expire_tiles(m_options));
 
+    ways_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways", true));
+    rels_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels", true));
+
     m_mid->start(this);
 
     return 0;
@@ -1118,7 +1125,7 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::way_cb_func::~way_cb_func() {}
 int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
-    if (m_ptr->ways_tracker.is_done(id)) {
+    if (m_ptr->ways_tracker->is_done(id)) {
         return 0;
     } else {
         return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
@@ -1128,7 +1135,7 @@ int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, str
 output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
-    if (m_ptr->rels_tracker.is_done(id)) {
+    if (m_ptr->rels_tracker->is_done(id)) {
         return 0;
     } else {
         return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
@@ -1237,7 +1244,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
   m_mid->ways_set(id, nds, nd_count, tags);
-  if (filter || !polygon) { ways_tracker.done(id); }
+  if (filter || !polygon) { ways_tracker->done(id); }
 
   if( !polygon && !filter )
   {
@@ -1453,7 +1460,8 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     return 0;
 }
 
-output_pgsql_t::output_pgsql_t(middle_t* mid_, const output_options* options_):output_t(mid_, options_) {
+output_pgsql_t::output_pgsql_t(middle_t* mid_, const output_options* options_)
+    : output_t(mid_, options_) {
 }
 
 output_pgsql_t::~output_pgsql_t() {

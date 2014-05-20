@@ -113,7 +113,7 @@ private:
     boost::shared_ptr<reprojection> reproj;
     boost::shared_ptr<expire_tiles> expire;
 
-    pgsql_id_tracker ways_tracker, rels_tracker;
+    boost::shared_ptr<pgsql_id_tracker> ways_tracker, rels_tracker;
 };
 
 #endif
