@@ -67,8 +67,9 @@ int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *t
     return cache->set(id, lat, lon, tags);
 }
 
-int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
+int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
+    int pending = 1;
     int block  = id2block(id);
     int offset = id2offset(id);
     struct keyval *p;
@@ -284,18 +285,6 @@ int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, 
         }
     }
     return count;
-}
-
-/* Marks the way so that iterate ways skips it */
-int middle_ram_t::ways_done(osmid_t id)
-{
-    int block = id2block(id), offset = id2offset(id);
-
-    if (!ways[block])
-        return 1;
-
-    ways[block][offset].pending = 0;
-    return 0;
 }
 
 void middle_ram_t::analyze(void)

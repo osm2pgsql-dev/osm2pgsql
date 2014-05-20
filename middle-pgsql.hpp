@@ -32,17 +32,15 @@ struct middle_pgsql_t : public slim_middle_t {
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending);
+    int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags);
     int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr);
     int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr);
 
-    int ways_done(osmid_t id);
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
     int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags);
     int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags);
-    int relations_done(osmid_t id);
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
@@ -82,6 +80,9 @@ private:
     int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
     int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count);
     int local_nodes_delete(osmid_t osm_id);
+
+    int ways_done(osmid_t osm_id);
+    int relations_done(osmid_t osm_id);
 
     std::vector<table_desc> tables;
     int num_tables;

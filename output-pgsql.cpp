@@ -685,7 +685,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
-                m_mid->ways_done(xid[i]);
+                ways_tracker.done(xid[i]);
                 pgsql_delete_way_from_output(xid[i]);
             }
         }
@@ -1118,13 +1118,21 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::way_cb_func::~way_cb_func() {}
 int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
-    return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
+    if (m_ptr->ways_tracker.is_done(id)) {
+        return 0;
+    } else {
+        return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
+    }
 }
 
 output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
-    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
+    if (m_ptr->rels_tracker.is_done(id)) {
+        return 0;
+    } else {
+        return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
+    }
 }
 
 void output_pgsql_t::stop()
@@ -1228,7 +1236,8 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
-  m_mid->ways_set(id, nds, nd_count, tags, (!filter && polygon) ? 1 : 0);
+  m_mid->ways_set(id, nds, nd_count, tags);
+  if (filter || !polygon) { ways_tracker.done(id); }
 
   if( !polygon && !filter )
   {

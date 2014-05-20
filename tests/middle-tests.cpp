@@ -83,7 +83,7 @@ int test_way_set(middle_t *mid)
   }
 
   // set the way
-  status = mid->ways_set(way_id, nds, nd_count, &tags[0], 0);
+  status = mid->ways_set(way_id, nds, nd_count, &tags[0]);
   if (status != 0) { std::cerr << "ERROR: Unable to set way.\n"; return 1; }
 
   // commit the setup data
@@ -117,27 +117,8 @@ int test_way_set(middle_t *mid)
     }
   }
 
-  // first, try with no pending ways
+  // the way we just inserted should be pending
   way_cb_func way_cb;
-  way_cb.pending_ways.clear();
-  mid->iterate_ways(way_cb);
-  if (!way_cb.pending_ways.empty()) {
-    std::cerr << "ERROR: Was expecting no pending ways, but got " << way_cb.pending_ways.size()
-              << " from middle.\n";
-    return 1;
-  }
-
-  // to set a pending way, we need to first delete it, but deletions aren't
-  // supported by all middles... so we just skip it in that case and cross
-  // our fingers.
-  if (dynamic_cast<slim_middle_t *>(mid)) {
-      dynamic_cast<slim_middle_t *>(mid)->ways_delete(way_id);
-  }
-
-  // now, with a pending way set.
-  status = mid->ways_set(way_id, nds, nd_count, &tags[0], 1);
-  if (status != 0) { std::cerr << "ERROR: Unable to set way pending.\n"; return 1; }
-
   way_cb.pending_ways.clear();
   mid->iterate_ways(way_cb);
   if (way_cb.pending_ways.size() != 1) {
@@ -146,18 +127,25 @@ int test_way_set(middle_t *mid)
     return 1;
   }
 
+  // but it shouldn't be pending a second time.
+  way_cb.pending_ways.clear();
+  mid->iterate_ways(way_cb);
+  if (way_cb.pending_ways.size() != 0) {
+    std::cerr << "ERROR: Was expecting no pending ways in second "
+              << "iteration, but got " << way_cb.pending_ways.size()
+              << " from middle.\n";
+    return 1;
+  }
+
   // some middles don't support changing the nodes - they
   // don't have diff update ability. here, we will just
   // skip the test for that.
   if (dynamic_cast<slim_middle_t *>(mid)) {
-      // need to delete again to reset the pending flag to zero.
       slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
-      slim->ways_delete(way_id);
-    
+
       // finally, try touching a node on a non-pending way. that should
-      // make it become pending.
-      status = slim->ways_set(way_id, nds, nd_count, &tags[0], 0);
-      if (status != 0) { std::cerr << "ERROR: Unable to set way not pending.\n"; return 1; }
+      // make it become pending. we just checked that the way is not 
+      // pending, so any change must be due to the node changing.
       status = slim->node_changed(nds[0]);
       if (status != 0) { std::cerr << "ERROR: Unable to reset node.\n"; return 1; }
       way_cb.pending_ways.clear();

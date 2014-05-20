@@ -11,6 +11,7 @@
 #include "build_geometry.hpp"
 #include "reprojection.hpp"
 #include "expire-tiles.hpp"
+#include "pgsql-id-tracker.hpp"
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -111,6 +112,8 @@ private:
 
     boost::shared_ptr<reprojection> reproj;
     boost::shared_ptr<expire_tiles> expire;
+
+    pgsql_id_tracker ways_tracker, rels_tracker;
 };
 
 #endif

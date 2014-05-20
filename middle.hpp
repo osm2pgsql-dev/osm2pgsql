@@ -26,11 +26,9 @@ struct middle_t {
     virtual int nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
     virtual int nodes_get_list(struct osmNode *out, osmid_t *nds, int nd_count) = 0;
 
-    virtual int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending) = 0;
+    virtual int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags) = 0;
     virtual int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) = 0;
     virtual int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) = 0;
-
-    virtual int ways_done(osmid_t id) = 0;
 
     virtual int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
 
@@ -57,7 +55,6 @@ struct slim_middle_t : public middle_t {
     virtual int ways_delete(osmid_t id) = 0;
     virtual int way_changed(osmid_t id) = 0;
 
-    virtual int relations_done(osmid_t id) = 0;
     virtual int relations_delete(osmid_t id) = 0;
     virtual int relation_changed(osmid_t id) = 0;
 };

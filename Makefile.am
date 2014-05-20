@@ -58,6 +58,7 @@ libosm2pgsql_la_SOURCES = \
 	parse-primitive.cpp \
 	parse-xml2.cpp \
 	pgsql.cpp \
+	pgsql-id-tracker.cpp \
 	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \
