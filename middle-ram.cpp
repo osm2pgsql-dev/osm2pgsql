@@ -188,14 +188,7 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 
                 callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
             }
-            free(rels[block][offset].members);
-            rels[block][offset].members = NULL;
-            resetList(rels[block][offset].tags);
-            free(rels[block][offset].tags);
-            rels[block][offset].tags=NULL;
         }
-        free(rels[block]);
-        rels[block] = NULL;
     }
 
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
@@ -230,20 +223,52 @@ void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
 
                     ways[block][offset].pending = 0;
                 }
-
-                if (ways[block][offset].tags) {
-                    resetList(ways[block][offset].tags);
-                    free(ways[block][offset].tags);
-                    ways[block][offset].tags = NULL;
-                }
-                if (ways[block][offset].ndids) {
-                    free(ways[block][offset].ndids);
-                    ways[block][offset].ndids = NULL;
-                }
             }
         }
     }
     fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
+}
+
+void middle_ram_t::release_relations()
+{
+    int block, offset;
+
+    for(block=NUM_BLOCKS-1; block>=0; block--) {
+        if (!rels[block])
+            continue;
+
+        for (offset=0; offset < PER_BLOCK; offset++) {
+            if (rels[block][offset].members) {
+                free(rels[block][offset].members);
+                rels[block][offset].members = NULL;
+                resetList(rels[block][offset].tags);
+                free(rels[block][offset].tags);
+                rels[block][offset].tags=NULL;
+            }
+        }
+        free(rels[block]);
+        rels[block] = NULL;
+    }
+}
+
+void middle_ram_t::release_ways()
+{
+    int i, j = 0;
+
+    for (i=0; i<NUM_BLOCKS; i++) {
+        if (ways[i]) {
+            for (j=0; j<PER_BLOCK; j++) {
+                if (ways[i][j].tags) {
+                    resetList(ways[i][j].tags);
+                    free(ways[i][j].tags);
+                }
+                if (ways[i][j].ndids)
+                    free(ways[i][j].ndids);
+            }
+            free(ways[i]);
+            ways[i] = NULL;
+        }
+    }
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
@@ -320,20 +345,8 @@ void middle_ram_t::stop(void)
     int i, j;
     cache.reset(NULL);
 
-    for (i=0; i<NUM_BLOCKS; i++) {
-        if (ways[i]) {
-            for (j=0; j<PER_BLOCK; j++) {
-                if (ways[i][j].tags) {
-                    resetList(ways[i][j].tags);
-                    free(ways[i][j].tags);
-                }
-                if (ways[i][j].ndids)
-                    free(ways[i][j].ndids);
-            }
-            free(ways[i]);
-            ways[i] = NULL;
-        }
-    }
+    release_ways();
+    release_relations();
 }
 
 void middle_ram_t::commit(void) {

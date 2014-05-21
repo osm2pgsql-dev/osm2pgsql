@@ -46,6 +46,9 @@ struct middle_ram_t : public middle_t {
     void iterate_relations(rel_cb_func &cb);
 
 private:
+    void release_ways();
+    void release_relations();
+
     struct ramWay {
         struct keyval *tags;
         osmid_t *ndids;
