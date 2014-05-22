@@ -59,13 +59,6 @@ void output_gazetteer_t::require_slim_mode(void)
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
       exit_nicely();
    }
-   if (slim_mid == NULL) {
-       slim_mid = dynamic_cast<slim_middle_t *>(m_mid);
-       if (slim_mid == NULL) {
-           fprintf(stderr, "Internal error - expecting a slim mode middle, but got NULL.\n");
-           exit_nicely();
-       }
-   }
 
    return;
 }
@@ -1243,7 +1236,6 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
 
    if (!strcmp(type, "associatedStreet"))
    {
-      m_mid->relations_set(id, members, member_count, tags);
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
@@ -1252,8 +1244,6 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
-
-   m_mid->relations_set(id, members, member_count, tags);
 
    /* Split the tags */
    split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
@@ -1368,9 +1358,6 @@ int output_gazetteer_t::relation_delete(osmid_t id)
    /* Delete all references to this relation */
    delete_place('R', id);
 
-   /* Feed this delete to the middle layer */
-   slim_mid->relations_delete(id);
-
    return 0;
 }
 
@@ -1389,7 +1376,6 @@ int output_gazetteer_t::way_modify(osmid_t id, osmid_t *ndv, int ndc, struct key
 int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
    require_slim_mode();
-   slim_mid->relations_delete(id);
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
@@ -1400,8 +1386,7 @@ output_gazetteer_t::output_gazetteer_t(middle_t* mid_, const output_options* opt
       ConnectionError(NULL),
       CopyActive(0),
       BufferLen(0),
-      hLog(NULL),
-      slim_mid(NULL)
+      hLog(NULL)
 {
     memset(Buffer, 0, BUFFER_SIZE);
 }

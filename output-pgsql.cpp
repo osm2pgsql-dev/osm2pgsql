@@ -1370,8 +1370,6 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
   if (!type)
       return 0;
 
-  m_mid->relations_set(id, members, member_count, tags);
-    
   /* Only a limited subset of type= is supported, ignore other */
   if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
     return 0;
@@ -1451,7 +1449,6 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
-    dynamic_cast<slim_middle_t *>(m_mid)->relations_delete(osm_id);
     return 0;
 }
 
@@ -1492,7 +1489,6 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     }
     relation_delete(osm_id);
     relation_add(osm_id, members, member_count, tags);
-    dynamic_cast<slim_middle_t *>(m_mid)->relation_changed(osm_id);
     return 0;
 }
 

@@ -59,8 +59,6 @@ private:
     
     FILE * hLog;
     
-    slim_middle_t *slim_mid;
-
     char Buffer[BUFFER_SIZE];
 
     build_geometry builder;
