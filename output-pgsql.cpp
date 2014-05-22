@@ -578,6 +578,9 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     /* If the flag says this object may exist already, delete it first */
     if(exists) {
         pgsql_delete_way_from_output(id);
+        // TODO: this now only has an effect when called from the iterate_ways
+        // call-back, so we need some alternative way to trigger this within
+        // osmdata_t.
         dynamic_cast<slim_middle_t *>(m_mid)->way_changed(id);
     }
 
@@ -1280,7 +1283,6 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
-  m_mid->ways_set(id, nds, nd_count, tags);
   if (!filter && polygon) { ways_pending_tracker->mark(id); }
 
   if( !polygon && !filter )
@@ -1424,7 +1426,6 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
         exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
-    dynamic_cast<slim_middle_t *>(m_mid)->ways_delete(osm_id);
     return 0;
 }
 
@@ -1478,7 +1479,7 @@ int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, s
     }
     way_delete(osm_id);
     way_add(osm_id, nodes, node_count, tags);
-    dynamic_cast<slim_middle_t *>(m_mid)->way_changed(osm_id);
+
     return 0;
 }
 

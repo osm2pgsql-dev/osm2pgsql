@@ -1169,9 +1169,6 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
    /* Split the tags */
    area = split_tags(tags, TAGINFO_WAY, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
 
-   /* Feed this way to the middle layer */
-   m_mid->ways_set(id, ndv, ndc, tags);
-
    if (delete_old)
        delete_unused_classes('W', id, &places);
 
@@ -1360,9 +1357,6 @@ int output_gazetteer_t::way_delete(osmid_t id)
    /* Delete all references to this way */
    delete_place('W', id);
 
-   /* Feed this delete to the middle layer */
-   slim_mid->ways_delete(id);
-
    return 0;
 }
 
@@ -1389,7 +1383,6 @@ int output_gazetteer_t::node_modify(osmid_t id, double lat, double lon, struct k
 int output_gazetteer_t::way_modify(osmid_t id, osmid_t *ndv, int ndc, struct keyval *tags)
 {
    require_slim_mode();
-   slim_mid->ways_delete(id);
    return gazetteer_process_way(id, ndv, ndc, tags, 1);
 }
 

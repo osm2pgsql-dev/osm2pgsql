@@ -18,6 +18,7 @@ int osmdata_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 }
 
 int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+    mid->ways_set(id, nodes, node_count, tags);
     return out->way_add(id, nodes, node_count, tags);
 }
 
@@ -39,7 +40,16 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *ta
 }
 
 int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    return out->way_modify(id, nodes, node_count, tags);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+
+    slim->ways_delete(id);
+    slim->ways_set(id, nodes, node_count, tags);
+
+    int status = out->way_modify(id, nodes, node_count, tags);
+
+    slim->way_changed(id);
+
+    return status;
 }
 
 int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
@@ -57,7 +67,13 @@ int osmdata_t::node_delete(osmid_t id) {
 }
 
 int osmdata_t::way_delete(osmid_t id) {
-    return out->way_delete(id);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+
+    int status = out->way_delete(id);
+
+    slim->ways_delete(id);
+
+    return status;
 }
 
 int osmdata_t::relation_delete(osmid_t id) {
