@@ -174,6 +174,11 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     int block, offset;
 
+    // to maintain backwards compatibility, we need to set this flag
+    // which fakes the previous behaviour of having deleted all the
+    // ways.
+    simulate_ways_deleted = true;
+
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
         if (!rels[block])
@@ -277,6 +282,9 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct osmNode *nodes;
 
+    if (simulate_ways_deleted)
+        return 1;
+
     if (!ways[block])
         return 1;
 
@@ -299,6 +307,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
 int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
     int count = 0;
     int i;
+
     *way_ids = (osmid_t *)malloc( sizeof(osmid_t) * (way_count + 1));
     initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
@@ -353,7 +362,8 @@ void middle_ram_t::commit(void) {
 }
 
 middle_ram_t::middle_ram_t():
-    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache()
+    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache(),
+    simulate_ways_deleted(false)
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
     rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);

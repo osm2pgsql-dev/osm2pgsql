@@ -70,6 +70,13 @@ private:
     int rel_out_count;
 
     std::auto_ptr<node_ram_cache> cache;
+
+    /* the previous behaviour of iterate_ways was to delete all ways as they
+     * were being iterated. this doesn't work now that the output handles its
+     * own "done" status and output-specific "pending" status. however, the
+     * tests depend on the behaviour that ways will be unavailable once
+     * iterate_ways is complete, so this flag emulates that. */
+    bool simulate_ways_deleted;
 };
 
 extern middle_ram_t mid_ram;
