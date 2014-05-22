@@ -32,73 +32,97 @@
 #include <assert.h>
 #include <time.h>
 #include <stdexcept>
+
 #include <libpq-fe.h>
+#include <boost/format.hpp>
+
+void check_db(const char* conninfo, const int unlogged)
+{
+    PGconn *sql_conn = PQconnectdb(conninfo);
+
+    //make sure you can connect
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        throw std::runtime_error((boost::format("Error: Connection to database failed: %1%\n") % PQerrorMessage(sql_conn)).str());
+    }
+
+    //make sure unlogged it is supported by your database if you want it
+    if (unlogged && PQserverVersion(sql_conn) < 90100) {
+        throw std::runtime_error((
+            boost::format("Error: --unlogged works only with PostgreSQL 9.1 and above, but\n you are using PostgreSQL %1%.%2%.%3%.\n")
+            % (PQserverVersion(sql_conn) / 10000)
+            % ((PQserverVersion(sql_conn) / 100) % 100)
+            % (PQserverVersion(sql_conn) % 100)).str());
+    }
+
+    PQfinish(sql_conn);
+}
 
 int main(int argc, char *argv[])
 {
-    // Parse the args into the different options
-	options_t options = options_t::parse(argc, argv);
+    fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
+    try
+    {
+        //parse the args into the different options members
+        options_t options = options_t::parse(argc, argv);
+        if(options.long_usage_bool)
+            return 0;
 
-    // Check the database
-    PGconn *sql_conn = PQconnectdb(options.conninfo);
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Error: Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+        //setup the front (input)
+        parse_delegate_t* input = options.create_input();
+
+        //setup the middle
+        middle_t* middle = options.create_middle();
+
+        //setup the backend (output)
+        std::vector<output_t*> outputs = options.create_output(middle);
+
+        //let osmdata orchestrate between the middle and the outs
+        osmdata_t osmdata(middle, outputs.front());
+
+        //check the database
+        check_db(options.conninfo, options.unlogged);
+
+        text_init();
+
+        fprintf(stderr, "Using projection SRS %d (%s)\n",
+                options.projection->project_getprojinfo()->srs,
+                options.projection->project_getprojinfo()->descr );
+
+        //start it up
+        time_t overall_start = time(NULL);
+        outputs.front()->start();
+
+        //read in the input files one by one
+        while (optind < argc) {
+            //read the actual input
+            fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
+            time_t start = time(NULL);
+            if (input->streamFile(options.input_reader, argv[optind], options.sanitize, &osmdata) != 0)
+                util::exit_nicely();
+            fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
+            optind++;
+        }
+
+        //show stats
+        input->printSummary();
+
+        //done with output_*_t
+        outputs.front()->stop();
+        outputs.front()->cleanup();
+        for(std::vector<output_t*>::iterator output = outputs.begin(); output != outputs.end(); ++output)
+            delete *output;
+
+        //done with middle_*_t
+        delete middle;
+
+        text_exit();
+        fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
+
+        return 0;
+    }//something went wrong along the way
+    catch(std::runtime_error& e)
+    {
+        fprintf(stderr, "%s", e.what());
         exit(EXIT_FAILURE);
     }
-    if (options.unlogged && PQserverVersion(sql_conn) < 90100) {
-        fprintf(stderr, "Error: --unlogged works only with PostgreSQL 9.1 and above, but\n");
-        fprintf(stderr, "you are using PostgreSQL %d.%d.%d.\n", PQserverVersion(sql_conn) / 10000, (PQserverVersion(sql_conn) / 100) % 100, PQserverVersion(sql_conn) % 100);
-        exit(EXIT_FAILURE);
-    }
-    PQfinish(sql_conn);
-
-    text_init();
-
-    //setup the front (input)
-    parse_delegate_t* input = options.create_input();
-
-    //setup the middle
-    middle_t* middle = options.create_middle();
-
-    //setup the backend (output)
-    std::vector<output_t*> outputs = options.create_output(middle);
-
-    //let osmdata orchestrate between the middle and the outs
-    osmdata_t osmdata(middle, outputs.front());
-
-    fprintf(stderr, "Using projection SRS %d (%s)\n", 
-    		options.projection->project_getprojinfo()->srs,
-    		options.projection->project_getprojinfo()->descr );
-
-    //start it up
-    time_t overall_start = time(NULL);
-    outputs.front()->start();
-
-    //read in the input files one by one
-    while (optind < argc) {
-        //read the actual input
-        fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
-        time_t start = time(NULL);
-        if (input->streamFile(options.input_reader, argv[optind], options.sanitize, &osmdata) != 0)
-            util::exit_nicely();
-        fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
-        optind++;
-    }
-
-    //show stats
-    input->printSummary();
-
-    /* done with output_*_t */
-    outputs.front()->stop();
-    outputs.front()->cleanup();
-    for(std::vector<output_t*>::iterator output = outputs.begin(); output != outputs.end(); ++output)
-        delete *output;
-
-    /* done with middle_*_t */
-    delete middle;
-
-    text_exit();
-    fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
-
-    return 0;
 }

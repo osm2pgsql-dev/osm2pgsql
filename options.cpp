@@ -10,15 +10,64 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdexcept>
+#include <boost/format.hpp>
 
 namespace
 {
+    const struct option long_options[] =
+    {
+        {"append",   0, 0, 'a'},
+        {"bbox",     1, 0, 'b'},
+        {"create",   0, 0, 'c'},
+        {"database", 1, 0, 'd'},
+        {"latlong",  0, 0, 'l'},
+        {"verbose",  0, 0, 'v'},
+        {"slim",     0, 0, 's'},
+        {"prefix",   1, 0, 'p'},
+        {"proj",     1, 0, 'E'},
+        {"merc",     0, 0, 'm'},
+        {"oldmerc",  0, 0, 'M'},
+        {"utf8-sanitize", 0, 0, 'u'},
+        {"cache",    1, 0, 'C'},
+        {"username", 1, 0, 'U'},
+        {"password", 0, 0, 'W'},
+        {"host",     1, 0, 'H'},
+        {"port",     1, 0, 'P'},
+        {"tablespace-index", 1, 0, 'i'},
+        {"tablespace-slim-data", 1, 0, 200},
+        {"tablespace-slim-index", 1, 0, 201},
+        {"tablespace-main-data", 1, 0, 202},
+        {"tablespace-main-index", 1, 0, 203},
+        {"help",     0, 0, 'h'},
+        {"style",    1, 0, 'S'},
+        {"expire-tiles", 1, 0, 'e'},
+        {"expire-output", 1, 0, 'o'},
+        {"output",   1, 0, 'O'},
+        {"extra-attributes", 0, 0, 'x'},
+        {"hstore", 0, 0, 'k'},
+        {"hstore-all", 0, 0, 'j'},
+        {"hstore-column", 1, 0, 'z'},
+        {"hstore-match-only", 0, 0, 208},
+        {"hstore-add-index",0,0,211},
+        {"multi-geometry", 0, 0, 'G'},
+        {"keep-coastlines", 0, 0, 'K'},
+        {"input-reader", 1, 0, 'r'},
+        {"version", 0, 0, 'V'},
+        {"disable-parallel-indexing", 0, 0, 'I'},
+        {"cache-strategy", 1, 0, 204},
+        {"number-processes", 1, 0, 205},
+        {"drop", 0, 0, 206},
+        {"unlogged", 0, 0, 207},
+        {"flat-nodes",1,0,209},
+        {"exclude-invalid-polygon",0,0,210},
+        {"tag-transform-script",1,0,212},
+        {0, 0, 0, 0}
+    };
+
     void short_usage(char *arg0)
     {
-        const char *name = basename(arg0);
-
-        fprintf(stderr, "Usage error. For further information see:\n");
-        fprintf(stderr, "\t%s -h|--help\n", name);
+        throw std::runtime_error((boost::format("Usage error. For further information see:\n\t%1% -h|--help\n") % basename(arg0)).str());
     }
 
     void long_usage(char *arg0, bool verbose = false)
@@ -256,8 +305,7 @@ std::vector<output_t*> options_t::create_output(middle_t* mid) {
     } else if (strcmp("null", output_backend) == 0) {
         outputs.push_back(new output_null_t(mid, this));
     } else {
-        fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
-        exit(1);
+        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null].\n") % output_backend).str());
     }
     return outputs;
 }
@@ -265,168 +313,202 @@ std::vector<output_t*> options_t::create_output(middle_t* mid) {
 options_t options_t::parse(int argc, char *argv[])
 {
     options_t options;
-
     const char *temparg;
 
-    fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
+    //keep going while there are args left to handle
+    int c;
+    while(-1 != (c = getopt_long(argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, NULL))) {
 
-    while (1) {
-        int c, option_index = 0;
-        static struct option long_options[] = {
-            {"append",   0, 0, 'a'},
-            {"bbox",     1, 0, 'b'},
-            {"create",   0, 0, 'c'},
-            {"database", 1, 0, 'd'},
-            {"latlong",  0, 0, 'l'},
-            {"verbose",  0, 0, 'v'},
-            {"slim",     0, 0, 's'},
-            {"prefix",   1, 0, 'p'},
-            {"proj",     1, 0, 'E'},
-            {"merc",     0, 0, 'm'},
-            {"oldmerc",  0, 0, 'M'},
-            {"utf8-sanitize", 0, 0, 'u'},
-            {"cache",    1, 0, 'C'},
-            {"username", 1, 0, 'U'},
-            {"password", 0, 0, 'W'},
-            {"host",     1, 0, 'H'},
-            {"port",     1, 0, 'P'},
-            {"tablespace-index", 1, 0, 'i'},
-            {"tablespace-slim-data", 1, 0, 200},
-            {"tablespace-slim-index", 1, 0, 201},
-            {"tablespace-main-data", 1, 0, 202},
-            {"tablespace-main-index", 1, 0, 203},
-            {"help",     0, 0, 'h'},
-            {"style",    1, 0, 'S'},
-            {"expire-tiles", 1, 0, 'e'},
-            {"expire-output", 1, 0, 'o'},
-            {"output",   1, 0, 'O'},
-            {"extra-attributes", 0, 0, 'x'},
-            {"hstore", 0, 0, 'k'},
-            {"hstore-all", 0, 0, 'j'},
-            {"hstore-column", 1, 0, 'z'},
-            {"hstore-match-only", 0, 0, 208},
-            {"hstore-add-index",0,0,211},
-            {"multi-geometry", 0, 0, 'G'},
-            {"keep-coastlines", 0, 0, 'K'},
-            {"input-reader", 1, 0, 'r'},
-            {"version", 0, 0, 'V'},
-            {"disable-parallel-indexing", 0, 0, 'I'},
-            {"cache-strategy", 1, 0, 204},
-            {"number-processes", 1, 0, 205},
-            {"drop", 0, 0, 206},
-            {"unlogged", 0, 0, 207},
-            {"flat-nodes",1,0,209},
-            {"exclude-invalid-polygon",0,0,210},
-            {"tag-transform-script",1,0,212},
-            {0, 0, 0, 0}
-        };
-
-        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
-        if (c == -1)
-            break;
-
+        //handle the current arg
         switch (c) {
-            case 'a': options.append=1;   break;
-            case 'b': options.bbox=optarg; break;
-            case 'c': options.create=1;   break;
-            case 'v': options.verbose=1;  break;
-            case 's': options.slim=1;     break;
-            case 'K': options.keep_coastlines=1;     break;
-            case 'u': options.sanitize=1; break;
-            case 'l': options.projection.reset(new reprojection(PROJ_LATLONG));  break;
-            case 'm': options.projection.reset(new reprojection(PROJ_SPHERE_MERC)); break;
-            case 'M': options.projection.reset(new reprojection(PROJ_MERC)); break;
-            case 'E': options.projection.reset(new reprojection(-atoi(optarg))); break;
-            case 'p': options.prefix=optarg; break;
-            case 'd': options.db=optarg;  break;
-            case 'C': options.cache = atoi(optarg); break;
-            case 'U': options.username=optarg; break;
-            case 'W': options.pass_prompt=1; break;
-            case 'H': options.host=optarg; break;
-            case 'P': options.port=optarg; break;
-            case 'S': options.style=optarg; break;
-            case 'i': options.tblsmain_index=options.tblsslim_index=optarg; break;
-            case 200: options.tblsslim_data=optarg; break;
-            case 201: options.tblsslim_index=optarg; break;
-            case 202: options.tblsmain_data=optarg; break;
-            case 203: options.tblsmain_index=optarg; break;
-            case 'e':
-                options.expire_tiles_zoom_min = atoi(optarg);
-                temparg = strchr(optarg, '-');
-                if (temparg) options.expire_tiles_zoom = atoi(temparg + 1);
-                if (options.expire_tiles_zoom < options.expire_tiles_zoom_min) options.expire_tiles_zoom = options.expire_tiles_zoom_min;
-                break;
-            case 'o': options.expire_tiles_filename=optarg; break;
-            case 'O': options.output_backend = optarg; break;
-            case 'x': options.extra_attributes=1; break;
-            case 'k':  if (options.enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
-            options.enable_hstore=HSTORE_NORM; break;
-            case 208: options.hstore_match_only = 1; break;
-            case 'j': if (options.enable_hstore != HSTORE_NONE) { fprintf(stderr, "ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n"); exit (EXIT_FAILURE); }
-            options.enable_hstore=HSTORE_ALL; break;
-            case 'z':
-                options.n_hstore_columns++;
-                options.hstore_columns = (const char**)realloc(options.hstore_columns, sizeof(char *) * options.n_hstore_columns);
-                options.hstore_columns[options.n_hstore_columns-1] = optarg;
-                break;
-            case 'G': options.enable_multi=1; break;
-            case 'r': options.input_reader = optarg; break;
-            case 'h': options.long_usage_bool=1; break;
-            case 'I':
+        case 'a':
+            options.append = 1;
+            break;
+        case 'b':
+            options.bbox = optarg;
+            break;
+        case 'c':
+            options.create = 1;
+            break;
+        case 'v':
+            options.verbose = 1;
+            break;
+        case 's':
+            options.slim = 1;
+            break;
+        case 'K':
+            options.keep_coastlines = 1;
+            break;
+        case 'u':
+            options.sanitize = 1;
+            break;
+        case 'l':
+            options.projection.reset(new reprojection(PROJ_LATLONG));
+            break;
+        case 'm':
+            options.projection.reset(new reprojection(PROJ_SPHERE_MERC));
+            break;
+        case 'M':
+            options.projection.reset(new reprojection(PROJ_MERC));
+            break;
+        case 'E':
+            options.projection.reset(new reprojection(-atoi(optarg)));
+            break;
+        case 'p':
+            options.prefix = optarg;
+            break;
+        case 'd':
+            options.db = optarg;
+            break;
+        case 'C':
+            options.cache = atoi(optarg);
+            break;
+        case 'U':
+            options.username = optarg;
+            break;
+        case 'W':
+            options.pass_prompt = 1;
+            break;
+        case 'H':
+            options.host = optarg;
+            break;
+        case 'P':
+            options.port = optarg;
+            break;
+        case 'S':
+            options.style = optarg;
+            break;
+        case 'i':
+            options.tblsmain_index = options.tblsslim_index = optarg;
+            break;
+        case 200:
+            options.tblsslim_data = optarg;
+            break;
+        case 201:
+            options.tblsslim_index = optarg;
+            break;
+        case 202:
+            options.tblsmain_data = optarg;
+            break;
+        case 203:
+            options.tblsmain_index = optarg;
+            break;
+        case 'e':
+            options.expire_tiles_zoom_min = atoi(optarg);
+            temparg = strchr(optarg, '-');
+            if (temparg)
+                options.expire_tiles_zoom = atoi(temparg + 1);
+            if (options.expire_tiles_zoom < options.expire_tiles_zoom_min)
+                options.expire_tiles_zoom = options.expire_tiles_zoom_min;
+            break;
+        case 'o':
+            options.expire_tiles_filename = optarg;
+            break;
+        case 'O':
+            options.output_backend = optarg;
+            break;
+        case 'x':
+            options.extra_attributes = 1;
+            break;
+        case 'k':
+            if (options.enable_hstore != HSTORE_NONE) {
+                throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+            }
+            options.enable_hstore = HSTORE_NORM;
+            break;
+        case 208:
+            options.hstore_match_only = 1;
+            break;
+        case 'j':
+            if (options.enable_hstore != HSTORE_NONE) {
+                throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+            }
+            options.enable_hstore = HSTORE_ALL;
+            break;
+        case 'z':
+            options.n_hstore_columns++;
+            options.hstore_columns = (const char**) realloc(
+                    options.hstore_columns,
+                    sizeof(char *) * options.n_hstore_columns);
+            options.hstore_columns[options.n_hstore_columns - 1] = optarg;
+            break;
+        case 'G':
+            options.enable_multi = 1;
+            break;
+        case 'r':
+            options.input_reader = optarg;
+            break;
+        case 'h':
+            options.long_usage_bool = 1;
+            break;
+        case 'I':
 #ifdef HAVE_PTHREAD
-                options.parallel_indexing=0;
+            options.parallel_indexing = 0;
 #endif
-                break;
-            case 204:
-                if (strcmp(optarg,"dense") == 0) options.alloc_chunkwise = ALLOC_DENSE;
-                else if (strcmp(optarg,"chunk") == 0) options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
-                else if (strcmp(optarg,"sparse") == 0) options.alloc_chunkwise = ALLOC_SPARSE;
-                else if (strcmp(optarg,"optimized") == 0) options.alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
-                else {fprintf(stderr, "ERROR: Unrecognized cache strategy %s.\n", optarg); exit(EXIT_FAILURE); }
-                break;
-            case 205:
+            break;
+        case 204:
+            if (strcmp(optarg, "dense") == 0)
+                options.alloc_chunkwise = ALLOC_DENSE;
+            else if (strcmp(optarg, "chunk") == 0)
+                options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
+            else if (strcmp(optarg, "sparse") == 0)
+                options.alloc_chunkwise = ALLOC_SPARSE;
+            else if (strcmp(optarg, "optimized") == 0)
+                options.alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+            else {
+                throw std::runtime_error((boost::format("ERROR: Unrecognized cache strategy %1%.\n") % optarg).str());
+            }
+            break;
+        case 205:
 #ifdef HAVE_FORK
-                options.num_procs = atoi(optarg);
+            options.num_procs = atoi(optarg);
 #else
-                fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
+            fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
 #endif
-                break;
-            case 206: options.droptemp = 1; break;
-            case 207: options.unlogged = 1; break;
-            case 209:
-                options.flat_node_cache_enabled = 1;
-                options.flat_node_file = optarg;
-                break;
-            case 210: options.excludepoly = 1; break;
-            case 211: options.enable_hstore_index = 1; break;
-            case 212: options.tag_transform_script = optarg; break;
-            case 'V': exit(EXIT_SUCCESS); break;
-            case '?':
-            default:
-                short_usage(argv[0]);
-                exit(EXIT_FAILURE);
-                break;
+            break;
+        case 206:
+            options.droptemp = 1;
+            break;
+        case 207:
+            options.unlogged = 1;
+            break;
+        case 209:
+            options.flat_node_cache_enabled = 1;
+            options.flat_node_file = optarg;
+            break;
+        case 210:
+            options.excludepoly = 1;
+            break;
+        case 211:
+            options.enable_hstore_index = 1;
+            break;
+        case 212:
+            options.tag_transform_script = optarg;
+            break;
+        case 'V':
+            exit (EXIT_SUCCESS);
+            break;
+        case '?':
+        default:
+            short_usage(argv[0]);
+            break;
         }
-    }
+    } //end while
 
     if (options.long_usage_bool) {
         long_usage(argv[0]);
-        exit(EXIT_SUCCESS);
     }
 
-    if (argc == optind) {  /* No non-switch arguments */
+    if (argc == optind) { /* No non-switch arguments */
         short_usage(argv[0]);
-        exit(EXIT_FAILURE);
     }
 
     if (options.append && options.create) {
-        fprintf(stderr, "Error: --append and --create options can not be used at the same time!\n");
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Error: --append and --create options can not be used at the same time!\n");
     }
 
     if (options.droptemp && !options.slim) {
-        fprintf(stderr, "Error: --drop only makes sense with --slim.\n");
-        exit(EXIT_FAILURE);
+        throw std::runtime_error("Error: --drop only makes sense with --slim.\n");
     }
 
     if (options.unlogged && !options.create) {
@@ -434,18 +516,20 @@ options_t options_t::parse(int argc, char *argv[])
         options.unlogged = 0;
     }
 
-    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns && options.hstore_match_only)
-    {
+    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns
+            && options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
         options.hstore_match_only = 0;
     }
 
-    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns) {
+    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE
+            && !options.n_hstore_columns) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
         options.enable_hstore_index = 0;
     }
 
-    if (options.cache < 0) options.cache = 0;
+    if (options.cache < 0)
+        options.cache = 0;
 
     if (options.cache == 0) {
         fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
@@ -463,11 +547,14 @@ options_t options_t::parse(int argc, char *argv[])
         options.password = getenv("PGPASS");
     }
 
-    if (options.num_procs < 1) options.num_procs = 1;
+    if (options.num_procs < 1)
+        options.num_procs = 1;
 
-    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
-    options.conninfo = build_conninfo(options.db, options.username, options.password, options.host, options.port);
-
+    options.scale =
+            (options.projection->get_proj_id() == PROJ_LATLONG) ?
+                    10000000 : 100;
+    options.conninfo = build_conninfo(options.db, options.username,
+            options.password, options.host, options.port);
 
     return options;
 }
