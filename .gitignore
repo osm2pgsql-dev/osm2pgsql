@@ -46,6 +46,7 @@ tests/test-parse-xml2
 tests/test-middle-ram
 tests/test-middle-pgsql
 tests/test-pgsql-escape
+tests/test-parse-options
 tests/*.log
 tests/*.trs
 
