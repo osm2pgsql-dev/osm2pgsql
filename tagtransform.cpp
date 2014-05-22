@@ -362,7 +362,7 @@ unsigned int c_filter_rel_member_tags(
 }
 }
 
-tagtransform::tagtransform(const output_options *options_):	options(options_), transform_method(options_->tag_transform_script != NULL) {
+tagtransform::tagtransform(const options_t *options_):	options(options_), transform_method(options_->tag_transform_script != NULL) {
 	if (transform_method) {
 		fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script);
 #ifdef HAVE_LUA

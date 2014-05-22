@@ -22,7 +22,7 @@ void exit_nicely()
 
 int main(int argc, char *argv[]) {
   try {
-    struct output_options options; memset(&options, 0, sizeof options);
+    options_t options; memset(&options, 0, sizeof options);
     options.scale = 10000000;
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
     options.cache = 1;

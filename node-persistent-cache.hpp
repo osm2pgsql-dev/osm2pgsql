@@ -25,7 +25,7 @@ struct persistentCacheHeader {
 
 struct node_persistent_cache : public boost::noncopyable
 {
-    node_persistent_cache(const struct output_options *options, const int append,
+    node_persistent_cache(const struct options_t *options, const int append,
                           boost::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 

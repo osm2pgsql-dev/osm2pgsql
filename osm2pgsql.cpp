@@ -266,7 +266,7 @@ void exit_nicely()
     exit(1);
 }
 
-output_t* get_output(const char* output_backend, const output_options* options, middle_t* mid)
+output_t* get_output(const char* output_backend, const options_t* options, middle_t* mid)
 {
 	if (strcmp("pgsql", output_backend) == 0) {
 	  return new output_pgsql_t(mid, options);
@@ -283,7 +283,7 @@ output_t* get_output(const char* output_backend, const output_options* options, 
  
 int main(int argc, char *argv[])
 {
-	output_options options;
+	options_t options;
 
     int create=0;
     int sanitize=0;

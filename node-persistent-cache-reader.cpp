@@ -58,7 +58,7 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
 
 int main(int argc, char *argv[]) {
 	int i,p;
-	struct output_options options;
+	options_t options;
 	struct osmNode node;
 	struct osmNode *nodes;
 	struct timeval start;

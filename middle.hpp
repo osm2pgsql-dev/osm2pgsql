@@ -11,7 +11,6 @@
 
 struct keyval;
 struct member;
-struct output_options;
 
 struct middle_t {
     virtual ~middle_t();

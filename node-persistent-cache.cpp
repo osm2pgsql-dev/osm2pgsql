@@ -548,7 +548,7 @@ int node_persistent_cache::get_list(struct osmNode *nodes, osmid_t *ndids,
     return count;
 }
 
-node_persistent_cache::node_persistent_cache(const struct output_options *options, int append,
+node_persistent_cache::node_persistent_cache(const options_t *options, int append,
                                              boost::shared_ptr<node_ram_cache> ptr)
     : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
       writeNodeBlock(), readNodeBlockCache(NULL), readNodeBlockCacheIdx(NULL),

@@ -19,7 +19,7 @@ void exit_nicely()
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
-    test_output_t(middle_t* mid_,const output_options* options_)
+    test_output_t(middle_t* mid_,const options_t* options_)
         : output_t(mid_, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
   // need this to avoid segfault!
   text_init();
 
-  struct output_options options; memset(&options, 0, sizeof options);
+  options_t options; memset(&options, 0, sizeof options);
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
   options.projection = projection;
 

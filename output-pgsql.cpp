@@ -1444,7 +1444,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     return 0;
 }
 
-output_pgsql_t::output_pgsql_t(middle_t* mid_, const output_options* options_):output_t(mid_, options_) {
+output_pgsql_t::output_pgsql_t(middle_t* mid_, const options_t* options_):output_t(mid_, options_) {
 }
 
 output_pgsql_t::~output_pgsql_t() {

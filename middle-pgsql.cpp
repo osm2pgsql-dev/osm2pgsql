@@ -90,7 +90,7 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
 
 namespace {
 int pgsql_connect(std::vector<middle_pgsql_t::table_desc> &tables,
-                  const struct output_options *options) {
+                  const struct options_t *options) {
     const int num_tables = tables.size();
 
     /* We use a connection per table to enable the use of COPY */
@@ -1395,7 +1395,7 @@ void middle_pgsql_t::end(void)
  *
  * This is used for constructing SQL queries with proper tablespace settings.
  */
-static void set_prefix_and_tbls(const struct output_options *options, const char **string)
+static void set_prefix_and_tbls(const struct options_t *options, const char **string)
 {
     char buffer[1024];
     const char *source;

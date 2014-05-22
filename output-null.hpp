@@ -8,7 +8,7 @@
 
 class output_null_t : public output_t {
 public:
-    output_null_t(middle_t* mid_, const output_options* options);
+    output_null_t(middle_t* mid_, const options_t* options);
     virtual ~output_null_t();
 
     int start();
