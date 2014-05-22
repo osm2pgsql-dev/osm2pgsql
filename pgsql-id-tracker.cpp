@@ -97,7 +97,7 @@ bool pgsql_id_tracker::is_marked(osmid_t id) {
     paramValues[0] = tmp;
     
     result = pgsql_execPrepared(impl->conn, "get_mark", 1, paramValues, PGRES_TUPLES_OK);
-    bool done = PQntuples(result) == 1;
+    bool done = PQntuples(result) > 0;
     PQclear(result);
     return done;
 }
@@ -136,6 +136,9 @@ void pgsql_id_tracker::unmark(osmid_t id) {
 }
 
 void pgsql_id_tracker::commit() {
+    if (impl->owns_table) {
+        pgsql_exec(impl->conn, PGRES_COMMAND_OK, "CREATE INDEX ON \"%s\" (id)", impl->table_name.c_str());
+    }
     pgsql_exec(impl->conn, PGRES_COMMAND_OK, "COMMIT");
     pgsql_exec(impl->conn, PGRES_COMMAND_OK, "BEGIN");
 }
