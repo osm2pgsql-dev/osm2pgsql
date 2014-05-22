@@ -1264,7 +1264,6 @@ void output_pgsql_t::stop()
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
-  m_mid->nodes_set(id, lat, lon, tags);
   pgsql_out_node(id, tags, lat, lon, m_sql);
 
   return 0;
@@ -1394,7 +1393,6 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
     if ( expire->from_db(m_tables[t_point].sql_conn, osm_id) != 0)
         pgsql_exec(m_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point].name, osm_id );
     
-    dynamic_cast<slim_middle_t *>(m_mid)->nodes_delete(osm_id);
     return 0;
 }
 
@@ -1468,7 +1466,6 @@ int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct k
     }
     node_delete(osm_id);
     node_add(osm_id, lat, lon, tags);
-    dynamic_cast<slim_middle_t *>(m_mid)->node_changed(osm_id);
     return 0;
 }
 

@@ -16,11 +16,34 @@ void exit_nicely()
     exit(1);
 }
 
+struct test_middle_t : public middle_t {
+    virtual ~test_middle_t() {}
+
+    int start(output_t* out_) { return 0; }
+    void stop(void) { }
+    void cleanup(void) { }
+    void analyze(void) { }
+    void end(void) { }
+    void commit(void) { }
+
+    int nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
+    int nodes_get_list(struct osmNode *out, osmid_t *nds, int nd_count) { return 0; }
+
+    int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags) { return 0; }
+    int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) { return 0; }
+    int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) { return 0; }
+
+    int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
+
+    void iterate_ways(way_cb_func &cb) { }
+    void iterate_relations(rel_cb_func &cb) { }
+};
+
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
-    test_output_t(middle_t* mid_,const output_options* options_)
-        : output_t(mid_, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+    explicit test_output_t(const output_options* options_)
+        : output_t(NULL, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
 
@@ -91,8 +114,9 @@ int main(int argc, char *argv[]) {
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
   options.projection = projection;
 
-  struct test_output_t out_test(NULL, &options);
-  struct osmdata_t osmdata(NULL, &out_test);
+  struct test_middle_t mid_test;
+  struct test_output_t out_test(&options);
+  struct osmdata_t osmdata(&mid_test, &out_test);
 
   keyval tags;
   initList(&tags);
