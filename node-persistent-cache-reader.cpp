@@ -13,15 +13,10 @@
 
 #include "osmtypes.hpp"
 #include "output.hpp"
+#include "options.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
 #include "binarysearcharray.hpp"
-
-void exit_nicely()
-{
-    fprintf(stderr, "Error occurred, cleaning up\n");
-    exit(1);
-}
 
 void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
                         int itterations, int max_size, int process_number) {

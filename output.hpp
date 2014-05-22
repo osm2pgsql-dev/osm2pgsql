@@ -11,9 +11,10 @@
 #define OUTPUT_H
 
 #include "middle.hpp"
-#include "options.hpp"
 
 #include <boost/noncopyable.hpp>
+
+struct options_t;
 
 class output_t : public boost::noncopyable {
 public:
@@ -41,7 +42,6 @@ public:
     virtual const options_t* get_options()const;
 
 protected:
-    output_t();
     middle_t* m_mid;
     const options_t* m_options;
 };

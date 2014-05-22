@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <libpq-fe.h>
-#include "osmtypes.hpp" /* For exit_nicely() */
+#include "util.hpp"
 #include "pgsql.hpp"
 
 void escape(buffer &buf, const char *in) {
@@ -79,7 +79,7 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
 
     if ((sql = (char *)malloc(size)) == NULL) {
         fprintf(stderr, "Memory allocation failed\n");
-        exit_nicely();
+        util::exit_nicely();
     }
 
     while (1) {
@@ -98,7 +98,7 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
         if ((nsql = (char *)realloc (sql, size)) == NULL) {
             free(sql);
             fprintf(stderr, "Memory re-allocation failed\n");
-            exit_nicely();
+            util::exit_nicely();
         } else {
             sql = nsql;
         }
@@ -112,7 +112,7 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
         fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
         free(sql);
         PQclear(res);
-        exit_nicely();
+        util::exit_nicely();
     }
     free(sql);
     PQclear(res);
@@ -127,7 +127,7 @@ int pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql)
     int r = PQputCopyData(sql_conn, sql, strlen(sql));
     if (r != 1) {
         fprintf(stderr, "%s - bad result during COPY, data %s\n", context, sql);
-        exit_nicely();
+        util::exit_nicely();
     }
     return 0;
 }
@@ -149,7 +149,7 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, int nParam
             fprintf( stderr,  "\n");
         }
         PQclear(res);
-        exit_nicely();
+        util::exit_nicely();
     }
     if( expect != PGRES_TUPLES_OK )
     {

@@ -7,14 +7,9 @@
 #include "osmtypes.hpp"
 #include "parse-xml2.hpp"
 #include "output.hpp"
+#include "options.hpp"
 #include "text-tree.hpp"
 #include "keyvals.hpp"
-
-void exit_nicely()
-{
-    fprintf(stderr, "Error occurred, cleaning up\n");
-    exit(1);
-}
 
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;

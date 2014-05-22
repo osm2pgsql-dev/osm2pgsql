@@ -21,17 +21,17 @@ public:
 	~parse_delegate_t();
 
 	int streamFile(const char* input_reader, const char* filename, const int sanitize, osmdata_t *osmdata);
-	void printSummary();
-	boost::shared_ptr<reprojection> getProjection();
+	void printSummary() const;
+	boost::shared_ptr<reprojection> getProjection() const;
 
 private:
 	parse_delegate_t();
 	void parse_bbox(const char* bbox);
 	parse_t* get_input_reader(const char* input_reader, const char* filename);
 
-	osmid_t m_count_node,    m_max_node;
-	osmid_t m_count_way,     m_max_way;
-	osmid_t m_count_rel,     m_max_rel;
+	osmid_t m_count_node, m_max_node;
+	osmid_t m_count_way,  m_max_way;
+	osmid_t m_count_rel,  m_max_rel;
 	time_t  m_start_node, m_start_way, m_start_rel;
 
 	const int m_extra_attributes;

@@ -1,5 +1,10 @@
 #include "options.hpp"
 #include "sprompt.hpp"
+#include "middle-pgsql.hpp"
+#include "middle-ram.hpp"
+#include "output-pgsql.hpp"
+#include "output-gazetteer.hpp"
+#include "output-null.hpp"
 
 #include <getopt.h>
 #include <libgen.h>
@@ -226,8 +231,38 @@ options_t::options_t():
 
 }
 
+options_t::~options_t()
+{
+    /* free the column pointer buffer */
+    free(hstore_columns);
+}
 
-/*std::vector<output_t>*/ options_t options_t::parse(int argc, char *argv[])
+parse_delegate_t* options_t::create_input()
+{
+    return new parse_delegate_t(extra_attributes, bbox, projection);
+}
+
+middle_t* options_t::create_middle()
+{
+     return slim ? (middle_t*)new middle_pgsql_t() : (middle_t*)new middle_ram_t();
+}
+
+std::vector<output_t*> options_t::create_output(middle_t* mid) {
+    std::vector<output_t*> outputs;
+    if (strcmp("pgsql", output_backend) == 0) {
+        outputs.push_back(new output_pgsql_t(mid, this));
+    } else if (strcmp("gazetteer", output_backend) == 0) {
+        outputs.push_back(new output_gazetteer_t(mid, this));
+    } else if (strcmp("null", output_backend) == 0) {
+        outputs.push_back(new output_null_t(mid, this));
+    } else {
+        fprintf(stderr, "Output backend `%s' not recognised. Should be one of [pgsql, gazetteer, null].\n", output_backend);
+        exit(1);
+    }
+    return outputs;
+}
+
+options_t options_t::parse(int argc, char *argv[])
 {
     options_t options;
 

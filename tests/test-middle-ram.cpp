@@ -7,18 +7,12 @@
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
-#include "output.hpp"
 #include "output-null.hpp"
+#include "options.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
 
 #include "tests/middle-tests.hpp"
-
-void exit_nicely()
-{
-    fprintf(stderr, "Error occurred, cleaning up\n");
-    exit(1);
-}
 
 int main(int argc, char *argv[]) {
   try {

@@ -6,6 +6,7 @@
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
+#include "output.hpp"
 #include "tagtransform.hpp"
 #include "buffer.hpp"
 #include "build_geometry.hpp"

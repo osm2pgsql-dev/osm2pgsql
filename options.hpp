@@ -4,6 +4,9 @@
 #include "keyvals.hpp"
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
+#include "parse.hpp"
+#include "middle.hpp"
+#include "output.hpp"
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -20,10 +23,16 @@
 static const int DEFAULT_SCALE = 100;
 
 struct options_t {
+public:
     /* construct with sensible defaults */
     options_t();
+    virtual ~options_t();
 
-    static /*std::vector<output_t>*/ options_t parse(int argc, char *argv[]);
+    static options_t parse(int argc, char *argv[]);
+
+    parse_delegate_t* create_input();
+    middle_t* create_middle();
+    std::vector<output_t*> create_output(middle_t* mid);
 
     const char *conninfo; /* Connection info string */
     const char *prefix; /* prefix for table names */
@@ -71,6 +80,9 @@ struct options_t {
     const char *bbox;
     int extra_attributes;
     int verbose;
+
+private:
+
 };
 
 #endif

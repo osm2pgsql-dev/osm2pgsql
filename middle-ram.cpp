@@ -17,10 +17,10 @@
 #include <stdexcept>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
 #include "output-pgsql.hpp"
+#include "options.hpp"
 #include "util.hpp"
 
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
@@ -78,7 +78,7 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
         ways[block] = (struct ramWay *)calloc(PER_BLOCK, sizeof(struct ramWay));
         if (!ways[block]) {
             fprintf(stderr, "Error allocating ways\n");
-            exit_nicely();
+            util::exit_nicely();
         }
         way_blocks++;
     }
@@ -101,7 +101,7 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
             ways[block][offset].tags = p;
         } else {
             fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-            exit_nicely();
+            util::exit_nicely();
         }
     } else
         resetList(ways[block][offset].tags);
@@ -121,7 +121,7 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
         rels[block] = (struct ramRel *)calloc(PER_BLOCK, sizeof(struct ramRel));
         if (!rels[block]) {
             fprintf(stderr, "Error allocating rels\n");
-            exit_nicely();
+            util::exit_nicely();
         }
     }
 
@@ -132,7 +132,7 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
             rels[block][offset].tags = p;
         } else {
             fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-            exit_nicely();
+            util::exit_nicely();
         }
     } else
         resetList(rels[block][offset].tags);
@@ -149,7 +149,7 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
         rels[block][offset].members = ptr;
     } else {
         fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-        exit_nicely();
+        util::exit_nicely();
     }
 
     return 0;

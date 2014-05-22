@@ -6,8 +6,8 @@
 #include <errno.h>
 
 #include "osmtypes.hpp"
-#include "output.hpp"
 #include "output-null.hpp"
+#include "options.hpp"
 
 #define UNUSED  __attribute__ ((unused))
 

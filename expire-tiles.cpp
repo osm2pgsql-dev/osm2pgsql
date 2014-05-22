@@ -15,6 +15,7 @@
 #include <errno.h>
 #include "expire-tiles.hpp"
 #include "output.hpp"
+#include "options.hpp"
 #include "pgsql.hpp"
 #include "build_geometry.hpp"
 #include "reprojection.hpp"

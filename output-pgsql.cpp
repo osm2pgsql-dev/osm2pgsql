@@ -24,9 +24,9 @@
 #include <libpq-fe.h>
 
 #include "osmtypes.hpp"
-#include "output.hpp"
 #include "reprojection.hpp"
 #include "output-pgsql.hpp"
+#include "options.hpp"
 #include "build_geometry.hpp"
 #include "middle.hpp"
 #include "pgsql.hpp"
@@ -102,7 +102,7 @@ int read_style_file( const char *filename, export_list *exlist )
   if( !in )
   {
     fprintf( stderr, "Couldn't open style file '%s': %s\n", filename, strerror(errno) );
-    exit_nicely();
+    util::exit_nicely();
   }
   
   //for each line of the style file
@@ -122,7 +122,7 @@ int read_style_file( const char *filename, export_list *exlist )
     if( fields < 3 )
     {
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
-      exit_nicely();
+      util::exit_nicely();
     }
 
     //place to keep info about this tag
@@ -150,7 +150,7 @@ int read_style_file( const char *filename, export_list *exlist )
         ((temp.name.find('?') != std::string::npos) || 
          (temp.name.find('*') != std::string::npos))) {
         fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name.c_str());
-        exit_nicely();
+        util::exit_nicely();
     }
     
     if ((temp.name == "way_area") && (temp.flags==FLAG_DELETE)) {
@@ -178,7 +178,7 @@ int read_style_file( const char *filename, export_list *exlist )
     if( !kept )
     {
       fprintf( stderr, "Weird style line %d\n", lineno );
-      exit_nicely();
+      util::exit_nicely();
     }
     num_read++;
   }
@@ -186,11 +186,11 @@ int read_style_file( const char *filename, export_list *exlist )
 
   if (ferror(in)) {
       perror(filename);
-      exit_nicely();
+      util::exit_nicely();
   }
   if (num_read == 0) {
       fprintf(stderr, "Unable to parse any valid columns from the style file. Aborting.\n");
-      exit_nicely();
+      util::exit_nicely();
   }
   fclose(in);
   return enable_way_area;
@@ -793,7 +793,7 @@ int output_pgsql_t::start()
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            exit_nicely();
+            util::exit_nicely();
         }
         m_tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
@@ -808,14 +808,14 @@ int output_pgsql_t::start()
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
                 fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", m_tables[i].name);
-                exit_nicely();
+                util::exit_nicely();
             }
             their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
                 fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", m_tables[i].name, their_srid, SRID);
-                exit_nicely();
+                util::exit_nicely();
             }
         }
 
@@ -877,7 +877,7 @@ int output_pgsql_t::start()
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
                 fprintf(stderr, "Error, failed to query table %s\n%s\n", m_tables[i].name, sql);
-                exit_nicely();
+                util::exit_nicely();
             }
             for (j=0; j < numTags; j++) {
                 const taginfo &info = infos[j];
@@ -889,7 +889,7 @@ int output_pgsql_t::start()
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
                     fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", info.name.c_str(), m_tables[i].name);
-                    exit_nicely();
+                    util::exit_nicely();
 #else
                     fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", info.name.c_str(), m_tables[i].name);
                     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i].name, info.name.c_str(), info.type.c_str());
@@ -944,7 +944,7 @@ int output_pgsql_t::start()
     catch(std::runtime_error& e) {
     	fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
-        exit_nicely();
+        util::exit_nicely();
     }
     expire.reset(new expire_tiles(m_options));
 
@@ -968,14 +968,14 @@ void output_pgsql_t::pgsql_pause_copy(output_pgsql_t::table *table)
     stop = PQputCopyEnd(table->sql_conn, NULL);
     if (stop != 1) {
        fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
-       exit_nicely();
+       util::exit_nicely();
     }
 
     res = PQgetResult(table->sql_conn);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
        fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
        PQclear(res);
-       exit_nicely();
+       util::exit_nicely();
     }
     PQclear(res);
     table->copyMode = 0;
@@ -1012,7 +1012,7 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
     if( table->buflen != 0 )
     {
        fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", table->name, table->buflen );
-       exit_nicely();
+       util::exit_nicely();
     }
 
     pgsql_pause_copy(table);
@@ -1229,7 +1229,7 @@ void output_pgsql_t::stop()
           int ret = pthread_create(&threads[i], NULL, pthread_output_pgsql_stop_one, &thunks[i]);
           if (ret) {
               fprintf(stderr, "pthread_create() returned an error (%d)", ret);
-              exit_nicely();
+              util::exit_nicely();
           }
       }
   
@@ -1240,7 +1240,7 @@ void output_pgsql_t::stop()
           int ret = pthread_join(threads[i], NULL);
           if (ret) {
               fprintf(stderr, "pthread_join() returned an error (%d)", ret);
-              exit_nicely();
+              util::exit_nicely();
           }
       }
     } else {
@@ -1388,7 +1388,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     pgsql_pause_copy(&m_tables[t_point]);
     if ( expire->from_db(m_tables[t_point].sql_conn, osm_id) != 0)
@@ -1423,7 +1423,7 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
     dynamic_cast<slim_middle_t *>(m_mid)->ways_delete(osm_id);
@@ -1449,7 +1449,7 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
     dynamic_cast<slim_middle_t *>(m_mid)->relations_delete(osm_id);
@@ -1464,7 +1464,7 @@ int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct k
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     node_delete(osm_id);
     node_add(osm_id, lat, lon, tags);
@@ -1477,7 +1477,7 @@ int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, s
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     way_delete(osm_id);
     way_add(osm_id, nodes, node_count, tags);
@@ -1490,7 +1490,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     if( !m_options->slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
-        exit_nicely();
+        util::exit_nicely();
     }
     relation_delete(osm_id);
     relation_add(osm_id, members, member_count, tags);

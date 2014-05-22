@@ -7,6 +7,7 @@
 #include "keyvals.hpp"
 #include "tagtransform.hpp"
 #include "output-pgsql.hpp"
+#include "options.hpp"
 #include "config.h"
 #include "wildcmp.hpp"
 #include "taginfo_impl.hpp"

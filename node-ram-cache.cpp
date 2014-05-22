@@ -119,7 +119,7 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval
             return 1;
         else {
             fprintf(stderr, "\nNode cache size is too small to fit all nodes. Please increase cache size\n");
-            exit_nicely();
+            util::exit_nicely();
         }
     }
     sparseBlock[sizeSparseTuples].id = id;
@@ -192,7 +192,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
             blocks[block].block_offset = block;
             if (!blocks[block].nodes) {
                 fprintf(stderr, "Error allocating nodes\n");
-                exit_nicely();
+                util::exit_nicely();
             }
             queue[usedBlocks] = &blocks[block];
             usedBlocks++;
@@ -207,7 +207,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
         } else {
             if ((allocStrategy & ALLOC_LOSSY) == 0) {
                 fprintf(stderr, "\nNode cache size is too small to fit all nodes. Please increase cache size\n");
-                exit_nicely();
+                util::exit_nicely();
             }
             /* We've reached the maximum number of blocks, so now we push the
              * current head of the tree down to the right level to restore the
@@ -347,7 +347,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
         blocks = (struct ramNodeBlock *)calloc(NUM_BLOCKS,sizeof(struct ramNodeBlock));
         if (!blocks) {
             fprintf(stderr, "Out of memory for node cache dense index, try using \"--cache-strategy sparse\" instead \n");
-            exit_nicely();
+            util::exit_nicely();
         }
         queue = (struct ramNodeBlock **)calloc( maxBlocks,sizeof(struct ramNodeBlock *) );
         /* Use this method of allocation if virtual memory is limited,
@@ -358,14 +358,14 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
             fprintf(stderr, "Allocating dense node cache in block sized chunks\n");
             if (!queue) {
                 fprintf(stderr, "Out of memory, reduce --cache size\n");
-                exit_nicely();
+                util::exit_nicely();
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
             blockCache = (char *)calloc(maxBlocks + 1024,PER_BLOCK * sizeof(struct ramNode));
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
-                exit_nicely();
+                util::exit_nicely();
             }
         }
     }
@@ -387,7 +387,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
         }
         if (!sparseBlock) {
             fprintf(stderr, "Out of memory for sparse node cache, reduce --cache size\n");
-            exit_nicely();
+            util::exit_nicely();
         }
     }
 

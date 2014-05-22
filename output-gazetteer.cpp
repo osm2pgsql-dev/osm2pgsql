@@ -6,11 +6,12 @@
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
-#include "output.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "build_geometry.hpp"
 #include "output-gazetteer.hpp"
+#include "options.hpp"
+#include "util.hpp"
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -57,13 +58,13 @@ void output_gazetteer_t::require_slim_mode(void)
    if (!m_options->slim)
    {
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-      exit_nicely();
+      util::exit_nicely();
    }
    if (slim_mid == NULL) {
        slim_mid = dynamic_cast<slim_middle_t *>(m_mid);
        if (slim_mid == NULL) {
            fprintf(stderr, "Internal error - expecting a slim mode middle, but got NULL.\n");
-           exit_nicely();
+           util::exit_nicely();
        }
    }
 
@@ -125,7 +126,7 @@ void output_gazetteer_t::stop_copy(void)
    if (PQputCopyEnd(Connection, NULL) != 1)
    {
       fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Check the result */
@@ -134,7 +135,7 @@ void output_gazetteer_t::stop_copy(void)
    {
       fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
       PQclear(res);
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Discard the result */
@@ -204,7 +205,7 @@ static void stop_error_copy(void)
    if (PQputCopyEnd(ConnectionError, NULL) != 1)
    {
       fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Check the result */
@@ -213,7 +214,7 @@ static void stop_error_copy(void)
    {
       fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
       PQclear(res);
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Discard the result */
@@ -1003,7 +1004,7 @@ int output_gazetteer_t::start()
    if (PQstatus(Connection) != CONNECTION_OK)
    {
       fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(Connection));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Start a transaction */
@@ -1050,7 +1051,7 @@ int output_gazetteer_t::start()
       if (PQstatus(ConnectionDelete) != CONNECTION_OK)
       { 
           fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
-          exit_nicely();
+          util::exit_nicely();
       }
 
       pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");

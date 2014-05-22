@@ -1,5 +1,5 @@
 #include "buffer.hpp"
-#include "osmtypes.hpp"
+#include "util.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -35,7 +35,7 @@ size_t buffer::printf(const char *format, ...) {
     // negative return means an error occurred.
     if (status < 0) {
         fprintf(stderr, "Error returned from vsnprintf.");
-        exit_nicely();
+        util::exit_nicely();
     }
     // otherwise, must be positive and is a number of characters
     num_chars = status;
@@ -53,7 +53,7 @@ size_t buffer::printf(const char *format, ...) {
         // negative return means an error occurred.
         if (status < 0) {
             fprintf(stderr, "Error returned from vsnprintf.");
-            exit_nicely();
+            util::exit_nicely();
         }
         num_chars = status;
     }
@@ -75,7 +75,7 @@ size_t buffer::aprintf(const char *format, ...) {
     // negative return means an error occurred.
     if (status < 0) {
         fprintf(stderr, "Error returned from vsnprintf.");
-        exit_nicely();
+        util::exit_nicely();
     }
     // otherwise, must be positive and is a number of characters
     num_chars = status;
@@ -93,7 +93,7 @@ size_t buffer::aprintf(const char *format, ...) {
         // negative return means an error occurred.
         if (status < 0) {
             fprintf(stderr, "Error returned from vsnprintf.");
-            exit_nicely();
+            util::exit_nicely();
         }
         num_chars = status;
     }
@@ -141,7 +141,7 @@ void buffer::realloc(size_t len) {
     char *new_buf = (char *)malloc(new_size);
     if (new_buf == NULL) {
         fprintf(stderr, "Unable to allocate new temporary buffer.");
-        exit_nicely();
+        util::exit_nicely();
     }
     
     // copy and free old buffer, if one was ever allocated, so that

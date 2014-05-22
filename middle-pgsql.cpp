@@ -37,9 +37,9 @@
 #include <libpq-fe.h>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
 #include "middle-pgsql.hpp"
 #include "output-pgsql.hpp"
+#include "options.hpp"
 #include "node-ram-cache.hpp"
 #include "node-persistent-cache.hpp"
 #include "pgsql.hpp"
@@ -328,7 +328,7 @@ void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
   if( count != nd_count )
   {
     fprintf( stderr, "parse_nodes problem: '%s' expected %d got %d\n", src, nd_count, count );
-    exit_nicely();
+    util::exit_nicely();
   }
 }
 
@@ -343,14 +343,14 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
         stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
-            exit_nicely();
+            util::exit_nicely();
         }
 
         res = PQgetResult(sql_conn);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
             PQclear(res);
-            exit_nicely();
+            util::exit_nicely();
         }
         PQclear(res);
         table->copyMode = 0;
@@ -781,7 +781,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
             fprintf(stderr,"WARNING: Failed to fork helper process %i: %s. Trying to recover.\n", p, strerror(errno));
 #else
             fprintf(stderr,"ERROR: Failed to fork helper process %i: %s. Can't recover!\n", p, strerror(errno));
-            exit_nicely();
+            util::exit_nicely();
 #endif            
         }
     }
@@ -794,7 +794,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 #else
             fprintf(stderr,"\n\n!!!FATAL: Helper process failed, but can't compensate. Your DB will be broken and corrupt!!!!\n\n");
 #endif
-            exit_nicely();
+            util::exit_nicely();
         };
     } else {
         p = 0;
@@ -1001,7 +1001,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
         case OSMTYPE_NODE:     node_parts[node_count++] = members[i].id; tag = 'n'; break;
         case OSMTYPE_WAY:      way_parts[way_count++] = members[i].id; tag = 'w'; break;
         case OSMTYPE_RELATION: rel_parts[rel_count++] = members[i].id; tag = 'r'; break;
-        default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); exit_nicely();
+        default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); util::exit_nicely();
       }
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
       addItem( &member_list, buf, members[i].role, 0 );
@@ -1084,7 +1084,7 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
         if( i >= num_members )
         {
             fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
-            exit_nicely();
+            util::exit_nicely();
         }
         tag = item->key[0];
         list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
@@ -1180,7 +1180,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
             fprintf(stderr,"WARNING: Failed to fork helper processes %i. Trying to recover.\n", p); 
 #else 
             fprintf(stderr,"ERROR: Failed to fork helper processes. Can't recover! \n"); 
-            exit_nicely(); 
+            util::exit_nicely(); 
 #endif 
         }
     }
@@ -1190,7 +1190,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 #if HAVE_MMAP
             info[p].finished = HELPER_STATE_FAILED;
 #endif
-            exit_nicely();
+            util::exit_nicely();
         };
     } else {
         p = 0;
@@ -1499,7 +1499,7 @@ int middle_pgsql_t::start(output_t* out_)
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            exit_nicely();
+            util::exit_nicely();
         }
         tables[i].sql_conn = sql_conn;
 
@@ -1539,7 +1539,7 @@ int middle_pgsql_t::start(output_t* out_)
                     "While required for earlier versions of osm2pgsql, intarray \n"
                     "is now unnecessary and will interfere with osm2pgsql's array\n"
                     "handling. Please use a database without intarray.\n\n");
-                exit_nicely();
+                util::exit_nicely();
             }
             PQclear(res);
 
@@ -1562,7 +1562,7 @@ int middle_pgsql_t::start(output_t* out_)
                             "You cannot append data to this database with this program.\n"
                             "Either re-create the database or use a matching osm2pgsql.\n\n",
                             size * 8, sizeof(osmid_t) * 8);
-                        exit_nicely();
+                        util::exit_nicely();
                     }
                 }
                 PQclear(res);
@@ -1700,7 +1700,7 @@ void middle_pgsql_t::stop(void)
         int ret = pthread_create(&threads[i], NULL, pthread_middle_pgsql_stop_one, &thunks[i]);
         if (ret) {
             fprintf(stderr, "pthread_create() returned an error (%d)", ret);
-            exit_nicely();
+            util::exit_nicely();
         }
     }
 
@@ -1708,7 +1708,7 @@ void middle_pgsql_t::stop(void)
         int ret = pthread_join(threads[i], NULL);
         if (ret) {
             fprintf(stderr, "pthread_join() returned an error (%d)", ret);
-            exit_nicely();
+            util::exit_nicely();
         }
     }
 #else

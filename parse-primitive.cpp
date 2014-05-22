@@ -46,6 +46,7 @@ in a production environment.
 #include "input.hpp"
 #include "parse-primitive.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 
 char *extractAttribute(char **token, int tokens, const char *attname)
@@ -121,7 +122,7 @@ actions_t parse_primitive_t::ParseAction(char **token, int tokens)
     else
     {
         fprintf( stderr, "Unknown value for action: %s\n", (char*)action_text );
-        exit_nicely();
+        util::exit_nicely();
     }
     return new_action;
 }
@@ -155,7 +156,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         else
         {
             fprintf( stderr, "Unknown XML document type: %s\n", name );
-            exit_nicely();
+            util::exit_nicely();
         }
         return;
     }
@@ -350,7 +351,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
             else
             {
 	      fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osm_id );
-	      exit_nicely();
+	      util::exit_nicely();
             }
         }
       resetList(&(tags));
@@ -364,7 +365,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
         else
         {
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
-            exit_nicely();
+            util::exit_nicely();
         }
       resetList(&(tags));
     } else if (!strcmp(name, "relation")) {
@@ -377,7 +378,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
         else
         {
 	  fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
-	  exit_nicely();
+	  util::exit_nicely();
         }
         resetList(&(tags));
         resetMembers();
