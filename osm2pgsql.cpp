@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
             return 0;
 
         //setup the front (input)
-        parse_delegate_t* input = options.create_input();
+        parse_delegate_t* parser = options.create_parser();
 
         //setup the middle
         middle_t* middle = options.create_middle();
@@ -93,18 +93,19 @@ int main(int argc, char *argv[])
         outputs.front()->start();
 
         //read in the input files one by one
-        while (optind < argc) {
+        for(std::vector<std::string>::const_iterator filename = options.input_files.begin(); filename != options.input_files.end(); ++filename)
+        {
             //read the actual input
-            fprintf(stderr, "\nReading in file: %s\n", argv[optind]);
+            fprintf(stderr, "\nReading in file: %s\n", filename->c_str());
             time_t start = time(NULL);
-            if (input->streamFile(options.input_reader, argv[optind], options.sanitize, &osmdata) != 0)
+            if (parser->streamFile(options.input_reader, filename->c_str(), options.sanitize, &osmdata) != 0)
                 util::exit_nicely();
             fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
-            optind++;
         }
 
         //show stats
-        input->printSummary();
+        parser->printSummary();
+        delete parser;
 
         //done with output_*_t
         outputs.front()->stop();

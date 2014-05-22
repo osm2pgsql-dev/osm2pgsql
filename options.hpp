@@ -9,6 +9,7 @@
 #include "output.hpp"
 
 #include <vector>
+#include <string>
 #include <boost/shared_ptr.hpp>
 
 /* Variants for generation of hstore column */
@@ -30,7 +31,7 @@ public:
 
     static options_t parse(int argc, char *argv[]);
 
-    parse_delegate_t* create_input();
+    parse_delegate_t* create_parser();
     middle_t* create_middle();
     std::vector<output_t*> create_output(middle_t* mid);
 
@@ -81,6 +82,7 @@ public:
     int extra_attributes;
     int verbose;
 
+    std::vector<std::string> input_files;
 private:
 
 };

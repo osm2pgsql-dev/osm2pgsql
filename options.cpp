@@ -286,7 +286,7 @@ options_t::~options_t()
     free(hstore_columns);
 }
 
-parse_delegate_t* options_t::create_input()
+parse_delegate_t* options_t::create_parser()
 {
     return new parse_delegate_t(extra_attributes, bbox, projection);
 }
@@ -555,6 +555,12 @@ options_t options_t::parse(int argc, char *argv[])
                     10000000 : 100;
     options.conninfo = build_conninfo(options.db, options.username,
             options.password, options.host, options.port);
+
+    //get the input files
+    while (optind < argc) {
+        options.input_files.push_back(std::string(argv[optind]));
+        optind++;
+    }
 
     return options;
 }
