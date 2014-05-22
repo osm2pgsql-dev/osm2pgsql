@@ -264,7 +264,7 @@ int parse_pbf_t::processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *
     if (node_wanted(lat, lon)) {
         proj->reproject(&lat, &lon);
         
-        osmdata->out->node_add(node->id, lat, lon, &(tags));
+        osmdata->node_add(node->id, lat, lon, &(tags));
         
         if (node->id > max_node) {
             max_node = node->id;
@@ -343,7 +343,7 @@ int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGr
             if (node_wanted(lat, lon)) {
                 proj->reproject(&lat, &lon);
                 
-                osmdata->out->node_add(deltaid, lat, lon, &(tags));
+                osmdata->node_add(deltaid, lat, lon, &(tags));
                 
                 if (deltaid > max_node) {
                     max_node = deltaid;
@@ -393,10 +393,10 @@ int parse_pbf_t::processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *g
 		      0);
     }
 
-    osmdata->out->way_add(way->id, 
-			  nds,
-			  nd_count,
-			  &(tags) );
+    osmdata->way_add(way->id, 
+                     nds,
+                     nd_count,
+                     &(tags) );
 
     if (way->id > max_way) {
       max_way = way->id;
@@ -469,10 +469,10 @@ int parse_pbf_t::processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGro
 		      0);
     }
 	 
-    osmdata->out->relation_add(relation->id, 
-			       members,
-			       member_count,
-			       &(tags));
+    osmdata->relation_add(relation->id, 
+                          members,
+                          member_count,
+                          &(tags));
 
     for (member_id = 0; member_id < member_count; member_id++) {
       free(members[member_id].role);

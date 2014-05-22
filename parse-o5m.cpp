@@ -828,13 +828,13 @@ return 1;
       action= ACTION_DELETE;
       switch(otype) {
       case 0:  /* node */
-        osmdata->out->node_delete(osm_id);
+        osmdata->node_delete(osm_id);
         break;
       case 1:  /* way */
-        osmdata->out->way_delete(osm_id);
+        osmdata->way_delete(osm_id);
         break;
       case 2:  /* relation */
-        osmdata->out->relation_delete(osm_id);
+        osmdata->relation_delete(osm_id);
         break;
       default: ;
         }
@@ -925,26 +925,26 @@ return 1;
       switch(otype) {
       case 0:  /* node */
         if(action==ACTION_CREATE)
-          osmdata->out->node_add(osm_id,
+          osmdata->node_add(osm_id,
             node_lat,node_lon,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->node_modify(osm_id,
+          osmdata->node_modify(osm_id,
             node_lat,node_lon,&(tags));
         break;
       case 1:  /* way */
         if(action==ACTION_CREATE)
-          osmdata->out->way_add(osm_id,
+          osmdata->way_add(osm_id,
             nds,nd_count,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->way_modify(osm_id,
+          osmdata->way_modify(osm_id,
             nds,nd_count,&(tags));
         break;
       case 2:  /* relation */ 
         if(action==ACTION_CREATE)
-          osmdata->out->relation_add(osm_id,
+          osmdata->relation_add(osm_id,
             members,member_count,&(tags));
         else /* ACTION_MODIFY */
-          osmdata->out->relation_modify(osm_id,
+          osmdata->relation_modify(osm_id,
             members,member_count,&(tags));
         break;
       default: ;

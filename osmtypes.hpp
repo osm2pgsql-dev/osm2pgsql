@@ -47,12 +47,24 @@ class osmdata_t {
 		osmdata_t(middle_t* mid_, output_t* out_);
 		~osmdata_t();
     
+    int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
+    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
+    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+
+    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags);
+    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
+    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+
+    int node_delete(osmid_t id);
+    int way_delete(osmid_t id);
+    int relation_delete(osmid_t id);
+
 		//TODO: move output to be a private/protected member
 		// then steal from it its mid object and its important functions
 		// such as add/mod/del. then make output a vector of multiple
 		middle_t* mid;
-		output_t* out;
 	private:
+		output_t* out;
 
 };
 

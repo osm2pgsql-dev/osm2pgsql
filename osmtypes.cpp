@@ -12,4 +12,38 @@ osmdata_t::~osmdata_t()
 {
 }
 
+int osmdata_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
+    return out->node_add(id, lat, lon, tags);
+}
 
+int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+    return out->way_add(id, nodes, node_count, tags);
+}
+
+int osmdata_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+    return out-> relation_add(id, members, member_count, tags);
+}
+
+int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *tags) {
+    return out->node_modify(id, lat, lon, tags);
+}
+
+int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+    return out->way_modify(id, nodes, node_count, tags);
+}
+
+int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+    return out->relation_modify(id, members, member_count, tags);
+}
+
+int osmdata_t::node_delete(osmid_t id) {
+    return out->node_delete(id);
+}
+
+int osmdata_t::way_delete(osmid_t id) {
+    return out->way_delete(id);
+}
+
+int osmdata_t::relation_delete(osmid_t id) {
+    return out->relation_delete(id);
+}

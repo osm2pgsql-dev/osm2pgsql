@@ -284,11 +284,11 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
       if (node_wanted(node_lat, node_lon)) {
 	  proj->reproject(&(node_lat), &(node_lon));
             if( action == ACTION_CREATE )
-	        osmdata->out->node_add(osm_id, node_lat, node_lon, &(tags));
+	        osmdata->node_add(osm_id, node_lat, node_lon, &(tags));
             else if( action == ACTION_MODIFY )
-	        osmdata->out->node_modify(osm_id, node_lat, node_lon, &(tags));
+	        osmdata->node_modify(osm_id, node_lat, node_lon, &(tags));
             else if( action == ACTION_DELETE )
-                osmdata->out->node_delete(osm_id);
+                osmdata->node_delete(osm_id);
             else
             {
                 fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osm_id );
@@ -298,11 +298,11 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         resetList(&(tags));
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
         if( action == ACTION_CREATE )
-	    osmdata->out->way_add(osm_id, nds, nd_count, &(tags) );
+	    osmdata->way_add(osm_id, nds, nd_count, &(tags) );
         else if( action == ACTION_MODIFY )
-	    osmdata->out->way_modify(osm_id, nds, nd_count, &(tags) );
+	    osmdata->way_modify(osm_id, nds, nd_count, &(tags) );
         else if( action == ACTION_DELETE )
-            osmdata->out->way_delete(osm_id);
+            osmdata->way_delete(osm_id);
         else
         {
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
@@ -311,11 +311,11 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         resetList(&(tags));
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         if( action == ACTION_CREATE )
-	    osmdata->out->relation_add(osm_id, members, member_count, &(tags));
+	    osmdata->relation_add(osm_id, members, member_count, &(tags));
         else if( action == ACTION_MODIFY )
-	    osmdata->out->relation_modify(osm_id, members, member_count, &(tags));
+	    osmdata->relation_modify(osm_id, members, member_count, &(tags));
         else if( action == ACTION_DELETE )
-            osmdata->out->relation_delete(osm_id);
+            osmdata->relation_delete(osm_id);
         else
         {
             fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
