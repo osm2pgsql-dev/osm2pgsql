@@ -67,8 +67,9 @@ int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *t
     return cache->set(id, lat, lon, tags);
 }
 
-int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
+int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
+    int pending = 0;
     int block  = id2block(id);
     int offset = id2offset(id);
     struct keyval *p;
@@ -173,6 +174,11 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     int block, offset;
 
+    // to maintain backwards compatibility, we need to set this flag
+    // which fakes the previous behaviour of having deleted all the
+    // ways.
+    simulate_ways_deleted = true;
+
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
         if (!rels[block])
@@ -187,14 +193,7 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 
                 callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
             }
-            free(rels[block][offset].members);
-            rels[block][offset].members = NULL;
-            resetList(rels[block][offset].tags);
-            free(rels[block][offset].tags);
-            rels[block][offset].tags=NULL;
         }
-        free(rels[block]);
-        rels[block] = NULL;
     }
 
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
@@ -229,20 +228,52 @@ void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
 
                     ways[block][offset].pending = 0;
                 }
-
-                if (ways[block][offset].tags) {
-                    resetList(ways[block][offset].tags);
-                    free(ways[block][offset].tags);
-                    ways[block][offset].tags = NULL;
-                }
-                if (ways[block][offset].ndids) {
-                    free(ways[block][offset].ndids);
-                    ways[block][offset].ndids = NULL;
-                }
             }
         }
     }
     fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
+}
+
+void middle_ram_t::release_relations()
+{
+    int block, offset;
+
+    for(block=NUM_BLOCKS-1; block>=0; block--) {
+        if (!rels[block])
+            continue;
+
+        for (offset=0; offset < PER_BLOCK; offset++) {
+            if (rels[block][offset].members) {
+                free(rels[block][offset].members);
+                rels[block][offset].members = NULL;
+                resetList(rels[block][offset].tags);
+                free(rels[block][offset].tags);
+                rels[block][offset].tags=NULL;
+            }
+        }
+        free(rels[block]);
+        rels[block] = NULL;
+    }
+}
+
+void middle_ram_t::release_ways()
+{
+    int i, j = 0;
+
+    for (i=0; i<NUM_BLOCKS; i++) {
+        if (ways[i]) {
+            for (j=0; j<PER_BLOCK; j++) {
+                if (ways[i][j].tags) {
+                    resetList(ways[i][j].tags);
+                    free(ways[i][j].tags);
+                }
+                if (ways[i][j].ndids)
+                    free(ways[i][j].ndids);
+            }
+            free(ways[i]);
+            ways[i] = NULL;
+        }
+    }
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
@@ -250,6 +281,9 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct osmNode *nodes;
+
+    if (simulate_ways_deleted)
+        return 1;
 
     if (!ways[block])
         return 1;
@@ -273,6 +307,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
 int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
     int count = 0;
     int i;
+
     *way_ids = (osmid_t *)malloc( sizeof(osmid_t) * (way_count + 1));
     initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
@@ -284,18 +319,6 @@ int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, 
         }
     }
     return count;
-}
-
-/* Marks the way so that iterate ways skips it */
-int middle_ram_t::ways_done(osmid_t id)
-{
-    int block = id2block(id), offset = id2offset(id);
-
-    if (!ways[block])
-        return 1;
-
-    ways[block][offset].pending = 0;
-    return 0;
 }
 
 void middle_ram_t::analyze(void)
@@ -331,27 +354,16 @@ void middle_ram_t::stop(void)
     int i, j;
     cache.reset(NULL);
 
-    for (i=0; i<NUM_BLOCKS; i++) {
-        if (ways[i]) {
-            for (j=0; j<PER_BLOCK; j++) {
-                if (ways[i][j].tags) {
-                    resetList(ways[i][j].tags);
-                    free(ways[i][j].tags);
-                }
-                if (ways[i][j].ndids)
-                    free(ways[i][j].ndids);
-            }
-            free(ways[i]);
-            ways[i] = NULL;
-        }
-    }
+    release_ways();
+    release_relations();
 }
 
 void middle_ram_t::commit(void) {
 }
 
 middle_ram_t::middle_ram_t():
-    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache()
+    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache(),
+    simulate_ways_deleted(false)
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
     rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);

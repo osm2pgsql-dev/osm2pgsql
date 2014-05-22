@@ -561,9 +561,10 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
     return 0;
 }
 
-int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags, int pending)
+int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
-    /* Three params: id, nodes, tags, pending */
+    /* Three params: id, nodes, tags */
+    int pending = 0;
     const char *paramValues[4];
     char *buffer;
 

@@ -5,6 +5,7 @@
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
 
+#include <vector>
 #include <boost/shared_ptr.hpp>
 
 /* Variants for generation of hstore column */
@@ -22,7 +23,7 @@ struct options_t {
     /* construct with sensible defaults */
     options_t();
 
-    static options_t parse_options();
+    static /*std::vector<output_t>*/ options_t parse(int argc, char *argv[]);
 
     const char *conninfo; /* Connection info string */
     const char *prefix; /* prefix for table names */
@@ -56,7 +57,20 @@ struct options_t {
     const char *flat_node_file;
     const char *tag_transform_script;
 
-
+    int create;
+    int sanitize;
+    int long_usage_bool;
+    int pass_prompt;
+    const char *db;
+    const char *username;
+    const char *host;
+    const char *password;
+    const char *port;
+    const char *output_backend ;
+    const char *input_reader;
+    const char *bbox;
+    int extra_attributes;
+    int verbose;
 };
 
 #endif
