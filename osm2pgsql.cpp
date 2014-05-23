@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         middle_t* middle = options.create_middle();
 
         //setup the backend (output)
-        std::vector<output_t*> outputs = options.create_output(middle);
+        std::vector<output_t*> outputs = options.create_outputs(middle);
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs.front());

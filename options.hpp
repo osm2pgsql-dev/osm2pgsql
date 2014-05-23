@@ -33,7 +33,8 @@ public:
 
     parse_delegate_t* create_parser();
     middle_t* create_middle();
-    std::vector<output_t*> create_output(middle_t* mid);
+    output_t* create_output(middle_t* mid);
+    std::vector<output_t*> create_outputs(middle_t* mid);
 
     const char *conninfo; /* Connection info string */
     const char *prefix; /* prefix for table names */

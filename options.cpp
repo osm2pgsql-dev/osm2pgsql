@@ -15,6 +15,7 @@
 
 namespace
 {
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -296,17 +297,22 @@ middle_t* options_t::create_middle()
      return slim ? (middle_t*)new middle_pgsql_t() : (middle_t*)new middle_ram_t();
 }
 
-std::vector<output_t*> options_t::create_output(middle_t* mid) {
-    std::vector<output_t*> outputs;
+output_t* options_t::create_output(middle_t* mid)
+{
     if (strcmp("pgsql", output_backend) == 0) {
-        outputs.push_back(new output_pgsql_t(mid, this));
+        return new output_pgsql_t(mid, this);
     } else if (strcmp("gazetteer", output_backend) == 0) {
-        outputs.push_back(new output_gazetteer_t(mid, this));
+        return new output_gazetteer_t(mid, this);
     } else if (strcmp("null", output_backend) == 0) {
-        outputs.push_back(new output_null_t(mid, this));
+        return new output_null_t(mid, this);
     } else {
         throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null].\n") % output_backend).str());
     }
+}
+
+std::vector<output_t*> options_t::create_outputs(middle_t* mid) {
+    std::vector<output_t*> outputs;
+    outputs.push_back(create_output(mid));
     return outputs;
 }
 
@@ -314,10 +320,11 @@ options_t options_t::parse(int argc, char *argv[])
 {
     options_t options;
     const char *temparg;
+    int c;
 
     //keep going while there are args left to handle
-    int c;
-    while(-1 != (c = getopt_long(argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, NULL))) {
+    optind = 1;
+    while(-1 != (c = getopt_long(argc, argv, short_options, long_options, NULL))) {
 
         //handle the current arg
         switch (c) {
@@ -427,9 +434,7 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'z':
             options.n_hstore_columns++;
-            options.hstore_columns = (const char**) realloc(
-                    options.hstore_columns,
-                    sizeof(char *) * options.n_hstore_columns);
+            options.hstore_columns = (const char**) realloc( options.hstore_columns, sizeof(char *) * options.n_hstore_columns);
             options.hstore_columns[options.n_hstore_columns - 1] = optarg;
             break;
         case 'G':
@@ -495,12 +500,20 @@ options_t options_t::parse(int argc, char *argv[])
         }
     } //end while
 
+    //they were looking for usage info
     if (options.long_usage_bool) {
-        long_usage(argv[0]);
+        long_usage(argv[0], options.verbose);
     }
 
-    if (argc == optind) { /* No non-switch arguments */
+    //we require some input files!
+    if (argc == optind) {
         short_usage(argv[0]);
+    }
+
+    //get the input files
+    while (optind < argc) {
+        options.input_files.push_back(std::string(argv[optind]));
+        optind++;
     }
 
     if (options.append && options.create) {
@@ -516,14 +529,12 @@ options_t options_t::parse(int argc, char *argv[])
         options.unlogged = 0;
     }
 
-    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns
-            && options.hstore_match_only) {
+    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns && options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
         options.hstore_match_only = 0;
     }
 
-    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE
-            && !options.n_hstore_columns) {
+    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
         options.enable_hstore_index = 0;
     }
@@ -550,17 +561,8 @@ options_t options_t::parse(int argc, char *argv[])
     if (options.num_procs < 1)
         options.num_procs = 1;
 
-    options.scale =
-            (options.projection->get_proj_id() == PROJ_LATLONG) ?
-                    10000000 : 100;
-    options.conninfo = build_conninfo(options.db, options.username,
-            options.password, options.host, options.port);
-
-    //get the input files
-    while (optind < argc) {
-        options.input_files.push_back(std::string(argv[optind]));
-        optind++;
-    }
+    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+    options.conninfo = build_conninfo(options.db, options.username, options.password, options.host, options.port);
 
     return options;
 }
