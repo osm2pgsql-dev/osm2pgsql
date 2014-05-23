@@ -533,7 +533,7 @@ int main(int argc, char *argv[])
 
     //start it up
     time_t overall_start = time(NULL);
-    out->start();
+    osmdata.start();
 
     //read in the input files one by one
     while (optind < argc) {
@@ -553,8 +553,8 @@ int main(int argc, char *argv[])
     parser.printSummary();
 
     /* done with output_*_t */
-    out->stop();
-    out->cleanup();
+    osmdata.stop();
+    osmdata.cleanup();
     delete out;
 
     /* done with middle_*_t */

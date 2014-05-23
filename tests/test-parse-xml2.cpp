@@ -78,6 +78,7 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
+    void pre_stop() { }
     void stop() { }
     void cleanup(void) { }
     void close(int stopTransaction) { }

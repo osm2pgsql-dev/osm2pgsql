@@ -95,3 +95,20 @@ int osmdata_t::relation_delete(osmid_t id) {
 
     return status;
 }
+
+void osmdata_t::start() {
+    out->start();
+}
+
+void osmdata_t::stop() {
+    out->pre_stop();
+
+    mid->commit();
+    mid->stop();
+
+    out->stop();
+}
+
+void osmdata_t::cleanup() {
+    out->cleanup();
+}

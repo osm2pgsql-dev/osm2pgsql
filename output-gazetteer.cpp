@@ -1061,14 +1061,13 @@ void output_gazetteer_t::close(int) {
     // do nothing here, closing is actually handled in the stop() method.
 }
 
-void output_gazetteer_t::stop()
+void output_gazetteer_t::pre_stop()
 {
    /* Process any remaining ways and relations */
+}
 
-   /* No longer need to access middle layer */
-   m_mid->commit();
-   m_mid->stop();
-
+void output_gazetteer_t::stop()
+{
    /* Stop any active copy */
    stop_copy();
    if (hLog) fclose(hLog);

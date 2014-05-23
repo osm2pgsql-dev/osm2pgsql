@@ -18,6 +18,9 @@ int output_null_t::start() {
     return 0;
 }
 
+void output_null_t::pre_stop() {
+}
+
 void output_null_t::stop() {
 }
 

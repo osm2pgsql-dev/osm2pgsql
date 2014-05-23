@@ -14,6 +14,7 @@ public:
 
     int start();
     int connect(int startTransaction);
+    void pre_stop();
     void stop();
     void cleanup(void);
     void close(int stopTransaction);

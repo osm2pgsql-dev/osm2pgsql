@@ -46,6 +46,10 @@ class osmdata_t {
 	public:
 		osmdata_t(middle_t* mid_, output_t* out_);
 		~osmdata_t();
+
+    void start();
+    void stop();
+    void cleanup();
     
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);

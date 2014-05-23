@@ -1212,13 +1212,8 @@ void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
     }
 }
 
-void output_pgsql_t::stop()
+void output_pgsql_t::pre_stop()
 {
-    int i;
-#ifdef HAVE_PTHREAD
-    pthread_t threads[NUM_TABLES];
-#endif
-
     /* Commit the transactions, so that multiple processes can
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
@@ -1234,7 +1229,7 @@ void output_pgsql_t::stop()
      * written to and not read, so they can be processed as several parallel
      * independent transactions
      */
-    for (i=0; i<NUM_TABLES; i++) {
+    for (int i=0; i<NUM_TABLES; i++) {
         PGconn *sql_conn = m_tables[i].sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
@@ -1260,7 +1255,15 @@ void output_pgsql_t::stop()
     m_mid->iterate_relations( rel_callback );
     rel_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
                                     m_options->append);
+}
 
+void output_pgsql_t::stop()
+{
+    int i;
+#ifdef HAVE_PTHREAD
+    pthread_t threads[NUM_TABLES];
+#endif
+  
 #ifdef HAVE_PTHREAD
     if (m_options->parallel_indexing) {
       pthread_thunk thunks[NUM_TABLES];
@@ -1277,9 +1280,6 @@ void output_pgsql_t::stop()
           }
       }
   
-      /* No longer need to access middle layer -- release memory */
-      m_mid->stop();
-  
       for (i=0; i<NUM_TABLES; i++) {
           int ret = pthread_join(threads[i], NULL);
           if (ret) {
@@ -1291,7 +1291,6 @@ void output_pgsql_t::stop()
 #endif
 
     /* No longer need to access middle layer -- release memory */
-    m_mid->stop();
     for (i=0; i<NUM_TABLES; i++)
         pgsql_out_stop_one(&m_tables[i]);
 
