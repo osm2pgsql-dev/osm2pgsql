@@ -17,6 +17,7 @@ struct pgsql_id_tracker::pimpl {
     PGconn *conn;
     std::string table_name;
     bool owns_table;
+    osmid_t old_id;
 };
 
 pgsql_id_tracker::pimpl::pimpl(const char *conninfo, 
@@ -25,7 +26,8 @@ pgsql_id_tracker::pimpl::pimpl(const char *conninfo,
                                bool owns_table_) 
     : conn(PQconnectdb(conninfo)),
       table_name((boost::format("%1%_%2%") % prefix % type).str()),
-      owns_table(owns_table_) {
+      owns_table(owns_table_),
+      old_id(0) {
     if (PQstatus(conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
         exit_nicely();
@@ -103,7 +105,6 @@ bool pgsql_id_tracker::is_marked(osmid_t id) {
 }
 
 osmid_t pgsql_id_tracker::pop_mark() {
-    static osmid_t old_id = 0;
     osmid_t id = std::numeric_limits<osmid_t>::max();
     PGresult *result = NULL;
 
@@ -119,8 +120,8 @@ osmid_t pgsql_id_tracker::pop_mark() {
         unmark(id);
     }
 
-    assert(id > old_id);
-    old_id = id;
+    assert((id > impl->old_id) || (id == std::numeric_limits<osmid_t>::max()));
+    impl->old_id = id;
 
     return id;
 }

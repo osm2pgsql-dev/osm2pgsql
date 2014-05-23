@@ -76,9 +76,11 @@ private:
     struct rel_cb_func : public middle_t::rel_cb_func  {
         output_pgsql_t *m_ptr;
         buffer &m_sql;
+        osmid_t m_next_internal_id;
         rel_cb_func(output_pgsql_t *ptr, buffer &sql);
         virtual ~rel_cb_func();
         int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists);
+        void run_internal_until(osmid_t id, int exists);
     };
 
     friend struct way_cb_func;
@@ -115,7 +117,7 @@ private:
     boost::shared_ptr<reprojection> reproj;
     boost::shared_ptr<expire_tiles> expire;
 
-    boost::shared_ptr<pgsql_id_tracker> ways_pending_tracker, ways_done_tracker;
+    boost::shared_ptr<pgsql_id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
 };
 
 #endif

@@ -34,6 +34,7 @@ struct test_middle_t : public middle_t {
     int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) { return 0; }
 
     int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
+    int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) { return 0; }
 
     void iterate_ways(way_cb_func &cb) { }
     void iterate_relations(rel_cb_func &cb) { }

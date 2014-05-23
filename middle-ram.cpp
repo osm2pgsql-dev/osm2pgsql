@@ -321,6 +321,31 @@ int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, 
     return count;
 }
 
+/* Caller must free members_ptr and resetList(tags_ptr).
+ * Note that the members in members_ptr are copied, but the roles
+ * within the members are not, and should not be freed.
+ */
+int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *member_count, struct keyval *tags_ptr)
+{
+    int block = id2block(id), offset = id2offset(id), ndCount = 0;
+    struct member *members;
+
+    if (!rels[block])
+        return 1;
+
+    if (rels[block][offset].members) {
+        const size_t member_bytes = sizeof(struct member) * rels[block][offset].member_count;
+        members = (struct member *)malloc(member_bytes);
+        memcpy(members, rels[block][offset].members, member_bytes);
+        cloneList( tags_ptr, rels[block][offset].tags );
+
+        *members_ptr = members;
+        *member_count = rels[block][offset].member_count;
+        return 0;
+    }
+    return 1;
+}
+
 void middle_ram_t::analyze(void)
 {
     /* No need */

@@ -8,6 +8,7 @@
 #define MIDDLE_H
 
 #include "osmtypes.hpp"
+#include <vector>
 
 struct keyval;
 struct member;
@@ -31,6 +32,7 @@ struct middle_t {
     virtual int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) = 0;
 
     virtual int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
+    virtual int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) = 0;
 
     struct way_cb_func {
         virtual ~way_cb_func();
@@ -57,6 +59,8 @@ struct slim_middle_t : public middle_t {
 
     virtual int relations_delete(osmid_t id) = 0;
     virtual int relation_changed(osmid_t id) = 0;
+
+    virtual std::vector<osmid_t> relations_using_way(osmid_t way_id) = 0;
 };
 
 #endif

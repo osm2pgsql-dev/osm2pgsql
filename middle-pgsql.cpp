@@ -1345,6 +1345,28 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
     return 0;
 }
 
+std::vector<osmid_t> middle_pgsql_t::relations_using_way(osmid_t way_id)
+{
+    char const *paramValues[1];
+    char buffer[64];
+    /* Make sure we're out of copy mode */
+    pgsql_endCopy( rel_table );
+    
+    sprintf(buffer, "%" PRIdOSMID, way_id);
+    paramValues[0] = buffer;
+
+    PGresult *result = pgsql_execPrepared(rel_table->sql_conn, "rels_using_way",
+                                          1, paramValues, PGRES_TUPLES_OK );
+    const int ntuples = PQntuples(result);
+    std::vector<osmid_t> rel_ids(ntuples);
+    for (int i = 0; i < ntuples; ++i) {
+        rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), NULL, 10);
+    }
+    PQclear(result);
+
+    return rel_ids;
+}
+
 void middle_pgsql_t::analyze(void)
 {
     int i;
@@ -1775,7 +1797,8 @@ middle_pgsql_t::middle_pgsql_t()
 /*prepare_intarray*/
                 "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
                 "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n",
+                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n"
+                "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n",
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",

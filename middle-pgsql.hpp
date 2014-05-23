@@ -47,6 +47,8 @@ struct middle_pgsql_t : public slim_middle_t {
     void iterate_ways(way_cb_func &cb);
     void iterate_relations(rel_cb_func &cb);
 
+    std::vector<osmid_t> relations_using_way(osmid_t way_id);
+
     void *pgsql_stop_one(void *arg);
 
     struct table_desc {

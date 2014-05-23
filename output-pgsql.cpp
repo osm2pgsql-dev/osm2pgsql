@@ -581,7 +581,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         // TODO: this now only has an effect when called from the iterate_ways
         // call-back, so we need some alternative way to trigger this within
         // osmdata_t.
-        dynamic_cast<slim_middle_t *>(m_mid)->way_changed(id);
+        slim_middle_t *slim = dynamic_cast<slim_middle_t *>(m_mid);
+        const std::vector<osmid_t> rel_ids = slim->relations_using_way(id);
+        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
+             itr != rel_ids.end(); ++itr) {
+            rels_pending_tracker->mark(*itr);
+        }
     }
 
     if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
@@ -746,8 +751,10 @@ int output_pgsql_t::connect(int startTransaction) {
 
     if (ways_pending_tracker) { ways_pending_tracker->force_release(); }
     if (ways_done_tracker) { ways_done_tracker->force_release(); }
+    if (rels_pending_tracker) { rels_pending_tracker->force_release(); }
     ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", false));
     ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", false));
+    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", false));
 
     return 0;
 }
@@ -953,6 +960,7 @@ int output_pgsql_t::start()
 
     ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", true));
     ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
+    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", true));
 
     m_mid->start(this);
 
@@ -1169,10 +1177,39 @@ void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
     }
 }
 
-output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql) : m_ptr(ptr), m_sql(sql) {}
+output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql)
+    : m_ptr(ptr), m_sql(sql),
+      m_next_internal_id(m_ptr->rels_pending_tracker->pop_mark()) {
+}
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
+    if (m_next_internal_id < id) {
+        run_internal_until(id, exists);
+    }
+
+    if (m_next_internal_id == id) {
+        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
+    }
+
     return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
+}
+
+void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
+    struct keyval tags_int;
+    struct member *members_int;
+    int count_int;
+    
+    while (m_next_internal_id < id) {
+        initList(&tags_int);
+        if (!m_ptr->m_mid->relations_get(m_next_internal_id, &members_int, &count_int, &tags_int)) {
+            m_ptr->pgsql_process_relation(m_next_internal_id, members_int, count_int, &tags_int, exists, m_sql);
+            
+            free(members_int);
+        }
+        resetList(&tags_int);
+        
+        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
+    }
 }
 
 void output_pgsql_t::stop()
@@ -1190,7 +1227,8 @@ void output_pgsql_t::stop()
     m_mid->commit();
     ways_pending_tracker->commit();
     ways_done_tracker->commit();
-    
+    rels_pending_tracker->commit();
+
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
@@ -1211,6 +1249,7 @@ void output_pgsql_t::stop()
     m_mid->commit();
     ways_pending_tracker->commit();
     ways_done_tracker->commit();
+    rels_pending_tracker->commit();
 
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
@@ -1219,6 +1258,8 @@ void output_pgsql_t::stop()
      */
     rel_cb_func rel_callback(this, sql);
     m_mid->iterate_relations( rel_callback );
+    rel_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
+                                    m_options->append);
 
 #ifdef HAVE_PTHREAD
     if (m_options->parallel_indexing) {
