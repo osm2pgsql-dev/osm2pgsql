@@ -109,8 +109,10 @@ public:
 
     virtual int start() = 0;
     virtual int connect(int startTransaction) = 0;
-    virtual void pre_stop() = 0;
+    virtual void iterate_ways() = 0;
+    virtual void iterate_relations() = 0;
     virtual void stop() = 0;
+    virtual void commit() = 0;
     virtual void cleanup(void) = 0;
     virtual void close(int stopTransaction) = 0;
 

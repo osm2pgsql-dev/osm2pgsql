@@ -18,10 +18,16 @@ int output_null_t::start() {
     return 0;
 }
 
-void output_null_t::pre_stop() {
+void output_null_t::iterate_ways() {
+}
+
+void output_null_t::iterate_relations() {
 }
 
 void output_null_t::stop() {
+}
+
+void output_null_t::commit() {
 }
 
 int output_null_t::node_add(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {

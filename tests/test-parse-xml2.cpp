@@ -78,8 +78,10 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
-    void pre_stop() { }
+    void iterate_ways() { }
+    void iterate_relations() { }
     void stop() { }
+    void commit() { }
     void cleanup(void) { }
     void close(int stopTransaction) { }
 

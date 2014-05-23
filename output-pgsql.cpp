@@ -1212,18 +1212,16 @@ void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
     }
 }
 
-void output_pgsql_t::pre_stop()
+void output_pgsql_t::commit()
 {
-    /* Commit the transactions, so that multiple processes can
-     * access the data simultanious to process the rest in parallel
-     * as well as see the newly created tables.
-     */
     pgsql_out_commit();
-    m_mid->commit();
     ways_pending_tracker->commit();
     ways_done_tracker->commit();
     rels_pending_tracker->commit();
+}
 
+void output_pgsql_t::iterate_ways()
+{
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
@@ -1239,18 +1237,16 @@ void output_pgsql_t::pre_stop()
     m_mid->iterate_ways( way_callback );
     way_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
                                     m_options->append);
+}
 
-    pgsql_out_commit();
-    m_mid->commit();
-    ways_pending_tracker->commit();
-    ways_done_tracker->commit();
-    rels_pending_tracker->commit();
-
+void output_pgsql_t::iterate_relations()
+{
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
      * extended transactions, as the delete_way_from_output, called
      * from process_relation, can deadlock if using multi-processing.
      */
+    buffer sql;
     rel_cb_func rel_callback(this, sql);
     m_mid->iterate_relations( rel_callback );
     rel_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),

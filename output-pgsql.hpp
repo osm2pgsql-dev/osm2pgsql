@@ -33,8 +33,10 @@ public:
 
     int start();
     int connect(int startTransaction);
-    void pre_stop();
+    void iterate_ways();
+    void iterate_relations();
     void stop();
+    void commit();
     void cleanup();
     void close(int stopTransaction);
 

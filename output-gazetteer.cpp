@@ -1061,7 +1061,16 @@ void output_gazetteer_t::close(int) {
     // do nothing here, closing is actually handled in the stop() method.
 }
 
-void output_gazetteer_t::pre_stop()
+void output_gazetteer_t::commit()
+{
+}
+
+void output_gazetteer_t::iterate_ways()
+{
+   /* Process any remaining ways and relations */
+}
+
+void output_gazetteer_t::iterate_relations()
 {
    /* Process any remaining ways and relations */
 }

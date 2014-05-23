@@ -101,11 +101,22 @@ void osmdata_t::start() {
 }
 
 void osmdata_t::stop() {
-    out->pre_stop();
+    /* Commit the transactions, so that multiple processes can
+     * access the data simultanious to process the rest in parallel
+     * as well as see the newly created tables.
+     */
+    mid->commit();
+    out->commit();
+    out->iterate_ways();
 
     mid->commit();
-    mid->stop();
+    out->commit();
+    out->iterate_relations();
 
+    mid->commit();
+    out->commit();
+
+    mid->stop();
     out->stop();
 }
 
