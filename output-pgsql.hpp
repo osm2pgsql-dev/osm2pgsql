@@ -33,8 +33,8 @@ public:
 
     int start();
     int connect(int startTransaction);
-    void iterate_ways();
-    void iterate_relations();
+    middle_t::way_cb_func *way_callback();
+    middle_t::rel_cb_func *relation_callback();
     void stop();
     void commit();
     void cleanup();
@@ -69,20 +69,22 @@ private:
 
     struct way_cb_func : public middle_t::way_cb_func {
         output_pgsql_t *m_ptr;
-        buffer &m_sql;
+        buffer m_sql;
         osmid_t m_next_internal_id;
-        way_cb_func(output_pgsql_t *ptr, buffer &sql);
+        way_cb_func(output_pgsql_t *ptr);
         virtual ~way_cb_func();
         int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
+        void finish(int exists);
         void run_internal_until(osmid_t id, int exists);
     };
     struct rel_cb_func : public middle_t::rel_cb_func  {
         output_pgsql_t *m_ptr;
-        buffer &m_sql;
+        buffer m_sql;
         osmid_t m_next_internal_id;
-        rel_cb_func(output_pgsql_t *ptr, buffer &sql);
+        rel_cb_func(output_pgsql_t *ptr);
         virtual ~rel_cb_func();
         int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists);
+        void finish(int exists);
         void run_internal_until(osmid_t id, int exists);
     };
 

@@ -78,8 +78,8 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
-    void iterate_ways() { }
-    void iterate_relations() { }
+    middle_t::way_cb_func *way_callback() { return NULL; }
+    middle_t::rel_cb_func *relation_callback() { return NULL; }
     void stop() { }
     void commit() { }
     void cleanup(void) { }

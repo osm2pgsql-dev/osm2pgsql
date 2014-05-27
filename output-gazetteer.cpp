@@ -1065,14 +1065,14 @@ void output_gazetteer_t::commit()
 {
 }
 
-void output_gazetteer_t::iterate_ways()
-{
-   /* Process any remaining ways and relations */
+middle_t::way_cb_func *output_gazetteer_t::way_callback() {
+    /* Process any remaining ways and relations */
+    return NULL;
 }
 
-void output_gazetteer_t::iterate_relations()
-{
-   /* Process any remaining ways and relations */
+middle_t::rel_cb_func *output_gazetteer_t::relation_callback() {
+    /* Process any remaining ways and relations */
+    return NULL;
 }
 
 void output_gazetteer_t::stop()

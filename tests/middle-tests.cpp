@@ -59,6 +59,8 @@ struct way_cb_func : public middle_t::way_cb_func {
         pending_ways.push_back(id);
         return 0; // looks like this is ignored anyway?
     }
+
+    void finish(int) { }
 };
 
 int test_way_set(middle_t *mid)

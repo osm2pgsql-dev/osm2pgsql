@@ -109,8 +109,8 @@ public:
 
     virtual int start() = 0;
     virtual int connect(int startTransaction) = 0;
-    virtual void iterate_ways() = 0;
-    virtual void iterate_relations() = 0;
+    virtual middle_t::way_cb_func *way_callback() = 0;
+    virtual middle_t::rel_cb_func *relation_callback() = 0;
     virtual void stop() = 0;
     virtual void commit() = 0;
     virtual void cleanup(void) = 0;

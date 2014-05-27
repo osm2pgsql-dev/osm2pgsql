@@ -18,10 +18,12 @@ int output_null_t::start() {
     return 0;
 }
 
-void output_null_t::iterate_ways() {
+middle_t::way_cb_func *output_null_t::way_callback() {
+    return NULL;
 }
 
-void output_null_t::iterate_relations() {
+middle_t::rel_cb_func *output_null_t::relation_callback() {
+    return NULL;
 }
 
 void output_null_t::stop() {

@@ -13,8 +13,8 @@ public:
 
     int start();
     int connect(int startTransaction);
-    void iterate_ways();
-    void iterate_relations();
+    middle_t::way_cb_func *way_callback();
+    middle_t::rel_cb_func *relation_callback();
     void stop();
     void commit();
     void cleanup(void);

@@ -1136,11 +1136,13 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr, buffer &sql)
-    : m_ptr(ptr), m_sql(sql),
+output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr)
+    : m_ptr(ptr), m_sql(),
       m_next_internal_id(m_ptr->ways_pending_tracker->pop_mark()) {
 }
+
 output_pgsql_t::way_cb_func::~way_cb_func() {}
+
 int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
     if (m_next_internal_id < id) {
         run_internal_until(id, exists);
@@ -1155,6 +1157,10 @@ int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, str
     } else {
         return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
     }
+}
+
+void output_pgsql_t::way_cb_func::finish(int exists) {
+    run_internal_until(std::numeric_limits<osmid_t>::max(), exists);
 }
 
 void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
@@ -1177,11 +1183,13 @@ void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
     }
 }
 
-output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr, buffer &sql)
-    : m_ptr(ptr), m_sql(sql),
+output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr)
+    : m_ptr(ptr), m_sql(),
       m_next_internal_id(m_ptr->rels_pending_tracker->pop_mark()) {
 }
+
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
+
 int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
     if (m_next_internal_id < id) {
         run_internal_until(id, exists);
@@ -1192,6 +1200,10 @@ int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int
     }
 
     return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
+}
+
+void output_pgsql_t::rel_cb_func::finish(int exists) {
+    run_internal_until(std::numeric_limits<osmid_t>::max(), exists);
 }
 
 void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
@@ -1220,7 +1232,7 @@ void output_pgsql_t::commit()
     rels_pending_tracker->commit();
 }
 
-void output_pgsql_t::iterate_ways()
+middle_t::way_cb_func *output_pgsql_t::way_callback()
 {
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
@@ -1231,26 +1243,22 @@ void output_pgsql_t::iterate_ways()
         PGconn *sql_conn = m_tables[i].sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
-    buffer sql;
+
     /* Processing any remaing to be processed ways */
-    way_cb_func way_callback(this, sql);
-    m_mid->iterate_ways( way_callback );
-    way_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
-                                    m_options->append);
+    way_cb_func *func = new way_cb_func(this);
+
+    return func;
 }
 
-void output_pgsql_t::iterate_relations()
+middle_t::rel_cb_func *output_pgsql_t::relation_callback()
 {
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
      * extended transactions, as the delete_way_from_output, called
      * from process_relation, can deadlock if using multi-processing.
      */
-    buffer sql;
-    rel_cb_func rel_callback(this, sql);
-    m_mid->iterate_relations( rel_callback );
-    rel_callback.run_internal_until(std::numeric_limits<osmid_t>::max(),
-                                    m_options->append);
+    rel_cb_func *rel_callback = new rel_cb_func(this);
+    return rel_callback;
 }
 
 void output_pgsql_t::stop()

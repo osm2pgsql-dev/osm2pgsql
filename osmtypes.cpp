@@ -107,14 +107,24 @@ void osmdata_t::stop() {
      */
     mid->commit();
     out->commit();
-    out->iterate_ways();
 
-    mid->commit();
-    out->commit();
-    out->iterate_relations();
+    middle_t::way_cb_func *way_callback = out->way_callback();
+    if (way_callback != NULL) {
+        mid->iterate_ways( *way_callback );
+        way_callback->finish(out->get_options()->append);
 
-    mid->commit();
-    out->commit();
+        mid->commit();
+        out->commit();
+    }
+
+    middle_t::rel_cb_func *rel_callback = out->relation_callback();
+    if (rel_callback != NULL) {
+        mid->iterate_relations( *rel_callback );
+        rel_callback->finish(out->get_options()->append);
+
+        mid->commit();
+        out->commit();
+    }
 
     mid->stop();
     out->stop();
