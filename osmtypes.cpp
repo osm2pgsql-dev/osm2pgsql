@@ -100,6 +100,30 @@ void osmdata_t::start() {
     out->start();
 }
 
+namespace {
+
+struct way_cb_func : public middle_t::way_cb_func {
+    way_cb_func(middle_t::way_cb_func *ptr) : m_ptr(ptr) { }
+    virtual ~way_cb_func() { }
+    int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
+        return m_ptr->operator()(id, tags, nodes, count, exists);
+    }
+    void finish(int exists) { m_ptr->finish(exists); }
+    middle_t::way_cb_func *m_ptr;
+};
+
+struct rel_cb_func : public middle_t::rel_cb_func  {
+    rel_cb_func(middle_t::rel_cb_func *ptr) : m_ptr(ptr) { }
+    virtual ~rel_cb_func() { }
+    int operator()(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists) {
+        return m_ptr->operator()(id, members, member_count, tags, exists);
+    }
+    void finish(int exists) { m_ptr->finish(exists); }
+    middle_t::rel_cb_func *m_ptr;
+};
+
+} // anonymous namespace
+
 void osmdata_t::stop() {
     /* Commit the transactions, so that multiple processes can
      * access the data simultanious to process the rest in parallel
@@ -110,8 +134,9 @@ void osmdata_t::stop() {
 
     middle_t::way_cb_func *way_callback = out->way_callback();
     if (way_callback != NULL) {
-        mid->iterate_ways( *way_callback );
-        way_callback->finish(out->get_options()->append);
+        way_cb_func callback(way_callback);
+        mid->iterate_ways( callback );
+        callback.finish(out->get_options()->append);
 
         mid->commit();
         out->commit();
@@ -119,8 +144,9 @@ void osmdata_t::stop() {
 
     middle_t::rel_cb_func *rel_callback = out->relation_callback();
     if (rel_callback != NULL) {
-        mid->iterate_relations( *rel_callback );
-        rel_callback->finish(out->get_options()->append);
+        rel_cb_func callback(rel_callback);
+        mid->iterate_relations( callback );
+        callback.finish(out->get_options()->append);
 
         mid->commit();
         out->commit();
