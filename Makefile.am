@@ -1,4 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
+AUTOMAKE_OPTIONS = subdir-objects
 
 bin_PROGRAMS = osm2pgsql nodecachefilereader
 noinst_LTLIBRARIES = libosm2pgsql.la
