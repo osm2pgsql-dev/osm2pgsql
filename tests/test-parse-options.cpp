@@ -12,24 +12,25 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
 
 namespace alg = boost::algorithm;
 
 #define len(x) sizeof(x)/sizeof(x[0])
 
-void run_test(void (*testfunc)())
+void run_test(const char* test_name, void (*testfunc)())
 {
     try
     {
+        fprintf(stderr, "%s\n", test_name);
         testfunc();
     }
     catch(std::exception& e)
     {
         fprintf(stderr, "%s\n", e.what());
+        fprintf(stderr, "FAIL\n");
         exit(EXIT_FAILURE);
     }
+    fprintf(stderr, "PASS\n");
 }
 
 void parse_fail(const int argc, const char* argv[], const std::string& fail_message)
@@ -126,24 +127,26 @@ void test_outputs()
             throw std::logic_error((boost::format("Expected 'not recognised' but instead got '%2%'") % e.what()).str());
     }
 }
-/*
-std::string get_random_proj(int& proj)
+
+int get_random_proj(std::vector<std::string>& args)
 {
-    switch(rand() % (PROJ_COUNT + 1))
+    int proj = rand() % (PROJ_COUNT + 1);
+    switch(proj)
     {
     case PROJ_LATLONG:
-        proj = PROJ_LATLONG;
-        return "--latlong";
     case PROJ_MERC:
-        proj = PROJ_MERC;
-        return "--oldmerc";
     case PROJ_SPHERE_MERC:
-        proj = PROJ_SPHERE_MERC;
-        return "--merc";
+        args.push_back(reprojection(proj).project_getprojinfo()->option);
+        break;
     default:
-        proj = -((rand() % 9000) + 1000);
-        return (boost::format("--proj %1%") % (-proj)).str();
+        args.push_back("--proj");
+        //nice contiguous block of valid epsgs here randomly use one of those..
+        proj = (rand() % (2962 - 2308)) + 2308;
+        args.push_back((boost::format("%1%") % proj).str());
+        proj = -proj;
+        break;
     }
+    return proj;
 }
 
 std::string get_random_string(const int length)
@@ -158,60 +161,54 @@ std::string get_random_string(const int length)
     return result;
 }
 
-std::string get_random_numstr()
-{
-    return (boost::format("%1%") % ((rand() % 9000) + 1000)).str();
-}
-
-void add_arg_or_not(const char* arg, std::string& args, int& option)
+void add_arg_or_not(const char* arg, std::vector<std::string>& args, int& option)
 {
     if(rand() % 2)
     {
-        args.push_back(' ');
-        args.append(arg);
+        args.push_back(arg);
         option = 1;
     }
     else
         option = 0;
 }
 
-void add_arg_and_val_or_not(const char* arg, std::string& args, int& option, const int val)
+void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, int& option, const int val)
 {
     if(rand() % 2)
     {
-        args.append((boost::format(" %1% %2%") % arg % val).str());
+        args.push_back(arg);
+        args.push_back((boost::format("%1%") % val).str());
         option = val;
     }
 }
 
-void add_arg_and_val_or_not(const char* arg, std::string& args, const char*& option, std::string val)
+void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, const char*& option, std::string val)
 {
     if(rand() % 2)
     {
-        args.append((boost::format(" %1% %2%") % arg % val).str());
+        args.push_back(arg);
+        args.push_back(val);
         option = val.c_str();
     }
 }
-*/
+
 void test_random_perms()
 {
 
-    /*for(int i = 0; i < 5; ++i)
+    for(int i = 0; i < 5; ++i)
     {
         options_t options;
-        std::string args = "osm2pgsql";
+        std::vector<std::string> args;
+        args.push_back("osm2pgsql");
 
         //pick a projection
-        args.push_back(' ');
-        int proj;
-        args.append(get_random_proj(proj));
-        options.projection.reset(new reprojection(proj));
+        options.projection.reset(new reprojection(get_random_proj(args)));
 
         //pick a style file
-        args.push_back(' ');
         std::string style = get_random_string(15);
-        args.append("--style " + style);
-        options.style = style;
+        options.style = style.c_str();
+        args.push_back("--style");
+        args.push_back(style);
 
         add_arg_and_val_or_not("--cache", args, options.cache, rand() % 800);
         add_arg_and_val_or_not("--database", args, options.db, get_random_string(6));
@@ -259,13 +256,16 @@ void test_random_perms()
         add_arg_or_not("--keep-coastlines", args, options.keep_coastlines);
         add_arg_or_not("--exclude-invalid-polygon", args, options.excludepoly);
 
-        std::vector<std::string> split;
-        boost::split(split, args, boost::is_any_of(" "));
+        //add the input file
+        args.push_back("tests/liechtenstein-2013-08-03.osm.pbf");
 
-        char* argv[] = new char*[split.size()];
-        options_t::parse(split.size(), );
+        const char** argv = new const char*[args.size() + 1];
+        argv[args.size()] = NULL;
+        for(std::vector<std::string>::const_iterator arg = args.begin(); arg != args.end(); ++arg)
+            argv[arg - args.begin()] = arg->c_str();
+        options_t::parse(args.size(), const_cast<char **>(argv));
         delete[] argv;
-    }*/
+    }
 }
 
 int main(int argc, char *argv[])
@@ -273,11 +273,11 @@ int main(int argc, char *argv[])
     srand(0);
 
     //try each test if any fail we will exit
-    run_test(test_insufficient_args);
-    run_test(test_incompatible_args);
-    run_test(test_middles);
-    run_test(test_outputs);
-    run_test(test_random_perms);
+    run_test("test_insufficient_args", test_insufficient_args);
+    run_test("test_incompatible_args", test_incompatible_args);
+    run_test("test_middles", test_middles);
+    run_test("test_outputs", test_outputs);
+    run_test("test_random_perms", test_random_perms);
 
     //passed
     return 0;
