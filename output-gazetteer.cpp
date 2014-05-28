@@ -980,11 +980,6 @@ void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
    return;
 }
 
-int output_gazetteer_t::connect(int startTransaction) {
-    // do nothing, connection is actually handled in start()
-    return 0;
-}
-
 int output_gazetteer_t::start()
 {
    reproj = m_options->projection;
@@ -1053,10 +1048,6 @@ int output_gazetteer_t::start()
    hLog = fopen("log", "w");
 
    return 0;
-}
-
-void output_gazetteer_t::close(int) {
-    // do nothing here, closing is actually handled in the stop() method.
 }
 
 void output_gazetteer_t::commit()

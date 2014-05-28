@@ -1,15 +1,6 @@
 #include "options.hpp"
 #include "sprompt.hpp"
-
 #include "parse.hpp"
-#include "middle.hpp"
-#include "output.hpp"
-
-#include "middle-pgsql.hpp"
-#include "middle-ram.hpp"
-#include "output-pgsql.hpp"
-#include "output-gazetteer.hpp"
-#include "output-null.hpp"
 
 #include <getopt.h>
 #include <libgen.h>
@@ -288,35 +279,6 @@ options_t::options_t():
 
 options_t::~options_t()
 {
-}
-
-parse_delegate_t* options_t::create_parser()
-{
-    return new parse_delegate_t(extra_attributes, bbox, projection);
-}
-
-middle_t* options_t::create_middle()
-{
-     return slim ? (middle_t*)new middle_pgsql_t() : (middle_t*)new middle_ram_t();
-}
-
-output_t* options_t::create_output(middle_t* mid)
-{
-    if (strcmp("pgsql", output_backend) == 0) {
-        return new output_pgsql_t(mid, this);
-    } else if (strcmp("gazetteer", output_backend) == 0) {
-        return new output_gazetteer_t(mid, this);
-    } else if (strcmp("null", output_backend) == 0) {
-        return new output_null_t(mid, this);
-    } else {
-        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null].\n") % output_backend).str());
-    }
-}
-
-std::vector<output_t*> options_t::create_outputs(middle_t* mid) {
-    std::vector<output_t*> outputs;
-    outputs.push_back(create_output(mid));
-    return outputs;
 }
 
 options_t options_t::parse(int argc, char *argv[])

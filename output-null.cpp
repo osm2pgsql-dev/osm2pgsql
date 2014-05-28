@@ -68,14 +68,6 @@ int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, i
   return 0;
 }
 
-int output_null_t::connect(int startTransaction) {
-    return 0;
-}
-
-void output_null_t::close(int stopTransaction) {
-    // nothing
-}
-
 output_null_t::output_null_t(middle_query_t* mid_, const options_t* options_): output_t(mid_, options_) {
 }
 

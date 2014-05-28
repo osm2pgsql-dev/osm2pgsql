@@ -12,13 +12,11 @@ public:
     virtual ~output_null_t();
 
     int start();
-    int connect(int startTransaction);
     middle_t::way_cb_func *way_callback();
     middle_t::rel_cb_func *relation_callback();
     void stop();
     void commit();
     void cleanup(void);
-    void close(int stopTransaction);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);

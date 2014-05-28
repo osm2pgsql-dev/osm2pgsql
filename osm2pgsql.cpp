@@ -71,13 +71,13 @@ int main(int argc, char *argv[])
             return 0;
 
         //setup the front (input)
-        parse_delegate_t* parser = options.create_parser();
+        parse_delegate_t* parser = new parse_delegate_t(options.extra_attributes, options.bbox, options.projection);
 
         //setup the middle
-        middle_t* middle = options.create_middle();
+        middle_t* middle = middle_t::create_middle(options.slim);
 
         //setup the backend (output)
-        std::vector<output_t*> outputs = options.create_outputs(middle);
+        std::vector<output_t*> outputs = output_t::create_outputs(middle, &options);
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs.front());

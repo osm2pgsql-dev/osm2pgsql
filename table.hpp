@@ -21,7 +21,8 @@ class table_t : public boost::noncopyable
         char *columns;
         char buffer[1024];
     
-        void close(int stopTransaction);
+        void connect(const char* conninfo);
+        void disconnect();
         void commit();
         void copy_to_table(const char *sql);
         void write_hstore(keyval *tags, struct buffer &sql);

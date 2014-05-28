@@ -20,11 +20,6 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 static const int DEFAULT_SCALE = 100;
 
-/* forward declarations to avoid header hell */
-struct parse_delegate_t;
-struct middle_t;
-struct output_t;
-
 struct options_t {
 public:
     /* construct with sensible defaults */
@@ -32,11 +27,6 @@ public:
     virtual ~options_t();
 
     static options_t parse(int argc, char *argv[]);
-
-    parse_delegate_t* create_parser();
-    middle_t* create_middle();
-    output_t* create_output(middle_t* mid);
-    std::vector<output_t*> create_outputs(middle_t* mid);
 
     const char *conninfo; /* Connection info string */
     const char *prefix; /* prefix for table names */

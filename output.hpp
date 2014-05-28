@@ -10,6 +10,7 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
+#include "options.hpp"
 #include "middle.hpp"
 
 #include <boost/noncopyable.hpp>
@@ -18,17 +19,18 @@ struct options_t;
 
 class output_t : public boost::noncopyable {
 public:
+    static output_t* create_output(middle_t* mid, options_t* options);
+    static std::vector<output_t*> create_outputs(middle_t* mid, options_t* options);
+
     output_t(middle_query_t* mid_, const options_t* options_);
     virtual ~output_t();
 
     virtual int start() = 0;
-    virtual int connect(int startTransaction) = 0;
     virtual middle_t::way_cb_func *way_callback() = 0;
     virtual middle_t::rel_cb_func *relation_callback() = 0;
     virtual void stop() = 0;
     virtual void commit() = 0;
     virtual void cleanup(void) = 0;
-    virtual void close(int stopTransaction) = 0;
 
     virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
     virtual int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;

@@ -29,6 +29,8 @@ struct middle_query_t {
 };    
 
 struct middle_t : public middle_query_t {
+    static middle_t* create_middle(const bool slim);
+
     virtual ~middle_t();
 
     virtual int start(const options_t *out_options_) = 0;

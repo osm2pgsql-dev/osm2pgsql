@@ -544,34 +544,6 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     return 0;
 }
 
-int output_pgsql_t::connect(int startTransaction) {
-    int i;
-    for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn;
-        sql_conn = PQconnectdb(m_options->conninfo);
-        
-        /* Check to see that the backend connection was successfully made */
-        if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            return 1;
-        }
-        m_tables[i]->sql_conn = sql_conn;
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i]->name);
-        if (startTransaction)
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
-    }
-
-    if (ways_pending_tracker) { ways_pending_tracker->force_release(); }
-    if (ways_done_tracker) { ways_done_tracker->force_release(); }
-    if (rels_pending_tracker) { rels_pending_tracker->force_release(); }
-    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", false));
-    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", false));
-    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", false));
-
-    return 0;
-}
-
 int output_pgsql_t::start()
 {
     char *sql, tmp[256];
@@ -603,24 +575,15 @@ int output_pgsql_t::start()
     assert(sql);
 
     for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn;
-
         /* Substitute prefix into name of table */
-        {
-            char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i]->name) + 1 );
-            sprintf( temp, m_tables[i]->name, m_options->prefix );
-            m_tables[i]->name = temp;
-        }
-        fprintf(stderr, "Setting up table: %s\n", m_tables[i]->name);
-        sql_conn = PQconnectdb(m_options->conninfo);
+        char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i]->name) + 1 );
+        sprintf( temp, m_tables[i]->name, m_options->prefix );
+        m_tables[i]->name = temp;
 
-        /* Check to see that the backend connection was successfully made */
-        if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            util::exit_nicely();
-        }
-        m_tables[i]->sql_conn = sql_conn;
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+
+        fprintf(stderr, "Setting up table: %s\n", m_tables[i]->name);
+        m_tables[i]->connect(m_options->conninfo);
+        PGconn *sql_conn = m_tables[i]->sql_conn;
 
         if (!m_options->append) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", m_tables[i]->name);
@@ -778,15 +741,6 @@ int output_pgsql_t::start()
 
     return 0;
 }
-
-
-
-void output_pgsql_t::close(int stopTransaction) {
-    for (int i=0; i<NUM_TABLES; i++) {
-        m_tables[i]->close(stopTransaction);
-    }
-}
-
 
 
 void output_pgsql_t::pgsql_out_commit() {

@@ -218,17 +218,31 @@ void table_t::pgsql_pause_copy()
     copyMode = 0;
 }
 
-void table_t::close(int stopTransaction) {
-    if (stopTransaction)
-        commit();
-    else
-        pgsql_pause_copy();
-    //TODO: check before doing this
-    PQfinish(sql_conn);
-    sql_conn = NULL;
+void table_t::connect(const char* conninfo)
+{
+    PGconn* _conn = PQconnectdb(conninfo);
+
+    /* Check to see that the backend connection was successfully made */
+    if (PQstatus(_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(_conn));
+        util::exit_nicely();
+    }
+    sql_conn = _conn;
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 }
 
-void table_t::commit() {
+void table_t::disconnect()
+{
+    //pgsql_pause_copy();
+    if(sql_conn != NULL)
+    {
+        PQfinish(sql_conn);
+        sql_conn = NULL;
+    }
+}
+
+void table_t::commit()
+{
     pgsql_pause_copy();
     fprintf(stderr, "Committing transaction for %s\n", name);
     pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
