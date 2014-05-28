@@ -268,7 +268,7 @@ options_t::options_t():
     conninfo(NULL), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
     cache(800), tblsmain_index(NULL), tblsslim_index(NULL), tblsmain_data(NULL), tblsslim_data(NULL), style(OSM2PGSQL_DATADIR "/default.style"),
     expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), enable_hstore(HSTORE_NONE), enable_hstore_index(0),
-    enable_multi(0), hstore_columns(NULL), n_hstore_columns(0), keep_coastlines(0), parallel_indexing(1),
+    enable_multi(0), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
     #else
@@ -283,8 +283,6 @@ options_t::options_t():
 
 options_t::~options_t()
 {
-    /* free the column pointer buffer */
-    free(hstore_columns);
 }
 
 parse_delegate_t* options_t::create_parser()
@@ -433,9 +431,7 @@ options_t options_t::parse(int argc, char *argv[])
             options.enable_hstore = HSTORE_ALL;
             break;
         case 'z':
-            options.n_hstore_columns++;
-            options.hstore_columns = (const char**) realloc( options.hstore_columns, sizeof(char *) * options.n_hstore_columns);
-            options.hstore_columns[options.n_hstore_columns - 1] = optarg;
+            options.hstore_columns.push_back(optarg);
             break;
         case 'G':
             options.enable_multi = 1;
@@ -529,12 +525,12 @@ options_t options_t::parse(int argc, char *argv[])
         options.unlogged = 0;
     }
 
-    if (options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns && options.hstore_match_only) {
+    if (options.enable_hstore == HSTORE_NONE && options.hstore_columns.size() == 0 && options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
         options.hstore_match_only = 0;
     }
 
-    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && !options.n_hstore_columns) {
+    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && options.hstore_columns.size() == 0) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
         options.enable_hstore_index = 0;
     }

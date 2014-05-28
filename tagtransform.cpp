@@ -585,11 +585,11 @@ unsigned int tagtransform::c_filter_basic_tags(
                         && strcmp("osm_version", item->key)
                         && strcmp("osm_changeset", item->key))
                     filter = 0;
-            } else if (options->n_hstore_columns) {
+            } else if (options->hstore_columns.size() > 0) {
                 /* does this column match any of the hstore column prefixes? */
-                int j;
-                for (j = 0; j < options->n_hstore_columns; j++) {
-                    char *pos = strstr(item->key, options->hstore_columns[j]);
+                size_t j = 0;
+                for(; j < options->hstore_columns.size(); ++j) {
+                    char *pos = strstr(item->key, options->hstore_columns[j].c_str());
                     if (pos == item->key) {
                         pushItem(&temp, item);
                         /* ... but if hstore_match_only is set then don't take this
@@ -605,7 +605,7 @@ unsigned int tagtransform::c_filter_basic_tags(
                     }
                 }
                 /* if not, skip the tag */
-                if (j == options->n_hstore_columns) {
+                if (j == options->hstore_columns.size()) {
                     freeItem(item);
                 }
             } else {

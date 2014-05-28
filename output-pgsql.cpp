@@ -51,12 +51,19 @@
 
 #define NUM_TABLES (output_pgsql_t::t_MAX)
 
-output_pgsql_t::table::table(const char *name_, const char *type_)
+output_pgsql_t::table::table(const char *name_, const char *type_, const int srs, const int enable_hstore, const std::vector<std::string>& hstore_columns)
     : name(strdup(name_)), type(type_),
       sql_conn(NULL), buflen(0), copyMode(0),
-      columns(NULL)
+      columns(NULL), srs(srs), enable_hstore(enable_hstore), hstore_columns(hstore_columns)
 {
     memset(buffer, 0, sizeof buffer);
+    printf("const my name is %s\n", name);
+}
+
+output_pgsql_t::table::~table()
+{
+    free(name);
+    free(columns);
 }
 
 /* NOTE: section below for flags genuinely is static and
@@ -202,29 +209,26 @@ int read_style_file( const char *filename, export_list *exlist )
  * with most empty and one byte delimiters, without this optimisation we
  * transfer three times the amount of data necessary.
  */
-void output_pgsql_t::copy_to_table(enum table_id table, const char *sql)
+void output_pgsql_t::table::copy_to_table(const char *sql)
 {
-    PGconn *sql_conn = m_tables[table].sql_conn;
     unsigned int len = strlen(sql);
-    unsigned int buflen = m_tables[table].buflen;
-    char *buffer = m_tables[table].buffer;
 
     /* Return to copy mode if we dropped out */
-    if( !m_tables[table].copyMode )
+    if( !copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[table].name, m_tables[table].columns);
-        m_tables[table].copyMode = 1;
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", name, columns);
+        copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
-    if( (unsigned)(buflen + len) > sizeof( m_tables[table].buffer )-10 )
+    if( (unsigned)(buflen + len) > sizeof( buffer )-10 )
     {
-      pgsql_CopyData(m_tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(name, sql_conn, buffer);
       buflen = 0;
 
       /* If new data by itself is also too big, output it immediately */
-      if( (unsigned)len > sizeof( m_tables[table].buffer )-10 )
+      if( (unsigned)len > sizeof( buffer )-10 )
       {
-        pgsql_CopyData(m_tables[table].name, sql_conn, sql);
+        pgsql_CopyData(name, sql_conn, sql);
         len = 0;
       }
     }
@@ -239,11 +243,9 @@ void output_pgsql_t::copy_to_table(enum table_id table, const char *sql)
     /* If we have completed a line, output it */
     if( buflen > 0 && buffer[buflen-1] == '\n' )
     {
-      pgsql_CopyData(m_tables[table].name, sql_conn, buffer);
+      pgsql_CopyData(name, sql_conn, buffer);
       buflen = 0;
     }
-
-    m_tables[table].buflen = buflen;
 }
 
 
@@ -254,9 +256,9 @@ void output_pgsql_t::cleanup(void)
     int i;
 
     for (i=0; i<NUM_TABLES; i++) {
-        if (m_tables[i].sql_conn) {
-            PQfinish(m_tables[i].sql_conn);
-            m_tables[i].sql_conn = NULL;
+        if (m_tables[i]->sql_conn) {
+            PQfinish(m_tables[i]->sql_conn);
+            m_tables[i]->sql_conn = NULL;
         }
     }
 }
@@ -316,8 +318,7 @@ static void escape_type(buffer &sql, const char *value, const char *type) {
   }
 }
 
-void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct keyval *tags,
-                                  buffer &sql)
+void output_pgsql_t::table::write_hstore(keyval *tags, struct buffer &sql)
 {
     size_t hlen;
     /* a clone of the tags pointer */
@@ -353,25 +354,24 @@ void output_pgsql_t::write_hstore(enum output_pgsql_t::table_id table, struct ke
         
       /* pack the tag with its value into the hstore */
       keyval2hstore(sql, xtags->next);
-      copy_to_table(table, sql.buf);
+      copy_to_table(sql.buf);
 
       /* update the tag-pointer to point to the next tag */
       xtags = xtags->next;
         
       /* if the tag has a follow up, add a comma to the end */
       if (xtags->next->key != NULL)
-          copy_to_table(table, ",");
+          copy_to_table(",");
     }
     
     /* finish the hstore column by placing a TAB into the data stream */
-    copy_to_table(table, "\t");
+    copy_to_table("\t");
     
     /* the main hstore-column has now been written */
 }
 
 /* write an hstore column to the database */
-void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *tags,
-                                          buffer &sql)
+void output_pgsql_t::table::write_hstore_columns(keyval *tags, struct buffer &sql)
 {
     char *shortkey;
     /* the index of the current hstore column */
@@ -382,7 +382,7 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
     size_t hlen;
     
     /* iterate over all configured hstore colums in the options */
-    for(i_hstore_column = 0; i_hstore_column < m_options->n_hstore_columns; i_hstore_column++)
+    for(std::vector<std::string>::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
         /* did this node have a tag that matched the current hstore column */
         found = 0;
@@ -394,7 +394,7 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
         while (xtags->next->key != NULL) {
             
             /* check if the tag's key starts with the name of the hstore column */
-            pos = strstr(xtags->next->key, m_options->hstore_columns[i_hstore_column]);
+            pos = strstr(xtags->next->key, hstore_column->c_str());
             
             /* and if it does.. */
             if(pos == xtags->next->key)
@@ -403,7 +403,7 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
                 found=1;
                 
                 /* generate the short key name */
-                shortkey = xtags->next->key + strlen(m_options->hstore_columns[i_hstore_column]);
+                shortkey = xtags->next->key + hstore_column->size();
                 
                 /* calculate the size needed for this hstore entry */
                 hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
@@ -416,14 +416,14 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
                 
                 /* and pack the shortkey with its value into the hstore */
                 keyval2hstore_manual(sql, shortkey, xtags->next->value);
-                copy_to_table(table, sql.buf);
+                copy_to_table(sql.buf);
                 
                 /* update the tag-pointer to point to the next tag */
                 xtags=xtags->next;
                 
                 /* if the tag has a follow up, add a comma to the end */
                 if (xtags->next->key != NULL)
-                    copy_to_table(table, ",");
+                    copy_to_table(",");
             }
             else
             {
@@ -434,18 +434,17 @@ void output_pgsql_t::write_hstore_columns(enum table_id table, struct keyval *ta
         
         /* if no matching tag has been found, write a NULL */
         if(!found)
-            copy_to_table(table, "\\N");
+            copy_to_table("\\N");
         
         /* finish the hstore column by placing a TAB into the data stream */
-        copy_to_table(table, "\t");
+        copy_to_table("\t");
     }
     
     /* all hstore-columns have now been written */
 }
 
-void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
-                                 struct keyval *tags, buffer &sql) {
-    std::vector<taginfo> &infos = m_export_list->get(info_table);
+void output_pgsql_t::table::export_tags(export_list* e_list, OsmType info_table, struct keyval *tags, struct buffer &sql) {
+    std::vector<taginfo> &infos = e_list->get(info_table);
     for (int i=0; i < infos.size(); i++) {
         taginfo &info = infos[i];
         if (info.flags & FLAG_DELETE)
@@ -457,14 +456,14 @@ void output_pgsql_t::export_tags(enum table_id table, enum OsmType info_table,
         {
             escape_type(sql, tag->value, info.type.c_str());
             info.count++;
-            if (HSTORE_NORM==m_options->enable_hstore)
+            if (enable_hstore==HSTORE_NORM)
                 tag->has_column=1;
         }
         else
             sql.printf("\\N");
 
-        copy_to_table(table, sql.buf);
-        copy_to_table(table, "\t");
+        copy_to_table(sql.buf);
+        copy_to_table("\t");
     }
 }
 
@@ -493,16 +492,16 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
 
     expire->from_bbox(node_lon, node_lat, node_lon, node_lat);
     sql.printf("%" PRIdOSMID "\t", id);
-    copy_to_table(t_point, sql.buf);
+    m_tables[t_point]->copy_to_table(sql.buf);
 
-    export_tags(t_point, OSMTYPE_NODE, tags, sql);
+    m_tables[t_point]->export_tags(m_export_list, OSMTYPE_NODE, tags, sql);
     
     /* hstore columns */
-    write_hstore_columns(t_point, tags, sql);
+    m_tables[t_point]->write_hstore_columns(tags, sql);
     
     /* check if a regular hstore is requested */
     if (m_options->enable_hstore)
-        write_hstore(t_point, tags, sql);
+        m_tables[t_point]->write_hstore(tags, sql);
     
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
@@ -511,36 +510,35 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
 #endif
 
     sql.printf("SRID=%d;POINT(%.15g %.15g)", SRID, node_lon, node_lat);
-    copy_to_table(t_point, sql.buf);
-    copy_to_table(t_point, "\n");
+    m_tables[t_point]->copy_to_table(sql.buf);
+    m_tables[t_point]->copy_to_table("\n");
 
     return 0;
 }
 
 
 
-void output_pgsql_t::write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table,
-                                buffer &sql)
+void output_pgsql_t::table::write_wkts(export_list* e_list, osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql)
 {
     int j;
     struct keyval *tag;
 
     sql.printf("%" PRIdOSMID "\t", id);
-    copy_to_table(table, sql.buf);
+    copy_to_table(sql.buf);
 
-    export_tags(table, OSMTYPE_WAY, tags, sql);
+    export_tags(e_list, OSMTYPE_WAY, tags, sql);
 
     /* hstore columns */
-    write_hstore_columns(table, tags, sql);
+    write_hstore_columns(tags, sql);
     
     /* check if a regular hstore is requested */
-    if (m_options->enable_hstore)
-        write_hstore(table, tags, sql);
+    if (enable_hstore)
+        write_hstore(tags, sql);
 
-    sql.printf("SRID=%d;", SRID);
-    copy_to_table(table, sql.buf);
-    copy_to_table(table, wkt);
-    copy_to_table(table, "\n");
+    sql.printf("SRID=%d;", srs);
+    copy_to_table(sql.buf);
+    copy_to_table(wkt);
+    copy_to_table("\n");
 }
 
 /*static int tag_indicates_polygon(enum OsmType type, const char *key)
@@ -605,12 +603,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
                 }
-                write_wkts(id, tags, wkt, t_poly, sql);
+                m_tables[t_poly]->write_wkts(m_export_list, id, tags, wkt, sql);
             } else {
                 expire->from_nodes_line(nodes, count);
-                write_wkts(id, tags, wkt, t_line, sql);
+                m_tables[t_line]->write_wkts(m_export_list, id, tags, wkt, sql);
                 if (roads)
-                    write_wkts(id, tags, wkt, t_roads, sql);
+                    m_tables[t_roads]->write_wkts(m_export_list, id, tags, wkt, sql);
             }
         }
         free(wkt);
@@ -667,11 +665,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(rel_tags, "way_area", tmp, 0);
                 }
-                write_wkts(-id, rel_tags, wkt, t_poly, sql);
+                m_tables[t_poly]->write_wkts(m_export_list, -id, rel_tags, wkt, sql);
             } else {
-                write_wkts(-id, rel_tags, wkt, t_line, sql);
+                m_tables[t_line]->write_wkts(m_export_list, -id, rel_tags, wkt, sql);
                 if (roads)
-                    write_wkts(-id, rel_tags, wkt, t_roads, sql);
+                    m_tables[t_roads]->write_wkts(m_export_list, -id, rel_tags, wkt, sql);
             }
         }
         free(wkt);
@@ -712,7 +710,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                         snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(rel_tags, "way_area", tmp, 0);
                     }
-                    write_wkts(-id, rel_tags, wkt, t_poly, sql);
+                    m_tables[t_poly]->write_wkts(m_export_list, -id, rel_tags, wkt, sql);
                 }
             }
             free(wkt);
@@ -734,9 +732,9 @@ int output_pgsql_t::connect(int startTransaction) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             return 1;
         }
-        m_tables[i].sql_conn = sql_conn;
+        m_tables[i]->sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i]->name);
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
@@ -763,14 +761,15 @@ int output_pgsql_t::start()
     reproj = m_options->projection;
     builder.set_exclude_broken_polygon(m_options->excludepoly);
 
-    /* Tables to output */
+    // Tables to output
     m_tables.reserve(NUM_TABLES);
-    m_tables.push_back(table("%s_point",   "POINT"));
-    m_tables.push_back(table("%s_line",    "LINESTRING"));
-    m_tables.push_back(table("%s_polygon", "GEOMETRY"  )); /* Actually POLGYON & MULTIPOLYGON but no way to limit to just these two */
-    m_tables.push_back(table("%s_roads",   "LINESTRING"));
+    m_tables.push_back(boost::shared_ptr<table>(new table("%s_point",   "POINT", SRID, m_options->enable_hstore, m_options->hstore_columns)));
+    m_tables.push_back(boost::shared_ptr<table>(new table("%s_line",    "LINESTRING", SRID, m_options->enable_hstore, m_options->hstore_columns)));
+    // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
+    m_tables.push_back(boost::shared_ptr<table>(new table("%s_polygon", "GEOMETRY", SRID, m_options->enable_hstore, m_options->hstore_columns)));
+    m_tables.push_back(boost::shared_ptr<table>(new table("%s_roads",   "LINESTRING", SRID, m_options->enable_hstore, m_options->hstore_columns)));
 
-    m_export_list = new export_list;
+    m_export_list = new export_list();
 
     m_enable_way_area = read_style_file( m_options->style, m_export_list );
 
@@ -783,11 +782,11 @@ int output_pgsql_t::start()
 
         /* Substitute prefix into name of table */
         {
-            char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i].name) + 1 );
-            sprintf( temp, m_tables[i].name, m_options->prefix );
-            m_tables[i].name = temp;
+            char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i]->name) + 1 );
+            sprintf( temp, m_tables[i]->name, m_options->prefix );
+            m_tables[i]->name = temp;
         }
-        fprintf(stderr, "Setting up table: %s\n", m_tables[i].name);
+        fprintf(stderr, "Setting up table: %s\n", m_tables[i]->name);
         sql_conn = PQconnectdb(m_options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -795,32 +794,32 @@ int output_pgsql_t::start()
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             util::exit_nicely();
         }
-        m_tables[i].sql_conn = sql_conn;
+        m_tables[i]->sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         if (!m_options->append) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", m_tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", m_tables[i]->name);
         }
         else
         {
-            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", m_tables[i].name);
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", m_tables[i]->name);
             res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
-                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", m_tables[i].name);
+                fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", m_tables[i]->name);
                 util::exit_nicely();
             }
             their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
-                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", m_tables[i].name, their_srid, SRID);
+                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", m_tables[i]->name, their_srid, SRID);
                 util::exit_nicely();
             }
         }
 
         /* These _tmp tables can be left behind if we run out of disk space */
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", m_tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", m_tables[i]->name);
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
@@ -828,7 +827,7 @@ int output_pgsql_t::start()
         const std::vector<taginfo> &infos = m_export_list->get(type);
         numTags = infos.size();
         if (!m_options->append) {
-            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i].name );
+            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i]->name );
             for (j=0; j < numTags; j++) {
                 const taginfo &info = infos[j];
                 if( info.flags & FLAG_DELETE )
@@ -843,10 +842,10 @@ int output_pgsql_t::start()
                 }
                 strcat(sql, tmp);
             }
-            for(i_hstore_column = 0; i_hstore_column < m_options->n_hstore_columns; i_hstore_column++)
+            for(std::vector<std::string>::const_iterator h_column = m_options->hstore_columns.begin(); h_column != m_options->hstore_columns.end(); ++h_column)
             {
                 strcat(sql, ",\"");
-                strcat(sql, m_options->hstore_columns[i_hstore_column]);
+                strcat(sql, h_column->c_str());
                 strcat(sql, "\" hstore ");
             }
             if (m_options->enable_hstore) {
@@ -860,11 +859,11 @@ int output_pgsql_t::start()
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
-                        m_tables[i].name, SRID, m_tables[i].type );
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", m_tables[i].name);
+                        m_tables[i]->name, SRID, m_tables[i]->type );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", m_tables[i]->name);
             /* slim mode needs this to be able to apply diffs */
             if (m_options->slim && !m_options->droptemp) {
-                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  m_tables[i].name, m_tables[i].name);
+                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  m_tables[i]->name, m_tables[i]->name);
                 if (m_options->tblsmain_index) {
                     sprintf(sql + strlen(sql), " TABLESPACE %s\n", m_options->tblsmain_index);
                 }
@@ -873,10 +872,10 @@ int output_pgsql_t::start()
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
-            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", m_tables[i].name);
+            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", m_tables[i]->name);
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "Error, failed to query table %s\n%s\n", m_tables[i].name, sql);
+                fprintf(stderr, "Error, failed to query table %s\n%s\n", m_tables[i]->name, sql);
                 util::exit_nicely();
             }
             for (j=0; j < numTags; j++) {
@@ -888,11 +887,11 @@ int output_pgsql_t::start()
                 sprintf(tmp, "\"%s\"", info.name.c_str());
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
-                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", info.name.c_str(), m_tables[i].name);
+                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", info.name.c_str(), m_tables[i]->name);
                     util::exit_nicely();
 #else
-                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", info.name.c_str(), m_tables[i].name);
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i].name, info.name.c_str(), info.type.c_str());
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", info.name.c_str(), m_tables[i]->name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", m_tables[i]->name, info.name.c_str(), info.type.c_str());
 #endif
                 }
                 /* Note: we do not verify the type or delete unused columns */
@@ -902,7 +901,7 @@ int output_pgsql_t::start()
 
             /* change the type of the geometry column if needed - this can only change to a more permisive type */
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", m_tables[i]->name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -922,19 +921,19 @@ int output_pgsql_t::start()
             strcat(sql, tmp);
         }
 
-        for(i_hstore_column = 0; i_hstore_column < m_options->n_hstore_columns; i_hstore_column++)
+        for(std::vector<std::string>::const_iterator h_column = m_options->hstore_columns.begin(); h_column != m_options->hstore_columns.end(); ++h_column)
         {
             strcat(sql, ",\"");
-            strcat(sql, m_options->hstore_columns[i_hstore_column]);
+            strcat(sql, h_column->c_str());
             strcat(sql, "\" ");
         }
     
 	if (m_options->enable_hstore) strcat(sql,",tags");
 
-	m_tables[i].columns = strdup(sql);
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[i].name, m_tables[i].columns);
+	m_tables[i]->columns = strdup(sql);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[i]->name, m_tables[i]->columns);
 
-        m_tables[i].copyMode = 1;
+        m_tables[i]->copyMode = 1;
     }
     free(sql);
 
@@ -956,56 +955,70 @@ int output_pgsql_t::start()
     return 0;
 }
 
-void output_pgsql_t::pgsql_pause_copy(output_pgsql_t::table *table)
+void output_pgsql_t::table::pgsql_pause_copy()
 {
     PGresult   *res;
     int stop;
     
-    if( !table->copyMode )
+    if( !copyMode )
         return;
         
     /* Terminate any pending COPY */
-    stop = PQputCopyEnd(table->sql_conn, NULL);
+    stop = PQputCopyEnd(sql_conn, NULL);
     if (stop != 1) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       fprintf(stderr, "COPY_END for %s failed: %s\n", name, PQerrorMessage(sql_conn));
        util::exit_nicely();
     }
 
-    res = PQgetResult(table->sql_conn);
+    res = PQgetResult(sql_conn);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       fprintf(stderr, "COPY_END for %s failed: %s\n", name, PQerrorMessage(sql_conn));
        PQclear(res);
        util::exit_nicely();
     }
     PQclear(res);
-    table->copyMode = 0;
+    copyMode = 0;
 }
 
 void output_pgsql_t::close(int stopTransaction) {
+    for (int i=0; i<NUM_TABLES; i++) {
+        m_tables[i]->close(stopTransaction);
+    }
+}
+
+void output_pgsql_t::table::close(int stopTransaction) {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
-        pgsql_pause_copy(&m_tables[i]);
-        /* Commit transaction */
         if (stopTransaction)
-            pgsql_exec(m_tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
-        PQfinish(m_tables[i].sql_conn);
-        m_tables[i].sql_conn = NULL;
+            commit();
+        else
+            pgsql_pause_copy();
+        //TODO: check before doing this
+        PQfinish(sql_conn);
+        sql_conn = NULL;
     }
 }
 
-void output_pgsql_t::pgsql_out_commit(void) {
+void output_pgsql_t::pgsql_out_commit() {
     int i;
     for (i=0; i<NUM_TABLES; i++) {
-        pgsql_pause_copy(&m_tables[i]);
-        /* Commit transaction */
-        fprintf(stderr, "Committing transaction for %s\n", m_tables[i].name);
-        pgsql_exec(m_tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
+        m_tables[i]->commit();
     }
 }
 
+void output_pgsql_t::table::commit() {
+    int i;
+    for (i=0; i<NUM_TABLES; i++) {
+        pgsql_pause_copy();
+        fprintf(stderr, "Committing transaction for %s\n", name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
+    }
+}
+
+
+//TODO: does this belong with table as well?
 void *output_pgsql_t::pgsql_out_stop_one(void *arg)
 {
-    int i_column;
     output_pgsql_t::table *table = (output_pgsql_t::table *)arg;
     PGconn *sql_conn = table->sql_conn;
 
@@ -1015,7 +1028,7 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
        util::exit_nicely();
     }
 
-    pgsql_pause_copy(table);
+    table->pgsql_pause_copy();
     if (!m_options->append)
     {
         time_t start, end;
@@ -1070,13 +1083,13 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
                     }
                 }
-                for(i_column = 0; i_column < m_options->n_hstore_columns; i_column++) {
+                for(size_t i = 0; i < m_options->hstore_columns.size(); ++i) {
                     if (m_options->slim && !m_options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, i_column,table->name, m_options->hstore_columns[i_column], m_options->tblsmain_index);
+                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, i_column,table->name, m_options->hstore_columns[i_column], m_options->tblsmain_index);
+                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
                     }
                 }
             } else {
@@ -1087,11 +1100,11 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) ;\n", table->name, table->name);
                     }
                 }
-                for(i_column = 0; i_column < m_options->n_hstore_columns; i_column++) {
+                for(size_t i = 0; i < m_options->hstore_columns.size(); ++i) {
                     if (m_options->slim && !m_options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, m_options->hstore_columns[i_column]);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, int(i), table->name, m_options->hstore_columns[i].c_str());
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, m_options->hstore_columns[i_column]);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, int(i), table->name, m_options->hstore_columns[i].c_str());
                     }
                 }
             }
@@ -1106,8 +1119,6 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
     table->sql_conn = NULL;
 
     fprintf(stderr, "Completed %s\n", table->name);
-    free(table->name);
-    free(table->columns);
     return NULL;
 }
 
@@ -1194,7 +1205,7 @@ void output_pgsql_t::stop()
      * independent transactions
      */
     for (i=0; i<NUM_TABLES; i++) {
-        PGconn *sql_conn = m_tables[i].sql_conn;
+        PGconn *sql_conn = m_tables[i]->sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
     buffer sql;
@@ -1222,7 +1233,7 @@ void output_pgsql_t::stop()
       pthread_thunk thunks[NUM_TABLES];
       for (i=0; i<NUM_TABLES; i++) {
           thunks[i].obj = this;
-          thunks[i].ptr = &m_tables[i];
+          thunks[i].ptr = m_tables[i].get();
       }
 
       for (i=0; i<NUM_TABLES; i++) {
@@ -1249,7 +1260,7 @@ void output_pgsql_t::stop()
     /* No longer need to access middle layer -- release memory */
     m_mid->stop();
     for (i=0; i<NUM_TABLES; i++)
-        pgsql_out_stop_one(&m_tables[i]);
+        pgsql_out_stop_one(m_tables[i].get());
 
 #ifdef HAVE_PTHREAD
     }
@@ -1390,9 +1401,9 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    pgsql_pause_copy(&m_tables[t_point]);
-    if ( expire->from_db(m_tables[t_point].sql_conn, osm_id) != 0)
-        pgsql_exec(m_tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point].name, osm_id );
+    m_tables[t_point]->pgsql_pause_copy();
+    if ( expire->from_db(m_tables[t_point]->sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_point]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point]->name, osm_id );
     
     dynamic_cast<slim_middle_t *>(m_mid)->nodes_delete(osm_id);
     return 0;
@@ -1407,14 +1418,16 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     /* in droptemp mode we don't have indices and this takes ages. */
     if (m_options->droptemp)
         return 0;
-    pgsql_pause_copy(&m_tables[t_roads]);
-    pgsql_pause_copy(&m_tables[t_line]);
-    pgsql_pause_copy(&m_tables[t_poly]);
-    pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, osm_id );
-    if ( expire->from_db(m_tables[t_line].sql_conn, osm_id) != 0)
-        pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, osm_id );
-    if ( expire->from_db(m_tables[t_poly].sql_conn, osm_id) != 0)
-        pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, osm_id );
+
+    //TODO: move execs into members of table
+    m_tables[t_roads]->pgsql_pause_copy();
+    m_tables[t_line]->pgsql_pause_copy();
+    m_tables[t_poly]->pgsql_pause_copy();
+    pgsql_exec(m_tables[t_roads]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads]->name, osm_id );
+    if ( expire->from_db(m_tables[t_line]->sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_line]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line]->name, osm_id );
+    if ( expire->from_db(m_tables[t_poly]->sql_conn, osm_id) != 0)
+        pgsql_exec(m_tables[t_poly]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly]->name, osm_id );
     return 0;
 }
 
@@ -1433,14 +1446,15 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 /* Relations are identified by using negative IDs */
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
-    pgsql_pause_copy(&m_tables[t_roads]);
-    pgsql_pause_copy(&m_tables[t_line]);
-    pgsql_pause_copy(&m_tables[t_poly]);
-    pgsql_exec(m_tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads].name, -osm_id );
-    if ( expire->from_db(m_tables[t_line].sql_conn, -osm_id) != 0)
-        pgsql_exec(m_tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line].name, -osm_id );
-    if ( expire->from_db(m_tables[t_poly].sql_conn, -osm_id) != 0)
-        pgsql_exec(m_tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly].name, -osm_id );
+    //TODO: move execs into members of table
+    m_tables[t_roads]->pgsql_pause_copy();
+    m_tables[t_line]->pgsql_pause_copy();
+    m_tables[t_poly]->pgsql_pause_copy();
+    pgsql_exec(m_tables[t_roads]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_roads]->name, -osm_id );
+    if ( expire->from_db(m_tables[t_line]->sql_conn, -osm_id) != 0)
+        pgsql_exec(m_tables[t_line]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_line]->name, -osm_id );
+    if ( expire->from_db(m_tables[t_poly]->sql_conn, -osm_id) != 0)
+        pgsql_exec(m_tables[t_poly]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_poly]->name, -osm_id );
     return 0;
 }
 
