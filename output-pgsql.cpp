@@ -546,17 +546,27 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
 int output_pgsql_t::start()
 {
-    char *sql, tmp[256];
-    PGresult   *res;
-    int i,j;
-    unsigned int sql_len;
-    int their_srid;
-    int i_hstore_column;
-    enum OsmType type;
-    int numTags;
-
     reproj = m_options->projection;
     builder.set_exclude_broken_polygon(m_options->excludepoly);
+
+    m_export_list = new export_list();
+
+    m_enable_way_area = read_style_file( m_options->style, m_export_list );
+
+    try {
+        m_tagtransform = new tagtransform(m_options);
+    }
+    catch(std::runtime_error& e) {
+        fprintf(stderr, "%s\n", e.what());
+        fprintf(stderr, "Error: Failed to initialise tag processing.\n");
+        util::exit_nicely();
+    }
+
+    expire.reset(new expire_tiles(m_options));
+
+    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", true));
+    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
+    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", true));
 
     // Tables to output
     m_tables.reserve(NUM_TABLES);
@@ -566,15 +576,11 @@ int output_pgsql_t::start()
     m_tables.push_back(boost::shared_ptr<table_t>(new table_t("%s_polygon", "GEOMETRY", SRID, m_options->enable_hstore, m_options->hstore_columns)));
     m_tables.push_back(boost::shared_ptr<table_t>(new table_t("%s_roads",   "LINESTRING", SRID, m_options->enable_hstore, m_options->hstore_columns)));
 
-    m_export_list = new export_list();
-
-    m_enable_way_area = read_style_file( m_options->style, m_export_list );
-
-    sql_len = 2048;
-    sql = (char *)malloc(sql_len);
+    unsigned int sql_len = 2048;
+    char *sql = (char *)malloc(sql_len);
     assert(sql);
 
-    for (i=0; i<NUM_TABLES; i++) {
+    for (int i=0; i<NUM_TABLES; i++) {
         /* Substitute prefix into name of table */
         char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i]->name) + 1 );
         sprintf( temp, m_tables[i]->name, m_options->prefix );
@@ -591,13 +597,13 @@ int output_pgsql_t::start()
         else
         {
             sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", m_tables[i]->name);
-            res = PQexec(sql_conn, sql);
+            PGresult   *res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
                 fprintf(stderr, "Problem reading geometry information for table %s - does it exist?\n", m_tables[i]->name);
                 util::exit_nicely();
             }
-            their_srid = atoi(PQgetvalue(res, 0, 0));
+            int their_srid = atoi(PQgetvalue(res, 0, 0));
             PQclear(res);
             if (their_srid != SRID)
             {
@@ -611,12 +617,13 @@ int output_pgsql_t::start()
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
-        type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
+        OsmType type = (i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY;
         const std::vector<taginfo> &infos = m_export_list->get(type);
-        numTags = infos.size();
+        int numTags = infos.size();
+        char tmp[256];
         if (!m_options->append) {
             sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, m_tables[i]->name );
-            for (j=0; j < numTags; j++) {
+            for (int j=0; j < numTags; j++) {
                 const taginfo &info = infos[j];
                 if( info.flags & FLAG_DELETE )
                     continue;
@@ -666,7 +673,7 @@ int output_pgsql_t::start()
                 fprintf(stderr, "Error, failed to query table %s\n%s\n", m_tables[i]->name, sql);
                 util::exit_nicely();
             }
-            for (j=0; j < numTags; j++) {
+            for (int j=0; j < numTags; j++) {
                 const taginfo &info = infos[j];
                 if( info.flags & FLAG_DELETE )
                     continue;
@@ -693,7 +700,7 @@ int output_pgsql_t::start()
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
-        for (j=0; j < numTags; j++) {
+        for (int j=0; j < numTags; j++) {
             const taginfo &info = infos[j];
             if( info.flags & FLAG_DELETE )
                 continue;
@@ -716,28 +723,16 @@ int output_pgsql_t::start()
             strcat(sql, "\" ");
         }
     
-	if (m_options->enable_hstore) strcat(sql,",tags");
+        if (m_options->enable_hstore)
+            strcat(sql,",tags");
 
-	m_tables[i]->columns = strdup(sql);
+        m_tables[i]->columns = strdup(sql);
         pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", m_tables[i]->name, m_tables[i]->columns);
 
         m_tables[i]->copyMode = 1;
     }
+
     free(sql);
-
-    try {
-    	m_tagtransform = new tagtransform(m_options);
-    }
-    catch(std::runtime_error& e) {
-    	fprintf(stderr, "%s\n", e.what());
-        fprintf(stderr, "Error: Failed to initialise tag processing.\n");
-        util::exit_nicely();
-    }
-    expire.reset(new expire_tiles(m_options));
-
-    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", true));
-    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
-    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", true));
 
     return 0;
 }
