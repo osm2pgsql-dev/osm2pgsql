@@ -8,6 +8,8 @@
 
 #include "buffer.hpp"
 
+#include <libpq-fe.h>
+
 PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, int nParams, const char *const * paramValues, ExecStatusType expect);
 int pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql);
 int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
