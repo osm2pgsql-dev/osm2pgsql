@@ -399,7 +399,7 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
 }
 
 /* This should be made more efficient by using an IN(ARRAY[]) construct */
-int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count)
+int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const
 {
     char tmp[16];
     char *tmp2; 
@@ -523,7 +523,7 @@ int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval 
     return (out_options->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
-int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count) const
 {
     return (out_options->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
@@ -592,7 +592,7 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
 }
 
 /* Caller is responsible for freeing nodesptr & resetList(tags) */
-int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr)
+int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const
 {
     PGresult   *res;
     char tmp[16];
@@ -626,7 +626,7 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
     return 0;
 }
 
-int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) {
+int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
 
     char tmp[16];
     char *tmp2; 
@@ -900,7 +900,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
 }
 
 /* Caller is responsible for freeing members & resetList(tags) */
-int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags)
+int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const 
 {
     PGresult   *res;
     char tmp[16];
@@ -1056,7 +1056,7 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
     return 0;
 }
 
-std::vector<osmid_t> middle_pgsql_t::relations_using_way(osmid_t way_id)
+std::vector<osmid_t> middle_pgsql_t::relations_using_way(osmid_t way_id) const
 {
     char const *paramValues[1];
     char buffer[64];

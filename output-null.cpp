@@ -76,7 +76,7 @@ void output_null_t::close(int stopTransaction) {
     // nothing
 }
 
-output_null_t::output_null_t(middle_t* mid_, const output_options* options_): output_t(mid_, options_) {
+output_null_t::output_null_t(middle_query_t* mid_, const output_options* options_): output_t(mid_, options_) {
 }
 
 output_null_t::~output_null_t() {

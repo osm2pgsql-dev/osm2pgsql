@@ -155,7 +155,7 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
     return 0;
 }
 
-int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
+int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count) const
 {
     int i, count;
 
@@ -277,7 +277,7 @@ void middle_ram_t::release_ways()
 }
 
 /* Caller must free nodes_ptr and resetList(tags_ptr) */
-int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr)
+int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr) const
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct osmNode *nodes;
@@ -304,7 +304,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
     return 1;
 }
 
-int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) {
+int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const {
     int count = 0;
     int i;
 
@@ -325,7 +325,7 @@ int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, 
  * Note that the members in members_ptr are copied, but the roles
  * within the members are not, and should not be freed.
  */
-int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *member_count, struct keyval *tags_ptr)
+int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *member_count, struct keyval *tags_ptr) const
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
     struct member *members;
@@ -395,4 +395,13 @@ middle_ram_t::middle_ram_t():
 }
 
 middle_ram_t::~middle_ram_t() {
+}
+
+std::vector<osmid_t> middle_ram_t::relations_using_way(osmid_t way_id) const
+{
+    std::vector<osmid_t> rel_ids;
+    // TODO
+    abort();
+
+    return rel_ids;
 }

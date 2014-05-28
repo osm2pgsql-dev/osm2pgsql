@@ -581,8 +581,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
         // TODO: this now only has an effect when called from the iterate_ways
         // call-back, so we need some alternative way to trigger this within
         // osmdata_t.
-        slim_middle_t *slim = dynamic_cast<slim_middle_t *>(m_mid);
-        const std::vector<osmid_t> rel_ids = slim->relations_using_way(id);
+        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
         for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
              itr != rel_ids.end(); ++itr) {
             rels_pending_tracker->mark(*itr);
@@ -1534,7 +1533,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     return 0;
 }
 
-output_pgsql_t::output_pgsql_t(middle_t* mid_, const output_options* options_)
+output_pgsql_t::output_pgsql_t(middle_query_t* mid_, const output_options* options_)
     : output_t(mid_, options_) {
 }
 

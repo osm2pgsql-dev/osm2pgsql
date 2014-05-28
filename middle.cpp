@@ -1,5 +1,8 @@
 #include "middle.hpp"
 
+middle_query_t::~middle_query_t() {
+}
+
 middle_t::~middle_t() {
 }
 
