@@ -361,15 +361,15 @@ void middle_ram_t::end(void)
     /* No need */
 }
 
-int middle_ram_t::start(output_t* out_)
+int middle_ram_t::start(const output_options *out_options_)
 {
-    out = out_;
+    out_options = out_options_;
     /* latlong has a range of +-180, mercator +-20000
        The fixed poing scaling needs adjusting accordingly to
        be stored accurately in an int */
-    cache.reset(new node_ram_cache(out->get_options()->alloc_chunkwise, out->get_options()->cache, out->get_options()->scale));
+    cache.reset(new node_ram_cache(out_options->alloc_chunkwise, out_options->cache, out_options->scale));
     
-    fprintf( stderr, "Mid: Ram, scale=%d\n", out->get_options()->scale );
+    fprintf( stderr, "Mid: Ram, scale=%d\n", out_options->scale );
 
     return 0;
 }

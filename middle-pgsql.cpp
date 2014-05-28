@@ -371,7 +371,7 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
       int length = strlen(tag_buf) + 64;
       buffer = (char *)alloca( length );
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out->get_options()->scale), util::double_to_fix(lon, out->get_options()->scale), tag_buf ) > (length-10) )
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
@@ -385,9 +385,9 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
     ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
     paramValues[1] = ptr;
 #ifdef FIXED_POINT
-    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out->get_options()->scale) ) + 1;
+    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
     paramValues[2] = ptr;
-    sprintf( ptr, "%d", util::double_to_fix(lon, out->get_options()->scale) );
+    sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
 #else
     ptr += sprintf( ptr, "%.10f", lat ) + 1;
     paramValues[2] = ptr;
@@ -458,8 +458,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     for (i = 0; i < countPG; i++) {
         ndidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
 #ifdef FIXED_POINT 
-        nodespg[i].lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out->get_options()->scale);
-        nodespg[i].lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out->get_options()->scale);
+        nodespg[i].lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
+        nodespg[i].lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
 #else 
         nodespg[i].lat = strtod(PQgetvalue(res, i, 1), NULL); 
         nodespg[i].lon = strtod(PQgetvalue(res, i, 2), NULL); 
@@ -520,12 +520,12 @@ void middle_pgsql_t::cleanup(void)
 int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     cache->set( id, lat, lon, tags );
 
-    return (out->get_options()->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
 int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count)
 {
-    return (out->get_options()->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
+    return (out_options->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
 
 int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -543,7 +543,7 @@ int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 
 int middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
-    return ((out->get_options()->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
+    return ((out_options->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
 }
 
 int middle_pgsql_t::node_changed(osmid_t osm_id)
@@ -730,31 +730,19 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
-    int noProcs = out->get_options()->num_procs;
-    int pid = 0;
     PGresult   *res_ways;
-    int i, p, count = 0;
+    int i, count = 0;
     /* The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
     time_t start, end;
     time(&start);
-#if HAVE_MMAP
-    struct progress_info *info = 0;
-    if(noProcs > 1) {
-        info = (struct progress_info *)mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-        info[0].finished = HELPER_STATE_CONNECTED;
-        for (i = 1; i < noProcs; i++) {
-            info[i].finished = HELPER_STATE_UNINITIALIZED; /* Register that the process was not yet initialised; */
-        }
-    }
-#endif
     fprintf(stderr, "\nGoing over pending ways...\n");
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
     res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
 
@@ -765,42 +753,9 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
      * To speed up processing of pending ways, fork noProcs worker processes
      * each of which independently goes through an equal subset of the pending ways array
      */
-    fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
-#ifdef HAVE_FORK
-    for (p = 1; p < noProcs; p++) {
-        pid=fork();
-        if (pid==0) {
-#if HAVE_MMAP
-            info[p].finished = HELPER_STATE_FORKED;
-#endif            
-            break;
-        }
-        if (pid==-1) {
-#if HAVE_MMAP
-            info[p].finished = HELPER_STATE_FAILED;
-            fprintf(stderr,"WARNING: Failed to fork helper process %i: %s. Trying to recover.\n", p, strerror(errno));
-#else
-            fprintf(stderr,"ERROR: Failed to fork helper process %i: %s. Can't recover!\n", p, strerror(errno));
-            exit_nicely();
-#endif            
-        }
-    }
-#endif
-    if ((pid == 0) && (noProcs > 1)) {
-        /* After forking, need to reconnect to the postgresql db */
-        if ((pgsql_connect(tables, out->get_options()) != 0) || (out->connect(1) != 0)) {
-#if HAVE_MMAP
-            info[p].finished = HELPER_STATE_FAILED;
-#else
-            fprintf(stderr,"\n\n!!!FATAL: Helper process failed, but can't compensate. Your DB will be broken and corrupt!!!!\n\n");
-#endif
-            exit_nicely();
-        };
-    } else {
-        p = 0;
-    }
+    fprintf(stderr, "\nUsing %i helper-processes\n", 1);
 
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(),1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
     /* Only start an extended transaction on the ways table,
      * which should cover the bulk of the update statements.
@@ -818,62 +773,11 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         tables[t_way].transactionMode = 1;
     }
 
-#if HAVE_MMAP
-    if (noProcs > 1) {
-        info[p].finished = HELPER_STATE_CONNECTED;
-        /* Syncronize all processes to make sure they have all run through the initialisation steps */
-        int all_processes_initialised = 0;
-        while (all_processes_initialised == 0) {
-            all_processes_initialised = 1;
-            for (i = 0; i < noProcs; i++) {
-                if (info[i].finished < 0) {
-                    all_processes_initialised = 0;
-                    sleep(1);
-                }
-            }
-        }
-        
-        /* As we process the pending ways in steps of noProcs,
-           we need to make sure that all processes correctly forked
-           and have connected to the db. Otherwise we need to readjust
-           the step size of going through the pending ways array */
-        int noProcsTmp = noProcs;
-        int pTmp = p;
-        for (i = 0; i < noProcs; i++) {
-            if (info[i].finished == HELPER_STATE_FAILED) {
-                noProcsTmp--;
-                if (i < p) pTmp--;
-            }
-        }
-        info[p].finished = HELPER_STATE_RUNNING;
-        p = pTmp; /* reset the process number to account for failed processes */
-        
-        /* As we have potentially changed the process number assignment,
-           we need to synchronize on all processes having performed the reassignment
-           as otherwise multiple process might have the same number and overwrite
-           the info fields incorrectly.
-        */
-        all_processes_initialised = 0;
-        while (all_processes_initialised == 0) { 
-            all_processes_initialised = 1; 
-            for (i = 0; i < noProcs; i++) { 
-                if (info[i].finished == HELPER_STATE_CONNECTED) { 
-                    /* Process is connected, but hasn't performed the re-assignment of p. */
-                    all_processes_initialised = 0; 
-                    sleep(1); 
-                    break; 
-                } 
-            }
-        }
-        noProcs = noProcsTmp;
-    }
-#endif
-
     /* some spaces at end, so that processings outputs get cleaned if already existing */
-    fprintf(stderr, "\rHelper process %i out of %i initialised          \n", p, noProcs);
+    fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
     /* Use a stride length of the number of worker processes,
        starting with an offset for each worker process p */
-    for (i = p; i < PQntuples(res_ways); i+= noProcs) {
+    for (i = 0; i < PQntuples(res_ways); i+= 1) {
         osmid_t id = strtoosmid(PQgetvalue(res_ways, i, 0), NULL, 10);
         struct keyval tags;
         struct osmNode *nodes;
@@ -881,34 +785,8 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 
         if (count++ %1000 == 0) {
             time(&end);
-#if HAVE_MMAP
-            if(info)
-            {
-                double rate = 0;
-                int n, total = 0, finished = 0;
-                struct progress_info f;
-
-                f.start = start;
-                f.end = end;
-                f.count = count;
-                f.finished = HELPER_STATE_RUNNING;
-                info[p] = f;
-                for(n = 0; n < noProcs; ++n)
-                {
-                    f = info[n];
-                    total += f.count;
-                    finished += f.finished;
-                    if(f.end > f.start)
-                        rate += (double)f.count / (double)(f.end - f.start);
-                }
-                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s (done %d of %d)", total/1000, rate/1000.0, finished, noProcs);
-            }
-            else
-#endif
-            {
-                fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
-                end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
-            }
+            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
+                    end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
         }
 
         initList(&tags);
@@ -928,32 +806,9 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     }
 
     time(&end);
-#if HAVE_MMAP
-    if(info)
-    {
-        struct progress_info f;
-        f.start = start;
-        f.end = end;
-        f.count = count;
-        f.finished = 1;
-        info[p] = f;
-    }
-#endif
-    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", p, count, (int)(end - start));
+    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, count, (int)(end - start));
 
-    if ((pid == 0) && (noProcs > 1)) {
-        cleanup();
-        out->close(1);
-        if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
-        exit(0);
-    } else {
-        for (p = 0; p < noProcs; p++) wait(NULL);
-        fprintf(stderr, "\nAll child processes exited\n");
-    }
-
-#if HAVE_MMAP
-    munmap(info, sizeof(struct progress_info)*noProcs);
-#endif
+    fprintf(stderr, "\nAll child processes exited\n");
 
     fprintf(stderr, "\n");
     time(&end);
@@ -1134,122 +989,28 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     PGresult   *res_rels;
-    int noProcs = out->get_options()->num_procs;
-    int pid;
-    int i, p, count = 0;
+    int i, count = 0;
     /* The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
     time_t start, end;
     time(&start);
-#if HAVE_MMAP
-    struct progress_info *info = 0;
-    if(noProcs > 1) {
-        info = (struct progress_info *)mmap(0, sizeof(struct progress_info)*noProcs, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_ANONYMOUS, -1, 0);
-        info[0].finished = HELPER_STATE_CONNECTED; 
-        for (i = 1; i < noProcs; i++) { 
-            info[i].finished = HELPER_STATE_UNINITIALIZED; /* Register that the process was not yet initialised; */
-        }
-    }
-#endif
     fprintf(stderr, "\nGoing over pending relations...\n");
 
     /* Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
     res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
 
     fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
 
-    fprintf(stderr, "\nUsing %i helper-processes\n", noProcs);
-    pid = 0;
-#ifdef HAVE_FORK
-    for (p = 1; p < noProcs; p++) {
-        pid=fork();
-        if (pid==0) {
-#if HAVE_MMAP 
-            info[p].finished = HELPER_STATE_FORKED; 
-#endif
-            break;
-        }
-        if (pid==-1) {
-#if HAVE_MMAP 
-            info[p].finished = HELPER_STATE_FAILED; 
-            fprintf(stderr,"WARNING: Failed to fork helper processes %i. Trying to recover.\n", p); 
-#else 
-            fprintf(stderr,"ERROR: Failed to fork helper processes. Can't recover! \n"); 
-            exit_nicely(); 
-#endif 
-        }
-    }
-#endif
-    if ((pid == 0) && (noProcs > 1)) {
-        if ((out->connect(0) != 0) || (pgsql_connect(tables, out->get_options()) != 0)) {
-#if HAVE_MMAP
-            info[p].finished = HELPER_STATE_FAILED;
-#endif
-            exit_nicely();
-        };
-    } else {
-        p = 0;
-    }
+    fprintf(stderr, "\nUsing %i helper-processes\n", 1);
 
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(), 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
-#if HAVE_MMAP 
-    if (noProcs > 1) { 
-        info[p].finished = HELPER_STATE_CONNECTED; 
-        /* Syncronize all processes to make sure they have all run through the initialisation steps */ 
-        int all_processes_initialised = 0; 
-        while (all_processes_initialised == 0) { 
-            all_processes_initialised = 1; 
-            for (i = 0; i < noProcs; i++) { 
-                if (info[i].finished < 0) { 
-                    all_processes_initialised = 0; 
-                    sleep(1); 
-                } 
-            } 
-        } 
-         
-        /* As we process the pending ways in steps of noProcs, 
-           we need to make sure that all processes correctly forked 
-           and have connected to the db. Otherwise we need to readjust 
-           the step size of going through the pending ways array */ 
-        int noProcsTmp = noProcs; 
-        int pTmp = p; 
-        for (i = 0; i < noProcs; i++) { 
-            if (info[i].finished == HELPER_STATE_FAILED) { 
-                noProcsTmp--; 
-                if (i < p) pTmp--; 
-            } 
-        } 
-        info[p].finished = HELPER_STATE_RUNNING; 
-        p = pTmp; /* reset the process number to account for failed processes */
-         
-        /* As we have potentially changed the process number assignment,
-           we need to synchronize on all processes having performed the reassignment 
-           as otherwise multiple process might have the same number and overwrite 
-           the info fields incorrectly. 
-        */ 
-        all_processes_initialised = 0; 
-        while (all_processes_initialised == 0) {  
-            all_processes_initialised = 1;  
-            for (i = 0; i < noProcs; i++) {  
-                if (info[i].finished == HELPER_STATE_CONNECTED) {  
-                    /* Process is connected, but hasn't performed the re-assignment of p. */
-                    all_processes_initialised = 0;  
-                    sleep(1);  
-                    break;  
-                }  
-            } 
-        } 
-        noProcs = noProcsTmp; 
-    } 
-#endif
-
-    for (i = p; i < PQntuples(res_rels); i+= noProcs) {
+    for (i = 0; i < PQntuples(res_rels); i+= 1) {
         osmid_t id = strtoosmid(PQgetvalue(res_rels, i, 0), NULL, 10);
         struct keyval tags;
         struct member *members;
@@ -1257,34 +1018,8 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 
         if (count++ %10 == 0) {
             time(&end);
-#if HAVE_MMAP
-            if(info)
-            {
-                double rate = 0;
-                int n, total = 0, finished = 0;
-                struct progress_info f;
-
-                f.start = start;
-                f.end = end;
-                f.count = count;
-                f.finished = HELPER_STATE_RUNNING;
-                info[p] = f;
-                for(n = 0; n < noProcs; ++n)
-                {
-                    f = info[n];
-                    total += f.count;
-                    finished += f.finished;
-                    if(f.end > f.start)
-                        rate += (double)f.count / (double)(f.end - f.start);
-                }
-                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s (done %d of %d)", total, rate, finished, noProcs);
-            }
-            else
-#endif
-            {
-                fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
-                        end > start ? ((double)count / (double)(end - start)) : 0);
-            }
+            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
+                    end > start ? ((double)count / (double)(end - start)) : 0);
         }
 
         initList(&tags);
@@ -1298,32 +1033,8 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
         resetList(&tags);
     }
     time(&end);
-#if HAVE_MMAP
-    if(info)
-    {
-        struct progress_info f;
-        f.start = start;
-        f.end = end;
-        f.count = count;
-        f.finished = 1;
-        info[p] = f;
-    }
-#endif
-    fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", p, count, (int)(end - start));
+    fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", 0, count, (int)(end - start));
 
-    if ((pid == 0) && (noProcs > 1)) {
-        cleanup();
-        out->close(0);
-        if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
-        exit(0);
-    } else {
-        for (p = 0; p < noProcs; p++) wait(NULL);
-        fprintf(stderr, "\nAll child processes exited\n");
-    }
-
-#if HAVE_MMAP
-    munmap(info, sizeof(struct progress_info)*noProcs);
-#endif
     time(&end);
     if (end - start > 0)
         fprintf(stderr, "%i Pending relations took %ds at a rate of %.2f/s\n",PQntuples(res_rels), (int)(end - start), ((double)PQntuples(res_rels) / (double)(end - start)));
@@ -1482,41 +1193,41 @@ static void set_prefix_and_tbls(const struct output_options *options, const char
 }
 
 
-int middle_pgsql_t::start(output_t* out_)
+int middle_pgsql_t::start(const output_options *out_options_)
 {
-    out = out_;
+    out_options = out_options_;
     PGresult   *res;
     int i;
-    int dropcreate = !out->get_options()->append;
+    int dropcreate = !out_options->append;
     char * sql;
 
-    Append = out->get_options()->append;
+    Append = out_options->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
     build_indexes = 0;
     
-    cache.reset(new node_ram_cache( out->get_options()->alloc_chunkwise | ALLOC_LOSSY, out->get_options()->cache, out->get_options()->scale));
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out->get_options(), out->get_options()->append, cache));
+    cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, cache));
 
-    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out->get_options()->scale, out->get_options()->cache);
+    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
     
     /* We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
                         
-        set_prefix_and_tbls(out->get_options(), &(tables[i].name));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].start));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].create));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].create_index));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].prepare));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].prepare_intarray));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].copy));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].analyze));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].stop));
-        set_prefix_and_tbls(out->get_options(), &(tables[i].array_indexes));
+        set_prefix_and_tbls(out_options, &(tables[i].name));
+        set_prefix_and_tbls(out_options, &(tables[i].start));
+        set_prefix_and_tbls(out_options, &(tables[i].create));
+        set_prefix_and_tbls(out_options, &(tables[i].create_index));
+        set_prefix_and_tbls(out_options, &(tables[i].prepare));
+        set_prefix_and_tbls(out_options, &(tables[i].prepare_intarray));
+        set_prefix_and_tbls(out_options, &(tables[i].copy));
+        set_prefix_and_tbls(out_options, &(tables[i].analyze));
+        set_prefix_and_tbls(out_options, &(tables[i].stop));
+        set_prefix_and_tbls(out_options, &(tables[i].array_indexes));
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(out->get_options()->conninfo);
+        sql_conn = PQconnectdb(out_options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -1565,7 +1276,7 @@ int middle_pgsql_t::start(output_t* out_)
             }
             PQclear(res);
 
-            if (out->get_options()->append)
+            if (out_options->append)
             {
                 sql = (char *)malloc (2048);
                 snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
@@ -1590,7 +1301,7 @@ int middle_pgsql_t::start(output_t* out_)
                 PQclear(res);
             }
 
-            if(!out->get_options()->append)
+            if(!out_options->append)
                 build_indexes = 1;
         }
         if (dropcreate) {
@@ -1649,7 +1360,7 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     fprintf(stderr, "Stopping table: %s\n", table->name);
     pgsql_endCopy(table);
     time(&start);
-    if (!out->get_options()->droptemp)
+    if (!out_options->droptemp)
     {
         if (build_indexes && table->array_indexes) {
             char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
@@ -1709,7 +1420,7 @@ void middle_pgsql_t::stop(void)
 #endif
 
     cache.reset();
-    if (out->get_options()->flat_node_cache_enabled) persistent_cache.reset();
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
 #ifdef HAVE_PTHREAD
     pthread_thunk thunks[num_tables];

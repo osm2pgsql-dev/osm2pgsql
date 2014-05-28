@@ -1049,9 +1049,6 @@ int output_gazetteer_t::start()
       pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
    }
 
-   /* Setup middle layer */
-   m_mid->start(this);
-
    hLog = fopen("log", "w");
 
    return 0;

@@ -18,7 +18,7 @@ struct middle_ram_t : public middle_t {
     middle_ram_t();
     virtual ~middle_ram_t();
 
-    int start(output_t* out_);
+    int start(const output_options *out_options_);
     void stop(void);
     void cleanup(void);
     void analyze(void);

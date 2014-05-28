@@ -98,6 +98,7 @@ int osmdata_t::relation_delete(osmid_t id) {
 
 void osmdata_t::start() {
     out->start();
+    mid->start(out->get_options());
 }
 
 namespace {

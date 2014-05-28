@@ -962,8 +962,6 @@ int output_pgsql_t::start()
     ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
     rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", true));
 
-    m_mid->start(this);
-
     return 0;
 }
 

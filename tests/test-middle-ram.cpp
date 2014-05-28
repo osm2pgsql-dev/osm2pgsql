@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     struct middle_ram_t mid_ram;
     struct output_null_t out_test(&mid_ram, &options);
     
-    mid_ram.start(&out_test);
+    mid_ram.start(&options);
     
     int status = 0;
     

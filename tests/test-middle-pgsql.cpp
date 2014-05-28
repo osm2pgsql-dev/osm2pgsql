@@ -232,14 +232,14 @@ int main(int argc, char *argv[]) {
   try {
     // start an empty table to make the middle create the
     // tables it needs. we then run the test in "append" mode.
-    mid_pgsql.start(&out_test);
+    mid_pgsql.start(&options);
     mid_pgsql.commit();
     mid_pgsql.stop();
 
     options.append = 1; /* <- needed because we're going to change the
                          *    data and check that the updates fire. */
 
-    mid_pgsql.start(&out_test);
+    mid_pgsql.start(&options);
     
     int status = 0;
     

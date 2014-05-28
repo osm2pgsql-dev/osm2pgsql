@@ -19,7 +19,7 @@ void exit_nicely()
 struct test_middle_t : public middle_t {
     virtual ~test_middle_t() {}
 
-    int start(output_t* out_) { return 0; }
+    int start(const output_options *out_options_) { return 0; }
     void stop(void) { }
     void cleanup(void) { }
     void analyze(void) { }
