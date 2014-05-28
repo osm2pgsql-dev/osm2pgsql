@@ -13,6 +13,7 @@
 #include "reprojection.hpp"
 #include "expire-tiles.hpp"
 #include "pgsql-id-tracker.hpp"
+#include "table.hpp"
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -54,34 +55,6 @@ public:
 
 private:
 
-    class table : public boost::noncopyable{
-    public:
-        table(const char *name_, const char *type_, const int srs, const int enable_hstore, const std::vector<std::string>& hstore_columns);
-        ~table();
-        char *name;
-        const char *type;
-        struct pg_conn *sql_conn;
-        unsigned int buflen;
-        int copyMode;
-        char *columns;
-        char buffer[1024];
-
-        void close(int stopTransaction);
-        void commit();
-        void copy_to_table(const char *sql);
-        void write_hstore(keyval *tags, struct buffer &sql);
-        void export_tags(export_list* e_list, OsmType info_table, keyval *tags, struct buffer &sql);
-        void pgsql_pause_copy();
-        void write_hstore_columns(keyval *tags, struct buffer &sql);
-        void write_wkts(export_list* e_list, osmid_t id, keyval *tags, const char *wkt, struct buffer &sql);
-
-    private:
-        table();
-        int srs;
-        int enable_hstore;
-        std::vector<std::string> hstore_columns;
-    };
-
     struct way_cb_func : public middle_t::way_cb_func {
         output_pgsql_t *m_ptr;
         buffer &m_sql;
@@ -109,6 +82,8 @@ private:
     int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
+    void export_tags(const table_id table, OsmType info_table, struct keyval *tags, struct buffer &sql);
+    void write_wkts(const table_id table, osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql);
 
 
 
@@ -118,7 +93,7 @@ private:
     /* enable output of a generated way_area tag to either hstore or its own column */
     int m_enable_way_area;
 
-    std::vector<boost::shared_ptr<table> > m_tables;
+    std::vector<boost::shared_ptr<table_t> > m_tables;
     
     export_list *m_export_list;
 

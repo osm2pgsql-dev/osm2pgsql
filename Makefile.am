@@ -30,6 +30,7 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	reprojection.hpp \
 	sanitizer.hpp \
 	sprompt.hpp \
+	table.hpp \
 	text-tree.hpp \
 	util.hpp
 
@@ -64,6 +65,7 @@ libosm2pgsql_la_SOURCES = \
 	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \
+	table.cpp \
 	taginfo.cpp \
 	tagtransform.cpp \
 	text-tree.cpp \
