@@ -6,11 +6,12 @@
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
-#include "output.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "build_geometry.hpp"
 #include "output-gazetteer.hpp"
+#include "options.hpp"
+#include "util.hpp"
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -57,7 +58,7 @@ void output_gazetteer_t::require_slim_mode(void)
    if (!m_options->slim)
    {
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-      exit_nicely();
+      util::exit_nicely();
    }
 
    return;
@@ -118,7 +119,7 @@ void output_gazetteer_t::stop_copy(void)
    if (PQputCopyEnd(Connection, NULL) != 1)
    {
       fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Check the result */
@@ -127,7 +128,7 @@ void output_gazetteer_t::stop_copy(void)
    {
       fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
       PQclear(res);
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Discard the result */
@@ -197,7 +198,7 @@ static void stop_error_copy(void)
    if (PQputCopyEnd(ConnectionError, NULL) != 1)
    {
       fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Check the result */
@@ -206,7 +207,7 @@ static void stop_error_copy(void)
    {
       fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
       PQclear(res);
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Discard the result */
@@ -996,7 +997,7 @@ int output_gazetteer_t::start()
    if (PQstatus(Connection) != CONNECTION_OK)
    {
       fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(Connection));
-      exit_nicely();
+      util::exit_nicely();
    }
 
    /* Start a transaction */
@@ -1043,7 +1044,7 @@ int output_gazetteer_t::start()
       if (PQstatus(ConnectionDelete) != CONNECTION_OK)
       { 
           fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
-          exit_nicely();
+          util::exit_nicely();
       }
 
       pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
@@ -1245,13 +1246,19 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       return 0;
    }
 
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && strcmp(type, "waterway")) {
+   int is_waterway = !strcmp(type, "waterway");
+   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && !is_waterway) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
 
    /* Split the tags */
    split_tags(tags, TAGINFO_AREA, &names, &places, &extratags, &adminlevel, &housenumber, &street, &addr_place, &isin, &postcode, &countrycode);
+
+   /* reset type to NULL because split_tags() consumes the tags
+    * keyval and means that it's pointing to some random stuff
+    * which might be harmful if dereferenced. */
+   type = NULL;
 
    if (delete_old)
        delete_unused_classes('R', id, &places);
@@ -1285,7 +1292,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       for (i=0;i<wkt_size;i++)
       {
          char *wkt = builder.get_wkt(i);
-         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || !strcmp(type, "waterway")))
+         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || is_waterway))
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
              {
@@ -1384,7 +1391,7 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-output_gazetteer_t::output_gazetteer_t(middle_query_t* mid_, const output_options* options_)
+output_gazetteer_t::output_gazetteer_t(middle_query_t* mid_, const options_t* options_)
     : output_t(mid_, options_),
       Connection(NULL),
       ConnectionDelete(NULL),

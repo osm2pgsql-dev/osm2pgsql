@@ -17,7 +17,7 @@ extern "C" {
 
 class tagtransform {
 public:
-	tagtransform(const output_options *options_);
+	tagtransform(const options_t *options_);
 	~tagtransform();
 
 	unsigned int filter_node_tags(keyval *tags, const export_list *exlist);
@@ -35,7 +35,7 @@ private:
 	        keyval *member_tags,const char **member_role,
 	        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads);
 
-	const output_options* options;
+	const options_t* options;
 	const bool transform_method;
 #ifdef HAVE_LUA
 	lua_State *L;

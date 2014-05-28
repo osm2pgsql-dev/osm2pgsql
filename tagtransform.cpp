@@ -7,6 +7,7 @@
 #include "keyvals.hpp"
 #include "tagtransform.hpp"
 #include "output-pgsql.hpp"
+#include "options.hpp"
 #include "config.h"
 #include "wildcmp.hpp"
 #include "taginfo_impl.hpp"
@@ -362,7 +363,7 @@ unsigned int c_filter_rel_member_tags(
 }
 }
 
-tagtransform::tagtransform(const output_options *options_):	options(options_), transform_method(options_->tag_transform_script != NULL) {
+tagtransform::tagtransform(const options_t *options_):	options(options_), transform_method(options_->tag_transform_script != NULL) {
 	if (transform_method) {
 		fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script);
 #ifdef HAVE_LUA
@@ -584,11 +585,11 @@ unsigned int tagtransform::c_filter_basic_tags(
                         && strcmp("osm_version", item->key)
                         && strcmp("osm_changeset", item->key))
                     filter = 0;
-            } else if (options->n_hstore_columns) {
+            } else if (options->hstore_columns.size() > 0) {
                 /* does this column match any of the hstore column prefixes? */
-                int j;
-                for (j = 0; j < options->n_hstore_columns; j++) {
-                    char *pos = strstr(item->key, options->hstore_columns[j]);
+                size_t j = 0;
+                for(; j < options->hstore_columns.size(); ++j) {
+                    char *pos = strstr(item->key, options->hstore_columns[j].c_str());
                     if (pos == item->key) {
                         pushItem(&temp, item);
                         /* ... but if hstore_match_only is set then don't take this
@@ -604,7 +605,7 @@ unsigned int tagtransform::c_filter_basic_tags(
                     }
                 }
                 /* if not, skip the tag */
-                if (j == options->n_hstore_columns) {
+                if (j == options->hstore_columns.size()) {
                     freeItem(item);
                 }
             } else {

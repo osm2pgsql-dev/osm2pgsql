@@ -15,6 +15,7 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	middle.hpp \
 	node-persistent-cache.hpp \
 	node-ram-cache.hpp \
+	options.hpp \
 	osmtypes.hpp \
 	output-gazetteer.hpp \
 	output-null.hpp \
@@ -48,6 +49,7 @@ libosm2pgsql_la_SOURCES = \
 	middle-ram.cpp \
 	node-persistent-cache.cpp \
 	node-ram-cache.cpp \
+	options.cpp \
 	osmtypes.cpp \
 	output.cpp \
 	output-gazetteer.cpp \
@@ -76,7 +78,8 @@ check_PROGRAMS = \
 	tests/test-parse-xml2 \
 	tests/test-middle-ram \
 	tests/test-middle-pgsql \
-	tests/test-pgsql-escape
+	tests/test-pgsql-escape \
+	tests/test-parse-options
 
 tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp 
 tests_test_parse_xml2_LDADD = libosm2pgsql.la
@@ -86,6 +89,8 @@ tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests
 tests_test_middle_pgsql_LDADD = libosm2pgsql.la
 tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
+tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
+tests_test_parse_options_LDADD = libosm2pgsql.la
 
 TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
@@ -130,6 +135,7 @@ tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_parse_options_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
 
 osm2pgsql_DATA = default.style 900913.sql

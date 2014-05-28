@@ -6,6 +6,7 @@
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
+#include "output.hpp"
 #include "tagtransform.hpp"
 #include "buffer.hpp"
 #include "build_geometry.hpp"
@@ -28,7 +29,7 @@ public:
         t_point = 0, t_line, t_poly, t_roads, t_MAX
     };
     
-    output_pgsql_t(middle_query_t* mid_, const output_options* options_);
+    output_pgsql_t(middle_query_t* mid_, const options_t* options_);
     virtual ~output_pgsql_t();
 
     int start();
@@ -56,8 +57,10 @@ public:
 
 private:
 
-    struct table {
-        table(const char *name_, const char *type_);
+    class table : public boost::noncopyable{
+    public:
+        table(const char *name_, const char *type_, const int srs, const int enable_hstore, const std::vector<std::string>& hstore_columns);
+        ~table();
         char *name;
         const char *type;
         struct pg_conn *sql_conn;
@@ -65,6 +68,21 @@ private:
         int copyMode;
         char *columns;
         char buffer[1024];
+
+        void close(int stopTransaction);
+        void commit();
+        void copy_to_table(const char *sql);
+        void write_hstore(keyval *tags, struct buffer &sql);
+        void export_tags(export_list* e_list, OsmType info_table, keyval *tags, struct buffer &sql);
+        void pgsql_pause_copy();
+        void write_hstore_columns(keyval *tags, struct buffer &sql);
+        void write_wkts(export_list* e_list, osmid_t id, keyval *tags, const char *wkt, struct buffer &sql);
+
+    private:
+        table();
+        int srs;
+        int enable_hstore;
+        std::vector<std::string> hstore_columns;
     };
 
     struct way_cb_func : public middle_t::way_cb_func {
@@ -91,27 +109,23 @@ private:
     friend struct way_cb_func;
     friend struct rel_cb_func;
     
-    void write_hstore_columns(enum table_id table, struct keyval *tags, buffer &sql);
-    void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum table_id table, buffer &sql);
+    void pgsql_out_commit();
     int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon, buffer &sql);
     int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql);
     int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql);
     int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
-    void pgsql_pause_copy(table *table);
 
-    void pgsql_out_commit(void);
-    void copy_to_table(enum table_id table, const char *sql);
-    void write_hstore(enum table_id table, struct keyval *tags, buffer &sql);
-    void export_tags(enum table_id table, enum OsmType info_table, struct keyval *tags, buffer &sql);
+
+
 
     tagtransform *m_tagtransform;
 
     /* enable output of a generated way_area tag to either hstore or its own column */
     int m_enable_way_area;
 
-    std::vector<table> m_tables;
+    std::vector<boost::shared_ptr<table> > m_tables;
     
     export_list *m_export_list;
 

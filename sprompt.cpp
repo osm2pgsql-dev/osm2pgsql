@@ -69,8 +69,6 @@
 # include <termios.h>
 #endif
 
-extern char *simple_prompt(const char *prompt, int maxlen, int echo);
-
 char *
 simple_prompt(const char *prompt, int maxlen, int echo)
 {

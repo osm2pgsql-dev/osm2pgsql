@@ -35,6 +35,7 @@
 
 #include "parse-xml2.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
 actions_t parse_xml2_t::ParseAction( xmlTextReaderPtr reader)
@@ -54,7 +55,7 @@ actions_t parse_xml2_t::ParseAction( xmlTextReaderPtr reader)
     else
     {
         fprintf( stderr, "Unknown value for action: %s\n", (char*)action_text );
-        exit_nicely();
+        util::exit_nicely();
     }
     return new_action;
 }
@@ -79,7 +80,7 @@ void parse_xml2_t::SetFiletype(const xmlChar* name, osmdata_t* osmdata)
 	else
 	{
 		fprintf( stderr, "Unknown XML document type: %s\n", name );
-		exit_nicely();
+		util::exit_nicely();
 	}
 }
 
@@ -292,7 +293,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             else
             {
                 fprintf( stderr, "Don't know action for node %" PRIdOSMID "\n", osm_id );
-                exit_nicely();
+                util::exit_nicely();
             }
         }
         resetList(&(tags));
@@ -306,7 +307,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         else
         {
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
-            exit_nicely();
+            util::exit_nicely();
         }
         resetList(&(tags));
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
@@ -319,7 +320,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         else
         {
             fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
-            exit_nicely();
+            util::exit_nicely();
         }
         resetList(&(tags));
         resetMembers();
@@ -388,12 +389,13 @@ parse_xml2_t::parse_xml2_t(const int extra_attributes_, const bool bbox_, const 
 		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
 		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
 {
-
+    LIBXML_TEST_VERSION;
 }
 
 parse_xml2_t::~parse_xml2_t()
 {
-
+    xmlCleanupParser();
+    xmlMemoryDump();
 }
 
 int parse_xml2_t::streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) {

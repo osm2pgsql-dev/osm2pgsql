@@ -72,7 +72,4 @@ class osmdata_t {
 
 };
 
-/* exit_nicely - called to cleanup after fatal error */
-void exit_nicely();
-
 #endif

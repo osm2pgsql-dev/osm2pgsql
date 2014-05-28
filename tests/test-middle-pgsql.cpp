@@ -10,8 +10,8 @@
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
-#include "output.hpp"
 #include "output-null.hpp"
+#include "options.hpp"
 #include "middle-pgsql.hpp"
 
 #include <libpq-fe.h>
@@ -30,12 +30,6 @@
 #include "tests/middle-tests.hpp"
 
 namespace fs = boost::filesystem;
-
-void exit_nicely()
-{
-    fprintf(stderr, "Error occurred, cleaning up\n");
-    throw std::runtime_error("Error occurred, cleaning up.");
-}
 
 namespace pg {
 struct conn;
@@ -218,7 +212,7 @@ int main(int argc, char *argv[]) {
   }
 
   struct middle_pgsql_t mid_pgsql;
-  struct output_options options; memset(&options, 0, sizeof options);
+  options_t options; memset(&options, 0, sizeof options);
   options.conninfo = db->conninfo().c_str();
   options.scale = 10000000;
   options.num_procs = 1;

@@ -15,6 +15,7 @@
 #include <errno.h>
 #include "expire-tiles.hpp"
 #include "output.hpp"
+#include "options.hpp"
 #include "pgsql.hpp"
 #include "build_geometry.hpp"
 #include "reprojection.hpp"
@@ -182,7 +183,7 @@ expire_tiles::~expire_tiles() {
 	dirty = NULL;
 }
 
-expire_tiles::expire_tiles(const struct output_options *options) 
+expire_tiles::expire_tiles(const struct options_t *options)
     : Options(options), map_width(0), tile_width(0),
       dirty(NULL), outcount(0)
 {

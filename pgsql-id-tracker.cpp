@@ -6,6 +6,7 @@
 
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
+#include "util.hpp"
 
 struct pgsql_id_tracker::pimpl {
     pimpl(const char *conninfo, 
@@ -30,7 +31,7 @@ pgsql_id_tracker::pimpl::pimpl(const char *conninfo,
       old_id(0) {
     if (PQstatus(conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
-        exit_nicely();
+        util::exit_nicely();
     }
     if (owns_table) {
         pgsql_exec(conn, PGRES_COMMAND_OK,

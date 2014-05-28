@@ -9,7 +9,7 @@
 
 class output_gazetteer_t : public output_t {
 public:
-    output_gazetteer_t(middle_query_t* mid_, const output_options* options_);
+    output_gazetteer_t(middle_query_t* mid_, const options_t* options_);
     virtual ~output_gazetteer_t();
 
     int start();

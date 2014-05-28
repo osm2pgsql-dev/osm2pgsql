@@ -8,11 +8,11 @@
 #define MIDDLE_H
 
 #include "osmtypes.hpp"
+#include "options.hpp"
 #include <vector>
 
 struct keyval;
 struct member;
-struct output_options;
 
 struct middle_query_t {
     virtual ~middle_query_t();
@@ -31,7 +31,7 @@ struct middle_query_t {
 struct middle_t : public middle_query_t {
     virtual ~middle_t();
 
-    virtual int start(const output_options *out_options_) = 0;
+    virtual int start(const options_t *out_options_) = 0;
     virtual void stop(void) = 0;
     virtual void cleanup(void) = 0;
     virtual void analyze(void) = 0;
@@ -56,7 +56,7 @@ struct middle_t : public middle_query_t {
     virtual void iterate_ways(way_cb_func &cb) = 0;
     virtual void iterate_relations(rel_cb_func &cb) = 0;
 
-    const output_options* out_options;
+    const options_t* out_options;
 };
 
 struct slim_middle_t : public middle_t {

@@ -7,7 +7,7 @@
 #include <boost/shared_ptr.hpp>
 
 struct expire_tiles : public boost::noncopyable {
-    explicit expire_tiles(const struct output_options *options);
+    explicit expire_tiles(const struct options_t *options);
     ~expire_tiles();
 
     int from_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
@@ -31,7 +31,7 @@ private:
 
     int map_width;
     double tile_width;
-    const struct output_options *Options;
+    const struct options_t *Options;
     struct tile *dirty;
     int outcount;
 

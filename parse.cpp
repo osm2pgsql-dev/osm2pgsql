@@ -3,9 +3,12 @@
 #include <string.h>
 #include <stdexcept>
 #include "parse-o5m.hpp"
-#include "parse-pbf.hpp"
+#ifdef BUILD_READER_PBF
+#  include "parse-pbf.hpp"
+#endif
 #include "parse-primitive.hpp"
 #include "parse-xml2.hpp"
+#include "util.hpp"
 
 
 #define INIT_MAX_MEMBERS 64
@@ -48,7 +51,7 @@ int parse_delegate_t::streamFile(const char* input_reader, const char* filename,
 
 	return ret;
 }
-void parse_delegate_t::printSummary()
+void parse_delegate_t::printSummary() const
 {
 	time_t now = time(NULL);
 	time_t end_nodes = m_start_way > 0 ? m_start_way : now;
@@ -69,7 +72,7 @@ void parse_delegate_t::printSummary()
 			m_count_rel > 0 ? (int) (end_rel - m_start_rel) : 0);
 }
 
-boost::shared_ptr<reprojection> parse_delegate_t::getProjection()
+boost::shared_ptr<reprojection> parse_delegate_t::getProjection() const
 {
 	return m_proj;
 }
@@ -172,7 +175,7 @@ void parse_t::realloc_nodes()
   if( !nds )
   {
     fprintf( stderr, "Failed to expand node list to %d\n", nd_max );
-    exit_nicely();
+    util::exit_nicely();
   }
 }
 
@@ -187,7 +190,7 @@ void parse_t::realloc_members()
   if( !members )
   {
     fprintf( stderr, "Failed to expand member list to %d\n", member_max );
-    exit_nicely();
+    util::exit_nicely();
   }
 }
 

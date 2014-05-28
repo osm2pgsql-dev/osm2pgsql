@@ -8,6 +8,8 @@
 #ifndef NODE_RAM_CACHE_H
 #define NODE_RAM_CACHE_H
 
+#include "osmtypes.hpp"
+
 #include <boost/noncopyable.hpp>
 
 #define ALLOC_SPARSE 1
