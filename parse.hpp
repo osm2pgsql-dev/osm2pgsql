@@ -8,6 +8,7 @@
 #include "reprojection.hpp"
 #include "osmtypes.hpp"
 
+#include <boost/shared_ptr.hpp>
 
 typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
