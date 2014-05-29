@@ -30,7 +30,7 @@ public:
         t_point = 0, t_line, t_poly, t_roads, t_MAX
     };
     
-    output_pgsql_t(middle_query_t* mid_, const options_t* options_);
+    output_pgsql_t(const middle_query_t* mid_, const options_t* options_);
     virtual ~output_pgsql_t();
 
     int start();

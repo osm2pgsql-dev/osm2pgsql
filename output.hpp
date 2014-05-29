@@ -19,10 +19,10 @@ struct options_t;
 
 class output_t : public boost::noncopyable {
 public:
-    static output_t* create_output(middle_t* mid, options_t* options);
-    static std::vector<output_t*> create_outputs(middle_t* mid, options_t* options);
+    static output_t* create_output(const middle_query_t *mid, const options_t* options);
+    static std::vector<output_t*> create_outputs(const middle_query_t *mid, const options_t* options);
 
-    output_t(middle_query_t* mid_, const options_t* options_);
+    output_t(const middle_query_t *mid, const options_t* options_);
     virtual ~output_t();
 
     virtual int start() = 0;
@@ -47,7 +47,7 @@ public:
     virtual const options_t* get_options()const;
 
 protected:
-    middle_query_t* m_mid;
+    const middle_query_t *m_mid;
     const options_t* m_options;
 };
 

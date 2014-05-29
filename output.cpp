@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
-output_t* output_t::create_output(middle_t* mid, options_t* options)
+output_t* output_t::create_output(const middle_query_t *mid, const options_t* options)
 {
     if (strcmp("pgsql", options->output_backend) == 0) {
         return new output_pgsql_t(mid, options);
@@ -20,13 +20,13 @@ output_t* output_t::create_output(middle_t* mid, options_t* options)
     }
 }
 
-std::vector<output_t*> output_t::create_outputs(middle_t* mid, options_t* options) {
+std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t* options) {
     std::vector<output_t*> outputs;
     outputs.push_back(create_output(mid, options));
     return outputs;
 }
 
-output_t::output_t(middle_query_t* mid_, const options_t* options_): m_mid(mid_), m_options(options_) {
+output_t::output_t(const middle_query_t *mid_, const options_t* options_): m_mid(mid_), m_options(options_) {
 
 }
 
