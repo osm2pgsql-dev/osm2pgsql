@@ -33,7 +33,7 @@ Features
 - Converts OSM files to a PostgreSQL DB
 - Conversion of tags to columns is configurable in the style file
 - Able to read .gz, .bz2, .pbf and .o5m files directly
-- Can apply diffs to keep the database up to data
+- Can apply diffs to keep the database up to date
 - Support the choice of output projection
 - Configurable table names
 - Gazetteer back-end for Nominatim
@@ -105,7 +105,7 @@ on many Unix installs but does not work on Windows (due to the
 lack of unix sockets).
 
 Some example commands are given below but you may find
-this wiki page has more up to data information:
+this wiki page has more up to date information:
 http://wiki.openstreetmap.org/wiki/Mapnik/PostGIS
 
 $ sudo -u postgres createuser <username>
