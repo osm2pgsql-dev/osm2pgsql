@@ -29,7 +29,7 @@ class table_t : public boost::noncopyable
         void write_hstore(keyval *tags, struct buffer &sql);
         void pgsql_pause_copy();
         void write_hstore_columns(keyval *tags, struct buffer &sql);
-        void write_way(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql);
+        void write_wkt(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql);
         void write_node(const osmid_t id, struct keyval *tags, double lat, double lon, struct buffer &sql);
         void delete_row(const osmid_t id);
 

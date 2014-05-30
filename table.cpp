@@ -249,14 +249,12 @@ void table_t::copy_to_table(const char *sql)
     /* If the combination of old and new data is too big, flush old data */
     if( (unsigned)(buflen + len) > sizeof( buffer )-10 )
     {
-        printf("%s\n%s\n", copystr.c_str(), buffer);
       pgsql_CopyData(name.c_str(), sql_conn, buffer);
       buflen = 0;
 
       /* If new data by itself is also too big, output it immediately */
       if( (unsigned)len > sizeof( buffer )-10 )
       {
-          printf("%s\n%s\n", copystr.c_str(), sql);
         pgsql_CopyData(name.c_str(), sql_conn, sql);
         len = 0;
       }
@@ -272,7 +270,6 @@ void table_t::copy_to_table(const char *sql)
     /* If we have completed a line, output it */
     if( buflen > 0 && buffer[buflen-1] == '\n' )
     {
-        printf("%s\n%s\n", copystr.c_str(), buffer);
       pgsql_CopyData(name.c_str(), sql_conn, buffer);
       buflen = 0;
     }
@@ -446,10 +443,8 @@ void table_t::export_tags(struct keyval *tags, struct buffer &sql) {
     }
 }
 
-void table_t::write_way(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql)
+void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql)
 {
-    //TODO: throw if the type of this table wasnt linestring or geometry
-
     //add the id
     sql.printf("%" PRIdOSMID "\t", id);
     copy_to_table(sql.buf);
@@ -473,21 +468,11 @@ void table_t::write_way(const osmid_t id, struct keyval *tags, const char *wkt, 
 
 void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon, struct buffer &sql)
 {
-    //TODO: throw if the type of this table wasnt point or geometry
-
-    //add the id
-    sql.printf("%" PRIdOSMID "\t", id);
-    copy_to_table(sql.buf);
-
-    //get the regular columns' values
-    export_tags(tags, sql);
-
-    //get the hstore columns' values
-    write_hstore_columns(tags, sql);
-
-    //get the key value pairs for the tags column
-    if (enable_hstore)
-        write_hstore(tags, sql);
+    // i think the maximum length of this format string should be
+    // 52 chars: "POINT(%.15g %.15g)", but we'll allocate
+    // a little bit more just in case.
+    static const size_t max_str_len = 100;
+    char *buf = (char *)alloca(max_str_len);
 
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
@@ -495,10 +480,15 @@ void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, doub
     lat = util::fix_to_double(util::double_to_fix(lat, scale), scale);
 #endif
 
-    //give it an srid and put the geom into the copy
-    sql.printf("SRID=%d;POINT(%.15g %.15g)", srid, lon, lat);
-    copy_to_table(sql.buf);
-    copy_to_table("\n");
+    int written = snprintf(buf, max_str_len, "POINT(%.15g %.15g)", lon, lat);
+    if (written < 0) {
+        throw std::runtime_error("table_t::write_node: Error formatting WKT.");
+
+    } else if (written >= max_str_len) {
+        throw std::runtime_error("table_t::write_node: Overflow in snprintf while formatting WKT.");
+    }
+
+    write_wkt(id, tags, buf, sql);
 }
 
 void table_t::delete_row(const osmid_t id)

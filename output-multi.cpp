@@ -184,7 +184,7 @@ int output_multi_t::process_relation(osmid_t id, struct member *members, int mem
 }
 
 void output_multi_t::copy_to_table(osmid_t id, const char *wkt, struct keyval *tags) {
-    m_table->write_way(id, tags, wkt, m_sql);
+    m_table->write_wkt(id, tags, wkt, m_sql);
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {

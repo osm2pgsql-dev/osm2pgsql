@@ -295,12 +295,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
                 }
-                m_tables[t_poly]->write_way(id, tags, wkt, sql);
+                m_tables[t_poly]->write_wkt(id, tags, wkt, sql);
             } else {
                 expire->from_nodes_line(nodes, count);
-                m_tables[t_line]->write_way(id, tags, wkt, sql);
+                m_tables[t_line]->write_wkt(id, tags, wkt, sql);
                 if (roads)
-                    m_tables[t_roads]->write_way(id, tags, wkt, sql);
+                    m_tables[t_roads]->write_wkt(id, tags, wkt, sql);
             }
         }
         free(wkt);
@@ -357,11 +357,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(rel_tags, "way_area", tmp, 0);
                 }
-                m_tables[t_poly]->write_way(-id, rel_tags, wkt, sql);
+                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt, sql);
             } else {
-                m_tables[t_line]->write_way(-id, rel_tags, wkt, sql);
+                m_tables[t_line]->write_wkt(-id, rel_tags, wkt, sql);
                 if (roads)
-                    m_tables[t_roads]->write_way(-id, rel_tags, wkt, sql);
+                    m_tables[t_roads]->write_wkt(-id, rel_tags, wkt, sql);
             }
         }
         free(wkt);
@@ -402,7 +402,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                         snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(rel_tags, "way_area", tmp, 0);
                     }
-                    m_tables[t_poly]->write_way(-id, rel_tags, wkt, sql);
+                    m_tables[t_poly]->write_wkt(-id, rel_tags, wkt, sql);
                 }
             }
             free(wkt);
