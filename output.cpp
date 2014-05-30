@@ -25,7 +25,7 @@ output_t *parse_multi_single(const pt::ptree &conf,
 std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t *options) {
     std::vector<output_t*> outputs;
 
-    if ((options->style != NULL) && (strlen(options->style) > 0)) {
+    if (!options->style.empty()) {
         const std::string file_name(options->style);
 
         try {
@@ -70,16 +70,16 @@ output_t* output_t::create_output(const middle_query_t *mid, const options_t* op
 std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t* options) {
     std::vector<output_t*> outputs;
 
-    if (strcmp("pgsql", options->output_backend) == 0) {
+    if (options->output_backend == "pgsql") {
         outputs.push_back(new output_pgsql_t(mid, options));
 
-    } else if (strcmp("gazetteer", options->output_backend) == 0) {
+    } else if (options->output_backend == "gazetteer") {
         outputs.push_back(new output_gazetteer_t(mid, options));
 
-    } else if (strcmp("null", options->output_backend) == 0) {
+    } else if (options->output_backend == "null") {
         outputs.push_back(new output_null_t(mid, options));
 
-    } else if (strcmp("multi", options->output_backend) == 0) {
+    } else if (options->output_backend == "multi") {
         outputs = parse_multi_config(mid, options);
 
     } else {

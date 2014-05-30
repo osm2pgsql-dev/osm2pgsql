@@ -16,13 +16,17 @@
 
 
 
-parse_delegate_t::parse_delegate_t(const int extra_attributes, const char* bbox, boost::shared_ptr<reprojection> projection):
+parse_delegate_t::parse_delegate_t(const int extra_attributes,
+                                   const boost::optional<std::string> &bbox,
+                                   boost::shared_ptr<reprojection> projection):
 m_extra_attributes(extra_attributes), m_proj(projection), m_count_node(0), m_max_node(0),
 m_count_way(0), m_max_way(0), m_count_rel(0), m_max_rel(0), m_start_node(0), m_start_way(0), m_start_rel(0)
 {
-	m_bbox = bbox != NULL;
-	parse_bbox(bbox);
-	initList(&m_tags);
+    m_bbox = bool(bbox);
+    if (m_bbox) {
+	parse_bbox(*bbox);
+    }
+    initList(&m_tags);
 }
 
 parse_delegate_t::~parse_delegate_t()
@@ -77,23 +81,19 @@ boost::shared_ptr<reprojection> parse_delegate_t::getProjection() const
 	return m_proj;
 }
 
-void parse_delegate_t::parse_bbox(const char* bbox_)
+void parse_delegate_t::parse_bbox(const std::string &bbox_)
 {
-	//bounding box is optional
-	if (bbox_)
-	{
-		int n = sscanf(bbox_, "%lf,%lf,%lf,%lf", &(m_minlon), &(m_minlat), &(m_maxlon), &(m_maxlat));
-		if (n != 4)
-			throw std::runtime_error("Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
-
-		if (m_maxlon <= m_minlon)
-			throw std::runtime_error("Bounding box failed due to maxlon <= minlon\n");
-
-		if (m_maxlat <= m_minlat)
-			throw std::runtime_error("Bounding box failed due to maxlat <= minlat\n");
-
-		fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", m_minlon, m_minlat, m_maxlon, m_maxlat);
-	}
+    int n = sscanf(bbox_.c_str(), "%lf,%lf,%lf,%lf", &(m_minlon), &(m_minlat), &(m_maxlon), &(m_maxlat));
+    if (n != 4)
+        throw std::runtime_error("Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
+    
+    if (m_maxlon <= m_minlon)
+        throw std::runtime_error("Bounding box failed due to maxlon <= minlon\n");
+    
+    if (m_maxlat <= m_minlat)
+        throw std::runtime_error("Bounding box failed due to maxlat <= minlat\n");
+    
+    fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", m_minlon, m_minlat, m_maxlon, m_maxlat);
 }
 
 parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char* filename)

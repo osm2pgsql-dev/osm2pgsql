@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
   }
 
   struct middle_pgsql_t mid_pgsql;
-  options_t options; memset(&options, 0, sizeof options);
+  options_t options;
   options.conninfo = db->conninfo().c_str();
   options.scale = 10000000;
   options.num_procs = 1;

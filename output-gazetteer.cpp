@@ -986,7 +986,7 @@ int output_gazetteer_t::start()
    builder.set_exclude_broken_polygon(m_options->excludepoly);
 
    /* Connection to the database */
-   Connection = PQconnectdb(m_options->conninfo);
+   Connection = PQconnectdb(m_options->conninfo.c_str());
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -1017,7 +1017,7 @@ int output_gazetteer_t::start()
       if (m_options->tblsmain_data)
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                      CREATE_PLACE_TABLE, "TABLESPACE", m_options->tblsmain_data);
+                     CREATE_PLACE_TABLE, "TABLESPACE", m_options->tblsmain_data->c_str());
       }
       else
       {
@@ -1025,7 +1025,8 @@ int output_gazetteer_t::start()
       }
       if (m_options->tblsmain_index)
       {
-          pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options->tblsmain_index);
+          pgsql_exec(Connection, PGRES_COMMAND_OK,
+                     CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options->tblsmain_index->c_str());
       }
       else
       {
@@ -1035,7 +1036,7 @@ int output_gazetteer_t::start()
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    } else {
-      ConnectionDelete = PQconnectdb(m_options->conninfo);
+      ConnectionDelete = PQconnectdb(m_options->conninfo.c_str());
       if (PQstatus(ConnectionDelete) != CONNECTION_OK)
       { 
           fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));

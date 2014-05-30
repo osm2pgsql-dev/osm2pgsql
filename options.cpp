@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdexcept>
+#include <sstream>
 #include <boost/format.hpp>
 
 namespace
@@ -225,44 +226,35 @@ namespace
 
     }
 
-    const char *build_conninfo(const char *db, const char *username, const char *password, const char *host, const char *port)
-    {
-        static char conninfo[1024];
+std::string build_conninfo(const std::string &db, 
+                           const boost::optional<std::string> &username, 
+                           const boost::optional<std::string> &password,
+                           const boost::optional<std::string> &host,
+                           const std::string &port)
+{
+    std::ostringstream out;
 
-        conninfo[0]='\0';
-        strcat(conninfo, "dbname='");
-        strcat(conninfo, db);
-        strcat(conninfo, "'");
+    out << "dbname='" << db << "'";
 
-        if (username) {
-            strcat(conninfo, " user='");
-            strcat(conninfo, username);
-            strcat(conninfo, "'");
-        }
-        if (password) {
-            strcat(conninfo, " password='");
-            strcat(conninfo, password);
-            strcat(conninfo, "'");
-        }
-        if (host) {
-            strcat(conninfo, " host='");
-            strcat(conninfo, host);
-            strcat(conninfo, "'");
-        }
-        if (port) {
-            strcat(conninfo, " port='");
-            strcat(conninfo, port);
-            strcat(conninfo, "'");
-        }
-
-        return conninfo;
+    if (username) {
+        out << " user='" << *username << "'";
     }
+    if (password) {
+        out << " password='" << *password << "'";
+    }
+    if (host) {
+        out << " host='" << *host << "'";
+    }
+    out << " port='" << port << "'";
+
+    return out.str();
 }
+} // anonymous namespace
 
 
 options_t::options_t():
-    conninfo(NULL), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
-    cache(800), tblsmain_index(NULL), tblsslim_index(NULL), tblsmain_data(NULL), tblsslim_data(NULL), style(OSM2PGSQL_DATADIR "/default.style"),
+    conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
+    cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
     expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), enable_hstore(HSTORE_NONE), enable_hstore_index(0),
     enable_multi(0), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
     #ifdef __amd64__
@@ -270,9 +262,9 @@ options_t::options_t():
     #else
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
-    num_procs(1), droptemp(0),  unlogged(0), hstore_match_only(0), flat_node_cache_enabled(0), excludepoly(0), flat_node_file(NULL),
-    tag_transform_script(NULL), create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(NULL), host(NULL),
-    password(NULL), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(NULL), extra_attributes(0), verbose(0)
+    num_procs(1), droptemp(0),  unlogged(0), hstore_match_only(0), flat_node_cache_enabled(0), excludepoly(0), flat_node_file(boost::none),
+    tag_transform_script(boost::none), create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
+    password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
 {
 
 }
@@ -288,7 +280,10 @@ options_t options_t::parse(int argc, char *argv[])
     int c;
 
     //keep going while there are args left to handle
-    optind = 1;
+    // note: optind would seem to need to be set to 1, but that gives valgrind
+    // errors - setting it to zero seems to work, though. see
+    // http://stackoverflow.com/questions/15179963/is-it-possible-to-repeat-getopt#15179990
+    optind = 0;
     while(-1 != (c = getopt_long(argc, argv, short_options, long_options, NULL))) {
 
         //handle the current arg
@@ -515,10 +510,20 @@ options_t options_t::parse(int argc, char *argv[])
         fprintf(stderr, "!! mode using parameter -s.\n");
     }
 
-    if (options.pass_prompt)
-        options.password = simple_prompt("Password:", 100, 0);
-    else {
-        options.password = getenv("PGPASS");
+    if (options.pass_prompt) {
+        char *prompt = simple_prompt("Password:", 100, 0);
+        if (prompt == NULL) {
+            options.password = boost::none;
+        } else {
+            options.password = std::string(prompt);
+        }
+    } else {
+        char *pgpass = getenv("PGPASS");
+        if (pgpass == NULL) {
+            options.password = boost::none;
+        } else {
+            options.password = std::string(pgpass);
+        }
     }
 
     if (options.num_procs < 1)

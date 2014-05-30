@@ -37,8 +37,10 @@
 #include "util.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -129,7 +131,7 @@ void escape_type(buffer &sql, const char *value, const char *type) {
   }
 }
 
-int read_style_file( const char *filename, export_list *exlist )
+int read_style_file( const std::string &filename, export_list *exlist )
 {
   FILE *in;
   int lineno = 0;
@@ -145,11 +147,11 @@ int read_style_file( const char *filename, export_list *exlist )
   char buffer[1024];
   int enable_way_area = 1;
 
-  in = fopen( filename, "rt" );
+  in = fopen( filename.c_str(), "rt" );
   if( !in )
   {
-    fprintf( stderr, "Couldn't open style file '%s': %s\n", filename, strerror(errno) );
-    util::exit_nicely();
+      throw std::runtime_error((boost::format("Couldn't open style file '%1%': %2%")
+                                % filename % strerror(errno)).str());
   }
   
   //for each line of the style file
@@ -224,20 +226,20 @@ int read_style_file( const char *filename, export_list *exlist )
     //do we really want to completely quit on an unusable line?
     if( !kept )
     {
-      fprintf( stderr, "Weird style line %d\n", lineno );
-      util::exit_nicely();
+        throw std::runtime_error((boost::format("Weird style line %1%:%2%")
+                                  % filename % lineno).str());
     }
     num_read++;
   }
 
 
   if (ferror(in)) {
-      perror(filename);
-      util::exit_nicely();
+      throw std::runtime_error((boost::format("%1%: %2%")
+                                % filename % strerror(errno)).str());
   }
   if (num_read == 0) {
-      fprintf(stderr, "Unable to parse any valid columns from the style file. Aborting.\n");
-      util::exit_nicely();
+      throw std::runtime_error("Unable to parse any valid columns from "
+                               "the style file. Aborting.");
   }
   fclose(in);
   return enable_way_area;
@@ -582,13 +584,13 @@ int output_pgsql_t::start()
 
     for (int i=0; i<NUM_TABLES; i++) {
         /* Substitute prefix into name of table */
-        char *temp = (char *)malloc( strlen(m_options->prefix) + strlen(m_tables[i]->name) + 1 );
-        sprintf( temp, m_tables[i]->name, m_options->prefix );
+        char *temp = (char *)malloc( m_options->prefix.size() + strlen(m_tables[i]->name) + 1 );
+        sprintf( temp, m_tables[i]->name, m_options->prefix.c_str() );
         m_tables[i]->name = temp;
 
 
         fprintf(stderr, "Setting up table: %s\n", m_tables[i]->name);
-        m_tables[i]->connect(m_options->conninfo);
+        m_tables[i]->connect(m_options->conninfo.c_str());
         PGconn *sql_conn = m_tables[i]->sql_conn;
 
         if (!m_options->append) {
@@ -648,7 +650,7 @@ int output_pgsql_t::start()
             } 
             strcat(sql, ")");
             if (m_options->tblsmain_data) {
-                sprintf(sql + strlen(sql), " TABLESPACE %s", m_options->tblsmain_data);
+                sprintf(sql + strlen(sql), " TABLESPACE %s", m_options->tblsmain_data->c_str());
             }
             strcat(sql, "\n");
 
@@ -660,7 +662,7 @@ int output_pgsql_t::start()
             if (m_options->slim && !m_options->droptemp) {
                 sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  m_tables[i]->name, m_tables[i]->name);
                 if (m_options->tblsmain_index) {
-                    sprintf(sql + strlen(sql), " TABLESPACE %s\n", m_options->tblsmain_index);
+                    sprintf(sql + strlen(sql), " TABLESPACE %s\n", m_options->tblsmain_index->c_str());
                 }
 	            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
             }
@@ -768,7 +770,7 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
         if (m_options->tblsmain_data) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
                         "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name, m_options->tblsmain_data, table->name);
+                        table->name, m_options->tblsmain_data->c_str(), table->name);
         } else {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
         }
@@ -779,9 +781,9 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
         if (m_options->tblsmain_index) {
             /* Use fillfactor 100 for un-updatable imports */
             if (m_options->slim && !m_options->droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index->c_str());
             } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index->c_str());
             }
         } else {
             if (m_options->slim && !m_options->droptemp) {
@@ -796,7 +798,7 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
         {
             fprintf(stderr, "Creating osm_id index on  %s\n", table->name);
             if (m_options->tblsmain_index) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index->c_str());
             } else {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
             }
@@ -807,18 +809,18 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
             if (m_options->tblsmain_index) {
                 if (HSTORE_NONE != (m_options->enable_hstore)) {
                     if (m_options->slim && !m_options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index->c_str());
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, m_options->tblsmain_index->c_str());
                     }
                 }
                 for(size_t i = 0; i < m_options->hstore_columns.size(); ++i) {
                     if (m_options->slim && !m_options->droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
+                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index->c_str());
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
+                               table->name, int(i),table->name, m_options->hstore_columns[i].c_str(), m_options->tblsmain_index->c_str());
                     }
                 }
             } else {

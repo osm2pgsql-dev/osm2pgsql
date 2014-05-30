@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
   // need this to avoid segfault!
   text_init();
 
-  options_t options; memset(&options, 0, sizeof options);
+  options_t options;
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
   options.projection = projection;
 
