@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <boost/noncopyable.hpp>
+#include <boost/optional.hpp>
 
 typedef std::vector<std::string> hstores_t;
 typedef std::vector<std::pair<std::string, std::string> > columns_t;
@@ -15,12 +16,12 @@ typedef std::vector<std::pair<std::string, std::string> > columns_t;
 class table_t : public boost::noncopyable
 {
     public:
-        table_t(const char* name, const char* type, const columns_t& columns, const hstores_t& hstore_columns, const int srs,
+        table_t(const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srs,
                 const int scale, const bool append, const bool slim, const bool droptemp, const int enable_hstore,
-                const char* table_space, const char* table_space_index);
+                const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
         ~table_t();
 
-        void setup(const char* conninfo);
+        void setup(const std::string& conninfo);
         void teardown();
         void begin();
         void commit();
@@ -52,8 +53,8 @@ class table_t : public boost::noncopyable
         columns_t columns;
         hstores_t hstore_columns;
         std::string copystr;
-        std::string table_space;
-        std::string table_space_index;
+        boost::optional<std::string> table_space;
+        boost::optional<std::string> table_space_index;
 };
 
 #endif

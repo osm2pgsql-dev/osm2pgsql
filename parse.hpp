@@ -8,6 +8,8 @@
 #include "reprojection.hpp"
 #include "osmtypes.hpp"
 
+#include <boost/shared_ptr.hpp>
+#include <boost/optional.hpp>
 
 typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
@@ -17,7 +19,7 @@ class parse_t;
 class parse_delegate_t
 {
 public:
-	parse_delegate_t(const int extra_attributes, const char* bbox, boost::shared_ptr<reprojection> projection);
+        parse_delegate_t(const int extra_attributes, const boost::optional<std::string> &bbox, boost::shared_ptr<reprojection> projection);
 	~parse_delegate_t();
 
 	int streamFile(const char* input_reader, const char* filename, const int sanitize, osmdata_t *osmdata);
@@ -26,7 +28,7 @@ public:
 
 private:
 	parse_delegate_t();
-	void parse_bbox(const char* bbox);
+        void parse_bbox(const std::string &bbox);
 	parse_t* get_input_reader(const char* input_reader, const char* filename);
 
 	osmid_t m_count_node, m_max_node;

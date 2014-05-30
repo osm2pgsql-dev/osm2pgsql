@@ -45,6 +45,9 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
+#include <stdexcept>
+#include <boost/format.hpp>
+
 struct progress_info {
   time_t start;
   time_t end;
@@ -96,12 +99,12 @@ int pgsql_connect(std::vector<middle_pgsql_t::table_desc> &tables,
     /* We use a connection per table to enable the use of COPY */
     for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn;
-        sql_conn = PQconnectdb(options->conninfo);
+        sql_conn = PQconnectdb(options->conninfo.c_str());
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-            return 1;
+            throw std::runtime_error((boost::format("Connection to database failed: %1%")
+                                      % PQerrorMessage(sql_conn)).str());
         }
         tables[i].sql_conn = sql_conn;
 
@@ -1153,25 +1156,25 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
             continue;
         } else if (*source == '%') {
             if (*(source+1) == 'p') {
-                if (options->prefix) {
-                    strcpy(dest, options->prefix);
-                    dest += strlen(options->prefix);
+                if (!options->prefix.empty()) {
+                    strcpy(dest, options->prefix.c_str());
+                    dest += strlen(options->prefix.c_str());
                     copied = 1;
                 }
                 source+=2;
                 continue;
             } else if (*(source+1) == 't') {
                 if (options->tblsslim_data) {
-                    strcpy(dest, options->tblsslim_data);
-                    dest += strlen(options->tblsslim_data);
+                    strcpy(dest, options->tblsslim_data->c_str());
+                    dest += strlen(options->tblsslim_data->c_str());
                     copied = 1;
                 }
                 source+=2;
                 continue;
             } else if (*(source+1) == 'i') {
                 if (options->tblsslim_index) {
-                    strcpy(dest, options->tblsslim_index);
-                    dest += strlen(options->tblsslim_index);
+                    strcpy(dest, options->tblsslim_index->c_str());
+                    dest += strlen(options->tblsslim_index->c_str());
                     copied = 1;
                 }
                 source+=2;
@@ -1227,7 +1230,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
         set_prefix_and_tbls(out_options, &(tables[i].array_indexes));
 
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(out_options->conninfo);
+        sql_conn = PQconnectdb(out_options->conninfo.c_str());
 
         /* Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {

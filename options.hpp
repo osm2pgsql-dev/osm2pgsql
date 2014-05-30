@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/optional.hpp>
 
 /* Variants for generation of hstore column */
 /* No hstore column */
@@ -28,21 +29,21 @@ public:
 
     static options_t parse(int argc, char *argv[]);
 
-    const char *conninfo; /* Connection info string */
-    const char *prefix; /* prefix for table names */
+    std::string conninfo; /* Connection info string */
+    std::string prefix; /* prefix for table names */
     int scale; /* scale for converting coordinates to fixed point */
     boost::shared_ptr<reprojection> projection; /* SRS of projection */
     int append; /* Append to existing data */
     int slim; /* In slim mode */
     int cache; /* Memory usable for cache in MB */
-    const char *tblsmain_index; /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
-    const char *tblsslim_index; /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
-    const char *tblsmain_data; /* Pg Tablespace to store main tables (no default TABLESPACE)*/
-    const char *tblsslim_data; /* Pg Tablespace to store slim tables (no default TABLESPACE)*/
-    const char *style; /* style file to use */
+    boost::optional<std::string> tblsmain_index; /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
+    boost::optional<std::string> tblsslim_index; /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
+    boost::optional<std::string> tblsmain_data; /* Pg Tablespace to store main tables (no default TABLESPACE)*/
+    boost::optional<std::string> tblsslim_data; /* Pg Tablespace to store slim tables (no default TABLESPACE)*/
+    std::string style; /* style file to use */
     int expire_tiles_zoom; /* Zoom level for tile expiry list */
     int expire_tiles_zoom_min; /* Minimum zoom level for tile expiry list */
-    const char *expire_tiles_filename; /* File name to output expired tiles list to */
+    std::string expire_tiles_filename; /* File name to output expired tiles list to */
     int enable_hstore; /* add an additional hstore column with objects key/value pairs */
     int enable_hstore_index; /* add an index on the hstore column */
     int enable_multi; /* Output multi-geometries intead of several simple geometries */
@@ -56,21 +57,21 @@ public:
     int hstore_match_only; /* only copy rows that match an explicitly listed key */
     int flat_node_cache_enabled;
     int excludepoly;
-    const char *flat_node_file;
-    const char *tag_transform_script;
+    boost::optional<std::string> flat_node_file;
+    boost::optional<std::string> tag_transform_script;
 
     int create;
     int sanitize;
     int long_usage_bool;
     int pass_prompt;
-    const char *db;
-    const char *username;
-    const char *host;
-    const char *password;
-    const char *port;
-    const char *output_backend ;
-    const char *input_reader;
-    const char *bbox;
+    std::string db;
+    boost::optional<std::string> username;
+    boost::optional<std::string> host;
+    boost::optional<std::string> password;
+    std::string port;
+    std::string output_backend ;
+    std::string input_reader;
+    boost::optional<std::string> bbox;
     int extra_attributes;
     int verbose;
 

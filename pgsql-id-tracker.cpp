@@ -9,9 +9,9 @@
 #include "util.hpp"
 
 struct pgsql_id_tracker::pimpl {
-    pimpl(const char *conninfo, 
-          const char *prefix, 
-          const char *type,
+    pimpl(const std::string &conninfo, 
+          const std::string &prefix, 
+          const std::string &type,
           bool owns_table);
     ~pimpl();
 
@@ -21,11 +21,11 @@ struct pgsql_id_tracker::pimpl {
     osmid_t old_id;
 };
 
-pgsql_id_tracker::pimpl::pimpl(const char *conninfo, 
-                               const char *prefix, 
-                               const char *type,
+pgsql_id_tracker::pimpl::pimpl(const std::string &conninfo, 
+                               const std::string &prefix, 
+                               const std::string &type,
                                bool owns_table_) 
-    : conn(PQconnectdb(conninfo)),
+    : conn(PQconnectdb(conninfo.c_str())),
       table_name((boost::format("%1%_%2%") % prefix % type).str()),
       owns_table(owns_table_),
       old_id(0) {
@@ -70,9 +70,9 @@ pgsql_id_tracker::pimpl::~pimpl() {
     conn = NULL;
 }
 
-pgsql_id_tracker::pgsql_id_tracker(const char *conninfo, 
-                                   const char *prefix, 
-                                   const char *type,
+pgsql_id_tracker::pgsql_id_tracker(const std::string &conninfo, 
+                                   const std::string &prefix, 
+                                   const std::string &type,
                                    bool owns_table) 
     : impl() {
     impl.reset(new pimpl(conninfo, prefix, type, owns_table));

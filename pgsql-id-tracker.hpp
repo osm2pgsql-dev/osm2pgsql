@@ -2,13 +2,14 @@
 #define PGSQL_ID_TRACKER_HPP
 
 #include "osmtypes.hpp"
+#include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
 
 struct pgsql_id_tracker : public boost::noncopyable {
-    pgsql_id_tracker(const char *conninfo, 
-                     const char *prefix, 
-                     const char *type,
+    pgsql_id_tracker(const std::string &conninfo, 
+                     const std::string &prefix, 
+                     const std::string &type,
                      bool owns_table);
     ~pgsql_id_tracker();
 

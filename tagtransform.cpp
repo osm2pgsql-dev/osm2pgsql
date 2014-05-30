@@ -363,13 +363,13 @@ unsigned int c_filter_rel_member_tags(
 }
 }
 
-tagtransform::tagtransform(const options_t *options_):	options(options_), transform_method(options_->tag_transform_script != NULL) {
+tagtransform::tagtransform(const options_t *options_):	options(options_), transform_method(options_->tag_transform_script) {
 	if (transform_method) {
-		fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script);
+                fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script->c_str());
 #ifdef HAVE_LUA
 		L = luaL_newstate();
 		luaL_openlibs(L);
-		luaL_dofile(L, options->tag_transform_script);
+		luaL_dofile(L, options->tag_transform_script->c_str());
 
 		lua_getglobal(L, "filter_tags_node");
 		if (!lua_isfunction (L, -1))

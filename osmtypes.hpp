@@ -7,7 +7,6 @@
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <boost/shared_ptr.hpp>
 #include <config.h>
 
 /* Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs. */

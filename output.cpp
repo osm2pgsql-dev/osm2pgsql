@@ -2,31 +2,131 @@
 #include "output-pgsql.hpp"
 #include "output-gazetteer.hpp"
 #include "output-null.hpp"
+#include "output-multi.hpp"
+#include "taginfo_impl.hpp"
 
 #include <string.h>
 #include <stdexcept>
-#include <boost/format.hpp>
 
-output_t* output_t::create_output(middle_t* mid, options_t* options)
-{
-    if (strcmp("pgsql", options->output_backend) == 0) {
-        return new output_pgsql_t(mid, options);
-    } else if (strcmp("gazetteer", options->output_backend) == 0) {
-        return new output_gazetteer_t(mid, options);
-    } else if (strcmp("null", options->output_backend) == 0) {
-        return new output_null_t(mid, options);
-    } else {
-        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null].\n") % options->output_backend).str());
+#include <boost/format.hpp>
+#include <boost/foreach.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
+namespace pt = boost::property_tree;
+
+namespace {
+
+template <typename T>
+void override_if(T &t, const std::string &key, const pt::ptree &conf) {
+    boost::optional<T> opt = conf.get_optional<T>(key);
+    if (opt) {
+        t = *opt;
     }
 }
 
-std::vector<output_t*> output_t::create_outputs(middle_t* mid, options_t* options) {
+output_t *parse_multi_single(const pt::ptree &conf,
+                             const middle_query_t *mid,
+                             const options_t &options) {
+    options_t new_opts = options;
+
+    std::string name = conf.get<std::string>("name");
+    std::string proc_type = conf.get<std::string>("type");
+
+    new_opts.tag_transform_script = conf.get_optional<std::string>("tagtransform");
+    new_opts.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
+    new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
+    override_if<int>(new_opts.enable_hstore, "enable-hstore", conf);
+    override_if<int>(new_opts.enable_hstore_index, "enable-hstore-index", conf);
+    override_if<int>(new_opts.enable_multi, "enable-multi", conf);
+    override_if<int>(new_opts.hstore_match_only, "hstore-match-only", conf);
+
+    export_list columns;
+    const pt::ptree &tags = conf.get_child("tags");
+    BOOST_FOREACH(const pt::ptree::value_type &val, tags) {
+        const pt::ptree &tag = val.second;
+        taginfo info;
+        info.name = tag.get<std::string>("name");
+        info.type = tag.get<std::string>("type");
+        info.flags = 0;
+        // TODO: shouldn't need to specify a type here?
+        columns.add(OSMTYPE_WAY, info);
+    }
+
+    boost::shared_ptr<geometry_processor> processor =
+        geometry_processor::create(proc_type);
+
+    return new output_multi_t(processor, &columns, mid, new_opts);
+}
+
+std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {
     std::vector<output_t*> outputs;
-    outputs.push_back(create_output(mid, options));
+
+    if (!options.style.empty()) {
+        const std::string file_name(options.style);
+
+        try {
+            pt::ptree conf;
+            pt::read_json(file_name, conf);
+
+            BOOST_FOREACH(const pt::ptree::value_type &val, conf) {
+                outputs.push_back(parse_multi_single(val.second, mid, options));
+            }
+
+        } catch (const std::exception &e) {
+            // free up any allocated resources
+            BOOST_FOREACH(output_t *out, outputs) { delete out; }
+
+            throw std::runtime_error((boost::format("Unable to parse multi config file `%1%': %2%")
+                                      % file_name % e.what()).str());
+        }
+    } else {
+        throw std::runtime_error("Style file is required for `multi' backend, but was not specified.");
+    }
+
     return outputs;
 }
 
-output_t::output_t(middle_query_t* mid_, const options_t* options_): m_mid(mid_), m_options(options_) {
+} // anonymous namespace
+
+output_t* output_t::create_output(const middle_query_t *mid, const options_t &options) {
+    std::vector<output_t *> outputs = create_outputs(mid, options);
+    
+    if (outputs.empty()) {
+        throw std::runtime_error("Unable to construct output backend.");
+    }
+
+    output_t *output = outputs.front();
+    for (size_t i = 1; i < outputs.size(); ++i) {
+        delete outputs[i];
+    }
+
+    return output;
+}
+
+std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
+    std::vector<output_t*> outputs;
+
+    if (options.output_backend == "pgsql") {
+        outputs.push_back(new output_pgsql_t(mid, options));
+
+    } else if (options.output_backend == "gazetteer") {
+        outputs.push_back(new output_gazetteer_t(mid, options));
+
+    } else if (options.output_backend == "null") {
+        outputs.push_back(new output_null_t(mid, options));
+
+    } else if (options.output_backend == "multi") {
+        outputs = parse_multi_config(mid, options);
+
+    } else {
+        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null, multi].\n") % options.output_backend).str());
+    }
+
+    return outputs;
+}
+
+output_t::output_t(const middle_query_t *mid_, const options_t &options_): m_mid(mid_), m_options(options_) {
 
 }
 
@@ -34,6 +134,6 @@ output_t::~output_t() {
 
 }
 
-const options_t* output_t::get_options()const {
-	return m_options;
+const options_t *output_t::get_options()const {
+	return &m_options;
 }

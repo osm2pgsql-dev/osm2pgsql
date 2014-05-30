@@ -20,6 +20,8 @@
 #include "binarysearcharray.hpp"
 #include "util.hpp"
 
+#include <stdexcept>
+
 #ifdef __APPLE__
   #define lseek64 lseek
 #else
@@ -557,7 +559,12 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
     int i, err;
     scale_ = options->scale;
     append_mode = append;
-    node_cache_fname = options->flat_node_file;
+    if (options->flat_node_file) {
+        node_cache_fname = options->flat_node_file->c_str();
+    } else {
+        throw std::runtime_error("Unable to set up persistent cache: the name "
+                                 "of the flat node file was not set.");
+    }
     fprintf(stderr, "Mid: loading persistent node cache from %s\n",
             node_cache_fname);
 

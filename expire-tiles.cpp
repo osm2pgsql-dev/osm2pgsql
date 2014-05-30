@@ -174,7 +174,7 @@ expire_tiles::~expire_tiles() {
 
 	if (Options->expire_tiles_zoom < 0) return;
 	outcount = 0;
-	if ((outfile = fopen(Options->expire_tiles_filename, "a"))) {
+	if ((outfile = fopen(Options->expire_tiles_filename.c_str(), "a"))) {
 	    output_and_destroy_tree(outfile, dirty);
 	    fclose(outfile);
 	} else {

@@ -68,12 +68,12 @@ void escape_type(buffer &sql, const char *value, const char *type) {
 }
 }
 
-table_t::table_t(const char* name, const char* type, const columns_t& columns, const hstores_t& hstore_columns,
+table_t::table_t(const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srs, const int scale, const bool append, const bool slim, const bool drop_temp, const int enable_hstore,
-    const char* table_space, const char* table_space_index) :
+    const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
     name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srs(srs), scale(scale), append(append), slim(slim),
     drop_temp(drop_temp), enable_hstore(enable_hstore), columns(columns), hstore_columns(hstore_columns),
-    table_space(table_space ? table_space : ""), table_space_index(table_space_index ? table_space_index : "")
+    table_space(table_space), table_space_index(table_space_index)
 {
     memset(buffer, 0, sizeof buffer);
 
@@ -88,12 +88,12 @@ table_t::~table_t()
 {
 }
 
-void table_t::setup(const char* conninfo)
+void table_t::setup(const string& conninfo)
 {
     fprintf(stderr, "Setting up table: %s\n", name.c_str());
 
     //connect
-    PGconn* _conn = PQconnectdb(conninfo);
+    PGconn* _conn = PQconnectdb(conninfo.c_str());
     if (PQstatus(_conn) != CONNECTION_OK)
         throw std::runtime_error((fmt("Connection to database failed: %1%\n") % PQerrorMessage(_conn)).str());
     sql_conn = _conn;
@@ -141,8 +141,8 @@ void table_t::setup(const char* conninfo)
             sql = sql.replace(sql.length() - 2, 2, ")");
 
         //add the main table space
-        if (table_space.length())
-            sql += " TABLESPACE " + table_space;
+        if (table_space)
+            sql += " TABLESPACE " + table_space.get();
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
@@ -154,8 +154,8 @@ void table_t::setup(const char* conninfo)
         //slim mode needs this to be able to apply diffs
         if (slim && !drop_temp) {
             sql = (fmt("CREATE INDEX %1%_pkey ON %2% USING BTREE (osm_id)") % name % name).str();
-            if (table_space_index.length())
-                sql += " TABLESPACE " + table_space_index;
+            if (table_space_index)
+                sql += " TABLESPACE " + table_space_index.get();
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
         }
 

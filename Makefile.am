@@ -43,6 +43,7 @@ libosm2pgsql_la_SOURCES = \
 	buffer.cpp \
 	build_geometry.cpp \
 	expire-tiles.cpp \
+	geometry-processor.cpp \
 	input.cpp \
 	keyvals.cpp \
 	middle.cpp \
@@ -54,6 +55,7 @@ libosm2pgsql_la_SOURCES = \
 	osmtypes.cpp \
 	output.cpp \
 	output-gazetteer.cpp \
+	output-multi.cpp \
 	output-null.cpp \
 	output-pgsql.cpp \
 	parse.cpp \

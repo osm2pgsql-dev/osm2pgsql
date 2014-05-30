@@ -16,13 +16,13 @@
 
 int main(int argc, char *argv[]) {
   try {
-    options_t options; memset(&options, 0, sizeof options);
+    options_t options;
     options.scale = 10000000;
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
     options.cache = 1;
 
     struct middle_ram_t mid_ram;
-    struct output_null_t out_test(&mid_ram, &options);
+    struct output_null_t out_test(&mid_ram, options);
     
     mid_ram.start(&options);
     

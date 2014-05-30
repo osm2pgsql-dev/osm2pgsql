@@ -77,13 +77,13 @@ int main(int argc, char *argv[])
         middle_t* middle = middle_t::create_middle(options.slim);
 
         //setup the backend (output)
-        std::vector<output_t*> outputs = output_t::create_outputs(middle, &options);
+        std::vector<output_t*> outputs = output_t::create_outputs(middle, options);
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs.front());
 
         //check the database
-        check_db(options.conninfo, options.unlogged);
+        check_db(options.conninfo.c_str(), options.unlogged);
 
         text_init();
 
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
             //read the actual input
             fprintf(stderr, "\nReading in file: %s\n", filename->c_str());
             time_t start = time(NULL);
-            if (parser->streamFile(options.input_reader, filename->c_str(), options.sanitize, &osmdata) != 0)
+            if (parser->streamFile(options.input_reader.c_str(), filename->c_str(), options.sanitize, &osmdata) != 0)
                 util::exit_nicely();
             fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         }

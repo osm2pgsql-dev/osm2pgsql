@@ -37,8 +37,10 @@
 #include "util.hpp"
 
 #include <boost/bind.hpp>
+#include <boost/format.hpp>
 #include <iostream>
 #include <limits>
+#include <stdexcept>
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -74,7 +76,8 @@ static const flagsname tagflags[] = {
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
-int read_style_file( const char *filename, export_list *exlist )
+int read_style_file( const std::string &filename, export_list *exlist )
+
 {
   FILE *in;
   int lineno = 0;
@@ -90,11 +93,11 @@ int read_style_file( const char *filename, export_list *exlist )
   char buffer[1024];
   int enable_way_area = 1;
 
-  in = fopen( filename, "rt" );
+  in = fopen( filename.c_str(), "rt" );
   if( !in )
   {
-    fprintf( stderr, "Couldn't open style file '%s': %s\n", filename, strerror(errno) );
-    util::exit_nicely();
+      throw std::runtime_error((boost::format("Couldn't open style file '%1%': %2%")
+                                % filename % strerror(errno)).str());
   }
   
   //for each line of the style file
@@ -168,20 +171,20 @@ int read_style_file( const char *filename, export_list *exlist )
     //do we really want to completely quit on an unusable line?
     if( !kept )
     {
-      fprintf( stderr, "Weird style line %d\n", lineno );
-      util::exit_nicely();
+        throw std::runtime_error((boost::format("Weird style line %1%:%2%")
+                                  % filename % lineno).str());
     }
     num_read++;
   }
 
 
   if (ferror(in)) {
-      perror(filename);
-      util::exit_nicely();
+      throw std::runtime_error((boost::format("%1%: %2%")
+                                % filename % strerror(errno)).str());
   }
   if (num_read == 0) {
-      fprintf(stderr, "Unable to parse any valid columns from the style file. Aborting.\n");
-      util::exit_nicely();
+      throw std::runtime_error("Unable to parse any valid columns from "
+                               "the style file. Aborting.");
   }
   fclose(in);
   return enable_way_area;
@@ -240,7 +243,6 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
     return 0;
 }*/
 
-
 /*
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
 ilding, bridge, layer, way) FROM stdin;
@@ -272,7 +274,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
         return 0;
     /* Split long ways after around 1 degree or 100km */
-    if (m_options->projection->get_proj_id() == PROJ_LATLONG)
+    if (m_options.projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;
@@ -330,12 +332,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     }
     
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
-    if (m_options->projection->get_proj_id() == PROJ_LATLONG)
+    if (m_options.projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
     else
         split_at = 100 * 1000;
 
-    wkt_size = builder.build(id, xnodes, xcount, make_polygon, m_options->enable_multi, split_at);
+    wkt_size = builder.build(id, xnodes, xcount, make_polygon, m_options.enable_multi, split_at);
 
     if (!wkt_size) {
         free(members_superseeded);
@@ -385,7 +387,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     /* If we are making a boundary then also try adding any relations which form complete rings
        The linear variants will have already been processed above */
     if (make_boundary) {
-        wkt_size = builder.build(id, xnodes, xcount, 1, m_options->enable_multi, split_at);
+        wkt_size = builder.build(id, xnodes, xcount, 1, m_options.enable_multi, split_at);
         for (i=0;i<wkt_size;i++)
         {
             char *wkt = builder.get_wkt(i);
@@ -413,15 +415,15 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
 int output_pgsql_t::start()
 {
-    reproj = m_options->projection;
-    builder.set_exclude_broken_polygon(m_options->excludepoly);
+    reproj = m_options.projection;
+    builder.set_exclude_broken_polygon(m_options.excludepoly);
 
     m_export_list = new export_list();
 
-    m_enable_way_area = read_style_file( m_options->style, m_export_list );
+    m_enable_way_area = read_style_file( m_options.style, m_export_list );
 
     try {
-        m_tagtransform = new tagtransform(m_options);
+        m_tagtransform = new tagtransform(&m_options);
     }
     catch(std::runtime_error& e) {
         fprintf(stderr, "%s\n", e.what());
@@ -429,14 +431,15 @@ int output_pgsql_t::start()
         util::exit_nicely();
     }
 
-    expire.reset(new expire_tiles(m_options));
+    expire.reset(new expire_tiles(&m_options));
 
-    ways_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_pending", true));
-    ways_done_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "ways_done", true));
-    rels_pending_tracker.reset(new pgsql_id_tracker(m_options->conninfo, m_options->prefix, "rels_pending", true));
+    ways_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_pending", true));
+    ways_done_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_done", true));
+    rels_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "rels_pending", true));
 
     //for each table
     m_tables.reserve(NUM_TABLES);
+
     for (int i=0; i<NUM_TABLES; i++) {
 
         //figure out the columns this table needs
@@ -453,7 +456,7 @@ int output_pgsql_t::start()
         }
 
         //figure out what name we are using for this and what type
-        std::string name(m_options->prefix ? m_options->prefix : "");
+        std::string name = m_options.prefix;
         std::string type;
         switch(i)
         {
@@ -483,15 +486,15 @@ int output_pgsql_t::start()
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(boost::shared_ptr<table_t>(
             new table_t(
-                name.c_str(), type.c_str(), columns, m_options->hstore_columns, SRID, m_options->scale,
-                m_options->append, m_options->slim, m_options->droptemp, m_options->enable_hstore,
-                m_options->tblsmain_data, m_options->tblsmain_index
+                name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
+                m_options.append, m_options.slim, m_options.droptemp, m_options.enable_hstore,
+                m_options.tblsmain_data, m_options.tblsmain_index
             )
         ));
 
         //TODO: move this to the constructor and allow it to throw
         //setup the table in postgres
-        m_tables.back()->setup(m_options->conninfo);
+        m_tables.back()->setup(m_options.conninfo);
     }
 
     return 0;
@@ -511,33 +514,35 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
     }
 
     table->pgsql_pause_copy();
-    if (!m_options->append)
+    if (!m_options.append)
     {
         time_t start, end;
         time(&start);
+
         fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name.c_str());
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name.c_str());
         fprintf(stderr, "Analyzing %s finished\n", table->name.c_str());
-        if (m_options->tblsmain_data) {
+        if (m_options.tblsmain_data) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
                         "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name.c_str(), m_options->tblsmain_data, table->name.c_str());
+                        table->name.c_str(), m_options.tblsmain_data->c_str(), table->name.c_str());
         } else {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name.c_str(), table->name.c_str());
         }
+
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name.c_str());
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name.c_str(), table->name.c_str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name.c_str());
         fprintf(stderr, "Creating geometry index on  %s\n", table->name.c_str());
-        if (m_options->tblsmain_index) {
+        if (m_options.tblsmain_index) {
             /* Use fillfactor 100 for un-updatable imports */
-            if (m_options->slim && !m_options->droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options->tblsmain_index);
+            if (m_options.slim && !m_options.droptemp) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
             } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
             }
         } else {
-            if (m_options->slim && !m_options->droptemp) {
+            if (m_options.slim && !m_options.droptemp) {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name.c_str(), table->name.c_str());
             } else {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name.c_str(), table->name.c_str());
@@ -545,48 +550,48 @@ void *output_pgsql_t::pgsql_out_stop_one(void *arg)
         }
 
         /* slim mode needs this to be able to apply diffs */
-        if (m_options->slim && !m_options->droptemp)
+        if (m_options.slim && !m_options.droptemp)
         {
             fprintf(stderr, "Creating osm_id index on  %s\n", table->name.c_str());
-            if (m_options->tblsmain_index) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options->tblsmain_index);
+            if (m_options.tblsmain_index) {
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
             } else {
                 pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name.c_str(), table->name.c_str());
             }
         }
         /* Create hstore index if selected */
-        if (m_options->enable_hstore_index) {
+        if (m_options.enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on  %s\n", table->name.c_str());
-            if (m_options->tblsmain_index) {
-                if (HSTORE_NONE != (m_options->enable_hstore)) {
-                    if (m_options->slim && !m_options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options->tblsmain_index);
+            if (m_options.tblsmain_index) {
+                if (HSTORE_NONE != (m_options.enable_hstore)) {
+                    if (m_options.slim && !m_options.droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
                     }
                 }
-                for(size_t i = 0; i < m_options->hstore_columns.size(); ++i) {
-                    if (m_options->slim && !m_options->droptemp) {
+                for(size_t i = 0; i < m_options.hstore_columns.size(); ++i) {
+                    if (m_options.slim && !m_options.droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name.c_str(), int(i),table->name.c_str(), m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
+                               table->name.c_str(), int(i),table->name.c_str(), m_options.hstore_columns[i].c_str(), m_options.tblsmain_index->c_str());
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name.c_str(), int(i),table->name.c_str(), m_options->hstore_columns[i].c_str(), m_options->tblsmain_index);
+                               table->name.c_str(), int(i),table->name.c_str(), m_options.hstore_columns[i].c_str(), m_options.tblsmain_index->c_str());
                     }
                 }
             } else {
-                if (HSTORE_NONE != (m_options->enable_hstore)) {
-                    if (m_options->slim && !m_options->droptemp) {
+                if (HSTORE_NONE != (m_options.enable_hstore)) {
+                    if (m_options.slim && !m_options.droptemp) {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name.c_str(), table->name.c_str());
                     } else {
                         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) ;\n", table->name.c_str(), table->name.c_str());
                     }
                 }
-                for(size_t i = 0; i < m_options->hstore_columns.size(); ++i) {
-                    if (m_options->slim && !m_options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options->hstore_columns[i].c_str());
+                for(size_t i = 0; i < m_options.hstore_columns.size(); ++i) {
+                    if (m_options.slim && !m_options.droptemp) {
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options.hstore_columns[i].c_str());
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options->hstore_columns[i].c_str());
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options.hstore_columns[i].c_str());
                     }
                 }
             }
@@ -753,7 +758,7 @@ void output_pgsql_t::stop()
 #endif
   
 #ifdef HAVE_PTHREAD
-    if (m_options->parallel_indexing) {
+    if (m_options.parallel_indexing) {
       pthread_thunk thunks[NUM_TABLES];
       for (i=0; i<NUM_TABLES; i++) {
           thunks[i].obj = this;
@@ -912,7 +917,7 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
  * contain the change for that also. */
 int output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -928,10 +933,10 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
-    if( !m_options->slim )
+    if( !m_options.slim )
         return 0;
     /* in droptemp mode we don't have indices and this takes ages. */
-    if (m_options->droptemp)
+    if (m_options.droptemp)
         return 0;
 
     m_tables[t_roads]->pgsql_pause_copy();
@@ -948,7 +953,7 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 
 int output_pgsql_t::way_delete(osmid_t osm_id)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -974,7 +979,7 @@ int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 
 int output_pgsql_t::relation_delete(osmid_t osm_id)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -988,7 +993,7 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
  * objects that depend on this one */
 int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct keyval *tags)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -1000,7 +1005,7 @@ int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct k
 
 int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, struct keyval *tags)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -1013,7 +1018,7 @@ int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, s
 
 int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int member_count, struct keyval *tags)
 {
-    if( !m_options->slim )
+    if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
@@ -1023,7 +1028,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     return 0;
 }
 
-output_pgsql_t::output_pgsql_t(middle_query_t* mid_, const options_t* options_)
+output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_) {
 }
 

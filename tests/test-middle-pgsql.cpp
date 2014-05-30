@@ -212,7 +212,7 @@ int main(int argc, char *argv[]) {
   }
 
   struct middle_pgsql_t mid_pgsql;
-  options_t options; memset(&options, 0, sizeof options);
+  options_t options;
   options.conninfo = db->conninfo().c_str();
   options.scale = 10000000;
   options.num_procs = 1;
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
   options.tblsslim_data = "tablespacetest";
   options.slim = 1;
 
-  struct output_null_t out_test(&mid_pgsql, &options);
+  struct output_null_t out_test(&mid_pgsql, options);
 
   try {
     // start an empty table to make the middle create the

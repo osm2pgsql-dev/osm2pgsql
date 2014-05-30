@@ -89,7 +89,7 @@ void test_outputs()
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
     middle_t* mid = middle_t::create_middle(options.slim);
-    output_t* out = output_t::create_output(mid, &options);
+    output_t* out = output_t::create_output(mid, options);
     if(dynamic_cast<output_pgsql_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a pgsql output");
@@ -98,7 +98,7 @@ void test_outputs()
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
-    out = output_t::create_output(mid, &options);
+    out = output_t::create_output(mid, options);
     if(dynamic_cast<output_gazetteer_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a gazetteer output");
@@ -107,7 +107,7 @@ void test_outputs()
     const char* a3[] = {"osm2pgsql", "-O", "null", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a3), const_cast<char **>(a3));
     mid = middle_t::create_middle(options.slim);
-    out = output_t::create_output(mid, &options);
+    out = output_t::create_output(mid, options);
     if(dynamic_cast<output_null_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a null output");
@@ -118,7 +118,7 @@ void test_outputs()
     mid = middle_t::create_middle(options.slim);
     try
     {
-        out = output_t::create_output(mid, &options);
+        out = output_t::create_output(mid, options);
         throw std::logic_error("Expected 'not recognised'");
     }
     catch(std::runtime_error& e)
@@ -172,7 +172,7 @@ void add_arg_or_not(const char* arg, std::vector<std::string>& args, int& option
         option = 0;
 }
 
-void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, int& option, const int val)
+void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, int option, const int val)
 {
     if(rand() % 2)
     {
@@ -182,7 +182,7 @@ void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, int
     }
 }
 
-void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, const char*& option, std::string val)
+void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, const char *option, std::string val)
 {
     if(rand() % 2)
     {
@@ -211,9 +211,13 @@ void test_random_perms()
         args.push_back(style);
 
         add_arg_and_val_or_not("--cache", args, options.cache, rand() % 800);
-        add_arg_and_val_or_not("--database", args, options.db, get_random_string(6));
-        add_arg_and_val_or_not("--username", args, options.username, get_random_string(6));
-        add_arg_and_val_or_not("--host", args, options.host, get_random_string(6));
+        add_arg_and_val_or_not("--database", args, options.db.c_str(), get_random_string(6));
+        if (options.username) {
+            add_arg_and_val_or_not("--username", args, options.username->c_str(), get_random_string(6));
+        }
+        if (options.host) {
+            add_arg_and_val_or_not("--host", args, options.host->c_str(), get_random_string(6));
+        }
         //add_arg_and_val_or_not("--port", args, options.port, rand() % 9999);
 
         //--hstore-match-only
@@ -238,19 +242,23 @@ void test_random_perms()
 
         //--cache-strategy  Specifies the method used to cache nodes in ram. Available options are: dense chunk sparse optimized
 
-        add_arg_and_val_or_not("--flat-nodes", args, options.flat_node_file, get_random_string(15));
+        if (options.flat_node_file) {
+            add_arg_and_val_or_not("--flat-nodes", args, options.flat_node_file->c_str(), get_random_string(15));
+        }
 
         //--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.
 
-        add_arg_and_val_or_not("--expire-output", args, options.expire_tiles_filename, get_random_string(15));
+        add_arg_and_val_or_not("--expire-output", args, options.expire_tiles_filename.c_str(), get_random_string(15));
 
         //--bbox        Apply a bounding box filter on the imported data Must be specified as: minlon,minlat,maxlon,maxlat e.g. --bbox -0.5,51.25,0.5,51.75
 
-        add_arg_and_val_or_not("--prefix", args, options.prefix, get_random_string(15));
+        add_arg_and_val_or_not("--prefix", args, options.prefix.c_str(), get_random_string(15));
 
         //--input-reader    Input frontend. libxml2   - Parse XML using libxml2. (default) primitive - Primitive XML parsing. pbf       - OSM binary format.
 
-        add_arg_and_val_or_not("--tag-transform-script", args, options.tag_transform_script, get_random_string(15));
+        if (options.tag_transform_script) {
+            add_arg_and_val_or_not("--tag-transform-script", args, options.tag_transform_script->c_str(), get_random_string(15));
+        }
         add_arg_or_not("--extra-attributes", args, options.extra_attributes);
         add_arg_or_not("--multi-geometry", args, options.enable_multi);
         add_arg_or_not("--keep-coastlines", args, options.keep_coastlines);
