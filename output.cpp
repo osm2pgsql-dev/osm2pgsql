@@ -53,10 +53,19 @@ output_t *parse_multi_single(const pt::ptree &conf,
         columns.add(OSMTYPE_WAY, info);
     }
 
+    hstores_t hstore_columns;
+    boost::optional<const pt::ptree &> hstores = conf.get_child_optional("hstores");
+    if (hstores) {
+        BOOST_FOREACH(const pt::ptree::value_type &val, *hstores) {
+            hstore_columns.push_back(val.second.get_value<std::string>());
+        }
+    }
+    new_opts.hstore_columns = hstore_columns;
+
     boost::shared_ptr<geometry_processor> processor =
         geometry_processor::create(proc_type);
 
-    return new output_multi_t(processor, &columns, mid, new_opts);
+    return new output_multi_t(name, processor, &columns, mid, new_opts);
 }
 
 std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {

@@ -1,23 +1,38 @@
 #include "output-multi.hpp"
 #include "taginfo_impl.hpp"
 
-output_multi_t::output_multi_t(boost::shared_ptr<geometry_processor> processor_,
+namespace {
+
+columns_t normal_columns(const export_list &cols) {
+    // TODO: shouldn't need type here.
+    return cols.normal_columns(OSMTYPE_WAY);
+}
+
+} // anonymous namespace
+
+output_multi_t::output_multi_t(const std::string &name,
+                               boost::shared_ptr<geometry_processor> processor_,
                                struct export_list *export_list_,
                                const middle_query_t* mid_, const options_t &options_) 
     : output_t(mid_, options_),
       m_tagtransform(new tagtransform(&m_options)),
-      m_table(),
       m_export_list(new export_list(*export_list_)),
       m_sql(),
       m_processor(processor_),
-      m_geo_interest(m_processor->interests()) {
+      m_geo_interest(m_processor->interests()),
+      m_table(new table_t(name, m_processor->type(), normal_columns(*m_export_list),
+                          m_options.hstore_columns, m_processor->srid(), m_options.scale,
+                          m_options.append, m_options.slim, m_options.droptemp,
+                          m_options.enable_hstore, m_options.tblsmain_data,
+                          m_options.tblsmain_index)) {
 }
 
 output_multi_t::~output_multi_t() {
 }
 
 int output_multi_t::start() {
-    // TODO!
+    // TODO: id tracker?
+    m_table->setup(m_options.conninfo);
     return 0;
 }
 
@@ -32,15 +47,18 @@ middle_t::rel_cb_func *output_multi_t::relation_callback() {
 }
 
 void output_multi_t::stop() {
-    // TODO!
+    m_table->pgsql_pause_copy();
+    // TODO: do some stuff here similar to output_pgsql_t::pgsql_out_stop_one
+    cleanup();
 }
 
 void output_multi_t::commit() {
-    // TODO!
+    m_table->commit();
+    // TODO: any id trackers too
 }
 
 void output_multi_t::cleanup() {
-    // TODO!
+    m_table->teardown();
 }
 
 int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
@@ -165,13 +183,11 @@ int output_multi_t::process_relation(osmid_t id, struct member *members, int mem
     return 0;
 }
 
-void output_multi_t::copy_to_table(osmid_t id, const char *wkt, const struct keyval *tags) {
-    // TODO: implement me!
-    abort();
+void output_multi_t::copy_to_table(osmid_t id, const char *wkt, struct keyval *tags) {
+    m_table->write_way(id, tags, wkt, m_sql);
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {
-    // TODO: implement me!
-    abort();
+    m_table->delete_row(id);
 }
 

@@ -28,6 +28,7 @@ unsigned int countList(const struct keyval *head);
 int listHasData(struct keyval *head);
 char *getItem(const struct keyval *head, const char *name);
 struct keyval *getTag(struct keyval *head, const char *name);
+const struct keyval *getTag(const struct keyval *head, const char *name);
 void removeTag(struct keyval *tag);
 struct keyval *firstItem(struct keyval *head);
 struct keyval *nextItem(struct keyval *head, struct keyval *item);

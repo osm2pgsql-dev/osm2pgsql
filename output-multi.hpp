@@ -18,7 +18,8 @@
 
 class output_multi_t : public output_t {
 public:
-    output_multi_t(boost::shared_ptr<geometry_processor> processor_,
+    output_multi_t(const std::string &name,
+                   boost::shared_ptr<geometry_processor> processor_,
                    struct export_list *export_list_,
                    const middle_query_t* mid_, const options_t &options_);
     virtual ~output_multi_t();
@@ -48,17 +49,14 @@ private:
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
     int process_way(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
     int process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags);
-    void copy_to_table(osmid_t id, const char *wkt, const struct keyval *tags);
+    void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
-    boost::scoped_ptr<table_t> m_table;
-    
     boost::scoped_ptr<export_list> m_export_list;
-
     buffer m_sql;
-
     boost::shared_ptr<geometry_processor> m_processor;
     const geometry_processor::interest m_geo_interest;
+    boost::scoped_ptr<table_t> m_table;
 };
 
 #endif

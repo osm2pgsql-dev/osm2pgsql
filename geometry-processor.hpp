@@ -45,6 +45,13 @@ struct geometry_processor {
     // for insertion into the table.
     virtual maybe_wkt_t process_relation(struct member *members, int member_count,
                                          const middle_query_t *mid) = 0;
+
+    // returns the SRID of the output geometry.
+    virtual int srid() const = 0;
+
+    // returns the geometry type (i.e: POINT, LINESTRING, etc...) of the
+    // output geometry.
+    virtual std::string type() const = 0;
 };
 
 #endif /* GEOMETRY_PROCESSOR_HPP */

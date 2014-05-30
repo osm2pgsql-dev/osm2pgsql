@@ -443,17 +443,7 @@ int output_pgsql_t::start()
     for (int i=0; i<NUM_TABLES; i++) {
 
         //figure out the columns this table needs
-        columns_t columns;
-        const std::vector<taginfo> &infos = m_export_list->get((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
-        columns.push_back(std::pair<std::string, std::string>("osm_id", POSTGRES_OSMID_TYPE));
-        for(std::vector<taginfo>::const_iterator info = infos.begin(); info != infos.end(); ++info)
-        {
-            if( info->flags & FLAG_DELETE )
-                continue;
-            if( (info->flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
-                continue;
-            columns.push_back(std::pair<std::string, std::string>(info->name, info->type));
-        }
+        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
 
         //figure out what name we are using for this and what type
         std::string name = m_options.prefix;
