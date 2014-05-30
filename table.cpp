@@ -3,24 +3,231 @@
 #include "util.hpp"
 
 #include <string.h>
+#include <boost/format.hpp>
+
+using std::string;
+typedef boost::format fmt;
 
 namespace
 {
+/* Escape data appropriate to the type */
+void escape_type(buffer &sql, const char *value, const char *type) {
+    int items;
 
+    if (!strcmp(type, "int4")) {
+        int from, to;
+        /* For integers we take the first number, or the average if it's a-b */
+        items = sscanf(value, "%d-%d", &from, &to);
+        if (items == 1) {
+            sql.printf("%d", from);
+        } else if (items == 2) {
+            sql.printf("%d", (from + to) / 2);
+        } else {
+            sql.printf("\\N");
+        }
+    } else {
+        /*
+         try to "repair" real values as follows:
+         * assume "," to be a decimal mark which need to be replaced by "."
+         * like int4 take the first number, or the average if it's a-b
+         * assume SI unit (meters)
+         * convert feet to meters (1 foot = 0.3048 meters)
+         * reject anything else
+         */
+        if (!strcmp(type, "real")) {
+            int i, slen;
+            float from, to;
+
+            // we're just using sql as a temporary buffer here.
+            sql.cpy(value);
+
+            slen = sql.len();
+            for (i = 0; i < slen; i++)
+                if (sql.buf[i] == ',')
+                    sql.buf[i] = '.';
+
+            items = sscanf(sql.buf, "%f-%f", &from, &to);
+            if (items == 1) {
+                if ((sql.buf[slen - 2] == 'f') && (sql.buf[slen - 1] == 't')) {
+                    from *= 0.3048;
+                }
+                sql.printf("%f", from);
+            } else if (items == 2) {
+                if ((sql.buf[slen - 2] == 'f') && (sql.buf[slen - 1] == 't')) {
+                    from *= 0.3048;
+                    to *= 0.3048;
+                }
+                sql.printf("%f", (from + to) / 2);
+            } else {
+                sql.printf("\\N");
+            }
+        } else {
+            escape(sql, value);
+        }
+    }
+}
 }
 
-table_t::table_t(const char *name_, const char *type_, const int srs, const int enable_hstore, const std::vector<std::string>& hstore_columns)
-    : name(strdup(name_)), type(type_),
-      sql_conn(NULL), buflen(0), copyMode(0),
-      columns(NULL), srs(srs), enable_hstore(enable_hstore), hstore_columns(hstore_columns)
+table_t::table_t(const char* name, const char* type, const columns_t& columns, const hstores_t& hstore_columns,
+    const int srs, const int scale, const bool append, const bool slim, const bool drop_temp, const int enable_hstore,
+    const char* table_space, const char* table_space_index) :
+    name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srs(srs), scale(scale), append(append), slim(slim),
+    drop_temp(drop_temp), enable_hstore(enable_hstore), columns(columns), hstore_columns(hstore_columns),
+    table_space(table_space ? table_space : ""), table_space_index(table_space_index ? table_space_index : "")
 {
     memset(buffer, 0, sizeof buffer);
+
+    //if we dont have any columns
+    if(columns.size() == 0)
+    {
+        throw std::runtime_error((fmt("No columns provided for table %1%") % name).str());
+    }
 }
 
 table_t::~table_t()
 {
-    free(name);
-    free(columns);
+}
+
+void table_t::setup(const char* conninfo)
+{
+    fprintf(stderr, "Setting up table: %s\n", name.c_str());
+
+    //connect
+    PGconn* _conn = PQconnectdb(conninfo);
+    if (PQstatus(_conn) != CONNECTION_OK)
+        throw std::runtime_error((fmt("Connection to database failed: %1%\n") % PQerrorMessage(_conn)).str());
+    sql_conn = _conn;
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+
+    //we are making a new table
+    if (!append)
+    {
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%") % name).str());
+    }//we are checking in append mode that the srid you specified matches whats already there
+    else
+    {
+        //TODO: use pgsql_exec_simple
+        string sql = (fmt("SELECT srid FROM geometry_columns WHERE f_table_name='%1%';") % name).str();
+        PGresult* res = PQexec(sql_conn, sql.c_str());
+        if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
+            throw std::runtime_error((fmt("Problem reading geometry information for table %1% - does it exist?\n") % name).str());
+        int their_srid = atoi(PQgetvalue(res, 0, 0));
+        PQclear(res);
+        if (their_srid != srs)
+            throw std::runtime_error((fmt("SRID mismatch: cannot append to table %1% (SRID %2%) using selected SRID %3%\n") % name % their_srid % srs).str());
+    }
+
+    /* These _tmp tables can be left behind if we run out of disk space */
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%_tmp") % name).str());
+
+    begin();
+    if (!append) {
+        //define the new table
+        string sql = (fmt("CREATE TABLE %1% (") % name).str();
+
+        //first with the regular columns
+        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
+            sql += (fmt("\"%1%\" %2%, ") % column->first % column->second).str();
+
+        //then with the hstore columns
+        for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
+            sql += (fmt("\"%1%\" hstore, ") % (*hcolumn)).str();
+
+        //add tags column
+        if (enable_hstore)
+            sql += "\"tags\" hstore)";
+        //or remove the last ", " from the end
+        else
+            sql = sql.replace(sql.length() - 2, 2, ")");
+
+        //add the main table space
+        if (table_space.length())
+            sql += " TABLESPACE " + table_space;
+
+        //create the table
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+
+        //add some constraints
+        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srs % type).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
+
+        //slim mode needs this to be able to apply diffs
+        if (slim && !drop_temp) {
+            sql = (fmt("CREATE INDEX %1%_pkey ON %2% USING BTREE (osm_id)") % name % name).str();
+            if (table_space_index.length())
+                sql += " TABLESPACE " + table_space_index;
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+        }
+
+    }//appending
+    else {
+        //check the columns against those in the existing table
+        boost::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
+        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
+        {
+            if(PQfnumber(res.get(), ('"' + column->first + '"').c_str()) < 0)
+            {
+#if 0
+                throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%2%\"\n") % info.name % name).str());
+#else
+                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column->first % name).str().c_str());
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column->first % column->second).str());
+#endif
+            }
+            //Note: we do not verify the type or delete unused columns
+        }
+
+        //TODO: check over hstore columns
+
+        //TODO? change the type of the geometry column if needed - this can only change to a more permissive type
+    }
+
+    //let postgres cache this query as it will presumably happen a lot
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+
+    //generate column list for COPY
+    string cols;
+    //first with the regular columns
+    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
+        cols += (fmt("\"%1%\", ") % column->first).str();
+
+    //then with the hstore columns
+    for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
+        cols += (fmt("\"%1%\", ") % (*hcolumn)).str();
+
+    //add tags column and geom column
+    if (enable_hstore)
+        cols += "\"tags\", \"way\"";
+    //or just the geom column
+    else
+        cols += "\"way\"";
+
+    //get into copy mode
+    copystr = (fmt("COPY %1% (%2%) FROM STDIN") % name % cols).str();
+    pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
+    copyMode = 1;
+}
+
+void table_t::teardown()
+{
+    //pgsql_pause_copy();
+    if(sql_conn != NULL)
+    {
+        PQfinish(sql_conn);
+        sql_conn = NULL;
+    }
+}
+
+void table_t::begin()
+{
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "BEGIN");
+}
+
+void table_t::commit()
+{
+    pgsql_pause_copy();
+    fprintf(stderr, "Committing transaction for %s\n", name.c_str());
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "COMMIT");
 }
 
 /* Handles copying out, but coalesces the data into large chunks for
@@ -36,19 +243,21 @@ void table_t::copy_to_table(const char *sql)
     /* Return to copy mode if we dropped out */
     if( !copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", name, columns);
+        pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
         copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
     if( (unsigned)(buflen + len) > sizeof( buffer )-10 )
     {
-      pgsql_CopyData(name, sql_conn, buffer);
+        printf("%s\n%s\n", copystr.c_str(), buffer);
+      pgsql_CopyData(name.c_str(), sql_conn, buffer);
       buflen = 0;
 
       /* If new data by itself is also too big, output it immediately */
       if( (unsigned)len > sizeof( buffer )-10 )
       {
-        pgsql_CopyData(name, sql_conn, sql);
+          printf("%s\n%s\n", copystr.c_str(), sql);
+        pgsql_CopyData(name.c_str(), sql_conn, sql);
         len = 0;
       }
     }
@@ -63,9 +272,34 @@ void table_t::copy_to_table(const char *sql)
     /* If we have completed a line, output it */
     if( buflen > 0 && buffer[buflen-1] == '\n' )
     {
-      pgsql_CopyData(name, sql_conn, buffer);
+        printf("%s\n%s\n", copystr.c_str(), buffer);
+      pgsql_CopyData(name.c_str(), sql_conn, buffer);
       buflen = 0;
     }
+}
+
+void table_t::pgsql_pause_copy()
+{
+    PGresult   *res;
+    int stop;
+
+    if( !copyMode )
+        return;
+
+    //stop the copy
+    stop = PQputCopyEnd(sql_conn, NULL);
+    if (stop != 1)
+       throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
+
+    //get the result
+    res = PQgetResult(sql_conn);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        PQclear(res);
+        throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
+    }
+    PQclear(res);
+    copyMode = 0;
 }
 
 void table_t::write_hstore(keyval *tags, struct buffer &sql)
@@ -132,7 +366,7 @@ void table_t::write_hstore_columns(keyval *tags, struct buffer &sql)
     size_t hlen;
 
     /* iterate over all configured hstore colums in the options */
-    for(std::vector<std::string>::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
+    for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
         /* did this node have a tag that matched the current hstore column */
         found = 0;
@@ -193,57 +427,81 @@ void table_t::write_hstore_columns(keyval *tags, struct buffer &sql)
     /* all hstore-columns have now been written */
 }
 
-void table_t::pgsql_pause_copy()
-{
-    PGresult   *res;
-    int stop;
-
-    if( !copyMode )
-        return;
-
-    /* Terminate any pending COPY */
-    stop = PQputCopyEnd(sql_conn, NULL);
-    if (stop != 1) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", name, PQerrorMessage(sql_conn));
-       util::exit_nicely();
-    }
-
-    res = PQgetResult(sql_conn);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", name, PQerrorMessage(sql_conn));
-       PQclear(res);
-       util::exit_nicely();
-    }
-    PQclear(res);
-    copyMode = 0;
-}
-
-void table_t::connect(const char* conninfo)
-{
-    PGconn* _conn = PQconnectdb(conninfo);
-
-    /* Check to see that the backend connection was successfully made */
-    if (PQstatus(_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(_conn));
-        util::exit_nicely();
-    }
-    sql_conn = _conn;
-    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-}
-
-void table_t::disconnect()
-{
-    //pgsql_pause_copy();
-    if(sql_conn != NULL)
+void table_t::export_tags(struct keyval *tags, struct buffer &sql) {
+    //for each column, note we skip the first because its the osmid
+    for(columns_t::const_iterator column = columns.begin() + 1; column != columns.end(); ++column)
     {
-        PQfinish(sql_conn);
-        sql_conn = NULL;
+        struct keyval *tag = NULL;
+        if ((tag = getTag(tags, column->first.c_str())))
+        {
+            escape_type(sql, tag->value, column->second.c_str());
+            if (enable_hstore==HSTORE_NORM)
+                tag->has_column=1;
+        }
+        else
+            sql.printf("\\N");
+
+        copy_to_table(sql.buf);
+        copy_to_table("\t");
     }
 }
 
-void table_t::commit()
+void table_t::write_way(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql)
 {
-    pgsql_pause_copy();
-    fprintf(stderr, "Committing transaction for %s\n", name);
-    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
+    //TODO: throw if the type of this table wasnt linestring or geometry
+
+    //add the id
+    sql.printf("%" PRIdOSMID "\t", id);
+    copy_to_table(sql.buf);
+
+    //get the regular columns' values
+    export_tags(tags, sql);
+
+    //get the hstore columns' values
+    write_hstore_columns(tags, sql);
+
+    //get the key value pairs for the tags column
+    if (enable_hstore)
+        write_hstore(tags, sql);
+
+    //give it an srid and put the geom into the copy
+    sql.printf("SRID=%d;", srs);
+    copy_to_table(sql.buf);
+    copy_to_table(wkt);
+    copy_to_table("\n");
+}
+
+void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon, struct buffer &sql)
+{
+    //TODO: throw if the type of this table wasnt point or geometry
+
+    //add the id
+    sql.printf("%" PRIdOSMID "\t", id);
+    copy_to_table(sql.buf);
+
+    //get the regular columns' values
+    export_tags(tags, sql);
+
+    //get the hstore columns' values
+    write_hstore_columns(tags, sql);
+
+    //get the key value pairs for the tags column
+    if (enable_hstore)
+        write_hstore(tags, sql);
+
+#ifdef FIXED_POINT
+    // guarantee that we use the same values as in the node cache
+    lon = util::fix_to_double(util::double_to_fix(lon, scale), scale);
+    lat = util::fix_to_double(util::double_to_fix(lat, scale), scale);
+#endif
+
+    //give it an srid and put the geom into the copy
+    sql.printf("SRID=%d;POINT(%.15g %.15g)", srs, lon, lat);
+    copy_to_table(sql.buf);
+    copy_to_table("\n");
+}
+
+void table_t::delete_row(const osmid_t id)
+{
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DELETE FROM %1% WHERE osm_id = %2%") % name % id).str());
 }

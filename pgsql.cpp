@@ -1,12 +1,13 @@
 /* Helper functions for the postgresql connections */
+#include "util.hpp"
+#include "pgsql.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <libpq-fe.h>
-#include "util.hpp"
-#include "pgsql.hpp"
+#include <boost/format.hpp>
 
 void escape(buffer &buf, const char *in) {
     size_t count = 0;
@@ -67,9 +68,28 @@ void escape(char *out, int len, const char *in)
         fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
 }
 
+boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect, const std::string& sql)
+{
+    return pgsql_exec_simple(sql_conn, expect, sql.c_str());
+}
+
+boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect, const char *sql)
+{
+    PGresult* res;
+#ifdef DEBUG_PGSQL
+    fprintf( stderr, "Executing: %s\n", sql );
+#endif
+    res = PQexec(sql_conn, sql);
+    if (PQresultStatus(res) != expect) {
+        PQclear(res);
+        throw std::runtime_error((boost::format("%1% failed: %2%\n") % sql % PQerrorMessage(sql_conn)).str());
+    }
+    return boost::shared_ptr<PGresult>(res, &PQclear);
+}
+
 int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
 {
-    PGresult   *res;
+
     va_list ap;
     char *sql, *nsql;
     int n, size = 100;
@@ -107,7 +127,7 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "Executing: %s\n", sql );
 #endif
-    res = PQexec(sql_conn, sql);
+    PGresult* res = PQexec(sql_conn, sql);
     if (PQresultStatus(res) != expect) {
         fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
         free(sql);

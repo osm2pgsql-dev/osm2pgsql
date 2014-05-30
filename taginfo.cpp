@@ -2,12 +2,12 @@
 #include <cassert>
 
 taginfo::taginfo() 
-    : name(), type(), flags(0), count(0) {
+    : name(), type(), flags(0) {
 }
 
 taginfo::taginfo(const taginfo &other)
     : name(other.name), type(other.type),
-      flags(other.flags), count(other.count) {
+      flags(other.flags) {
 }
 
 export_list::export_list()

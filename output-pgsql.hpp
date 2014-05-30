@@ -80,18 +80,12 @@ private:
     friend struct way_cb_func;
     friend struct rel_cb_func;
     
-    void pgsql_out_commit();
     int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon, buffer &sql);
     int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql);
     int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql);
     int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
-    void export_tags(const table_id table, OsmType info_table, struct keyval *tags, struct buffer &sql);
-    void write_wkts(const table_id table, osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql);
-
-
-
 
     tagtransform *m_tagtransform;
 

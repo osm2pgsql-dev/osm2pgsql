@@ -11,7 +11,7 @@ struct taginfo {
     taginfo(const taginfo &);
 
     std::string name, type;
-    int flags, count;
+    int flags;
 };
 
 struct export_list {
