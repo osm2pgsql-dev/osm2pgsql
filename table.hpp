@@ -16,7 +16,7 @@ typedef std::vector<std::pair<std::string, std::string> > columns_t;
 class table_t : public boost::noncopyable
 {
     public:
-        table_t(const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srs,
+        table_t(const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
                 const int scale, const bool append, const bool slim, const bool droptemp, const int enable_hstore,
                 const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
         ~table_t();
@@ -44,7 +44,7 @@ class table_t : public boost::noncopyable
     private:
         void export_tags(struct keyval *tags, struct buffer &sql);
 
-        int srs;
+        int srid;
         int scale;
         bool append;
         bool slim;

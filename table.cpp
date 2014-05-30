@@ -69,9 +69,9 @@ void escape_type(buffer &sql, const char *value, const char *type) {
 }
 
 table_t::table_t(const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srs, const int scale, const bool append, const bool slim, const bool drop_temp, const int enable_hstore,
+    const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int enable_hstore,
     const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srs(srs), scale(scale), append(append), slim(slim),
+    name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srid(srid), scale(scale), append(append), slim(slim),
     drop_temp(drop_temp), enable_hstore(enable_hstore), columns(columns), hstore_columns(hstore_columns),
     table_space(table_space), table_space_index(table_space_index)
 {
@@ -113,8 +113,8 @@ void table_t::setup(const string& conninfo)
             throw std::runtime_error((fmt("Problem reading geometry information for table %1% - does it exist?\n") % name).str());
         int their_srid = atoi(PQgetvalue(res, 0, 0));
         PQclear(res);
-        if (their_srid != srs)
-            throw std::runtime_error((fmt("SRID mismatch: cannot append to table %1% (SRID %2%) using selected SRID %3%\n") % name % their_srid % srs).str());
+        if (their_srid != srid)
+            throw std::runtime_error((fmt("SRID mismatch: cannot append to table %1% (SRID %2%) using selected SRID %3%\n") % name % their_srid % srid).str());
     }
 
     /* These _tmp tables can be left behind if we run out of disk space */
@@ -148,7 +148,7 @@ void table_t::setup(const string& conninfo)
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
 
         //add some constraints
-        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srs % type).str());
+        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srid % type).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
 
         //slim mode needs this to be able to apply diffs
@@ -465,7 +465,7 @@ void table_t::write_way(const osmid_t id, struct keyval *tags, const char *wkt, 
         write_hstore(tags, sql);
 
     //give it an srid and put the geom into the copy
-    sql.printf("SRID=%d;", srs);
+    sql.printf("SRID=%d;", srid);
     copy_to_table(sql.buf);
     copy_to_table(wkt);
     copy_to_table("\n");
@@ -496,7 +496,7 @@ void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, doub
 #endif
 
     //give it an srid and put the geom into the copy
-    sql.printf("SRID=%d;POINT(%.15g %.15g)", srs, lon, lat);
+    sql.printf("SRID=%d;POINT(%.15g %.15g)", srid, lon, lat);
     copy_to_table(sql.buf);
     copy_to_table("\n");
 }
