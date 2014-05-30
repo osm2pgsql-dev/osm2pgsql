@@ -2,6 +2,8 @@
 #include "output-pgsql.hpp"
 #include "output-gazetteer.hpp"
 #include "output-null.hpp"
+#include "output-multi.hpp"
+#include "taginfo_impl.hpp"
 
 #include <string.h>
 #include <stdexcept>
@@ -15,11 +17,47 @@ namespace pt = boost::property_tree;
 
 namespace {
 
+template <typename T>
+void override_if(T &t, const std::string &key, const pt::ptree &conf) {
+    boost::optional<T> opt = conf.get_optional<T>(key);
+    if (opt) {
+        t = *opt;
+    }
+}
+
 output_t *parse_multi_single(const pt::ptree &conf,
                              const middle_query_t *mid,
                              const options_t &options) {
-    std::string name = conf.get<std::string>("name");
+    options_t new_opts = options;
 
+    std::string name = conf.get<std::string>("name");
+    std::string proc_type = conf.get<std::string>("type");
+
+    new_opts.tag_transform_script = conf.get_optional<std::string>("tagtransform");
+    new_opts.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
+    new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
+    override_if<int>(new_opts.enable_hstore, "enable-hstore", conf);
+    override_if<int>(new_opts.enable_hstore_index, "enable-hstore-index", conf);
+    override_if<int>(new_opts.enable_multi, "enable-multi", conf);
+    override_if<int>(new_opts.hstore_match_only, "hstore-match-only", conf);
+
+    export_list columns;
+    const pt::ptree &tags = conf.get_child("tags");
+    BOOST_FOREACH(const pt::ptree::value_type &val, tags) {
+        const pt::ptree &tag = val.second;
+        taginfo info;
+        info.name = tag.get<std::string>("name");
+        info.type = tag.get<std::string>("type");
+        info.flags = 0;
+        info.count = 0;
+        // TODO: shouldn't need to specify a type here?
+        columns.add(OSMTYPE_WAY, info);
+    }
+
+    boost::shared_ptr<geometry_processor> processor =
+        geometry_processor::create(proc_type);
+
+    return new output_multi_t(processor, &columns, mid, new_opts);
 }
 
 std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {

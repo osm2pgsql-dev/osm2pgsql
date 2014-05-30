@@ -10,6 +10,8 @@ struct geometry_processor {
     // type to represent an optional return of WKT-encoded geometry
     typedef boost::optional<std::string> maybe_wkt_t;
 
+    static boost::shared_ptr<geometry_processor> create(const std::string &type);
+
     virtual ~geometry_processor();
 
     enum interest { 

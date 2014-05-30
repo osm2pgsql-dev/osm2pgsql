@@ -1,12 +1,15 @@
 #include "output-multi.hpp"
+#include "taginfo_impl.hpp"
 
-output_multi_t::output_multi_t(const middle_query_t* mid_, const options_t &options_) 
+output_multi_t::output_multi_t(boost::shared_ptr<geometry_processor> processor_,
+                               struct export_list *export_list_,
+                               const middle_query_t* mid_, const options_t &options_) 
     : output_t(mid_, options_),
-      m_tagtransform(),
+      m_tagtransform(new tagtransform(&m_options)),
       m_table(),
-      m_export_list(),
+      m_export_list(new export_list(*export_list_)),
       m_sql(),
-      m_processor(),
+      m_processor(processor_),
       m_geo_interest(m_processor->interests()) {
 }
 
@@ -129,7 +132,7 @@ int output_multi_t::relation_delete(osmid_t id) {
 }
 
 int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyval *tags) {
-    unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list);
+    unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
     if (!filter) {
         geometry_processor::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
         if (wkt) {
@@ -141,7 +144,7 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyv
 
 int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
     int polygon = 0, roads = 0;
-    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list);
+    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
     if (!filter) {
         geometry_processor::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
         if (wkt) {
@@ -152,7 +155,7 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
 }
 
 int output_multi_t::process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list);
+    unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
     if (!filter) {
         geometry_processor::maybe_wkt_t wkt = m_processor->process_relation(members, member_count, m_mid);
         if (wkt) {
@@ -162,6 +165,13 @@ int output_multi_t::process_relation(osmid_t id, struct member *members, int mem
     return 0;
 }
 
-void copy_to_table(osmid_t id, const char *wkt, const struct keyval *tags) {
+void output_multi_t::copy_to_table(osmid_t id, const char *wkt, const struct keyval *tags) {
     // TODO: implement me!
+    abort();
 }
+
+void output_multi_t::delete_from_output(osmid_t id) {
+    // TODO: implement me!
+    abort();
+}
+

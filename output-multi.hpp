@@ -14,11 +14,13 @@
 #include "geometry-processor.hpp"
 
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 
 class output_multi_t : public output_t {
 public:
-    output_multi_t(const middle_query_t* mid_, const options_t &options_);
+    output_multi_t(boost::shared_ptr<geometry_processor> processor_,
+                   struct export_list *export_list_,
+                   const middle_query_t* mid_, const options_t &options_);
     virtual ~output_multi_t();
 
     int start();
@@ -48,10 +50,10 @@ private:
     int process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags);
     void copy_to_table(osmid_t id, const char *wkt, const struct keyval *tags);
 
-    tagtransform *m_tagtransform;
-    boost::shared_ptr<table_t> m_table;
+    boost::scoped_ptr<tagtransform> m_tagtransform;
+    boost::scoped_ptr<table_t> m_table;
     
-    export_list *m_export_list;
+    boost::scoped_ptr<export_list> m_export_list;
 
     buffer m_sql;
 
