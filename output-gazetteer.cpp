@@ -55,7 +55,7 @@
 
 void output_gazetteer_t::require_slim_mode(void)
 {
-   if (!m_options->slim)
+   if (!m_options.slim)
    {
       fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
       util::exit_nicely();
@@ -982,11 +982,11 @@ void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
 
 int output_gazetteer_t::start()
 {
-   reproj = m_options->projection;
-   builder.set_exclude_broken_polygon(m_options->excludepoly);
+   reproj = m_options.projection;
+   builder.set_exclude_broken_polygon(m_options.excludepoly);
 
    /* Connection to the database */
-   Connection = PQconnectdb(m_options->conninfo.c_str());
+   Connection = PQconnectdb(m_options.conninfo.c_str());
 
    /* Check to see that the backend connection was successfully made */
    if (PQstatus(Connection) != CONNECTION_OK)
@@ -999,7 +999,7 @@ int output_gazetteer_t::start()
    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
 
    /* (Re)create the table unless we are appending */
-   if (!m_options->append)
+   if (!m_options.append)
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
@@ -1014,19 +1014,19 @@ int output_gazetteer_t::start()
       pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
-      if (m_options->tblsmain_data)
+      if (m_options.tblsmain_data)
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                     CREATE_PLACE_TABLE, "TABLESPACE", m_options->tblsmain_data->c_str());
+                     CREATE_PLACE_TABLE, "TABLESPACE", m_options.tblsmain_data->c_str());
       }
       else
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE, "", "");
       }
-      if (m_options->tblsmain_index)
+      if (m_options.tblsmain_index)
       {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                     CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options->tblsmain_index->c_str());
+                     CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options.tblsmain_index->c_str());
       }
       else
       {
@@ -1036,7 +1036,7 @@ int output_gazetteer_t::start()
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    } else {
-      ConnectionDelete = PQconnectdb(m_options->conninfo.c_str());
+      ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
       if (PQstatus(ConnectionDelete) != CONNECTION_OK)
       { 
           fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
@@ -1383,7 +1383,7 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options_t* options_)
+output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_),
       Connection(NULL),
       ConnectionDelete(NULL),

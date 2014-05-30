@@ -46,7 +46,7 @@ struct test_middle_t : public middle_t {
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
-    explicit test_output_t(const options_t* options_)
+    explicit test_output_t(const options_t &options_)
         : output_t(NULL, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
   options.projection = projection;
 
   struct test_middle_t mid_test;
-  struct test_output_t out_test(&options);
+  struct test_output_t out_test(options);
   struct osmdata_t osmdata(&mid_test, &out_test);
 
   keyval tags;

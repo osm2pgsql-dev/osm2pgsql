@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
   options.tblsslim_data = "tablespacetest";
   options.slim = 1;
 
-  struct output_null_t out_test(&mid_pgsql, &options);
+  struct output_null_t out_test(&mid_pgsql, options);
 
   try {
     // start an empty table to make the middle create the

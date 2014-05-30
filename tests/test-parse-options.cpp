@@ -89,7 +89,7 @@ void test_outputs()
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
     middle_t* mid = middle_t::create_middle(options.slim);
-    output_t* out = output_t::create_output(mid, &options);
+    output_t* out = output_t::create_output(mid, options);
     if(dynamic_cast<output_pgsql_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a pgsql output");
@@ -98,7 +98,7 @@ void test_outputs()
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
-    out = output_t::create_output(mid, &options);
+    out = output_t::create_output(mid, options);
     if(dynamic_cast<output_gazetteer_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a gazetteer output");
@@ -107,7 +107,7 @@ void test_outputs()
     const char* a3[] = {"osm2pgsql", "-O", "null", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a3), const_cast<char **>(a3));
     mid = middle_t::create_middle(options.slim);
-    out = output_t::create_output(mid, &options);
+    out = output_t::create_output(mid, options);
     if(dynamic_cast<output_null_t *>(out) == NULL)
     {
         throw std::logic_error("Expected a null output");
@@ -118,7 +118,7 @@ void test_outputs()
     mid = middle_t::create_middle(options.slim);
     try
     {
-        out = output_t::create_output(mid, &options);
+        out = output_t::create_output(mid, options);
         throw std::logic_error("Expected 'not recognised'");
     }
     catch(std::runtime_error& e)

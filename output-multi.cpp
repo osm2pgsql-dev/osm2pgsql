@@ -1,10 +1,10 @@
 #include "output-multi.hpp"
 
-output_multi_t::output_multi_t(const middle_query_t* mid_, const options_t* options_) 
+output_multi_t::output_multi_t(const middle_query_t* mid_, const options_t &options_) 
     : output_t(mid_, options_),
-      m_tagtransform(NULL),
+      m_tagtransform(),
       m_table(),
-      m_export_list(NULL),
+      m_export_list(),
       m_sql(),
       m_processor(),
       m_geo_interest(m_processor->interests()) {

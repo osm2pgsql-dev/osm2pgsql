@@ -22,7 +22,7 @@ int main(int argc, char *argv[]) {
     options.cache = 1;
 
     struct middle_ram_t mid_ram;
-    struct output_null_t out_test(&mid_ram, &options);
+    struct output_null_t out_test(&mid_ram, options);
     
     mid_ram.start(&options);
     

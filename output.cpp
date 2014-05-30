@@ -17,16 +17,16 @@ namespace {
 
 output_t *parse_multi_single(const pt::ptree &conf,
                              const middle_query_t *mid,
-                             const options_t *options) {
+                             const options_t &options) {
     std::string name = conf.get<std::string>("name");
 
 }
 
-std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t *options) {
+std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {
     std::vector<output_t*> outputs;
 
-    if (!options->style.empty()) {
-        const std::string file_name(options->style);
+    if (!options.style.empty()) {
+        const std::string file_name(options.style);
 
         try {
             pt::ptree conf;
@@ -52,7 +52,7 @@ std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const optio
 
 } // anonymous namespace
 
-output_t* output_t::create_output(const middle_query_t *mid, const options_t* options) {
+output_t* output_t::create_output(const middle_query_t *mid, const options_t &options) {
     std::vector<output_t *> outputs = create_outputs(mid, options);
     
     if (outputs.empty()) {
@@ -67,29 +67,29 @@ output_t* output_t::create_output(const middle_query_t *mid, const options_t* op
     return output;
 }
 
-std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t* options) {
+std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
     std::vector<output_t*> outputs;
 
-    if (options->output_backend == "pgsql") {
+    if (options.output_backend == "pgsql") {
         outputs.push_back(new output_pgsql_t(mid, options));
 
-    } else if (options->output_backend == "gazetteer") {
+    } else if (options.output_backend == "gazetteer") {
         outputs.push_back(new output_gazetteer_t(mid, options));
 
-    } else if (options->output_backend == "null") {
+    } else if (options.output_backend == "null") {
         outputs.push_back(new output_null_t(mid, options));
 
-    } else if (options->output_backend == "multi") {
+    } else if (options.output_backend == "multi") {
         outputs = parse_multi_config(mid, options);
 
     } else {
-        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null, multi].\n") % options->output_backend).str());
+        throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null, multi].\n") % options.output_backend).str());
     }
 
     return outputs;
 }
 
-output_t::output_t(const middle_query_t *mid_, const options_t* options_): m_mid(mid_), m_options(options_) {
+output_t::output_t(const middle_query_t *mid_, const options_t &options_): m_mid(mid_), m_options(options_) {
 
 }
 
@@ -97,6 +97,6 @@ output_t::~output_t() {
 
 }
 
-const options_t* output_t::get_options()const {
-	return m_options;
+const options_t *output_t::get_options()const {
+	return &m_options;
 }

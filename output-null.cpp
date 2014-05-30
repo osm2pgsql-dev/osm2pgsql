@@ -68,7 +68,7 @@ int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, i
   return 0;
 }
 
-output_null_t::output_null_t(const middle_query_t* mid_, const options_t* options_): output_t(mid_, options_) {
+output_null_t::output_null_t(const middle_query_t* mid_, const options_t &options_): output_t(mid_, options_) {
 }
 
 output_null_t::~output_null_t() {

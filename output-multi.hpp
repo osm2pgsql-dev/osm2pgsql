@@ -18,7 +18,7 @@
 
 class output_multi_t : public output_t {
 public:
-    output_multi_t(const middle_query_t* mid_, const options_t* options_);
+    output_multi_t(const middle_query_t* mid_, const options_t &options_);
     virtual ~output_multi_t();
 
     int start();
