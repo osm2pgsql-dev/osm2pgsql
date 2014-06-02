@@ -193,6 +193,7 @@ int read_style_file( const std::string &filename, export_list *exlist )
 
 void output_pgsql_t::cleanup(void)
 {
+    //TODO: we should just let the destructors get these...
     for (int i=0; i<NUM_TABLES; i++) {
         m_tables[i]->teardown();
     }
@@ -487,8 +488,8 @@ int output_pgsql_t::start()
         m_tables.push_back(boost::shared_ptr<table_t>(
             new table_t(
                 name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
-                m_options.append, m_options.slim, m_options.droptemp, m_options.enable_hstore,
-                m_options.tblsmain_data, m_options.tblsmain_index
+                m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
+                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
             )
         ));
 
@@ -500,126 +501,17 @@ int output_pgsql_t::start()
     return 0;
 }
 
-
-//TODO: does this belong with table as well?
-void *output_pgsql_t::pgsql_out_stop_one(void *arg)
-{
-    table_t *table = (table_t *)arg;
-    PGconn *sql_conn = table->sql_conn;
-
-    if( table->buflen != 0 )
-    {
-       fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", table->name.c_str(), table->buflen );
-       util::exit_nicely();
-    }
-
-    table->pgsql_pause_copy();
-    if (!m_options.append)
-    {
-        time_t start, end;
-        time(&start);
-
-        fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name.c_str());
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name.c_str());
-        fprintf(stderr, "Analyzing %s finished\n", table->name.c_str());
-        if (m_options.tblsmain_data) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
-                        "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name.c_str(), m_options.tblsmain_data->c_str(), table->name.c_str());
-        } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name.c_str(), table->name.c_str());
-        }
-
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name.c_str());
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name.c_str(), table->name.c_str());
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name.c_str());
-        fprintf(stderr, "Creating geometry index on  %s\n", table->name.c_str());
-        if (m_options.tblsmain_index) {
-            /* Use fillfactor 100 for un-updatable imports */
-            if (m_options.slim && !m_options.droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
-            } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
-            }
-        } else {
-            if (m_options.slim && !m_options.droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name.c_str(), table->name.c_str());
-            } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name.c_str(), table->name.c_str());
-            }
-        }
-
-        /* slim mode needs this to be able to apply diffs */
-        if (m_options.slim && !m_options.droptemp)
-        {
-            fprintf(stderr, "Creating osm_id index on  %s\n", table->name.c_str());
-            if (m_options.tblsmain_index) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
-            } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name.c_str(), table->name.c_str());
-            }
-        }
-        /* Create hstore index if selected */
-        if (m_options.enable_hstore_index) {
-            fprintf(stderr, "Creating hstore indexes on  %s\n", table->name.c_str());
-            if (m_options.tblsmain_index) {
-                if (HSTORE_NONE != (m_options.enable_hstore)) {
-                    if (m_options.slim && !m_options.droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
-                    } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name.c_str(), table->name.c_str(), m_options.tblsmain_index->c_str());
-                    }
-                }
-                for(size_t i = 0; i < m_options.hstore_columns.size(); ++i) {
-                    if (m_options.slim && !m_options.droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name.c_str(), int(i),table->name.c_str(), m_options.hstore_columns[i].c_str(), m_options.tblsmain_index->c_str());
-                    } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name.c_str(), int(i),table->name.c_str(), m_options.hstore_columns[i].c_str(), m_options.tblsmain_index->c_str());
-                    }
-                }
-            } else {
-                if (HSTORE_NONE != (m_options.enable_hstore)) {
-                    if (m_options.slim && !m_options.droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name.c_str(), table->name.c_str());
-                    } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) ;\n", table->name.c_str(), table->name.c_str());
-                    }
-                }
-                for(size_t i = 0; i < m_options.hstore_columns.size(); ++i) {
-                    if (m_options.slim && !m_options.droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options.hstore_columns[i].c_str());
-                    } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name.c_str(), int(i), table->name.c_str(), m_options.hstore_columns[i].c_str());
-                    }
-                }
-            }
-        }
-        fprintf(stderr, "Creating indexes on  %s finished\n", table->name.c_str());
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name.c_str());
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name.c_str());
-        time(&end);
-        fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name.c_str(), (int)(end - start));
-    }
-    PQfinish(sql_conn);
-    table->sql_conn = NULL;
-
-    fprintf(stderr, "Completed %s\n", table->name.c_str());
-    return NULL;
-}
-
 namespace {
 /* Using pthreads requires us to shoe-horn everything into various void*
  * pointers. Improvement for the future: just use boost::thread. */
 struct pthread_thunk {
-    output_pgsql_t *obj;
-    void *ptr;
+    table_t *ptr;
 };
 
 extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
     pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
-    return thunk->obj->pgsql_out_stop_one(thunk->ptr);
+    thunk->ptr->stop();
+    return NULL;
 };
 } // anonymous namespace
 
@@ -761,7 +653,6 @@ void output_pgsql_t::stop()
     if (m_options.parallel_indexing) {
       pthread_thunk thunks[NUM_TABLES];
       for (i=0; i<NUM_TABLES; i++) {
-          thunks[i].obj = this;
           thunks[i].ptr = m_tables[i].get();
       }
 
@@ -784,8 +675,9 @@ void output_pgsql_t::stop()
 #endif
 
     /* No longer need to access middle layer -- release memory */
+    //TODO: just let the destructor do this
     for (i=0; i<NUM_TABLES; i++)
-        pgsql_out_stop_one(m_tables[i].get());
+        m_tables[i]->stop();
 
 #ifdef HAVE_PTHREAD
     }
@@ -923,8 +815,8 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         util::exit_nicely();
     }
     m_tables[t_point]->pgsql_pause_copy();
-    if ( expire->from_db(m_tables[t_point]->sql_conn, osm_id) != 0)
-        pgsql_exec(m_tables[t_point]->sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, m_tables[t_point]->name.c_str(), osm_id );
+    if ( expire->from_db(m_tables[t_point].get(), osm_id) != 0)
+        m_tables[t_point]->delete_row(osm_id);
     
     return 0;
 }
@@ -944,9 +836,9 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     m_tables[t_poly]->pgsql_pause_copy();
 
     m_tables[t_roads]->delete_row(osm_id);
-    if ( expire->from_db(m_tables[t_line]->sql_conn, osm_id) != 0)
+    if ( expire->from_db(m_tables[t_line].get(), osm_id) != 0)
         m_tables[t_line]->delete_row(osm_id);
-    if ( expire->from_db(m_tables[t_poly]->sql_conn, osm_id) != 0)
+    if ( expire->from_db(m_tables[t_poly].get(), osm_id) != 0)
         m_tables[t_poly]->delete_row(osm_id);
     return 0;
 }
@@ -970,9 +862,9 @@ int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
     m_tables[t_poly]->pgsql_pause_copy();
 
     m_tables[t_roads]->delete_row(-osm_id);
-    if ( expire->from_db(m_tables[t_line]->sql_conn, -osm_id) != 0)
+    if ( expire->from_db(m_tables[t_line].get(), -osm_id) != 0)
         m_tables[t_line]->delete_row(-osm_id);
-    if ( expire->from_db(m_tables[t_poly]->sql_conn, -osm_id) != 0)
+    if ( expire->from_db(m_tables[t_poly].get(), -osm_id) != 0)
         m_tables[t_poly]->delete_row(-osm_id);
     return 0;
 }

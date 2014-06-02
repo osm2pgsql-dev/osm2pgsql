@@ -21,6 +21,7 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 static const int DEFAULT_SCALE = 100;
 
+//TODO: GO THROUGH AND UPDATE TO BOOL WHERE MEMBER DENOTES ONLY ON OR OFF OPTION
 struct options_t {
 public:
     /* construct with sensible defaults */
@@ -33,8 +34,8 @@ public:
     std::string prefix; /* prefix for table names */
     int scale; /* scale for converting coordinates to fixed point */
     boost::shared_ptr<reprojection> projection; /* SRS of projection */
-    int append; /* Append to existing data */
-    int slim; /* In slim mode */
+    bool append; /* Append to existing data */
+    bool slim; /* In slim mode */
     int cache; /* Memory usable for cache in MB */
     boost::optional<std::string> tblsmain_index; /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
     boost::optional<std::string> tblsslim_index; /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
@@ -44,7 +45,7 @@ public:
     int expire_tiles_zoom; /* Zoom level for tile expiry list */
     int expire_tiles_zoom_min; /* Minimum zoom level for tile expiry list */
     std::string expire_tiles_filename; /* File name to output expired tiles list to */
-    int enable_hstore; /* add an additional hstore column with objects key/value pairs */
+    int hstore_mode; /* add an additional hstore column with objects key/value pairs */
     int enable_hstore_index; /* add an index on the hstore column */
     int enable_multi; /* Output multi-geometries intead of several simple geometries */
     std::vector<std::string> hstore_columns; /* list of columns that should be written into their own hstore column */
