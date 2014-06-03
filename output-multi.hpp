@@ -56,6 +56,7 @@ private:
     buffer m_sql;
     boost::shared_ptr<geometry_processor> m_processor;
     const geometry_processor::interest m_geo_interest;
+    const OsmType m_osm_type;
     boost::scoped_ptr<table_t> m_table;
 };
 

@@ -1,11 +1,12 @@
 #include "output-multi.hpp"
 #include "taginfo_impl.hpp"
 
+#include <boost/format.hpp>
+
 namespace {
 
-columns_t normal_columns(const export_list &cols) {
-    // TODO: shouldn't need type here.
-    return cols.normal_columns(OSMTYPE_WAY);
+std::string mk_column_name(const std::string &name, const options_t &options) {
+    return (boost::format("%1%_%2%") % options.prefix % name).str();
 }
 
 } // anonymous namespace
@@ -20,7 +21,10 @@ output_multi_t::output_multi_t(const std::string &name,
       m_sql(),
       m_processor(processor_),
       m_geo_interest(m_processor->interests()),
-      m_table(new table_t(name, m_processor->type(), normal_columns(*m_export_list),
+      m_osm_type(((m_geo_interest & geometry_processor::interest_node) > 0)
+                 ? OSMTYPE_NODE : OSMTYPE_WAY),
+      m_table(new table_t(mk_column_name(name, m_options), m_processor->column_type(),
+                          m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
                           m_options.hstore_mode, m_options.enable_hstore_index,
