@@ -48,6 +48,7 @@ tests/test-middle-pgsql
 tests/test-pgsql-escape
 tests/test-parse-options
 tests/test-output-multi-point
+tests/test-output-multi-point-multi-table
 tests/*.log
 tests/*.trs
 

@@ -84,6 +84,7 @@ check_PROGRAMS = \
 	tests/test-middle-ram \
 	tests/test-middle-pgsql \
 	tests/test-output-multi-point \
+	tests/test-output-multi-point-multi-table \
 	tests/test-pgsql-escape \
 	tests/test-parse-options
 
@@ -95,6 +96,8 @@ tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests
 tests_test_middle_pgsql_LDADD = libosm2pgsql.la
 tests_test_output_multi_point_SOURCES = tests/test-output-multi-point.cpp tests/common-pg.cpp
 tests_test_output_multi_point_LDADD = libosm2pgsql.la
+tests_test_output_multi_point_multi_table_SOURCES = tests/test-output-multi-point-multi-table.cpp tests/common-pg.cpp
+tests_test_output_multi_point_multi_table_LDADD = libosm2pgsql.la
 tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
@@ -143,6 +146,7 @@ tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_multi_point_multi_table_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_options_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
