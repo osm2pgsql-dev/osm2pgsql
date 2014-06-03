@@ -44,7 +44,6 @@ const std::vector<taginfo> &export_list::get(enum OsmType id) const {
 columns_t export_list::normal_columns(enum OsmType id) const {
     columns_t columns;
     const std::vector<taginfo> &infos = get(id);
-    columns.push_back(std::pair<std::string, std::string>("osm_id", POSTGRES_OSMID_TYPE));
     for(std::vector<taginfo>::const_iterator info = infos.begin(); info != infos.end(); ++info)
     {
         if( info->flags & FLAG_DELETE )

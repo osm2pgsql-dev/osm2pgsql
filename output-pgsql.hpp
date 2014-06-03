@@ -72,10 +72,10 @@ private:
     friend struct way_cb_func;
     friend struct rel_cb_func;
     
-    int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon, buffer &sql);
-    int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql);
-    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql);
-    int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql);
+    int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
+    int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
+    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole);
+    int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 
@@ -87,8 +87,6 @@ private:
     std::vector<boost::shared_ptr<table_t> > m_tables;
     
     export_list *m_export_list;
-
-    buffer m_sql;
 
     build_geometry builder;
 

@@ -53,7 +53,6 @@ private:
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
     boost::scoped_ptr<export_list> m_export_list;
-    buffer m_sql;
     boost::shared_ptr<geometry_processor> m_processor;
     const geometry_processor::interest m_geo_interest;
     boost::scoped_ptr<table_t> m_table;

@@ -6,7 +6,7 @@
 #include "buffer.hpp"
 
 int main(int argc, char *argv[]) {
-    buffer sql;
-    escape(sql, "farmland");
-    return strcmp(sql.buf, "farmland") != 0;
+
+    std::string escaped = escape("farmland");
+    return escaped.compare("farmland") != 0;
 }

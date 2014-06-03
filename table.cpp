@@ -11,60 +11,53 @@ typedef boost::format fmt;
 namespace
 {
 /* Escape data appropriate to the type */
-void escape_type(buffer &sql, const char *value, const char *type) {
-    int items;
+string escape_type(const char *value, const char *type) {
 
+    // For integers we take the first number, or the average if it's a-b
     if (!strcmp(type, "int4")) {
         int from, to;
-        /* For integers we take the first number, or the average if it's a-b */
-        items = sscanf(value, "%d-%d", &from, &to);
-        if (items == 1) {
-            sql.printf("%d", from);
-        } else if (items == 2) {
-            sql.printf("%d", (from + to) / 2);
-        } else {
-            sql.printf("\\N");
-        }
-    } else {
-        /*
-         try to "repair" real values as follows:
+        int items = sscanf(value, "%d-%d", &from, &to);
+        if (items == 1)
+            return (fmt("%1%") % from).str();
+        else if (items == 2)
+            return (fmt("%1%") % ((from + to) / 2)).str();
+        else
+            return "\\N";
+    }
+        /* try to "repair" real values as follows:
          * assume "," to be a decimal mark which need to be replaced by "."
          * like int4 take the first number, or the average if it's a-b
          * assume SI unit (meters)
          * convert feet to meters (1 foot = 0.3048 meters)
          * reject anything else
          */
-        if (!strcmp(type, "real")) {
-            int i, slen;
-            float from, to;
+    else if (!strcmp(type, "real"))
+    {
+        string escaped(value);
+        std::replace(escaped.begin(), escaped.end(), ',', '.');
 
-            // we're just using sql as a temporary buffer here.
-            sql.cpy(value);
-
-            slen = sql.len();
-            for (i = 0; i < slen; i++)
-                if (sql.buf[i] == ',')
-                    sql.buf[i] = '.';
-
-            items = sscanf(sql.buf, "%f-%f", &from, &to);
-            if (items == 1) {
-                if ((sql.buf[slen - 2] == 'f') && (sql.buf[slen - 1] == 't')) {
-                    from *= 0.3048;
-                }
-                sql.printf("%f", from);
-            } else if (items == 2) {
-                if ((sql.buf[slen - 2] == 'f') && (sql.buf[slen - 1] == 't')) {
-                    from *= 0.3048;
-                    to *= 0.3048;
-                }
-                sql.printf("%f", (from + to) / 2);
-            } else {
-                sql.printf("\\N");
-            }
-        } else {
-            escape(sql, value);
+        float from, to;
+        int items = sscanf(escaped.c_str(), "%f-%f", &from, &to);
+        if (items == 1)
+        {
+            if (escaped.substr(escaped.size() - 2).compare("ft") == 0)
+                from *= 0.3048;
+            return (fmt("%1%") % from).str();
         }
+        else if (items == 2)
+        {
+            if (escaped.substr(escaped.size() - 2).compare("ft") == 0)
+            {
+                from *= 0.3048;
+                to *= 0.3048;
+            }
+            return (fmt("%1%") % ((from + to) / 2)).str();
+        }
+        else
+            return "\\N";
     }
+    else
+        return escape(value);
 }
 
 /* create an escaped version of the string for hstore table insert */
@@ -104,12 +97,10 @@ string escape4hstore(const char *src)
 table_t::table_t(const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srid(srid), scale(scale), append(append), slim(slim),
+    name(name), type(type), sql_conn(NULL), copyMode(0), srid(srid), scale(scale), append(append), slim(slim),
     drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index), columns(columns),
     hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
-    memset(buffer, 0, sizeof buffer);
-
     //if we dont have any columns
     if(columns.size() == 0)
     {
@@ -155,24 +146,27 @@ void table_t::setup(const string& conninfo)
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%_tmp") % name).str());
 
     begin();
-    if (!append) {
+
+    //making a new table
+    if (!append)
+    {
         //define the new table
-        string sql = (fmt("CREATE TABLE %1% (") % name).str();
+        string sql = (fmt("CREATE TABLE %1% (osm_id %2%,") % name % POSTGRES_OSMID_TYPE).str();
 
         //first with the regular columns
         for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-            sql += (fmt("\"%1%\" %2%, ") % column->first % column->second).str();
+            sql += (fmt("\"%1%\" %2%,") % column->first % column->second).str();
 
         //then with the hstore columns
         for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
-            sql += (fmt("\"%1%\" hstore, ") % (*hcolumn)).str();
+            sql += (fmt("\"%1%\" hstore,") % (*hcolumn)).str();
 
         //add tags column
         if (hstore_mode != HSTORE_NONE)
             sql += "\"tags\" hstore)";
         //or remove the last ", " from the end
         else
-            sql = sql.replace(sql.length() - 2, 2, ")");
+            sql[sql.length() - 1] = ')';
 
         //add the main table space
         if (table_space)
@@ -213,28 +207,28 @@ void table_t::setup(const string& conninfo)
 
         //TODO: check over hstore columns
 
-        //TODO? change the type of the geometry column if needed - this can only change to a more permissive type
+        //TODO: change the type of the geometry column if needed - this can only change to a more permissive type
     }
 
     //let postgres cache this query as it will presumably happen a lot
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
 
     //generate column list for COPY
-    string cols;
+    string cols = "osm_id,";
     //first with the regular columns
     for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        cols += (fmt("\"%1%\", ") % column->first).str();
+        cols += (fmt("\"%1%\",") % column->first).str();
 
     //then with the hstore columns
     for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
-        cols += (fmt("\"%1%\", ") % (*hcolumn)).str();
+        cols += (fmt("\"%1%\",") % (*hcolumn)).str();
 
     //add tags column and geom column
     if (hstore_mode != HSTORE_NONE)
-        cols += "\"tags\", \"way\"";
+        cols += "tags,way";
     //or just the geom column
     else
-        cols += "\"way\"";
+        cols += "way";
 
     //get into copy mode
     copystr = (fmt("COPY %1% (%2%) FROM STDIN") % name % cols).str();
@@ -264,45 +258,6 @@ void table_t::commit()
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "COMMIT");
 }
 
-/* Handles copying out, but coalesces the data into large chunks for
- * efficiency. PostgreSQL doesn't actually need this, but each time you send
- * a block of data you get 5 bytes of overhead. Since we go column by column
- * with most empty and one byte delimiters, without this optimisation we
- * transfer three times the amount of data necessary.
- */
-void table_t::copy_to_table(const char *sql) {
-    unsigned int len = strlen(sql);
-
-    /* Return to copy mode if we dropped out */
-    if (!copyMode) {
-        pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
-        copyMode = 1;
-    }
-    /* If the combination of old and new data is too big, flush old data */
-    if ((unsigned) (buflen + len) > sizeof(buffer) - 10) {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer);
-        buflen = 0;
-
-        /* If new data by itself is also too big, output it immediately */
-        if ((unsigned) len > sizeof(buffer) - 10) {
-            pgsql_CopyData(name.c_str(), sql_conn, sql);
-            len = 0;
-        }
-    }
-    /* Normal case, just append to buffer */
-    if (len > 0) {
-        strcpy(buffer + buflen, sql);
-        buflen += len;
-        len = 0;
-    }
-
-    /* If we have completed a line, output it */
-    if (buflen > 0 && buffer[buflen - 1] == '\n') {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer);
-        buflen = 0;
-    }
-}
-
 void table_t::pgsql_pause_copy()
 {
     PGresult   *res;
@@ -327,11 +282,10 @@ void table_t::pgsql_pause_copy()
     copyMode = 0;
 }
 
-void table_t::write_hstore(keyval *tags)
+void table_t::write_tags_column(keyval *tags, std::string& values)
 {
-    string column;
-
     //iterate through the list of tags, first one is always null
+    bool added = false;
     for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
     {
         //skip z_order tag and keys which have their own column
@@ -339,27 +293,28 @@ void table_t::write_hstore(keyval *tags)
             continue;
 
         //hstore ASCII representation looks like "<key>"=>"<value>"
-        column += (fmt("%1%\"%2%\"=>\"%3%\"") %
-            (column.size() ? "," : "") %
+        values += (fmt("%1%\"%2%\"=>\"%3%\"") %
+            (added ? "," : "") %
             escape4hstore(xtags->key) %
             escape4hstore(xtags->value)).str();
+
+        //we did at least one so we need commas from here on out
+        added = true;
     }
 
     //finish the hstore column by placing a TAB into the data stream
-    column.push_back('\t');
-    copy_to_table(column.c_str());
+    values.push_back('\t');
 }
 
 /* write an hstore column to the database */
-void table_t::write_hstore_columns(keyval *tags)
+void table_t::write_hstore_columns(keyval *tags, std::string& values)
 {
     //iterate over all configured hstore columns in the options
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
         //a clone of the tags pointer
         keyval* xtags = tags;
-        bool found = false;
-        string column;
+        bool added = false;
 
         //iterate through the list of tags, first one is always null
         for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
@@ -367,81 +322,84 @@ void table_t::write_hstore_columns(keyval *tags)
             //check if the tag's key starts with the name of the hstore column
             if(hstore_column->find(xtags->key) == 0)
             {
-                //remember we found one
-                found = true;
-
                 //generate the short key name, somehow pointer arithmetic works against this member of the keyval data structure...
                 char* shortkey = xtags->key + hstore_column->size();
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "<key>"=>"<value>"
-                column += (fmt("%1%\"%2%\"=>\"%3%\"") %
-                    (column.size() ? "," : "") %
-                    escape4hstore(xtags->key) %
+                values += (fmt("%1%\"%2%\"=>\"%3%\"") %
+                    (added ? "," : "") %
+                    escape4hstore(shortkey) %
                     escape4hstore(xtags->value)).str();
+
+                //we did at least one so we need commas from here on out
+                added = true;
             }
         }
 
         //if you found not matching tags write a NULL
-        if(!found)
-            column = "\\N\t";
+        if(!added)
+            values.append("\\N\t");
         //otherwise finish the column off with a tab
         else
-            column.push_back('\t');
-        //send it along
-        copy_to_table(column.c_str());
+            values.push_back('\t');
     }
 }
 
-void table_t::export_tags(struct keyval *tags, struct buffer &sql) {
-    //for each column, note we skip the first because its the osmid
-    for(columns_t::const_iterator column = columns.begin() + 1; column != columns.end(); ++column)
+void table_t::write_columns(keyval *tags, string& values)
+{
+    //for each column
+    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
     {
-        struct keyval *tag = NULL;
+        keyval *tag = NULL;
         if ((tag = getTag(tags, column->first.c_str())))
         {
-            escape_type(sql, tag->value, column->second.c_str());
+            values.append(escape_type(tag->value, column->second.c_str()));
+            //remember we already used this one so we cant use again later in the hstore column
             if (hstore_mode == HSTORE_NORM)
                 tag->has_column = 1;
         }
         else
-            sql.printf("\\N");
-
-        copy_to_table(sql.buf);
-        copy_to_table("\t");
+            values.append("\\N");
+        values.push_back('\t');
     }
 }
 
-void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql)
+void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
 {
-    //add the id
-    sql.printf("%" PRIdOSMID "\t", id);
-    copy_to_table(sql.buf);
+    //add the osm id
+    buffer.assign((fmt("%1%\t") % id).str());
 
     //get the regular columns' values
-    export_tags(tags, sql);
+    write_columns(tags, buffer);
 
     //get the hstore columns' values
-    write_hstore_columns(tags);
+    write_hstore_columns(tags, buffer);
 
     //get the key value pairs for the tags column
     if (hstore_mode != HSTORE_NONE)
-        write_hstore(tags);
+        write_tags_column(tags, buffer);
 
-    //give it an srid and put the geom into the copy
-    sql.printf("SRID=%d;", srid);
-    copy_to_table(sql.buf);
-    copy_to_table(wkt);
-    copy_to_table("\n");
+    //give the wkt an srid
+    buffer.append((fmt("SRID=%1%;") % srid).str());
+    //add the wkt
+    buffer.append(wkt);
+    //we need this because we are copying from stdin
+    buffer.push_back('\n');
+
+    //tell the db we are copying if for some reason we arent already
+    if (!copyMode)
+    {
+        pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
+        copyMode = 1;
+    }
+
+    //send all the data to postgres
+    pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
 }
 
-void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon, struct buffer &sql)
+void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon)
 {
-    // i think the maximum length of this format string should be
-    // 52 chars: "POINT(%.15g %.15g)", but we'll allocate
-    // a little bit more just in case.
-    static const size_t max_str_len = 100;
-    char *buf = (char *)alloca(max_str_len);
 
 #ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
@@ -449,15 +407,7 @@ void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, doub
     lat = util::fix_to_double(util::double_to_fix(lat, scale), scale);
 #endif
 
-    int written = snprintf(buf, max_str_len, "POINT(%.15g %.15g)", lon, lat);
-    if (written < 0) {
-        throw std::runtime_error("table_t::write_node: Error formatting WKT.");
-
-    } else if (written >= max_str_len) {
-        throw std::runtime_error("table_t::write_node: Overflow in snprintf while formatting WKT.");
-    }
-
-    write_wkt(id, tags, buf, sql);
+    write_wkt(id, tags, (fmt("POINT(%.15g %.15g)") % lon % lat).str().c_str());
 }
 
 void table_t::delete_row(const osmid_t id)
@@ -509,9 +459,6 @@ boost::shared_ptr<table_t::wkts> table_t::get_wkts(const osmid_t id)
 
 void table_t::stop()
 {
-    if( buflen != 0 )
-       throw std::runtime_error((fmt("Internal error: Buffer for %1% has %2% bytes after end copy") % name % buflen).str());
-
     pgsql_pause_copy();
     if (!append)
     {
