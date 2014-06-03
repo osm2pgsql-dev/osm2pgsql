@@ -98,7 +98,7 @@ int mark_tile(struct expire_tiles::tile ** tree_head, int x, int y, int zoom) {
 	return _mark_tile(tree_head, x, y, zoom, 0);
 }
 
-int output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
+void output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
 	int	y_min;
 	int	x_iter;
 	int	y_iter;
@@ -116,11 +116,11 @@ int output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom, int 
 	for (x_iter = x << zoom_diff; x_iter < x_max; x_iter++) {
 		for (y_iter = y_min; y_iter < y_max; y_iter++) {
 			outcount++;
-                        if ((outcount <= 1) || ((outcount % 1000) == 0)) {
-                            fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
-                            fflush(stderr);
-                        }
-                        fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
+            if ((outcount <= 1) || ((outcount % 1000) == 0)) {
+                fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
+                fflush(stderr);
+            }
+            fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
 		}
 	}
 }
@@ -226,8 +226,8 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b, double la
 	int	y;
 	int	norm_x;
 
-        reproj->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
-        reproj->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
+    Options->projection->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
+    Options->projection->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
 
 	if (tile_x_a > tile_x_b) {
 		/* We always want the line to go from left to right - swap the ends if it doesn't */
@@ -319,10 +319,10 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 
 
 	/* Convert the box's Mercator coordinates into tile coordinates */
-        reproj->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
+        Options->projection->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
         min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
         min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
-        reproj->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
+        Options->projection->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
         max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
         max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
 	if (min_tile_x < 0) min_tile_x = 0;
@@ -424,29 +424,21 @@ void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id) {
  * of elements that refer to the osm_id.
 
  */
-int expire_tiles::from_db(PGconn * sql_conn, osmid_t osm_id) {
-    PGresult *	res;
-    char *		wkt;
-    int i, noElements = 0;
-    char const *paramValues[1];
-    char tmp[16];
-
-    if (Options->expire_tiles_zoom < 0) return -1;
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
-    paramValues[0] = tmp;
+int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
+    //bail if we dont care about expiry
+    if (Options->expire_tiles_zoom < 0)
+        return -1;
     
-    /* The prepared statement get_wkt will behave differently depending on the sql_conn
-     * each table has its own sql_connection with the get_way refering to the approriate table
-     */
-    res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    noElements = PQntuples(res);
+    //grab the geom for this id
+    boost::shared_ptr<table_t::wkts> wkts = table->get_wkts(osm_id);
 
-    for (i = 0; i < noElements; i++) {
-        wkt = PQgetvalue(res, i, 0);
+    //dirty the stuff
+    const char* wkt = NULL;
+    while((wkt = wkts->get_next()))
         from_wkt(wkt, osm_id);
-    }
-    PQclear(res);
-    return noElements;
+
+    //return how many rows were affected
+    return wkts->get_count();
 }
 
 

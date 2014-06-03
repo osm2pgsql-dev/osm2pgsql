@@ -46,8 +46,6 @@ public:
     int way_delete(osmid_t id);
     int relation_delete(osmid_t id);
 
-    void *pgsql_out_stop_one(void *arg);
-
 private:
 
     struct way_cb_func : public middle_t::way_cb_func {
@@ -83,7 +81,7 @@ private:
 
     tagtransform *m_tagtransform;
 
-    /* enable output of a generated way_area tag to either hstore or its own column */
+    //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;
 
     std::vector<boost::shared_ptr<table_t> > m_tables;

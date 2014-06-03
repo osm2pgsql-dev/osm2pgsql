@@ -36,7 +36,7 @@ output_t *parse_multi_single(const pt::ptree &conf,
     new_opts.tag_transform_script = conf.get_optional<std::string>("tagtransform");
     new_opts.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
     new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
-    override_if<int>(new_opts.enable_hstore, "enable-hstore", conf);
+    override_if<int>(new_opts.hstore_mode, "enable-hstore", conf);
     override_if<int>(new_opts.enable_hstore_index, "enable-hstore-index", conf);
     override_if<int>(new_opts.enable_multi, "enable-multi", conf);
     override_if<int>(new_opts.hstore_match_only, "hstore-match-only", conf);

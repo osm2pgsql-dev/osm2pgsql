@@ -2,7 +2,8 @@
 #define EXPIRE_TILES_H
 
 #include "output.hpp"
-#include "reprojection.hpp"
+#include "table.hpp"
+
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
@@ -14,7 +15,7 @@ struct expire_tiles : public boost::noncopyable {
     void from_nodes_line(struct osmNode * nodes, int count);
     void from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm_id);
     void from_wkt(const char * wkt, osmid_t osm_id);
-    int from_db(struct pg_conn * sql_conn, osmid_t osm_id);
+    int from_db(table_t* table, osmid_t osm_id);
 
     struct tile {
 	int		complete[2][2];	/* Flags */
@@ -34,8 +35,6 @@ private:
     const struct options_t *Options;
     struct tile *dirty;
     int outcount;
-
-    boost::shared_ptr<reprojection> reproj;
 };
 
 #endif

@@ -574,7 +574,7 @@ unsigned int tagtransform::c_filter_basic_tags(
 
         /** if tag not found in list of exports: */
         if (i == infos.size()) {
-            if (options->enable_hstore) {
+            if (options->hstore_mode != HSTORE_NONE) {
                 /* with hstore, copy all tags... */
                 pushItem(&temp, item);
                 /* ... but if hstore_match_only is set then don't take this

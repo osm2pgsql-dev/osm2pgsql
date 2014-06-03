@@ -23,8 +23,8 @@ output_multi_t::output_multi_t(const std::string &name,
       m_table(new table_t(name, m_processor->type(), normal_columns(*m_export_list),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
-                          m_options.enable_hstore, m_options.tblsmain_data,
-                          m_options.tblsmain_index)) {
+                          m_options.hstore_mode, m_options.enable_hstore_index,
+                          m_options.tblsmain_data, m_options.tblsmain_index)) {
 }
 
 output_multi_t::~output_multi_t() {

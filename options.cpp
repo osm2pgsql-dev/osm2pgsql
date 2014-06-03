@@ -255,7 +255,7 @@ std::string build_conninfo(const std::string &db,
 options_t::options_t():
     conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), enable_hstore(HSTORE_NONE), enable_hstore_index(0),
+    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(0),
     enable_multi(0), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
@@ -378,19 +378,19 @@ options_t options_t::parse(int argc, char *argv[])
             options.extra_attributes = 1;
             break;
         case 'k':
-            if (options.enable_hstore != HSTORE_NONE) {
+            if (options.hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            options.enable_hstore = HSTORE_NORM;
+            options.hstore_mode = HSTORE_NORM;
             break;
         case 208:
             options.hstore_match_only = 1;
             break;
         case 'j':
-            if (options.enable_hstore != HSTORE_NONE) {
+            if (options.hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            options.enable_hstore = HSTORE_ALL;
+            options.hstore_mode = HSTORE_ALL;
             break;
         case 'z':
             options.hstore_columns.push_back(optarg);
@@ -487,12 +487,12 @@ options_t options_t::parse(int argc, char *argv[])
         options.unlogged = 0;
     }
 
-    if (options.enable_hstore == HSTORE_NONE && options.hstore_columns.size() == 0 && options.hstore_match_only) {
+    if (options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0 && options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
         options.hstore_match_only = 0;
     }
 
-    if (options.enable_hstore_index && options.enable_hstore == HSTORE_NONE && options.hstore_columns.size() == 0) {
+    if (options.enable_hstore_index && options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
         options.enable_hstore_index = 0;
     }

@@ -66,14 +66,47 @@ void escape_type(buffer &sql, const char *value, const char *type) {
         }
     }
 }
+
+/* create an escaped version of the string for hstore table insert */
+/* make shure dst is 2*strlen(src) */
+string escape4hstore(const char *src)
+{
+    string escaped;
+    escaped.reserve(strlen(src) * 4);
+
+    for (size_t i = 0; i < strlen(src); ++i) {
+        switch (src[i]) {
+            case '\\':
+                escaped.append("\\\\\\\\");
+                break;
+            case '"':
+                escaped.append("\\\\\"");
+                break;
+            case '\t':
+                escaped.append("\\\t");
+                break;
+            case '\r':
+                escaped.append("\\\r");
+                break;
+            case '\n':
+                escaped.append("\\\n");
+                break;
+            default:
+                escaped.push_back(src[i]);
+                break;
+        }
+    }
+    return escaped;
+}
+
 }
 
 table_t::table_t(const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int enable_hstore,
-    const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
+    const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
+    const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
     name(name), type(type), sql_conn(NULL), buflen(0), copyMode(0), srid(srid), scale(scale), append(append), slim(slim),
-    drop_temp(drop_temp), enable_hstore(enable_hstore), columns(columns), hstore_columns(hstore_columns),
-    table_space(table_space), table_space_index(table_space_index)
+    drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index), columns(columns),
+    hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
     memset(buffer, 0, sizeof buffer);
 
@@ -86,6 +119,7 @@ table_t::table_t(const string& name, const string& type, const columns_t& column
 
 table_t::~table_t()
 {
+    teardown();
 }
 
 void table_t::setup(const string& conninfo)
@@ -134,7 +168,7 @@ void table_t::setup(const string& conninfo)
             sql += (fmt("\"%1%\" hstore, ") % (*hcolumn)).str();
 
         //add tags column
-        if (enable_hstore)
+        if (hstore_mode != HSTORE_NONE)
             sql += "\"tags\" hstore)";
         //or remove the last ", " from the end
         else
@@ -196,7 +230,7 @@ void table_t::setup(const string& conninfo)
         cols += (fmt("\"%1%\", ") % (*hcolumn)).str();
 
     //add tags column and geom column
-    if (enable_hstore)
+    if (hstore_mode != HSTORE_NONE)
         cols += "\"tags\", \"way\"";
     //or just the geom column
     else
@@ -236,42 +270,36 @@ void table_t::commit()
  * with most empty and one byte delimiters, without this optimisation we
  * transfer three times the amount of data necessary.
  */
-void table_t::copy_to_table(const char *sql)
-{
+void table_t::copy_to_table(const char *sql) {
     unsigned int len = strlen(sql);
 
     /* Return to copy mode if we dropped out */
-    if( !copyMode )
-    {
+    if (!copyMode) {
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
         copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
-    if( (unsigned)(buflen + len) > sizeof( buffer )-10 )
-    {
-      pgsql_CopyData(name.c_str(), sql_conn, buffer);
-      buflen = 0;
+    if ((unsigned) (buflen + len) > sizeof(buffer) - 10) {
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
+        buflen = 0;
 
-      /* If new data by itself is also too big, output it immediately */
-      if( (unsigned)len > sizeof( buffer )-10 )
-      {
-        pgsql_CopyData(name.c_str(), sql_conn, sql);
-        len = 0;
-      }
+        /* If new data by itself is also too big, output it immediately */
+        if ((unsigned) len > sizeof(buffer) - 10) {
+            pgsql_CopyData(name.c_str(), sql_conn, sql);
+            len = 0;
+        }
     }
     /* Normal case, just append to buffer */
-    if( len > 0 )
-    {
-      strcpy( buffer+buflen, sql );
-      buflen += len;
-      len = 0;
+    if (len > 0) {
+        strcpy(buffer + buflen, sql);
+        buflen += len;
+        len = 0;
     }
 
     /* If we have completed a line, output it */
-    if( buflen > 0 && buffer[buflen-1] == '\n' )
-    {
-      pgsql_CopyData(name.c_str(), sql_conn, buffer);
-      buflen = 0;
+    if (buflen > 0 && buffer[buflen - 1] == '\n') {
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
+        buflen = 0;
     }
 }
 
@@ -299,129 +327,70 @@ void table_t::pgsql_pause_copy()
     copyMode = 0;
 }
 
-void table_t::write_hstore(keyval *tags, struct buffer &sql)
+void table_t::write_hstore(keyval *tags)
 {
-    size_t hlen;
-    /* a clone of the tags pointer */
-    struct keyval *xtags = tags;
+    string column;
 
-    /* while this tags has a follow-up.. */
-    while (xtags->next->key != NULL)
+    //iterate through the list of tags, first one is always null
+    for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
     {
+        //skip z_order tag and keys which have their own column
+        if ((xtags->has_column) || (strcmp("z_order", xtags->key) == 0))
+            continue;
 
-      /* hard exclude z_order tag and keys which have their own column */
-      if ((xtags->next->has_column) || (strcmp("z_order",xtags->next->key)==0)) {
-          /* update the tag-pointer to point to the next tag */
-          xtags = xtags->next;
-          continue;
-      }
-
-      /*
-        hstore ASCII representation looks like
-        "<key>"=>"<value>"
-
-        we need at least strlen(key)+strlen(value)+6+'\0' bytes
-        in theory any single character could also be escaped
-        thus we need an additional factor of 2.
-        The maximum lenght of a single hstore element is thus
-        calcuated as follows:
-      */
-      hlen=2 * (strlen(xtags->next->key) + strlen(xtags->next->value)) + 7;
-
-      /* if the sql buffer is too small */
-      if (hlen > sql.capacity()) {
-        sql.reserve(hlen);
-      }
-
-      /* pack the tag with its value into the hstore */
-      keyval2hstore(sql, xtags->next);
-      copy_to_table(sql.buf);
-
-      /* update the tag-pointer to point to the next tag */
-      xtags = xtags->next;
-
-      /* if the tag has a follow up, add a comma to the end */
-      if (xtags->next->key != NULL)
-          copy_to_table(",");
+        //hstore ASCII representation looks like "<key>"=>"<value>"
+        column += (fmt("%1%\"%2%\"=>\"%3%\"") %
+            (column.size() ? "," : "") %
+            escape4hstore(xtags->key) %
+            escape4hstore(xtags->value)).str();
     }
 
-    /* finish the hstore column by placing a TAB into the data stream */
-    copy_to_table("\t");
-
-    /* the main hstore-column has now been written */
+    //finish the hstore column by placing a TAB into the data stream
+    column.push_back('\t');
+    copy_to_table(column.c_str());
 }
 
 /* write an hstore column to the database */
-void table_t::write_hstore_columns(keyval *tags, struct buffer &sql)
+void table_t::write_hstore_columns(keyval *tags)
 {
-    char *shortkey;
-    /* the index of the current hstore column */
-    int i_hstore_column;
-    int found;
-    struct keyval *xtags;
-    char *pos;
-    size_t hlen;
-
-    /* iterate over all configured hstore colums in the options */
+    //iterate over all configured hstore columns in the options
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
-        /* did this node have a tag that matched the current hstore column */
-        found = 0;
+        //a clone of the tags pointer
+        keyval* xtags = tags;
+        bool found = false;
+        string column;
 
-        /* a clone of the tags pointer */
-        xtags = tags;
-
-        /* while this tags has a follow-up.. */
-        while (xtags->next->key != NULL) {
-
-            /* check if the tag's key starts with the name of the hstore column */
-            pos = strstr(xtags->next->key, hstore_column->c_str());
-
-            /* and if it does.. */
-            if(pos == xtags->next->key)
+        //iterate through the list of tags, first one is always null
+        for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
+        {
+            //check if the tag's key starts with the name of the hstore column
+            if(hstore_column->find(xtags->key) == 0)
             {
-                /* remember we found one */
-                found=1;
+                //remember we found one
+                found = true;
 
-                /* generate the short key name */
-                shortkey = xtags->next->key + hstore_column->size();
+                //generate the short key name, somehow pointer arithmetic works against this member of the keyval data structure...
+                char* shortkey = xtags->key + hstore_column->size();
 
-                /* calculate the size needed for this hstore entry */
-                hlen=2*(strlen(shortkey)+strlen(xtags->next->value))+7;
-
-                /* if the sql buffer is too small */
-                if (hlen > sql.capacity()) {
-                    /* resize it */
-                    sql.reserve(hlen);
-                }
-
-                /* and pack the shortkey with its value into the hstore */
-                keyval2hstore_manual(sql, shortkey, xtags->next->value);
-                copy_to_table(sql.buf);
-
-                /* update the tag-pointer to point to the next tag */
-                xtags=xtags->next;
-
-                /* if the tag has a follow up, add a comma to the end */
-                if (xtags->next->key != NULL)
-                    copy_to_table(",");
-            }
-            else
-            {
-                /* update the tag-pointer to point to the next tag */
-                xtags=xtags->next;
+                //and pack the shortkey with its value into the hstore
+                //hstore ASCII representation looks like "<key>"=>"<value>"
+                column += (fmt("%1%\"%2%\"=>\"%3%\"") %
+                    (column.size() ? "," : "") %
+                    escape4hstore(xtags->key) %
+                    escape4hstore(xtags->value)).str();
             }
         }
 
-        /* if no matching tag has been found, write a NULL */
+        //if you found not matching tags write a NULL
         if(!found)
-            copy_to_table("\\N");
-
-        /* finish the hstore column by placing a TAB into the data stream */
-        copy_to_table("\t");
+            column = "\\N\t";
+        //otherwise finish the column off with a tab
+        else
+            column.push_back('\t');
+        //send it along
+        copy_to_table(column.c_str());
     }
-
-    /* all hstore-columns have now been written */
 }
 
 void table_t::export_tags(struct keyval *tags, struct buffer &sql) {
@@ -432,8 +401,8 @@ void table_t::export_tags(struct keyval *tags, struct buffer &sql) {
         if ((tag = getTag(tags, column->first.c_str())))
         {
             escape_type(sql, tag->value, column->second.c_str());
-            if (enable_hstore==HSTORE_NORM)
-                tag->has_column=1;
+            if (hstore_mode == HSTORE_NORM)
+                tag->has_column = 1;
         }
         else
             sql.printf("\\N");
@@ -453,11 +422,11 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt, 
     export_tags(tags, sql);
 
     //get the hstore columns' values
-    write_hstore_columns(tags, sql);
+    write_hstore_columns(tags);
 
     //get the key value pairs for the tags column
-    if (enable_hstore)
-        write_hstore(tags, sql);
+    if (hstore_mode != HSTORE_NONE)
+        write_hstore(tags);
 
     //give it an srid and put the geom into the copy
     sql.printf("SRID=%d;", srid);
@@ -494,4 +463,102 @@ void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, doub
 void table_t::delete_row(const osmid_t id)
 {
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DELETE FROM %1% WHERE osm_id = %2%") % name % id).str());
+}
+
+table_t::wkts::wkts(PGresult* result):result(result), current(0)
+{
+    count = PQntuples(result);
+}
+
+table_t::wkts::~wkts()
+{
+    PQclear(result);
+}
+
+const char* table_t::wkts::get_next()
+{
+    if(current < count)
+        return PQgetvalue(result, current++, 0);
+    return NULL;
+}
+
+size_t table_t::wkts::get_count() const
+{
+    return count;
+}
+
+void table_t::wkts::reset()
+{
+    //NOTE: PQgetvalue doc doesn't say if you can call it multiple times with the same row col
+    current = 0;
+}
+
+boost::shared_ptr<table_t::wkts> table_t::get_wkts(const osmid_t id)
+{
+
+    char const *paramValues[1];
+    char tmp[16];
+    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
+    paramValues[0] = tmp;
+
+    //the prepared statement get_wkt will behave differently depending on the sql_conn
+    //each table has its own sql_connection with the get_way refering to the approriate table
+    PGresult* res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
+    return boost::shared_ptr<wkts>(new wkts(res));
+}
+
+void table_t::stop()
+{
+    if( buflen != 0 )
+       throw std::runtime_error((fmt("Internal error: Buffer for %1% has %2% bytes after end copy") % name % buflen).str());
+
+    pgsql_pause_copy();
+    if (!append)
+    {
+        time_t start, end;
+        time(&start);
+
+        fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
+        fprintf(stderr, "Analyzing %s finished\n", name.c_str());
+
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %3% ORDER BY way") % name % (table_space ? "TABLESPACE " + table_space.get() : "") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %2%") % name % name).str());
+        fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
+        fprintf(stderr, "Creating geometry index on  %s\n", name.c_str());
+
+        // Use fillfactor 100 for un-updatable imports
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %2% USING GIST (way) %3% %4%") % name % name %
+            (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
+            (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+
+        /* slim mode needs this to be able to apply diffs */
+        if (slim && !drop_temp)
+        {
+            fprintf(stderr, "Creating osm_id index on  %s\n", name.c_str());
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %2% USING BTREE (osm_id) %3%") % name % name %
+                (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+        }
+        /* Create hstore index if selected */
+        if (enable_hstore_index) {
+            fprintf(stderr, "Creating hstore indexes on  %s\n", name.c_str());
+            if (hstore_mode != HSTORE_NONE) {
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %2% USING GIN (tags) %3%") % name % name %
+                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            }
+            for(size_t i = 0; i < hstore_columns.size(); ++i) {
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %3% USING GIN (\"%4%\") %5%") % name % i % name % hstore_columns[i] %
+                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            }
+        }
+        fprintf(stderr, "Creating indexes on  %s finished\n", name.c_str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("GRANT SELECT ON %1% TO PUBLIC") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
+        time(&end);
+        fprintf(stderr, "All indexes on  %s created  in %ds\n", name.c_str(), (int)(end - start));
+    }
+    teardown();
+
+    fprintf(stderr, "Completed %s\n", name.c_str());
 }
