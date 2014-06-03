@@ -18,6 +18,6 @@ boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType e
 int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...) __attribute__ ((format (printf, 3, 4)));
 
 void escape(char *out, int len, const char *in);
-void escape(buffer &buf, const char *in);
+std::string escape(const char* in);
 
 #endif

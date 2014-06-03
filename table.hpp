@@ -27,8 +27,8 @@ class table_t : public boost::noncopyable
         void begin();
         void commit();
         void pgsql_pause_copy();
-        void write_wkt(const osmid_t id, struct keyval *tags, const char *wkt, struct buffer &sql);
-        void write_node(const osmid_t id, struct keyval *tags, double lat, double lon, struct buffer &sql);
+        void write_wkt(const osmid_t id, struct keyval *tags, const char *wkt);
+        void write_node(const osmid_t id, struct keyval *tags, double lat, double lon);
         void delete_row(const osmid_t id);
 
         //interface from retrieving well known text geometry from the table
@@ -49,17 +49,15 @@ class table_t : public boost::noncopyable
         boost::shared_ptr<wkts> get_wkts(const osmid_t id);
 
     private:
-        void export_tags(struct keyval *tags, struct buffer &sql);
-        void copy_to_table(const char *sql);
-        void write_hstore(keyval *tags);
-        void write_hstore_columns(keyval *tags);
+        void write_columns(struct keyval *tags, std::string& values);
+        void write_tags_column(keyval *tags, std::string& values);
+        void write_hstore_columns(keyval *tags, std::string& values);
 
         std::string name;
         std::string type;
         pg_conn *sql_conn;
-        unsigned int buflen;
         int copyMode;
-        char buffer[1024];
+        std::string buffer;
         int srid;
         int scale;
         bool append;

@@ -18,7 +18,6 @@ output_multi_t::output_multi_t(const std::string &name,
     : output_t(mid_, options_),
       m_tagtransform(new tagtransform(&m_options)),
       m_export_list(new export_list(*export_list_)),
-      m_sql(),
       m_processor(processor_),
       m_geo_interest(m_processor->interests()),
       m_osm_type(((m_geo_interest & geometry_processor::interest_node) > 0)
@@ -188,7 +187,7 @@ int output_multi_t::process_relation(osmid_t id, struct member *members, int mem
 }
 
 void output_multi_t::copy_to_table(osmid_t id, const char *wkt, struct keyval *tags) {
-    m_table->write_wkt(id, tags, wkt, m_sql);
+    m_table->write_wkt(id, tags, wkt);
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {

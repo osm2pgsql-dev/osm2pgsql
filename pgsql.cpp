@@ -37,6 +37,32 @@ void escape(buffer &buf, const char *in) {
     escape(buf.buf, buf.capacity(), old_in);
 }
 
+std::string escape(const char* in)
+{
+    if(in == NULL)
+        return "";
+
+    //loop over the chars in the input
+    size_t length = strlen(in);
+    std::string escaped;
+    escaped.reserve(length * 2);
+    for(size_t i = 0; i < length; ++i)
+    {
+        switch(in[i]) {
+            case '\\':  escaped.append("\\\\"); break;
+            //case 8:   escaped.append("\\\b"); break;
+            //case 12:  escaped.append("\\\f"); break;
+            case '\n':  escaped.append("\\\n"); break;
+            case '\r':  escaped.append("\\\r"); break;
+            case '\t':  escaped.append("\\\t"); break;
+            //case 11:  escaped.append("\\\v"); break;
+            default:    escaped.push_back(in[i]); break;
+        }
+    }
+
+    return escaped;
+}
+
 void escape(char *out, int len, const char *in)
 { 
     /* Apply escaping of TEXT COPY data

@@ -73,8 +73,7 @@ psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
 Workaround - output SRID=4326;<WKB>
 */
 
-int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon,
-                                   buffer &sql)
+int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
 {
 
     int filter = m_tagtransform->filter_node_tags(tags, m_export_list);
@@ -84,7 +83,7 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
     if (filter) return 1;
 
     expire->from_bbox(node_lon, node_lat, node_lon, node_lat);
-    m_tables[t_point]->write_node(id, tags, node_lat, node_lon, sql);
+    m_tables[t_point]->write_node(id, tags, node_lat, node_lon);
 
     return 0;
 }
@@ -112,7 +111,7 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists, buffer &sql)
+int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
     int i, wkt_size;
@@ -156,12 +155,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(tags, "way_area", tmp, 0);
                 }
-                m_tables[t_poly]->write_wkt(id, tags, wkt, sql);
+                m_tables[t_poly]->write_wkt(id, tags, wkt);
             } else {
                 expire->from_nodes_line(nodes, count);
-                m_tables[t_line]->write_wkt(id, tags, wkt, sql);
+                m_tables[t_line]->write_wkt(id, tags, wkt);
                 if (roads)
-                    m_tables[t_roads]->write_wkt(id, tags, wkt, sql);
+                    m_tables[t_roads]->write_wkt(id, tags, wkt);
             }
         }
         free(wkt);
@@ -171,7 +170,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     return 0;
 }
 
-int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole, buffer &sql)
+int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
     int i, wkt_size;
     int roads = 0;
@@ -218,11 +217,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                     snprintf(tmp, sizeof(tmp), "%g", area);
                     addItem(rel_tags, "way_area", tmp, 0);
                 }
-                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt, sql);
+                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt);
             } else {
-                m_tables[t_line]->write_wkt(-id, rel_tags, wkt, sql);
+                m_tables[t_line]->write_wkt(-id, rel_tags, wkt);
                 if (roads)
-                    m_tables[t_roads]->write_wkt(-id, rel_tags, wkt, sql);
+                    m_tables[t_roads]->write_wkt(-id, rel_tags, wkt);
             }
         }
         free(wkt);
@@ -263,7 +262,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                         snprintf(tmp, sizeof(tmp), "%g", area);
                         addItem(rel_tags, "way_area", tmp, 0);
                     }
-                    m_tables[t_poly]->write_wkt(-id, rel_tags, wkt, sql);
+                    m_tables[t_poly]->write_wkt(-id, rel_tags, wkt);
                 }
             }
             free(wkt);
@@ -384,7 +383,7 @@ int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, str
     if (m_ptr->ways_done_tracker->is_marked(id)) {
         return 0;
     } else {
-        return m_ptr->pgsql_out_way(id, tags, nodes, count, exists, m_sql);
+        return m_ptr->pgsql_out_way(id, tags, nodes, count, exists);
     }
 }
 
@@ -401,7 +400,7 @@ void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
         initList(&tags_int);
         if (!m_ptr->m_mid->ways_get(m_next_internal_id, &tags_int, &nodes_int, &count_int)) {
             if (!m_ptr->ways_done_tracker->is_marked(m_next_internal_id)) {
-                m_ptr->pgsql_out_way(m_next_internal_id, &tags_int, nodes_int, count_int, exists, m_sql);
+                m_ptr->pgsql_out_way(m_next_internal_id, &tags_int, nodes_int, count_int, exists);
             }
             
             free(nodes_int);
@@ -428,7 +427,7 @@ int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int
         m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
     }
 
-    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists, m_sql);
+    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists);
 }
 
 void output_pgsql_t::rel_cb_func::finish(int exists) {
@@ -443,7 +442,7 @@ void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
     while (m_next_internal_id < id) {
         initList(&tags_int);
         if (!m_ptr->m_mid->relations_get(m_next_internal_id, &members_int, &count_int, &tags_int)) {
-            m_ptr->pgsql_process_relation(m_next_internal_id, members_int, count_int, &tags_int, exists, m_sql);
+            m_ptr->pgsql_process_relation(m_next_internal_id, members_int, count_int, &tags_int, exists);
             
             free(members_int);
         }
@@ -542,7 +541,7 @@ void output_pgsql_t::stop()
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 {
-  pgsql_out_node(id, tags, lat, lon, m_sql);
+  pgsql_out_node(id, tags, lat, lon);
 
   return 0;
 }
@@ -565,14 +564,14 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
     /* Get actual node data and generate output */
     struct osmNode *nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * nd_count );
     int count = m_mid->nodes_get_list( nodes, nds, nd_count );
-    pgsql_out_way(id, tags, nodes, count, 0, m_sql);
+    pgsql_out_way(id, tags, nodes, count, 0);
     free(nodes);
   }
   return 0;
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists, buffer &sql)
+int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
 {
     int i, j, count, count2;
     osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
@@ -620,7 +619,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
   xrole[count2] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole, sql);
+  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole);
 
   for( i=0; i<count2; i++ )
   {
@@ -650,7 +649,7 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
     return 0;
 
 
-  return pgsql_process_relation(id, members, member_count, tags, 0, m_sql);
+  return pgsql_process_relation(id, members, member_count, tags, 0);
 }
 #define UNUSED  __attribute__ ((unused))
 
