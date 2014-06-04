@@ -48,7 +48,7 @@ class table_t : public boost::noncopyable
         };
         boost::shared_ptr<wkts> get_wkts(const osmid_t id);
 
-    private:
+    protected:
         void write_columns(struct keyval *tags, std::string& values);
         void write_tags_column(keyval *tags, std::string& values);
         void write_hstore_columns(keyval *tags, std::string& values);
@@ -56,7 +56,7 @@ class table_t : public boost::noncopyable
         std::string name;
         std::string type;
         pg_conn *sql_conn;
-        int copyMode;
+        bool copyMode;
         std::string buffer;
         int srid;
         int scale;

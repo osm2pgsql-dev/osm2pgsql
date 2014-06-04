@@ -8,21 +8,73 @@
 using std::string;
 typedef boost::format fmt;
 
+#define BUFFER_SEND_SIZE 1024
+
 namespace
 {
+
+void escape(const char* src, string& dst)
+{
+    //loop over the chars in the input
+    size_t length = strlen(src);
+    for(size_t i = 0; i < length; ++i)
+    {
+        switch(src[i]) {
+            case '\\':  dst.append("\\\\"); break;
+            //case 8:   dst.append("\\\b"); break;
+            //case 12:  dst.append("\\\f"); break;
+            case '\n':  dst.append("\\\n"); break;
+            case '\r':  dst.append("\\\r"); break;
+            case '\t':  dst.append("\\\t"); break;
+            //case 11:  dst.append("\\\v"); break;
+            default:    dst.push_back(src[i]); break;
+        }
+    }
+}
+
+
+//create an escaped version of the string for hstore table insert
+void escape4hstore(const char *src, string& dst)
+{
+    dst.push_back('"');
+    for (size_t i = 0; i < strlen(src); ++i) {
+        switch (src[i]) {
+            case '\\':
+                dst.append("\\\\\\\\");
+                break;
+            case '"':
+                dst.append("\\\\\"");
+                break;
+            case '\t':
+                dst.append("\\\t");
+                break;
+            case '\r':
+                dst.append("\\\r");
+                break;
+            case '\n':
+                dst.append("\\\n");
+                break;
+            default:
+                dst.push_back(src[i]);
+                break;
+        }
+    }
+    dst.push_back('"');
+}
+
 /* Escape data appropriate to the type */
-string escape_type(const char *value, const char *type) {
+void escape_type(const char *value, const char *type, string& dst) {
 
     // For integers we take the first number, or the average if it's a-b
     if (!strcmp(type, "int4")) {
         int from, to;
         int items = sscanf(value, "%d-%d", &from, &to);
         if (items == 1)
-            return (fmt("%1%") % from).str();
+            dst.append((fmt("%1%") % from).str());
         else if (items == 2)
-            return (fmt("%1%") % ((from + to) / 2)).str();
+            dst.append((fmt("%1%") % ((from + to) / 2)).str());
         else
-            return "\\N";
+            dst.append("\\N");
     }
         /* try to "repair" real values as follows:
          * assume "," to be a decimal mark which need to be replaced by "."
@@ -42,7 +94,7 @@ string escape_type(const char *value, const char *type) {
         {
             if (escaped.substr(escaped.size() - 2).compare("ft") == 0)
                 from *= 0.3048;
-            return (fmt("%1%") % from).str();
+            dst.append((fmt("%1%") % from).str());
         }
         else if (items == 2)
         {
@@ -51,53 +103,20 @@ string escape_type(const char *value, const char *type) {
                 from *= 0.3048;
                 to *= 0.3048;
             }
-            return (fmt("%1%") % ((from + to) / 2)).str();
+            dst.append((fmt("%1%") % ((from + to) / 2)).str());
         }
         else
-            return "\\N";
-    }
+            dst.append("\\N");
+    }//just a string
     else
-        return escape(value);
+        escape(value, dst);
 }
-
-/* create an escaped version of the string for hstore table insert */
-/* make shure dst is 2*strlen(src) */
-string escape4hstore(const char *src)
-{
-    string escaped;
-    escaped.reserve(strlen(src) * 4);
-
-    for (size_t i = 0; i < strlen(src); ++i) {
-        switch (src[i]) {
-            case '\\':
-                escaped.append("\\\\\\\\");
-                break;
-            case '"':
-                escaped.append("\\\\\"");
-                break;
-            case '\t':
-                escaped.append("\\\t");
-                break;
-            case '\r':
-                escaped.append("\\\r");
-                break;
-            case '\n':
-                escaped.append("\\\n");
-                break;
-            default:
-                escaped.push_back(src[i]);
-                break;
-        }
-    }
-    return escaped;
-}
-
 }
 
 table_t::table_t(const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    name(name), type(type), sql_conn(NULL), copyMode(0), srid(srid), scale(scale), append(append), slim(slim),
+    name(name), type(type), sql_conn(NULL), copyMode(false), srid(srid), scale(scale), append(append), slim(slim),
     drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index), columns(columns),
     hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
@@ -106,6 +125,9 @@ table_t::table_t(const string& name, const string& type, const columns_t& column
     {
         throw std::runtime_error((fmt("No columns provided for table %1%") % name).str());
     }
+
+    //nothing to copy to start with
+    buffer = "";
 }
 
 table_t::~table_t()
@@ -131,13 +153,10 @@ void table_t::setup(const string& conninfo)
     }//we are checking in append mode that the srid you specified matches whats already there
     else
     {
-        //TODO: use pgsql_exec_simple
-        string sql = (fmt("SELECT srid FROM geometry_columns WHERE f_table_name='%1%';") % name).str();
-        PGresult* res = PQexec(sql_conn, sql.c_str());
-        if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
+        boost::shared_ptr<PGresult> res =  pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT srid FROM geometry_columns WHERE f_table_name='%1%';") % name).str());
+        if (!((PQntuples(res.get()) == 1) && (PQnfields(res.get()) == 1)))
             throw std::runtime_error((fmt("Problem reading geometry information for table %1% - does it exist?\n") % name).str());
-        int their_srid = atoi(PQgetvalue(res, 0, 0));
-        PQclear(res);
+        int their_srid = atoi(PQgetvalue(res.get(), 0, 0));
         if (their_srid != srid)
             throw std::runtime_error((fmt("SRID mismatch: cannot append to table %1% (SRID %2%) using selected SRID %3%\n") % name % their_srid % srid).str());
     }
@@ -233,7 +252,7 @@ void table_t::setup(const string& conninfo)
     //get into copy mode
     copystr = (fmt("COPY %1% (%2%) FROM STDIN") % name % cols).str();
     pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
-    copyMode = 1;
+    copyMode = true;
 }
 
 void table_t::teardown()
@@ -260,11 +279,18 @@ void table_t::commit()
 
 void table_t::pgsql_pause_copy()
 {
-    PGresult   *res;
+    PGresult* res;
     int stop;
 
-    if( !copyMode )
+    //we werent copying anyway
+    if(!copyMode)
         return;
+    //if there is stuff left over in the copy buffer send it offand copy it before we stop
+    else if(buffer.length() != 0)
+    {
+        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        buffer.clear();
+    };
 
     //stop the copy
     stop = PQputCopyEnd(sql_conn, NULL);
@@ -279,7 +305,7 @@ void table_t::pgsql_pause_copy()
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
     }
     PQclear(res);
-    copyMode = 0;
+    copyMode = false;
 }
 
 void table_t::write_tags_column(keyval *tags, std::string& values)
@@ -292,11 +318,12 @@ void table_t::write_tags_column(keyval *tags, std::string& values)
         if ((xtags->has_column) || (strcmp("z_order", xtags->key) == 0))
             continue;
 
-        //hstore ASCII representation looks like "<key>"=>"<value>"
-        values += (fmt("%1%\"%2%\"=>\"%3%\"") %
-            (added ? "," : "") %
-            escape4hstore(xtags->key) %
-            escape4hstore(xtags->value)).str();
+        //hstore ASCII representation looks like "key"=>"value"
+        if(added)
+            values.push_back(',');
+        escape4hstore(xtags->key, values);
+        values.append("=>");
+        escape4hstore(xtags->value, values);
 
         //we did at least one so we need commas from here on out
         added = true;
@@ -326,11 +353,12 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
                 char* shortkey = xtags->key + hstore_column->size();
 
                 //and pack the shortkey with its value into the hstore
-                //hstore ASCII representation looks like "<key>"=>"<value>"
-                values += (fmt("%1%\"%2%\"=>\"%3%\"") %
-                    (added ? "," : "") %
-                    escape4hstore(shortkey) %
-                    escape4hstore(xtags->value)).str();
+                //hstore ASCII representation looks like "key"=>"value"
+                if(added)
+                    values.push_back(',');
+                escape4hstore(shortkey, values);
+                values.append("=>");
+                escape4hstore(xtags->value, values);
 
                 //we did at least one so we need commas from here on out
                 added = true;
@@ -339,10 +367,10 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
 
         //if you found not matching tags write a NULL
         if(!added)
-            values.append("\\N\t");
-        //otherwise finish the column off with a tab
-        else
-            values.push_back('\t');
+            values.append("\\N");
+
+        //finish the column off with a tab
+        values.push_back('\t');
     }
 }
 
@@ -354,7 +382,7 @@ void table_t::write_columns(keyval *tags, string& values)
         keyval *tag = NULL;
         if ((tag = getTag(tags, column->first.c_str())))
         {
-            values.append(escape_type(tag->value, column->second.c_str()));
+            escape_type(tag->value, column->second.c_str(), values);
             //remember we already used this one so we cant use again later in the hstore column
             if (hstore_mode == HSTORE_NORM)
                 tag->has_column = 1;
@@ -368,7 +396,7 @@ void table_t::write_columns(keyval *tags, string& values)
 void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
 {
     //add the osm id
-    buffer.assign((fmt("%1%\t") % id).str());
+    buffer.append((fmt("%1%\t") % id).str());
 
     //get the regular columns' values
     write_columns(tags, buffer);
@@ -384,18 +412,22 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
     buffer.append((fmt("SRID=%1%;") % srid).str());
     //add the wkt
     buffer.append(wkt);
-    //we need this because we are copying from stdin
+    //we need \n because we are copying from stdin
     buffer.push_back('\n');
 
     //tell the db we are copying if for some reason we arent already
     if (!copyMode)
     {
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
-        copyMode = 1;
+        copyMode = true;
     }
 
     //send all the data to postgres
-    pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+    if(buffer.length() > BUFFER_SEND_SIZE)
+    {
+        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        buffer.clear();
+    }
 }
 
 void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon)
@@ -452,7 +484,7 @@ boost::shared_ptr<table_t::wkts> table_t::get_wkts(const osmid_t id)
     paramValues[0] = tmp;
 
     //the prepared statement get_wkt will behave differently depending on the sql_conn
-    //each table has its own sql_connection with the get_way refering to the approriate table
+    //each table has its own sql_connection with the get_way referring to the appropriate table
     PGresult* res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
     return boost::shared_ptr<wkts>(new wkts(res));
 }

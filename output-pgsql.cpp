@@ -413,82 +413,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     return 0;
 }
 
-int output_pgsql_t::start()
-{
-    reproj = m_options.projection;
-    builder.set_exclude_broken_polygon(m_options.excludepoly);
 
-    m_export_list = new export_list();
-
-    m_enable_way_area = read_style_file( m_options.style, m_export_list );
-
-    try {
-        m_tagtransform = new tagtransform(&m_options);
-    }
-    catch(std::runtime_error& e) {
-        fprintf(stderr, "%s\n", e.what());
-        fprintf(stderr, "Error: Failed to initialise tag processing.\n");
-        util::exit_nicely();
-    }
-
-    expire.reset(new expire_tiles(&m_options));
-
-    ways_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_pending", true));
-    ways_done_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_done", true));
-    rels_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "rels_pending", true));
-
-    //for each table
-    m_tables.reserve(NUM_TABLES);
-
-    for (int i=0; i<NUM_TABLES; i++) {
-
-        //figure out the columns this table needs
-        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
-
-        //figure out what name we are using for this and what type
-        std::string name = m_options.prefix;
-        std::string type;
-        switch(i)
-        {
-            case t_point:
-                name += "_point";
-                type = "POINT";
-                break;
-            case t_line:
-                name += "_line";
-                type = "LINESTRING";
-                break;
-            case t_poly:
-                name += "_polygon";
-                type = "GEOMETRY"; // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
-                break;
-            case t_roads:
-                name += "_roads";
-                type = "LINESTRING";
-                break;
-            default:
-                //TODO: error message about coding error
-                util::exit_nicely();
-        }
-
-        //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
-        //options object because we want to make use of the table_t in output_mutli_t which could
-        //have a different tablespace/hstores/etc per table
-        m_tables.push_back(boost::shared_ptr<table_t>(
-            new table_t(
-                name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
-                m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
-                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
-            )
-        ));
-
-        //TODO: move this to the constructor and allow it to throw
-        //setup the table in postgres
-        m_tables.back()->setup(m_options.conninfo);
-    }
-
-    return 0;
-}
 
 namespace {
 /* Using pthreads requires us to shoe-horn everything into various void*
@@ -909,8 +834,87 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
     return 0;
 }
 
+int output_pgsql_t::start()
+{
+    ways_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_pending", true));
+    ways_done_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_done", true));
+    rels_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "rels_pending", true));
+
+    for(std::vector<boost::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
+    {
+        //TODO: move this to the constructor and allow it to throw
+        //setup the table in postgres
+        table->get()->setup(m_options.conninfo);
+    }
+
+    return 0;
+}
+
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_) {
+
+    reproj = m_options.projection;
+    builder.set_exclude_broken_polygon(m_options.excludepoly);
+
+    m_export_list = new export_list();
+
+    m_enable_way_area = read_style_file( m_options.style, m_export_list );
+
+    try {
+        m_tagtransform = new tagtransform(&m_options);
+    }
+    catch(std::runtime_error& e) {
+        fprintf(stderr, "%s\n", e.what());
+        fprintf(stderr, "Error: Failed to initialise tag processing.\n");
+        util::exit_nicely();
+    }
+
+    expire.reset(new expire_tiles(&m_options));
+
+    //for each table
+    m_tables.reserve(NUM_TABLES);
+    for (int i=0; i<NUM_TABLES; i++) {
+
+        //figure out the columns this table needs
+        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
+
+        //figure out what name we are using for this and what type
+        std::string name = m_options.prefix;
+        std::string type;
+        switch(i)
+        {
+            case t_point:
+                name += "_point";
+                type = "POINT";
+                break;
+            case t_line:
+                name += "_line";
+                type = "LINESTRING";
+                break;
+            case t_poly:
+                name += "_polygon";
+                type = "GEOMETRY"; // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
+                break;
+            case t_roads:
+                name += "_roads";
+                type = "LINESTRING";
+                break;
+            default:
+                //TODO: error message about coding error
+                util::exit_nicely();
+        }
+
+        //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
+        //options object because we want to make use of the table_t in output_mutli_t which could
+        //have a different tablespace/hstores/etc per table
+        m_tables.push_back(boost::shared_ptr<table_t>(
+            new table_t(
+                name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
+                m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
+                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
+            )
+        ));
+    }
 }
 
 output_pgsql_t::~output_pgsql_t() {

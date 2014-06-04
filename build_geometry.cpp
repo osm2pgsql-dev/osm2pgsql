@@ -164,7 +164,7 @@ char *build_geometry::get_wkt_simple(osmNode *nodes, int count, int polygon) {
         std::string wkt = wktw.write(geom.get());
         return strdup(wkt.c_str());
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc&)
     {
         std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
@@ -258,7 +258,7 @@ size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, dou
         // ensure the number of wkts in the global list is accurate.
         wkt_size = wkts.size();
     }
-    catch (std::bad_alloc)
+    catch (std::bad_alloc&)
     {
         std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
