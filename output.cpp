@@ -41,18 +41,6 @@ output_t *parse_multi_single(const pt::ptree &conf,
     override_if<int>(new_opts.enable_multi, "enable-multi", conf);
     override_if<int>(new_opts.hstore_match_only, "hstore-match-only", conf);
 
-    export_list columns;
-    const pt::ptree &tags = conf.get_child("tags");
-    BOOST_FOREACH(const pt::ptree::value_type &val, tags) {
-        const pt::ptree &tag = val.second;
-        taginfo info;
-        info.name = tag.get<std::string>("name");
-        info.type = tag.get<std::string>("type");
-        info.flags = 0;
-        // TODO: shouldn't need to specify a type here?
-        columns.add(OSMTYPE_WAY, info);
-    }
-
     hstores_t hstore_columns;
     boost::optional<const pt::ptree &> hstores = conf.get_child_optional("hstores");
     if (hstores) {
@@ -63,7 +51,26 @@ output_t *parse_multi_single(const pt::ptree &conf,
     new_opts.hstore_columns = hstore_columns;
 
     boost::shared_ptr<geometry_processor> processor =
-        geometry_processor::create(proc_type);
+        geometry_processor::create(proc_type, &new_opts);
+
+    // TODO: we're faking this up, but there has to be a better way?
+    OsmType osm_type = ((processor->interests() & geometry_processor::interest_node) > 0)
+        ? OSMTYPE_NODE : OSMTYPE_WAY;
+
+    export_list columns;
+    const pt::ptree &tags = conf.get_child("tags");
+    BOOST_FOREACH(const pt::ptree::value_type &val, tags) {
+        const pt::ptree &tag = val.second;
+        taginfo info;
+        info.name = tag.get<std::string>("name");
+        info.type = tag.get<std::string>("type");
+        std::string flags = tag.get_optional<std::string>("flags").get_value_or(std::string());
+        // TODO: we fake the line number here - any way to get the right one
+        // from the JSON parser?
+        info.flags = parse_tag_flags(flags.c_str(), -1);
+        // TODO: shouldn't need to specify a type here?
+        columns.add(osm_type, info);
+    }
 
     return new output_multi_t(name, processor, &columns, mid, new_opts);
 }

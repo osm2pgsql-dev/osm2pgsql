@@ -399,9 +399,10 @@ middle_ram_t::~middle_ram_t() {
 
 std::vector<osmid_t> middle_ram_t::relations_using_way(osmid_t way_id) const
 {
-    std::vector<osmid_t> rel_ids;
-    // TODO
-    abort();
-
-    return rel_ids;
+    // this function shouldn't be called - relations_using_way is only used in
+    // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode
+    // option is set.
+    throw std::runtime_error("middle_ram_t::relations_using_way is unimlpemented, and "
+                             "should not have been called. This is probably a bug, please "
+                             "report it at https://github.com/openstreetmap/osm2pgsql/issues");
 }

@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     }//something went wrong along the way
     catch(std::runtime_error& e)
     {
-        fprintf(stderr, "%s", e.what());
+        fprintf(stderr, "Osm2pgsql failed due to ERROR: %s\n", e.what());
         exit(EXIT_FAILURE);
     }
 }
