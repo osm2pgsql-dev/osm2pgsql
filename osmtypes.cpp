@@ -255,9 +255,3 @@ void osmdata_t::stop() {
         out->stop();
     }
 }
-
-void osmdata_t::cleanup() {
-    BOOST_FOREACH(output_t *out, outs) {
-        out->cleanup();
-    }
-}

@@ -30,7 +30,6 @@ public:
     virtual middle_t::rel_cb_func *relation_callback() = 0;
     virtual void stop() = 0;
     virtual void commit() = 0;
-    virtual void cleanup(void) = 0;
 
     virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
     virtual int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;

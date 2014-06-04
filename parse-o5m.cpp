@@ -21,7 +21,6 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #-----------------------------------------------------------------------------
 */
-#define _GNU_SOURCE
 
 /* 2011-07-03 02:30
    Markus Weber */

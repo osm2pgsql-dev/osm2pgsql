@@ -380,7 +380,8 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #endif
-      return pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
+      pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
+      return 0;
     }
     buffer = (char *)alloca(64);
     char *ptr = buffer;
@@ -580,7 +581,8 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\t%c\n", 
               way_id, node_buf, tag_buf, pending?'t':'f' ) > (length-10) )
       { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
-      return pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
+      pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
+      return 0;
     }
     buffer = (char *)alloca(64);
     char *ptr = buffer;
@@ -880,7 +882,8 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
       { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
       resetList(&member_list);
-      return pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
+      pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
+      return 0;
     }
     buffer = (char *)alloca(64);
     char *ptr = buffer;

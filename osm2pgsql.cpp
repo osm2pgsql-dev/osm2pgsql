@@ -112,7 +112,6 @@ int main(int argc, char *argv[])
 
         //done with output_*_t
         osmdata.stop();
-        osmdata.cleanup();
         for(std::vector<output_t*>::iterator output = outputs.begin(); output != outputs.end(); ++output) {
             delete *output;
         }

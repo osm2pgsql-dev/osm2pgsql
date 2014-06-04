@@ -1,5 +1,4 @@
 /* Helper functions for the postgresql connections */
-#include "util.hpp"
 #include "pgsql.hpp"
 
 #include <stdio.h>
@@ -9,47 +8,38 @@
 #include <libpq-fe.h>
 #include <boost/format.hpp>
 
-void escape(buffer &buf, const char *in) {
-    size_t count = 0;
-    const char *old_in = in;
-
-    // count the number of characters we will need
-    while (*in) { 
-        switch(*in) {
-            case '\\':
-            case '\n':
-            case '\r':
-            case '\t':
-                count += 2;
-                break;
-            default:
-                count += 1;
-                break;
+void escape(const char* src, std::string& dst)
+{
+    //loop over the chars in the input
+    size_t length = strlen(src);
+    for(size_t i = 0; i < length; ++i)
+    {
+        switch(src[i]) {
+            case '\\':  dst.append("\\\\"); break;
+            //case 8:   dst.append("\\\b"); break;
+            //case 12:  dst.append("\\\f"); break;
+            case '\n':  dst.append("\\\n"); break;
+            case '\r':  dst.append("\\\r"); break;
+            case '\t':  dst.append("\\\t"); break;
+            //case 11:  dst.append("\\\v"); break;
+            default:    dst.push_back(src[i]); break;
         }
-        in++;
     }
-
-    // make sure that we have enough capacity to avoid
-    // truncation. the escape function requires count to
-    // be less than (length + 3) characters, so we add 4.
-    buf.reserve(count + 4);
-
-    escape(buf.buf, buf.capacity(), old_in);
 }
 
-void escape(char *out, int len, const char *in)
-{ 
+void escape(char *out, const int len, const char *in)
+{
     /* Apply escaping of TEXT COPY data
     Escape: backslash itself, newline, carriage return, and the current delimiter character (tab)
     file:///usr/share/doc/postgresql-8.1.8/html/sql-copy.html
     */
-    int count = 0; 
+    int count = 0;
     const char *old_in = in, *old_out = out;
 
     if (!len)
         return;
 
-    while(*in && count < len-3) { 
+    while(*in && count < len-3) {
         switch(*in) {
             case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
                 /*    case    8: *out++ = '\\'; *out++ = '\b'; count+= 2; break; */
@@ -68,12 +58,12 @@ void escape(char *out, int len, const char *in)
         fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
 }
 
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect, const std::string& sql)
+boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql)
 {
     return pgsql_exec_simple(sql_conn, expect, sql.c_str());
 }
 
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect, const char *sql)
+boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql)
 {
     PGresult* res;
 #ifdef DEBUG_PGSQL
@@ -87,7 +77,7 @@ boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, ExecStatusType e
     return boost::shared_ptr<PGresult>(res, &PQclear);
 }
 
-int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
+int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)
 {
 
     va_list ap;
@@ -97,10 +87,8 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
     /* Based on vprintf manual page */
     /* Guess we need no more than 100 bytes. */
 
-    if ((sql = (char *)malloc(size)) == NULL) {
-        fprintf(stderr, "Memory allocation failed\n");
-        util::exit_nicely();
-    }
+    if ((sql = (char *)malloc(size)) == NULL)
+        throw std::runtime_error("Memory allocation failed in pgsql_exec");
 
     while (1) {
         /* Try to print in the allocated space. */
@@ -117,8 +105,7 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
             size *= 2;  /* twice the old size */
         if ((nsql = (char *)realloc (sql, size)) == NULL) {
             free(sql);
-            fprintf(stderr, "Memory re-allocation failed\n");
-            util::exit_nicely();
+            throw std::runtime_error("Memory re-allocation failed in pgsql_exec");
         } else {
             sql = nsql;
         }
@@ -129,48 +116,60 @@ int pgsql_exec(PGconn *sql_conn, ExecStatusType expect, const char *fmt, ...)
 #endif
     PGresult* res = PQexec(sql_conn, sql);
     if (PQresultStatus(res) != expect) {
-        fprintf(stderr, "%s failed: %s\n", sql, PQerrorMessage(sql_conn));
         free(sql);
         PQclear(res);
-        util::exit_nicely();
+        throw std::runtime_error((boost::format("%1% failed: %2%") % sql % PQerrorMessage(sql_conn)).str());
     }
     free(sql);
     PQclear(res);
     return 0;
 }
 
-int pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql)
+void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql)
 {
 #ifdef DEBUG_PGSQL
-    fprintf( stderr, "%s>>> %s\n", context, sql );
+    fprintf(stderr, "%s>>> %s\n", context, sql );
 #endif
     int r = PQputCopyData(sql_conn, sql, strlen(sql));
-    if (r != 1) {
-        fprintf(stderr, "%s - bad result during COPY, data %s\n", context, sql);
-        util::exit_nicely();
+    switch(r)
+    {
+        //need to wait for write ready
+        case 0:
+            throw std::runtime_error((boost::format("%1% - bad result during COPY, data %2%") % context % sql % PQerrorMessage(sql_conn)).str());
+            break;
+        //error occurred
+        case -1:
+            throw std::runtime_error((boost::format("%1%: %2% - bad result during COPY, data %3%") % PQerrorMessage(sql_conn) % context % sql).str());
+            break;
+        //other possibility is 1 which means success
     }
-    return 0;
 }
 
-PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, int nParams, const char *const * paramValues, ExecStatusType expect)
+PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int nParams, const char *const * paramValues, const ExecStatusType expect)
 {
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "ExecPrepared: %s\n", stmtName );
 #endif
+    //run the prepared statement
     PGresult *res = PQexecPrepared(sql_conn, stmtName, nParams, paramValues, NULL, NULL, 0);
-    if (PQresultStatus(res) != expect) {
-        fprintf(stderr, "%s failed: %s(%d)\n", stmtName, PQerrorMessage(sql_conn), PQresultStatus(res));
-        if( nParams )
+    if(PQresultStatus(res) != expect)
+    {
+        std::string message = (boost::format("%1% failed: %2%(%3%)\n") % stmtName % PQerrorMessage(sql_conn) % PQresultStatus(res)).str();
+        if(nParams)
         {
-            int i;
-            fprintf( stderr, "Arguments were: " );
-            for( i=0; i<nParams; i++  )
-                fprintf( stderr, "%s, ", paramValues[i] );
-            fprintf( stderr,  "\n");
+             message += "Arguments were: ";
+            for(int i = 0; i < nParams; i++)
+            {
+                message += paramValues[i];
+                message += ", ";
+            }
         }
         PQclear(res);
-        util::exit_nicely();
+        throw std::runtime_error(message);
     }
+
+    //TODO: this seems a bit strange
+    //if you decided you wanted to expect something other than this you didnt want to use the result?
     if( expect != PGRES_TUPLES_OK )
     {
         PQclear(res);

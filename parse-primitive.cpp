@@ -32,7 +32,6 @@ in a production environment.
 
  */
 
-#define _GNU_SOURCE
 #define UNUSED  __attribute__ ((unused))
 
 #include <unistd.h>

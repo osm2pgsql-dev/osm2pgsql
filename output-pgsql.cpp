@@ -51,14 +51,6 @@
 
 #define NUM_TABLES (output_pgsql_t::t_MAX)
 
-void output_pgsql_t::cleanup(void)
-{
-    //TODO: we should just let the destructors get these...
-    for (int i=0; i<NUM_TABLES; i++) {
-        m_tables[i]->teardown();
-    }
-}
-
 
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
@@ -457,8 +449,6 @@ void output_pgsql_t::stop()
     }
 #endif
 
-
-    cleanup();
     delete m_export_list;
 
     expire.reset();
@@ -588,7 +578,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    m_tables[t_point]->pgsql_pause_copy();
+
     if ( expire->from_db(m_tables[t_point].get(), osm_id) != 0)
         m_tables[t_point]->delete_row(osm_id);
     
@@ -604,10 +594,6 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     /* in droptemp mode we don't have indices and this takes ages. */
     if (m_options.droptemp)
         return 0;
-
-    m_tables[t_roads]->pgsql_pause_copy();
-    m_tables[t_line]->pgsql_pause_copy();
-    m_tables[t_poly]->pgsql_pause_copy();
 
     m_tables[t_roads]->delete_row(osm_id);
     if ( expire->from_db(m_tables[t_line].get(), osm_id) != 0)
@@ -631,10 +617,6 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 /* Relations are identified by using negative IDs */
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
-    m_tables[t_roads]->pgsql_pause_copy();
-    m_tables[t_line]->pgsql_pause_copy();
-    m_tables[t_poly]->pgsql_pause_copy();
-
     m_tables[t_roads]->delete_row(-osm_id);
     if ( expire->from_db(m_tables[t_line].get(), -osm_id) != 0)
         m_tables[t_line]->delete_row(-osm_id);
@@ -702,9 +684,8 @@ int output_pgsql_t::start()
 
     for(std::vector<boost::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
     {
-        //TODO: move this to the constructor and allow it to throw
         //setup the table in postgres
-        table->get()->setup(m_options.conninfo);
+        table->get()->start();
     }
 
     return 0;
@@ -769,7 +750,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(boost::shared_ptr<table_t>(
             new table_t(
-                name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
+                m_options.conninfo, name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
                 m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
             )

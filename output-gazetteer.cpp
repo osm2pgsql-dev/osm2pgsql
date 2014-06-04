@@ -1084,11 +1084,6 @@ void output_gazetteer_t::stop()
    return;
 }
 
-void output_gazetteer_t::cleanup(void)
-{
-   return;
-}
-
 int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lon, struct keyval *tags, int delete_old)
 {
    struct keyval names;

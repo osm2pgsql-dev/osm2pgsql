@@ -105,7 +105,6 @@ int main(int argc, char *argv[]) {
         parser.reset(NULL);
 
         osmdata.stop();
-        osmdata.cleanup();
 
         text_exit();
         

@@ -22,7 +22,7 @@ output_multi_t::output_multi_t(const std::string &name,
       m_geo_interest(m_processor->interests()),
       m_osm_type(((m_geo_interest & geometry_processor::interest_node) > 0)
                  ? OSMTYPE_NODE : OSMTYPE_WAY),
-      m_table(new table_t(mk_column_name(name, m_options), m_processor->column_type(),
+      m_table(new table_t(m_options.conninfo, mk_column_name(name, m_options), m_processor->column_type(),
                           m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
@@ -35,7 +35,7 @@ output_multi_t::~output_multi_t() {
 
 int output_multi_t::start() {
     // TODO: id tracker?
-    m_table->setup(m_options.conninfo);
+    m_table->start();
     return 0;
 }
 
@@ -50,18 +50,12 @@ middle_t::rel_cb_func *output_multi_t::relation_callback() {
 }
 
 void output_multi_t::stop() {
-    m_table->pgsql_pause_copy();
-    // TODO: do some stuff here similar to output_pgsql_t::pgsql_out_stop_one
-    cleanup();
+    m_table->stop();
 }
 
 void output_multi_t::commit() {
     m_table->commit();
     // TODO: any id trackers too
-}
-
-void output_multi_t::cleanup() {
-    m_table->teardown();
 }
 
 int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
