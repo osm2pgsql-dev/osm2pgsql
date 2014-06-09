@@ -2,7 +2,7 @@
 #define OUTPUT_GAZETTEER_H
 
 #include "output.hpp"
-#include "build_geometry.hpp"
+#include "geometry-builder.hpp"
 #include "reprojection.hpp"
 
 #include <boost/shared_ptr.hpp>
@@ -61,7 +61,7 @@ private:
     
     char Buffer[BUFFER_SIZE];
 
-    build_geometry builder;
+    geometry_builder builder;
 
     boost::shared_ptr<reprojection> reproj;
 };

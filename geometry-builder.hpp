@@ -20,35 +20,43 @@
 #-----------------------------------------------------------------------------
 */
 
-#ifndef BUILD_GEOMETRY_H
-#define BUILD_GEOMETRY_H
+#ifndef GEOMETRY_BUILDER_H
+#define GEOMETRY_BUILDER_H
 
 #include "osmtypes.hpp"
 
 #include <vector>
 #include <string>
 #include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 
-struct build_geometry : public boost::noncopyable
+struct geometry_builder : public boost::noncopyable
 {
-    build_geometry();
-    ~build_geometry();
+    struct wkt_t
+    {
+        wkt_t(const std::string& geom, const double& area):geom(geom),area(area){}
+        wkt_t():geom(""),area(0){}
+        bool valid()const{return geom.length()>0;}
+        std::string geom;
+        double area;
+    };
+
+    // type to represent an optional return of WKT-encoded geometry
+    typedef boost::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
+    typedef boost::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
+    typedef std::vector<geometry_builder::wkt_t>::const_iterator wkt_itr;
+
+    geometry_builder();
+    ~geometry_builder();
 
     static int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
-    
-    char *get_wkt_simple(struct osmNode *, int count, int polygon);
-    size_t get_wkt_split(struct osmNode *, int count, int polygon, double split_at);
-    
-    char* get_wkt(size_t index);
-    double get_area(size_t index);
-    size_t build(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at);
-    void clear_wkts();
+    maybe_wkt_t get_wkt_simple(struct osmNode *, int count, int polygon) const;
+    maybe_wkts_t get_wkt_split(struct osmNode *, int count, int polygon, double split_at) const;
+    maybe_wkts_t build(struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi,
+                                                 double split_at, osmid_t osm_id = -1) const;
     void set_exclude_broken_polygon(int exclude);
 
 private:
-    std::vector<std::string> wkts;
-    std::vector<double> areas;
-    
     int excludepoly;
 };
 

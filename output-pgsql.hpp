@@ -9,7 +9,7 @@
 #include "output.hpp"
 #include "tagtransform.hpp"
 #include "buffer.hpp"
-#include "build_geometry.hpp"
+#include "geometry-builder.hpp"
 #include "reprojection.hpp"
 #include "expire-tiles.hpp"
 #include "pgsql-id-tracker.hpp"
@@ -87,7 +87,7 @@ private:
     
     export_list *m_export_list;
 
-    build_geometry builder;
+    geometry_builder builder;
 
     boost::shared_ptr<reprojection> reproj;
     boost::shared_ptr<expire_tiles> expire;

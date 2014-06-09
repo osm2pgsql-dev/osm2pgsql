@@ -149,9 +149,9 @@ int output_multi_t::relation_delete(osmid_t id) {
 int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyval *tags) {
     unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
     if (!filter) {
-        geometry_processor::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
+        geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
         if (wkt) {
-            copy_to_table(id, wkt->c_str(), tags);
+            copy_to_table(id, wkt->geom.c_str(), tags);
         }
     }
     return 0;
@@ -161,9 +161,9 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
     int polygon = 0, roads = 0;
     unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
     if (!filter) {
-        geometry_processor::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
+        geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
         if (wkt) {
-            copy_to_table(id, wkt->c_str(), tags);
+            copy_to_table(id, wkt->geom.c_str(), tags);
         }
     }
     return 0;
@@ -172,9 +172,12 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
 int output_multi_t::process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
     unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
     if (!filter) {
-        geometry_processor::maybe_wkt_t wkt = m_processor->process_relation(members, member_count, m_mid);
-        if (wkt) {
-            copy_to_table(id, wkt->c_str(), tags);
+        geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(members, member_count, m_mid);
+        if (wkts) {
+            for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
+            {
+                copy_to_table(id, wkt->geom.c_str(), tags);
+            }
         }
     }
     return 0;

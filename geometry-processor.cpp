@@ -1,5 +1,6 @@
 #include "geometry-processor.hpp"
 #include "processor-point.hpp"
+#include "processor-line.hpp"
 
 #include <boost/make_shared.hpp>
 #include <boost/format.hpp>
@@ -14,7 +15,11 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
     if (type == "point") {
         ptr = boost::make_shared<processor_point>(srid, scale);
 
-    } else {
+    }
+    else if (type == "line") {
+        ptr = boost::make_shared<processor_line>(srid);
+    }
+    else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "
                                                 "because type `%1%' is not known.")
                                   % type).str());
@@ -43,17 +48,14 @@ geometry_processor::interest geometry_processor::interests() const {
     return m_interests;
 }
 
-geometry_processor::maybe_wkt_t geometry_processor::process_node(double lat, double lon) {
-    return boost::none;
+geometry_builder::maybe_wkt_t geometry_processor::process_node(double lat, double lon) {
+    return geometry_builder::maybe_wkt_t();
 }
 
-geometry_processor::maybe_wkt_t geometry_processor::process_way(osmid_t *nodes, int node_count,
-                                                                const middle_query_t *mid) {
-    return boost::none;
+geometry_builder::maybe_wkt_t geometry_processor::process_way(osmid_t *node_ids, size_t node_count, const middle_query_t *mid) {
+    return geometry_builder::maybe_wkt_t();
 }
 
-geometry_processor::maybe_wkt_t geometry_processor::process_relation(struct member *members,
-                                                                     int member_count,
-                                                                     const middle_query_t *mid) {
-    return boost::none;
+geometry_builder::maybe_wkts_t geometry_processor::process_relation(member *members, size_t member_count, const middle_query_t *mid) {
+    return geometry_builder::maybe_wkts_t();
 }

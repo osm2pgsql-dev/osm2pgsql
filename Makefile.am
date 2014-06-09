@@ -6,7 +6,7 @@ noinst_LTLIBRARIES = libosm2pgsql.la
 
 osm2pgsql_SOURCES = osm2pgsql.cpp \
 	binarysearcharray.hpp \
-	build_geometry.hpp \
+	geometry-builder.hpp \
 	expire-tiles.hpp \
 	input.hpp \
 	keyvals.hpp \
@@ -41,8 +41,8 @@ libosm2pgsql_la_SOURCES = \
 	UTF8sanitizer.cpp \
 	binarysearcharray.cpp \
 	buffer.cpp \
-	build_geometry.cpp \
 	expire-tiles.cpp \
+	geometry-builder.cpp \
 	geometry-processor.cpp \
 	input.cpp \
 	keyvals.cpp \
@@ -66,6 +66,7 @@ libosm2pgsql_la_SOURCES = \
 	pgsql.cpp \
 	pgsql-id-tracker.cpp \
 	processor-point.cpp \
+	processor-line.cpp \
 	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \

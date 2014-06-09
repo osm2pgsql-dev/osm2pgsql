@@ -3,12 +3,12 @@
 #include <string.h>
 
 #include <libpq-fe.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
-#include "build_geometry.hpp"
 #include "output-gazetteer.hpp"
 #include "options.hpp"
 #include "util.hpp"
@@ -1163,23 +1163,21 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
    {
       struct osmNode *nodev;
       int nodec;
-      char *wkt;
     
       /* Fetch the node details */
       nodev = (struct osmNode *)malloc(ndc * sizeof(struct osmNode));
       nodec = m_mid->nodes_get_list(nodev, ndv, ndc);
 
       /* Get the geometry of the object */
-      if ((wkt = builder.get_wkt_simple(nodev, nodec, area)) != NULL && strlen(wkt) > 0)
+      geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodev, nodec, area);
+      if (wkt)
       {
          for (place = firstItem(&places); place; place = nextItem(&places, place))
          {
-            add_place('W', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
+            add_place('W', id, place->key, place->value, &names, &extratags, adminlevel,
+                      housenumber, street, addr_place, isin, postcode, countrycode, wkt->geom.c_str());
          }
       }
-
-      /* Free the geometry */
-      free(wkt);
 
       /* Free the nodes */
       free(nodev);
@@ -1275,24 +1273,22 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      wkt_size = builder.build(id, xnodes, xcount, 1, 1, 1000000);
-      for (i=0;i<wkt_size;i++)
+      geometry_builder::maybe_wkts_t wkts = builder.build(xnodes, xcount, 1, 1, 1000000, id);
+      for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
       {
-         char *wkt = builder.get_wkt(i);
-         if (strlen(wkt) && (!strncmp(wkt, "POLYGON", strlen("POLYGON")) || !strncmp(wkt, "MULTIPOLYGON", strlen("MULTIPOLYGON")) || is_waterway))
+         if (wkt->valid() && (boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON") || is_waterway))
          {
              for (place = firstItem(&places); place; place = nextItem(&places, place))
              {
-                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
+                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
+                          isin, postcode, countrycode, wkt->geom.c_str());
              }
          }
          else
          {
              /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
          }
-         free(wkt);
       }
-      builder.clear_wkts();
 
       for( i=0; i<count; i++ )
       {

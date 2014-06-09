@@ -16,8 +16,8 @@
 #include "expire-tiles.hpp"
 #include "output.hpp"
 #include "options.hpp"
+#include "geometry-builder.hpp"
 #include "pgsql.hpp"
-#include "build_geometry.hpp"
 #include "reprojection.hpp"
 
 #define EARTH_CIRCUMFERENCE		40075016.68
@@ -405,7 +405,7 @@ void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id) {
 	int			i;
 
 	if (Options->expire_tiles_zoom < 0) return;
-	if (! build_geometry::parse_wkt(wkt, &xnodes, &xcount, &polygon)) {
+	if (! geometry_builder::parse_wkt(wkt, &xnodes, &xcount, &polygon)) {
 		if (polygon) from_xnodes_poly(xnodes, xcount, osm_id);
 		else from_xnodes_line(xnodes, xcount);
 		for (i = 0; xnodes[i]; i++) free(xnodes[i]);

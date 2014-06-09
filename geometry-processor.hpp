@@ -3,15 +3,14 @@
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
+#include "geometry-builder.hpp"
 #include <string>
 #include <boost/optional.hpp>
 
 struct geometry_processor {
-    // type to represent an optional return of WKT-encoded geometry
-    typedef boost::optional<std::string> maybe_wkt_t;
-
-    static boost::shared_ptr<geometry_processor>
-    create(const std::string &type, const options_t *options);
+    // factory method for creating various types of geometry processors
+    static boost::shared_ptr<geometry_processor> create(const std::string &type,
+                                                        const options_t *options);
 
     virtual ~geometry_processor();
 
@@ -33,19 +32,17 @@ struct geometry_processor {
 
     // process a node, optionally returning a WKT string describing
     // geometry to be inserted into the table.
-    virtual maybe_wkt_t process_node(double lat, double lon);
+    virtual geometry_builder::maybe_wkt_t process_node(double lat, double lon);
     
     // process a way, taking a middle query object to get node
     // position data and optionally returning WKT-encoded geometry
     // for insertion into the table.
-    virtual maybe_wkt_t process_way(osmid_t *nodes, int node_count,
-                                    const middle_query_t *mid);
+    virtual geometry_builder::maybe_wkt_t process_way(osmid_t *node_ids, size_t node_count, const middle_query_t *mid);
     
     // process a way, taking a middle query object to get way and
     // node position data. optionally returns a WKT-encoded geometry
     // for insertion into the table.
-    virtual maybe_wkt_t process_relation(struct member *members, int member_count,
-                                         const middle_query_t *mid);
+    virtual geometry_builder::maybe_wkts_t process_relation(member *members, size_t member_count, const middle_query_t *mid);
 
     // returns the SRID of the output geometry.
     int srid() const;

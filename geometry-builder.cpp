@@ -66,32 +66,11 @@ using namespace geos::operation::linemerge;
 using namespace geos;
 #endif
 
-#include "build_geometry.hpp"
+#include "geometry-builder.hpp"
 
 typedef std::auto_ptr<Geometry> geom_ptr;
 
 namespace {
-// helper method to add the WKT for a geometry to the
-// global wkts list - used primarily for polygons.
-void add_wkt(geom_ptr &geom, double area, 
-             std::vector<std::string> &wkts, std::vector<double> &areas) {
-    WKTWriter wktw;
-    std::string wkt = wktw.write(geom.get());
-    wkts.push_back(wkt);
-    areas.push_back(area);
-}
-
-// helper method to add the WKT for a line built from a
-// coordinate sequence to the global wkts list.
-void add_wkt_line(GeometryFactory &gf, std::auto_ptr<CoordinateSequence> &segment, 
-                  std::vector<std::string> &wkts, std::vector<double> &areas) {
-    WKTWriter wktw;
-    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
-    std::string wkt = wktw.write(geom.get());
-    wkts.push_back(wkt);
-    areas.push_back(0);
-    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-}
 
 int coords2nodes(CoordinateSequence * coords, struct osmNode ** nodes) {
     size_t			num_coords;
@@ -129,7 +108,8 @@ int polygondata_comparearea(const void* vp1, const void* vp2)
 }
 } // anonymous namespace
 
-char *build_geometry::get_wkt_simple(osmNode *nodes, int count, int polygon) {
+geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(osmNode *nodes, int count, int polygon) const
+{
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
 
@@ -142,46 +122,51 @@ char *build_geometry::get_wkt_simple(osmNode *nodes, int count, int polygon) {
             coords->add(c, 0);
         }
 
+        maybe_wkt_t wkt(new geometry_builder::wkt_t());
         geom_ptr geom;
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::auto_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             if (!geom->isValid()) {
                 if (excludepoly) {
-                    return NULL;
+                    throw std::runtime_error("Excluding broken polygon.");
                 } else {   
                     geom = geom_ptr(geom->buffer(0));
                 }
             }
             geom->normalize(); // Fix direction of ring
+            wkt->area = geom->getArea();
         } else {
             if (coords->getSize() < 2)
-                return NULL;
+                throw std::runtime_error("Excluding degenerate line.");
             geom = geom_ptr(gf.createLineString(coords.release()));
+            wkt->area = 0;
         }
 
-        WKTWriter wktw;
-        std::string wkt = wktw.write(geom.get());
-        return strdup(wkt.c_str());
+        wkt->geom = WKTWriter().write(geom.get());
+        return wkt;
     }
     catch (std::bad_alloc&)
     {
         std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
-        return NULL;
     }
+    catch (std::runtime_error&) {}
     catch (...)
     {
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
-        return NULL;
     }
+
+    return maybe_wkt_t();
 }
 
-size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) {
+geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) const
+{
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-    double area;
-    size_t wkt_size = 0;
+    WKTWriter writer;
+    //TODO: use count to get some kind of hint of how much we should reserve?
+    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
     try
     {
@@ -198,18 +183,22 @@ size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, dou
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             if (!geom->isValid()) {
                 if (excludepoly) {
-                    return 0;
+                    throw std::runtime_error("Excluding broken polygon.");
                 } else {
                     geom = geom_ptr(geom->buffer(0));
                 }
             }
             geom->normalize(); // Fix direction of ring
-            area = geom->getArea();
-            add_wkt(geom, area, wkts, areas);
+
+            //copy of an empty one should be cheapest
+            wkts->push_back(geometry_builder::wkt_t());
+            //then we set on the one we already have
+            wkts->back().geom = writer.write(geom.get());
+            wkts->back().area = geom->getArea();
 
         } else {
             if (coords->getSize() < 2)
-                return 0;
+                throw std::runtime_error("Excluding degenerate line.");
 
             double distance = 0;
             std::auto_ptr<CoordinateSequence> segment;
@@ -232,7 +221,15 @@ size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, dou
                     const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
                                                   frac * (this_pt.y - prev_pt.y) + prev_pt.y);
                     segment->add(interpolated);
-                    add_wkt_line(gf, segment, wkts, areas);
+                    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+
+                    //copy of an empty one should be cheapest
+                    wkts->push_back(geometry_builder::wkt_t());
+                    //then we set on the one we already have
+                    wkts->back().geom = writer.write(geom.get());
+                    wkts->back().area = 0;
+
+                    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                     segment->add(interpolated);
                   }
                   // reset the distance based on the final splitting point for
@@ -250,54 +247,35 @@ size_t build_geometry::get_wkt_split(osmNode *nodes, int count, int polygon, dou
 
                 // on the last iteration, close out the line.
                 if (i == coords->getSize()-1) {
-                    add_wkt_line(gf, segment, wkts, areas);
+                    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+
+                    //copy of an empty one should be cheapest
+                    wkts->push_back(geometry_builder::wkt_t());
+                    //then we set on the one we already have
+                    wkts->back().geom = writer.write(geom.get());
+                    wkts->back().area = 0;
+
+                    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                 }
             }
         }
-
-        // ensure the number of wkts in the global list is accurate.
-        wkt_size = wkts.size();
     }
     catch (std::bad_alloc&)
     {
-        std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
+        std::cerr << std::endl << "Exception caught processing way. You are likely running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
-        wkt_size = 0;
+    }
+    catch (std::runtime_error&)
+    {
     }
     catch (...)
     {
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
-        wkt_size = 0;
     }
-    return wkt_size;
+    return wkts;
 }
 
-
-char *build_geometry::get_wkt(size_t index)
-{
-//   return wkts[index].c_str();
-    char *result;
-    result = (char*) std::malloc( wkts[index].length() + 1);
-    // At least give some idea of why we about to seg fault
-    if (!result)
-        std::cerr << std::endl << "Unable to allocate memory: " << (wkts[index].length() + 1) << std::endl;
-    else
-        std::strcpy(result, wkts[index].c_str());
-    return result;
-}
-
-double build_geometry::get_area(size_t index)
-{
-    return areas[index];
-}
-
-void build_geometry::clear_wkts()
-{
-   wkts.clear();
-   areas.clear();
-}
-
-int build_geometry::parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
+int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
     GeometryFactory		gf;
     WKTReader		reader(&gf);
     std::string		wkt_string(wkt);
@@ -360,14 +338,17 @@ int build_geometry::parse_wkt(const char * wkt, struct osmNode *** xnodes, int *
     return 0;
 }
 
-size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcount, int make_polygon, int enable_multi, double split_at) {
-    size_t wkt_size = 0;
+geometry_builder::maybe_wkts_t geometry_builder::build(struct osmNode **xnodes, int *xcount, int make_polygon,
+                                                                             int enable_multi, double split_at, osmid_t osm_id) const
+{
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
 #ifdef HAS_PREPARED_GEOMETRIES
     geos::geom::prep::PreparedGeometryFactory pgf;
 #endif
+    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
+
 
     try
     {
@@ -408,7 +389,7 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
                 polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
                 polys[totalpolys].area = polys[totalpolys].polygon->getArea();
                 polys[totalpolys].iscontained = 0;
-		polys[totalpolys].containedbyid = 0;
+                polys[totalpolys].containedbyid = 0;
                 if (polys[totalpolys].area > 0.0)
                     totalpolys++;
                 else {
@@ -427,13 +408,16 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
                     segment->add(pline->getCoordinateN(i));
                     distance += pline->getCoordinateN(i).distance(pline->getCoordinateN(i-1));
                     if ((distance >= split_at) || (i == pline->getNumPoints()-1)) {
-                        geom = geom_ptr(gf.createLineString(segment.release()));
-                        std::string wkt = writer.write(geom.get());
-                        wkts.push_back(wkt);
-                        areas.push_back(0);
-                        wkt_size++;
+                        geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+
+                        //copy of an empty one should be cheapest
+                        wkts->push_back(geometry_builder::wkt_t());
+                        //then we set on the one we already have
+                        wkts->back().geom = writer.write(geom.get());
+                        wkts->back().area = 0;
+
+                        segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         distance=0;
-                        segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         segment->add(pline->getCoordinateN(i));
                     }
                 }
@@ -481,20 +465,19 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
                             }
 #if 0
                             else if (polys[k].polygon->intersects(polys[j].polygon) || polys[k].polygon->touches(polys[j].polygon))
-			    {
+                            {
                                 // FIXME: This code does not work as intended
                                 // It should be setting the polys[k].ring in order to update this object
                                 // but the value of polys[k].polygon calculated is normally NULL
 
                                 // Add polygon this polygon (j) to k since they intersect
-				// Mark ourselfs to be dropped (2), delete the original k
+                                // Mark ourselfs to be dropped (2), delete the original k
                                 Geometry* polyunion = polys[k].polygon->Union(polys[j].polygon);
                                 delete(polys[k].polygon);
-				polys[k].polygon = dynamic_cast<Polygon*>(polyunion); 
-				polys[j].iscontained = 2; // Drop
+                                polys[k].polygon = dynamic_cast<Polygon*>(polyunion);
+                                polys[j].iscontained = 2; // Drop
                                 istoplevelafterall = 2;
                                 break;
-
                             }
 #endif
                         }
@@ -545,10 +528,11 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
 
                 if ((excludepoly == 0) || (multipoly->isValid()))
                 {
-                    std::string text = writer.write(multipoly.get());
-                    wkts.push_back(text);
-                    areas.push_back(multipoly->getArea());
-                    wkt_size++;
+                    //copy of an empty one should be cheapest
+                    wkts->push_back(geometry_builder::wkt_t());
+                    //then we set on the one we already have
+                    wkts->back().geom = writer.write(multipoly.get());
+                    wkts->back().area = multipoly->getArea();
                 }
             }
             else
@@ -562,10 +546,11 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
                     }
                     if ((excludepoly == 0) || (poly->isValid()))
                     {
-                        std::string text = writer.write(poly);
-                        wkts.push_back(text);
-                        areas.push_back(poly->getArea());
-                        wkt_size++;
+                        //copy of an empty one should be cheapest
+                        wkts->push_back(geometry_builder::wkt_t());
+                        //then we set on the one we already have
+                        wkts->back().geom = writer.write(poly);
+                        wkts->back().area = poly->getArea();
                     }
                     delete(poly);
                 }
@@ -577,29 +562,27 @@ size_t build_geometry::build(osmid_t osm_id, struct osmNode **xnodes, int *xcoun
             delete(polys[i].polygon);
         }
         delete[](polys);
-    }
+    }//TODO: don't show in message id when osm_id == -1
     catch (std::exception& e)
-      {
-	std::cerr << std::endl << "Standard exception processing way_id "<< osm_id << ": " << e.what()  << std::endl;
-	wkt_size = 0;
-      }
+    {
+        std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
+    }
     catch (...)
-      {
+    {
         std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
-        wkt_size = 0;
-      }
+    }
 
-    return wkt_size;
+    return wkts;
 }
 
-void build_geometry::set_exclude_broken_polygon(int exclude)
+void geometry_builder::set_exclude_broken_polygon(int exclude)
 {
     excludepoly = exclude;
 }
 
-build_geometry::build_geometry()
-    : wkts(), areas(), excludepoly(0) {
+geometry_builder::geometry_builder()
+    : excludepoly(0) {
 }
 
-build_geometry::~build_geometry() {
+geometry_builder::~geometry_builder() {
 }
