@@ -2,7 +2,7 @@
 
 #include <boost/format.hpp>
 
-processor_line::processor_line(int srid) : geometry_processor(srid, "LINE", interest_way)
+processor_line::processor_line(int srid) : geometry_processor(srid, "LINESTRING", interest_way)
 {
 
 }

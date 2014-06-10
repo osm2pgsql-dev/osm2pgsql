@@ -66,7 +66,7 @@ int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *
 }
 
 int output_multi_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_way) > 0) {
+    if ((m_geo_interest & geometry_processor::interest_way) > 0 && node_count > 1) {
         return process_way(id, nodes, node_count, tags);
     }
     return 0;
@@ -74,7 +74,7 @@ int output_multi_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct k
 
 
 int output_multi_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_relation) > 0) {
+    if ((m_geo_interest & geometry_processor::interest_relation) > 0 && member_count > 0) {
         return process_relation(id, members, member_count, tags);
     }
     return 0;
@@ -164,6 +164,10 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
         if (wkt) {
             copy_to_table(id, wkt->geom.c_str(), tags);
+        }
+        else if(nodes[0] == 30603856)
+        {
+            printf("%s", (boost::format("%1% skipped\n") % id).str().c_str());
         }
     }
     return 0;

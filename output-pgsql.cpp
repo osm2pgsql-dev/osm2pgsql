@@ -156,17 +156,15 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
 
 int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
 {
+    if (member_count == 0)
+        return 0;
+
     int i, wkt_size;
     int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
     int * members_superseeded;
     double split_at;
-
-    if (member_count == 0) {
-        free(members_superseeded);
-        return 0;
-    }
 
     members_superseeded = (int *)calloc(sizeof(int), member_count);
 

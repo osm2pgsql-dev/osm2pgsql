@@ -29,11 +29,6 @@
 void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
     pg::result_ptr res = conn->exec(query);
 
-    if (PQresultStatus(res->get()) != PGRES_TUPLES_OK) {
-        throw std::runtime_error((boost::format("Query ERROR running %1%: %2%")
-                                  % query % PQresultErrorMessage(res->get())).str());
-    }
-
     int ntuples = PQntuples(res->get());
     if (ntuples != 1) {
         throw std::runtime_error((boost::format("Expected only one tuple from a query "
@@ -72,25 +67,15 @@ int main(int argc, char *argv[]) {
         options.tblsslim_data = "tablespacetest";
         options.slim = 1;
         
+        boost::shared_ptr<geometry_processor> processor =
+            geometry_processor::create("line", &options);
+        
         export_list columns;
-        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
+        { taginfo info; info.name = "highway"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
         
-        std::vector<output_t*> outputs;
-
-        // let's make lots of tables!
-        for (int i = 0; i < 10; ++i) {
-            std::string name = (boost::format("foobar_%d") % i).str();
-
-            boost::shared_ptr<geometry_processor> processor =
-                geometry_processor::create("point", &options);
+        struct output_multi_t out_test("foobar_highways", processor, &columns, &mid_pgsql, options);
         
-            struct output_multi_t *out_test =
-                new output_multi_t(name, processor, &columns, &mid_pgsql, options);
-
-            outputs.push_back(out_test);
-        }
-
-        osmdata_t osmdata(&mid_pgsql, outputs);
+        osmdata_t osmdata(&mid_pgsql, &out_test);
         
         boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
         
@@ -109,35 +94,28 @@ int main(int argc, char *argv[]) {
         
         // start a new connection to run tests on
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
-        
-        for (int i = 0; i < 10; ++i) {
-            std::string name = (boost::format("foobar_%d") % i).str();
 
-            check_count(test_conn, 1, 
-                        (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where relname = 'osm2pgsql_test_foobar_%d'")
-                         % i).str());
-            
-            check_count(test_conn, 244,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d")
-                         % i).str());
-            
-            check_count(test_conn, 36,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
-                                       "where amenity='parking'")
-                         % i).str());
-            
-            check_count(test_conn, 34,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
-                                       "where amenity='bench'")
-                         % i).str());
-            
-            check_count(test_conn, 1,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
-                                       "where amenity='vending_machine'")
-                         % i).str());
-        }
+        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'osm2pgsql_test_foobar_highways'");
+        check_count(test_conn, 2753, "select count(*) from osm2pgsql_test_foobar_highways");
 
+        //check that we have the right spread
+        check_count(test_conn, 13, "select count(*) from osm2pgsql_test_foobar_highways where highway='bridleway'");
+        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_highways where highway='construction'");
+        check_count(test_conn, 96, "select count(*) from osm2pgsql_test_foobar_highways where highway='cycleway'");
+        check_count(test_conn, 249, "select count(*) from osm2pgsql_test_foobar_highways where highway='footway'");
+        check_count(test_conn, 18, "select count(*) from osm2pgsql_test_foobar_highways where highway='living_street'");
+        check_count(test_conn, 171, "select count(*) from osm2pgsql_test_foobar_highways where highway='path'");
+        check_count(test_conn, 6, "select count(*) from osm2pgsql_test_foobar_highways where highway='pedestrian'");
+        check_count(test_conn, 81, "select count(*) from osm2pgsql_test_foobar_highways where highway='primary'");
+        check_count(test_conn, 842, "select count(*) from osm2pgsql_test_foobar_highways where highway='residential'");
+        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_highways where highway='road'");
+        check_count(test_conn, 90, "select count(*) from osm2pgsql_test_foobar_highways where highway='secondary'");
+        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_highways where highway='secondary_link'");
+        check_count(test_conn, 352, "select count(*) from osm2pgsql_test_foobar_highways where highway='service'");
+        check_count(test_conn, 34, "select count(*) from osm2pgsql_test_foobar_highways where highway='steps'");
+        check_count(test_conn, 33, "select count(*) from osm2pgsql_test_foobar_highways where highway='tertiary'");
+        check_count(test_conn, 597, "select count(*) from osm2pgsql_test_foobar_highways where highway='track'");
+        check_count(test_conn, 164, "select count(*) from osm2pgsql_test_foobar_highways where highway='unclassified'");
         return 0;
         
     } catch (const std::exception &e) {

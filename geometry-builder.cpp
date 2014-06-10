@@ -151,7 +151,10 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(osmNode *nodes, i
         std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
     }
-    catch (std::runtime_error&) {}
+    catch (std::runtime_error& e)
+    {
+        //std::cerr << std::endl << "Exception caught processing way: " << e.what() << std::endl;
+    }
     catch (...)
     {
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
@@ -265,8 +268,9 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(osmNode *nodes, i
         std::cerr << std::endl << "Exception caught processing way. You are likely running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
     }
-    catch (std::runtime_error&)
+    catch (std::runtime_error& e)
     {
+        //std::cerr << std::endl << "Exception caught processing way: " << e.what() << std::endl;
     }
     catch (...)
     {

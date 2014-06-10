@@ -61,7 +61,6 @@ int main(int argc, char *argv[]) {
         struct middle_pgsql_t mid_pgsql;
         options_t options;
         options.conninfo = db->conninfo().c_str();
-        options.scale = 10000000;
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
         options.tblsslim_index = "tablespacetest";
@@ -74,7 +73,7 @@ int main(int argc, char *argv[]) {
         export_list columns;
         { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
         
-        struct output_multi_t out_test("foobar", processor, &columns, &mid_pgsql, options);
+        struct output_multi_t out_test("foobar_amenities", processor, &columns, &mid_pgsql, options);
         
         osmdata_t osmdata(&mid_pgsql, &out_test);
         
@@ -98,19 +97,19 @@ int main(int argc, char *argv[]) {
 
         check_count(test_conn, 1, 
                     "select count(*) from pg_catalog.pg_class "
-                    "where relname = 'osm2pgsql_test_foobar'");
+                    "where relname = 'osm2pgsql_test_foobar_amenities'");
 
         check_count(test_conn, 244,
-                    "select count(*) from osm2pgsql_test_foobar");
+                    "select count(*) from osm2pgsql_test_foobar_amenities");
 
         check_count(test_conn, 36,
-                    "select count(*) from osm2pgsql_test_foobar where amenity='parking'");
+                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='parking'");
 
         check_count(test_conn, 34,
-                    "select count(*) from osm2pgsql_test_foobar where amenity='bench'");
+                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='bench'");
 
         check_count(test_conn, 1,
-                    "select count(*) from osm2pgsql_test_foobar where amenity='vending_machine'");
+                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='vending_machine'");
 
         return 0;
         

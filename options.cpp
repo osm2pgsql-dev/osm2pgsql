@@ -529,6 +529,8 @@ options_t options_t::parse(int argc, char *argv[])
     if (options.num_procs < 1)
         options.num_procs = 1;
 
+    //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
+    //you could get overflow when working with larger coordinates (mercator) and larger scales
     options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
     options.conninfo = build_conninfo(options.db, options.username, options.password, options.host, options.port);
 
