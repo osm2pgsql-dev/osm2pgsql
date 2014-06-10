@@ -24,7 +24,7 @@ struct geometry_processor {
 
     // return bit-mask of the type of elements this processor is
     // interested in.
-    interest interests() const;
+    unsigned int interests() const;
 
     // the postgis column type for the kind of geometry (i.e: POINT,
     // LINESTRING, etc...) that this processor outputs
@@ -54,11 +54,11 @@ protected:
     // WKT type of the geometry output
     const std::string m_type;
 
-    // type of elements that this processor is interested in
-    const interest m_interests;
+    // mask of elements that this processor is interested in
+    const unsigned int m_interests;
 
     // constructor for use by implementing classes only
-    geometry_processor(int srid, const std::string &type, interest interests);
+    geometry_processor(int srid, const std::string &type, unsigned int interests);
 };
 
 #endif /* GEOMETRY_PROCESSOR_HPP */

@@ -1,6 +1,8 @@
 #include "geometry-processor.hpp"
-#include "processor-point.hpp"
 #include "processor-line.hpp"
+#include "processor-point.hpp"
+#include "processor-polygon.hpp"
+
 
 #include <boost/make_shared.hpp>
 #include <boost/format.hpp>
@@ -14,10 +16,12 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
 
     if (type == "point") {
         ptr = boost::make_shared<processor_point>(srid, scale);
-
     }
     else if (type == "line") {
         ptr = boost::make_shared<processor_line>(srid);
+    }
+    else if (type == "polygon") {
+        ptr = boost::make_shared<processor_polygon>(srid);
     }
     else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "
@@ -28,8 +32,7 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
     return ptr;
 }
 
-geometry_processor::geometry_processor(int srid, const std::string &type,
-                                       geometry_processor::interest interests) 
+geometry_processor::geometry_processor(int srid, const std::string &type, unsigned int interests)
     : m_srid(srid), m_type(type), m_interests(interests) {
 }
 
@@ -44,7 +47,7 @@ const std::string &geometry_processor::column_type() const {
     return m_type;
 }
 
-geometry_processor::interest geometry_processor::interests() const {
+unsigned int geometry_processor::interests() const {
     return m_interests;
 }
 

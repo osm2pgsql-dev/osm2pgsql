@@ -165,10 +165,6 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
         if (wkt) {
             copy_to_table(id, wkt->geom.c_str(), tags);
         }
-        else if(nodes[0] == 30603856)
-        {
-            printf("%s", (boost::format("%1% skipped\n") % id).str().c_str());
-        }
     }
     return 0;
 }
