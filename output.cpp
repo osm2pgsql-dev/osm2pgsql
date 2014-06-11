@@ -34,6 +34,12 @@ output_t *parse_multi_single(const pt::ptree &conf,
     std::string proc_type = conf.get<std::string>("type");
 
     new_opts.tag_transform_script = conf.get_optional<std::string>("tagtransform");
+
+    new_opts.tag_transform_node_func = conf.get_optional<std::string>("tagtransform-node-function");
+    new_opts.tag_transform_way_func = conf.get_optional<std::string>("tagtransform-way-function");
+    new_opts.tag_transform_rel_func = conf.get_optional<std::string>("tagtransform-relation-function");
+    new_opts.tag_transform_rel_mem_func = conf.get_optional<std::string>("tagtransform-relation-member-function");
+
     new_opts.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
     new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
     override_if<int>(new_opts.hstore_mode, "enable-hstore", conf);
@@ -72,7 +78,7 @@ output_t *parse_multi_single(const pt::ptree &conf,
         columns.add(osm_type, info);
     }
 
-    return new output_multi_t(name, processor, &columns, mid, new_opts);
+    return new output_multi_t(name, processor, columns, mid, new_opts);
 }
 
 std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {

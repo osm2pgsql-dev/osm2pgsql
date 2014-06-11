@@ -361,9 +361,27 @@ unsigned int c_filter_rel_member_tags(
 
     return 0;
 }
-}
 
-tagtransform::tagtransform(const options_t *options_):	options(options_), transform_method(options_->tag_transform_script) {
+void check_lua_function_exists(lua_State *L, const std::string &func_name) {
+    lua_getglobal(L, func_name.c_str());
+    if (!lua_isfunction (L, -1)) {
+        throw std::runtime_error((boost::format("Tag transform style does not contain a function %1%")
+                                  % func_name).str());
+    }
+    lua_pop(L,1);
+}
+} // anonymous namespace
+
+tagtransform::tagtransform(const options_t *options_)
+    : options(options_), transform_method(options_->tag_transform_script)
+#ifdef HAVE_LUA
+    , L(NULL)
+    , m_node_func(   options->tag_transform_node_func.   get_value_or("filter_tags_node"))
+    , m_way_func(    options->tag_transform_way_func.    get_value_or("filter_tags_way"))
+    , m_rel_func(    options->tag_transform_rel_func.    get_value_or("filter_basic_tags_rel"))
+    , m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or("filter_tags_relation_member"))
+#endif /* HAVE_LUA */
+ {
 	if (transform_method) {
                 fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script->c_str());
 #ifdef HAVE_LUA
@@ -371,25 +389,10 @@ tagtransform::tagtransform(const options_t *options_):	options(options_), transf
 		luaL_openlibs(L);
 		luaL_dofile(L, options->tag_transform_script->c_str());
 
-		lua_getglobal(L, "filter_tags_node");
-		if (!lua_isfunction (L, -1))
-			throw std::runtime_error("Tag transform style does not contain a function filter_tags_node");
-
-		lua_pop(L,1);
-
-		lua_getglobal(L, "filter_tags_way");
-		if (!lua_isfunction (L, -1))
-			throw std::runtime_error("Tag transform style does not contain a function filter_tags_way");
-
-		lua_pop(L,1);
-
-		lua_getglobal(L, "filter_basic_tags_rel");
-		if (!lua_isfunction (L, -1))
-			throw std::runtime_error("Tag transform style does not contain a function filter_basic_tags_rel");
-
-		lua_getglobal(L, "filter_tags_relation_member");
-		if (!lua_isfunction (L, -1))
-			throw std::runtime_error("Tag transform style does not contain a function filter_tags_relation_member");
+                check_lua_function_exists(L, m_node_func);
+                check_lua_function_exists(L, m_way_func);
+                check_lua_function_exists(L, m_rel_func);
+                check_lua_function_exists(L, m_rel_mem_func);
 #else
 		throw std::runtime_error("Error: Could not init lua tag transform, as lua support was not compiled into this version");
 #endif
@@ -455,15 +458,15 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
 
     switch (type) {
     case OSMTYPE_NODE: {
-        lua_getglobal(L, "filter_tags_node");
+        lua_getglobal(L, m_node_func.c_str());
         break;
     }
     case OSMTYPE_WAY: {
-        lua_getglobal(L, "filter_tags_way");
+        lua_getglobal(L, m_way_func.c_str());
         break;
     }
     case OSMTYPE_RELATION: {
-        lua_getglobal(L, "filter_basic_tags_rel");
+        lua_getglobal(L, m_rel_func.c_str());
         break;
     }
     }
@@ -655,7 +658,7 @@ unsigned int tagtransform::lua_filter_rel_member_tags(keyval *rel_tags, const in
     struct keyval *item;
     const char * key, * value;
 
-    lua_getglobal(L, "filter_tags_relation_member");
+    lua_getglobal(L, m_rel_mem_func.c_str());
 
     lua_newtable(L);    /* relations key value table */
 

@@ -263,7 +263,9 @@ options_t::options_t():
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
     num_procs(1), droptemp(0),  unlogged(0), hstore_match_only(0), flat_node_cache_enabled(0), excludepoly(0), flat_node_file(boost::none),
-    tag_transform_script(boost::none), create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
+    tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
+    tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
+    create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
     password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
 {
 

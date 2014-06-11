@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
                 geometry_processor::create("point", &options);
         
             struct output_multi_t *out_test =
-                new output_multi_t(name, processor, &columns, &mid_pgsql, options);
+                new output_multi_t(name, processor, columns, &mid_pgsql, options);
 
             outputs.push_back(out_test);
         }
