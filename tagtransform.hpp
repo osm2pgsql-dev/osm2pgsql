@@ -39,6 +39,7 @@ private:
 	const bool transform_method;
 #ifdef HAVE_LUA
 	lua_State *L;
+    const std::string m_node_func, m_way_func, m_rel_func, m_rel_mem_func;
 #endif
 
 };

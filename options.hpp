@@ -59,7 +59,11 @@ public:
     int flat_node_cache_enabled;
     int excludepoly;
     boost::optional<std::string> flat_node_file;
-    boost::optional<std::string> tag_transform_script;
+    boost::optional<std::string> tag_transform_script,
+        tag_transform_node_func,    // these options allow you to control the name of the
+        tag_transform_way_func,     // Lua functions which get called in the tag transform
+        tag_transform_rel_func,     // script. this is mostly useful in with the "multi"
+        tag_transform_rel_mem_func; // output so that a single script file can be used.
 
     int create;
     int sanitize;
