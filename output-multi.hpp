@@ -12,6 +12,7 @@
 #include "buffer.hpp"
 #include "table.hpp"
 #include "geometry-processor.hpp"
+#include "id-tracker.hpp"
 
 #include <vector>
 #include <boost/scoped_ptr.hpp>
@@ -53,9 +54,9 @@ private:
     boost::scoped_ptr<tagtransform> m_tagtransform;
     boost::scoped_ptr<export_list> m_export_list;
     boost::shared_ptr<geometry_processor> m_processor;
-    const unsigned int m_geo_interest;
     const OsmType m_osm_type;
     boost::scoped_ptr<table_t> m_table;
+    boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
 };
 
 #endif

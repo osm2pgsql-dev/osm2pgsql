@@ -653,9 +653,9 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
 
 int output_pgsql_t::start()
 {
-    ways_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_pending", true));
-    ways_done_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "ways_done", true));
-    rels_pending_tracker.reset(new pgsql_id_tracker(m_options.conninfo, m_options.prefix, "rels_pending", true));
+    ways_pending_tracker.reset(new id_tracker());
+    ways_done_tracker.reset(new id_tracker());
+    rels_pending_tracker.reset(new id_tracker());
 
     for(std::vector<boost::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
     {

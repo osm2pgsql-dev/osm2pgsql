@@ -51,6 +51,10 @@ unsigned int geometry_processor::interests() const {
     return m_interests;
 }
 
+bool geometry_processor::interests(unsigned int interested) const {
+    return (interested & m_interests) == interested;
+}
+
 geometry_builder::maybe_wkt_t geometry_processor::process_node(double lat, double lon) {
     return geometry_builder::maybe_wkt_t();
 }

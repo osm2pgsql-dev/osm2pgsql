@@ -2,7 +2,7 @@
 
 #include <boost/format.hpp>
 
-processor_polygon::processor_polygon(int srid) : geometry_processor(srid, "GEOMETRY", (interest_way | interest_relation))
+processor_polygon::processor_polygon(int srid) : geometry_processor(srid, "GEOMETRY", interest_way | interest_relation)
 {
 }
 

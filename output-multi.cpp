@@ -19,9 +19,8 @@ output_multi_t::output_multi_t(const std::string &name,
       m_tagtransform(new tagtransform(&m_options)),
       m_export_list(new export_list(*export_list_)),
       m_processor(processor_),
-      m_geo_interest(m_processor->interests()),
-      m_osm_type(((m_geo_interest & geometry_processor::interest_node) > 0)
-                 ? OSMTYPE_NODE : OSMTYPE_WAY),
+      m_osm_type(m_processor->interests(geometry_processor::interest_node)
+                  ? OSMTYPE_NODE : OSMTYPE_WAY),
       m_table(new table_t(m_options.conninfo, mk_column_name(name, m_options), m_processor->column_type(),
                           m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
@@ -34,7 +33,10 @@ output_multi_t::~output_multi_t() {
 }
 
 int output_multi_t::start() {
-    // TODO: id tracker?
+    ways_pending_tracker.reset(new id_tracker());
+    ways_done_tracker.reset(new id_tracker());
+    rels_pending_tracker.reset(new id_tracker());
+
     m_table->start();
     return 0;
 }
@@ -55,18 +57,21 @@ void output_multi_t::stop() {
 
 void output_multi_t::commit() {
     m_table->commit();
-    // TODO: any id trackers too
+
+    ways_pending_tracker->commit();
+    ways_done_tracker->commit();
+    rels_pending_tracker->commit();
 }
 
 int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_node) > 0) {
+    if (m_processor->interests(geometry_processor::interest_node)) {
         return process_node(id, lat, lon, tags);
     }
     return 0;
 }
 
 int output_multi_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_way) > 0 && node_count > 1) {
+    if (m_processor->interests(geometry_processor::interest_way) && node_count > 1) {
         return process_way(id, nodes, node_count, tags);
     }
     return 0;
@@ -74,14 +79,14 @@ int output_multi_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct k
 
 
 int output_multi_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_relation) > 0 && member_count > 0) {
+    if (m_processor->interests(geometry_processor::interest_relation) && member_count > 0) {
         return process_relation(id, members, member_count, tags);
     }
     return 0;
 }
 
 int output_multi_t::node_modify(osmid_t id, double lat, double lon, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_node) > 0) {
+    if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(id);
 
@@ -95,7 +100,7 @@ int output_multi_t::node_modify(osmid_t id, double lat, double lon, struct keyva
 }
 
 int output_multi_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_way) > 0) {
+    if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(id);
 
@@ -109,7 +114,7 @@ int output_multi_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struc
 }
 
 int output_multi_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    if ((m_geo_interest & geometry_processor::interest_relation) > 0) {
+    if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(id);
 
@@ -123,7 +128,7 @@ int output_multi_t::relation_modify(osmid_t id, struct member *members, int memb
 }
 
 int output_multi_t::node_delete(osmid_t id) {
-    if ((m_geo_interest & geometry_processor::interest_node) > 0) {
+    if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(id);
     }
@@ -131,7 +136,7 @@ int output_multi_t::node_delete(osmid_t id) {
 }
 
 int output_multi_t::way_delete(osmid_t id) {
-    if ((m_geo_interest & geometry_processor::interest_way) > 0) {
+    if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(id);
     }
@@ -139,7 +144,7 @@ int output_multi_t::way_delete(osmid_t id) {
 }
 
 int output_multi_t::relation_delete(osmid_t id) {
-    if ((m_geo_interest & geometry_processor::interest_relation) > 0) {
+    if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(id);
     }
@@ -163,7 +168,14 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
     if (!filter) {
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
         if (wkt) {
-            copy_to_table(id, wkt->geom.c_str(), tags);
+            //if we are also interested in relations we need to mark
+            //this way pending just in case it shows up in one
+            if (m_processor->interests(geometry_processor::interest_relation)) {
+                ways_pending_tracker->mark(id);
+            }//we aren't interested in relations so if it comes in on a relation later we wont keep it
+            else {
+                copy_to_table(id, wkt->geom.c_str(), tags);
+            }
         }
     }
     return 0;
@@ -172,6 +184,14 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
 int output_multi_t::process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
     unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
     if (!filter) {
+        //TODO: do another level of filtering to get the members that end up belonging to the outer ring
+        //by way of their tags being the same
+        //then if they did end up belonging we need to mark them in ways_done_tracker->mark(xid[i]);
+        //and remove them if for some reason they were already written, dont understand how they could be though
+        //given that they go to pending first...
+        //also we may want to do some of this work inside of process relation by pasing the tag transform to there
+        //and by passing back some other things..
+
         geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(members, member_count, m_mid);
         if (wkts) {
             for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)

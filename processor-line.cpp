@@ -2,12 +2,12 @@
 
 #include <boost/format.hpp>
 
-processor_line::processor_line(int srid) : geometry_processor(srid, "LINESTRING", interest_way)
+processor_line::processor_line(int srid) : geometry_processor(srid, "LINESTRING", interest_way /*| interest_relation*/)
 {
-
 }
 
-processor_line::~processor_line() {
+processor_line::~processor_line()
+{
 }
 
 geometry_builder::maybe_wkt_t processor_line::process_way(osmid_t *node_ids, size_t node_count, const middle_query_t *mid)
@@ -26,6 +26,9 @@ geometry_builder::maybe_wkt_t processor_line::process_way(osmid_t *node_ids, siz
 
 geometry_builder::maybe_wkts_t processor_line::process_relation(member *members, size_t member_count, const middle_query_t *mid)
 {
+    //TODO: this code is never actually used due to only being interested in interest_way in the
+    //constructor we may at some point want to care about relations but we'll save that for later
+
     //grab the way members' ids
     size_t used = 0;
     osmid_t* way_ids = new osmid_t[member_count + 1];
@@ -77,6 +80,7 @@ geometry_builder::maybe_wkts_t processor_line::process_relation(member *members,
     delete [] returned_node_counts;
     delete [] returned_nodes;
     delete [] returned_ways;
+    delete [] roles;
 
     //give back the list
     return wkts;

@@ -26,6 +26,9 @@ struct geometry_processor {
     // interested in.
     unsigned int interests() const;
 
+    // return true if provided intrest is an interest of this processor
+    bool interests(unsigned int interested) const;
+
     // the postgis column type for the kind of geometry (i.e: POINT,
     // LINESTRING, etc...) that this processor outputs
     const std::string &column_type() const;

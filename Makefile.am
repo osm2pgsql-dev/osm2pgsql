@@ -44,6 +44,7 @@ libosm2pgsql_la_SOURCES = \
 	expire-tiles.cpp \
 	geometry-builder.cpp \
 	geometry-processor.cpp \
+	id-tracker.cpp \
 	input.cpp \
 	keyvals.cpp \
 	middle.cpp \
