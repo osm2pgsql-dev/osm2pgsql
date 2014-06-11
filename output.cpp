@@ -72,7 +72,7 @@ output_t *parse_multi_single(const pt::ptree &conf,
         columns.add(osm_type, info);
     }
 
-    return new output_multi_t(name, processor, &columns, mid, new_opts);
+    return new output_multi_t(name, processor, columns, mid, new_opts);
 }
 
 std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {

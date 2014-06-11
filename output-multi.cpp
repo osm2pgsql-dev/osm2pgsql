@@ -13,11 +13,11 @@ std::string mk_column_name(const std::string &name, const options_t &options) {
 
 output_multi_t::output_multi_t(const std::string &name,
                                boost::shared_ptr<geometry_processor> processor_,
-                               struct export_list *export_list_,
+                               const struct export_list &export_list_,
                                const middle_query_t* mid_, const options_t &options_) 
     : output_t(mid_, options_),
       m_tagtransform(new tagtransform(&m_options)),
-      m_export_list(new export_list(*export_list_)),
+      m_export_list(new export_list(export_list_)),
       m_processor(processor_),
       m_osm_type(m_processor->interests(geometry_processor::interest_node)
                   ? OSMTYPE_NODE : OSMTYPE_WAY),

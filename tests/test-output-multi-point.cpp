@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
         export_list columns;
         { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
         
-        struct output_multi_t out_test("foobar_amenities", processor, &columns, &mid_pgsql, options);
+        struct output_multi_t out_test("foobar_amenities", processor, columns, &mid_pgsql, options);
         
         osmdata_t osmdata(&mid_pgsql, &out_test);
         

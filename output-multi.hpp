@@ -21,7 +21,7 @@ class output_multi_t : public output_t {
 public:
     output_multi_t(const std::string &name,
                    boost::shared_ptr<geometry_processor> processor_,
-                   struct export_list *export_list_,
+                   const struct export_list &export_list_,
                    const middle_query_t* mid_, const options_t &options_);
     virtual ~output_multi_t();
 
