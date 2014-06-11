@@ -212,6 +212,11 @@ void osmdata_t::stop() {
     // should be the same for all outputs
     const int append = outs[0]->get_options()->append;
 
+	/* Pending ways
+     * This stage takes ways which were processed earlier, but might be
+     * involved in a multipolygon relation. They could also be ways that
+     * were modified in diff processing.
+     */
     {
         way_cb_func callback;
         BOOST_FOREACH(output_t *out, outs) {
@@ -231,6 +236,11 @@ void osmdata_t::stop() {
         }
     }
 
+	/* Pending relations
+	 * This is like pending ways, except there aren't pending relations
+	 * on import, only on update.
+	 * TODO: Can we skip this on import?
+	 */
     {
         rel_cb_func callback;
         BOOST_FOREACH(output_t *out, outs) {
@@ -250,6 +260,9 @@ void osmdata_t::stop() {
         }
     }
 
+	/* Clustering, index creation, and cleanup.
+	 * All the intensive parts of this are long-running PostgreSQL commands
+	 */
     mid->stop();
     BOOST_FOREACH(output_t *out, outs) {
         out->stop();
