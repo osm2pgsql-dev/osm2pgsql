@@ -17,11 +17,11 @@ struct member;
 struct middle_query_t {
     virtual ~middle_query_t();
 
-    virtual int nodes_get_list(struct osmNode *out, osmid_t *nds, int nd_count) const = 0;
+    virtual int nodes_get_list(struct osmNode *out, const osmid_t *nds, int nd_count) const = 0;
 
     virtual int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const = 0;
 
-    virtual int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const = 0;
+    virtual int ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const = 0;
 
     virtual int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const = 0;
 

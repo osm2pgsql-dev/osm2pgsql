@@ -155,7 +155,7 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
     return 0;
 }
 
-int middle_ram_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count) const
+int middle_ram_t::nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const
 {
     int i, count;
 
@@ -304,16 +304,15 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
     return 1;
 }
 
-int middle_ram_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const {
+int middle_ram_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const {
     int count = 0;
     int i;
 
-    *way_ids = (osmid_t *)malloc( sizeof(osmid_t) * (way_count + 1));
     initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
         
         if (ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
-            (*way_ids)[count] = ids[i];
+            way_ids[count] = ids[i];
             count++;
             initList(&(tag_ptr[count]));
         }

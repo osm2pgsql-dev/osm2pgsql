@@ -28,11 +28,11 @@ struct test_middle_t : public middle_t {
     void commit(void) { }
 
     int nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
-    int nodes_get_list(struct osmNode *out, osmid_t *nds, int nd_count) const { return 0; }
+    int nodes_get_list(struct osmNode *out, const osmid_t *nds, int nd_count) const { return 0; }
 
     int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags) { return 0; }
     int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const { return 0; }
-    int ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const { return 0; }
+    int ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const { return 0; }
 
     int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
     int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const { return 0; }
@@ -113,9 +113,6 @@ int main(int argc, char *argv[]) {
   } 
 
   std::string inputfile = std::string(srcdir) + std::string("/tests/test_multipolygon.osm");
-
-  // need this to avoid segfault!
-  text_init();
 
   options_t options;
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));

@@ -10,39 +10,33 @@
 #include <stdio.h>
 #include "text-tree.hpp"
 
-struct tree_context *tree_ctx = NULL;
-
-int text_compare(const void *pa, const void *pb, void *rb_param)
+namespace
 {
-    struct text_node *a = (struct text_node *)pa;
-    struct text_node *b = (struct text_node *)pb;
+    int text_compare(const void *pa, const void *pb, void *rb_param)
+    {
+        struct text_node *a = (struct text_node *)pa;
+        struct text_node *b = (struct text_node *)pb;
 
-    rb_param = NULL;
-    return strcmp(a->str, b->str);
+        rb_param = NULL;
+        return strcmp(a->str, b->str);
+    }
+
+    void text_free(void *pa, void *rb_param)
+    {
+        struct text_node *a = (struct text_node *)pa;
+        rb_param = NULL;
+        free(a->str);
+        free(a);
+    }
 }
 
-struct tree_context *text_init(void)
+text_tree::text_tree()
 {
-    struct tree_context *context;
-    struct rb_table *table = rb_create (text_compare, NULL, NULL);
-
+    table = rb_create (text_compare, NULL, NULL);
     assert(table);
-    context = (struct tree_context *)calloc(1, sizeof(*context));
-    assert(context);
-    context->table = table;
-    tree_ctx = context;
-    return context;
 }
 
-void text_free(void *pa, void *rb_param)
-{
-    struct text_node *a = (struct text_node *)pa;
-    rb_param = NULL;
-    free(a->str);
-    free(a);
-}
-
-const char *text_get(struct tree_context *context, const char *text)
+const char *text_tree::text_get(const char *text)
 {
     struct text_node *node, *dupe;
 
@@ -52,7 +46,7 @@ const char *text_get(struct tree_context *context, const char *text)
     node->str = strdup(text);
     assert(node->str);
     node->ref = 0;
-    dupe = (struct text_node *)rb_insert(context->table, (void *)node);
+    dupe = (struct text_node *)rb_insert(table, (void *)node);
     if (dupe) {
         free(node->str);
         free(node);
@@ -64,32 +58,28 @@ const char *text_get(struct tree_context *context, const char *text)
     }
 }
 
-
-void text_release(struct tree_context *context, const char *text)
+void text_tree::text_release(const char *text)
 {
     struct text_node *node, find;
 
     find.str = (char *)text;
     find.ref = 0;
-    node = (struct text_node *)rb_find(context->table, (void *)&find);
+    node = (struct text_node *)rb_find(table, (void *)&find);
     if (!node) {
         fprintf(stderr, "failed to find '%s'\n", text);
         return;
     }
     node->ref--;
     if (!node->ref) {
-        rb_delete (context->table, &find);
+        rb_delete (table, &find);
         free(node->str);
         free(node);
     }
 }
 
-void text_exit(void)
+text_tree::~text_tree()
 {
-    struct tree_context *context = tree_ctx;
-    rb_destroy(context->table, text_free);
-    free(context);
-    tree_ctx = NULL;
+    rb_destroy(table, text_free);
 }
 #if 0
 int main(int argc, char **argv)

@@ -3,19 +3,19 @@
 
 #include "rb.hpp"
 
-struct tree_context {
+struct text_tree {
     struct rb_table *table;
-};
 
-extern struct tree_context *tree_ctx;
+    text_tree();
+    ~text_tree();
+    const char *text_get(const char *text);
+    void text_release(const char *text);
+};
 
 struct text_node {
     char *str;
     int ref;
 };
 
-struct tree_context *text_init(void);
-void text_exit(void);
-const char *text_get(struct tree_context *context, const char *text);
-void text_release(struct tree_context *context, const char *text);
+
 #endif

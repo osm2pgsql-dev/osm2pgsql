@@ -493,7 +493,7 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
     return 0;
 }
 
-int node_persistent_cache::get_list(struct osmNode *nodes, osmid_t *ndids,
+int node_persistent_cache::get_list(struct osmNode *nodes, const osmid_t *ndids,
         int nd_count)
 {
     int count = 0;

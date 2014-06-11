@@ -31,7 +31,7 @@ struct node_persistent_cache : public boost::noncopyable
 
     int set(osmid_t id, double lat, double lon);
     int get(struct osmNode *out, osmid_t id);
-    int get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count);
+    int get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count);
 
 private:
 

@@ -79,7 +79,6 @@ int main(int argc, char *argv[]) {
         
         boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
         
-        text_init();
         osmdata.start();
 
         if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
@@ -89,8 +88,6 @@ int main(int argc, char *argv[]) {
         parser.reset(NULL);
 
         osmdata.stop();
-
-        text_exit();
         
         // start a new connection to run tests on
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
