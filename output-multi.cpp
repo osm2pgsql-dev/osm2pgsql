@@ -73,7 +73,7 @@ int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *
 
 int output_multi_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
     if (m_processor->interests(geometry_processor::interest_way) && node_count > 1) {
-        return process_way(id, nodes, node_count, tags);
+        return process_way(id, nodes, node_count, tags, false);
     }
     return 0;
 }
@@ -107,7 +107,7 @@ int output_multi_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struc
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(id, nodes, node_count, tags);
+        return process_way(id, nodes, node_count, tags, false);
 
     } else {
         return 0;
@@ -165,7 +165,21 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyv
     return 0;
 }
 
-int output_multi_t::process_way(osmid_t id, const osmid_t *nodes, int node_count, struct keyval *tags) {
+int output_multi_t::process_way(osmid_t id, const osmid_t *nodes, int node_count, struct keyval *tags, bool exists) {
+    //if the way could exist already we have to make the relation pending and reprocess it later
+    //but only if we actually care about relations
+    if(m_processor->interests(geometry_processor::interest_relation) && exists) {
+        way_delete(id);
+        // TODO: this now only has an effect when called from the iterate_ways
+        // call-back, so we need some alternative way to trigger this within
+        // osmdata_t.
+        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
+        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
+             itr != rel_ids.end(); ++itr) {
+            rels_pending_tracker->mark(*itr);
+        }
+    }
+
     //check if we are keeping this way
     int polygon = 0, roads = 0;
     unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
@@ -186,101 +200,42 @@ int output_multi_t::process_way(osmid_t id, const osmid_t *nodes, int node_count
     return 0;
 }
 
-output_multi_t::member_helper::member_helper():members(NULL), member_count(0), way_count(0) {
-
-}
-output_multi_t::member_helper::~member_helper() {
-    //clean up
-    for(size_t i = 0; i < way_count; ++i)
-    {
-        resetList(&(tags[i]));
-        free(nodes[i]);
-    }
-}
-
-void output_multi_t::member_helper::set(const member* member_list, const int member_list_length, const middle_query_t* mid) {
-    //clean up
-    for(size_t i = 0; i < way_count; ++i)
-    {
-        resetList(&(tags[i]));
-        free(nodes[i]);
-    }
-
-    //keep a few things
-    members = member_list;
-    member_count = member_list_length;
-
-    //grab the way members' ids
-    way_ids.resize(member_count);
-    size_t used = 0;
-    for(size_t i = 0; i < member_count; ++i)
-        if(members[i].type == OSMTYPE_WAY)
-            way_ids[used++] = members[i].id;
-
-    //if we didnt end up using any well bail
-    if(used == 0)
-    {
-        way_count = 0;
-        return;
-    }
-
-    //get the nodes of the ways
-    tags.resize(used + 1);
-    node_counts.resize(used + 1);
-    nodes.resize(used + 1);
-    ways.resize(used + 1);
-    //this is mildly abusive treating vectors like arrays but the memory is contiguous so...
-    way_count = mid->ways_get_list(&way_ids.front(), used, &ways.front(), &tags.front(), &nodes.front(), &node_counts.front());
-
-    //grab the roles of each way
-    roles.resize(way_count + 1);
-    roles[way_count] = NULL;
-    for (size_t i = 0; i < way_count; ++i)
-    {
-        size_t j = i;
-        for (; j < member_count; ++j)
-        {
-            if (members[j].id == ways[i])
-            {
-                break;
-            }
-        }
-        roles[i] = members[j].role;
-    }
-
-    //mark the ends of each so whoever uses them will know where they end..
-    nodes[way_count] = NULL;
-    node_counts[way_count] = 0;
-    ways[way_count] = 0;
-}
-
-
 int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags) {
-    //check if we are keeping this relation
+    //does this relation have anything interesting to us
     unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
     if (!filter) {
-        //grab ways nodes about the members in the relation
-        m_member_helper.set(members, member_count, m_mid);
-        //figure out which members we are going to keep with the relation or not
-        /*std::vector<int> members_superseeded(member_count);
-        if (m_tagtransform->filter_rel_member_tags(tags, member_count, xtags, xrole, &members_superseeded.front(), &make_boundary, &make_polygon, &roads, m_export_list)) {
+        //TODO: move this into geometry processor, figure a way to come back for tag transform
+        //grab ways/nodes of the members in the relation, bail if none were used
+        if(m_relation_helper.set(members, member_count, (middle_t*)m_mid) < 1)
             return 0;
-        }*/
 
+        //do the members of this relation have anything interesting to us
+        int make_boundary, make_polygon, roads;
+        filter = m_tagtransform->filter_rel_member_tags(tags, m_relation_helper.way_count, &m_relation_helper.tags.front(),
+                                                   &m_relation_helper.roles.front(), &m_relation_helper.superseeded.front(),
+                                                   &make_boundary, &make_polygon, &roads, m_export_list.get());
+        if(!filter)
+        {
+            geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(&m_relation_helper.nodes.front(), &m_relation_helper.node_counts.front(), m_mid);
+            if (wkts) {
+                //TODO: expire
+                for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
+                {
+                    //why negative id?
+                    copy_to_table(-id, wkt->geom.c_str(), tags);
+                }
+            }
 
-        //TODO: do another level of filtering to get the members that end up belonging to the outer ring
-        //by way of their tags being the same
-        //then if they did end up belonging we need to mark them in ways_done_tracker->mark(xid[i]);
-        //and remove them if for some reason they were already written, dont understand how they could be though
-        //given that they go to pending first...
-        //also we may want to do some of this work inside of process relation by pasing the tag transform to there
-        //and by passing back some other things..
-
-        geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(members, member_count, m_mid);
-        if (wkts) {
-            for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
-            {
-                copy_to_table(id, wkt->geom.c_str(), tags);
+            //take a look at each member to see if its superseeded (tags on it matched the tags on the relation)
+            for(size_t i = 0; i < m_relation_helper.way_count; ++i) {
+                //tags matched so we are keeping this one with this relation
+                if (m_relation_helper.superseeded[i]) {
+                    //just in case it wasnt previously with this relation we get rid of them
+                    way_delete(m_relation_helper.ways[i]);
+                    //the other option is that we marked them pending in the way processing so here we mark them
+                    //done so when we go back over the pendings we can just skip it because its in the done list
+                    ways_done_tracker->mark(m_relation_helper.ways[i]);
+                }
             }
         }
     }

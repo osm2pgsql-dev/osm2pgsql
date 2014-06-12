@@ -108,7 +108,7 @@ int polygondata_comparearea(const void* vp1, const void* vp2)
 }
 } // anonymous namespace
 
-geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(osmNode *nodes, int count, int polygon) const
+geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *nodes, int count, int polygon) const
 {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
@@ -163,7 +163,7 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(osmNode *nodes, i
     return maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(osmNode *nodes, int count, int polygon, double split_at) const
+geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *nodes, int count, int polygon, double split_at) const
 {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
@@ -342,7 +342,7 @@ int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int
     return 0;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build(struct osmNode **xnodes, int *xcount, int make_polygon,
+geometry_builder::maybe_wkts_t geometry_builder::build(const osmNode * const * xnodes, const int *xcount, int make_polygon,
                                                                              int enable_multi, double split_at, osmid_t osm_id) const
 {
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
@@ -359,7 +359,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build(struct osmNode **xnodes, 
         for (int c=0; xnodes[c]; c++) {
             std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
             for (int i = 0; i < xcount[c]; i++) {
-                struct osmNode *nodes = xnodes[c];
+                const osmNode *nodes = xnodes[c];
                 Coordinate c;
                 c.x = nodes[i].lon;
                 c.y = nodes[i].lat;
@@ -496,7 +496,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build(struct osmNode **xnodes, 
 		pgf.destroy(preparedtoplevelpolygon);
 #endif
             }
-            // polys now is a list of ploygons tagged with which ones are inside each other
+            // polys now is a list of polygons tagged with which ones are inside each other
 
             // List of polygons for multipolygon
             std::auto_ptr<std::vector<Geometry*> > polygons(new std::vector<Geometry*>);

@@ -24,7 +24,7 @@ public:
 	unsigned int filter_way_tags(keyval *tags, int * polygon, int * roads, const export_list *exlist);
 	unsigned int filter_rel_tags(keyval *tags, const export_list *exlist);
 	unsigned int filter_rel_member_tags(keyval *rel_tags, int member_count,
-		keyval *member_tags,const char **member_role, int * member_superseeded,
+		keyval *member_tags, const char * const * member_roles, int * member_superseeded,
 		int * make_boundary, int * make_polygon, int * roads, const export_list *exlist);
 
 private:
@@ -32,7 +32,7 @@ private:
 	unsigned int c_filter_basic_tags(const OsmType type, keyval *tags, int *polygon, int * roads,
 	    const export_list *exlist);
 	unsigned int lua_filter_rel_member_tags(keyval *rel_tags, const int member_count,
-	        keyval *member_tags,const char **member_role,
+	        keyval *member_tags,const char * const * member_roles,
 	        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads);
 
 	const options_t* options;

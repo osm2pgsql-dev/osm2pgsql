@@ -21,7 +21,7 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
         ptr = boost::make_shared<processor_line>(srid);
     }
     else if (type == "polygon") {
-        ptr = boost::make_shared<processor_polygon>(srid);
+        ptr = boost::make_shared<processor_polygon>(srid, options->enable_multi);
     }
     else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "
@@ -59,10 +59,10 @@ geometry_builder::maybe_wkt_t geometry_processor::process_node(double lat, doubl
     return geometry_builder::maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkt_t geometry_processor::process_way(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid) {
+geometry_builder::maybe_wkt_t geometry_processor::process_way(const osmid_t *node_ids, const size_t node_count, const middle_query_t *mid) {
     return geometry_builder::maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_processor::process_relation(const member *members, size_t member_count, const middle_query_t *mid) {
+geometry_builder::maybe_wkts_t geometry_processor::process_relation(const osmNode * const * nodes, const int* node_counts, const middle_query_t *mid) {
     return geometry_builder::maybe_wkts_t();
 }

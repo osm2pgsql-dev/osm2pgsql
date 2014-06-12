@@ -5,6 +5,76 @@
 #include <boost/foreach.hpp>
 #include <stdexcept>
 
+relation_helper::relation_helper():members(NULL), member_count(0), way_count(0) {
+
+}
+relation_helper::~relation_helper() {
+    //clean up
+    for(size_t i = 0; i < way_count; ++i)
+    {
+        resetList(&(tags[i]));
+        free(nodes[i]);
+    }
+}
+
+size_t& relation_helper::set(const member* member_list, const int member_list_length, const middle_t* mid) {
+    //clean up
+    for(size_t i = 0; i < way_count; ++i)
+    {
+        resetList(&(tags[i]));
+        free(nodes[i]);
+    }
+
+    //keep a few things
+    members = member_list;
+    member_count = member_list_length;
+
+    //grab the way members' ids
+    input_way_ids.resize(member_count);
+    size_t used = 0;
+    for(size_t i = 0; i < member_count; ++i)
+        if(members[i].type == OSMTYPE_WAY)
+            input_way_ids[used++] = members[i].id;
+
+    //if we didnt end up using any well bail
+    if(used == 0)
+    {
+        way_count = 0;
+        return way_count;
+    }
+
+    //get the nodes of the ways
+    tags.resize(used + 1);
+    node_counts.resize(used + 1);
+    nodes.resize(used + 1);
+    ways.resize(used + 1);
+    //this is mildly abusive treating vectors like arrays but the memory is contiguous so...
+    way_count = mid->ways_get_list(&input_way_ids.front(), used, &ways.front(), &tags.front(), &nodes.front(), &node_counts.front());
+
+    //grab the roles of each way
+    roles.resize(way_count + 1);
+    roles[way_count] = NULL;
+    for (size_t i = 0; i < way_count; ++i)
+    {
+        size_t j = i;
+        for (; j < member_count; ++j)
+        {
+            if (members[j].id == ways[i])
+            {
+                break;
+            }
+        }
+        roles[i] = members[j].role;
+    }
+
+    //mark the ends of each so whoever uses them will know where they end..
+    nodes[way_count] = NULL;
+    node_counts[way_count] = 0;
+    ways[way_count] = 0;
+    superseeded.resize(way_count);
+    return way_count;
+}
+
 osmdata_t::osmdata_t(middle_t* mid_, output_t* out_): mid(mid_)
 {
     outs.push_back(out_);

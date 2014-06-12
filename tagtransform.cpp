@@ -90,7 +90,7 @@ int add_z_order(keyval *tags, int *roads) {
 
 unsigned int c_filter_rel_member_tags(
         keyval *rel_tags, const int member_count,
-        keyval *member_tags, const char **member_role,
+        keyval *member_tags, const char * const *member_roles,
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads,
         const export_list *exlist) {
     char *type;
@@ -252,7 +252,7 @@ unsigned int c_filter_rel_member_tags(
         if (!listHasData(&poly_tags)) {
             first_outerway = 1;
             for (i = 0; i < member_count; i++) {
-                if (member_role[i] && !strcmp(member_role[i], "inner"))
+                if (member_roles[i] && !strcmp(member_roles[i], "inner"))
                     continue;
 
                 /* insert all tags of the first outerway to the potential list of copied tags. */
@@ -438,11 +438,11 @@ unsigned int tagtransform::filter_rel_tags(struct keyval *tags, const export_lis
     }
 }
 
-unsigned int tagtransform::filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char **member_role, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads, const export_list *exlist) {
+unsigned int tagtransform::filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char * const * member_roles, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads, const export_list *exlist) {
     if (transform_method) {
-        return lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads);
+        return lua_filter_rel_member_tags(rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads);
     } else {
-        return c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_role, member_superseeded, make_boundary, make_polygon, roads, exlist);
+        return c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, exlist);
     }
 }
 
@@ -647,7 +647,7 @@ unsigned int tagtransform::c_filter_basic_tags(
 }
 
 unsigned int tagtransform::lua_filter_rel_member_tags(keyval *rel_tags, const int member_count,
-        keyval *member_tags,const char **member_role,
+        keyval *member_tags,const char * const * member_roles,
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
 #ifdef HAVE_LUA
 
@@ -690,7 +690,7 @@ unsigned int tagtransform::lua_filter_rel_member_tags(keyval *rel_tags, const in
 
     for (i = 0; i < member_count; i++) {
         lua_pushnumber(L, i + 1);
-        lua_pushstring(L, member_role[i]);
+        lua_pushstring(L, member_roles[i]);
         lua_rawset(L, -3);
     }
 
