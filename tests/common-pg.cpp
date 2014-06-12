@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <cstdarg>
+#include <unistd.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -85,7 +86,17 @@ tempdb::tempdb()
     
     m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(NULL)).str();
     m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
-    res = m_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % m_db_name);
+    //tests can be run concurrently which means that this query can collide with other similar ones
+    //so we implement a simple retry here to get around the case that they do collide if we dont
+    //we often fail due to both trying to access template1 at the same time
+    size_t retries = 0;
+    ExecStatusType status = PGRES_FATAL_ERROR;
+    while(status != PGRES_COMMAND_OK && retries++ < 20)
+    {
+        sleep(1);
+        res = m_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % m_db_name);
+        status = PQresultStatus(res->get());
+    }
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
         throw std::runtime_error((boost::format("Could not create a database: %1%") 
                                   % PQresultErrorMessage(res->get())).str());

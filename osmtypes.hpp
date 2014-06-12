@@ -10,6 +10,8 @@
 #include <config.h>
 #include <vector>
 
+#include "keyvals.hpp"
+
 /* Use ./configure --enable-64bit-ids to build a version that supports 64bit IDs. */
 
 #ifdef OSMID64
@@ -24,6 +26,9 @@ typedef int32_t osmid_t;
 #define POSTGRES_OSMID_TYPE "int4"
 #endif
 
+//forward declaration needed here
+struct middle_t;
+struct output_t;
 
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
 
@@ -38,9 +43,27 @@ struct member {
     char *role;
 };
 
-//forward declaration needed here
-struct middle_t;
-struct output_t;
+//various bits for continuous processing of members of relations
+struct relation_helper
+{
+    relation_helper();
+    ~relation_helper();
+    size_t& set(const member* member_list, const int member_list_length, const middle_t* mid);
+
+    const member* members;
+    size_t member_count;
+    std::vector<keyval> tags;
+    std::vector<int> node_counts;
+    std::vector<osmNode*> nodes;
+    std::vector<osmid_t> ways;
+    size_t way_count;
+    std::vector<const char*> roles;
+    std::vector<int> superseeded;
+
+private:
+    std::vector<osmid_t> input_way_ids;
+};
+
 
 class osmdata_t {
 public:

@@ -168,6 +168,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
     members_superseeded = (int *)calloc(sizeof(int), member_count);
 
+    //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
     if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list)) {
         free(members_superseeded);
         return 0;
@@ -179,6 +180,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     else
         split_at = 100 * 1000;
 
+    //this will either make lines or polygons depending on the tag transform above
     geometry_builder::maybe_wkts_t wkts  = builder.build(xnodes, xcount, make_polygon, m_options.enable_multi, split_at, id);
 
     if (!wkts->size()) {
@@ -221,8 +223,9 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
     free(members_superseeded);
 
-    /* If we are making a boundary then also try adding any relations which form complete rings
-       The linear variants will have already been processed above */
+    // If the tag transform said the polygon looked like a boundary we want to make that as well
+    // If we are making a boundary then also try adding any relations which form complete rings
+    // The linear variants will have already been processed above
     if (make_boundary) {
         wkts = builder.build(xnodes, xcount, 1, m_options.enable_multi, split_at, id);
         for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)

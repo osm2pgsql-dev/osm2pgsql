@@ -11,6 +11,7 @@ struct processor_line : public geometry_processor {
 
 private:
     geometry_builder builder;
+    std::vector<osmNode> node_cache;
 };
 
 #endif /* PROCESSOR_LINE_HPP */

@@ -12,14 +12,13 @@ processor_line::~processor_line()
 
 geometry_builder::maybe_wkt_t processor_line::process_way(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid)
 {
-    //allocate some space for the node data
-    osmNode* returned_nodes = new osmNode[node_count];
+    //if we don't have enough space already get more
+    if(node_cache.size() < node_count)
+        node_cache.resize(node_count);
     //get the node data
-    int returned_node_count = mid->nodes_get_list(returned_nodes, node_ids, node_count);
+    int cached_count = mid->nodes_get_list(&node_cache.front(), node_ids, node_count);
     //have the builder make the wkt
-    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(returned_nodes, returned_node_count, false);
-    //clean up
-    delete [] returned_nodes;
+    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(&node_cache.front(), cached_count, false);
     //hand back the wkt
     return wkt;
 }
