@@ -494,8 +494,8 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, i
     count++;
   }
 
-  osmid_t *xid;
-  count2 = m_mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+  osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
+  count2 = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
 
   for (i = 0; i < count2; i++) {
       for (j = i; j < member_count; j++) {

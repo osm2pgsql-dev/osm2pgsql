@@ -527,7 +527,7 @@ int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval 
     return (out_options->flat_node_cache_enabled) ? persistent_cache->set(id, lat, lon) : local_nodes_set(id, lat, lon, tags);
 }
 
-int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, osmid_t *ndids, int nd_count) const
+int middle_pgsql_t::nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const
 {
     return (out_options->flat_node_cache_enabled) ? persistent_cache->get_list(nodes, ndids, nd_count) : local_nodes_get_list(nodes, ndids, nd_count);
 }
@@ -631,7 +631,7 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
     return 0;
 }
 
-int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
+int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
 
     char tmp[16];
     char *tmp2; 
@@ -644,7 +644,6 @@ int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids
     PGresult *res;
     PGconn *sql_conn = way_table->sql_conn;
     
-    *way_ids = (osmid_t *)malloc( sizeof(osmid_t) * (way_count + 1));
     if (way_count == 0) return 0;
     
     tmp2 = (char *)malloc(sizeof(char)*way_count*16);
@@ -680,7 +679,7 @@ int middle_pgsql_t::ways_get_list(osmid_t *ids, int way_count, osmid_t **way_ids
     for (i = 0; i < way_count; i++) {
         for (j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
-                (*way_ids)[count] = ids[i];
+                way_ids[count] = ids[i];
                 pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
 
                 num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);

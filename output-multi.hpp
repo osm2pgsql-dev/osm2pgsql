@@ -47,8 +47,9 @@ private:
 
     void delete_from_output(osmid_t id);
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
-    int process_way(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int process_way(osmid_t id, const osmid_t *nodes, int node_count, struct keyval *tags);
+    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags);
+    void get_members_details(const member *members, const int member_count);
     void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
@@ -57,6 +58,25 @@ private:
     const OsmType m_osm_type;
     boost::scoped_ptr<table_t> m_table;
     boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+
+    //various bits for continuous processing of members of relations
+    struct member_helper
+    {
+        member_helper();
+        ~member_helper();
+        void set(const member* member_list, const int member_list_length, const middle_query_t* mid);
+
+        const member* members;
+        size_t member_count;
+        std::vector<osmid_t> way_ids;
+        std::vector<keyval> tags;
+        std::vector<int> node_counts;
+        std::vector<osmNode*> nodes;
+        std::vector<osmid_t> ways;
+        size_t way_count;
+        std::vector<const char*> roles;
+    };
+    member_helper m_member_helper;
 };
 
 #endif

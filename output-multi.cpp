@@ -2,6 +2,7 @@
 #include "taginfo_impl.hpp"
 
 #include <boost/format.hpp>
+#include <vector>
 
 namespace {
 
@@ -152,8 +153,10 @@ int output_multi_t::relation_delete(osmid_t id) {
 }
 
 int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyval *tags) {
+    //check if we are keeping this node
     unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
     if (!filter) {
+        //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
         if (wkt) {
             copy_to_table(id, wkt->geom.c_str(), tags);
@@ -162,10 +165,12 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyv
     return 0;
 }
 
-int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+int output_multi_t::process_way(osmid_t id, const osmid_t *nodes, int node_count, struct keyval *tags) {
+    //check if we are keeping this way
     int polygon = 0, roads = 0;
     unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
     if (!filter) {
+        //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count, m_mid);
         if (wkt) {
             //if we are also interested in relations we need to mark
@@ -181,9 +186,88 @@ int output_multi_t::process_way(osmid_t id, osmid_t *nodes, int node_count, stru
     return 0;
 }
 
-int output_multi_t::process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+output_multi_t::member_helper::member_helper():members(NULL), member_count(0), way_count(0) {
+
+}
+output_multi_t::member_helper::~member_helper() {
+    //clean up
+    for(size_t i = 0; i < way_count; ++i)
+    {
+        resetList(&(tags[i]));
+        free(nodes[i]);
+    }
+}
+
+void output_multi_t::member_helper::set(const member* member_list, const int member_list_length, const middle_query_t* mid) {
+    //clean up
+    for(size_t i = 0; i < way_count; ++i)
+    {
+        resetList(&(tags[i]));
+        free(nodes[i]);
+    }
+
+    //keep a few things
+    members = member_list;
+    member_count = member_list_length;
+
+    //grab the way members' ids
+    way_ids.resize(member_count);
+    size_t used = 0;
+    for(size_t i = 0; i < member_count; ++i)
+        if(members[i].type == OSMTYPE_WAY)
+            way_ids[used++] = members[i].id;
+
+    //if we didnt end up using any well bail
+    if(used == 0)
+    {
+        way_count = 0;
+        return;
+    }
+
+    //get the nodes of the ways
+    tags.resize(used + 1);
+    node_counts.resize(used + 1);
+    nodes.resize(used + 1);
+    ways.resize(used + 1);
+    //this is mildly abusive treating vectors like arrays but the memory is contiguous so...
+    way_count = mid->ways_get_list(&way_ids.front(), used, &ways.front(), &tags.front(), &nodes.front(), &node_counts.front());
+
+    //grab the roles of each way
+    roles.resize(way_count + 1);
+    roles[way_count] = NULL;
+    for (size_t i = 0; i < way_count; ++i)
+    {
+        size_t j = i;
+        for (; j < member_count; ++j)
+        {
+            if (members[j].id == ways[i])
+            {
+                break;
+            }
+        }
+        roles[i] = members[j].role;
+    }
+
+    //mark the ends of each so whoever uses them will know where they end..
+    nodes[way_count] = NULL;
+    node_counts[way_count] = 0;
+    ways[way_count] = 0;
+}
+
+
+int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags) {
+    //check if we are keeping this relation
     unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
     if (!filter) {
+        //grab ways nodes about the members in the relation
+        m_member_helper.set(members, member_count, m_mid);
+        //figure out which members we are going to keep with the relation or not
+        /*std::vector<int> members_superseeded(member_count);
+        if (m_tagtransform->filter_rel_member_tags(tags, member_count, xtags, xrole, &members_superseeded.front(), &make_boundary, &make_polygon, &roads, m_export_list)) {
+            return 0;
+        }*/
+
+
         //TODO: do another level of filtering to get the members that end up belonging to the outer ring
         //by way of their tags being the same
         //then if they did end up belonging we need to mark them in ways_done_tracker->mark(xid[i]);

@@ -15,6 +15,9 @@
 
 #ifdef USE_TREE
 #include "text-tree.hpp"
+
+//TODO: no more globals please, is this objects destructor is racing with references to keyvals?
+text_tree tree_ctx;
 #endif
 
 #include <algorithm>
@@ -36,8 +39,8 @@ void freeItem(struct keyval *p)
         return;
 
 #ifdef USE_TREE
-    text_release(tree_ctx, p->key);
-    text_release(tree_ctx, p->value);
+    tree_ctx.text_release(p->key);
+    tree_ctx.text_release(p->value);
 #else
     free(p->key);
     free(p->value);
@@ -175,8 +178,8 @@ void updateItem(struct keyval *head, const char *name, const char *value)
     while(item != head) {
         if (!strcmp(item->key, name)) {
 #ifdef USE_TREE
-            text_release(tree_ctx, item->value);
-            item->value = (char *)text_get(tree_ctx,value);
+            tree_ctx.text_release(item->value);
+            item->value = (char *)tree_ctx.text_get(value);
 #else
             free(item->value);
             item->value = strdup(value);
@@ -247,8 +250,8 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
     }
 
 #ifdef USE_TREE
-    item->key   = (char *)text_get(tree_ctx,name);
-    item->value = (char *)text_get(tree_ctx,value);
+    item->key   = (char *)tree_ctx.text_get(name);
+    item->value = (char *)tree_ctx.text_get(value);
 #else
     item->key   = strdup(name);
     item->value = strdup(value);

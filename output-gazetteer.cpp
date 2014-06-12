@@ -1255,7 +1255,6 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       int *xcount = (int *)malloc( (member_count+1) * sizeof(int) );
       struct keyval *xtags  = (struct keyval *)malloc( (member_count+1) * sizeof(struct keyval) );
       struct osmNode **xnodes = (struct osmNode **)malloc( (member_count+1) * sizeof(struct osmNode*) );
-      osmid_t *xid;
       osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
 
       count = 0;
@@ -1268,7 +1267,8 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          count++;
       }
 
-      count = m_mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
+      osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
+      count = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
 
       xnodes[count] = NULL;
       xcount[count] = 0;

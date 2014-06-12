@@ -71,7 +71,7 @@ int test_way_set(middle_t *mid)
   struct keyval tags[2]; /* <-- this is needed because the ways_get_list method calls
                           * initList() on the `count + 1`th tags element. */
   struct osmNode *node_ptr = NULL;
-  osmid_t *way_ids_ptr = NULL;
+  osmid_t way_ids_ptr;
   int node_count = 0;
   int status = 0;
   osmid_t nds[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
@@ -101,9 +101,9 @@ int test_way_set(middle_t *mid)
               << node_count << " from middle.\n";
     return 1;
   }
-  if (way_ids_ptr[0] != way_id) {
+  if (way_ids_ptr != way_id) {
     std::cerr << "ERROR: Way should have id=" << way_id << ", but got back "
-              << way_ids_ptr[0] << " from middle.\n";
+              << way_ids_ptr << " from middle.\n";
     return 1;
   }
   for (int i = 0; i < nd_count; ++i) {
@@ -151,7 +151,6 @@ int test_way_set(middle_t *mid)
   
   resetList(&tags[0]);
   free(node_ptr);
-  free(way_ids_ptr);
 
   // clean up for next test
   if (dynamic_cast<slim_middle_t *>(mid)) {

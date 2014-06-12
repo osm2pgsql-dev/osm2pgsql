@@ -85,8 +85,6 @@ int main(int argc, char *argv[])
         //check the database
         check_db(options.conninfo.c_str(), options.unlogged);
 
-        text_init();
-
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->project_getprojinfo()->srs,
                 options.projection->project_getprojinfo()->descr );
@@ -125,7 +123,6 @@ int main(int argc, char *argv[])
         //done with middle_*_t
         delete middle;
 
-        text_exit();
         fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
 
         return 0;
