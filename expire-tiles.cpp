@@ -338,7 +338,7 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 	return 0;
 }
 
-void expire_tiles::from_nodes_line(struct osmNode * nodes, int count) {
+void expire_tiles::from_nodes_line(const struct osmNode * nodes, int count) {
 	int	i;
 	double	last_lat;
 	double	last_lon;
@@ -361,7 +361,7 @@ void expire_tiles::from_nodes_line(struct osmNode * nodes, int count) {
 /*
  * Calculate a bounding box from a list of nodes and expire all tiles within it
  */
-void expire_tiles::from_nodes_poly(struct osmNode * nodes, int count, osmid_t osm_id) {
+void expire_tiles::from_nodes_poly(const struct osmNode * nodes, int count, osmid_t osm_id) {
 	int	i;
 	int	got_coords = 0;
 	double	min_lon = 0.0;
@@ -386,13 +386,13 @@ void expire_tiles::from_nodes_poly(struct osmNode * nodes, int count, osmid_t os
 	}
 }
 
-void expire_tiles::from_xnodes_poly(struct osmNode ** xnodes, int * xcount, osmid_t osm_id) {
+void expire_tiles::from_xnodes_poly(const struct osmNode * const * xnodes, int * xcount, osmid_t osm_id) {
 	int	i;
 
         for (i = 0; xnodes[i]; i++) from_nodes_poly(xnodes[i], xcount[i], osm_id);
 }
 
-void expire_tiles::from_xnodes_line(struct osmNode ** xnodes, int * xcount) {
+void expire_tiles::from_xnodes_line(const struct osmNode * const * xnodes, int * xcount) {
 	int	i;
 
         for (i = 0; xnodes[i]; i++) from_nodes_line(xnodes[i], xcount[i]);

@@ -102,7 +102,7 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
+int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
     int i, wkt_size;
@@ -132,29 +132,27 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNod
     geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, count, polygon, split_at);
     for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
     {
-        if (wkt->valid()) {
-            /* FIXME: there should be a better way to detect polygons */
-            if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
-                expire->from_nodes_poly(nodes, count, id);
-                if ((wkt->area > 0.0) && m_enable_way_area) {
-                    char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                    addItem(tags, "way_area", tmp, 0);
-                }
-                m_tables[t_poly]->write_wkt(id, tags, wkt->geom.c_str());
-            } else {
-                expire->from_nodes_line(nodes, count);
-                m_tables[t_line]->write_wkt(id, tags, wkt->geom.c_str());
-                if (roads)
-                    m_tables[t_roads]->write_wkt(id, tags, wkt->geom.c_str());
+        /* FIXME: there should be a better way to detect polygons */
+        if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+            expire->from_nodes_poly(nodes, count, id);
+            if ((wkt->area > 0.0) && m_enable_way_area) {
+                char tmp[32];
+                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                addItem(tags, "way_area", tmp, 0);
             }
+            m_tables[t_poly]->write_wkt(id, tags, wkt->geom.c_str());
+        } else {
+            expire->from_nodes_line(nodes, count);
+            m_tables[t_line]->write_wkt(id, tags, wkt->geom.c_str());
+            if (roads)
+                m_tables[t_roads]->write_wkt(id, tags, wkt->geom.c_str());
         }
     }
 	
     return 0;
 }
 
-int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole)
+int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const *xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole)
 {
     if (member_count == 0)
         return 0;
@@ -191,22 +189,19 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
     for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
     {
-        if (wkt->valid()) {
-            expire->from_wkt(wkt->geom.c_str(), -id);
-            /* FIXME: there should be a better way to detect polygons */
-            if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
-                if ((wkt->area > 0.0) && m_enable_way_area) {
-                    char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                    addItem(rel_tags, "way_area", tmp, 0);
-                }
-                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
-                printf("REL: %s\n", (boost::format("%1%") % (-id)).str().c_str());
-            } else {
-                m_tables[t_line]->write_wkt(-id, rel_tags, wkt->geom.c_str());
-                if (roads)
-                    m_tables[t_roads]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+        expire->from_wkt(wkt->geom.c_str(), -id);
+        /* FIXME: there should be a better way to detect polygons */
+        if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+            if ((wkt->area > 0.0) && m_enable_way_area) {
+                char tmp[32];
+                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                addItem(rel_tags, "way_area", tmp, 0);
             }
+            m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+        } else {
+            m_tables[t_line]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+            if (roads)
+                m_tables[t_roads]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         }
     }
 
@@ -232,16 +227,13 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         wkts = builder.build_polygons(xnodes, xcount, m_options.enable_multi, id);
         for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
         {
-            if (wkt->valid()) {
-                expire->from_wkt(wkt->geom.c_str(), -id);
-                if ((wkt->area > 0.0) && m_enable_way_area) {
-                    char tmp[32];
-                    snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                    addItem(rel_tags, "way_area", tmp, 0);
-                }
-                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
-                printf("REL: %s\n", (boost::format("%1%") % (-id)).str().c_str());
+            expire->from_wkt(wkt->geom.c_str(), -id);
+            if ((wkt->area > 0.0) && m_enable_way_area) {
+                char tmp[32];
+                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                addItem(rel_tags, "way_area", tmp, 0);
             }
+            m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         }
     }
 
@@ -271,7 +263,7 @@ output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr)
 
 output_pgsql_t::way_cb_func::~way_cb_func() {}
 
-int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
+int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists) {
     if (m_next_internal_id < id) {
         run_internal_until(id, exists);
     }
@@ -322,7 +314,7 @@ output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr)
 
 output_pgsql_t::rel_cb_func::~rel_cb_func() {}
 
-int output_pgsql_t::rel_cb_func::operator()(osmid_t id, struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
+int output_pgsql_t::rel_cb_func::operator()(osmid_t id, const struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
     if (m_next_internal_id < id) {
         run_internal_until(id, exists);
     }
@@ -473,7 +465,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists)
+int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists)
 {
     int i, j, count, count2;
 

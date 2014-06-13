@@ -46,12 +46,12 @@ struct middle_t : public middle_query_t {
 
     struct way_cb_func {
         virtual ~way_cb_func();
-        virtual int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) = 0;
+        virtual int operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists) = 0;
         virtual void finish(int exists) = 0;
     };
     struct rel_cb_func {
         virtual ~rel_cb_func();
-        virtual int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists) = 0;
+        virtual int operator()(osmid_t id, const struct member *, int member_count, struct keyval *rel_tags, int exists) = 0;
         virtual void finish(int exists) = 0;
     };
 

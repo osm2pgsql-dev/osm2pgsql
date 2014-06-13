@@ -8,6 +8,7 @@ struct processor_line : public geometry_processor {
     virtual ~processor_line();
 
     geometry_builder::maybe_wkt_t process_way(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid);
+    geometry_builder::maybe_wkt_t process_way(const osmNode *nodes, size_t node_count);
 
 private:
     geometry_builder builder;

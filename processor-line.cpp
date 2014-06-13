@@ -22,3 +22,11 @@ geometry_builder::maybe_wkt_t processor_line::process_way(const osmid_t *node_id
     //hand back the wkt
     return wkt;
 }
+
+geometry_builder::maybe_wkt_t processor_line::process_way(const osmNode *nodes, size_t node_count)
+{
+    //have the builder make the wkt
+    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, node_count, false);
+    //hand back the wkt
+    return wkt;
+}

@@ -36,7 +36,6 @@ struct geometry_builder : public boost::noncopyable
     {
         wkt_t(const std::string& geom, const double& area):geom(geom),area(area){}
         wkt_t():geom(""),area(0){}
-        bool valid()const{return geom.length()>0;}
         std::string geom;
         double area;
     };

@@ -53,7 +53,7 @@ int test_node_set(middle_t *mid)
 struct way_cb_func : public middle_t::way_cb_func {
     std::list<osmid_t> pending_ways;
     
-    int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists)
+    int operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists)
     {
         // TODO: figure out exists - seems to be a useless variable?
         pending_ways.push_back(id);

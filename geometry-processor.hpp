@@ -42,10 +42,15 @@ struct geometry_processor {
     // for insertion into the table.
     virtual geometry_builder::maybe_wkt_t process_way(const osmid_t *node_ids, const size_t node_count, const middle_query_t *mid);
     
+    // process a way
+    // position data and optionally returning WKT-encoded geometry
+    // for insertion into the table.
+    virtual geometry_builder::maybe_wkt_t process_way(const osmNode *nodes, const size_t node_count);
+
     // process a way, taking a middle query object to get way and
     // node position data. optionally returns a WKT-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::maybe_wkts_t process_relation(const osmNode * const * nodes, const int* node_counts, const middle_query_t *mid);
+    virtual geometry_builder::maybe_wkts_t process_relation(const osmNode * const * nodes, const int* node_counts);
 
     // returns the SRID of the output geometry.
     int srid() const;

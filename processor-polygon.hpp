@@ -8,7 +8,8 @@ struct processor_polygon : public geometry_processor {
     virtual ~processor_polygon();
 
     geometry_builder::maybe_wkt_t process_way(const osmid_t *node_ids, size_t const node_count, const middle_query_t *mid);
-    geometry_builder::maybe_wkts_t process_relation(const osmNode * const * nodes, const int* node_counts, const middle_query_t *mid);
+    geometry_builder::maybe_wkt_t process_way(const osmNode *nodes, const size_t node_count);
+    geometry_builder::maybe_wkts_t process_relation(const osmNode * const * nodes, const int* node_counts);
 
 private:
     bool enable_multi;

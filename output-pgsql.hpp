@@ -53,7 +53,7 @@ private:
         osmid_t m_next_internal_id;
         way_cb_func(output_pgsql_t *ptr);
         virtual ~way_cb_func();
-        int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
+        int operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists);
         void finish(int exists);
         void run_internal_until(osmid_t id, int exists);
     };
@@ -63,7 +63,7 @@ private:
         osmid_t m_next_internal_id;
         rel_cb_func(output_pgsql_t *ptr);
         virtual ~rel_cb_func();
-        int operator()(osmid_t id, struct member *, int member_count, struct keyval *rel_tags, int exists);
+        int operator()(osmid_t id, const struct member *, int member_count, struct keyval *rel_tags, int exists);
         void finish(int exists);
         void run_internal_until(osmid_t id, int exists);
     };
@@ -72,9 +72,9 @@ private:
     friend struct rel_cb_func;
     
     int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
-    int pgsql_out_way(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists);
-    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, struct osmNode **xnodes, struct keyval *xtags, int *xcount, osmid_t *xid, const char **xrole);
-    int pgsql_process_relation(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists);
+    int pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists);
+    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const * xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole);
+    int pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 

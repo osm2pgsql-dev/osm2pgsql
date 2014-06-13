@@ -228,7 +228,7 @@ struct way_cb_func : public middle_t::way_cb_func {
             delete ptr;
         }
     }
-    int operator()(osmid_t id, struct keyval *tags, struct osmNode *nodes, int count, int exists) {
+    int operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists) {
         int status = 0;
         BOOST_FOREACH(middle_t::way_cb_func *ptr, m_ptrs) {
             status |= ptr->operator()(id, tags, nodes, count, exists);
@@ -252,7 +252,7 @@ struct rel_cb_func : public middle_t::rel_cb_func {
             delete ptr;
         }
     }
-    int operator()(osmid_t id, struct member *members, int member_count, struct keyval *tags, int exists) {
+    int operator()(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists) {
         int status = 0;
         BOOST_FOREACH(middle_t::rel_cb_func *ptr, m_ptrs) {
             status |= ptr->operator()(id, members, member_count, tags, exists);

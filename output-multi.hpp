@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <boost/scoped_ptr.hpp>
+#include <boost/variant.hpp>
 
 class output_multi_t : public output_t {
 public:
@@ -44,12 +45,36 @@ public:
     int relation_delete(osmid_t id);
 
 private:
-
     void delete_from_output(osmid_t id);
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
-    int process_way(osmid_t id, const osmid_t *nodes, int node_count, struct keyval *tags, bool exists);
-    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags);
+    int process_way(osmid_t id, const osmid_t* node_ids, int node_count, struct keyval *tags);
+    int reprocess_way(osmid_t id, const osmNode* nodes, int node_count, struct keyval *tags, bool exists);
+    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists);
     void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
+
+    struct way_cb_func : public middle_t::way_cb_func {
+        output_multi_t *m_ptr;
+        buffer m_sql;
+        osmid_t m_next_internal_id;
+        way_cb_func(output_multi_t *ptr);
+        virtual ~way_cb_func();
+        int operator()(osmid_t id, keyval *tags, const osmNode *nodes, int count, int exists);
+        void finish(int exists);
+        void run_internal_until(osmid_t id, int exists);
+    };
+    struct rel_cb_func : public middle_t::rel_cb_func  {
+        output_multi_t *m_ptr;
+        buffer m_sql;
+        osmid_t m_next_internal_id;
+        rel_cb_func(output_multi_t *ptr);
+        virtual ~rel_cb_func();
+        int operator()(osmid_t id, const member *, int member_count, keyval *rel_tags, int exists);
+        void finish(int exists);
+        void run_internal_until(osmid_t id, int exists);
+    };
+
+    friend struct way_cb_func;
+    friend struct rel_cb_func;
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
     boost::scoped_ptr<export_list> m_export_list;

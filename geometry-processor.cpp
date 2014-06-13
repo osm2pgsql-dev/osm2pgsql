@@ -63,6 +63,10 @@ geometry_builder::maybe_wkt_t geometry_processor::process_way(const osmid_t *nod
     return geometry_builder::maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_processor::process_relation(const osmNode * const * nodes, const int* node_counts, const middle_query_t *mid) {
+geometry_builder::maybe_wkt_t geometry_processor::process_way(const osmNode *nodes, const size_t node_count) {
+    return geometry_builder::maybe_wkt_t();
+}
+
+geometry_builder::maybe_wkts_t geometry_processor::process_relation(const osmNode * const * nodes, const int* node_counts) {
     return geometry_builder::maybe_wkts_t();
 }
