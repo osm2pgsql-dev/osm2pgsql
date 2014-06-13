@@ -464,13 +464,13 @@ void table_t::escape_type(const char *value, const char *type, string& dst) {
         int items = sscanf(escaped.c_str(), "%f-%f", &from, &to);
         if (items == 1)
         {
-            if (escaped.substr(escaped.size() - 2).compare("ft") == 0)
+            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
                 from *= 0.3048;
             dst.append((single_fmt % from).str());
         }
         else if (items == 2)
         {
-            if (escaped.substr(escaped.size() - 2).compare("ft") == 0)
+            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
             {
                 from *= 0.3048;
                 to *= 0.3048;
