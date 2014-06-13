@@ -1273,7 +1273,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      geometry_builder::maybe_wkts_t wkts = builder.build(xnodes, xcount, 1, 1, 1000000, id);
+      geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
       for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
       {
          if (wkt->valid() && (boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON") || is_waterway))

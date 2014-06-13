@@ -256,7 +256,7 @@ options_t::options_t():
     conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
     expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(0),
-    enable_multi(0), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
+    enable_multi(false), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
     #else
@@ -398,7 +398,7 @@ options_t options_t::parse(int argc, char *argv[])
             options.hstore_columns.push_back(optarg);
             break;
         case 'G':
-            options.enable_multi = 1;
+            options.enable_multi = true;
             break;
         case 'r':
             options.input_reader = optarg;

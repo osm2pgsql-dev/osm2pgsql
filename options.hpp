@@ -47,7 +47,7 @@ public:
     std::string expire_tiles_filename; /* File name to output expired tiles list to */
     int hstore_mode; /* add an additional hstore column with objects key/value pairs */
     int enable_hstore_index; /* add an index on the hstore column */
-    int enable_multi; /* Output multi-geometries intead of several simple geometries */
+    bool enable_multi; /* Output multi-geometries intead of several simple geometries */
     std::vector<std::string> hstore_columns; /* list of columns that should be written into their own hstore column */
     int keep_coastlines;
     int parallel_indexing;

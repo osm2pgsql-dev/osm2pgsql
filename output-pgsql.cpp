@@ -180,8 +180,9 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     else
         split_at = 100 * 1000;
 
-    //this will either make lines or polygons depending on the tag transform above
-    geometry_builder::maybe_wkts_t wkts  = builder.build(xnodes, xcount, make_polygon, m_options.enable_multi, split_at, id);
+    //this will either make lines or polygons (unless the lines arent a ring or are less than 3 pts) depending on the tag transform above
+    //TODO: pick one or the other based on which we expect to care about
+    geometry_builder::maybe_wkts_t wkts  = builder.build_both(xnodes, xcount, make_polygon, m_options.enable_multi, split_at, id);
 
     if (!wkts->size()) {
         free(members_superseeded);
@@ -200,6 +201,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
                     addItem(rel_tags, "way_area", tmp, 0);
                 }
                 m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+                printf("REL: %s\n", (boost::format("%1%") % (-id)).str().c_str());
             } else {
                 m_tables[t_line]->write_wkt(-id, rel_tags, wkt->geom.c_str());
                 if (roads)
@@ -227,20 +229,18 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
-        wkts = builder.build(xnodes, xcount, 1, m_options.enable_multi, split_at, id);
+        wkts = builder.build_polygons(xnodes, xcount, m_options.enable_multi, id);
         for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
         {
             if (wkt->valid()) {
                 expire->from_wkt(wkt->geom.c_str(), -id);
-                /* FIXME: there should be a better way to detect polygons */
-                if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
-                    if ((wkt->area > 0.0) && m_enable_way_area) {
-                        char tmp[32];
-                        snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                        addItem(rel_tags, "way_area", tmp, 0);
-                    }
-                    m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+                if ((wkt->area > 0.0) && m_enable_way_area) {
+                    char tmp[32];
+                    snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                    addItem(rel_tags, "way_area", tmp, 0);
                 }
+                m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+                printf("REL: %s\n", (boost::format("%1%") % (-id)).str().c_str());
             }
         }
     }

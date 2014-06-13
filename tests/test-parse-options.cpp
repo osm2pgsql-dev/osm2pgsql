@@ -161,7 +161,8 @@ std::string get_random_string(const int length)
     return result;
 }
 
-void add_arg_or_not(const char* arg, std::vector<std::string>& args, int& option)
+template<typename T>
+void add_arg_or_not(const char* arg, std::vector<std::string>& args, T& option)
 {
     if(rand() % 2)
     {

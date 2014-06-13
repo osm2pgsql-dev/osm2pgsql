@@ -52,8 +52,10 @@ struct geometry_builder : public boost::noncopyable
     static int parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon);
     maybe_wkt_t get_wkt_simple(const osmNode *, int count, int polygon) const;
     maybe_wkts_t get_wkt_split(const osmNode *, int count, int polygon, double split_at) const;
-    maybe_wkts_t build(const osmNode * const * xnodes, const int *xcount, int make_polygon, int enable_multi,
-                                                 double split_at, osmid_t osm_id = -1) const;
+    maybe_wkts_t build_both(const osmNode * const * xnodes, const int *xcount, int make_polygon, int enable_multi,
+                                                     double split_at, osmid_t osm_id = -1) const;
+    maybe_wkts_t build_lines(const osmNode * const * xnodes, const int *xcount, double split_at, osmid_t osm_id = -1) const;
+    maybe_wkts_t build_polygons(const osmNode * const * xnodes, const int *xcount, bool enable_multi, osmid_t osm_id = -1) const;
     void set_exclude_broken_polygon(int exclude);
 
 private:

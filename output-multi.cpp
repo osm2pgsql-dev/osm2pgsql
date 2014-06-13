@@ -221,8 +221,9 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
                 //TODO: expire
                 for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
                 {
-                    //why negative id?
+                    //what part of the code relies on relation members getting negative ids?
                     copy_to_table(-id, wkt->geom.c_str(), tags);
+                    printf("REL: %s\n", (boost::format("%1%") % (-id)).str().c_str());
                 }
             }
 
