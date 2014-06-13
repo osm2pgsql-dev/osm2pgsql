@@ -295,11 +295,15 @@ void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
     struct keyval tags_int;
     struct osmNode *nodes_int;
     int count_int;
-    
+
+    /* Loop through the pending ways up to id*/
     while (m_next_internal_id < id) {
         initList(&tags_int);
+        /* Try to fetch the way from the DB */
         if (!m_ptr->m_mid->ways_get(m_next_internal_id, &tags_int, &nodes_int, &count_int)) {
+            /* Check if it's marked as done */
             if (!m_ptr->ways_done_tracker->is_marked(m_next_internal_id)) {
+                /* Output the way */
                 m_ptr->pgsql_out_way(m_next_internal_id, &tags_int, nodes_int, count_int, exists);
             }
             

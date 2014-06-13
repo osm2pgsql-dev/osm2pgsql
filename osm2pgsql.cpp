@@ -93,6 +93,11 @@ int main(int argc, char *argv[])
         time_t overall_start = time(NULL);
         osmdata.start();
 
+        /* Processing
+         * In this phase the input file(s) are read and parsed, populating some of the
+         * tables. Not all ways can be handled before relations are processed, so they're
+         * set as pending, to be handled in the next stage.
+         */
         //read in the input files one by one
         for(std::vector<std::string>::const_iterator filename = options.input_files.begin(); filename != options.input_files.end(); ++filename)
         {
@@ -108,8 +113,9 @@ int main(int argc, char *argv[])
         parser->printSummary();
         delete parser;
 
-        //done with output_*_t
+        //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
+
         for(std::vector<output_t*>::iterator output = outputs.begin(); output != outputs.end(); ++output) {
             delete *output;
         }

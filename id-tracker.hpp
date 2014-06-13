@@ -17,8 +17,6 @@ struct id_tracker : public boost::noncopyable {
     void force_release(); // to avoid brain-damages with fork()
 
 private:
-    void unmark(osmid_t id);
-
     struct pimpl;
     boost::scoped_ptr<pimpl> impl;
 };
