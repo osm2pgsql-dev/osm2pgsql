@@ -260,7 +260,7 @@ int output_multi_t::relation_delete(osmid_t id) {
 
 int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyval *tags) {
     //check if we are keeping this node
-    unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
+    unsigned int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get(), true);
     if (!filter) {
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
@@ -289,7 +289,7 @@ int output_multi_t::reprocess_way(osmid_t id, const osmNode* nodes, int node_cou
 
     //check if we are keeping this way
     int polygon = 0, roads = 0;
-    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
+    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get(), true);
     if (!filter) {
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count);
@@ -303,7 +303,7 @@ int output_multi_t::reprocess_way(osmid_t id, const osmNode* nodes, int node_cou
 int output_multi_t::process_way(osmid_t id, const osmid_t* node_ids, int node_count, struct keyval *tags) {
     //check if we are keeping this way
     int polygon = 0, roads = 0;
-    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
+    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get(), true);
     if (!filter) {
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(node_ids, node_count, m_mid);
@@ -322,13 +322,23 @@ int output_multi_t::process_way(osmid_t id, const osmid_t* node_ids, int node_co
     return 0;
 }
 
-int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists) {
+void print(osmid_t id, keyval* tags, const std::string& geom)
+{
+    printf("%s|", (boost::format("%1%") % id).str().c_str());
+    for(keyval* p = tags->next; p != tags; p = p->next) {
+        printf("%s->%s|", p->key, p->value);
+    }
+    printf("%s\n", geom.substr(0,12).c_str());
+
+}
+
+int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, keyval *tags, bool exists) {
     //if it may exist already, delete it first
     if(exists)
         relation_delete(id);
 
     //does this relation have anything interesting to us
-    unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get());
+    unsigned int filter = m_tagtransform->filter_rel_tags(tags, m_export_list.get(), true);
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
@@ -336,10 +346,14 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
             return 0;
 
         //do the members of this relation have anything interesting to us
-        int make_boundary, make_polygon, roads;
+        //NOTE: make_polygon is preset here this is to force the tag matching/superseeded stuff
+        //normally this wouldnt work but we tell the tag transform to allow typless relations
+        //this is needed because the type can get stripped off by the rel_tag filter above
+        //if the export list did not include the type
+        int make_boundary, make_polygon = 1, roads;
         filter = m_tagtransform->filter_rel_member_tags(tags, m_relation_helper.way_count, &m_relation_helper.tags.front(),
                                                    &m_relation_helper.roles.front(), &m_relation_helper.superseeded.front(),
-                                                   &make_boundary, &make_polygon, &roads, m_export_list.get());
+                                                   &make_boundary, &make_polygon, &roads, m_export_list.get(), true);
         if(!filter)
         {
             geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(&m_relation_helper.nodes.front(), &m_relation_helper.node_counts.front());
@@ -348,6 +362,7 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
                 for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
                 {
                     //what part of the code relies on relation members getting negative ids?
+                    print(id, tags, wkt->geom);
                     copy_to_table(-id, wkt->geom.c_str(), tags);
                 }
             }
