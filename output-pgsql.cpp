@@ -463,17 +463,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
   }
   return 0;
 }
-namespace{
-void print(osmid_t id, keyval* tags, const std::string& geom)
-{
-    printf("%s|", (boost::format("%1%") % id).str().c_str());
-    for(keyval* p = tags->next; p != tags; p = p->next) {
-        printf("%s->%s|", p->key, p->value);
-    }
-    printf("%s\n", geom.substr(0,12).c_str());
 
-}
-}
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
 int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists)
@@ -483,9 +473,6 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   /* If the flag says this object may exist already, delete it first */
   if(exists)
       pgsql_delete_relation_from_output(id);
-
-  std::string y;
-  print(id, tags, y);
 
   if (m_tagtransform->filter_rel_tags(tags, m_export_list)) {
       return 1;

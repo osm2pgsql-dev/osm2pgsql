@@ -2,6 +2,7 @@
 #include "taginfo_impl.hpp"
 
 #include <boost/format.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
 namespace {
@@ -20,14 +21,15 @@ output_multi_t::output_multi_t(const std::string &name,
       m_tagtransform(new tagtransform(&m_options)),
       m_export_list(new export_list(export_list_)),
       m_processor(processor_),
-      m_osm_type(m_processor->interests(geometry_processor::interest_node)
-                  ? OSMTYPE_NODE : OSMTYPE_WAY),
+      //TODO: we could in fact have something that is interested in nodes and ways..
+      m_osm_type(m_processor->interests(geometry_processor::interest_node) ? OSMTYPE_NODE : OSMTYPE_WAY),
       m_table(new table_t(m_options.conninfo, mk_column_name(name, m_options), m_processor->column_type(),
                           m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
                           m_options.hstore_mode, m_options.enable_hstore_index,
-                          m_options.tblsmain_data, m_options.tblsmain_index)) {
+                          m_options.tblsmain_data, m_options.tblsmain_index)),
+      m_expire(new expire_tiles(&m_options)) {
 }
 
 output_multi_t::~output_multi_t() {
@@ -160,6 +162,7 @@ void output_multi_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
 
 void output_multi_t::stop() {
     m_table->stop();
+    m_expire.reset();
 }
 
 void output_multi_t::commit() {
@@ -223,7 +226,7 @@ int output_multi_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struc
 int output_multi_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
-        delete_from_output(id);
+        delete_from_output(-id);
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
@@ -253,7 +256,7 @@ int output_multi_t::way_delete(osmid_t id) {
 int output_multi_t::relation_delete(osmid_t id) {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
-        delete_from_output(id);
+        delete_from_output(-id);
     }
     return 0;
 }
@@ -265,6 +268,7 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, struct keyv
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
         if (wkt) {
+            m_expire->from_bbox(lon, lat, lon, lat);
             copy_to_table(id, wkt->geom.c_str(), tags);
         }
     }
@@ -281,8 +285,7 @@ int output_multi_t::reprocess_way(osmid_t id, const osmNode* nodes, int node_cou
         // call-back, so we need some alternative way to trigger this within
         // osmdata_t.
         const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
-        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
-             itr != rel_ids.end(); ++itr) {
+        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
             rels_pending_tracker->mark(*itr);
         }
     }
@@ -294,7 +297,14 @@ int output_multi_t::reprocess_way(osmid_t id, const osmNode* nodes, int node_cou
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes, node_count);
         if (wkt) {
-                copy_to_table(id, wkt->geom.c_str(), tags);
+            //TODO: need to know if we care about polygons or lines for this output
+            //the difference only being that if its a really large bbox for the poly
+            //it downgrades to just invalidating the line/perimeter anyway
+            if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
+                m_expire->from_nodes_poly(nodes, node_count, id);
+            else
+                m_expire->from_nodes_line(nodes, node_count);
+            copy_to_table(id, wkt->geom.c_str(), tags);
         }
     }
     return 0;
@@ -305,8 +315,11 @@ int output_multi_t::process_way(osmid_t id, const osmid_t* node_ids, int node_co
     int polygon = 0, roads = 0;
     unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get(), true);
     if (!filter) {
+        //get the geom from the middle
+        if(m_way_helper.set(node_ids, node_count, m_mid) < 1)
+            return 0;
         //grab its geom
-        geometry_builder::maybe_wkt_t wkt = m_processor->process_way(node_ids, node_count, m_mid);
+        geometry_builder::maybe_wkt_t wkt = m_processor->process_way(&m_way_helper.node_cache.front(), m_way_helper.node_cache.size());
 
         if (wkt) {
             //if we are also interested in relations we need to mark
@@ -315,21 +328,18 @@ int output_multi_t::process_way(osmid_t id, const osmid_t* node_ids, int node_co
                 ways_pending_tracker->mark(id);
             }//we aren't interested in relations so if it comes in on a relation later we wont keep it
             else {
+                //TODO: need to know if we care about polygons or lines for this output
+                //the difference only being that if its a really large bbox for the poly
+                //it downgrades to just invalidating the line/perimeter anyway
+                if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
+                    m_expire->from_nodes_poly(&m_way_helper.node_cache.front(), m_way_helper.node_cache.size(), id);
+                else
+                    m_expire->from_nodes_line(&m_way_helper.node_cache.front(), m_way_helper.node_cache.size());
                 copy_to_table(id, wkt->geom.c_str(), tags);
             }
         }
     }
     return 0;
-}
-
-void print(osmid_t id, keyval* tags, const std::string& geom)
-{
-    printf("%s|", (boost::format("%1%") % id).str().c_str());
-    for(keyval* p = tags->next; p != tags; p = p->next) {
-        printf("%s->%s|", p->key, p->value);
-    }
-    printf("%s\n", geom.substr(0,12).c_str());
-
 }
 
 int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, keyval *tags, bool exists) {
@@ -358,15 +368,17 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
         {
             geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(&m_relation_helper.nodes.front(), &m_relation_helper.node_counts.front());
             if (wkts) {
-                //TODO: expire
                 for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
                 {
+                    //TODO: we actually have the nodes in the m_relation_helper and could use them
+                    //instead of having to reparse the wkt in the expiry code
+                    m_expire->from_wkt(wkt->geom.c_str(), -id);
                     //what part of the code relies on relation members getting negative ids?
-                    print(id, tags, wkt->geom);
                     copy_to_table(-id, wkt->geom.c_str(), tags);
                 }
             }
 
+            //TODO: should this loop be inside the if above just in case?
             //take a look at each member to see if its superseeded (tags on it matched the tags on the relation)
             for(size_t i = 0; i < m_relation_helper.way_count; ++i) {
                 //tags matched so we are keeping this one with this relation
@@ -388,6 +400,7 @@ void output_multi_t::copy_to_table(osmid_t id, const char *wkt, struct keyval *t
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {
-    m_table->delete_row(id);
+    if(m_expire->from_db(m_table.get(), id))
+        m_table->delete_row(id);
 }
 
