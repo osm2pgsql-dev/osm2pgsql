@@ -18,7 +18,7 @@ geometry_builder::maybe_wkt_t processor_polygon::process_way(const osmid_t *node
     //get the node data
     int cached_count = mid->nodes_get_list(&node_cache.front(), node_ids, node_count);
     //have the builder make the wkt
-    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(&node_cache.front(), cached_count, false);
+    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(&node_cache.front(), cached_count, true);
     //hand back the wkt
     return wkt;
 }
@@ -26,7 +26,7 @@ geometry_builder::maybe_wkt_t processor_polygon::process_way(const osmid_t *node
 geometry_builder::maybe_wkt_t processor_polygon::process_way(const osmNode *nodes, const size_t node_count)
 {
     //have the builder make the wkt
-    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, node_count, false);
+    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, node_count, true);
     //hand back the wkt
     return wkt;
 }
