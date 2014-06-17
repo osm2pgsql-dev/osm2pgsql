@@ -355,12 +355,27 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
         if(m_relation_helper.set(members, member_count, (middle_t*)m_mid) < 1)
             return 0;
 
+        //filter the tags on each member because we got them from the middle
+        //and since the middle is no longer tied to the output it no longer
+        //shares any kind of tag transform and therefore has all original tags
+        //so we filter here because each individual outputs cares about different tags
+        int polygon, roads;
+        for(size_t i = 0; i < m_relation_helper.way_count; ++i)
+        {
+            m_tagtransform->filter_way_tags(&m_relation_helper.tags[i], &polygon, &roads, m_export_list.get());
+            //TODO: if the filter says that this member is now not interesting we
+            //should decrement the count and remove his nodes and tags etc. for
+            //now we'll just keep him with no tags so he will get filtered later
+        }
+
         //do the members of this relation have anything interesting to us
         //NOTE: make_polygon is preset here this is to force the tag matching/superseeded stuff
-        //normally this wouldnt work but we tell the tag transform to allow typless relations
+        //normally this wouldnt work but we tell the tag transform to allow typeless relations
         //this is needed because the type can get stripped off by the rel_tag filter above
-        //if the export list did not include the type
-        int make_boundary, make_polygon = 1, roads;
+        //if the export list did not include the type tag.
+        //TODO: find a less hacky way to do the matching/superseeded and tag copying stuff without
+        //all this trickery
+        int make_boundary, make_polygon = 1;
         filter = m_tagtransform->filter_rel_member_tags(tags, m_relation_helper.way_count, &m_relation_helper.tags.front(),
                                                    &m_relation_helper.roles.front(), &m_relation_helper.superseeded.front(),
                                                    &make_boundary, &make_polygon, &roads, m_export_list.get(), true);

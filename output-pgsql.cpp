@@ -496,10 +496,22 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
 
   osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
   count2 = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
+  int polygon = 0, roads = 0;;
 
   for (i = 0; i < count2; i++) {
       for (j = i; j < member_count; j++) {
-          if (members[j].id == xid[i]) break;
+          if (members[j].id == xid[i]) {
+              //filter the tags on this member because we got it from the middle
+              //and since the middle is no longer tied to the output it no longer
+              //shares any kind of tag transform and therefore all original tags
+              //will come back and need to be filtered by individual outputs before
+              //using these ways
+              m_tagtransform->filter_way_tags(&xtags[i], &polygon, &roads, m_export_list);
+              //TODO: if the filter says that this member is now not interesting we
+              //should decrement the count and remove his nodes and tags etc. for
+              //now we'll just keep him with no tags so he will get filtered later
+              break;
+          }
       }
       xrole[i] = members[j].role;
   }
