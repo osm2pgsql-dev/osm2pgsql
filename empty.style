@@ -5,34 +5,34 @@
 # See default.style for documentation on all the flags
 
 # OsmType   Tag                     Type    Flags
-# Insert your own columns here, or change phstore to polygon below
-way         abandoned:aeroway       text    phstore
-way         abandoned:amenity       text    phstore
-way         abandoned:building      text    phstore
-way         abandoned:landuse       text    phstore
-way         abandoned:power         text    phstore
-way         area:highway            text    phstore
-node,way    aeroway                 text    phstore
-node,way    amenity                 text    phstore
-node,way    building                text    phstore
-way         building:part           text    phstore
-node,way    harbour                 text    phstore
-node,way    historic                text    phstore
-node,way    landuse                 text    phstore
-node,way    leisure                 text    phstore
-node,way    man_made                text    phstore
-node,way    military                text    phstore
-node,way    natural                 text    phstore
-node,way    office                  text    phstore
-node,way    place                   text    phstore
-node,way    power                   text    phstore
-node,way    public_transport        text    phstore
-node,way    shop                    text    phstore
-node,way    sport                   text    phstore
-node,way    tourism                 text    phstore
-node,way    water                   text    phstore
-node,way    waterway                text    phstore
-node,way    wetland                 text    phstore
+# Insert your own columns here, or remove hstore option below
+way         abandoned:aeroway       text    polygon,hstore
+way         abandoned:amenity       text    polygon,hstore
+way         abandoned:building      text    polygon,hstore
+way         abandoned:landuse       text    polygon,hstore
+way         abandoned:power         text    polygon,hstore
+way         area:highway            text    polygon,hstore
+node,way    aeroway                 text    polygon,hstore
+node,way    amenity                 text    polygon,hstore
+node,way    building                text    polygon,hstore
+way         building:part           text    polygon,hstore
+node,way    harbour                 text    polygon,hstore
+node,way    historic                text    polygon,hstore
+node,way    landuse                 text    polygon,hstore
+node,way    leisure                 text    polygon,hstore
+node,way    man_made                text    polygon,hstore
+node,way    military                text    polygon,hstore
+node,way    natural                 text    polygon,hstore
+node,way    office                  text    polygon,hstore
+node,way    place                   text    polygon,hstore
+node,way    power                   text    polygon,hstore
+node,way    public_transport        text    polygon,hstore
+node,way    shop                    text    polygon,hstore
+node,way    sport                   text    polygon,hstore
+node,way    tourism                 text    polygon,hstore
+node,way    water                   text    polygon,hstore
+node,way    waterway                text    polygon,hstore
+node,way    wetland                 text    polygon,hstore
 node,way    z_order                 int4    linear  # This is calculated during import
 way         way_area                real            # This is calculated during import
 

@@ -76,7 +76,7 @@ static struct flagsname {
     { .name = "linear",     .flag = FLAG_LINEAR },
     { .name = "nocache",    .flag = FLAG_NOCACHE },
     { .name = "delete",     .flag = FLAG_DELETE },
-    { .name = "phstore",    .flag = FLAG_PHSTORE }
+    { .name = "hstore",    .flag = FLAG_HSTORE }
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
@@ -526,7 +526,7 @@ static int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, doub
     for (i=0; i < exportListCount[OSMTYPE_NODE]; i++) {
         if( exportList[OSMTYPE_NODE][i].flags & FLAG_DELETE )
             continue;
-        if( (exportList[OSMTYPE_NODE][i].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+        if( (exportList[OSMTYPE_NODE][i].flags & FLAG_HSTORE) == FLAG_HSTORE)
             continue;
         if ((tag = getTag(tags, exportList[OSMTYPE_NODE][i].name)))
         {
@@ -584,7 +584,7 @@ static void write_wkts(osmid_t id, struct keyval *tags, const char *wkt, enum ta
     for (j=0; j < exportListCount[OSMTYPE_WAY]; j++) {
             if( exportList[OSMTYPE_WAY][j].flags & FLAG_DELETE )
                 continue;
-            if( (exportList[OSMTYPE_WAY][j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+            if( (exportList[OSMTYPE_WAY][j].flags & FLAG_HSTORE) == FLAG_HSTORE)
                 continue;
             if ((tag = getTag(tags, exportList[OSMTYPE_WAY][j].name)))
             {
@@ -887,7 +887,7 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
-                if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+                if( (exportTags[j].flags & FLAG_HSTORE ) == FLAG_HSTORE)
                     continue;
                 sprintf(tmp, ",\"%s\" %s", exportTags[j].name, exportTags[j].type);
                 if (strlen(sql) + strlen(tmp) + 1 > sql_len) {
@@ -936,7 +936,7 @@ static int pgsql_out_start(const struct output_options *options)
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
-                if( (exportTags[j].flags & FLAG_PHSTORE) == FLAG_PHSTORE)
+                if( (exportTags[j].flags & FLAG_HSTORE) == FLAG_HSTORE)
                     continue;
                 sprintf(tmp, "\"%s\"", exportTags[j].name);
                 if (PQfnumber(res, tmp) < 0) {
@@ -962,7 +962,7 @@ static int pgsql_out_start(const struct output_options *options)
         for (j=0; j < numTags; j++) {
             if( exportTags[j].flags & FLAG_DELETE )
                 continue;
-            if( (exportTags[j].flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+            if( (exportTags[j].flags & FLAG_HSTORE ) == FLAG_HSTORE)
                 continue;
             sprintf(tmp, ",\"%s\"", exportTags[j].name);
 
