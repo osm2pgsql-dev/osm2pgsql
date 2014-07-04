@@ -152,7 +152,11 @@ void read_style_file( const char *filename )
         fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name);
         exit_nicely();
     }
-    
+    if( ((temp.flags & FLAG_HSTORE) == FLAG_HSTORE) && ((Options->enable_hstore)==HSTORE_NONE)) {
+        fprintf( stderr, "hstore flag given in style, but no --hstore option given on commandline\n");
+        exit_nicely();
+    }
+
     if ((0==strcmp(temp.name,"way_area")) && (temp.flags==FLAG_DELETE)) {
         enable_way_area=0;
     }
