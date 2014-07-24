@@ -237,7 +237,7 @@ void copy_to_table(enum table_id table, const char *sql)
     /* Return to copy mode if we dropped out */
     if( !tables[table].copyMode )
     {
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[table].name, tables[table].columns);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s.%s (%s,way) FROM STDIN", Options->schema,tables[table].name, tables[table].columns);
         tables[table].copyMode = 1;
     }
     /* If the combination of old and new data is too big, flush old data */
@@ -806,7 +806,7 @@ static int pgsql_out_connect(const struct output_options *options, int startTran
         }
         tables[i].sql_conn = sql_conn;
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s.%s WHERE osm_id = $1;\n", options->schema, tables[i].name);
         if (startTransaction)
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
     }
@@ -842,7 +842,14 @@ static int pgsql_out_start(const struct output_options *options)
             sprintf( temp, tables[i].name, options->prefix );
             tables[i].name = temp;
         }
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        if (options->schema != "public")
+        {
+            fprintf(stderr, "Setting up table: %s.%s\n", tables[i].name);
+        }
+        else
+        {
+            fprintf(stderr, "Setting up table: %s\n", tables[i].name);
+        }
         sql_conn = PQconnectdb(options->conninfo);
 
         /* Check to see that the backend connection was successfully made */
@@ -854,11 +861,11 @@ static int pgsql_out_start(const struct output_options *options)
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
         if (!options->append) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s.%s", options->schema, tables[i].name);
         }
         else
         {
-            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", tables[i].name);
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_schema = %s AND f_table_name='%s';", options->schema, tables[i].name);
             res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
@@ -869,13 +876,19 @@ static int pgsql_out_start(const struct output_options *options)
             PQclear(res);
             if (their_srid != SRID)
             {
-                fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", tables[i].name, their_srid, SRID);
+                if (options->schema != "public")
+                {
+                    fprintf(stderr, "SRID mismatch: cannot append to table %s.%s (SRID %d) using selected SRID %d\n", options->schema, tables[i].name, their_srid, SRID);
+                }
+                {
+                    fprintf(stderr, "SRID mismatch: cannot append to table %s (SRID %d) using selected SRID %d\n", tables[i].name, their_srid, SRID);
+                }
                 exit_nicely();
             }
         }
 
         /* These _tmp tables can be left behind if we run out of disk space */
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s_tmp", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s.%s_tmp", options->schema, tables[i].name);
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 
@@ -883,7 +896,7 @@ static int pgsql_out_start(const struct output_options *options)
         numTags = exportListCount[type];
         exportTags = exportList[type];
         if (!options->append) {
-            sprintf(sql, "CREATE TABLE %s ( osm_id " POSTGRES_OSMID_TYPE, tables[i].name );
+            sprintf(sql, "CREATE TABLE %s.%s ( osm_id " POSTGRES_OSMID_TYPE, options->schema, tables[i].name );
             for (j=0; j < numTags; j++) {
                 if( exportTags[j].flags & FLAG_DELETE )
                     continue;
@@ -913,12 +926,12 @@ static int pgsql_out_start(const struct output_options *options)
             strcat(sql, "\n");
 
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", sql);
-            pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', 'way', %d, '%s', 2 );\n",
-                        tables[i].name, SRID, tables[i].type );
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ALTER COLUMN way SET NOT NULL;\n", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('%s', '%s', 'way', %d, '%s', 2 );\n",
+                        options->schema, tables[i].name, SRID, tables[i].type );
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s.%s ALTER COLUMN way SET NOT NULL;\n", options->schema, tables[i].name);
             /* slim mode needs this to be able to apply diffs */
             if (Options->slim && !Options->droptemp) {
-                sprintf(sql, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id)",  tables[i].name, tables[i].name);
+                sprintf(sql, "CREATE INDEX %s_pkey ON %s.%s USING BTREE (osm_id)",  options->schema, tables[i].name, tables[i].name);
                 if (Options->tblsmain_index) {
                     sprintf(sql + strlen(sql), " TABLESPACE %s\n", Options->tblsmain_index);
                 }
@@ -927,10 +940,10 @@ static int pgsql_out_start(const struct output_options *options)
         } else {
             /* Add any new columns referenced in the default.style */
             PGresult *res;
-            sprintf(sql, "SELECT * FROM %s LIMIT 0;\n", tables[i].name);
+            sprintf(sql, "SELECT * FROM %s.%s LIMIT 0;\n", options->schema, tables[i].name);
             res = PQexec(sql_conn, sql);
             if (PQresultStatus(res) != PGRES_TUPLES_OK) {
-                fprintf(stderr, "Error, failed to query table %s\n%s\n", tables[i].name, sql);
+                fprintf(stderr, "Error, failed to query table %s.%s\n%s\n", options->schema, tables[i].name, sql);
                 exit_nicely();
             }
             for (j=0; j < numTags; j++) {
@@ -941,11 +954,11 @@ static int pgsql_out_start(const struct output_options *options)
                 sprintf(tmp, "\"%s\"", exportTags[j].name);
                 if (PQfnumber(res, tmp) < 0) {
 #if 0
-                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s\"\n", exportTags[j].name, tables[i].name);
+                    fprintf(stderr, "Append failed. Column \"%s\" is missing from \"%s.%s\"\n", exportTags[j].name, options->schema, tables[i].name);
                     exit_nicely();
 #else
-                    fprintf(stderr, "Adding new column \"%s\" to \"%s\"\n", exportTags[j].name, tables[i].name);
-                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s ADD COLUMN \"%s\" %s;\n", tables[i].name, exportTags[j].name, exportTags[j].type);
+                    fprintf(stderr, "Adding new column \"%s\" to \"%s.%s\"\n", exportTags[j].name, options->schema, tables[i].name);
+                    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s.%s ADD COLUMN \"%s\" %s;\n", options->schema, tables[i].name, exportTags[j].name, exportTags[j].type);
 #endif
                 }
                 /* Note: we do not verify the type or delete unused columns */
@@ -955,7 +968,7 @@ static int pgsql_out_start(const struct output_options *options)
 
             /* change the type of the geometry column if needed - this can only change to a more permisive type */
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s WHERE osm_id = $1;\n", tables[i].name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %s.%s WHERE osm_id = $1;\n", options->schema, tables[i].name);
         
         /* Generate column list for COPY */
         strcpy(sql, "osm_id");
@@ -984,7 +997,7 @@ static int pgsql_out_start(const struct output_options *options)
 	if (Options->enable_hstore) strcat(sql,",tags");
 
 	tables[i].columns = strdup(sql);
-        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s (%s,way) FROM STDIN", tables[i].name, tables[i].columns);
+        pgsql_exec(sql_conn, PGRES_COPY_IN, "COPY %s.%s (%s,way) FROM STDIN", options->schema, tables[i].name, tables[i].columns);
 
         tables[i].copyMode = 1;
     }
@@ -1012,13 +1025,13 @@ static void pgsql_pause_copy(struct s_table *table)
     /* Terminate any pending COPY */
     stop = PQputCopyEnd(table->sql_conn, NULL);
     if (stop != 1) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       fprintf(stderr, "COPY_END for %s.%s failed: %s\n", Options->schema, table->name, PQerrorMessage(table->sql_conn));
        exit_nicely();
     }
 
     res = PQgetResult(table->sql_conn);
     if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-       fprintf(stderr, "COPY_END for %s failed: %s\n", table->name, PQerrorMessage(table->sql_conn));
+       fprintf(stderr, "COPY_END for %s.%s failed: %s\n", Options->schema, table->name, PQerrorMessage(table->sql_conn));
        PQclear(res);
        exit_nicely();
     }
@@ -1043,7 +1056,7 @@ static void pgsql_out_commit(void) {
     for (i=0; i<NUM_TABLES; i++) {
         pgsql_pause_copy(&tables[i]);
         /* Commit transaction */
-        fprintf(stderr, "Committing transaction for %s\n", tables[i].name);
+        fprintf(stderr, "Committing transaction for %s.%s\n", Options->schema, tables[i].name);
         pgsql_exec(tables[i].sql_conn, PGRES_COMMAND_OK, "COMMIT");
     }
 }
@@ -1056,7 +1069,7 @@ static void *pgsql_out_stop_one(void *arg)
 
     if( table->buflen != 0 )
     {
-       fprintf( stderr, "Internal error: Buffer for %s has %d bytes after end copy", table->name, table->buflen );
+       fprintf( stderr, "Internal error: Buffer for %s.%s has %d bytes after end copy", Options->schema, table->name, table->buflen );
        exit_nicely();
     }
 
@@ -1065,92 +1078,92 @@ static void *pgsql_out_stop_one(void *arg)
     {
         time_t start, end;
         time(&start);
-        fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
-        fprintf(stderr, "Analyzing %s finished\n", table->name);
+        fprintf(stderr, "Sorting data and creating indexes for %s.%s\n", Options->schema, table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s.%s;\n", Options->schema, table->name);
+        fprintf(stderr, "Analyzing %s.%s finished\n", Options->schema, table->name);
         if (Options->tblsmain_data) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
-                        "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name, Options->tblsmain_data, table->name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s.%s_tmp "
+                        "TABLESPACE %s AS SELECT * FROM %s.%s ORDER BY way;\n",
+                        Options->schema, table->name, Options->tblsmain_data, Options->schema, table->name);
         } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s.%s_tmp AS SELECT * FROM %s.%s ORDER BY way;\n", Options->schema, table->name, Options->schema, table->name);
         }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
-        fprintf(stderr, "Creating geometry index on  %s\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s.%s;\n", Options->schema, table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s.%s_tmp RENAME TO %s;\n", Options->schema, table->name, table->name);
+        fprintf(stderr, "Copying %s.%s to cluster by geometry finished\n", Options->schema, table->name);
+        fprintf(stderr, "Creating geometry index on  %s.%s\n", Options->schema, table->name);
         if (Options->tblsmain_index) {
             /* Use fillfactor 100 for un-updatable imports */
             if (Options->slim && !Options->droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s.%s USING GIST (way) TABLESPACE %s;\n", table->name, Options->schema, table->name, Options->tblsmain_index);
             } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s.%s USING GIST (way) WITH (FILLFACTOR=100) TABLESPACE %s;\n", table->name, Options->schema, table->name, Options->tblsmain_index);
             }
         } else {
             if (Options->slim && !Options->droptemp) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way);\n", table->name, table->name);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s.%s USING GIST (way);\n", table->name, Options->schema, table->name);
             } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name, table->name);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_index ON %s.%s USING GIST (way) WITH (FILLFACTOR=100);\n", table->name, Options->schema, table->name);
             }
         }
 
         /* slim mode needs this to be able to apply diffs */
         if (Options->slim && !Options->droptemp)
         {
-            fprintf(stderr, "Creating osm_id index on  %s\n", table->name);
+            fprintf(stderr, "Creating osm_id index on  %s.%s\n", Options->schema, table->name);
             if (Options->tblsmain_index) {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s.%s USING BTREE (osm_id) TABLESPACE %s;\n", table->name, Options->schema, table->name, Options->tblsmain_index);
             } else {
-                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s USING BTREE (osm_id);\n", table->name, table->name);
+                pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_pkey ON %s.%s USING BTREE (osm_id);\n", table->name, Options->schema, table->name);
             }
         }
         /* Create hstore index if selected */
         if (Options->enable_hstore_index) {
-            fprintf(stderr, "Creating hstore indexes on  %s\n", table->name);
+            fprintf(stderr, "Creating hstore indexes on  %s.%s\n", Options->schema, table->name);
             if (Options->tblsmain_index) {
                 if (HSTORE_NONE != (Options->enable_hstore)) {
                     if (Options->slim && !Options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s.%s USING GIN (tags) TABLESPACE %s;\n", table->name, Options->schema, table->name, Options->tblsmain_index);
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) TABLESPACE %s;\n", table->name, table->name, Options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s.%s USING GIN (tags) TABLESPACE %s;\n", table->name, Options->schema, table->name, Options->tblsmain_index);
                     }
                 }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
                     if (Options->slim && !Options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, i_column,table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s.%s USING GIN (\"%s\") TABLESPACE %s;\n",
+                               table->name, i_column, Options->schema, table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\") TABLESPACE %s;\n",
-                               table->name, i_column,table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s.%s USING GIN (\"%s\") TABLESPACE %s;\n",
+                               table->name, i_column, Options->schema, table->name, Options->hstore_columns[i_column], Options->tblsmain_index);
                     }
                 }
             } else {
                 if (HSTORE_NONE != (Options->enable_hstore)) {
                     if (Options->slim && !Options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags);\n", table->name, table->name);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s.%s USING GIN (tags);\n", table->name, Options->schema, table->name);
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s USING GIN (tags) ;\n", table->name, table->name);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_tags_index ON %s.%s USING GIN (tags) ;\n", table->name, Options->schema, table->name);
                     }
                 }
                 for(i_column = 0; i_column < Options->n_hstore_columns; i_column++) {
                     if (Options->slim && !Options->droptemp) {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s.%s USING GIN (\"%s\");\n", table->name, i_column, Options->schema, table->name, Options->hstore_columns[i_column]);
                     } else {
-                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s USING GIN (\"%s\");\n", table->name, i_column,table->name, Options->hstore_columns[i_column]);
+                        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE INDEX %s_hstore_%i_index ON %s.%s USING GIN (\"%s\");\n", table->name, i_column, Options->schema, table->name, Options->hstore_columns[i_column]);
                     }
                 }
             }
         }
-        fprintf(stderr, "Creating indexes on  %s finished\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s TO PUBLIC;\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
+        fprintf(stderr, "Creating indexes on  %s.%s finished\n", Options->schema, table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "GRANT SELECT ON %s.%s TO PUBLIC;\n", Options->schema, table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s.%s;\n", Options->schema, table->name);
         time(&end);
-        fprintf(stderr, "All indexes on  %s created  in %ds\n", table->name, (int)(end - start));
+        fprintf(stderr, "All indexes on  %s.%s created  in %ds\n", Options->schema,  table->name, (int)(end - start));
     }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
 
-    fprintf(stderr, "Completed %s\n", table->name);
+    fprintf(stderr, "Completed %s.%s\n", Options->schema, table->name);
     free(table->name);
     free(table->columns);
     return NULL;
@@ -1362,7 +1375,7 @@ static int pgsql_delete_node(osmid_t osm_id)
     }
     pgsql_pause_copy(&tables[t_point]);
     if ( expire_tiles_from_db(tables[t_point].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_point].name, osm_id );
+        pgsql_exec(tables[t_point].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_point].name, osm_id );
     
     Options->mid->nodes_delete(osm_id);
     return 0;
@@ -1380,11 +1393,11 @@ static int pgsql_delete_way_from_output(osmid_t osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, osm_id );
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_roads].name, osm_id );
     if ( expire_tiles_from_db(tables[t_line].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, osm_id );
+        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_line].name, osm_id );
     if ( expire_tiles_from_db(tables[t_poly].sql_conn, osm_id) != 0)
-        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, osm_id );
+        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_poly].name, osm_id );
     return 0;
 }
 
@@ -1406,11 +1419,11 @@ static int pgsql_delete_relation_from_output(osmid_t osm_id)
     pgsql_pause_copy(&tables[t_roads]);
     pgsql_pause_copy(&tables[t_line]);
     pgsql_pause_copy(&tables[t_poly]);
-    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_roads].name, -osm_id );
+    pgsql_exec(tables[t_roads].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_roads].name, -osm_id );
     if ( expire_tiles_from_db(tables[t_line].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_line].name, -osm_id );
+        pgsql_exec(tables[t_line].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_line].name, -osm_id );
     if ( expire_tiles_from_db(tables[t_poly].sql_conn, -osm_id) != 0)
-        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s WHERE osm_id = %" PRIdOSMID, tables[t_poly].name, -osm_id );
+        pgsql_exec(tables[t_poly].sql_conn, PGRES_COMMAND_OK, "DELETE FROM %s.%s WHERE osm_id = %" PRIdOSMID, Options->schema, tables[t_poly].name, -osm_id );
     return 0;
 }
 
