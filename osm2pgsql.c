@@ -149,6 +149,7 @@ Database options:\n\
                     environment variable or use -W).\n\
    -W|--password    Force password prompt.\n\
    -H|--host        Database server host name or socket location.\n\
+   -X|--schema      Target schema to store the tables in.  Default is public.\n\
    -P|--port        Database server port.\n");
 
     if (verbose) 
@@ -413,6 +414,7 @@ int main(int argc, char *argv[])
     const char *host=NULL;
     const char *password=NULL;
     const char *port = "5432";
+    const char *schema = "public";
     const char *tblsmain_index = NULL; /* no default TABLESPACE for index on main tables */
     const char *tblsmain_data = NULL;  /* no default TABLESPACE for main tables */
     const char *tblsslim_index = NULL; /* no default TABLESPACE for index on slim mode tables */
@@ -456,6 +458,7 @@ int main(int argc, char *argv[])
             {"password", 0, 0, 'W'},
             {"host",     1, 0, 'H'},
             {"port",     1, 0, 'P'},
+            {"schema",   1, 0, 'X'},
             {"tablespace-index", 1, 0, 'i'},
             {"tablespace-slim-data", 1, 0, 200},
             {"tablespace-slim-index", 1, 0, 201},
@@ -487,7 +490,7 @@ int main(int argc, char *argv[])
             {0, 0, 0, 0}
         };
 
-        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
+        c = getopt_long (argc, argv, "ab:cd:KhlmMp:suvU:WH:P:X:i:IE:C:S:e:o:O:xkjGz:r:V", long_options, &option_index);
         if (c == -1)
             break;
 
@@ -510,6 +513,7 @@ int main(int argc, char *argv[])
             case 'W': pass_prompt=1; break;
             case 'H': host=optarg; break;
             case 'P': port=optarg; break;
+            case 'X': schema=optarg; break;
             case 'S': style=optarg; break;
             case 'i': tblsmain_index=tblsslim_index=optarg; break;
             case 200: tblsslim_data=optarg; break;    
@@ -684,6 +688,7 @@ int main(int argc, char *argv[])
     options.num_procs = num_procs;
     options.droptemp = droptemp;
     options.unlogged = unlogged;
+    options.schema = schema;
     options.flat_node_cache_enabled = flat_node_cache_enabled;
     options.flat_node_file = flat_nodes_file;
     options.excludepoly = excludepoly;
