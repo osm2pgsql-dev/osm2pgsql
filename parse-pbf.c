@@ -44,6 +44,10 @@
 
 #define NANO_DEGREE .000000001
 
+#if PROTOBUF_C_VERSION_NUMBER >= 1000000
+#define protobuf_c_default_allocator (*(ProtobufCAllocator *) NULL)
+#endif
+
 static uint32_t get_length(FILE *input)
 {
   char buf[4];
