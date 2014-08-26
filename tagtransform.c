@@ -482,6 +482,10 @@ static unsigned int tagtransform_c_filter_rel_member_tags(
             }
         }
 
+        if (getItem(rel_tags, "color") && !getItem(rel_tags, "colour")) {
+            addItem(&tags, "colour", getItem(rel_tags, "color"), 1);
+        }
+
         if (getItem(rel_tags, "preferred_color") != NULL ) {
             const char *a = getItem(rel_tags, "preferred_color");
             if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0
