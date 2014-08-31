@@ -1289,6 +1289,16 @@ static int gazetteer_process_relation(osmid_t id, struct member *members, int me
          count++;
       }
 
+      if (count == 0)
+      {
+          if (delete_old) delete_unused_classes('R', id, 0);
+          free(xcount);
+          free(xtags);
+          free(xnodes);
+          free(xid2);
+          return 0;
+      }
+
       count = Options->mid->ways_get_list(xid2, count, &xid, xtags, xnodes, xcount);
 
       xnodes[count] = NULL;
