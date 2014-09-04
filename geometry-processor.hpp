@@ -1,7 +1,6 @@
 #ifndef GEOMETRY_PROCESSOR_HPP
 #define GEOMETRY_PROCESSOR_HPP
 
-#include "osmtypes.hpp"
 #include "middle.hpp"
 #include "geometry-builder.hpp"
 #include <string>
@@ -36,12 +35,7 @@ struct geometry_processor {
     // process a node, optionally returning a WKT string describing
     // geometry to be inserted into the table.
     virtual geometry_builder::maybe_wkt_t process_node(double lat, double lon);
-    
-    // process a way, taking a middle query object to get node
-    // position data and optionally returning WKT-encoded geometry
-    // for insertion into the table.
-    virtual geometry_builder::maybe_wkt_t process_way(const osmid_t *node_ids, const size_t node_count, const middle_query_t *mid);
-    
+
     // process a way
     // position data and optionally returning WKT-encoded geometry
     // for insertion into the table.
@@ -67,6 +61,38 @@ protected:
 
     // constructor for use by implementing classes only
     geometry_processor(int srid, const std::string &type, unsigned int interests);
+};
+
+
+//various bits for continuous processing of ways
+struct way_helper
+{
+    way_helper();
+    ~way_helper();
+    size_t set(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid);
+
+    std::vector<osmNode> node_cache;
+};
+
+//various bits for continuous processing of members of relations
+struct relation_helper
+{
+    relation_helper();
+    ~relation_helper();
+    size_t& set(const member* member_list, const int member_list_length, const middle_t* mid);
+
+    const member* members;
+    size_t member_count;
+    std::vector<keyval> tags;
+    std::vector<int> node_counts;
+    std::vector<osmNode*> nodes;
+    std::vector<osmid_t> ways;
+    size_t way_count;
+    std::vector<const char*> roles;
+    std::vector<int> superseeded;
+
+private:
+    std::vector<osmid_t> input_way_ids;
 };
 
 #endif /* GEOMETRY_PROCESSOR_HPP */

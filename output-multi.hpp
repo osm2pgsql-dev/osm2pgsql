@@ -13,6 +13,7 @@
 #include "table.hpp"
 #include "geometry-processor.hpp"
 #include "id-tracker.hpp"
+#include "expire-tiles.hpp"
 
 #include <vector>
 #include <boost/scoped_ptr.hpp>
@@ -82,7 +83,8 @@ private:
     const OsmType m_osm_type;
     boost::scoped_ptr<table_t> m_table;
     boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
-    //TODO: add expiry
+    boost::shared_ptr<expire_tiles> m_expire;
+    way_helper m_way_helper;
     relation_helper m_relation_helper;
 };
 
