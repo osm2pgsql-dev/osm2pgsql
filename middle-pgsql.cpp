@@ -96,12 +96,12 @@ int pgsql_connect(std::vector<middle_pgsql_t::table_desc> &tables,
                   const struct options_t *options) {
     const int num_tables = tables.size();
 
-    /* We use a connection per table to enable the use of COPY */
+    // We use a connection per table to enable the use of COPY */
     for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn;
         sql_conn = PQconnectdb(options->conninfo.c_str());
 
-        /* Check to see that the backend connection was successfully made */
+        // Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             throw std::runtime_error((boost::format("Connection to database failed: %1%")
                                       % PQerrorMessage(sql_conn)).str());
@@ -132,7 +132,7 @@ char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
     
   if( buflen <= nd_count * 10 )
   {
-    buflen = ((nd_count * 10) | 4095) + 1;  /* Round up to next page */
+    buflen = ((nd_count * 10) | 4095) + 1;  // Round up to next page */
     buffer = (char *)realloc( buffer, buflen );
   }
 _restart:
@@ -145,7 +145,7 @@ _restart:
     if( !first ) *ptr++ = ',';
     ptr += sprintf(ptr, "%" PRIdOSMID, nds[i] );
     
-    if( (ptr-buffer) > (buflen-20) ) /* Almost overflowed? */
+    if( (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
     {
       buflen <<= 1;
       buffer = (char *)realloc( buffer, buflen );
@@ -161,7 +161,7 @@ _restart:
   return buffer;
 }
 
-/* Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
+// Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
 inline char *escape_tag( char *ptr, const char *in, const int& escape )
 {
   while( *in )
@@ -203,7 +203,7 @@ inline char *escape_tag( char *ptr, const char *in, const int& escape )
   return ptr;
 }
 
-/* escape means we return '\N' for copy mode, otherwise we return just NULL */
+// escape means we return '\N' for copy mode, otherwise we return just NULL */
 const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
 {
   static char *buffer;
@@ -222,9 +222,9 @@ const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
       return NULL;
   }
     
-  if( buflen <= countlist * 24 ) /* LE so 0 always matches */
+  if( buflen <= countlist * 24 ) // LE so 0 always matches */
   {
-    buflen = ((countlist * 24) | 4095) + 1;  /* Round up to next page */
+    buflen = ((countlist * 24) | 4095) + 1;  // Round up to next page */
     buffer = (char *)realloc( buffer, buflen );
   }
 _restart:
@@ -232,11 +232,11 @@ _restart:
   ptr = buffer;
   first = 1;
   *ptr++ = '{';
-  /* The lists are circular, exit when we reach the head again */
+  // The lists are circular, exit when we reach the head again */
   for( i=tags->next; i->key; i = i->next )
   {
     int maxlen = (strlen(i->key) + strlen(i->value)) * 4;
-    if( (ptr+maxlen-buffer) > (buflen-20) ) /* Almost overflowed? */
+    if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
     {
       buflen <<= 1;
       buffer = (char *)realloc( buffer, buflen );
@@ -261,8 +261,8 @@ _restart:
   return buffer;
 }
 
-/* Decodes a portion of an array literal from postgres */
-/* Argument should point to beginning of literal, on return points to delimiter */
+// Decodes a portion of an array literal from postgres */
+// Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto( const char *src, char *dst )
 {
   int quoted = (*src == '"');
@@ -301,17 +301,17 @@ void pgsql_parse_tags( const char *string, struct keyval *tags )
   while( *string != '}' )
   {
     string = decode_upto( string, key );
-    /* String points to the comma */
+    // String points to the comma */
     string++;
     string = decode_upto( string, val );
-    /* String points to the comma or closing '}' */
+    // String points to the comma or closing '}' */
     addItem( tags, key, val, 0 );
     if( *string == ',' )
       string++;
   }
 }
 
-/* Parses an array of integers */
+// Parses an array of integers */
 void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
 {
   int count = 0;
@@ -340,7 +340,7 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
     PGresult *res;
     PGconn *sql_conn;
     int stop;
-    /* Terminate any pending COPY */
+    // Terminate any pending COPY */
     if (table->copyMode) {
         sql_conn = table->sql_conn;
         stop = PQputCopyEnd(sql_conn, NULL);
@@ -364,7 +364,7 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
 
 int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags)
 {
-    /* Four params: id, lat, lon, tags */
+    // Four params: id, lat, lon, tags */
     const char *paramValues[4];
     char *buffer;
 
@@ -402,7 +402,7 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const 
     return 0;
 }
 
-/* This should be made more efficient by using an IN(ARRAY[]) construct */
+// This should be made more efficient by using an IN(ARRAY[]) construct */
 int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const
 {
     char tmp[16];
@@ -418,28 +418,28 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     count = 0; countDB = 0;
 
     tmp2 = (char *)malloc(sizeof(char)*nd_count*16);
-    if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
+    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
 
-    /* create a list of ids in tmp2 to query the database  */
+    // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
     for( i=0; i<nd_count; i++ ) {
-        /* Check cache first */ 
+        // Check cache first */
         if( cache->get( &nodes[i], ndids[i]) == 0 ) {
             count++;
             continue;
         }
         countDB++;
-        /* Mark nodes as needing to be fetched from the DB */
+        // Mark nodes as needing to be fetched from the DB */
         nodes[i].lat = NAN;
         nodes[i].lon = NAN;
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
         strncat(tmp2, tmp, sizeof(char)*(nd_count*16 - 2));
     }
-    tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
+    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
  
     if (countDB == 0) {
         free(tmp2);
-        return count; /* All ids where in cache, so nothing more to do */
+        return count; // All ids where in cache, so nothing more to do */
     }
  
     pgsql_endCopy(node_table); 
@@ -471,8 +471,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     }
  
  
-    /* The list of results coming back from the db is in a different order to the list of nodes in the way.
-       Match the results back to the way node list */
+    // The list of results coming back from the db is in a different order to the list of nodes in the way.
+    //   Match the results back to the way node list */
    
     for (i=0; i<nd_count; i++ )	{
         if ((isnan(nodes[i].lat)) || (isnan(nodes[i].lon))) {
@@ -488,8 +488,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         }
     }
 
-    /* If some of the nodes in the way don't exist, the returning list has holes.
-       As the rest of the code expects a continuous list, it needs to be re-compacted */
+    // If some of the nodes in the way don't exist, the returning list has holes.
+    //   As the rest of the code expects a continuous list, it needs to be re-compacted */
     if (count != nd_count) {
         j = 0;
         for (i = 0; i < nd_count; i++) {
@@ -536,7 +536,7 @@ int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( node_table );
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
@@ -554,7 +554,7 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     pgsql_endCopy( rel_table );
     
@@ -562,13 +562,34 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
     pgsql_execPrepared(rel_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+
+    //keep track of whatever ways and rels these nodes intersect
+    //TODO: dont need to stop the copy above since we are only reading?
+    PGresult* res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_node", 1, paramValues, PGRES_TUPLES_OK );
+    for(int i = 0; i < PQntuples(res); ++i)
+    {
+        char *end;
+        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        ways_pending_tracker->mark(marked);
+    }
+    PQclear(res);
+
+    //do the rels too
+    res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels_by_node", 1, paramValues, PGRES_TUPLES_OK );
+    for(int i = 0; i < PQntuples(res); ++i)
+    {
+        char *end;
+        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        rels_pending_tracker->mark(marked);
+    }
+    PQclear(res);
+
     return 0;
 }
 
 int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
-    /* Three params: id, nodes, tags */
-    int pending = 0;
+    // Three params: id, nodes, tags */
     const char *paramValues[4];
     char *buffer;
 
@@ -578,8 +599,8 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
       char *node_buf = pgsql_store_nodes(nds, nd_count);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\t%c\n", 
-              way_id, node_buf, tag_buf, pending?'t':'f' ) > (length-10) )
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\tf\n",
+              way_id, node_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
       pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
       return 0;
@@ -589,14 +610,14 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
     paramValues[0] = ptr;
     ptr += sprintf(ptr, "%" PRIdOSMID, way_id ) + 1;
     paramValues[3] = ptr;
-    sprintf( ptr, "%c", pending?'t':'f' );
+    sprintf( ptr, "%c", 'f' );
     paramValues[1] = pgsql_store_nodes(nds, nd_count);
     paramValues[2] = pgsql_store_tags(tags,0);
     pgsql_execPrepared(way_table->sql_conn, "insert_way", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
 
-/* Caller is responsible for freeing nodesptr & resetList(tags) */
+// Caller is responsible for freeing nodesptr & resetList(tags) */
 int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const
 {
     PGresult   *res;
@@ -606,7 +627,7 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
     int num_nodes;
     osmid_t *list;
     
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
@@ -647,15 +668,15 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     if (way_count == 0) return 0;
     
     tmp2 = (char *)malloc(sizeof(char)*way_count*16);
-    if (tmp2 == NULL) return 0; /*failed to allocate memory, return */
+    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
 
-    /* create a list of ids in tmp2 to query the database  */
+    // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
     for( i=0; i<way_count; i++ ) {
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
         strncat(tmp2,tmp, sizeof(char)*(way_count*16 - 2));
     }
-    tmp2[strlen(tmp2) - 1] = '}'; /* replace last , with } to complete list of ids*/
+    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
   
     pgsql_endCopy(way_table); 
 
@@ -665,15 +686,15 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     wayidspg = (osmid_t *)malloc(sizeof(osmid_t)*countPG);
 
-    if (wayidspg == NULL) return 0; /*failed to allocate memory, return */
+    if (wayidspg == NULL) return 0; //failed to allocate memory, return */
 
     for (i = 0; i < countPG; i++) {
         wayidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
     }
 
 
-    /* Match the list of ways coming from postgres in a different order
-       back to the list of ways given by the caller */
+    // Match the list of ways coming from postgres in a different order
+    //   back to the list of ways given by the caller */
     count = 0;
     initList(&(tags[count]));
     for (i = 0; i < way_count; i++) {
@@ -708,7 +729,7 @@ int middle_pgsql_t::ways_done(osmid_t id)
     char const *paramValues[1];
     PGconn *sql_conn = way_table->sql_conn;
 
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
@@ -723,7 +744,7 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
@@ -736,14 +757,14 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
     PGresult   *res_ways;
     int i, count = 0;
-    /* The flag we pass to indicate that the way in question might exist already in the database */
+    // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
     time_t start, end;
     time(&start);
     fprintf(stderr, "\nGoing over pending ways...\n");
 
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
@@ -777,7 +798,7 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         tables[t_way].transactionMode = 1;
     }
 
-    /* some spaces at end, so that processings outputs get cleaned if already existing */
+    // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
     /* Use a stride length of the number of worker processes,
        starting with an offset for each worker process p */
@@ -826,7 +847,7 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
@@ -837,7 +858,7 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
 
 int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-    /* Params: id, way_off, rel_off, parts, members, tags */
+    // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6];
     char *buffer;
     int i;
@@ -904,7 +925,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     return 0;
 }
 
-/* Caller is responsible for freeing members & resetList(tags) */
+// Caller is responsible for freeing members & resetList(tags) */
 int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const 
 {
     PGresult   *res;
@@ -918,14 +939,14 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     int i=0;
     struct keyval *item;
     
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
  
     res = pgsql_execPrepared(sql_conn, "get_rel", 1, paramValues, PGRES_TUPLES_OK);
-    /* Fields are: members, tags, member_count */
+    // Fields are: members, tags, member_count */
 
     if (PQntuples(res) != 1) {
         PQclear(res);
@@ -965,7 +986,7 @@ int middle_pgsql_t::relations_done(osmid_t id)
     char const *paramValues[1];
     PGconn *sql_conn = rel_table->sql_conn;
 
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
@@ -980,7 +1001,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     pgsql_endCopy( rel_table );
     
@@ -995,14 +1016,14 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     PGresult   *res_rels;
     int i, count = 0;
-    /* The flag we pass to indicate that the way in question might exist already in the database */
+    // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
     time_t start, end;
     time(&start);
     fprintf(stderr, "\nGoing over pending relations...\n");
 
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
@@ -1013,7 +1034,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 
     fprintf(stderr, "\nUsing %i helper-processes\n", 1);
 
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
     for (i = 0; i < PQntuples(res_rels); i+= 1) {
         osmid_t id = strtoosmid(PQgetvalue(res_rels, i, 0), NULL, 10);
@@ -1052,7 +1073,7 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
@@ -1065,7 +1086,7 @@ std::vector<osmid_t> middle_pgsql_t::relations_using_way(osmid_t way_id) const
 {
     char const *paramValues[1];
     char buffer[64];
-    /* Make sure we're out of copy mode */
+    // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
     sprintf(buffer, "%" PRIdOSMID, way_id);
@@ -1103,7 +1124,7 @@ void middle_pgsql_t::end(void)
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
  
-        /* Commit transaction */
+        // Commit transaction */
         if (tables[i].stop && tables[i].transactionMode) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
             tables[i].transactionMode = 0;
@@ -1216,7 +1237,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
     
-    /* We use a connection per table to enable the use of COPY */
+    // We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn;
                         
@@ -1234,7 +1255,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
         fprintf(stderr, "Setting up table: %s\n", tables[i].name);
         sql_conn = PQconnectdb(out_options->conninfo.c_str());
 
-        /* Check to see that the backend connection was successfully made */
+        // Check to see that the backend connection was successfully made */
         if (PQstatus(sql_conn) != CONNECTION_OK) {
             fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
             util::exit_nicely();
@@ -1369,7 +1390,7 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     {
         if (build_indexes && table->array_indexes) {
             char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
-            /* we need to insert before the TABLESPACE setting, if any */
+            // we need to insert before the TABLESPACE setting, if any */
             const char *insertpos = strstr(table->array_indexes, "TABLESPACE");
             if (!insertpos) insertpos = strchr(table->array_indexes, ';');
 
@@ -1459,6 +1480,10 @@ middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
       Append(0), cache(), persistent_cache(), build_indexes(0)
 {
+    ways_pending_tracker.reset(new id_tracker());
+    ways_done_tracker.reset(new id_tracker());
+    rels_pending_tracker.reset(new id_tracker());
+
     /*table = t_node,*/
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
@@ -1492,8 +1517,13 @@ middle_pgsql_t::middle_pgsql_t()
                "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
                "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
-/*prepare_intarray*/ "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
-               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n",
+/*prepare_intarray*/
+               "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
+               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n"
+
+               "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
+               "PREPARE mark_ways_by_rel(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1);\n",
+
             /*copy*/ "COPY %p_ways FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_ways;\n",
             /*stop*/  "COMMIT;\n",
@@ -1514,7 +1544,12 @@ middle_pgsql_t::middle_pgsql_t()
                 "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
                 "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
                 "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n",
+                "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
+
+                "PREPARE mark_rels_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
+                "PREPARE mark_rels_by_way(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
+                "PREPARE mark_rels(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n",
+
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",
