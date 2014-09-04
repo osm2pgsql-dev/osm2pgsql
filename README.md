@@ -12,8 +12,7 @@ Nominatim, or general analysis.
 * Can apply diffs to keep the database up to date
 * Support the choice of output projection
 * Configurable table names
-* Gazetteer back-end for Nominatim
-  http://wiki.openstreetmap.org/wiki/Nominatim
+* Gazetteer back-end for [Nominatim](http://wiki.openstreetmap.org/wiki/Nominatim)
 * Support for hstore field type to store the complete set of tags in one database
   field if desired
 
@@ -22,7 +21,9 @@ Nominatim, or general analysis.
 The latest source code is available in the OSM git repository on github
 and can be downloaded as follows:
 
+```sh
 $ git clone git://github.com/openstreetmap/osm2pgsql.git
+```
 
 ## Building ##
 
@@ -111,7 +112,8 @@ The databases from either of these commands can be used immediately by
 [Mapnik](http://mapnik.org/) for rendering maps with standard tools like
 [renderd/mod_tile](https://github.com/openstreetmap/mod_tile),
 [TileMill](https://www.mapbox.com/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
-among others. It can also be used for [spatial analysis](docs/analysis.md) or [shapefile exports](docs/export.md).
+among others. It can also be used for [spatial analysis](docs/analysis.md) or
+[shapefile exports](docs/export.md).
 
 [Additional documentation is available on writing command lines](docs/usage.md).
 
@@ -130,109 +132,5 @@ http://wiki.openstreetmap.org/index.php/Mailing_lists
 We welcome contributions to osm2pgsql. If you would like to report an issue,
 please use the [issue tracker on GitHub](https://github.com/openstreetmap/osm2pgsql/issues).
 
-General queries can be sent to the tile-serving@ or dev@ [mailing lists](http://wiki.openstreetmap.org/wiki/Mailing_lists).
-
-
-
-Operation
-=========
-
-PostgreSQL 9.1 and PostGIS 2.0 or later are strongly suggested 
-for databases in production. It is generally best to run the 
-latest released versions if possible. PostgreSQL 8.4 and PostGIS 1.5 
-will work but are substantially slower. Additionally, PostGIS 2.0 
-contains enhancements that increase reliability as well as add new 
-features that style sheet authors can use.
-
-The default name for this database is 'gis' but this may
-be changed by using the osm2pgsql --database option.
-
-If the <username> matches the unix user id running the import
-and rendering then this allows the PostgreSQL 'ident sameuser'
-authentication to be used which avoids the need to enter a
-password when accessing the database. This is setup by default
-on many Unix installs but does not work on Windows (due to the
-lack of unix sockets).
-
-Some example commands are given below but you may find
-this wiki page has more up to date information:
-http://wiki.openstreetmap.org/wiki/Mapnik/PostGIS
-
-Now you can run osm2pgsql to import the OSM data.
-This will perform the following actions:
-
-1) osm2pgsql connects to database and creates the following 4 tables
-when used with the default output back-end (pgsql):
-   - planet_osm_point
-   - planet_osm_line
-   - planet_osm_roads
-   - planet_osm_polygon
-The default prefix "planet_osm" can be changed with the --prefix option.
-
-If you are using --slim mode, it will create the following additional 3 tables:
-   - planet_osm_nodes
-   - planet_osm_ways
-   - planet_osm_rels
-
-2) Runs a parser on the input file (typically planet-latest.osm.pbf)
- and processes the nodes, ways and relations.
-
-3) If a node has a tag declared in the style file then it is 
- added to planet_osm_point. If it has no such tag then
- the position is noted, but not added to the database.
-
-4) Ways are read in converted into WKT geometries by using the 
- positions of the nodes read in earlier. If the tags on the way 
- are listed in the style file then the way will be written into
- the line or roads tables.
-
-5) If the way has one or more tags marked as 'polygon' and 
- forms a closed ring then it will be added to the planet_osm_polygon
- table.
-
-6) The relations are parsed. Osm2pgsql has special handling for a
- limited number of types: multipolygon, route, boundary
- The code will build the appropriate geometries by referencing the
- members and outputting these into the database.
-
-7) Indexes are added to speed up the queries by Mapnik.
-
-Tuning PostgreSQL
-=================
-
-For an efficient operation of PostgreSQL you will need to tune the config
-parameters of PostgreSQL from its default values. These are set in the
-config file at /etc/postgresql/9.1/main/postgresql.conf
-
-The values you need to set will depend on the hardware you have available,
-but you will likely need to increase the values for the following parameters:
-
-- shared_buffers
-- checkpoint_segments
-- work_mem
-- maintenance_work_mem
-- effective_cache_size
-
-
-A quick note on projections
-===========================
-
-Depending on the command-line switches you can select which projection you
-want the database in. You have three choices:
-
-4326: The standard lat/long coordinates
-900913: The spherical Mercator projection, used by TileCache, Google Earth etc.
-3395: The legacy (broken) WGS84 Mercator projection
-
-Depending on what you're using one or the other is appropriate. The default
-Mapnik style (osm.xml) assumes that the data is stored in 900913 and this 
-is the default for osm2pgsql.
-
-Combining the -v and -h switches will tell about the exact definitions of
-the projections.
-
-In case you want to use some completely different projection there is the -E
-option. It will initialize the projection as +init=epsg:<num>. This allows
-you to use any projection recognized by proj4, which is useful if you want
-to make a map in a different projection. These projections are usually
-defined in /usr/share/proj/epsg.
+General queries can be sent to the tile-serving@ or dev@
+[mailing lists](http://wiki.openstreetmap.org/wiki/Mailing_lists).
