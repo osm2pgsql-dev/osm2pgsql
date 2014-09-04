@@ -800,9 +800,8 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 
     // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
-    /* Use a stride length of the number of worker processes,
-       starting with an offset for each worker process p */
-    for (i = 0; i < PQntuples(res_ways); i+= 1) {
+    //TODO: do this asynchronously
+    for (i = 0; i < PQntuples(res_ways); ++i) {
         osmid_t id = strtoosmid(PQgetvalue(res_ways, i, 0), NULL, 10);
         struct keyval tags;
         struct osmNode *nodes;
@@ -853,6 +852,20 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "way_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+
+
+
+    //keep track of whatever rels this way intersects
+    //TODO: dont need to stop the copy above since we are only reading?
+    PGresult* res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels_by_way", 1, paramValues, PGRES_TUPLES_OK );
+    for(int i = 0; i < PQntuples(res); ++i)
+    {
+        char *end;
+        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        rels_pending_tracker->mark(marked);
+    }
+    PQclear(res);
+
     return 0;
 }
 
@@ -1009,6 +1022,17 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "rel_delete_mark", 1, paramValues, PGRES_COMMAND_OK );
     pgsql_execPrepared(rel_table->sql_conn, "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
+
+    //keep track of whatever ways this relation interesects
+    //TODO: dont need to stop the copy above since we are only reading?
+    PGresult* res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_rel", 1, paramValues, PGRES_TUPLES_OK );
+    for(int i = 0; i < PQntuples(res); ++i)
+    {
+        char *end;
+        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        ways_pending_tracker->mark(marked);
+    }
+    PQclear(res);
     return 0;
 }
 
@@ -1079,6 +1103,19 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "rel_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
+
+
+    //keep track of whatever ways and rels these nodes intersect
+    //TODO: dont need to stop the copy above since we are only reading?
+    //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
+    PGresult* res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels", 1, paramValues, PGRES_TUPLES_OK );
+    for(int i = 0; i < PQntuples(res); ++i)
+    {
+        char *end;
+        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        rels_pending_tracker->mark(marked);
+    }
+    PQclear(res);
     return 0;
 }
 
