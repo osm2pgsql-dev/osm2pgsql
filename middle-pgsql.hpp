@@ -84,9 +84,6 @@ private:
     int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
     int local_nodes_delete(osmid_t osm_id);
 
-    int ways_done(osmid_t osm_id);
-    int relations_done(osmid_t osm_id);
-
     std::vector<table_desc> tables;
     int num_tables;
     struct table_desc *node_table, *way_table, *rel_table;

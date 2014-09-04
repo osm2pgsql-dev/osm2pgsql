@@ -560,8 +560,6 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
-    pgsql_execPrepared(way_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
-    pgsql_execPrepared(rel_table->sql_conn, "node_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
 
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
@@ -723,22 +721,6 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     return count;
 }
 
-int middle_pgsql_t::ways_done(osmid_t id)
-{
-    char tmp[16];
-    char const *paramValues[1];
-    PGconn *sql_conn = way_table->sql_conn;
-
-    // Make sure we're out of copy mode */
-    pgsql_endCopy( way_table );
-
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    paramValues[0] = tmp;
- 
-    pgsql_execPrepared(sql_conn, "way_done", 1, paramValues, PGRES_COMMAND_OK);
-
-    return 0;
-}
 
 int middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
@@ -799,29 +781,6 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 
     // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
-    //TODO: do this asynchronously
-    for (int i = 0, count = 0; i < PQntuples(res_ways); ++i, ++count) {
-        osmid_t id = strtoosmid(PQgetvalue(res_ways, i, 0), NULL, 10);
-        struct keyval tags;
-        struct osmNode *nodes;
-        int nd_count;
-
-        if (count %1000 == 0) {
-            time(&end);
-            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
-                    end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
-        }
-
-        initList(&tags);
-        if( ways_get(id, &tags, &nodes, &nd_count) )
-          continue;
-          
-        //callback(id, &tags, nodes, nd_count, exists);
-        ways_done( id );
-
-        free(nodes);
-        resetList(&tags);
-    }
 
     //in memory processing pending ways
     //TODO: do this asynchronously
@@ -881,9 +840,6 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
-    pgsql_execPrepared(rel_table->sql_conn, "way_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
-
-
 
     //keep track of whatever rels this way intersects
     //TODO: dont need to stop the copy above since we are only reading?
@@ -940,7 +896,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
       char *parts_buf = pgsql_store_nodes(all_parts, all_count);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\tf\n", 
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\tf\n",
               id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
@@ -1023,23 +979,6 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     return 0;
 }
 
-int middle_pgsql_t::relations_done(osmid_t id)
-{
-    char tmp[16];
-    char const *paramValues[1];
-    PGconn *sql_conn = rel_table->sql_conn;
-
-    // Make sure we're out of copy mode */
-    pgsql_endCopy( rel_table );
-
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    paramValues[0] = tmp;
- 
-    pgsql_execPrepared(sql_conn, "rel_done", 1, paramValues, PGRES_COMMAND_OK);
-
-    return 0;
-}
-
 int middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
@@ -1050,7 +989,6 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
-    pgsql_execPrepared(way_table->sql_conn, "rel_delete_mark", 1, paramValues, PGRES_COMMAND_OK );
     pgsql_execPrepared(rel_table->sql_conn, "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
 
     //keep track of whatever ways this relation interesects
@@ -1088,29 +1026,6 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     fprintf(stderr, "\nUsing %i helper-processes\n", 1);
 
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
-
-    for (int i = 0, count = 0; i < PQntuples(res_rels); ++i, ++count) {
-        osmid_t id = strtoosmid(PQgetvalue(res_rels, i, 0), NULL, 10);
-        struct keyval tags;
-        struct member *members;
-        int member_count;
-
-        if (count %10 == 0) {
-            time(&end);
-            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
-                    end > start ? ((double)count / (double)(end - start)) : 0);
-        }
-
-        initList(&tags);
-        if(relations_get(id, &members, &member_count, &tags) )
-          continue;
-          
-        //callback(id, members, member_count, &tags, exists);
-        relations_done( id );
-
-        free(members);
-        resetList(&tags);
-    }
 
     //in memory processing pending rels
     //TODO: do this asynchronously
@@ -1161,8 +1076,6 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
     
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
-    pgsql_execPrepared(rel_table->sql_conn, "rel_changed_mark", 1, paramValues, PGRES_COMMAND_OK );
-
 
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
