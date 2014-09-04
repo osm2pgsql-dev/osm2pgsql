@@ -96,7 +96,7 @@ private:
     boost::shared_ptr<node_ram_cache> cache;
     boost::shared_ptr<node_persistent_cache> persistent_cache;
 
-    boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+    boost::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     int build_indexes;
 };

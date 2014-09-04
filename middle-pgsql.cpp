@@ -756,7 +756,6 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
     PGresult   *res_ways;
-    int i, count = 0;
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
@@ -801,13 +800,13 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
     //TODO: do this asynchronously
-    for (i = 0; i < PQntuples(res_ways); ++i) {
+    for (int i = 0, count = 0; i < PQntuples(res_ways); ++i, ++count) {
         osmid_t id = strtoosmid(PQgetvalue(res_ways, i, 0), NULL, 10);
         struct keyval tags;
         struct osmNode *nodes;
         int nd_count;
 
-        if (count++ %1000 == 0) {
+        if (count %1000 == 0) {
             time(&end);
             fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
                     end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
@@ -817,12 +816,43 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         if( ways_get(id, &tags, &nodes, &nd_count) )
           continue;
           
-        callback(id, &tags, nodes, nd_count, exists);
+        //callback(id, &tags, nodes, nd_count, exists);
         ways_done( id );
 
         free(nodes);
         resetList(&tags);
     }
+
+    //in memory processing pending ways
+    //TODO: do this asynchronously
+    osmid_t id;
+    int count = 0;
+    while((id = ways_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
+    {
+        keyval tags;
+        osmNode *nodes;
+        int nd_count;
+
+        //progress update
+        if(count++ %1000 == 0)
+        {
+            time(&end);
+            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
+                    end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
+        }
+
+        //grab it from the db
+        initList(&tags);
+        if(ways_get(id, &tags, &nodes, &nd_count) == 0)
+        {
+            //send it to the backends, mark it done and cleanup
+            //TODO: enable this when ready
+            callback(id, &tags, nodes, nd_count, exists);
+            free(nodes);
+            resetList(&tags);
+        }
+    }
+
 
     if (tables[t_way].stop && tables[t_way].transactionMode) {
         pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].stop);
@@ -1039,7 +1069,6 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
     PGresult   *res_rels;
-    int i, count = 0;
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
 
@@ -1060,13 +1089,13 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
-    for (i = 0; i < PQntuples(res_rels); i+= 1) {
+    for (int i = 0, count = 0; i < PQntuples(res_rels); ++i, ++count) {
         osmid_t id = strtoosmid(PQgetvalue(res_rels, i, 0), NULL, 10);
         struct keyval tags;
         struct member *members;
         int member_count;
 
-        if (count++ %10 == 0) {
+        if (count %10 == 0) {
             time(&end);
             fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
                     end > start ? ((double)count / (double)(end - start)) : 0);
@@ -1076,12 +1105,42 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
         if(relations_get(id, &members, &member_count, &tags) )
           continue;
           
-        callback(id, members, member_count, &tags, exists);
+        //callback(id, members, member_count, &tags, exists);
         relations_done( id );
 
         free(members);
         resetList(&tags);
     }
+
+    //in memory processing pending rels
+    //TODO: do this asynchronously
+    osmid_t id;
+    int count = 0;
+    while((id = rels_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
+    {
+        keyval tags;
+        member *members;
+        int member_count;
+
+        //progress update
+        if (count++ %10 == 0) {
+            time(&end);
+            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
+                    end > start ? ((double)count / (double)(end - start)) : 0);
+        }
+
+        //grab it from the db
+        initList(&tags);
+        if(relations_get(id, &members, &member_count, &tags) == 0)
+        {
+            //send it to the backends, mark it done and cleanup
+            //TODO: enable this when ready
+            callback(id, members, member_count, &tags, exists);
+            free(members);
+            resetList(&tags);
+        }
+    }
+
     time(&end);
     fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", 0, count, (int)(end - start));
 
@@ -1264,6 +1323,9 @@ int middle_pgsql_t::start(const options_t *out_options_)
     int dropcreate = !out_options->append;
     char * sql;
 
+    ways_pending_tracker.reset(new id_tracker());
+    rels_pending_tracker.reset(new id_tracker());
+
     Append = out_options->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
@@ -1411,6 +1473,9 @@ void middle_pgsql_t::commit(void) {
             tables[i].transactionMode = 0;
         }
     }
+
+    ways_pending_tracker->commit();
+    rels_pending_tracker->commit();
 }
 
 void *middle_pgsql_t::pgsql_stop_one(void *arg)
@@ -1517,10 +1582,6 @@ middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
       Append(0), cache(), persistent_cache(), build_indexes(0)
 {
-    ways_pending_tracker.reset(new id_tracker());
-    ways_done_tracker.reset(new id_tracker());
-    rels_pending_tracker.reset(new id_tracker());
-
     /*table = t_node,*/
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",

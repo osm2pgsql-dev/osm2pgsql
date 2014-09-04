@@ -116,7 +116,7 @@ osmid_t id_tracker::pimpl::pop_min() {
 }
 
 id_tracker::pimpl::pimpl()
-    : pending(), old_id(0), next_start(boost::none) {
+    : pending(), old_id(std::numeric_limits<osmid_t>::min()), next_start(boost::none) {
 }
 
 id_tracker::pimpl::~pimpl() {
@@ -131,6 +131,11 @@ id_tracker::~id_tracker() {
 
 void id_tracker::mark(osmid_t id) {
     impl->set(id, true);
+    //we've marked something so we need to be able to pop it
+    //the assert below will fail though if we've already popped
+    //some that were > id so we have to essentially reset to
+    //allow for more pops to take place
+    impl->old_id = std::numeric_limits<osmid_t>::min();
 }
 
 bool id_tracker::is_marked(osmid_t id) {
