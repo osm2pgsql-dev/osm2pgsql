@@ -125,6 +125,8 @@ dnl Check for Boost libraries
 AX_BOOST_BASE
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
+AX_BOOST_THREAD
+AX_BOOST_ASIO
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
