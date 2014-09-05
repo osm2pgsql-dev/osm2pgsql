@@ -47,6 +47,7 @@
 
 #include <stdexcept>
 #include <boost/format.hpp>
+#include <boost/unordered_map.hpp>
 
 struct progress_info {
   time_t start;
@@ -408,8 +409,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     char tmp[16];
     char *tmp2; 
     int count,  countDB, countPG, i,j;
-    osmid_t *ndidspg;
-    struct osmNode *nodespg;
     char const *paramValues[1]; 
 
     PGresult *res;
@@ -448,43 +447,30 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
     countPG = PQntuples(res);
 
-    ndidspg = (osmid_t *)malloc(sizeof(osmid_t)*countPG);
-    nodespg = (struct osmNode *)malloc(sizeof(struct osmNode)*countPG);
-
-    if ((ndidspg == NULL) || (nodespg == NULL)) {
-        free(tmp2);
-        free(ndidspg);
-        free(nodespg);
-        PQclear(res);
-        return 0;
-    }
+    //store the pg results in a hashmap and telling it how many we expect
+    boost::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
     for (i = 0; i < countPG; i++) {
-        ndidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10); 
+        osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
+        osmNode node;
 #ifdef FIXED_POINT 
-        nodespg[i].lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
-        nodespg[i].lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
+        node.lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
+        node.lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
 #else 
-        nodespg[i].lat = strtod(PQgetvalue(res, i, 1), NULL); 
-        nodespg[i].lon = strtod(PQgetvalue(res, i, 2), NULL); 
-#endif 
+        node.lat = strtod(PQgetvalue(res, i, 1), NULL);
+        node.lon = strtod(PQgetvalue(res, i, 2), NULL);
+#endif
+        pg_nodes.emplace(std::make_pair<osmid_t, osmNode>(id, node));
     }
  
- 
-    // The list of results coming back from the db is in a different order to the list of nodes in the way.
-    //   Match the results back to the way node list */
-   
-    for (i=0; i<nd_count; i++ )	{
-        if ((isnan(nodes[i].lat)) || (isnan(nodes[i].lon))) {
-            //TODO: implement an O(log(n)) algorithm to match node ids
-            for (j = 0; j < countPG; j++) {
-                if (ndidspg[j] == ndids[i]) {
-                    nodes[i].lat = nodespg[j].lat;
-                    nodes[i].lon = nodespg[j].lon;
-                    count++;
-                    break;
-                }
-            }
+    //copy the nodes back out of the hashmap to the output
+    for(i = 0; i < nd_count; ++i){
+        //if we can find a matching id
+        boost::unordered_map<osmid_t, osmNode>::const_iterator found = pg_nodes.find(ndids[i]);
+        if(found != pg_nodes.end()) {
+            nodes[i].lat = found->second.lat;
+            nodes[i].lon = found->second.lon;
+            count++;
         }
     }
 
@@ -503,9 +489,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
 
     PQclear(res);
     free(tmp2);
-    free(ndidspg);
-    free(nodespg);
-
     return count;
 }
 
