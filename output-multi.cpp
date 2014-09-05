@@ -167,10 +167,6 @@ void output_multi_t::stop() {
 
 void output_multi_t::commit() {
     m_table->commit();
-
-    ways_pending_tracker->commit();
-    ways_done_tracker->commit();
-    rels_pending_tracker->commit();
 }
 
 int output_multi_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {

@@ -353,10 +353,6 @@ void output_pgsql_t::commit()
     for (int i=0; i<NUM_TABLES; i++) {
         m_tables[i]->commit();
     }
-
-    ways_pending_tracker->commit();
-    ways_done_tracker->commit();
-    rels_pending_tracker->commit();
 }
 
 middle_t::way_cb_func *output_pgsql_t::way_callback()

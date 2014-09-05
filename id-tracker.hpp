@@ -13,8 +13,7 @@ struct id_tracker : public boost::noncopyable {
     void mark(osmid_t id);
     bool is_marked(osmid_t id);
     osmid_t pop_mark();
-    void commit();
-    void force_release(); // to avoid brain-damages with fork()
+    size_t size();
 
 private:
     struct pimpl;

@@ -476,7 +476,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
    
     for (i=0; i<nd_count; i++ )	{
         if ((isnan(nodes[i].lat)) || (isnan(nodes[i].lon))) {
-            /* TODO: implement an O(log(n)) algorithm to match node ids */
+            //TODO: implement an O(log(n)) algorithm to match node ids
             for (j = 0; j < countPG; j++) {
                 if (ndidspg[j] == ndids[i]) {
                     nodes[i].lat = nodespg[j].lat;
@@ -597,7 +597,7 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
       char *node_buf = pgsql_store_nodes(nds, nd_count);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\tf\n",
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
               way_id, node_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
       pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
@@ -606,12 +606,10 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
     buffer = (char *)alloca(64);
     char *ptr = buffer;
     paramValues[0] = ptr;
-    ptr += sprintf(ptr, "%" PRIdOSMID, way_id ) + 1;
-    paramValues[3] = ptr;
-    sprintf( ptr, "%c", 'f' );
+    sprintf(ptr, "%" PRIdOSMID, way_id);
     paramValues[1] = pgsql_store_nodes(nds, nd_count);
     paramValues[2] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(way_table->sql_conn, "insert_way", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
+    pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
 }
 
@@ -737,10 +735,8 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 {
-    PGresult   *res_ways;
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
-
     time_t start, end;
     time(&start);
     fprintf(stderr, "\nGoing over pending ways...\n");
@@ -750,12 +746,11 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-    res_ways = pgsql_execPrepared(way_table->sql_conn, "pending_ways", 0, NULL, PGRES_TUPLES_OK);
-
-    fprintf(stderr, "\t%i ways are pending\n", PQntuples(res_ways));
-
+    size_t pending_count = ways_pending_tracker->size();
+    fprintf(stderr, "\t%zu ways are pending\n", pending_count);
     
     /**
+     * TODO
      * To speed up processing of pending ways, fork noProcs worker processes
      * each of which independently goes through an equal subset of the pending ways array
      */
@@ -771,19 +766,18 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
      * Updating a way will trigger an update of the pending status
      * on connected relations. This should not be as many updates,
      * so in combination with the synchronous_comit = off it should be fine.
-     * 
+     *
      */
-    if (tables[t_way].start) {
+    /*if (tables[t_way].start) {
         pgsql_endCopy(&tables[t_way]);
         pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].start);
         tables[t_way].transactionMode = 1;
-    }
+    }*/
 
     // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
 
     //in memory processing pending ways
-    //TODO: do this asynchronously
     osmid_t id;
     int count = 0;
     while((id = ways_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
@@ -805,7 +799,6 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
         if(ways_get(id, &tags, &nodes, &nd_count) == 0)
         {
             //send it to the backends, mark it done and cleanup
-            //TODO: enable this when ready
             callback(id, &tags, nodes, nd_count, exists);
             free(nodes);
             resetList(&tags);
@@ -813,10 +806,10 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     }
 
 
-    if (tables[t_way].stop && tables[t_way].transactionMode) {
+    /*if (tables[t_way].stop && tables[t_way].transactionMode) {
         pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].stop);
         tables[t_way].transactionMode = 0;
-    }
+    }*/
 
     time(&end);
     fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, count, (int)(end - start));
@@ -826,9 +819,8 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     fprintf(stderr, "\n");
     time(&end);
     if (end - start > 0)
-        fprintf(stderr, "%i Pending ways took %ds at a rate of %.2f/s\n",PQntuples(res_ways), (int)(end - start), 
-                ((double)PQntuples(res_ways) / (double)(end - start)));
-    PQclear(res_ways);
+        fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", pending_count, (int)(end - start),
+                ((double)pending_count / (double)(end - start)));
 }
 
 int middle_pgsql_t::way_changed(osmid_t osm_id)
@@ -837,7 +829,7 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
     char buffer[64];
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
-    
+
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
 
@@ -896,7 +888,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
       char *parts_buf = pgsql_store_nodes(all_parts, all_count);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\tf\n",
+      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\n",
               id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
@@ -986,7 +978,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
     pgsql_endCopy( rel_table );
-    
+
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(rel_table->sql_conn, "delete_rel", 1, paramValues, PGRES_COMMAND_OK );
@@ -1006,10 +998,8 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 {
-    PGresult   *res_rels;
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
-
     time_t start, end;
     time(&start);
     fprintf(stderr, "\nGoing over pending relations...\n");
@@ -1019,16 +1009,19 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-    res_rels = pgsql_execPrepared(rel_table->sql_conn, "pending_rels", 0, NULL, PGRES_TUPLES_OK);
+    size_t pending_rels = rels_pending_tracker->size();
+    fprintf(stderr, "\t%zu relations are pending\n", pending_rels);
 
-    fprintf(stderr, "\t%i relations are pending\n", PQntuples(res_rels)); 
-
+    /**
+     * TODO
+     * To speed up processing of pending rels, fork noProcs worker processes
+     * each of which independently goes through an equal subset of the pending rels array
+     */
     fprintf(stderr, "\nUsing %i helper-processes\n", 1);
 
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
     //in memory processing pending rels
-    //TODO: do this asynchronously
     osmid_t id;
     int count = 0;
     while((id = rels_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
@@ -1049,7 +1042,6 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
         if(relations_get(id, &members, &member_count, &tags) == 0)
         {
             //send it to the backends, mark it done and cleanup
-            //TODO: enable this when ready
             callback(id, members, member_count, &tags, exists);
             free(members);
             resetList(&tags);
@@ -1061,8 +1053,7 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
 
     time(&end);
     if (end - start > 0)
-        fprintf(stderr, "%i Pending relations took %ds at a rate of %.2f/s\n",PQntuples(res_rels), (int)(end - start), ((double)PQntuples(res_rels) / (double)(end - start)));
-    PQclear(res_rels);
+        fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", pending_rels, (int)(end - start), ((double)pending_rels / (double)(end - start)));
     fprintf(stderr, "\n");
 
 }
@@ -1073,7 +1064,7 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
     char buffer[64];
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
-    
+
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
 
@@ -1386,9 +1377,6 @@ void middle_pgsql_t::commit(void) {
             tables[i].transactionMode = 0;
         }
     }
-
-    ways_pending_tracker->commit();
-    rels_pending_tracker->commit();
 }
 
 void *middle_pgsql_t::pgsql_stop_one(void *arg)
@@ -1520,18 +1508,13 @@ middle_pgsql_t::middle_pgsql_t()
         /*table t_way,*/
             /*name*/ "%p_ways",
            /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[], pending boolean not null) {TABLESPACE %t};\n",
-    /*create_index*/ "CREATE INDEX %p_ways_idx ON %p_ways (id) {TABLESPACE %i} WHERE pending;\n",
-         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[], boolean) AS INSERT INTO %p_ways VALUES ($1,$2,$3,$4);\n"
+          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
+    /*create_index*/ NULL,
+         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
-               "PREPARE way_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_ways AS SELECT id FROM %p_ways WHERE pending;\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
 /*prepare_intarray*/
-               "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE nodes && ARRAY[$1] AND NOT pending;\n"
-               "PREPARE rel_delete_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_ways SET pending = true WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1) AND NOT pending;\n"
-
                "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
                "PREPARE mark_ways_by_rel(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1);\n",
 
@@ -1544,19 +1527,13 @@ middle_pgsql_t::middle_pgsql_t()
         /*table = t_rel,*/
             /*name*/ "%p_rels",
            /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[], pending boolean not null) {TABLESPACE %t};\n",
-    /*create_index*/ "CREATE INDEX %p_rels_idx ON %p_rels (id) {TABLESPACE %i} WHERE pending;\n",
-         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6,false);\n"
+          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
+    /*create_index*/ NULL,
+         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
-               "PREPARE rel_done(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = false WHERE id = $1;\n"
-               "PREPARE pending_rels AS SELECT id FROM %p_rels WHERE pending;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
 /*prepare_intarray*/
-                "PREPARE node_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[1:way_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE way_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1] AND NOT pending;\n"
-                "PREPARE rel_changed_mark(" POSTGRES_OSMID_TYPE ") AS UPDATE %p_rels SET pending = true WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1] AND NOT pending;\n"
                 "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
-
                 "PREPARE mark_rels_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
                 "PREPARE mark_rels_by_way(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
                 "PREPARE mark_rels(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n",

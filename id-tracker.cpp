@@ -20,10 +20,20 @@ namespace {
 struct block {
     block() : bits(BLOCK_SIZE >> 5, 0) {}
     inline bool operator[](size_t i) const { return (bits[i >> 5] & (1 << (i & 0x1f))) > 0; }
-    inline void set(size_t i, bool value) {
+    //returns true if the value actually caused a bit to flip
+    inline bool set(size_t i, bool value) {
         uint32_t &bit = bits[i >> 5];
+        uint32_t old = bit;
         uint32_t mask = 1 << (i & 0x1f);
-        if (value) { bit |= mask; } else { bit &= ~mask; }
+        //allow the bit to become 1 if not already
+        if (value) {
+            bit |= mask;
+        }//force the bit to 0 if its not already
+        else {
+            bit &= ~mask;
+        }
+        //did it actually change the value
+        return old != bit;
     }
     // find the next bit which is set, starting from an initial offset
     // of start. this offset is a bit like an iterator, but not fully
@@ -53,12 +63,13 @@ struct id_tracker::pimpl {
     ~pimpl();
 
     bool get(osmid_t id) const;
-    void set(osmid_t id, bool value);
+    bool set(osmid_t id, bool value);
     osmid_t pop_min();
 
     typedef std::map<osmid_t, block> map_t;
     map_t pending;
     osmid_t old_id;
+    size_t count;
     // a cache of the next starting point to search for in the block.
     // this significantly speeds up pop_min() because it doesn't need
     // to repeatedly search the beginning of the block each time.
@@ -77,12 +88,13 @@ bool id_tracker::pimpl::get(osmid_t id) const {
     return result;
 }
 
-void id_tracker::pimpl::set(osmid_t id, bool value) {
+bool id_tracker::pimpl::set(osmid_t id, bool value) {
     const osmid_t block = id >> BLOCK_BITS, offset = id & BLOCK_MASK;
-    pending[block].set(offset, value);
+    bool flipped = pending[block].set(offset, value);
     // a set may potentially invalidate a next_start, as the bit
     // set might be before the position of next_start.
     if (next_start) { next_start = boost::none; }
+    return flipped;
 }
 
 // find the first element in a block set to true
@@ -116,7 +128,7 @@ osmid_t id_tracker::pimpl::pop_min() {
 }
 
 id_tracker::pimpl::pimpl()
-    : pending(), old_id(std::numeric_limits<osmid_t>::min()), next_start(boost::none) {
+    : pending(), old_id(std::numeric_limits<osmid_t>::min()), count(0), next_start(boost::none) {
 }
 
 id_tracker::pimpl::~pimpl() {
@@ -130,7 +142,8 @@ id_tracker::~id_tracker() {
 }
 
 void id_tracker::mark(osmid_t id) {
-    impl->set(id, true);
+    //setting returns true if the id wasn't already marked
+    impl->count += size_t(impl->set(id, true));
     //we've marked something so we need to be able to pop it
     //the assert below will fail though if we've already popped
     //some that were > id so we have to essentially reset to
@@ -148,13 +161,11 @@ osmid_t id_tracker::pop_mark() {
     assert((id > impl->old_id) || (id == std::numeric_limits<osmid_t>::max()));
     impl->old_id = id;
 
+    //we just go rid of one (if there were some to get rid of)
+    if(impl->count > 0)
+        impl->count--;
+
     return id;
 }
 
-void id_tracker::commit() {
-
-}
-
-void id_tracker::force_release() {
-
-}
+size_t id_tracker::size() { return impl->count; }
