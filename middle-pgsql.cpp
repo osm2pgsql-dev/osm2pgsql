@@ -466,10 +466,9 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     //copy the nodes back out of the hashmap to the output
     for(i = 0; i < nd_count; ++i){
         //if we can find a matching id
-        boost::unordered_map<osmid_t, osmNode>::const_iterator found = pg_nodes.find(ndids[i]);
+        boost::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(ndids[i]);
         if(found != pg_nodes.end()) {
-            nodes[i].lat = found->second.lat;
-            nodes[i].lon = found->second.lon;
+            nodes[i] = boost::move(found->second); //this trashes whats in the hashmap but who cares
             count++;
         }
     }
@@ -480,8 +479,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         j = 0;
         for (i = 0; i < nd_count; i++) {
             if ( !isnan(nodes[i].lat)) {
-                nodes[j].lat = nodes[i].lat;
-                nodes[j].lon = nodes[i].lon;
+                nodes[j] = nodes[i];
                 j++;
             }
          }
@@ -741,22 +739,6 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
 
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
-    /* Only start an extended transaction on the ways table,
-     * which should cover the bulk of the update statements.
-     * The nodes table should not be written to in this phase.
-     * The relations table can't be wrapped in an extended
-     * transaction, as with prallel processing it may deadlock.
-     * Updating a way will trigger an update of the pending status
-     * on connected relations. This should not be as many updates,
-     * so in combination with the synchronous_comit = off it should be fine.
-     *
-     */
-    /*if (tables[t_way].start) {
-        pgsql_endCopy(&tables[t_way]);
-        pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].start);
-        tables[t_way].transactionMode = 1;
-    }*/
-
     // some spaces at end, so that processings outputs get cleaned if already existing */
     fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
 
@@ -787,12 +769,6 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
             resetList(&tags);
         }
     }
-
-
-    /*if (tables[t_way].stop && tables[t_way].transactionMode) {
-        pgsql_exec(tables[t_way].sql_conn, PGRES_COMMAND_OK, "%s", tables[t_way].stop);
-        tables[t_way].transactionMode = 0;
-    }*/
 
     time(&end);
     fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, count, (int)(end - start));
