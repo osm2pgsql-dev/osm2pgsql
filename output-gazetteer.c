@@ -300,6 +300,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "old_name") == 0 ||
           (strncmp(item->key, "old_name:", 9) == 0) || 
           strcmp(item->key, "alt_name") == 0 ||
+          (strncmp(item->key, "alt_name_", 9) == 0) || 
           (strncmp(item->key, "alt_name:", 9) == 0) || 
           strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "official_name:", 14) == 0) || 
