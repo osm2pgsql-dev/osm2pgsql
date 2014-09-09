@@ -858,7 +858,7 @@ static int pgsql_out_start(const struct output_options *options)
         }
         else
         {
-            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s';", tables[i].name);
+            sprintf(sql, "SELECT srid FROM geometry_columns WHERE f_table_name='%s' AND f_geometry_column='way';", tables[i].name);
             res = PQexec(sql_conn, sql);
             if (!((PQntuples(res) == 1) && (PQnfields(res) == 1)))
             {
