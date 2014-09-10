@@ -47,7 +47,16 @@ struct middle_ram_t : public middle_t {
     void iterate_ways(way_cb_func &cb);
     void iterate_relations(rel_cb_func &cb);
 
+    virtual middle_t::threadsafe_middle_reader* get_reader();
 private:
+
+    struct threadsafe_middle_reader : public middle_t::threadsafe_middle_reader{
+        virtual ~threadsafe_middle_reader();
+        virtual int get_way();
+        virtual int get_relation();
+        middle_ram_t* mid;
+    };
+
     void release_ways();
     void release_relations();
 

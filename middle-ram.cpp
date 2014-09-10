@@ -400,3 +400,22 @@ std::vector<osmid_t> middle_ram_t::relations_using_way(osmid_t way_id) const
                              "should not have been called. This is probably a bug, please "
                              "report it at https://github.com/openstreetmap/osm2pgsql/issues");
 }
+
+middle_t::threadsafe_middle_reader* middle_ram_t::get_reader(){
+    middle_ram_t::threadsafe_middle_reader* reader = new middle_ram_t::threadsafe_middle_reader();
+
+    reader->mid = this;
+    return reader;
+}
+
+middle_ram_t::threadsafe_middle_reader::~threadsafe_middle_reader() {
+
+}
+
+int middle_ram_t::threadsafe_middle_reader::get_way() {
+    return 0;
+}
+
+int middle_ram_t::threadsafe_middle_reader::get_relation() {
+    return 0;
+}

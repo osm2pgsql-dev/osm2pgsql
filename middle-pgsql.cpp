@@ -1156,6 +1156,31 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
     *string = strdup(buffer);
 }
 
+int middle_pgsql_t::connect(table_desc& table) {
+    PGconn *sql_conn;
+
+    set_prefix_and_tbls(out_options, &(table.name));
+    set_prefix_and_tbls(out_options, &(table.start));
+    set_prefix_and_tbls(out_options, &(table.create));
+    set_prefix_and_tbls(out_options, &(table.create_index));
+    set_prefix_and_tbls(out_options, &(table.prepare));
+    set_prefix_and_tbls(out_options, &(table.prepare_intarray));
+    set_prefix_and_tbls(out_options, &(table.copy));
+    set_prefix_and_tbls(out_options, &(table.analyze));
+    set_prefix_and_tbls(out_options, &(table.stop));
+    set_prefix_and_tbls(out_options, &(table.array_indexes));
+
+    fprintf(stderr, "Setting up table: %s\n", table.name);
+    sql_conn = PQconnectdb(out_options->conninfo.c_str());
+
+    // Check to see that the backend connection was successfully made */
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+        return 1;
+    }
+    table.sql_conn = sql_conn;
+    return 0;
+}
 
 int middle_pgsql_t::start(const options_t *out_options_)
 {
@@ -1180,28 +1205,10 @@ int middle_pgsql_t::start(const options_t *out_options_)
     
     // We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
-        PGconn *sql_conn;
-                        
-        set_prefix_and_tbls(out_options, &(tables[i].name));
-        set_prefix_and_tbls(out_options, &(tables[i].start));
-        set_prefix_and_tbls(out_options, &(tables[i].create));
-        set_prefix_and_tbls(out_options, &(tables[i].create_index));
-        set_prefix_and_tbls(out_options, &(tables[i].prepare));
-        set_prefix_and_tbls(out_options, &(tables[i].prepare_intarray));
-        set_prefix_and_tbls(out_options, &(tables[i].copy));
-        set_prefix_and_tbls(out_options, &(tables[i].analyze));
-        set_prefix_and_tbls(out_options, &(tables[i].stop));
-        set_prefix_and_tbls(out_options, &(tables[i].array_indexes));
-
-        fprintf(stderr, "Setting up table: %s\n", tables[i].name);
-        sql_conn = PQconnectdb(out_options->conninfo.c_str());
-
-        // Check to see that the backend connection was successfully made */
-        if (PQstatus(sql_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
+        //bomb if you cant connect
+        if(connect(tables[i]))
             util::exit_nicely();
-        }
-        tables[i].sql_conn = sql_conn;
+        PGconn* sql_conn = tables[i].sql_conn;
 
         /*
          * To allow for parallelisation, the second phase (iterate_ways), cannot be run
@@ -1492,4 +1499,46 @@ middle_pgsql_t::middle_pgsql_t()
 }
  
 middle_pgsql_t::~middle_pgsql_t() {
+}
+
+middle_t::threadsafe_middle_reader* middle_pgsql_t::get_reader(){
+    middle_pgsql_t::threadsafe_middle_reader* reader = new middle_pgsql_t::threadsafe_middle_reader();
+    reader->mid = new middle_pgsql_t();
+    reader->mid->out_options = out_options;
+    reader->mid->Append = out_options->append;
+    reader->mid->cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
+
+    //TODO: would this be threadsafe if we just copy the shared ptr and not reset it
+    if (out_options->flat_node_cache_enabled)
+        reader->mid->persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, reader->mid->cache));
+
+    // We use a connection per table to enable the use of COPY */
+    for(int i=0; i<num_tables; i++) {
+        //bomb if you cant connect
+        if(connect(tables[i]))
+            util::exit_nicely();
+        PGconn* sql_conn = tables[i].sql_conn;
+
+        if (tables[i].prepare) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        }
+
+        if (Append && tables[i].prepare_intarray) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        }
+    }
+
+    return reader;
+}
+
+middle_pgsql_t::threadsafe_middle_reader::~threadsafe_middle_reader() {
+    delete mid;
+}
+
+int middle_pgsql_t::threadsafe_middle_reader::get_way() {
+    return 0;
+}
+
+int middle_pgsql_t::threadsafe_middle_reader::get_relation() {
+    return 0;
 }

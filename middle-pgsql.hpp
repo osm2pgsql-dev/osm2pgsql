@@ -79,7 +79,18 @@ struct middle_pgsql_t : public slim_middle_t {
         int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
     };
+
+    virtual middle_t::threadsafe_middle_reader* get_reader();
 private:
+
+    struct threadsafe_middle_reader : public middle_t::threadsafe_middle_reader{
+        virtual ~threadsafe_middle_reader();
+        virtual int get_way();
+        virtual int get_relation();
+        middle_pgsql_t* mid;
+    };
+
+    int connect(table_desc& table);
     int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
     int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
     int local_nodes_delete(osmid_t osm_id);
