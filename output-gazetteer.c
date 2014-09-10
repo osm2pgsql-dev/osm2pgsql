@@ -661,13 +661,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 
    if (landuse)
    {
-      if (!listHasData(places))
+      if (!listHasData(places) && listHasData(names))
       {
           pushItem(places, landuse);
       }
       else
       {
-          freeItem(item);
+          freeItem(landuse);
       }
    }
 
