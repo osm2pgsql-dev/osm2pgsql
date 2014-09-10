@@ -43,6 +43,9 @@ public:
     virtual int way_delete(osmid_t id) = 0;
     virtual int relation_delete(osmid_t id) = 0;
 
+    /*virtual size_t get_pending_ways() = 0;
+    virtual size_t get_pending_relations() = 0;*/
+
     const options_t *get_options() const;
 
 protected:

@@ -22,4 +22,3 @@ middle_t::way_cb_func::~way_cb_func() {
 
 middle_t::rel_cb_func::~rel_cb_func() {
 }
-

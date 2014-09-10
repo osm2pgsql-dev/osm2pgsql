@@ -747,10 +747,6 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
     int count = 0;
     while((id = ways_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
     {
-        keyval tags;
-        osmNode *nodes;
-        int nd_count;
-
         //progress update
         if(count++ %1000 == 0)
         {
@@ -759,15 +755,8 @@ void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
                     end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
         }
 
-        //grab it from the db
-        initList(&tags);
-        if(ways_get(id, &tags, &nodes, &nd_count) == 0)
-        {
-            //send it to the backends, mark it done and cleanup
-            callback(id, &tags, nodes, nd_count, exists);
-            free(nodes);
-            resetList(&tags);
-        }
+        //send it to the backends, mark it done and cleanup
+        callback(id, exists);
     }
 
     time(&end);
@@ -985,9 +974,6 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
     int count = 0;
     while((id = rels_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
     {
-        keyval tags;
-        member *members;
-        int member_count;
 
         //progress update
         if (count++ %10 == 0) {
@@ -996,15 +982,8 @@ void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
                     end > start ? ((double)count / (double)(end - start)) : 0);
         }
 
-        //grab it from the db
-        initList(&tags);
-        if(relations_get(id, &members, &member_count, &tags) == 0)
-        {
-            //send it to the backends, mark it done and cleanup
-            callback(id, members, member_count, &tags, exists);
-            free(members);
-            resetList(&tags);
-        }
+        //send it to the backends
+        callback(id, exists);
     }
 
     time(&end);

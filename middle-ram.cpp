@@ -191,7 +191,7 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
                 if (rel_out_count % 10 == 0)
                     fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
 
-                callback(id, rels[block][offset].members, rels[block][offset].member_count, rels[block][offset].tags, 0);
+                callback(id, 0);
             }
         }
     }
@@ -201,8 +201,7 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
 
 void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
 {
-    int block, offset, ndCount = 0;
-    struct osmNode *nodes;
+    int block, offset;
 
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
@@ -217,13 +216,9 @@ void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
 
                 if (ways[block][offset].pending) {
                     /* First element contains number of nodes */
-                    nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
-                    ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
-
-                    if (nodes) {
+                    if (ways[block][offset].ndids[0]) {
                         osmid_t id = block2id(block, offset);
-                        callback(id, ways[block][offset].tags, nodes, ndCount, 0);
-                        free(nodes);
+                        callback(id, 0);
                     }
 
                     ways[block][offset].pending = 0;

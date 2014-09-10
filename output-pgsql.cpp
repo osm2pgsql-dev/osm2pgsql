@@ -256,105 +256,6 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr)
-    : m_ptr(ptr), m_sql(),
-      m_next_internal_id(m_ptr->ways_pending_tracker->pop_mark()) {
-}
-
-output_pgsql_t::way_cb_func::~way_cb_func() {}
-
-int output_pgsql_t::way_cb_func::operator()(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists) {
-    if (m_next_internal_id < id) {
-        run_internal_until(id, exists);
-    }
-
-    if (m_next_internal_id == id) {
-        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
-    }
-
-    if (m_ptr->ways_done_tracker->is_marked(id)) {
-        return 0;
-    } else {
-        return m_ptr->pgsql_out_way(id, tags, nodes, count, exists);
-    }
-}
-
-void output_pgsql_t::way_cb_func::finish(int exists) {
-    run_internal_until(std::numeric_limits<osmid_t>::max(), exists);
-}
-
-void output_pgsql_t::way_cb_func::run_internal_until(osmid_t id, int exists) {
-    struct keyval tags_int;
-    struct osmNode *nodes_int;
-    int count_int;
-
-    /* Loop through the pending ways up to id*/
-    while (m_next_internal_id < id) {
-        initList(&tags_int);
-        /* Try to fetch the way from the DB */
-        if (!m_ptr->m_mid->ways_get(m_next_internal_id, &tags_int, &nodes_int, &count_int)) {
-            /* Check if it's marked as done */
-            if (!m_ptr->ways_done_tracker->is_marked(m_next_internal_id)) {
-                /* Output the way */
-                m_ptr->pgsql_out_way(m_next_internal_id, &tags_int, nodes_int, count_int, exists);
-            }
-            
-            free(nodes_int);
-        }
-        resetList(&tags_int);
-        
-        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
-    }
-}
-
-output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr)
-    : m_ptr(ptr), m_sql(),
-      m_next_internal_id(m_ptr->rels_pending_tracker->pop_mark()) {
-}
-
-output_pgsql_t::rel_cb_func::~rel_cb_func() {}
-
-int output_pgsql_t::rel_cb_func::operator()(osmid_t id, const struct member *mems, int member_count, struct keyval *rel_tags, int exists) {
-    if (m_next_internal_id < id) {
-        run_internal_until(id, exists);
-    }
-
-    if (m_next_internal_id == id) {
-        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
-    }
-
-    return m_ptr->pgsql_process_relation(id, mems, member_count, rel_tags, exists);
-}
-
-void output_pgsql_t::rel_cb_func::finish(int exists) {
-    run_internal_until(std::numeric_limits<osmid_t>::max(), exists);
-}
-
-void output_pgsql_t::rel_cb_func::run_internal_until(osmid_t id, int exists) {
-    struct keyval tags_int;
-    struct member *members_int;
-    int count_int;
-    
-    while (m_next_internal_id < id) {
-        initList(&tags_int);
-        if (!m_ptr->m_mid->relations_get(m_next_internal_id, &members_int, &count_int, &tags_int)) {
-            m_ptr->pgsql_process_relation(m_next_internal_id, members_int, count_int, &tags_int, exists);
-            
-            free(members_int);
-        }
-        resetList(&tags_int);
-        
-        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
-    }
-}
-
-void output_pgsql_t::commit()
-{
-    for (int i=0; i<NUM_TABLES; i++) {
-        m_tables[i]->commit();
-    }
-}
-
 middle_t::way_cb_func *output_pgsql_t::way_callback()
 {
     /* To prevent deadlocks in parallel processing, the mid tables need
@@ -381,6 +282,106 @@ middle_t::rel_cb_func *output_pgsql_t::relation_callback()
      */
     rel_cb_func *rel_callback = new rel_cb_func(this);
     return rel_callback;
+}
+
+output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr)
+    : m_ptr(ptr), m_sql(),
+      m_next_internal_id(m_ptr->ways_pending_tracker->pop_mark()) {
+}
+
+output_pgsql_t::way_cb_func::~way_cb_func() {}
+
+int output_pgsql_t::way_cb_func::do_single(osmid_t id, int exists) {
+    keyval tags_int;
+    osmNode *nodes_int;
+    int count_int;
+    int ret = 0;
+
+    // Check if it's marked as done
+    if (!m_ptr->ways_done_tracker->is_marked(id)) {
+        initList(&tags_int);
+        // Try to fetch the way from the DB
+        if (!m_ptr->m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
+            // Output the way
+            ret = m_ptr->pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
+            free(nodes_int);
+        }
+        resetList(&tags_int);
+    }
+    return 0;
+}
+
+int output_pgsql_t::way_cb_func::operator()(osmid_t id, int exists) {
+    int ret = 0;
+    //loop through the pending ways up to id
+    while (m_next_internal_id < id) {
+        ret = do_single(m_next_internal_id, exists) + ret > 0 ? 1 : 0;
+        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
+    }
+
+    //make sure to get this one as well and move to the next
+    ret = do_single(id, exists) + ret > 0 ? 1 : 0;
+    if(m_next_internal_id == id) {
+        m_next_internal_id = m_ptr->ways_pending_tracker->pop_mark();
+    }
+
+    //non zero is bad
+    return ret;
+}
+
+void output_pgsql_t::way_cb_func::finish(int exists) {
+    operator()(std::numeric_limits<osmid_t>::max(), exists);
+}
+
+output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr)
+    : m_ptr(ptr), m_sql(),
+      m_next_internal_id(m_ptr->rels_pending_tracker->pop_mark()) {
+}
+
+output_pgsql_t::rel_cb_func::~rel_cb_func() {}
+
+int output_pgsql_t::rel_cb_func::do_single(osmid_t id, int exists) {
+    keyval tags_int;
+    member *members_int;
+    int count_int;
+    int ret = 0;
+    initList(&tags_int);
+    if (!m_ptr->m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
+        ret = m_ptr->pgsql_process_relation(id, members_int, count_int, &tags_int, exists);
+        free(members_int);
+    }
+    resetList(&tags_int);
+    return ret;
+}
+
+int output_pgsql_t::rel_cb_func::operator()(osmid_t id, int exists) {
+    int ret = 0;
+
+    //loop through the pending rels up to id
+    while (m_next_internal_id < id) {
+        ret = do_single(m_next_internal_id, exists) + ret > 0 ? 1 : 0;
+        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
+    }
+
+    //make sure to get this one as well and move to the next
+    ret = do_single(id, exists) + ret > 0 ? 1 : 0;
+    if(m_next_internal_id == id) {
+        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
+    }
+
+    //non zero is bad
+    return ret;
+}
+
+void output_pgsql_t::rel_cb_func::finish(int exists) {
+    operator()(std::numeric_limits<osmid_t>::max(), exists);
+}
+
+void output_pgsql_t::commit()
+{
+    for (int i=0; i<NUM_TABLES; i++) {
+        m_tables[i]->commit();
+    }
 }
 
 void output_pgsql_t::stop()
