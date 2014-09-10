@@ -32,6 +32,10 @@ BUILT_SOURCES = \
   fileformat.pb-c.c fileformat.pb-c.h \
   osmformat.pb-c.c osmformat.pb-c.h
 
+CLEANFILES = \
+  fileformat.pb-c.c fileformat.pb-c.h \
+  osmformat.pb-c.c osmformat.pb-c.h
+
 endif
 
 osm2pgsqldir = $(datadir)/osm2pgsql
