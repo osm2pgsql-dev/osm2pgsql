@@ -1501,23 +1501,23 @@ middle_pgsql_t::middle_pgsql_t()
 middle_pgsql_t::~middle_pgsql_t() {
 }
 
-middle_t::threadsafe_middle_reader* middle_pgsql_t::get_reader(){
-    middle_pgsql_t::threadsafe_middle_reader* reader = new middle_pgsql_t::threadsafe_middle_reader();
-    reader->mid = new middle_pgsql_t();
-    reader->mid->out_options = out_options;
-    reader->mid->Append = out_options->append;
-    reader->mid->cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
+boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
+    middle_pgsql_t* mid = new middle_pgsql_t();
+    mid->out_options = out_options;
+    mid->Append = out_options->append;
 
     //TODO: would this be threadsafe if we just copy the shared ptr and not reset it
+    //probably not considering it caches them as it goes.. writes.., we could synchronize cache writes though?
+    mid->cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
     if (out_options->flat_node_cache_enabled)
-        reader->mid->persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, reader->mid->cache));
+        mid->persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, mid->cache));
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
         //bomb if you cant connect
-        if(connect(tables[i]))
+        if(mid->connect(mid->tables[i]))
             util::exit_nicely();
-        PGconn* sql_conn = tables[i].sql_conn;
+        PGconn* sql_conn = mid->tables[i].sql_conn;
 
         if (tables[i].prepare) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
@@ -1528,21 +1528,5 @@ middle_t::threadsafe_middle_reader* middle_pgsql_t::get_reader(){
         }
     }
 
-    return reader;
-}
-
-middle_pgsql_t::threadsafe_middle_reader::~threadsafe_middle_reader() {
-    delete mid;
-}
-
-int middle_pgsql_t::threadsafe_middle_reader::get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count) {
-    return mid->ways_get(id, tags, nodes, count);
-}
-
-int middle_pgsql_t::threadsafe_middle_reader::get_relation(osmid_t id, keyval *tags, member **members, int *count) {
-    return mid->relations_get(id, members, count, tags);
-}
-
-std::vector<osmid_t> middle_pgsql_t::threadsafe_middle_reader::get_relations(osmid_t way_id) {
-    return mid->relations_using_way(way_id);
+    return boost::shared_ptr<middle_query_t>(mid);
 }

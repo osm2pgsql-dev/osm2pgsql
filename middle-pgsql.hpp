@@ -80,16 +80,8 @@ struct middle_pgsql_t : public slim_middle_t {
         struct pg_conn *sql_conn;
     };
 
-    virtual middle_t::threadsafe_middle_reader* get_reader();
+    virtual boost::shared_ptr<const middle_query_t> get_instance() const;
 private:
-
-    struct threadsafe_middle_reader : public middle_t::threadsafe_middle_reader{
-        virtual ~threadsafe_middle_reader();
-        virtual int get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count);
-        virtual int get_relation(osmid_t id, keyval *tags, member **members, int *count);
-        virtual std::vector<osmid_t> get_relations(osmid_t way_id);
-        middle_pgsql_t* mid;
-    };
 
     int connect(table_desc& table);
     int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);

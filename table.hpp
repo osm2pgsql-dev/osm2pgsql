@@ -23,6 +23,8 @@ class table_t : public boost::noncopyable
                 const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
         ~table_t();
 
+        //TODO: copy constructor, break out connect and use in copy and in start
+
         void start();
         void stop();
 

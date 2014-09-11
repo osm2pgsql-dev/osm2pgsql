@@ -29,6 +29,8 @@ struct middle_query_t {
     virtual int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const = 0;
 
     virtual std::vector<osmid_t> relations_using_way(osmid_t way_id) const = 0;
+
+    virtual boost::shared_ptr<const middle_query_t> get_instance() const = 0;
 };    
 
 struct middle_t : public middle_query_t {
@@ -58,15 +60,6 @@ struct middle_t : public middle_query_t {
         virtual void finish(int exists) = 0;
     };
 
-    //force all middles to return some structure that can be used to read from the middle
-    struct threadsafe_middle_reader {
-        virtual ~threadsafe_middle_reader() {}
-        virtual int get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count) = 0;
-        virtual int get_relation(osmid_t id, keyval *tags, member **members, int *count) = 0;
-        virtual std::vector<osmid_t> get_relations(osmid_t way_id) = 0;
-    };
-    virtual threadsafe_middle_reader* get_reader() = 0;
-
     struct pending_job {
         //id we need to process
         osmid_t id;
@@ -75,7 +68,6 @@ struct middle_t : public middle_query_t {
         bool is_way;
 
         //TODO: add these to the thread run method
-        //pointer to a middle (for ram can just be a pointer to the real one, for pgsql need to make new ones and connect them)
         //copy of the backends table so it can write the stuff back to it
         //copy of the backends geometry processor
         //copy of the tag transform so we can add/change/delete tags on ways/rels
