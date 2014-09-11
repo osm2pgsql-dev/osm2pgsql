@@ -409,13 +409,16 @@ middle_t::threadsafe_middle_reader* middle_ram_t::get_reader(){
 }
 
 middle_ram_t::threadsafe_middle_reader::~threadsafe_middle_reader() {
-
 }
 
-int middle_ram_t::threadsafe_middle_reader::get_way() {
-    return 0;
+int middle_ram_t::threadsafe_middle_reader::get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count) {
+    return mid->ways_get(id, tags, nodes, count);
 }
 
-int middle_ram_t::threadsafe_middle_reader::get_relation() {
-    return 0;
+int middle_ram_t::threadsafe_middle_reader::get_relation(osmid_t id, keyval *tags, member **members, int *count) {
+    return mid->relations_get(id, members, count, tags);
+}
+
+std::vector<osmid_t> middle_ram_t::threadsafe_middle_reader::get_relations(osmid_t way_id) {
+    return mid->relations_using_way(way_id);
 }

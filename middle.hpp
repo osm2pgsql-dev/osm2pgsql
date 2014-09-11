@@ -61,8 +61,9 @@ struct middle_t : public middle_query_t {
     //force all middles to return some structure that can be used to read from the middle
     struct threadsafe_middle_reader {
         virtual ~threadsafe_middle_reader() {}
-        virtual int get_way() = 0;
-        virtual int get_relation() = 0;
+        virtual int get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count) = 0;
+        virtual int get_relation(osmid_t id, keyval *tags, member **members, int *count) = 0;
+        virtual std::vector<osmid_t> get_relations(osmid_t way_id) = 0;
     };
     virtual threadsafe_middle_reader* get_reader() = 0;
 

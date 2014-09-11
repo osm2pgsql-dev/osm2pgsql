@@ -52,8 +52,9 @@ private:
 
     struct threadsafe_middle_reader : public middle_t::threadsafe_middle_reader{
         virtual ~threadsafe_middle_reader();
-        virtual int get_way();
-        virtual int get_relation();
+        virtual int get_way(osmid_t id, keyval *tags, osmNode **nodes, int *count);
+        virtual int get_relation(osmid_t id, keyval *tags, member **members, int *count);
+        virtual std::vector<osmid_t> get_relations(osmid_t way_id);
         middle_ram_t* mid;
     };
 
