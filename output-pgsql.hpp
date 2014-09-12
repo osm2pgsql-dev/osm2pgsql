@@ -26,6 +26,7 @@ public:
     
     output_pgsql_t(const middle_query_t* mid_, const options_t &options_);
     virtual ~output_pgsql_t();
+    output_pgsql_t(const output_pgsql_t& other);
 
     int start();
     middle_t::way_cb_func *way_callback();
@@ -78,14 +79,14 @@ private:
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 
-    tagtransform *m_tagtransform;
+    boost::scoped_ptr<tagtransform> m_tagtransform;
 
     //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;
 
     std::vector<boost::shared_ptr<table_t> > m_tables;
     
-    export_list *m_export_list;
+    boost::scoped_ptr<export_list> m_export_list;
 
     geometry_builder builder;
 

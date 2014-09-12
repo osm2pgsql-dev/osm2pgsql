@@ -14,13 +14,13 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
     int srid = options->projection->project_getprojinfo()->srs;
     double scale = options->scale;
 
-    if (type == "point") {
+    if (type == "point" || type == "POINT") {
         ptr = boost::make_shared<processor_point>(srid, scale);
     }
-    else if (type == "line") {
+    else if (type == "line" || type == "LINESTRING") {
         ptr = boost::make_shared<processor_line>(srid);
     }
-    else if (type == "polygon") {
+    else if (type == "polygon" || type == "GEOMETRY") {
         ptr = boost::make_shared<processor_polygon>(srid, options->enable_multi);
     }
     else {

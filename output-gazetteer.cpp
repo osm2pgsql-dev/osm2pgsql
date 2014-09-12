@@ -145,8 +145,6 @@ static void copy_error_data(const char *sql)
 {
    unsigned int sqlLen = strlen(sql);
 
-   if (hLog) fprintf(hLog, "%s", sql);
-
    /* Make sure we have an active copy */
    if (!CopyErrorActive)
    {
@@ -980,20 +978,37 @@ void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
    return;
 }
 
+int output_gazetteer_t::connect() {
+    /* Connection to the database */
+    Connection = PQconnectdb(m_options.conninfo.c_str());
+
+    /* Check to see that the backend connection was successfully made */
+    if (PQstatus(Connection) != CONNECTION_OK)
+    {
+       fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(Connection));
+       return 1;
+    }
+
+    if(m_options.append) {
+        ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
+        if (PQstatus(ConnectionDelete) != CONNECTION_OK)
+        {
+            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
+            return 1;
+        }
+
+        pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
+    }
+    return 0;
+}
+
 int output_gazetteer_t::start()
 {
    reproj = m_options.projection;
    builder.set_exclude_broken_polygon(m_options.excludepoly);
 
-   /* Connection to the database */
-   Connection = PQconnectdb(m_options.conninfo.c_str());
-
-   /* Check to see that the backend connection was successfully made */
-   if (PQstatus(Connection) != CONNECTION_OK)
-   {
-      fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(Connection));
-      util::exit_nicely();
-   }
+   if(connect())
+       util::exit_nicely();
 
    /* Start a transaction */
    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
@@ -1035,18 +1050,7 @@ int output_gazetteer_t::start()
 
       pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
-   } else {
-      ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
-      if (PQstatus(ConnectionDelete) != CONNECTION_OK)
-      { 
-          fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
-          util::exit_nicely();
-      }
-
-      pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
    }
-
-   hLog = fopen("log", "w");
 
    return 0;
 }
@@ -1069,7 +1073,6 @@ void output_gazetteer_t::stop()
 {
    /* Stop any active copy */
    stop_copy();
-   if (hLog) fclose(hLog);
 
    /* Commit transaction */
    pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
@@ -1380,10 +1383,23 @@ output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options
       ConnectionDelete(NULL),
       ConnectionError(NULL),
       CopyActive(0),
-      BufferLen(0),
-      hLog(NULL)
+      BufferLen(0)
 {
     memset(Buffer, 0, BUFFER_SIZE);
+}
+
+output_gazetteer_t::output_gazetteer_t(const output_gazetteer_t& other)
+    : output_t(other.m_mid, other.m_options),
+      Connection(NULL),
+      ConnectionDelete(NULL),
+      ConnectionError(NULL),
+      CopyActive(0),
+      BufferLen(0),
+      reproj(other.reproj)
+{
+    builder.set_exclude_broken_polygon(m_options.excludepoly);
+    memset(Buffer, 0, BUFFER_SIZE);
+    connect();
 }
 
 output_gazetteer_t::~output_gazetteer_t() {

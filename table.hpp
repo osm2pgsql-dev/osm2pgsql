@@ -7,7 +7,7 @@
 
 #include <string>
 #include <vector>
-#include <boost/noncopyable.hpp>
+
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
 
@@ -15,15 +15,14 @@ typedef std::vector<std::string> hstores_t;
 typedef std::vector<std::pair<std::string, std::string> > columns_t;
 typedef boost::format fmt;
 
-class table_t : public boost::noncopyable
+class table_t
 {
     public:
         table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
                 const int scale, const bool append, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
                 const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
+        table_t(const table_t& other);
         ~table_t();
-
-        //TODO: copy constructor, break out connect and use in copy and in start
 
         void start();
         void stop();
@@ -53,6 +52,7 @@ class table_t : public boost::noncopyable
         boost::shared_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
 
     protected:
+        void connect();
         void stop_copy();
         void teardown();
 

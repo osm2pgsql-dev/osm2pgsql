@@ -10,6 +10,7 @@
 class output_gazetteer_t : public output_t {
 public:
     output_gazetteer_t(const middle_query_t* mid_, const options_t &options_);
+    output_gazetteer_t(const output_gazetteer_t& other);
     virtual ~output_gazetteer_t();
 
     int start();
@@ -49,6 +50,7 @@ private:
                               int delete_old);
     int gazetteer_process_relation(osmid_t id, struct member *members, int member_count,
                                    struct keyval *tags, int delete_old);
+    int connect();
 
     struct pg_conn *Connection;
     struct pg_conn *ConnectionDelete;
@@ -56,8 +58,6 @@ private:
     
     int CopyActive;
     unsigned int BufferLen;
-    
-    FILE * hLog;
     
     char Buffer[BUFFER_SIZE];
 

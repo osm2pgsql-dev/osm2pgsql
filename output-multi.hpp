@@ -25,6 +25,7 @@ public:
                    boost::shared_ptr<geometry_processor> processor_,
                    const struct export_list &export_list_,
                    const middle_query_t* mid_, const options_t &options_);
+    output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
 
     int start();

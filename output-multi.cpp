@@ -16,7 +16,7 @@ std::string mk_column_name(const std::string &name, const options_t &options) {
 output_multi_t::output_multi_t(const std::string &name,
                                boost::shared_ptr<geometry_processor> processor_,
                                const struct export_list &export_list_,
-                               const middle_query_t* mid_, const options_t &options_) 
+                               const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_),
       m_tagtransform(new tagtransform(&m_options)),
       m_export_list(new export_list(export_list_)),
@@ -31,6 +31,13 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
       m_expire(new expire_tiles(&m_options)) {
 }
+
+output_multi_t::output_multi_t(const output_multi_t& other):
+    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
+    m_processor(geometry_processor::create(other.m_processor->column_type(), &m_options)), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
+    m_expire(new expire_tiles(&m_options)) {
+}
+
 
 output_multi_t::~output_multi_t() {
 }

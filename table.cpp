@@ -29,6 +29,20 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
 }
 
+table_t::table_t(const table_t& other):
+    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(NULL), copyMode(true), srid((fmt("%1%") % srid).str()), scale(other.scale),
+    append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
+    columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
+    table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
+{
+    connect();
+    //let postgres cache this query as it will presumably happen a lot
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+    //start the copy
+    begin();
+    pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
+}
+
 table_t::~table_t()
 {
     teardown();
@@ -55,19 +69,24 @@ void table_t::commit()
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "COMMIT");
 }
 
-void table_t::start()
+void table_t::connect()
 {
-    if(sql_conn)
-        throw std::runtime_error(name + " cannot start, its already started");
-
-    fprintf(stderr, "Setting up table: %s\n", name.c_str());
-
     //connect
     PGconn* _conn = PQconnectdb(conninfo.c_str());
     if (PQstatus(_conn) != CONNECTION_OK)
         throw std::runtime_error((fmt("Connection to database failed: %1%\n") % PQerrorMessage(_conn)).str());
     sql_conn = _conn;
+    //let commits happen faster by delaying when they actually occur
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+}
+
+void table_t::start()
+{
+    if(sql_conn)
+        throw std::runtime_error(name + " cannot start, its already started");
+
+    connect();
+    fprintf(stderr, "Setting up table: %s\n", name.c_str());
 
     //we are making a new table
     if (!append)

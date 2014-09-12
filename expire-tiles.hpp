@@ -11,6 +11,8 @@ struct expire_tiles : public boost::noncopyable {
     explicit expire_tiles(const struct options_t *options);
     ~expire_tiles();
 
+    //TODO: copy constructor
+
     int from_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
     void from_nodes_line(const struct osmNode * nodes, int count);
     void from_nodes_poly(const struct osmNode * nodes, int count, osmid_t osm_id);
@@ -18,9 +20,12 @@ struct expire_tiles : public boost::noncopyable {
     int from_db(table_t* table, osmid_t osm_id);
 
     struct tile {
-	int		complete[2][2];	/* Flags */
-	struct tile *	subtiles[2][2];
+        int	complete[2][2];
+        struct tile* subtiles[2][2];
     };
+
+    //TODO: a method to coalesce multiple tile trees into this
+    //objects tree then write that coalesced one only once
 
 private: 
     void expire_tile(int x, int y);

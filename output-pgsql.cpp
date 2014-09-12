@@ -67,7 +67,7 @@ Workaround - output SRID=4326;<WKB>
 int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
 {
 
-    int filter = m_tagtransform->filter_node_tags(tags, m_export_list);
+    int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
     int i;
     struct keyval *tag;
 
@@ -121,7 +121,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
         }
     }
 
-    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list))
+    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get()))
         return 0;
     /* Split long ways after around 1 degree or 100km */
     if (m_options.projection->get_proj_id() == PROJ_LATLONG)
@@ -167,7 +167,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     members_superseeded = (int *)calloc(sizeof(int), member_count);
 
     //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
-    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list)) {
+    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list.get())) {
         free(members_superseeded);
         return 0;
     }
@@ -425,8 +425,6 @@ void output_pgsql_t::stop()
     }
 #endif
 
-    delete m_export_list;
-
     expire.reset();
 }
 
@@ -444,7 +442,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list);
+  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -471,7 +469,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  if (m_tagtransform->filter_rel_tags(tags, m_export_list)) {
+  if (m_tagtransform->filter_rel_tags(tags, m_export_list.get())) {
       return 1;
   }
 
@@ -503,7 +501,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
               //shares any kind of tag transform and therefore all original tags
               //will come back and need to be filtered by individual outputs before
               //using these ways
-              m_tagtransform->filter_way_tags(&xtags[i], &polygon, &roads, m_export_list);
+              m_tagtransform->filter_way_tags(&xtags[i], &polygon, &roads, m_export_list.get());
               //TODO: if the filter says that this member is now not interesting we
               //should decrement the count and remove his nodes and tags etc. for
               //now we'll just keep him with no tags so he will get filtered later
@@ -681,12 +679,12 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
 
-    m_export_list = new export_list();
+    m_export_list.reset(new export_list());
 
-    m_enable_way_area = read_style_file( m_options.style, m_export_list );
+    m_enable_way_area = read_style_file( m_options.style, m_export_list.get() );
 
     try {
-        m_tagtransform = new tagtransform(&m_options);
+        m_tagtransform.reset(new tagtransform(&m_options));
     }
     catch(std::runtime_error& e) {
         fprintf(stderr, "%s\n", e.what());
@@ -742,7 +740,16 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
     }
 }
 
+output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
+    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
+    m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj), expire(new expire_tiles(&m_options))
+{
+    builder.set_exclude_broken_polygon(m_options.excludepoly);
+    for(std::vector<boost::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
+        //copy constructor will just connect to the already there table
+        m_tables.push_back(boost::shared_ptr<table_t>(new table_t(**t)));
+    }
+}
+
 output_pgsql_t::~output_pgsql_t() {
-    if(m_tagtransform != NULL)
-    	delete m_tagtransform;
 }

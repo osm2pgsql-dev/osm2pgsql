@@ -7,7 +7,7 @@
 #include <boost/optional.hpp>
 
 struct geometry_processor {
-    // factory method for creating various types of geometry processors
+    // factory method for creating various types of geometry processors either by name or by geometry column type
     static boost::shared_ptr<geometry_processor> create(const std::string &type,
                                                         const options_t *options);
 

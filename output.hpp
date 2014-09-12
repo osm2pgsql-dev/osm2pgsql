@@ -43,10 +43,15 @@ public:
     virtual int way_delete(osmid_t id) = 0;
     virtual int relation_delete(osmid_t id) = 0;
 
+    //TODO: implement this in each output, just use their copy constructors
+    //and then set the clones m_mid to the one that is passed in here
+    //from the thread that made its only middle_query_t* clone
+    //virtual options_t* clone(const middle_query_t* mid_cloned_in_thread) = 0;
+
     const options_t *get_options() const;
 
 protected:
-    const middle_query_t *m_mid;
+    const middle_query_t* m_mid;
     const options_t m_options;
 };
 
