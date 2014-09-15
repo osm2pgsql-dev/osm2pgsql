@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <errno.h>
 
+#include <boost/make_shared.hpp>
+
 #include "osmtypes.hpp"
 #include "output-null.hpp"
 #include "options.hpp"
@@ -68,7 +70,14 @@ int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, i
   return 0;
 }
 
+boost::shared_ptr<output_t> output_null_t::clone() {
+    return boost::make_shared<output_null_t>(*this);
+}
+
 output_null_t::output_null_t(const middle_query_t* mid_, const options_t &options_): output_t(mid_, options_) {
+}
+
+output_null_t::output_null_t(const output_null_t& other): output_t(other.m_mid, other.m_options) {
 }
 
 output_null_t::~output_null_t() {

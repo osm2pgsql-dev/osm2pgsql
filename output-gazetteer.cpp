@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <libpq-fe.h>
+#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "osmtypes.hpp"
@@ -1375,6 +1376,10 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
 {
    require_slim_mode();
    return gazetteer_process_relation(id, members, member_count, tags, 1);
+}
+
+boost::shared_ptr<output_t> output_gazetteer_t::clone() {
+    return boost::make_shared<output_gazetteer_t>(*this);
 }
 
 output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options_t &options_)

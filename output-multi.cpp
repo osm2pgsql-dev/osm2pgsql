@@ -2,6 +2,7 @@
 #include "taginfo_impl.hpp"
 
 #include <boost/format.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
@@ -40,6 +41,10 @@ output_multi_t::output_multi_t(const output_multi_t& other):
 
 
 output_multi_t::~output_multi_t() {
+}
+
+boost::shared_ptr<output_t> output_multi_t::clone() {
+    return boost::make_shared<output_multi_t>(*this);
 }
 
 int output_multi_t::start() {

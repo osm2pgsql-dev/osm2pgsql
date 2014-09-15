@@ -37,6 +37,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <iostream>
 #include <limits>
@@ -671,6 +672,10 @@ int output_pgsql_t::start()
     }
 
     return 0;
+}
+
+boost::shared_ptr<output_t> output_pgsql_t::clone() {
+    return boost::make_shared<output_pgsql_t>(*this);
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)

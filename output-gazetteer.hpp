@@ -13,6 +13,8 @@ public:
     output_gazetteer_t(const output_gazetteer_t& other);
     virtual ~output_gazetteer_t();
 
+    virtual boost::shared_ptr<output_t> clone();
+
     int start();
     middle_t::way_cb_func *way_callback();
     middle_t::rel_cb_func *relation_callback();

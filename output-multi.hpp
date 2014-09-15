@@ -28,6 +28,8 @@ public:
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
 
+    virtual boost::shared_ptr<output_t> clone();
+
     int start();
     middle_t::way_cb_func *way_callback();
     middle_t::rel_cb_func *relation_callback();

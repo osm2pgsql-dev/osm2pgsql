@@ -9,7 +9,10 @@
 class output_null_t : public output_t {
 public:
     output_null_t(const middle_query_t* mid_, const options_t &options);
+    output_null_t(const output_null_t& other);
     virtual ~output_null_t();
+
+    virtual boost::shared_ptr<output_t> clone();
 
     int start();
     middle_t::way_cb_func *way_callback();

@@ -28,6 +28,8 @@ public:
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
 
+    virtual boost::shared_ptr<output_t> clone();
+
     int start();
     middle_t::way_cb_func *way_callback();
     middle_t::rel_cb_func *relation_callback();

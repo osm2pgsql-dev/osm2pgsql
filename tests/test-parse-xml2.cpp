@@ -4,6 +4,8 @@
 #include <string.h>
 #include <cassert>
 
+#include <boost/make_shared.hpp>
+
 #include "osmtypes.hpp"
 #include "parse-xml2.hpp"
 #include "output.hpp"
@@ -53,7 +55,16 @@ struct test_output_t : public output_t {
           num_nds(0), num_members(0) {
     }
 
+    explicit test_output_t(const test_output_t &other)
+        : output_t(this->m_mid, this->m_options), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+          num_nds(0), num_members(0) {
+    }
+
     virtual ~test_output_t() {
+    }
+
+    boost::shared_ptr<output_t> clone() {
+        return boost::make_shared<test_output_t>(*this);
     }
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
