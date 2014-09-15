@@ -24,8 +24,15 @@ struct expire_tiles : public boost::noncopyable {
         struct tile* subtiles[2][2];
     };
 
+  struct tile_output {
+    virtual ~tile_output() {}
+    virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
+  };
+
     //TODO: a method to coalesce multiple tile trees into this
     //objects tree then write that coalesced one only once
+  void output_and_destroy();
+  void output_and_destroy(tile_output *output);
 
 private: 
     void expire_tile(int x, int y);
@@ -33,13 +40,11 @@ private:
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
     void from_xnodes_poly(const struct osmNode * const * xnodes, int * xcount, osmid_t osm_id);
     void from_xnodes_line(const struct osmNode * const * xnodes, int * xcount);
-    void output_and_destroy_tree(FILE * outfile, struct tile * tree);
 
     int map_width;
     double tile_width;
     const struct options_t *Options;
     struct tile *dirty;
-    int outcount;
 };
 
 #endif

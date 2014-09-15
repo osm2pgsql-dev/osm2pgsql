@@ -170,6 +170,7 @@ void output_multi_t::rel_cb_func::finish(int exists) {
 
 void output_multi_t::stop() {
     m_table->stop();
+    m_expire->output_and_destroy();
     m_expire.reset();
 }
 

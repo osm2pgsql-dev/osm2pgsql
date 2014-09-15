@@ -425,6 +425,7 @@ void output_pgsql_t::stop()
     }
 #endif
 
+    expire->output_and_destroy();
     expire.reset();
 }
 
