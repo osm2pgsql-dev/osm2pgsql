@@ -30,6 +30,10 @@
 
 #include <zlib.h>
 
+#include "config.h"
+
+#ifdef BUILD_READER_PBF
+
 #include "parse-pbf.hpp"
 #include "output.hpp"
 
@@ -612,3 +616,4 @@ int parse_pbf_t::streamFile(const char *filename, const int UNUSED, osmdata_t *o
   
   return exit_status;
 }
+#endif //BUILD_READER_PBF
