@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <boost/format.hpp>
 
+#define EARTH_CIRCUMFERENCE (40075016.68)
+
 namespace {
 
 void run_test(const char* test_name, void (*testfunc)())
@@ -41,6 +43,21 @@ struct xyz {
              ((x < other.x) ||
               ((x == other.x) &&
                (y < other.y)))));
+  }
+  void to_bbox(double &x0, double &y0,
+               double &x1, double &y1) const {
+    const double datum = 0.5 * (1 << z);
+    const double scale = EARTH_CIRCUMFERENCE / (1 << z);
+    x0 = (x - datum) * scale;
+    y0 = (datum - (y + 1)) * scale;
+    x1 = ((x + 1) - datum) * scale;
+    y1 = (datum - y) * scale;
+  }
+  void to_centroid(double &x0, double &y0) const {
+    const double datum = 0.5 * (1 << z);
+    const double scale = EARTH_CIRCUMFERENCE / (1 << z);
+    x0 = ((x + 0.5) - datum) * scale;
+    y0 = (datum - (y + 0.5)) * scale;
   }
 };
 
@@ -136,7 +153,65 @@ void test_expire_simple_z18() {
   ASSERT_EQ(*itr, xyz(18, 131072, 131072)); ++itr;
 }
 
+std::set<xyz> generate_random(int zoom, size_t count) {
+  size_t num = 0;
+  std::set<xyz> set;
+  const int coord_mask = (1 << zoom) - 1;
+
+  while (num < count) {
+    xyz item(zoom, rand() & coord_mask, rand() & coord_mask);
+    if (set.count(item) == 0) {
+      set.insert(item);
+      ++num;
+    }
+  }
+
+  return set;
 }
+
+void assert_tilesets_equal(const std::set<xyz> &a,
+                           const std::set<xyz> &b) {
+  ASSERT_EQ(a.size(), b.size());
+  std::set<xyz>::const_iterator a_itr = a.begin();
+  std::set<xyz>::const_iterator b_itr = b.begin();
+  while ((a_itr != a.end()) &&
+         (b_itr != b.end())) {
+    ASSERT_EQ(*a_itr, *b_itr);
+    ++a_itr;
+    ++b_itr;
+  }
+}
+
+void expire_centroids(const std::set<xyz> &check_set,
+                      expire_tiles &et) {
+  for (std::set<xyz>::const_iterator itr = check_set.begin();
+       itr != check_set.end(); ++itr) {
+    double x0 = 0.0, y0 = 0.0;
+    itr->to_centroid(x0, y0);
+    et.from_bbox(x0, y0, x0, y0);
+  }
+}
+
+void test_expire_set() {
+  options_t opt;
+  int zoom = 18;
+  opt.expire_tiles_zoom = zoom;
+  opt.expire_tiles_zoom_min = zoom;
+
+  for (int i = 0; i < 100; ++i) {
+    expire_tiles et(&opt);
+    tile_output_set set;
+
+    std::set<xyz> check_set = generate_random(zoom, 100);
+    expire_centroids(check_set, et);
+
+    et.output_and_destroy(&set);
+
+    assert_tilesets_equal(set.m_tiles, check_set);
+  }
+}
+
+} // anonymous namespace
 
 int main(int argc, char *argv[])
 {
@@ -146,6 +221,7 @@ int main(int argc, char *argv[])
     RUN_TEST(test_expire_simple_z1);
     RUN_TEST(test_expire_simple_z3);
     RUN_TEST(test_expire_simple_z18);
+    RUN_TEST(test_expire_set);
 
     //passed
     return 0;
