@@ -33,6 +33,7 @@ struct expire_tiles : public boost::noncopyable {
     //objects tree then write that coalesced one only once
   void output_and_destroy();
   void output_and_destroy(tile_output *output);
+  void merge_and_destroy(expire_tiles &);
 
 private: 
     void expire_tile(int x, int y);

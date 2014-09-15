@@ -211,6 +211,36 @@ void test_expire_set() {
   }
 }
 
+void test_expire_merge() {
+  options_t opt;
+  int zoom = 18;
+  opt.expire_tiles_zoom = zoom;
+  opt.expire_tiles_zoom_min = zoom;
+
+  for (int i = 0; i < 100; ++i) {
+    expire_tiles et(&opt), et1(&opt), et2(&opt);
+    tile_output_set set;
+
+    std::set<xyz> check_set1 = generate_random(zoom, 100);
+    expire_centroids(check_set1, et1);
+
+    std::set<xyz> check_set2 = generate_random(zoom, 100);
+    expire_centroids(check_set2, et2);
+
+    et.merge_and_destroy(et1);
+    et.merge_and_destroy(et2);
+
+    std::set<xyz> check_set;
+    std::set_union(check_set1.begin(), check_set1.end(),
+                   check_set2.begin(), check_set2.end(),
+                   std::inserter(check_set, check_set.end()));
+
+    et.output_and_destroy(&set);
+
+    assert_tilesets_equal(set.m_tiles, check_set);
+  }
+}
+
 } // anonymous namespace
 
 int main(int argc, char *argv[])
@@ -222,6 +252,7 @@ int main(int argc, char *argv[])
     RUN_TEST(test_expire_simple_z3);
     RUN_TEST(test_expire_simple_z18);
     RUN_TEST(test_expire_set);
+    RUN_TEST(test_expire_merge);
 
     //passed
     return 0;

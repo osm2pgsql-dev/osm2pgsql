@@ -187,6 +187,55 @@ void _output_and_destroy_tree(expire_tiles::tile_output *output, struct expire_t
 	free(tree);
 }
 
+// merge the two trees, destroying b in the process. returns the
+// number of completed subtrees.
+int _tree_merge(struct expire_tiles::tile **a,
+                struct expire_tiles::tile **b) {
+  if (*a == NULL) {
+    *a = *b;
+    *b = NULL;
+
+  } else if (*b != NULL) {
+    for (int x = 0; x < 2; ++x) {
+      for (int y = 0; y < 2; ++y) {
+        // if b is complete on a subtree, then the merged tree must
+        // be complete too.
+        if ((*b)->complete[x][y]) {
+          (*a)->complete[x][y] = (*b)->complete[x][y];
+          destroy_tree((*a)->subtiles[x][y]);
+          (*a)->subtiles[x][y] = NULL;
+
+          // but if a is already complete, don't bother moving across
+          // anything
+        } else if (!(*a)->complete[x][y]) {
+          int complete = _tree_merge(&((*a)->subtiles[x][y]), &((*b)->subtiles[x][y]));
+
+          if (complete >= 4) {
+            (*a)->complete[x][y] = 1;
+            destroy_tree((*a)->subtiles[x][y]);
+            (*a)->subtiles[x][y] = NULL;
+          }
+        }
+
+        destroy_tree((*b)->subtiles[x][y]);
+        (*b)->subtiles[x][y] = NULL;
+      }
+    }
+  }
+
+  // count the number complete, so we can return it
+  int a_complete = 0;
+  for (int x = 0; x < 2; ++x) {
+    for (int y = 0; y < 2; ++y) {
+      if ((*a != NULL) && ((*a)->complete[x][y])) {
+        ++a_complete;
+      }
+    }
+  }
+
+  return a_complete;
+}
+
 } // anonymous namespace
 
 void expire_tiles::output_and_destroy(tile_output *output) {
@@ -467,4 +516,21 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     return wkts->get_count();
 }
 
+void expire_tiles::merge_and_destroy(expire_tiles &other) {
+  if (map_width != other.map_width) {
+    throw std::runtime_error((boost::format("Unable to merge tile expiry sets when "
+                                            "map_width does not match: %1% != %2%.")
+                              % map_width % other.map_width).str());
+  }
 
+  if (tile_width != other.tile_width) {
+    throw std::runtime_error((boost::format("Unable to merge tile expiry sets when "
+                                            "tile_width does not match: %1% != %2%.")
+                              % tile_width % other.tile_width).str());
+  }
+
+  _tree_merge(&dirty, &other.dirty);
+
+  destroy_tree(other.dirty);
+  other.dirty = NULL;
+}
