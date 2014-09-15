@@ -24,16 +24,28 @@ struct expire_tiles : public boost::noncopyable {
         struct tile* subtiles[2][2];
     };
 
-  struct tile_output {
-    virtual ~tile_output() {}
-    virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
-  };
+    /* customisable tile output. this can be passed into the
+     * `output_and_destroy` function to override output to a file.
+     * this is primarily useful for testing.
+     */
+    struct tile_output {
+        virtual ~tile_output() {}
+        // dirty a tile at x, y & zoom, and all descendants of that
+        // tile at the given zoom if zoom < min_zoom.
+        virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
+    };
 
-    //TODO: a method to coalesce multiple tile trees into this
-    //objects tree then write that coalesced one only once
-  void output_and_destroy();
-  void output_and_destroy(tile_output *output);
-  void merge_and_destroy(expire_tiles &);
+    // output the list of expired tiles to a file. note that this
+    // consumes the list of expired tiles destructively.
+    void output_and_destroy();
+
+    // output the list of expired tiles using a `tile_output`
+    // functor. this consumes the list of expired tiles destructively.
+    void output_and_destroy(tile_output *output);
+
+    // merge the list of expired tiles in the other object into this
+    // object, destroying the list in the other object.
+    void merge_and_destroy(expire_tiles &);
 
 private: 
     void expire_tile(int x, int y);
