@@ -192,6 +192,8 @@ void expire_centroids(const std::set<xyz> &check_set,
   }
 }
 
+// tests that expiring a set of tile centroids means that
+// those tiles get expired.
 void test_expire_set() {
   options_t opt;
   int zoom = 18;
@@ -211,6 +213,11 @@ void test_expire_set() {
   }
 }
 
+// this tests that, after expiring a random set of tiles
+// in one expire_tiles object and a different set in
+// another, when they are merged together they are the
+// same as if the union of the sets of tiles had been
+// expired.
 void test_expire_merge() {
   options_t opt;
   int zoom = 18;
@@ -241,6 +248,101 @@ void test_expire_merge() {
   }
 }
 
+// tests that merging two identical sets results in
+// the same set. this guarantees that we check some
+// pathways of the merging which possibly could be
+// skipped by the random tile set in the previous
+// test.
+void test_expire_merge_same() {
+  options_t opt;
+  int zoom = 18;
+  opt.expire_tiles_zoom = zoom;
+  opt.expire_tiles_zoom_min = zoom;
+
+  for (int i = 0; i < 100; ++i) {
+    expire_tiles et(&opt), et1(&opt), et2(&opt);
+    tile_output_set set;
+
+    std::set<xyz> check_set = generate_random(zoom, 100);
+    expire_centroids(check_set, et1);
+    expire_centroids(check_set, et2);
+
+    et.merge_and_destroy(et1);
+    et.merge_and_destroy(et2);
+
+    et.output_and_destroy(&set);
+
+    assert_tilesets_equal(set.m_tiles, check_set);
+  }
+}
+
+// makes sure that we're testing the case where some
+// tiles are in both.
+void test_expire_merge_overlap() {
+  options_t opt;
+  int zoom = 18;
+  opt.expire_tiles_zoom = zoom;
+  opt.expire_tiles_zoom_min = zoom;
+
+  for (int i = 0; i < 100; ++i) {
+    expire_tiles et(&opt), et1(&opt), et2(&opt);
+    tile_output_set set;
+
+    std::set<xyz> check_set1 = generate_random(zoom, 100);
+    expire_centroids(check_set1, et1);
+
+    std::set<xyz> check_set2 = generate_random(zoom, 100);
+    expire_centroids(check_set2, et2);
+
+    std::set<xyz> check_set3 = generate_random(zoom, 100);
+    expire_centroids(check_set3, et1);
+    expire_centroids(check_set3, et2);
+
+    et.merge_and_destroy(et1);
+    et.merge_and_destroy(et2);
+
+    std::set<xyz> check_set;
+    std::set_union(check_set1.begin(), check_set1.end(),
+                   check_set2.begin(), check_set2.end(),
+                   std::inserter(check_set, check_set.end()));
+    std::set_union(check_set1.begin(), check_set1.end(),
+                   check_set3.begin(), check_set3.end(),
+                   std::inserter(check_set, check_set.end()));
+
+    et.output_and_destroy(&set);
+
+    assert_tilesets_equal(set.m_tiles, check_set);
+  }
+}
+
+// checks that the set union still works when we expire
+// large contiguous areas of tiles (i.e: ensure that we
+// handle the "complete" flag correctly).
+void test_expire_merge_complete() {
+  options_t opt;
+  int zoom = 18;
+  opt.expire_tiles_zoom = zoom;
+  opt.expire_tiles_zoom_min = zoom;
+
+  for (int i = 0; i < 100; ++i) {
+    expire_tiles et(&opt), et1(&opt), et2(&opt), et0(&opt);
+    tile_output_set set, set0;
+
+    // et1&2 are two halves of et0's box
+    et0.from_bbox(-10000, -10000, 10000, 10000);
+    et1.from_bbox(-10000, -10000,     0, 10000);
+    et2.from_bbox(     0, -10000, 10000, 10000);
+
+    et.merge_and_destroy(et1);
+    et.merge_and_destroy(et2);
+
+    et.output_and_destroy(&set);
+    et0.output_and_destroy(&set0);
+
+    assert_tilesets_equal(set.m_tiles, set0.m_tiles);
+  }
+}
+
 } // anonymous namespace
 
 int main(int argc, char *argv[])
@@ -253,6 +355,9 @@ int main(int argc, char *argv[])
     RUN_TEST(test_expire_simple_z18);
     RUN_TEST(test_expire_set);
     RUN_TEST(test_expire_merge);
+    RUN_TEST(test_expire_merge_same);
+    RUN_TEST(test_expire_merge_overlap);
+    RUN_TEST(test_expire_merge_complete);
 
     //passed
     return 0;
