@@ -191,6 +191,7 @@ void _output_and_destroy_tree(expire_tiles::tile_output *output, struct expire_t
 
 void expire_tiles::output_and_destroy(tile_output *output) {
     _output_and_destroy_tree(output, dirty, 0, 0, 0, Options->expire_tiles_zoom_min);
+    dirty = NULL;
 }
 
 void expire_tiles::output_and_destroy() {
@@ -198,8 +199,6 @@ void expire_tiles::output_and_destroy() {
     tile_output_file output(Options->expire_tiles_filename);
 
     output_and_destroy(&output);
-
-    dirty = NULL;
   }
 }
 
