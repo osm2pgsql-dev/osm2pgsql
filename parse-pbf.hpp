@@ -27,6 +27,9 @@
 
 #include "parse.hpp"
 
+#include "config.h"
+
+#ifdef BUILD_READER_PBF
 extern "C" {
 #include "fileformat.pb-c.h"
 #include "osmformat.pb-c.h"
@@ -47,5 +50,7 @@ protected:
 	int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
 	int processOsmData(struct osmdata_t *osmdata, void *data, size_t length);
 };
+
+#endif //BUILD_READER_PBF
 
 #endif

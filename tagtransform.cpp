@@ -372,10 +372,10 @@ unsigned int c_filter_rel_member_tags(
     return 0;
 }
 
+#ifdef HAVE_LUA
 unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, keyval *rel_tags, const int member_count,
         keyval *member_tags,const char * const * member_roles,
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
-#ifdef HAVE_LUA
 
     int i;
     int idx = 0;
@@ -460,9 +460,6 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
     lua_pop(L,1);
 
     return filter;
-#else
-    return 1;
-#endif
 }
 
 void check_lua_function_exists(lua_State *L, const std::string &func_name) {
@@ -473,6 +470,7 @@ void check_lua_function_exists(lua_State *L, const std::string &func_name) {
     }
     lua_pop(L,1);
 }
+#endif
 } // anonymous namespace
 
 tagtransform::tagtransform(const options_t *options_)
@@ -526,7 +524,11 @@ unsigned int tagtransform::filter_node_tags(struct keyval *tags, const export_li
 unsigned int tagtransform::filter_way_tags(struct keyval *tags, int * polygon, int * roads,
                                           const export_list *exlist, bool strict) {
     if (transform_method) {
+#ifdef HAVE_LUA
         return lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
+#else
+        return 1;
+#endif
     } else {
         return c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist, strict);
     }
@@ -543,7 +545,11 @@ unsigned int tagtransform::filter_rel_tags(struct keyval *tags, const export_lis
 
 unsigned int tagtransform::filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char * const * member_roles, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads, const export_list *exlist, bool allow_typeless) {
     if (transform_method) {
+#ifdef HAVE_LUA
         return lua_filter_rel_member_tags(L, m_rel_mem_func.c_str(), rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads);
+#else
+        return 1;
+#endif
     } else {
         return c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, exlist, allow_typeless);
     }
