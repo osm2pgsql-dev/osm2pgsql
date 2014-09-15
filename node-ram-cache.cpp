@@ -338,7 +338,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
     maxBlocks = (cacheSize/(PER_BLOCK*sizeof(struct ramNode)));
-    maxSparseTuples = (cacheSize/sizeof(struct ramNodeID));
+    maxSparseTuples = (cacheSize/sizeof(struct ramNodeID))+1;
     
     allocStrategy = strategy;
     
