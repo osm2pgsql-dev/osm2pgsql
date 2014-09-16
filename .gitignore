@@ -51,6 +51,7 @@ tests/test-output-multi-line
 tests/test-output-multi-point
 tests/test-output-multi-point-multi-table
 tests/test-output-multi-polygon
+tests/test-output-pgsql
 tests/*.log
 tests/*.trs
 
