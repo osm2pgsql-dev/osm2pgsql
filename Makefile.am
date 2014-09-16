@@ -91,7 +91,8 @@ check_PROGRAMS = \
 	tests/test-output-multi-point-multi-table \
 	tests/test-output-multi-polygon \
 	tests/test-pgsql-escape \
-	tests/test-parse-options
+	tests/test-parse-options \
+	tests/test-expire-tiles
 
 tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp 
 tests_test_parse_xml2_LDADD = libosm2pgsql.la
@@ -111,6 +112,8 @@ tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
 tests_test_parse_options_LDADD = libosm2pgsql.la
+tests_test_expire_tiles_SOURCES = tests/test-expire-tiles.cpp
+tests_test_expire_tiles_LDADD = libosm2pgsql.la
 
 TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
@@ -164,6 +167,7 @@ tests_test_output_multi_point_multi_table_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_polygon_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_options_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_expire_tiles_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
 
 osm2pgsql_DATA = default.style 900913.sql

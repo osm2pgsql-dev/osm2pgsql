@@ -86,7 +86,7 @@ void test_middles()
 
 void test_outputs()
 {
-    const char* a1[] = {"osm2pgsql", "-O", "pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
     middle_t* mid = middle_t::create_middle(options.slim);
     output_t* out = output_t::create_output(mid, options);
@@ -95,7 +95,7 @@ void test_outputs()
         throw std::logic_error("Expected a pgsql output");
     }
 
-    const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
     out = output_t::create_output(mid, options);
@@ -104,7 +104,7 @@ void test_outputs()
         throw std::logic_error("Expected a gazetteer output");
     }
 
-    const char* a3[] = {"osm2pgsql", "-O", "null", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a3), const_cast<char **>(a3));
     mid = middle_t::create_middle(options.slim);
     out = output_t::create_output(mid, options);
@@ -113,7 +113,7 @@ void test_outputs()
         throw std::logic_error("Expected a null output");
     }
 
-    const char* a4[] = {"osm2pgsql", "-O", "keine_richtige_ausgabe", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a4[] = {"osm2pgsql", "-O", "keine_richtige_ausgabe", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a4), const_cast<char **>(a4));
     mid = middle_t::create_middle(options.slim);
     try

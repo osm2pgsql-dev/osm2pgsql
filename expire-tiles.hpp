@@ -24,8 +24,28 @@ struct expire_tiles : public boost::noncopyable {
         struct tile* subtiles[2][2];
     };
 
-    //TODO: a method to coalesce multiple tile trees into this
-    //objects tree then write that coalesced one only once
+    /* customisable tile output. this can be passed into the
+     * `output_and_destroy` function to override output to a file.
+     * this is primarily useful for testing.
+     */
+    struct tile_output {
+        virtual ~tile_output() {}
+        // dirty a tile at x, y & zoom, and all descendants of that
+        // tile at the given zoom if zoom < min_zoom.
+        virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
+    };
+
+    // output the list of expired tiles to a file. note that this
+    // consumes the list of expired tiles destructively.
+    void output_and_destroy();
+
+    // output the list of expired tiles using a `tile_output`
+    // functor. this consumes the list of expired tiles destructively.
+    void output_and_destroy(tile_output *output);
+
+    // merge the list of expired tiles in the other object into this
+    // object, destroying the list in the other object.
+    void merge_and_destroy(expire_tiles &);
 
 private: 
     void expire_tile(int x, int y);
@@ -33,13 +53,11 @@ private:
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
     void from_xnodes_poly(const struct osmNode * const * xnodes, int * xcount, osmid_t osm_id);
     void from_xnodes_line(const struct osmNode * const * xnodes, int * xcount);
-    void output_and_destroy_tree(FILE * outfile, struct tile * tree);
 
     int map_width;
     double tile_width;
     const struct options_t *Options;
     struct tile *dirty;
-    int outcount;
 };
 
 #endif
