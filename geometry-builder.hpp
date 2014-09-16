@@ -55,6 +55,9 @@ struct geometry_builder : public boost::noncopyable
                                                      double split_at, osmid_t osm_id = -1) const;
     maybe_wkts_t build_lines(const osmNode * const * xnodes, const int *xcount, double split_at, osmid_t osm_id = -1) const;
     maybe_wkts_t build_polygons(const osmNode * const * xnodes, const int *xcount, bool enable_multi, osmid_t osm_id = -1) const;
+    // Used by gazetteer. Outputting a multiline, it only ever returns one WKT
+    maybe_wkt_t build_multilines(const osmNode * const * xnodes, const int *xcount, osmid_t osm_id) const;
+
     void set_exclude_broken_polygon(int exclude);
 
 private:
