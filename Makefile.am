@@ -90,6 +90,7 @@ check_PROGRAMS = \
 	tests/test-output-multi-point \
 	tests/test-output-multi-point-multi-table \
 	tests/test-output-multi-polygon \
+	tests/test-output-pgsql \
 	tests/test-pgsql-escape \
 	tests/test-parse-options
 
@@ -107,6 +108,8 @@ tests_test_output_multi_point_multi_table_SOURCES = tests/test-output-multi-poin
 tests_test_output_multi_point_multi_table_LDADD = libosm2pgsql.la
 tests_test_output_multi_polygon_SOURCES = tests/test-output-multi-polygon.cpp tests/common-pg.cpp
 tests_test_output_multi_polygon_LDADD = libosm2pgsql.la
+tests_test_output_pgsql_SOURCES = tests/test-output-pgsql.cpp tests/common-pg.cpp
+tests_test_output_pgsql_LDADD = libosm2pgsql.la
 tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
@@ -162,6 +165,7 @@ tests_test_output_multi_line_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_multi_table_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_polygon_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_options_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
