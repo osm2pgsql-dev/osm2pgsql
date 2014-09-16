@@ -284,6 +284,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "old_name") == 0 ||
           (strncmp(item->key, "old_name:", 9) == 0) || 
           strcmp(item->key, "alt_name") == 0 ||
+          (strncmp(item->key, "alt_name_", 9) == 0) || 
           (strncmp(item->key, "alt_name:", 9) == 0) || 
           strcmp(item->key, "official_name") == 0 ||
           (strncmp(item->key, "official_name:", 14) == 0) || 
@@ -644,13 +645,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
 
    if (landuse)
    {
-      if (!listHasData(places))
+      if (!listHasData(places) && listHasData(names))
       {
           pushItem(places, landuse);
       }
       else
       {
-          freeItem(item);
+          freeItem(landuse);
       }
    }
 
@@ -1221,6 +1222,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    struct keyval * countrycode;
    int wkt_size;
    const char *type;
+   int cmp_waterway;
 
    type = getItem(tags, "type");
    if (!type) {
@@ -1228,14 +1230,15 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       return 0;
    }
 
+   cmp_waterway = strcmp(type, "waterway");
+
    if (!strcmp(type, "associatedStreet"))
    {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
 
-   int is_waterway = !strcmp(type, "waterway");
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && !is_waterway) {
+   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && cmp_waterway) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
    }
@@ -1270,29 +1273,53 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          count++;
       }
 
+      if (count == 0)
+      {
+          if (delete_old) delete_unused_classes('R', id, 0);
+          free(xcount);
+          free(xtags);
+          free(xnodes);
+          free(xid2);
+          return 0;
+      }
+
       osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
       count = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
 
       xnodes[count] = NULL;
       xcount[count] = 0;
 
-      geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
-      for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
+      if (cmp_waterway)
       {
-         if ((boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON") || is_waterway))
+         geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
+         for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
          {
-             for (place = firstItem(&places); place; place = nextItem(&places, place))
-             {
-                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
-                          isin, postcode, countrycode, wkt->geom.c_str());
-             }
+            if ((boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON")))
+            {
+                for (place = firstItem(&places); place; place = nextItem(&places, place))
+                {
+                   add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
+                             isin, postcode, countrycode, wkt->geom.c_str());
+                }
+            }
+            else
+            {
+                /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
+            }
          }
-         else
+      } else {
+         /* waterways result in multilinestrings */
+         // wkt_t build_multilines(const osmNode * const * xnodes, const int *xcount, osmid_t osm_id) const;
+         geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, xcount, id);
+         if ((wkt->geom).length() > 0)
          {
-             /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
+            for (place = firstItem(&places); place; place = nextItem(&places, place))
+            {
+               add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
+                         isin, postcode, countrycode, wkt->geom.c_str());
+            }
          }
       }
-
       for( i=0; i<count; i++ )
       {
          resetList( &(xtags[i]) );

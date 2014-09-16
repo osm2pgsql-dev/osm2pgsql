@@ -549,16 +549,13 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
     return wkts;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build_lines(const osmNode * const * xnodes, const int *xcount, double split_at, osmid_t osm_id) const
+geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode * const * xnodes, const int *xcount, osmid_t osm_id) const
 {
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
-#ifdef HAS_PREPARED_GEOMETRIES
-    geos::geom::prep::PreparedGeometryFactory pgf;
-#endif
-    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
+    maybe_wkt_t wkt(new geometry_builder::wkt_t());
 
     try
     {
@@ -580,39 +577,10 @@ geometry_builder::maybe_wkts_t geometry_builder::build_lines(const osmNode * con
         //geom_ptr segment(0);
         geom_ptr mline (gf.createMultiLineString(lines.release()));
         //geom_ptr noded (segment->Union(mline.get()));
-        LineMerger merger;
-        //merger.add(noded.get());
-        merger.add(mline.get());
-        std::auto_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
+
         WKTWriter writer;
-
-
-        for (unsigned i=0 ;i < merged->size(); ++i)
-        {
-            std::auto_ptr<LineString> pline ((*merged ) [i]);
-            double distance = 0;
-            std::auto_ptr<CoordinateSequence> segment;
-            segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            segment->add(pline->getCoordinateN(0));
-            for(unsigned i=1; i<pline->getNumPoints(); i++) {
-                segment->add(pline->getCoordinateN(i));
-                distance += pline->getCoordinateN(i).distance(pline->getCoordinateN(i-1));
-                if ((distance >= split_at) || (i == pline->getNumPoints()-1)) {
-                    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
-
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(geom.get());
-                    wkts->back().area = 0;
-
-                    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-                    distance=0;
-                    segment->add(pline->getCoordinateN(i));
-                }
-            }
-        }
-
+	wkt->geom = writer.write(mline.get());
+	wkt->area = 0;
     }//TODO: don't show in message id when osm_id == -1
     catch (std::exception& e)
     {
@@ -622,8 +590,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_lines(const osmNode * con
     {
         std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
     }
-
-    return wkts;
+    return wkt;
 }
 
 geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * const * xnodes, const int *xcount, int make_polygon,
@@ -853,11 +820,11 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
     }//TODO: don't show in message id when osm_id == -1
     catch (std::exception& e)
     {
-        std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
+        std::cerr << std::endl << "Standard exception processing relation id="<< osm_id << ": " << e.what()  << std::endl;
     }
     catch (...)
     {
-        std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
+        std::cerr << std::endl << "Exception caught processing relation id=" << osm_id << std::endl;
     }
 
     return wkts;
