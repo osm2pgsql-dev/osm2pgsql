@@ -4,6 +4,7 @@
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/lockfree/queue.hpp>
 
@@ -169,7 +170,7 @@ struct cb_func : public middle_t::cb_func {
         }
         return status;
     }
-    void finish(int exists) { 
+    void finish(int exists) {
         BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
             ptr->finish(exists);
         }
@@ -181,17 +182,10 @@ struct pending_job {
     //id we need to process
     osmid_t id;
 
+    int exists;
+
     //whether this is a way or a rel
     bool is_way;
-
-    //TODO: add these to the thread run method
-    //copy of the backends table so it can write the stuff back to it
-    //copy of the backends geometry processor
-    //copy of the tag transform so we can add/change/delete tags on ways/rels
-    //copy of the tag export list so we know what the ending columns will be
-
-
-
 
     //TODO: when processing a way we need to synchronize access to the rels
     //pending (or have those ids as output from completing a batch)
@@ -211,73 +205,114 @@ struct pending_job {
 
 struct pending_processor {
 
-    static void do_batch(boost::lockfree::queue<pending_job>& queue,
+    typedef boost::lockfree::queue<pending_job> queue_t;
+
+    static void do_batch(middle_t::cb_func *callback,
+                         queue_t& queue,
                          boost::atomic_size_t& ids_done,
-                         const boost::atomic<bool>& done);
+                         const boost::atomic<bool>& done,
+                         int append);
 
     //starts up count threads and works on the queue
-    pending_processor(size_t thread_count, size_t job_count);
+    pending_processor(output_t *out, size_t thread_count, size_t job_count, int append)
+        : outputs(thread_count), queue(job_count), append(append) {
+
+        //we are not done adding jobs yet
+        done = false;
+
+        //nor have we completed any
+        ids_done = 0;
+
+        //make the threads and start them
+        for (size_t i = 0; i != thread_count - 1; ++i) {
+            boost::shared_ptr<output_t> clone = out->clone();
+            outputs.push_back(clone);
+            middle_t::cb_func *callback = clone->way_callback();
+            workers.create_thread(boost::bind(do_batch, callback, boost::ref(queue), boost::ref(ids_done), boost::cref(done), append));
+        }
+    }
+
+    void submit(const pending_job &job) {
+        queue.push(job);
+    }
 
     //waits for the completion of all outstanding jobs
-    void join();
+    void join() {
+        //we are done adding jobs
+        done = true;
+        //wait for them to really be done
+        workers.join_all();
+    }
 
+    //commit all outputs
+    void commit() {
+        BOOST_FOREACH(boost::shared_ptr<output_t> &out, outputs) {
+            out->commit();
+        }
+    }
+
+private:
+    //output copies
+    std::vector<boost::shared_ptr<output_t> > outputs;
     //actual threads
     boost::thread_group workers;
     //job queue
-    boost::lockfree::queue<pending_job> queue;
+    queue_t queue;
     //whether or not we are done putting jobs in the queue
     boost::atomic<bool> done;
     //how many ids within the job have been processed
     boost::atomic_size_t ids_done;
+    int append;
 };
 
-void pending_processor::do_batch(boost::lockfree::queue<pending_job>& queue,
+void pending_processor::do_batch(middle_t::cb_func *callback,
+                                 pending_processor::queue_t& queue,
                                  boost::atomic_size_t& ids_done,
-                                 const boost::atomic<bool>& done) {
+                                 const boost::atomic<bool>& done,
+                                 int append) {
     pending_job job;
 
     //if we got something or we arent done putting things in the queue
     while (queue.pop(job) || !done) {
-        //TODO: reprocess way/rel
-
-        //finished one
+        (*callback)(job.id, job.exists);
         ++ids_done;
     }
 
     while (queue.pop(job)) {
-        //TODO: reprocess way/rel
-
-        //finished one
+        (*callback)(job.id, job.exists);
         ++ids_done;
     }
+
+    callback->finish(append);
 }
 
-//starts up count threads and works on the queue
-pending_processor::pending_processor(size_t thread_count, size_t job_count) {
-    //we are not done adding jobs yet
-    done = false;
-
-    //nor have we completed any
-    ids_done = 0;
-
-    //reserve space for the jobs
-    queue.reserve(job_count);
-
-    //make the threads and start them
-    for (size_t i = 0; i != thread_count; ++i) {
-        workers.create_thread(
-            boost::bind(do_batch, boost::ref(queue), boost::ref(ids_done), boost::cref(done)));
+struct threaded_callback : public middle_t::cb_func {
+    threaded_callback() {}
+    void add(output_t *out, int append) {
+        m_processors.push_back(boost::make_shared<pending_processor>(out, 4, 100, append));
     }
-}
-
-//waits for the completion of all outstanding jobs
-void pending_processor::join() {
-    //we are done adding jobs
-    done = true;
-
-    //wait for them to really be done
-    workers.join_all();
-}
+    bool empty() const {
+        return m_processors.empty();
+    }
+    virtual ~threaded_callback() {}
+    int operator()(osmid_t id, int exists) {
+        pending_job job;
+        job.id = id;
+        job.exists = exists;
+        BOOST_FOREACH(boost::shared_ptr<pending_processor> &proc, m_processors) {
+            proc->submit(job);
+        }
+        return 0;
+    }
+    void finish(int exists) {
+        BOOST_FOREACH(boost::shared_ptr<pending_processor> &proc, m_processors) {
+            proc->join();
+            proc->commit();
+        }
+        //TODO: Anything else needed here? Individual callback finish method called in threads.
+    }
+    std::vector<boost::shared_ptr<pending_processor> > m_processors;
+};
 
 } // anonymous namespace
 
@@ -300,18 +335,18 @@ void osmdata_t::stop() {
      * were modified in diff processing.
      */
     {
-        cb_func callback;
+        threaded_callback callback;
         BOOST_FOREACH(output_t *out, outs) {
-            middle_t::cb_func *way_callback = out->way_callback();
-            if (way_callback != NULL) {
-                callback.add(way_callback);
-            }
+            callback.add(out, append);
         }
         if (!callback.empty()) {
             mid->iterate_ways( callback );
-            callback.finish(append);
 
             mid->commit();
+            callback.finish(append);
+
+            //TODO: Merge things back together
+
             BOOST_FOREACH(output_t *out, outs) {
                 out->commit();
             }
