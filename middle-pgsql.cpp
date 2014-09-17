@@ -714,7 +714,7 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_ways(middle_t::way_cb_func &callback)
+void middle_pgsql_t::iterate_ways(middle_t::cb_func &callback)
 {
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
@@ -944,7 +944,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_relations(middle_t::rel_cb_func &callback)
+void middle_pgsql_t::iterate_relations(middle_t::cb_func &callback)
 {
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;

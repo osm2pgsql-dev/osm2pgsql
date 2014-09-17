@@ -28,8 +28,8 @@ public:
     virtual boost::shared_ptr<output_t> clone() = 0;
 
     virtual int start() = 0;
-    virtual middle_t::way_cb_func *way_callback() = 0;
-    virtual middle_t::rel_cb_func *relation_callback() = 0;
+    virtual middle_t::cb_func *way_callback() = 0;
+    virtual middle_t::cb_func *relation_callback() = 0;
     virtual void stop() = 0;
     virtual void commit() = 0;
 

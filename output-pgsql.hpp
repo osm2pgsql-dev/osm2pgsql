@@ -31,8 +31,8 @@ public:
     virtual boost::shared_ptr<output_t> clone();
 
     int start();
-    middle_t::way_cb_func *way_callback();
-    middle_t::rel_cb_func *relation_callback();
+    middle_t::cb_func *way_callback();
+    middle_t::cb_func *relation_callback();
     void stop();
     void commit();
 
@@ -50,7 +50,7 @@ public:
 
 private:
 
-    struct way_cb_func : public middle_t::way_cb_func {
+    struct way_cb_func : public middle_t::cb_func {
         output_pgsql_t *m_ptr;
         buffer m_sql;
         osmid_t m_next_internal_id;
@@ -60,7 +60,7 @@ private:
         int do_single(osmid_t id, int exists);
         void finish(int exists);
     };
-    struct rel_cb_func : public middle_t::rel_cb_func  {
+    struct rel_cb_func : public middle_t::cb_func  {
         output_pgsql_t *m_ptr;
         buffer m_sql;
         osmid_t m_next_internal_id;

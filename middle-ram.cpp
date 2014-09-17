@@ -170,7 +170,7 @@ int middle_ram_t::nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, in
     return count;
 }
 
-void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
+void middle_ram_t::iterate_relations(middle_t::cb_func &callback)
 {
     int block, offset;
 
@@ -199,7 +199,7 @@ void middle_ram_t::iterate_relations(middle_t::rel_cb_func &callback)
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
-void middle_ram_t::iterate_ways(middle_t::way_cb_func &callback)
+void middle_ram_t::iterate_ways(middle_t::cb_func &callback)
 {
     int block, offset;
 

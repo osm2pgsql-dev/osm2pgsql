@@ -50,7 +50,7 @@ int test_node_set(middle_t *mid)
   return 0;
 }
 
-struct way_cb_func : public middle_t::way_cb_func {
+struct way_cb_func : public middle_t::cb_func {
     std::list<osmid_t> pending_ways;
     
     int operator()(osmid_t id, int exists)

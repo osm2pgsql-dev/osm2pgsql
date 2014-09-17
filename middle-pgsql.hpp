@@ -45,8 +45,8 @@ struct middle_pgsql_t : public slim_middle_t {
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    void iterate_ways(way_cb_func &cb);
-    void iterate_relations(rel_cb_func &cb);
+    void iterate_ways(cb_func &cb);
+    void iterate_relations(cb_func &cb);
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
 

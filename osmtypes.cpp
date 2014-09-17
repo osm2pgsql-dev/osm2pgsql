@@ -2,7 +2,11 @@
 #include "middle.hpp"
 #include "output.hpp"
 
+#include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/lockfree/queue.hpp>
+
 #include <stdexcept>
 
 osmdata_t::osmdata_t(middle_t* mid_, output_t* out_): mid(mid_)
@@ -149,53 +153,131 @@ void osmdata_t::start() {
 
 namespace {
 
-struct way_cb_func : public middle_t::way_cb_func {
-    way_cb_func() {}
-    void add(middle_t::way_cb_func *ptr) { m_ptrs.push_back(ptr); }
+struct cb_func : public middle_t::cb_func {
+    cb_func() {}
+    void add(middle_t::cb_func *ptr) { m_ptrs.push_back(ptr); }
     bool empty() const { return m_ptrs.empty(); }
-    virtual ~way_cb_func() {
-        BOOST_FOREACH(middle_t::way_cb_func *ptr, m_ptrs) {
+    virtual ~cb_func() {
+        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
             delete ptr;
         }
     }
     int operator()(osmid_t id, int exists) {
         int status = 0;
-        BOOST_FOREACH(middle_t::way_cb_func *ptr, m_ptrs) {
+        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
             status |= ptr->operator()(id, exists);
         }
         return status;
     }
     void finish(int exists) { 
-        BOOST_FOREACH(middle_t::way_cb_func *ptr, m_ptrs) {
+        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
             ptr->finish(exists);
         }
     }
-    std::vector<middle_t::way_cb_func*> m_ptrs;
+    std::vector<middle_t::cb_func*> m_ptrs;
 };
 
-struct rel_cb_func : public middle_t::rel_cb_func {
-    rel_cb_func() {}
-    void add(middle_t::rel_cb_func *ptr) { m_ptrs.push_back(ptr); }
-    bool empty() const { return m_ptrs.empty(); }
-    virtual ~rel_cb_func() {
-        BOOST_FOREACH(middle_t::rel_cb_func *ptr, m_ptrs) {
-            delete ptr;
-        }
-    }
-    int operator()(osmid_t id, int exists) {
-        int status = 0;
-        BOOST_FOREACH(middle_t::rel_cb_func *ptr, m_ptrs) {
-            status |= ptr->operator()(id, exists);
-        }
-        return status;
-    }
-    void finish(int exists) { 
-        BOOST_FOREACH(middle_t::rel_cb_func *ptr, m_ptrs) {
-            ptr->finish(exists);
-        }
-    }
-    std::vector<middle_t::rel_cb_func*> m_ptrs;
+struct pending_job {
+    //id we need to process
+    osmid_t id;
+
+    //whether this is a way or a rel
+    bool is_way;
+
+    //TODO: add these to the thread run method
+    //copy of the backends table so it can write the stuff back to it
+    //copy of the backends geometry processor
+    //copy of the tag transform so we can add/change/delete tags on ways/rels
+    //copy of the tag export list so we know what the ending columns will be
+
+
+
+
+    //TODO: when processing a way we need to synchronize access to the rels
+    //pending (or have those ids as output from completing a batch)
+
+    //TODO: when expiring we need to synchronize access to or make our own in memory
+    //expiry list to provide as output
+
+    //------------------------------------
+
+    //TODO: batch ids so we can query more than one at once from the middle
+
+    //TODO: worry about dealloc of tags and nodes and members
+    //and what happens when copying this stuff (push and pop on queue)
+    //since multiple jobs will consume the same copy of these things we
+    //kind of have to do it outside of the queue or make deep copies of them
 };
+
+struct pending_processor {
+
+    static void do_batch(boost::lockfree::queue<pending_job>& queue,
+                         boost::atomic_size_t& ids_done,
+                         const boost::atomic<bool>& done);
+
+    //starts up count threads and works on the queue
+    pending_processor(size_t thread_count, size_t job_count);
+
+    //waits for the completion of all outstanding jobs
+    void join();
+
+    //actual threads
+    boost::thread_group workers;
+    //job queue
+    boost::lockfree::queue<pending_job> queue;
+    //whether or not we are done putting jobs in the queue
+    boost::atomic<bool> done;
+    //how many ids within the job have been processed
+    boost::atomic_size_t ids_done;
+};
+
+void pending_processor::do_batch(boost::lockfree::queue<pending_job>& queue,
+                                 boost::atomic_size_t& ids_done,
+                                 const boost::atomic<bool>& done) {
+    pending_job job;
+
+    //if we got something or we arent done putting things in the queue
+    while (queue.pop(job) || !done) {
+        //TODO: reprocess way/rel
+
+        //finished one
+        ++ids_done;
+    }
+
+    while (queue.pop(job)) {
+        //TODO: reprocess way/rel
+
+        //finished one
+        ++ids_done;
+    }
+}
+
+//starts up count threads and works on the queue
+pending_processor::pending_processor(size_t thread_count, size_t job_count) {
+    //we are not done adding jobs yet
+    done = false;
+
+    //nor have we completed any
+    ids_done = 0;
+
+    //reserve space for the jobs
+    queue.reserve(job_count);
+
+    //make the threads and start them
+    for (size_t i = 0; i != thread_count; ++i) {
+        workers.create_thread(
+            boost::bind(do_batch, boost::ref(queue), boost::ref(ids_done), boost::cref(done)));
+    }
+}
+
+//waits for the completion of all outstanding jobs
+void pending_processor::join() {
+    //we are done adding jobs
+    done = true;
+
+    //wait for them to really be done
+    workers.join_all();
+}
 
 } // anonymous namespace
 
@@ -218,9 +300,9 @@ void osmdata_t::stop() {
      * were modified in diff processing.
      */
     {
-        way_cb_func callback;
+        cb_func callback;
         BOOST_FOREACH(output_t *out, outs) {
-            middle_t::way_cb_func *way_callback = out->way_callback();
+            middle_t::cb_func *way_callback = out->way_callback();
             if (way_callback != NULL) {
                 callback.add(way_callback);
             }
@@ -242,9 +324,9 @@ void osmdata_t::stop() {
 	 * TODO: Can we skip this on import?
 	 */
     {
-        rel_cb_func callback;
+        cb_func callback;
         BOOST_FOREACH(output_t *out, outs) {
-            middle_t::rel_cb_func *rel_callback = out->relation_callback();
+            middle_t::cb_func *rel_callback = out->relation_callback();
             if (rel_callback != NULL) {
                 callback.add(rel_callback);
             }

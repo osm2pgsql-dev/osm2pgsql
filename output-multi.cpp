@@ -56,7 +56,7 @@ int output_multi_t::start() {
     return 0;
 }
 
-middle_t::way_cb_func *output_multi_t::way_callback() {
+middle_t::cb_func *output_multi_t::way_callback() {
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
      * written to and not read, so they can be processed as several parallel
@@ -70,7 +70,7 @@ middle_t::way_cb_func *output_multi_t::way_callback() {
     return func;
 }
 
-middle_t::rel_cb_func *output_multi_t::relation_callback() {
+middle_t::cb_func *output_multi_t::relation_callback() {
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
      * extended transactions, as the delete_way_from_output, called

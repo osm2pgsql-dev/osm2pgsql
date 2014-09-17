@@ -39,8 +39,8 @@ struct test_middle_t : public middle_t {
     int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
     int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const { return 0; }
 
-    void iterate_ways(way_cb_func &cb) { }
-    void iterate_relations(rel_cb_func &cb) { }
+    void iterate_ways(cb_func &cb) { }
+    void iterate_relations(cb_func &cb) { }
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const { return std::vector<osmid_t>(); }
 
@@ -94,8 +94,8 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
-    middle_t::way_cb_func *way_callback() { return NULL; }
-    middle_t::rel_cb_func *relation_callback() { return NULL; }
+    middle_t::cb_func *way_callback() { return NULL; }
+    middle_t::cb_func *relation_callback() { return NULL; }
     void stop() { }
     void commit() { }
     void cleanup(void) { }

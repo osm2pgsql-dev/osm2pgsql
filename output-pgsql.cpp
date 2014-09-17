@@ -257,7 +257,7 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-middle_t::way_cb_func *output_pgsql_t::way_callback()
+middle_t::cb_func *output_pgsql_t::way_callback()
 {
     /* To prevent deadlocks in parallel processing, the mid tables need
      * to stay out of a transaction. In this stage output tables are only
@@ -274,7 +274,7 @@ middle_t::way_cb_func *output_pgsql_t::way_callback()
     return func;
 }
 
-middle_t::rel_cb_func *output_pgsql_t::relation_callback()
+middle_t::cb_func *output_pgsql_t::relation_callback()
 {
     /* Processing any remaing to be processed relations */
     /* During this stage output tables also need to stay out of
