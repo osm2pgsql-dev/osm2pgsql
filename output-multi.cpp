@@ -2,6 +2,7 @@
 #include "taginfo_impl.hpp"
 
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
@@ -44,7 +45,8 @@ output_multi_t::~output_multi_t() {
 }
 
 boost::shared_ptr<output_t> output_multi_t::clone() {
-    return boost::make_shared<output_multi_t>(*this);
+    m_clones.push_back(boost::make_shared<output_multi_t>(*this));
+    return m_clones.back();
 }
 
 int output_multi_t::start() {
@@ -174,12 +176,19 @@ void output_multi_t::rel_cb_func::finish(int exists) {
 }
 
 void output_multi_t::stop() {
+    BOOST_FOREACH(boost::shared_ptr<output_multi_t> &clone, m_clones) {
+        clone->m_table->stop();
+        m_expire->merge_and_destroy(*clone->m_expire);
+    }
     m_table->stop();
     m_expire->output_and_destroy();
     m_expire.reset();
 }
 
 void output_multi_t::commit() {
+    BOOST_FOREACH(boost::shared_ptr<output_multi_t> &clone, m_clones) {
+        clone->commit();
+    }
     m_table->commit();
 }
 

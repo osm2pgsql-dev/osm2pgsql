@@ -96,6 +96,8 @@ private:
     boost::shared_ptr<expire_tiles> expire;
 
     boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+
+    std::vector<boost::shared_ptr<output_pgsql_t> > m_clones;
 };
 
 #endif

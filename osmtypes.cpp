@@ -244,13 +244,6 @@ struct pending_processor {
         workers.join_all();
     }
 
-    //commit all outputs
-    void commit() {
-        BOOST_FOREACH(boost::shared_ptr<output_t> &out, outputs) {
-            out->commit();
-        }
-    }
-
 private:
     //output copies
     std::vector<boost::shared_ptr<output_t> > outputs;
@@ -307,7 +300,6 @@ struct threaded_callback : public middle_t::cb_func {
     void finish(int exists) {
         BOOST_FOREACH(boost::shared_ptr<pending_processor> &proc, m_processors) {
             proc->join();
-            proc->commit();
         }
         //TODO: Anything else needed here? Individual callback finish method called in threads.
     }
@@ -341,9 +333,9 @@ void osmdata_t::stop() {
         }
         if (!callback.empty()) {
             mid->iterate_ways( callback );
+            callback.finish(append);
 
             mid->commit();
-            callback.finish(append);
 
             //TODO: Merge things back together
 

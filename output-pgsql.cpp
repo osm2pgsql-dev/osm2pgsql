@@ -37,6 +37,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <iostream>
@@ -380,6 +381,9 @@ void output_pgsql_t::rel_cb_func::finish(int exists) {
 
 void output_pgsql_t::commit()
 {
+    BOOST_FOREACH(boost::shared_ptr<output_pgsql_t> &clone, m_clones) {
+        clone->commit();
+    }
     for (int i=0; i<NUM_TABLES; i++) {
         m_tables[i]->commit();
     }
@@ -417,6 +421,11 @@ void output_pgsql_t::stop()
     } else {
 #endif
 
+    BOOST_FOREACH(boost::shared_ptr<output_pgsql_t> &clone, m_clones) {
+        for (i=0; i<NUM_TABLES; i++)
+            clone->m_tables[i]->stop();
+        expire->merge_and_destroy(*clone->expire);
+    }
     /* No longer need to access middle layer -- release memory */
     //TODO: just let the destructor do this
     for (i=0; i<NUM_TABLES; i++)
@@ -676,7 +685,8 @@ int output_pgsql_t::start()
 }
 
 boost::shared_ptr<output_t> output_pgsql_t::clone() {
-    return boost::make_shared<output_pgsql_t>(*this);
+    m_clones.push_back(boost::make_shared<output_pgsql_t>(*this));
+    return m_clones.back();
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)

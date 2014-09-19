@@ -89,6 +89,7 @@ private:
     boost::shared_ptr<expire_tiles> m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
+    std::vector<boost::shared_ptr<output_multi_t> > m_clones;
 };
 
 #endif
