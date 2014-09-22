@@ -28,7 +28,7 @@ public:
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
 
-    virtual boost::shared_ptr<output_t> clone();
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle);
 
     int start();
     middle_t::cb_func *way_callback();

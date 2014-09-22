@@ -159,3 +159,6 @@ output_t::~output_t() {
 const options_t *output_t::get_options()const {
 	return &m_options;
 }
+const middle_query_t *output_t::get_middle()const {
+    return m_mid;
+}

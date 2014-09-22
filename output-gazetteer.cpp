@@ -1405,8 +1405,10 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
    return gazetteer_process_relation(id, members, member_count, tags, 1);
 }
 
-boost::shared_ptr<output_t> output_gazetteer_t::clone() {
-    return boost::make_shared<output_gazetteer_t>(*this);
+boost::shared_ptr<output_t> output_gazetteer_t::clone(const middle_query_t* cloned_middle) {
+    output_gazetteer_t *clone = new output_gazetteer_t(*this);
+    clone->m_mid = cloned_middle;
+    return boost::shared_ptr<output_t>(clone);
 }
 
 output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options_t &options_)

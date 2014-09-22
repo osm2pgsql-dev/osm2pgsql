@@ -215,7 +215,7 @@ struct pending_processor {
 
     //starts up count threads and works on the queue
     pending_processor(output_t *out, size_t thread_count, size_t job_count, int append)
-        : outputs(thread_count), queue(job_count), append(append) {
+        : middles(thread_count), outputs(thread_count), queue(job_count), append(append) {
 
         //we are not done adding jobs yet
         done = false;
@@ -225,9 +225,11 @@ struct pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i != thread_count - 1; ++i) {
-            boost::shared_ptr<output_t> clone = out->clone();
-            outputs.push_back(clone);
-            middle_t::cb_func *callback = clone->way_callback();
+            boost::shared_ptr<const middle_query_t> mid_clone = out->get_middle()->get_instance();
+            boost::shared_ptr<output_t> out_clone = out->clone(mid_clone.get());
+            middles.push_back(mid_clone);
+            outputs.push_back(out_clone);
+            middle_t::cb_func *callback = out_clone->way_callback();
             workers.create_thread(boost::bind(do_batch, callback, boost::ref(queue), boost::ref(ids_done), boost::cref(done), append));
         }
     }
@@ -245,7 +247,8 @@ struct pending_processor {
     }
 
 private:
-    //output copies
+    //middle and output copies
+    std::vector<boost::shared_ptr<const middle_query_t> > middles;
     std::vector<boost::shared_ptr<output_t> > outputs;
     //actual threads
     boost::thread_group workers;

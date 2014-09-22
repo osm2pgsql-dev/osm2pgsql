@@ -684,8 +684,10 @@ int output_pgsql_t::start()
     return 0;
 }
 
-boost::shared_ptr<output_t> output_pgsql_t::clone() {
-    m_clones.push_back(boost::make_shared<output_pgsql_t>(*this));
+boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) {
+    output_pgsql_t *clone = new output_pgsql_t(*this);
+    clone->m_mid = cloned_middle;
+    m_clones.push_back(boost::shared_ptr<output_pgsql_t>(clone));
     return m_clones.back();
 }
 

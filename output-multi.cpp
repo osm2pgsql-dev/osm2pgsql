@@ -44,8 +44,10 @@ output_multi_t::output_multi_t(const output_multi_t& other):
 output_multi_t::~output_multi_t() {
 }
 
-boost::shared_ptr<output_t> output_multi_t::clone() {
-    m_clones.push_back(boost::make_shared<output_multi_t>(*this));
+boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) {
+    output_multi_t *clone = new output_multi_t(*this);
+    clone->m_mid = cloned_middle;
+    m_clones.push_back(boost::shared_ptr<output_multi_t>(clone));
     return m_clones.back();
 }
 

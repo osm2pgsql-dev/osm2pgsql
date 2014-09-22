@@ -28,7 +28,7 @@ public:
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
 
-    virtual boost::shared_ptr<output_t> clone();
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle);
 
     int start();
     middle_t::cb_func *way_callback();

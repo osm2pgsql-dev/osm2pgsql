@@ -63,8 +63,10 @@ struct test_output_t : public output_t {
     virtual ~test_output_t() {
     }
 
-    boost::shared_ptr<output_t> clone() {
-        return boost::make_shared<test_output_t>(*this);
+    boost::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) {
+        test_output_t *clone = new test_output_t(*this);
+        clone->m_mid = cloned_middle;
+        return boost::shared_ptr<output_t>(clone);
     }
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags) {

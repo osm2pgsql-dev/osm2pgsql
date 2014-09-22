@@ -162,7 +162,7 @@ void test_clone() {
 
     struct output_pgsql_t out_test(&mid_pgsql, options);
 
-    boost::shared_ptr<output_t> out_clone = out_test.clone();
+    boost::shared_ptr<output_t> out_clone = out_test.clone(out_test.get_middle()->get_instance().get());
 
     osmdata_t osmdata(&mid_pgsql, out_clone.get());
 

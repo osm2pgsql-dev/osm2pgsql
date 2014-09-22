@@ -25,7 +25,7 @@ public:
     output_t(const middle_query_t *mid, const options_t &options_);
     virtual ~output_t();
 
-    virtual boost::shared_ptr<output_t> clone() = 0;
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) = 0;
 
     virtual int start() = 0;
     virtual middle_t::cb_func *way_callback() = 0;
@@ -45,12 +45,8 @@ public:
     virtual int way_delete(osmid_t id) = 0;
     virtual int relation_delete(osmid_t id) = 0;
 
-    //TODO: implement this in each output, just use their copy constructors
-    //and then set the clones m_mid to the one that is passed in here
-    //from the thread that made its only middle_query_t* clone
-    //virtual options_t* clone(const middle_query_t* mid_cloned_in_thread) = 0;
-
     const options_t *get_options() const;
+    const middle_query_t *get_middle() const;
 
 protected:
     const middle_query_t* m_mid;
