@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <boost/format.hpp>
+#include <set>
 
 #define EARTH_CIRCUMFERENCE (40075016.68)
 
