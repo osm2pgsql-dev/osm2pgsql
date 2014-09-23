@@ -58,7 +58,6 @@ private:
     struct ramWay {
         struct keyval *tags;
         osmid_t *ndids;
-        int pending;
     };
     
     struct ramRel {

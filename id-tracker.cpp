@@ -100,7 +100,7 @@ bool id_tracker::pimpl::set(osmid_t id, bool value) {
 
 // find the first element in a block set to true
 osmid_t id_tracker::pimpl::pop_min() {
-    osmid_t id = std::numeric_limits<osmid_t>::max();
+    osmid_t id = max();
 
     while (next_start || !pending.empty()) {
         map_t::iterator itr = pending.begin();
@@ -129,7 +129,7 @@ osmid_t id_tracker::pimpl::pop_min() {
 }
 
 id_tracker::pimpl::pimpl()
-    : pending(), old_id(std::numeric_limits<osmid_t>::min()), count(0), next_start(boost::none) {
+    : pending(), old_id(min()), count(0), next_start(boost::none) {
 }
 
 id_tracker::pimpl::~pimpl() {
@@ -149,7 +149,7 @@ void id_tracker::mark(osmid_t id) {
     //the assert below will fail though if we've already popped
     //some that were > id so we have to essentially reset to
     //allow for more pops to take place
-    impl->old_id = std::numeric_limits<osmid_t>::min();
+    impl->old_id = min();
 }
 
 bool id_tracker::is_marked(osmid_t id) {
@@ -171,4 +171,6 @@ osmid_t id_tracker::pop_mark() {
 
 size_t id_tracker::size() { return impl->count; }
 
-bool id_tracker::is_valid(osmid_t id) { return id != std::numeric_limits<osmid_t>::max(); }
+bool id_tracker::is_valid(osmid_t id) { return id != max(); }
+osmid_t id_tracker::max() { return std::numeric_limits<osmid_t>::max(); }
+osmid_t id_tracker::min() { return std::numeric_limits<osmid_t>::min(); }

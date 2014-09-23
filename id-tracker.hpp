@@ -16,6 +16,8 @@ struct id_tracker : public boost::noncopyable {
     size_t size();
 
     static bool is_valid(osmid_t);
+    static osmid_t max();
+    static osmid_t min();
 
 private:
     struct pimpl;

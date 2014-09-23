@@ -54,10 +54,11 @@ struct way_processor : public middle_t::pending_processor {
     way_processor(): pending_ways() {}
     virtual ~way_processor() {}
     virtual void enqueue(osmid_t id) {
-        // TODO: figure out exists - seems to be a useless variable?
         pending_ways.push_back(id);
     }
-    virtual void process_ways() {}
+    virtual void process_ways() {
+        pending_ways.clear();
+    }
     virtual int thread_count() {
         return 0;
     }
@@ -125,11 +126,10 @@ int test_way_set(middle_t *mid)
 
   // the way we just inserted should not be pending
   way_processor way_cb;
-  way_cb.pending_ways.clear();
   mid->iterate_ways(way_cb);
-  if (way_cb.pending_ways.size() != 0) {
+  if (mid->pending_count() != 0) {
     std::cerr << "ERROR: Was expecting no pending ways, but got " 
-              << way_cb.pending_ways.size() << " from middle.\n";
+              << mid->pending_count() << " from middle.\n";
     return 1;
   }
 
@@ -144,11 +144,10 @@ int test_way_set(middle_t *mid)
       // pending, so any change must be due to the node changing.
       status = slim->node_changed(nds[0]);
       if (status != 0) { std::cerr << "ERROR: Unable to reset node.\n"; return 1; }
-      way_cb.pending_ways.clear();
       slim->iterate_ways(way_cb);
-      if (way_cb.pending_ways.size() != 1) {
+      if (slim->pending_count() != 1) {
           std::cerr << "ERROR: Was expecting a single pending way from node update, but got " 
-                    << way_cb.pending_ways.size() << " from middle.\n";
+                    << slim->pending_count() << " from middle.\n";
           return 1;
       }
   }

@@ -297,7 +297,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 
     //grab the first one or bail if its not valid
     osmid_t popped = ways_pending_tracker->pop_mark();
-    if(id_tracker::is_valid(popped))
+    if(!id_tracker::is_valid(popped))
         return;
 
     //get all the ones up to the id that was passed in

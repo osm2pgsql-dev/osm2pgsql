@@ -69,7 +69,6 @@ int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *t
 
 int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
-    int pending = 0;
     int block  = id2block(id);
     int offset = id2offset(id);
     struct keyval *p;
@@ -92,7 +91,6 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
     ways[block][offset].ndids = (osmid_t *)malloc( (nd_count+1)*sizeof(osmid_t) );
     memcpy( ways[block][offset].ndids+1, nds, nd_count*sizeof(osmid_t) );
     ways[block][offset].ndids[0] = nd_count;
-    ways[block][offset].pending = pending;
 
     if (!ways[block][offset].tags) {
         p = (struct keyval *)malloc(sizeof(struct keyval));
@@ -200,44 +198,17 @@ void middle_ram_t::iterate_relations(middle_t::cb_func &callback)
 }
 
 size_t middle_ram_t::pending_count() const {
-    //TODO: keep a running count of marked pending stuff
-    //so we dont have to iterate over the memory to know
-    return 42;
+    return 0;
 }
 
 void middle_ram_t::iterate_ways(middle_t::pending_processor& pf)
 {
-    int block, offset;
-
-    fprintf(stderr, "\n");
-    for(block=NUM_BLOCKS-1; block>=0; block--) {
-        if (!ways[block])
-            continue;
-
-        for (offset=0; offset < PER_BLOCK; offset++) {
-            if (ways[block][offset].ndids) {
-                way_out_count++;
-                if (way_out_count % 1000 == 0)
-                    fprintf(stderr, "\rEnqueuing way (%uk)", way_out_count/1000);
-
-                if (ways[block][offset].pending) {
-                    /* First element contains number of nodes */
-                    if (ways[block][offset].ndids[0]) {
-                        osmid_t id = block2id(block, offset);
-                        pf.enqueue(id);
-                    }
-
-                    ways[block][offset].pending = 0;
-                }
-            }
-        }
-    }
-    fprintf(stderr, "\rEnqueuing way (%uk)\n", way_out_count/1000);
+    //let the outputs enqueue everything they have the non slim middle
+    //has nothing of its own to enqueue as it doesnt have pending anything
+    pf.enqueue(id_tracker::max());
 
     //let the threads process the ways
     pf.process_ways();
-
-    //TODO: message to show the real progress of writing the ways
 }
 
 void middle_ram_t::release_relations()

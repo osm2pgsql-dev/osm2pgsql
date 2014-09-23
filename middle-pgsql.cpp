@@ -734,6 +734,8 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     {
         pf.enqueue(id);
     }
+    // in case we had higher ones than the middle
+    pf.enqueue(id);
 
     size_t pending_count = pf.size();
     fprintf(stderr, "\t%zu ways are pending\n", pending_count);
