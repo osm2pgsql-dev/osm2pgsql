@@ -157,10 +157,6 @@ output_t::~output_t() {
 
 }
 
-size_t output_t::hash() const {
-    return boost::hash<std::string>()(name());
-}
-
 size_t output_t::pending_count() const{
     return 0;
 }

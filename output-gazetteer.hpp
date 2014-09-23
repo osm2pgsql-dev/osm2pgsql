@@ -21,7 +21,7 @@ public:
     void stop();
     void commit();
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id);
     int pending_way(osmid_t id, int exists);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
@@ -35,8 +35,6 @@ public:
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
     int relation_delete(osmid_t id);
-
-    std::string const& name() const;
 
 private:
     static const size_t BUFFER_SIZE = 4096;

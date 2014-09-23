@@ -7,8 +7,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
-const std::string output_multi_t::NAME = "output_multi_t";
-
 namespace {
 
 std::string mk_column_name(const std::string &name, const options_t &options) {
@@ -84,20 +82,16 @@ middle_t::cb_func *output_multi_t::relation_callback() {
     return rel_callback;
 }
 
-std::string const& output_multi_t::name() const {
-    return m_table->get_name();
-}
-
 size_t output_multi_t::pending_count() const {
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }
 
-void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
     int ret = 0;
 
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id)) {
-        job_queue.push(pending_job_t(id, hash()));
+        job_queue.push(pending_job_t(id, output_id));
     }
 
     //grab the first one or bail if its not valid
@@ -108,7 +102,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
     //get all the ones up to the id that was passed in
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, hash()));
+            job_queue.push(pending_job_t(popped, output_id));
         }
         popped = ways_pending_tracker->pop_mark();
     }
@@ -118,7 +112,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
         popped = ways_pending_tracker->pop_mark();
     }
     if (!ways_done_tracker->is_marked(popped)) {
-        job_queue.push(pending_job_t(popped, hash()));
+        job_queue.push(pending_job_t(popped, output_id));
     }
 }
 

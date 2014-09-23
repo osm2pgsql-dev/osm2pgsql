@@ -27,13 +27,14 @@ typedef int32_t osmid_t;
 #define POSTGRES_OSMID_TYPE "int4"
 #endif
 
-struct pending_job_t {
-    pending_job_t(): id(), output_hash() {}
-    pending_job_t(osmid_t id_, size_t output_hash_):
-        id(id_), output_hash(output_hash_) {}
+/*struct pending_job_t {
+    pending_job_t(): id(), output_id() {}
+    pending_job_t(osmid_t id_, size_t output_id_):
+        id(id_), output_id(output_id_) {}
     osmid_t id;
-    size_t output_hash;
-};
+    size_t output_id;
+};*/
+typedef std::pair<osmid_t, size_t> pending_job_t;
 typedef boost::lockfree::queue<pending_job_t> pending_queue_t;
 
 //forward declaration needed here

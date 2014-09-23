@@ -44,8 +44,6 @@
 #include <limits>
 #include <stdexcept>
 
-const std::string output_pgsql_t::NAME = "output_pgsql_t";
-
 #define SRID (reproj->project_getprojinfo()->srs)
 
 /* FIXME: Shouldn't malloc this all to begin with but call realloc()
@@ -288,12 +286,12 @@ middle_t::cb_func *output_pgsql_t::relation_callback()
     return rel_callback;
 }
 
-void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
     int ret = 0;
 
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id)) {
-        job_queue.push(pending_job_t(id, hash()));
+        job_queue.push(pending_job_t(id, output_id));
     }
 
     //grab the first one or bail if its not valid
@@ -304,7 +302,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
     //get all the ones up to the id that was passed in
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, hash()));
+            job_queue.push(pending_job_t(popped, output_id));
         }
         popped = ways_pending_tracker->pop_mark();
     }
@@ -314,7 +312,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
         popped = ways_pending_tracker->pop_mark();
     }
     if (!ways_done_tracker->is_marked(popped)) {
-        job_queue.push(pending_job_t(popped, hash()));
+        job_queue.push(pending_job_t(popped, output_id));
     }
 }
 
@@ -736,10 +734,6 @@ boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_m
     clone->m_mid = cloned_middle;
     m_clones.push_back(boost::shared_ptr<output_pgsql_t>(clone));
     return m_clones.back();
-}
-
-std::string const& output_pgsql_t::name() const {
-    return NAME;
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)

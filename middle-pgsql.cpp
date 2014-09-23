@@ -743,7 +743,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     pf.process_ways();
 
     time(&end);
-    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, pending_count, (int)(end - start));
+    fprintf(stderr, "\rProcess %i finished processing %zu ways in %i sec\n", 0, pending_count, (int)(end - start));
 
     fprintf(stderr, "\nAll child processes exited\n");
 

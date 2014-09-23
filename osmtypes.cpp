@@ -178,30 +178,17 @@ struct cb_func : public middle_t::cb_func {
     std::vector<middle_t::cb_func*> m_ptrs;
 };
 
-//TODO: when processing a way we need to synchronize access to the rels
-//pending (or have those ids as output from completing a batch)
-
-//TODO: when expiring we need to synchronize access to or make our own in memory
-//expiry list to provide as output
-
-//------------------------------------
-
 //TODO: batch ids so we can query more than one at once from the middle
 
-//TODO: worry about dealloc of tags and nodes and members
-//and what happens when copying this stuff (push and pop on queue)
-//since multiple jobs will consume the same copy of these things we
-//kind of have to do it outside of the queue or make deep copies of them
-
 struct pending_threaded_processor : public middle_t::pending_processor {
-    typedef boost::unordered_map<size_t, boost::shared_ptr<output_t> > output_map_t;
-    typedef std::pair<boost::shared_ptr<const middle_query_t>, output_map_t> clone_t;
+    typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
+    typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-    static void do_batch(output_map_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
+    static void do_batch(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
         pending_job_t job;
 
         while (queue.pop(job)) {
-            outputs.at(job.output_hash)->pending_way(job.id, append);
+            outputs.at(job.second)->pending_way(job.first, append);
             ++ids_done;
         }
 
@@ -221,10 +208,9 @@ struct pending_threaded_processor : public middle_t::pending_processor {
             boost::shared_ptr<const middle_query_t> mid_clone = mid->get_instance();
 
             //clone the outs
-            output_map_t out_clones;
+            output_vec_t out_clones;
             for(std::vector<output_t*>::const_iterator out = outs.begin(); out != outs.end(); ++out) {
-                boost::shared_ptr<output_t> out_clone = (*out)->clone(mid_clone.get());
-                out_clones[out_clone->hash()] = out_clone;
+                out_clones.push_back((*out)->clone(mid_clone.get()));
             }
 
             //keep the clones for a specific thread to use
@@ -235,8 +221,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     ~pending_threaded_processor() {}
 
     void enqueue(osmid_t id) {
-        BOOST_FOREACH(output_t* out, outs) {
-            out->enqueue_ways(queue, id);
+        for(size_t i = 0; i < outs.size(); ++i) {
+            outs[i]->enqueue_ways(queue, id, i);
         }
     }
 

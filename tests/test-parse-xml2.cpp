@@ -105,7 +105,7 @@ struct test_output_t : public output_t {
     void cleanup(void) { }
     void close(int stopTransaction) { }
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id) { }
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) { }
     int pending_way(osmid_t id, int exists) { return 0; }
 
     int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
@@ -116,11 +116,8 @@ struct test_output_t : public output_t {
     int way_delete(osmid_t id) { return 0; }
     int relation_delete(osmid_t id) { return 0; }
 
-    virtual std::string const& name() const { return NAME; }
-
-    static const std::string NAME;
 };
-const std::string test_output_t::NAME = "test_output_t";
+
 
 void assert_equal(uint64_t actual, uint64_t expected) {
   if (actual != expected) {
