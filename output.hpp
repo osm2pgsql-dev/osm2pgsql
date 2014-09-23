@@ -12,6 +12,8 @@
 
 #include "options.hpp"
 #include "middle.hpp"
+#include "id-tracker.hpp"
+#include "expire-tiles.hpp"
 
 #include <boost/noncopyable.hpp>
 
@@ -19,8 +21,7 @@ struct options_t;
 
 class output_t : public boost::noncopyable {
 public:
-    static output_t* create_output(const middle_query_t *mid, const options_t &options);
-    static std::vector<output_t*> create_outputs(const middle_query_t *mid, const options_t &options);
+    static std::vector<boost::shared_ptr<output_t> > create_outputs(const middle_query_t *mid, const options_t &options);
 
     output_t(const middle_query_t *mid, const options_t &options_);
     virtual ~output_t();
@@ -52,7 +53,14 @@ public:
 
     const options_t *get_options() const;
 
+    virtual void merge_pending_relations(boost::shared_ptr<output_t> other);
+    virtual void merge_expire_trees(boost::shared_ptr<output_t> other);
+
 protected:
+
+    virtual boost::shared_ptr<id_tracker> get_pending_relations();
+    virtual boost::shared_ptr<expire_tiles> get_expire_tree();
+
     const middle_query_t* m_mid;
     const options_t m_options;
 };

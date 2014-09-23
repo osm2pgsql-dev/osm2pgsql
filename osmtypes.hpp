@@ -56,8 +56,8 @@ struct member {
 
 class osmdata_t {
 public:
-    osmdata_t(middle_t* mid_, output_t* out_);
-    osmdata_t(middle_t* mid_, const std::vector<output_t*> &outs_);
+    osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_);
+    osmdata_t(boost::shared_ptr<middle_t> mid_, const std::vector<boost::shared_ptr<output_t> > &outs_);
     ~osmdata_t();
 
     void start();
@@ -75,13 +75,9 @@ public:
     int way_delete(osmid_t id);
     int relation_delete(osmid_t id);
 
-    //TODO: move output to be a private/protected member
-    // then steal from it its mid object and its important functions
-    // such as add/mod/del. then make output a vector of multiple
-    middle_t* mid;
 private:
-    std::vector<output_t*> outs;
-    
+    boost::shared_ptr<middle_t> mid;
+    std::vector<boost::shared_ptr<output_t> > outs;
 };
 
 #endif

@@ -53,7 +53,14 @@ public:
 
     size_t pending_count() const;
 
-private:
+    void merge_pending_relations(boost::shared_ptr<output_t> other);
+    void merge_expire_trees(boost::shared_ptr<output_t> other);
+
+protected:
+
+    boost::shared_ptr<id_tracker> get_pending_relations();
+    boost::shared_ptr<expire_tiles> get_expire_tree();
+
     void delete_from_output(osmid_t id);
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
     int process_way(osmid_t id, const osmid_t* node_ids, int node_count, struct keyval *tags);

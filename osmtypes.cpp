@@ -10,12 +10,12 @@
 
 #include <stdexcept>
 
-osmdata_t::osmdata_t(middle_t* mid_, output_t* out_): mid(mid_)
+osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_): mid(mid_)
 {
     outs.push_back(out_);
 }
 
-osmdata_t::osmdata_t(middle_t* mid_, const std::vector<output_t*> &outs_)
+osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const std::vector<boost::shared_ptr<output_t> > &outs_)
     : mid(mid_), outs(outs_)
 {
     if (outs.empty()) {
@@ -32,7 +32,7 @@ int osmdata_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
     mid->nodes_set(id, lat, lon, tags);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->node_add(id, lat, lon, tags);
     }
     return status;
@@ -42,7 +42,7 @@ int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval
     mid->ways_set(id, nodes, node_count, tags);
     
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->way_add(id, nodes, node_count, tags);
     }
     return status;
@@ -52,7 +52,7 @@ int osmdata_t::relation_add(osmid_t id, struct member *members, int member_count
     mid->relations_set(id, members, member_count, tags);
     
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->relation_add(id, members, member_count, tags);
     }
     return status;
@@ -65,7 +65,7 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *ta
     slim->nodes_set(id, lat, lon, tags);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->node_modify(id, lat, lon, tags);
     }
 
@@ -81,7 +81,7 @@ int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct key
     slim->ways_set(id, nodes, node_count, tags);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->way_modify(id, nodes, node_count, tags);
     }
 
@@ -97,7 +97,7 @@ int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_co
     slim->relations_set(id, members, member_count, tags);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->relation_modify(id, members, member_count, tags);
     }
 
@@ -110,7 +110,7 @@ int osmdata_t::node_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->node_delete(id);
     }
 
@@ -123,7 +123,7 @@ int osmdata_t::way_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->way_delete(id);
     }
 
@@ -136,7 +136,7 @@ int osmdata_t::relation_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
 
     int status = 0;
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->relation_delete(id);
     }
 
@@ -146,7 +146,7 @@ int osmdata_t::relation_delete(osmid_t id) {
 }
 
 void osmdata_t::start() {
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         out->start();
     }
     mid->start(outs[0]->get_options());
@@ -195,7 +195,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(middle_query_t* mid, const std::vector<output_t*>& outs, size_t thread_count, size_t job_count, int append)
+    pending_threaded_processor(middle_query_t* mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
         : outs(outs), queue(job_count), append(append) {
 
         //nor have we completed any
@@ -236,6 +236,17 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //wait for them to really be done
         workers.join_all();
+
+        //collect all the new rels that became pending from each
+        //output in each thread back to their respective main outputs
+        BOOST_FOREACH(const clone_t& clone, clones) {
+            //for each clone/original output
+            for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
+                original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
+                //merge the pending from this threads copy of output back
+                original_output->get()->merge_pending_relations(*clone_output);
+            }
+        }
     }
 
     int thread_count() {
@@ -250,7 +261,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 private:
     //middle and output copies
     std::vector<clone_t> clones;
-    std::vector<output_t*> outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
+    output_vec_t outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //actual threads
     boost::thread_group workers;
     //job queue
@@ -269,7 +280,7 @@ void osmdata_t::stop() {
      */
     size_t pending_count = mid->pending_count();
     mid->commit();
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         out->commit();
         pending_count += out->pending_count();
     }
@@ -287,13 +298,6 @@ void osmdata_t::stop() {
      */
     if (!outs.empty()) {
         mid->iterate_ways( ptp );
-        mid->commit();
-
-        //TODO: Merge things back together
-
-        BOOST_FOREACH(output_t *out, outs) {
-            out->commit();
-        }
     }
 
 	/* Pending relations
@@ -303,7 +307,7 @@ void osmdata_t::stop() {
 	 */
     {
         cb_func callback;
-        BOOST_FOREACH(output_t *out, outs) {
+        BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
             middle_t::cb_func *rel_callback = out->relation_callback();
             if (rel_callback != NULL) {
                 callback.add(rel_callback);
@@ -314,7 +318,7 @@ void osmdata_t::stop() {
             callback.finish(append);
 
             mid->commit();
-            BOOST_FOREACH(output_t *out, outs) {
+            BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
                 out->commit();
             }
         }
@@ -324,7 +328,7 @@ void osmdata_t::stop() {
 	 * All the intensive parts of this are long-running PostgreSQL commands
 	 */
     mid->stop();
-    BOOST_FOREACH(output_t *out, outs) {
+    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         out->stop();
     }
 }

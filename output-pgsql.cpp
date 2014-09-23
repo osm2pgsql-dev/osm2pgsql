@@ -825,3 +825,22 @@ output_pgsql_t::~output_pgsql_t() {
 size_t output_pgsql_t::pending_count() const {
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }
+
+void output_pgsql_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
+    boost::shared_ptr<id_tracker> tracker = other->get_pending_relations();
+    osmid_t id;
+    while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
+        rels_pending_tracker->mark(id);
+    }
+}
+void output_pgsql_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+    if(other->get_expire_tree().get())
+        expire->merge_and_destroy(*other->get_expire_tree());
+}
+
+boost::shared_ptr<id_tracker> output_pgsql_t::get_pending_relations() {
+    return rels_pending_tracker;
+}
+boost::shared_ptr<expire_tiles> output_pgsql_t::get_expire_tree() {
+    return expire;
+}

@@ -31,7 +31,7 @@ struct middle_query_t {
 };    
 
 struct middle_t : public middle_query_t {
-    static middle_t* create_middle(const bool slim);
+    static boost::shared_ptr<middle_t> create_middle(const bool slim);
 
     virtual ~middle_t();
 

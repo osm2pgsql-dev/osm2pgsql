@@ -71,16 +71,16 @@ int main(int argc, char *argv[])
             return 0;
 
         //setup the front (input)
-        parse_delegate_t* parser = new parse_delegate_t(options.extra_attributes, options.bbox, options.projection);
+        parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection);
 
         //setup the middle
-        middle_t* middle = middle_t::create_middle(options.slim);
+        boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
 
         //setup the backend (output)
-        std::vector<output_t*> outputs = output_t::create_outputs(middle, options);
+        std::vector<boost::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs.front());
+        osmdata_t osmdata(middle, outputs);
 
         //check the database
         check_db(options.conninfo.c_str(), options.unlogged);
@@ -104,24 +104,16 @@ int main(int argc, char *argv[])
             //read the actual input
             fprintf(stderr, "\nReading in file: %s\n", filename->c_str());
             time_t start = time(NULL);
-            if (parser->streamFile(options.input_reader.c_str(), filename->c_str(), options.sanitize, &osmdata) != 0)
+            if (parser.streamFile(options.input_reader.c_str(), filename->c_str(), options.sanitize, &osmdata) != 0)
                 util::exit_nicely();
             fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         }
 
         //show stats
-        parser->printSummary();
-        delete parser;
+        parser.printSummary();
 
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
-
-        for(std::vector<output_t*>::iterator output = outputs.begin(); output != outputs.end(); ++output) {
-            delete *output;
-        }
-
-        //done with middle_*_t
-        delete middle;
 
         fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
 

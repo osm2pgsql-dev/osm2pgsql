@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdexcept>
 
+#include <boost/make_shared.hpp>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/functional/hash.hpp>
@@ -26,7 +27,7 @@ void override_if(T &t, const std::string &key, const pt::ptree &conf) {
     }
 }
 
-output_t *parse_multi_single(const pt::ptree &conf,
+boost::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
                              const middle_query_t *mid,
                              const options_t &options) {
     options_t new_opts = options;
@@ -82,8 +83,8 @@ output_t *parse_multi_single(const pt::ptree &conf,
     return new output_multi_t(name, processor, columns, mid, new_opts);
 }
 
-std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const options_t &options) {
-    std::vector<output_t*> outputs;
+std::vector<boost::shared_ptr<output_t> > parse_multi_config(const middle_query_t *mid, const options_t &options) {
+    std::vector<boost::shared_ptr<output_t> > outputs;
 
     if (!options.style.empty()) {
         const std::string file_name(options.style);
@@ -98,7 +99,7 @@ std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const optio
 
         } catch (const std::exception &e) {
             // free up any allocated resources
-            BOOST_FOREACH(output_t *out, outputs) { delete out; }
+            BOOST_FOREACH(boost::shared_ptr<output_t>& out, outputs) { delete out; }
 
             throw std::runtime_error((boost::format("Unable to parse multi config file `%1%': %2%")
                                       % file_name % e.what()).str());
@@ -112,32 +113,17 @@ std::vector<output_t*> parse_multi_config(const middle_query_t *mid, const optio
 
 } // anonymous namespace
 
-output_t* output_t::create_output(const middle_query_t *mid, const options_t &options) {
-    std::vector<output_t *> outputs = create_outputs(mid, options);
-    
-    if (outputs.empty()) {
-        throw std::runtime_error("Unable to construct output backend.");
-    }
-
-    output_t *output = outputs.front();
-    for (size_t i = 1; i < outputs.size(); ++i) {
-        delete outputs[i];
-    }
-
-    return output;
-}
-
-std::vector<output_t*> output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
-    std::vector<output_t*> outputs;
+std::vector<boost::shared_ptr<output_t> > output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
+    std::vector<boost::shared_ptr<output_t> > outputs;
 
     if (options.output_backend == "pgsql") {
-        outputs.push_back(new output_pgsql_t(mid, options));
+        outputs.push_back(boost::make_shared<output_pgsql_t>(mid, options));
 
     } else if (options.output_backend == "gazetteer") {
-        outputs.push_back(new output_gazetteer_t(mid, options));
+        outputs.push_back(boost::make_shared<output_gazetteer_t>(mid, options));
 
     } else if (options.output_backend == "null") {
-        outputs.push_back(new output_null_t(mid, options));
+        outputs.push_back(boost::make_shared<output_null_t>(mid, options));
 
     } else if (options.output_backend == "multi") {
         outputs = parse_multi_config(mid, options);
@@ -163,4 +149,16 @@ size_t output_t::pending_count() const{
 
 const options_t *output_t::get_options()const {
 	return &m_options;
+}
+
+void output_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
+}
+void output_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+}
+
+boost::shared_ptr<id_tracker> output_t::get_pending_relations() {
+    return boost::shared_ptr<id_tracker>();
+}
+boost::shared_ptr<expire_tiles> output_t::get_expire_tree() {
+    return boost::shared_ptr<expire_tiles>();
 }

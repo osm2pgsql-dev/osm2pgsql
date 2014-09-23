@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "expire-tiles.hpp"
 #include "output.hpp"
 #include "options.hpp"
 #include "geometry-builder.hpp"

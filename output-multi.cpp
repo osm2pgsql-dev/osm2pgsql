@@ -490,3 +490,22 @@ void output_multi_t::delete_from_output(osmid_t id) {
         m_table->delete_row(id);
 }
 
+void output_multi_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
+    boost::shared_ptr<id_tracker> tracker = other->get_pending_relations();
+    osmid_t id;
+    while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
+        rels_pending_tracker->mark(id);
+    }
+}
+void output_multi_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+    if(other->get_expire_tree().get())
+        m_expire->merge_and_destroy(*other->get_expire_tree());
+}
+
+boost::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {
+    return rels_pending_tracker;
+}
+boost::shared_ptr<expire_tiles> output_multi_t::get_expire_tree() {
+    return m_expire;
+}
+

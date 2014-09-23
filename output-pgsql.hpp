@@ -54,7 +54,13 @@ public:
 
     size_t pending_count() const;
 
-private:
+    void merge_pending_relations(boost::shared_ptr<output_t> other);
+    void merge_expire_trees(boost::shared_ptr<output_t> other);
+
+protected:
+
+    boost::shared_ptr<id_tracker> get_pending_relations();
+    boost::shared_ptr<expire_tiles> get_expire_tree();
 
     struct way_cb_func : public middle_t::cb_func {
         output_pgsql_t *m_ptr;
