@@ -50,17 +50,21 @@ int test_node_set(middle_t *mid)
   return 0;
 }
 
-struct way_cb_func : public middle_t::cb_func {
-    std::list<osmid_t> pending_ways;
-    
-    int operator()(osmid_t id, int exists)
-    {
+struct way_processor : public middle_t::pending_processor {
+    way_processor(): pending_ways() {}
+    virtual ~way_processor() {}
+    virtual void enqueue(osmid_t id) {
         // TODO: figure out exists - seems to be a useless variable?
         pending_ways.push_back(id);
-        return 0; // looks like this is ignored anyway?
     }
-
-    void finish(int) { }
+    virtual void process_ways() {}
+    virtual int thread_count() {
+        return 0;
+    }
+    virtual int size() {
+        return 0;
+    }
+    std::list<osmid_t> pending_ways;
 };
 
 int test_way_set(middle_t *mid)
@@ -120,7 +124,7 @@ int test_way_set(middle_t *mid)
   }
 
   // the way we just inserted should not be pending
-  way_cb_func way_cb;
+  way_processor way_cb;
   way_cb.pending_ways.clear();
   mid->iterate_ways(way_cb);
   if (way_cb.pending_ways.size() != 0) {

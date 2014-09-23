@@ -158,7 +158,7 @@ bool id_tracker::is_marked(osmid_t id) {
 osmid_t id_tracker::pop_mark() {
     osmid_t id = impl->pop_min();
 
-    assert((id > impl->old_id) || (id == std::numeric_limits<osmid_t>::max()));
+    assert((id > impl->old_id) || !id_tracker::is_valid(id));
     impl->old_id = id;
 
     //we just go rid of one (if there were some to get rid of)
@@ -169,3 +169,5 @@ osmid_t id_tracker::pop_mark() {
 }
 
 size_t id_tracker::size() { return impl->count; }
+
+bool id_tracker::is_valid(osmid_t id) { return id != std::numeric_limits<osmid_t>::max(); }

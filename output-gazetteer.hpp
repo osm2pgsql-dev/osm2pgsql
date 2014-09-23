@@ -21,6 +21,9 @@ public:
     void stop();
     void commit();
 
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id);
+    int pending_way(osmid_t id, int exists);
+
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
     int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
@@ -32,6 +35,8 @@ public:
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
     int relation_delete(osmid_t id);
+
+    std::string const& name() const;
 
 private:
     static const size_t BUFFER_SIZE = 4096;
@@ -66,6 +71,8 @@ private:
     geometry_builder builder;
 
     boost::shared_ptr<reprojection> reproj;
+
+    const static std::string NAME;
 };
 
 extern output_gazetteer_t out_gazetteer;

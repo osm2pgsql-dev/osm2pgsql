@@ -7,6 +7,8 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
+const std::string output_multi_t::NAME = "output_multi_t";
+
 namespace {
 
 std::string mk_column_name(const std::string &name, const options_t &options) {
@@ -31,12 +33,14 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.append, m_options.slim, m_options.droptemp,
                           m_options.hstore_mode, m_options.enable_hstore_index,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
+      ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
       m_expire(new expire_tiles(&m_options)) {
 }
 
 output_multi_t::output_multi_t(const output_multi_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
     m_processor(geometry_processor::create(other.m_processor->column_type(), &m_options)), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
+    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
     m_expire(new expire_tiles(&m_options)) {
 }
 
@@ -52,10 +56,6 @@ boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_m
 }
 
 int output_multi_t::start() {
-    ways_pending_tracker.reset(new id_tracker());
-    ways_done_tracker.reset(new id_tracker());
-    rels_pending_tracker.reset(new id_tracker());
-
     m_table->start();
     return 0;
 }
@@ -66,7 +66,7 @@ middle_t::cb_func *output_multi_t::way_callback() {
      * written to and not read, so they can be processed as several parallel
      * independent transactions
      */
-    m_table->begin();
+    //m_table->begin();
 
     /* Processing any remaing to be processed ways */
     way_cb_func *func = new way_cb_func(this);
@@ -82,6 +82,62 @@ middle_t::cb_func *output_multi_t::relation_callback() {
      */
     rel_cb_func *rel_callback = new rel_cb_func(this);
     return rel_callback;
+}
+
+std::string const& output_multi_t::name() const {
+    return m_table->get_name();
+}
+
+size_t output_multi_t::pending_count() const {
+    return ways_pending_tracker->size() + rels_pending_tracker->size();
+}
+
+void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+    int ret = 0;
+
+    //make sure we get the one passed in
+    if (!ways_done_tracker->is_marked(id)) {
+        job_queue.push(pending_job_t(id, hash()));
+    }
+
+    //grab the first one or bail if its not valid
+    osmid_t popped = ways_pending_tracker->pop_mark();
+    if(id_tracker::is_valid(popped))
+        return;
+
+    //get all the ones up to the id that was passed in
+    while (popped < id) {
+        if (!ways_done_tracker->is_marked(popped)) {
+            job_queue.push(pending_job_t(popped, hash()));
+        }
+        popped = ways_pending_tracker->pop_mark();
+    }
+
+    //make sure to get this one as well and move to the next
+    if(popped == id) {
+        popped = ways_pending_tracker->pop_mark();
+    }
+    if (!ways_done_tracker->is_marked(popped)) {
+        job_queue.push(pending_job_t(popped, hash()));
+    }
+}
+
+int output_multi_t::pending_way(osmid_t id, int exists) {
+    keyval tags_int;
+    osmNode *nodes_int;
+    int count_int;
+    int ret = 0;
+
+    initList(&tags_int);
+    // Try to fetch the way from the DB
+    if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
+        // Output the way
+        ret = reprocess_way(id,  nodes_int, count_int, &tags_int, exists);
+        free(nodes_int);
+    }
+    resetList(&tags_int);
+
+    return ret;
 }
 
 output_multi_t::way_cb_func::way_cb_func(output_multi_t *ptr)

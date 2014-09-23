@@ -6,7 +6,7 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/lockfree/queue.hpp>
+#include <boost/unordered_map.hpp>
 
 #include <stdexcept>
 
@@ -178,135 +178,100 @@ struct cb_func : public middle_t::cb_func {
     std::vector<middle_t::cb_func*> m_ptrs;
 };
 
-struct pending_job {
-    //id we need to process
-    osmid_t id;
+//TODO: when processing a way we need to synchronize access to the rels
+//pending (or have those ids as output from completing a batch)
 
-    int exists;
+//TODO: when expiring we need to synchronize access to or make our own in memory
+//expiry list to provide as output
 
-    //whether this is a way or a rel
-    bool is_way;
+//------------------------------------
 
-    //TODO: when processing a way we need to synchronize access to the rels
-    //pending (or have those ids as output from completing a batch)
+//TODO: batch ids so we can query more than one at once from the middle
 
-    //TODO: when expiring we need to synchronize access to or make our own in memory
-    //expiry list to provide as output
+//TODO: worry about dealloc of tags and nodes and members
+//and what happens when copying this stuff (push and pop on queue)
+//since multiple jobs will consume the same copy of these things we
+//kind of have to do it outside of the queue or make deep copies of them
 
-    //------------------------------------
+struct pending_threaded_processor : public middle_t::pending_processor {
+    typedef boost::unordered_map<size_t, boost::shared_ptr<output_t> > output_map_t;
+    typedef std::pair<boost::shared_ptr<const middle_query_t>, output_map_t> clone_t;
 
-    //TODO: batch ids so we can query more than one at once from the middle
+    static void do_batch(output_map_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
+        pending_job_t job;
 
-    //TODO: worry about dealloc of tags and nodes and members
-    //and what happens when copying this stuff (push and pop on queue)
-    //since multiple jobs will consume the same copy of these things we
-    //kind of have to do it outside of the queue or make deep copies of them
-};
+        while (queue.pop(job)) {
+            outputs.at(job.output_hash)->pending_way(job.id, append);
+            ++ids_done;
+        }
 
-struct pending_processor {
-
-    typedef boost::lockfree::queue<pending_job> queue_t;
-
-    static void do_batch(middle_t::cb_func *callback,
-                         queue_t& queue,
-                         boost::atomic_size_t& ids_done,
-                         const boost::atomic<bool>& done,
-                         int append);
+    }
 
     //starts up count threads and works on the queue
-    pending_processor(output_t *out, size_t thread_count, size_t job_count, int append)
-        : middles(thread_count), outputs(thread_count), queue(job_count), append(append) {
-
-        //we are not done adding jobs yet
-        done = false;
+    pending_threaded_processor(middle_query_t* mid, const std::vector<output_t*>& outs, size_t thread_count, size_t job_count, int append)
+        : outs(outs), queue(job_count), append(append) {
 
         //nor have we completed any
         ids_done = 0;
 
-        //make the threads and start them
-        for (size_t i = 0; i != thread_count - 1; ++i) {
-            boost::shared_ptr<const middle_query_t> mid_clone = out->get_middle()->get_instance();
-            boost::shared_ptr<output_t> out_clone = out->clone(mid_clone.get());
-            middles.push_back(mid_clone);
-            outputs.push_back(out_clone);
-            middle_t::cb_func *callback = out_clone->way_callback();
-            workers.create_thread(boost::bind(do_batch, callback, boost::ref(queue), boost::ref(ids_done), boost::cref(done), append));
+        //clone all the things we need
+        clones.reserve(thread_count);
+        for (size_t i = 0; i < thread_count; ++i) {
+            //clone the middle
+            boost::shared_ptr<const middle_query_t> mid_clone = mid->get_instance();
+
+            //clone the outs
+            output_map_t out_clones;
+            for(std::vector<output_t*>::const_iterator out = outs.begin(); out != outs.end(); ++out) {
+                boost::shared_ptr<output_t> out_clone = (*out)->clone(mid_clone.get());
+                out_clones[out_clone->hash()] = out_clone;
+            }
+
+            //keep the clones for a specific thread to use
+            clones.push_back(clone_t(mid_clone, out_clones));
         }
     }
 
-    void submit(const pending_job &job) {
-        queue.push(job);
+    ~pending_threaded_processor() {}
+
+    void enqueue(osmid_t id) {
+        BOOST_FOREACH(output_t* out, outs) {
+            out->enqueue_ways(queue, id);
+        }
     }
 
     //waits for the completion of all outstanding jobs
-    void join() {
-        //we are done adding jobs
-        done = true;
+    void process_ways() {
+
+        //make the threads and start them
+        for (size_t i = 0; i < clones.size(); ++i) {
+            workers.create_thread(boost::bind(do_batch, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
+        }
+
         //wait for them to really be done
         workers.join_all();
     }
 
+    int thread_count() {
+        return clones.size();
+    }
+
+    int size() {
+        //TODO: queue.size()????
+        return 0;
+    }
+
 private:
     //middle and output copies
-    std::vector<boost::shared_ptr<const middle_query_t> > middles;
-    std::vector<boost::shared_ptr<output_t> > outputs;
+    std::vector<clone_t> clones;
+    std::vector<output_t*> outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //actual threads
     boost::thread_group workers;
     //job queue
-    queue_t queue;
-    //whether or not we are done putting jobs in the queue
-    boost::atomic<bool> done;
+    pending_queue_t queue;
     //how many ids within the job have been processed
     boost::atomic_size_t ids_done;
     int append;
-};
-
-void pending_processor::do_batch(middle_t::cb_func *callback,
-                                 pending_processor::queue_t& queue,
-                                 boost::atomic_size_t& ids_done,
-                                 const boost::atomic<bool>& done,
-                                 int append) {
-    pending_job job;
-
-    //if we got something or we arent done putting things in the queue
-    while (queue.pop(job) || !done) {
-        (*callback)(job.id, job.exists);
-        ++ids_done;
-    }
-
-    while (queue.pop(job)) {
-        (*callback)(job.id, job.exists);
-        ++ids_done;
-    }
-
-    callback->finish(append);
-}
-
-struct threaded_callback : public middle_t::cb_func {
-    threaded_callback() {}
-    void add(output_t *out, int append) {
-        m_processors.push_back(boost::make_shared<pending_processor>(out, 4, 100, append));
-    }
-    bool empty() const {
-        return m_processors.empty();
-    }
-    virtual ~threaded_callback() {}
-    int operator()(osmid_t id, int exists) {
-        pending_job job;
-        job.id = id;
-        job.exists = exists;
-        BOOST_FOREACH(boost::shared_ptr<pending_processor> &proc, m_processors) {
-            proc->submit(job);
-        }
-        return 0;
-    }
-    void finish(int exists) {
-        BOOST_FOREACH(boost::shared_ptr<pending_processor> &proc, m_processors) {
-            proc->join();
-        }
-        //TODO: Anything else needed here? Individual callback finish method called in threads.
-    }
-    std::vector<boost::shared_ptr<pending_processor> > m_processors;
 };
 
 } // anonymous namespace
@@ -316,35 +281,32 @@ void osmdata_t::stop() {
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
      */
+    size_t pending_count = mid->pending_count();
     mid->commit();
     BOOST_FOREACH(output_t *out, outs) {
         out->commit();
+        pending_count += out->pending_count();
     }
 
     // should be the same for all outputs
     const int append = outs[0]->get_options()->append;
+
+    //threaded pending processing
+    pending_threaded_processor ptp(mid, outs, 2, pending_count, append);
 
 	/* Pending ways
      * This stage takes ways which were processed earlier, but might be
      * involved in a multipolygon relation. They could also be ways that
      * were modified in diff processing.
      */
-    {
-        threaded_callback callback;
+    if (!outs.empty()) {
+        mid->iterate_ways( ptp );
+        mid->commit();
+
+        //TODO: Merge things back together
+
         BOOST_FOREACH(output_t *out, outs) {
-            callback.add(out, append);
-        }
-        if (!callback.empty()) {
-            mid->iterate_ways( callback );
-            callback.finish(append);
-
-            mid->commit();
-
-            //TODO: Merge things back together
-
-            BOOST_FOREACH(output_t *out, outs) {
-                out->commit();
-            }
+            out->commit();
         }
     }
 

@@ -36,6 +36,9 @@ public:
     void stop();
     void commit();
 
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id);
+    int pending_way(osmid_t id, int exists);
+
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
     int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
@@ -47,6 +50,10 @@ public:
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
     int relation_delete(osmid_t id);
+
+    std::string const& name() const;
+
+    size_t pending_count() const;
 
 private:
     void delete_from_output(osmid_t id);
@@ -90,6 +97,8 @@ private:
     way_helper m_way_helper;
     relation_helper m_relation_helper;
     std::vector<boost::shared_ptr<output_multi_t> > m_clones;
+
+    const static std::string NAME;
 };
 
 #endif

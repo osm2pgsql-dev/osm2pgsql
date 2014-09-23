@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include <config.h>
 #include <vector>
+#include <boost/lockfree/queue.hpp>
 
 #include "keyvals.hpp"
 
@@ -25,6 +26,15 @@ typedef int32_t osmid_t;
 #define PRIdOSMID PRId32
 #define POSTGRES_OSMID_TYPE "int4"
 #endif
+
+struct pending_job_t {
+    pending_job_t(): id(), output_hash() {}
+    pending_job_t(osmid_t id_, size_t output_hash_):
+        id(id_), output_hash(output_hash_) {}
+    osmid_t id;
+    size_t output_hash;
+};
+typedef boost::lockfree::queue<pending_job_t> pending_queue_t;
 
 //forward declaration needed here
 struct middle_t;

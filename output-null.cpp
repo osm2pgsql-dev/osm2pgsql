@@ -11,6 +11,8 @@
 #include "output-null.hpp"
 #include "options.hpp"
 
+const std::string output_null_t::NAME = "output_null_t";
+
 #define UNUSED  __attribute__ ((unused))
 
 void output_null_t::cleanup() {
@@ -32,6 +34,13 @@ void output_null_t::stop() {
 }
 
 void output_null_t::commit() {
+}
+
+void output_null_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+}
+
+int output_null_t::pending_way(osmid_t id, int exists) {
+    return 0;
 }
 
 int output_null_t::node_add(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {
@@ -68,6 +77,10 @@ int output_null_t::way_modify(osmid_t a UNUSED, osmid_t * b UNUSED, int c UNUSED
 
 int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
   return 0;
+}
+
+std::string const& output_null_t::name() const {
+    return NAME;
 }
 
 boost::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) {

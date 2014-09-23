@@ -39,8 +39,10 @@ struct test_middle_t : public middle_t {
     int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
     int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const { return 0; }
 
-    void iterate_ways(cb_func &cb) { }
+    void iterate_ways(pending_processor& pf) { }
     void iterate_relations(cb_func &cb) { }
+
+    virtual size_t pending_count() const { return 0; }
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const { return std::vector<osmid_t>(); }
 
@@ -103,6 +105,9 @@ struct test_output_t : public output_t {
     void cleanup(void) { }
     void close(int stopTransaction) { }
 
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id) { }
+    int pending_way(osmid_t id, int exists) { return 0; }
+
     int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
     int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) { return 0; }
     int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
@@ -110,7 +115,12 @@ struct test_output_t : public output_t {
     int node_delete(osmid_t id) { return 0; }
     int way_delete(osmid_t id) { return 0; }
     int relation_delete(osmid_t id) { return 0; }
+
+    virtual std::string const& name() const { return NAME; }
+
+    static const std::string NAME;
 };
+const std::string test_output_t::NAME = "test_output_t";
 
 void assert_equal(uint64_t actual, uint64_t expected) {
   if (actual != expected) {

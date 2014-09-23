@@ -15,6 +15,8 @@ struct id_tracker : public boost::noncopyable {
     osmid_t pop_mark();
     size_t size();
 
+    static bool is_valid(osmid_t);
+
 private:
     struct pimpl;
     boost::scoped_ptr<pimpl> impl;

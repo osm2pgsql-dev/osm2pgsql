@@ -714,12 +714,11 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_ways(middle_t::cb_func &callback)
+void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
 {
-    // The flag we pass to indicate that the way in question might exist already in the database */
-    int exists = Append;
     time_t start, end;
     time(&start);
+
     fprintf(stderr, "\nGoing over pending ways...\n");
 
     // Make sure we're out of copy mode */
@@ -727,40 +726,24 @@ void middle_pgsql_t::iterate_ways(middle_t::cb_func &callback)
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-    size_t pending_count = ways_pending_tracker->size();
-    fprintf(stderr, "\t%zu ways are pending\n", pending_count);
-    
-    /**
-     * TODO
-     * To speed up processing of pending ways, fork noProcs worker processes
-     * each of which independently goes through an equal subset of the pending ways array
-     */
-    fprintf(stderr, "\nUsing %i helper-processes\n", 1);
-
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
-    // some spaces at end, so that processings outputs get cleaned if already existing */
-    fprintf(stderr, "\rHelper process %i out of %i initialised          \n", 0, 1);
-
-    //in memory processing pending ways
+    // enqueue the jobs
     osmid_t id;
-    int count = 0;
-    while((id = ways_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
+    while(id_tracker::is_valid(id = ways_pending_tracker->pop_mark()))
     {
-        //progress update
-        if(count++ %1000 == 0)
-        {
-            time(&end);
-            fprintf(stderr, "\rprocessing way (%dk) at %.2fk/s", count/1000,
-                    end > start ? ((double)count / 1000.0 / (double)(end - start)) : 0);
-        }
-
-        //send it to the backends, mark it done and cleanup
-        callback(id, exists);
+        pf.enqueue(id);
     }
 
+    size_t pending_count = pf.size();
+    fprintf(stderr, "\t%zu ways are pending\n", pending_count);
+    fprintf(stderr, "\nUsing %i helper-processes\n", pf.thread_count());
+
+    //let the threads work on them
+    pf.process_ways();
+
     time(&end);
-    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, count, (int)(end - start));
+    fprintf(stderr, "\rProcess %i finished processing %i ways in %i sec\n", 0, pending_count, (int)(end - start));
 
     fprintf(stderr, "\nAll child processes exited\n");
 
@@ -1529,4 +1512,8 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     }
 
     return boost::shared_ptr<middle_query_t>(mid);
+}
+
+size_t middle_pgsql_t::pending_count() const {
+    return ways_pending_tracker->size() + rels_pending_tracker->size();
 }

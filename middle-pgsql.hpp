@@ -45,8 +45,10 @@ struct middle_pgsql_t : public slim_middle_t {
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    void iterate_ways(cb_func &cb);
+    void iterate_ways(middle_t::pending_processor& pf);
     void iterate_relations(cb_func &cb);
+
+    size_t pending_count() const;
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
 

@@ -44,6 +44,8 @@
 #include <limits>
 #include <stdexcept>
 
+const std::string output_pgsql_t::NAME = "output_pgsql_t";
+
 #define SRID (reproj->project_getprojinfo()->srs)
 
 /* FIXME: Shouldn't malloc this all to begin with but call realloc()
@@ -284,6 +286,55 @@ middle_t::cb_func *output_pgsql_t::relation_callback()
      */
     rel_cb_func *rel_callback = new rel_cb_func(this);
     return rel_callback;
+}
+
+void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+    int ret = 0;
+
+    //make sure we get the one passed in
+    if (!ways_done_tracker->is_marked(id)) {
+        job_queue.push(pending_job_t(id, hash()));
+    }
+
+    //grab the first one or bail if its not valid
+    osmid_t popped = ways_pending_tracker->pop_mark();
+    if(id_tracker::is_valid(popped))
+        return;
+
+    //get all the ones up to the id that was passed in
+    while (popped < id) {
+        if (!ways_done_tracker->is_marked(popped)) {
+            job_queue.push(pending_job_t(popped, hash()));
+        }
+        popped = ways_pending_tracker->pop_mark();
+    }
+
+    //make sure to get this one as well and move to the next
+    if(popped == id) {
+        popped = ways_pending_tracker->pop_mark();
+    }
+    if (!ways_done_tracker->is_marked(popped)) {
+        job_queue.push(pending_job_t(popped, hash()));
+    }
+}
+
+int output_pgsql_t::pending_way(osmid_t id, int exists) {
+    keyval tags_int;
+    osmNode *nodes_int;
+    int count_int;
+    int ret = 0;
+
+    initList(&tags_int);
+    // Try to fetch the way from the DB
+    if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
+        // Output the way
+        //ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
+        ret = pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
+        free(nodes_int);
+    }
+    resetList(&tags_int);
+
+    return ret;
 }
 
 output_pgsql_t::way_cb_func::way_cb_func(output_pgsql_t *ptr)
@@ -671,10 +722,6 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
 
 int output_pgsql_t::start()
 {
-    ways_pending_tracker.reset(new id_tracker());
-    ways_done_tracker.reset(new id_tracker());
-    rels_pending_tracker.reset(new id_tracker());
-
     for(std::vector<boost::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
     {
         //setup the table in postgres
@@ -691,8 +738,15 @@ boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_m
     return m_clones.back();
 }
 
+std::string const& output_pgsql_t::name() const {
+    return NAME;
+}
+
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
-    : output_t(mid_, options_) {
+    : output_t(mid_, options_),
+      ways_pending_tracker(new id_tracker()),
+      ways_done_tracker(new id_tracker()),
+      rels_pending_tracker(new id_tracker()) {
 
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
@@ -760,7 +814,9 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
-    m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj), expire(new expire_tiles(&m_options))
+    m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
+    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
+    expire(new expire_tiles(&m_options))
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     for(std::vector<boost::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
@@ -770,4 +826,8 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
 }
 
 output_pgsql_t::~output_pgsql_t() {
+}
+
+size_t output_pgsql_t::pending_count() const {
+    return ways_pending_tracker->size() + rels_pending_tracker->size();
 }

@@ -34,6 +34,8 @@ class table_t
         void write_node(const osmid_t id, struct keyval *tags, double lat, double lon);
         void delete_row(const osmid_t id);
 
+        std::string const& get_name();
+
         //interface from retrieving well known text geometry from the table
         struct wkt_reader
         {

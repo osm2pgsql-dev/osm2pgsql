@@ -52,8 +52,18 @@ struct middle_t : public middle_query_t {
         virtual void finish(int exists) = 0;
     };
 
-    virtual void iterate_ways(cb_func &cb) = 0;
+    struct pending_processor {
+        virtual ~pending_processor();
+        virtual void enqueue(osmid_t id) = 0;
+        virtual void process_ways() = 0;
+        virtual int thread_count() = 0;
+        virtual int size() = 0;
+    };
+
+    virtual void iterate_ways(pending_processor& pf) = 0;
     virtual void iterate_relations(cb_func &cb) = 0;
+
+    virtual size_t pending_count() const = 0;
 
     const options_t* out_options;
 };

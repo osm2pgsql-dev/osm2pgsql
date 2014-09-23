@@ -199,7 +199,13 @@ void middle_ram_t::iterate_relations(middle_t::cb_func &callback)
     fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
 }
 
-void middle_ram_t::iterate_ways(middle_t::cb_func &callback)
+size_t middle_ram_t::pending_count() const {
+    //TODO: keep a running count of marked pending stuff
+    //so we dont have to iterate over the memory to know
+    return 42;
+}
+
+void middle_ram_t::iterate_ways(middle_t::pending_processor& pf)
 {
     int block, offset;
 
@@ -212,13 +218,13 @@ void middle_ram_t::iterate_ways(middle_t::cb_func &callback)
             if (ways[block][offset].ndids) {
                 way_out_count++;
                 if (way_out_count % 1000 == 0)
-                    fprintf(stderr, "\rWriting way (%uk)", way_out_count/1000);
+                    fprintf(stderr, "\rEnqueuing way (%uk)", way_out_count/1000);
 
                 if (ways[block][offset].pending) {
                     /* First element contains number of nodes */
                     if (ways[block][offset].ndids[0]) {
                         osmid_t id = block2id(block, offset);
-                        callback(id, 0);
+                        pf.enqueue(id);
                     }
 
                     ways[block][offset].pending = 0;
@@ -226,7 +232,12 @@ void middle_ram_t::iterate_ways(middle_t::cb_func &callback)
             }
         }
     }
-    fprintf(stderr, "\rWriting way (%uk)\n", way_out_count/1000);
+    fprintf(stderr, "\rEnqueuing way (%uk)\n", way_out_count/1000);
+
+    //let the threads process the ways
+    pf.process_ways();
+
+    //TODO: message to show the real progress of writing the ways
 }
 
 void middle_ram_t::release_relations()

@@ -14,6 +14,8 @@
 #include "options.hpp"
 #include "util.hpp"
 
+const std::string output_gazetteer_t::NAME = "output_gazetteer_t";
+
 #define SRID (reproj->project_getprojinfo()->srs)
 
 #define CREATE_KEYVALUETYPE_TYPE                \
@@ -1071,6 +1073,13 @@ middle_t::cb_func *output_gazetteer_t::relation_callback() {
     return NULL;
 }
 
+void output_gazetteer_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id) {
+}
+
+int output_gazetteer_t::pending_way(osmid_t id, int exists) {
+    return 0;
+}
+
 void output_gazetteer_t::stop()
 {
    /* Stop any active copy */
@@ -1403,6 +1412,10 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
 {
    require_slim_mode();
    return gazetteer_process_relation(id, members, member_count, tags, 1);
+}
+
+std::string const& output_gazetteer_t::name() const {
+    return NAME;
 }
 
 boost::shared_ptr<output_t> output_gazetteer_t::clone(const middle_query_t* cloned_middle) {

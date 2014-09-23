@@ -10,6 +10,7 @@
 
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
+#include <boost/functional/hash.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -156,9 +157,14 @@ output_t::~output_t() {
 
 }
 
+size_t output_t::hash() const {
+    return boost::hash<std::string>()(name());
+}
+
+size_t output_t::pending_count() const{
+    return 0;
+}
+
 const options_t *output_t::get_options()const {
 	return &m_options;
-}
-const middle_query_t *output_t::get_middle()const {
-    return m_mid;
 }

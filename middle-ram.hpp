@@ -44,8 +44,10 @@ struct middle_ram_t : public middle_t {
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
 
-    void iterate_ways(cb_func &cb);
+    void iterate_ways(middle_t::pending_processor& pf);
     void iterate_relations(cb_func &cb);
+
+    size_t pending_count() const;
 
     virtual boost::shared_ptr<const middle_query_t> get_instance() const;
 private:

@@ -43,7 +43,9 @@ table_t::table_t(const table_t& other):
         //let postgres cache this query as it will presumably happen a lot
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
         //start the copy
+        printf("before begin %p\n", sql_conn);
         begin();
+        printf("copy %p\n", sql_conn);
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
         copyMode = true;
     }
@@ -52,6 +54,10 @@ table_t::table_t(const table_t& other):
 table_t::~table_t()
 {
     teardown();
+}
+
+std::string const& table_t::get_name() {
+    return name;
 }
 
 void table_t::teardown()
@@ -65,6 +71,7 @@ void table_t::teardown()
 
 void table_t::begin()
 {
+    printf("table_t.begin(%p)\n", sql_conn);
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "BEGIN");
 }
 
@@ -199,6 +206,7 @@ void table_t::start()
 
     //get into copy mode
     copystr = (fmt("COPY %1% (%2%) FROM STDIN") % name % cols).str();
+    printf("copy %p\n", sql_conn);
     pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
     copyMode = true;
 }
@@ -333,6 +341,7 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
     //tell the db we are copying if for some reason we arent already
     if (!copyMode)
     {
+        printf("copy %p\n", sql_conn);
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
         copyMode = true;
     }

@@ -33,6 +33,9 @@ public:
     virtual void stop() = 0;
     virtual void commit() = 0;
 
+    virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id) = 0;
+    virtual int pending_way(osmid_t id, int exists) = 0;
+
     virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
     virtual int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;
     virtual int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
@@ -45,8 +48,13 @@ public:
     virtual int way_delete(osmid_t id) = 0;
     virtual int relation_delete(osmid_t id) = 0;
 
+    virtual std::string const& name() const = 0;
+
+    virtual size_t hash() const;
+
+    virtual size_t pending_count() const;
+
     const options_t *get_options() const;
-    const middle_query_t *get_middle() const;
 
 protected:
     const middle_query_t* m_mid;
