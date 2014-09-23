@@ -13,7 +13,7 @@ public:
     output_gazetteer_t(const output_gazetteer_t& other);
     virtual ~output_gazetteer_t();
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle);
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
     middle_t::cb_func *way_callback();
@@ -21,7 +21,7 @@ public:
     void stop();
     void commit();
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_way(osmid_t id, int exists);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);

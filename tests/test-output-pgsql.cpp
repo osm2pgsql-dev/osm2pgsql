@@ -95,7 +95,7 @@ void test_regression_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], NULL };
 
-    struct middle_pgsql_t mid_pgsql;
+    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -105,9 +105,9 @@ void test_regression_simple() {
     options.slim = 1;
     options.style = "default.style";
 
-    struct output_pgsql_t out_test(&mid_pgsql, options);
+    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
 
-    osmdata_t osmdata(&mid_pgsql, &out_test);
+    osmdata_t osmdata(mid_pgsql, out_test);
 
     boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
 
@@ -150,7 +150,7 @@ void test_clone() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], NULL };
 
-    struct middle_pgsql_t mid_pgsql;
+    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -160,11 +160,11 @@ void test_clone() {
     options.slim = 1;
     options.style = "default.style";
 
-    struct output_pgsql_t out_test(&mid_pgsql, options);
+    struct output_pgsql_t out_test(mid_pgsql.get(), options);
 
-    boost::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get_instance().get());
+    boost::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql->get_instance().get());
 
-    osmdata_t osmdata(&mid_pgsql, out_clone.get());
+    osmdata_t osmdata(mid_pgsql, out_clone);
 
     boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
 

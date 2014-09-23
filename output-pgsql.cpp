@@ -286,12 +286,13 @@ middle_t::cb_func *output_pgsql_t::relation_callback()
     return rel_callback;
 }
 
-void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
+void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
     int ret = 0;
 
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id)) {
         job_queue.push(pending_job_t(id, output_id));
+        added++;
     }
 
     //grab the first one or bail if its not valid
@@ -303,6 +304,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
+            added++;
         }
         popped = ways_pending_tracker->pop_mark();
     }
@@ -313,6 +315,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
     if (!ways_done_tracker->is_marked(popped)) {
         job_queue.push(pending_job_t(popped, output_id));
+        added++;
     }
 }
 
@@ -430,9 +433,6 @@ void output_pgsql_t::rel_cb_func::finish(int exists) {
 
 void output_pgsql_t::commit()
 {
-    BOOST_FOREACH(boost::shared_ptr<output_pgsql_t> &clone, m_clones) {
-        clone->commit();
-    }
     for (int i=0; i<NUM_TABLES; i++) {
         m_tables[i]->commit();
     }
@@ -470,11 +470,6 @@ void output_pgsql_t::stop()
     } else {
 #endif
 
-    BOOST_FOREACH(boost::shared_ptr<output_pgsql_t> &clone, m_clones) {
-        for (i=0; i<NUM_TABLES; i++)
-            clone->m_tables[i]->stop();
-        expire->merge_and_destroy(*clone->expire);
-    }
     /* No longer need to access middle layer -- release memory */
     //TODO: just let the destructor do this
     for (i=0; i<NUM_TABLES; i++)
@@ -729,11 +724,10 @@ int output_pgsql_t::start()
     return 0;
 }
 
-boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) {
+boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const {
     output_pgsql_t *clone = new output_pgsql_t(*this);
     clone->m_mid = cloned_middle;
-    m_clones.push_back(boost::shared_ptr<output_pgsql_t>(clone));
-    return m_clones.back();
+    return boost::shared_ptr<output_t>(clone);
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)

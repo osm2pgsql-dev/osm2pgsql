@@ -69,8 +69,8 @@ void test_middles()
 {
     const char* a1[] = {"osm2pgsql", "--slim", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
-    middle_t* mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_pgsql_t *>(mid) == NULL)
+    boost::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
+    if(dynamic_cast<middle_pgsql_t *>(mid.get()) == NULL)
     {
         throw std::logic_error("Using slim mode we expected a pgsql middle");
     }
@@ -78,7 +78,7 @@ void test_middles()
     const char* a2[] = {"osm2pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_ram_t *>(mid) == NULL)
+    if(dynamic_cast<middle_ram_t *>(mid.get()) == NULL)
     {
         throw std::logic_error("Using without slim mode we expected a ram middle");
     }
@@ -88,8 +88,8 @@ void test_outputs()
 {
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
-    middle_t* mid = middle_t::create_middle(options.slim);
-    std::vector<boost::shared_ptr<output_t> > outs = output_t::create_outputs(mid, options);
+    boost::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
+    std::vector<boost::shared_ptr<output_t> > outs = output_t::create_outputs(mid.get(), options);
     output_t* out = outs.front().get();
     if(dynamic_cast<output_pgsql_t *>(out) == NULL)
     {
@@ -99,7 +99,7 @@ void test_outputs()
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
-    outs = output_t::create_outputs(mid, options);
+    outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
     if(dynamic_cast<output_gazetteer_t *>(out) == NULL)
     {
@@ -109,7 +109,7 @@ void test_outputs()
     const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a3), const_cast<char **>(a3));
     mid = middle_t::create_middle(options.slim);
-    outs = output_t::create_outputs(mid, options);
+    outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
     if(dynamic_cast<output_null_t *>(out) == NULL)
     {
@@ -121,7 +121,7 @@ void test_outputs()
     mid = middle_t::create_middle(options.slim);
     try
     {
-        outs = output_t::create_outputs(mid, options);
+        outs = output_t::create_outputs(mid.get(), options);
         out = outs.front().get();
         throw std::logic_error("Expected 'not recognised'");
     }

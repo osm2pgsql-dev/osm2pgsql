@@ -1,6 +1,4 @@
-#include "osmtypes.hpp"
-#include "middle.hpp"
-#include "output.hpp"
+#include "osmdata.hpp"
 
 #include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
@@ -59,7 +57,7 @@ int osmdata_t::relation_add(osmid_t id, struct member *members, int member_count
 }
 
 int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *tags) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(id);
     slim->nodes_set(id, lat, lon, tags);
@@ -75,7 +73,7 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *ta
 }
 
 int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->ways_delete(id);
     slim->ways_set(id, nodes, node_count, tags);
@@ -91,7 +89,7 @@ int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct key
 }
 
 int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(id);
     slim->relations_set(id, members, member_count, tags);
@@ -107,7 +105,7 @@ int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_co
 }
 
 int osmdata_t::node_delete(osmid_t id) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
@@ -120,7 +118,7 @@ int osmdata_t::node_delete(osmid_t id) {
 }
 
 int osmdata_t::way_delete(osmid_t id) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
@@ -133,7 +131,7 @@ int osmdata_t::way_delete(osmid_t id) {
 }
 
 int osmdata_t::relation_delete(osmid_t id) {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
+    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
@@ -186,17 +184,15 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
     static void do_batch(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
         pending_job_t job;
-
         while (queue.pop(job)) {
             outputs.at(job.second)->pending_way(job.first, append);
             ++ids_done;
         }
-
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(middle_query_t* mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
-        : outs(outs), queue(job_count), append(append) {
+    pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
+        : outs(outs), queue(job_count), ids_queued(0), append(append) {
 
         //nor have we completed any
         ids_done = 0;
@@ -209,8 +205,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
             //clone the outs
             output_vec_t out_clones;
-            for(std::vector<output_t*>::const_iterator out = outs.begin(); out != outs.end(); ++out) {
-                out_clones.push_back((*out)->clone(mid_clone.get()));
+            BOOST_FOREACH(const boost::shared_ptr<output_t>& out, outs) {
+                out_clones.push_back(out->clone(mid_clone.get()));
             }
 
             //keep the clones for a specific thread to use
@@ -222,20 +218,25 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
     void enqueue(osmid_t id) {
         for(size_t i = 0; i < outs.size(); ++i) {
-            outs[i]->enqueue_ways(queue, id, i);
+            outs[i]->enqueue_ways(queue, id, i, ids_queued);
         }
     }
 
     //waits for the completion of all outstanding jobs
     void process_ways() {
+        //reset the number we've done
+        ids_done = 0;
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
             workers.create_thread(boost::bind(do_batch, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
         }
 
+        //TODO: print out progress
+
         //wait for them to really be done
         workers.join_all();
+        ids_queued = 0;
 
         //collect all the new rels that became pending from each
         //output in each thread back to their respective main outputs
@@ -243,10 +244,21 @@ struct pending_threaded_processor : public middle_t::pending_processor {
             //for each clone/original output
             for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
                 original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
+                //done copying ways for now
+                clone_output->get()->commit();
                 //merge the pending from this threads copy of output back
                 original_output->get()->merge_pending_relations(*clone_output);
             }
         }
+    }
+
+
+    void process_relations() {
+        //after all processing
+
+
+        //TODO: commit all the outputs (will finish the copies and commit the transactions)
+        //TODO: collapse the expire_tiles trees
     }
 
     int thread_count() {
@@ -268,7 +280,11 @@ private:
     pending_queue_t queue;
     //how many ids within the job have been processed
     boost::atomic_size_t ids_done;
+    //how many jobs do we have in the queue to start with
+    size_t ids_queued;
+    //
     int append;
+
 };
 
 } // anonymous namespace

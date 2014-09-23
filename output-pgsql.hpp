@@ -28,7 +28,7 @@ public:
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle);
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
     middle_t::cb_func *way_callback();
@@ -36,7 +36,7 @@ public:
     void stop();
     void commit();
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_way(osmid_t id, int exists);
     int pending_way_count();
 
@@ -56,11 +56,10 @@ public:
 
     void merge_pending_relations(boost::shared_ptr<output_t> other);
     void merge_expire_trees(boost::shared_ptr<output_t> other);
+    virtual boost::shared_ptr<id_tracker> get_pending_relations();
+    virtual boost::shared_ptr<expire_tiles> get_expire_tree();
 
 protected:
-
-    boost::shared_ptr<id_tracker> get_pending_relations();
-    boost::shared_ptr<expire_tiles> get_expire_tree();
 
     struct way_cb_func : public middle_t::cb_func {
         output_pgsql_t *m_ptr;
@@ -108,8 +107,6 @@ protected:
     boost::shared_ptr<expire_tiles> expire;
 
     boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
-
-    std::vector<boost::shared_ptr<output_pgsql_t> > m_clones;
 
     const static std::string NAME;
 };

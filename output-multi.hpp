@@ -28,7 +28,7 @@ public:
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle);
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
     middle_t::cb_func *way_callback();
@@ -36,7 +36,7 @@ public:
     void stop();
     void commit();
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_way(osmid_t id, int exists);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
@@ -55,11 +55,10 @@ public:
 
     void merge_pending_relations(boost::shared_ptr<output_t> other);
     void merge_expire_trees(boost::shared_ptr<output_t> other);
+    virtual boost::shared_ptr<id_tracker> get_pending_relations();
+    virtual boost::shared_ptr<expire_tiles> get_expire_tree();
 
 protected:
-
-    boost::shared_ptr<id_tracker> get_pending_relations();
-    boost::shared_ptr<expire_tiles> get_expire_tree();
 
     void delete_from_output(osmid_t id);
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
@@ -101,7 +100,6 @@ protected:
     boost::shared_ptr<expire_tiles> m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
-    std::vector<boost::shared_ptr<output_multi_t> > m_clones;
 
     const static std::string NAME;
 };

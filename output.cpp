@@ -80,7 +80,7 @@ boost::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
         columns.add(osm_type, info);
     }
 
-    return new output_multi_t(name, processor, columns, mid, new_opts);
+    return boost::make_shared<output_multi_t>(name, processor, columns, mid, new_opts);
 }
 
 std::vector<boost::shared_ptr<output_t> > parse_multi_config(const middle_query_t *mid, const options_t &options) {
@@ -98,9 +98,6 @@ std::vector<boost::shared_ptr<output_t> > parse_multi_config(const middle_query_
             }
 
         } catch (const std::exception &e) {
-            // free up any allocated resources
-            BOOST_FOREACH(boost::shared_ptr<output_t>& out, outputs) { delete out; }
-
             throw std::runtime_error((boost::format("Unable to parse multi config file `%1%': %2%")
                                       % file_name % e.what()).str());
         }

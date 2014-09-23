@@ -10,14 +10,15 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
-#include "options.hpp"
 #include "middle.hpp"
 #include "id-tracker.hpp"
 #include "expire-tiles.hpp"
 
 #include <boost/noncopyable.hpp>
+#include <boost/lockfree/queue.hpp>
 
-struct options_t;
+typedef std::pair<osmid_t, size_t> pending_job_t;
+typedef boost::lockfree::queue<pending_job_t> pending_queue_t;
 
 class output_t : public boost::noncopyable {
 public:
@@ -26,7 +27,7 @@ public:
     output_t(const middle_query_t *mid, const options_t &options_);
     virtual ~output_t();
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) = 0;
+    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const = 0;
 
     virtual int start() = 0;
     virtual middle_t::cb_func *way_callback() = 0;
@@ -34,7 +35,7 @@ public:
     virtual void stop() = 0;
     virtual void commit() = 0;
 
-    virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) = 0;
+    virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
     virtual int pending_way(osmid_t id, int exists) = 0;
 
     virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
@@ -55,11 +56,10 @@ public:
 
     virtual void merge_pending_relations(boost::shared_ptr<output_t> other);
     virtual void merge_expire_trees(boost::shared_ptr<output_t> other);
-
-protected:
-
     virtual boost::shared_ptr<id_tracker> get_pending_relations();
     virtual boost::shared_ptr<expire_tiles> get_expire_tree();
+
+protected:
 
     const middle_query_t* m_mid;
     const options_t m_options;

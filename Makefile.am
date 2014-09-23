@@ -16,6 +16,7 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	node-persistent-cache.hpp \
 	node-ram-cache.hpp \
 	options.hpp \
+	osmdata.hpp \
 	osmtypes.hpp \
 	output-gazetteer.hpp \
 	output-null.hpp \
@@ -53,7 +54,7 @@ libosm2pgsql_la_SOURCES = \
 	node-persistent-cache.cpp \
 	node-ram-cache.cpp \
 	options.cpp \
-	osmtypes.cpp \
+	osmdata.cpp \
 	output.cpp \
 	output-gazetteer.cpp \
 	output-multi.cpp \

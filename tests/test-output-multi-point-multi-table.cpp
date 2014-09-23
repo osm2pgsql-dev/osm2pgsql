@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     }
     
     try {
-        struct middle_pgsql_t mid_pgsql;
+        boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
         export_list columns;
         { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
         
-        std::vector<output_t*> outputs;
+        std::vector<boost::shared_ptr<output_t> > outputs;
 
         // let's make lots of tables!
         for (int i = 0; i < 10; ++i) {
@@ -84,13 +84,12 @@ int main(int argc, char *argv[]) {
             boost::shared_ptr<geometry_processor> processor =
                 geometry_processor::create("point", &options);
         
-            struct output_multi_t *out_test =
-                new output_multi_t(name, processor, columns, &mid_pgsql, options);
+            boost::shared_ptr<output_multi_t> out_test(new output_multi_t(name, processor, columns, mid_pgsql.get(), options));
 
             outputs.push_back(out_test);
         }
 
-        osmdata_t osmdata(&mid_pgsql, outputs);
+        osmdata_t osmdata(mid_pgsql, outputs);
         
         boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
         

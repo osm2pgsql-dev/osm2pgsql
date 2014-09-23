@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     }
     
     try {
-        struct middle_pgsql_t mid_pgsql;
+        boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
@@ -72,9 +72,9 @@ int main(int argc, char *argv[]) {
         export_list columns;
         { taginfo info; info.name = "building"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
         
-        struct output_multi_t out_test("foobar_buildings", processor, columns, &mid_pgsql, options);
+        boost::shared_ptr<output_multi_t> out_test(new output_multi_t("foobar_buildings", processor, columns, mid_pgsql.get(), options));
         
-        osmdata_t osmdata(&mid_pgsql, &out_test);
+        osmdata_t osmdata(mid_pgsql, out_test);
         
         boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
         

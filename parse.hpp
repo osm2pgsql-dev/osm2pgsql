@@ -6,7 +6,7 @@
 
 #include "keyvals.hpp"
 #include "reprojection.hpp"
-#include "osmtypes.hpp"
+#include "osmdata.hpp"
 
 #include <boost/shared_ptr.hpp>
 #include <boost/optional.hpp>

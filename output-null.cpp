@@ -34,7 +34,7 @@ void output_null_t::stop() {
 void output_null_t::commit() {
 }
 
-void output_null_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
+void output_null_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
 }
 
 int output_null_t::pending_way(osmid_t id, int exists) {
@@ -77,7 +77,7 @@ int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, i
   return 0;
 }
 
-boost::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) {
+boost::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) const {
     output_null_t *clone = new output_null_t(*this);
     clone->m_mid = cloned_middle;
     return boost::shared_ptr<output_t>(clone);

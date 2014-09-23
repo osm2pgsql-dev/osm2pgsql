@@ -37,7 +37,7 @@ output_multi_t::output_multi_t(const std::string &name,
 
 output_multi_t::output_multi_t(const output_multi_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
-    m_processor(geometry_processor::create(other.m_processor->column_type(), &m_options)), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
+    m_processor(other.m_processor), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
     ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
     m_expire(new expire_tiles(&m_options)) {
 }
@@ -46,11 +46,10 @@ output_multi_t::output_multi_t(const output_multi_t& other):
 output_multi_t::~output_multi_t() {
 }
 
-boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) {
+boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const{
     output_multi_t *clone = new output_multi_t(*this);
     clone->m_mid = cloned_middle;
-    m_clones.push_back(boost::shared_ptr<output_multi_t>(clone));
-    return m_clones.back();
+    return boost::shared_ptr<output_t>(clone);
 }
 
 int output_multi_t::start() {
@@ -86,12 +85,13 @@ size_t output_multi_t::pending_count() const {
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }
 
-void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
+void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
     int ret = 0;
 
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id)) {
         job_queue.push(pending_job_t(id, output_id));
+        added++;
     }
 
     //grab the first one or bail if its not valid
@@ -103,6 +103,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
+            added++;
         }
         popped = ways_pending_tracker->pop_mark();
     }
@@ -113,6 +114,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
     if (!ways_done_tracker->is_marked(popped)) {
         job_queue.push(pending_job_t(popped, output_id));
+        added++;
     }
 }
 
@@ -126,7 +128,7 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
     // Try to fetch the way from the DB
     if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
         // Output the way
-        ret = reprocess_way(id,  nodes_int, count_int, &tags_int, exists);
+        ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
         free(nodes_int);
     }
     resetList(&tags_int);
@@ -228,19 +230,12 @@ void output_multi_t::rel_cb_func::finish(int exists) {
 }
 
 void output_multi_t::stop() {
-    BOOST_FOREACH(boost::shared_ptr<output_multi_t> &clone, m_clones) {
-        clone->m_table->stop();
-        m_expire->merge_and_destroy(*clone->m_expire);
-    }
     m_table->stop();
     m_expire->output_and_destroy();
     m_expire.reset();
 }
 
 void output_multi_t::commit() {
-    BOOST_FOREACH(boost::shared_ptr<output_multi_t> &clone, m_clones) {
-        clone->commit();
-    }
     m_table->commit();
 }
 
@@ -491,15 +486,16 @@ void output_multi_t::delete_from_output(osmid_t id) {
 }
 
 void output_multi_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
-    boost::shared_ptr<id_tracker> tracker = other->get_pending_relations();
+    boost::shared_ptr<id_tracker> tracker = other.get()->get_pending_relations();
     osmid_t id;
     while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
         rels_pending_tracker->mark(id);
     }
 }
+
 void output_multi_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
     if(other->get_expire_tree().get())
-        m_expire->merge_and_destroy(*other->get_expire_tree());
+        m_expire->merge_and_destroy(*other.get()->get_expire_tree());
 }
 
 boost::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {

@@ -65,7 +65,7 @@ struct test_output_t : public output_t {
     virtual ~test_output_t() {
     }
 
-    boost::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) {
+    boost::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) const{
         test_output_t *clone = new test_output_t(*this);
         clone->m_mid = cloned_middle;
         return boost::shared_ptr<output_t>(clone);
@@ -105,7 +105,7 @@ struct test_output_t : public output_t {
     void cleanup(void) { }
     void close(int stopTransaction) { }
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) { }
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) { }
     int pending_way(osmid_t id, int exists) { return 0; }
 
     int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
@@ -140,9 +140,8 @@ int main(int argc, char *argv[]) {
   boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
   options.projection = projection;
 
-  struct test_middle_t mid_test;
-  struct test_output_t out_test(options);
-  struct osmdata_t osmdata(&mid_test, &out_test);
+  boost::shared_ptr<test_output_t> out_test(new test_output_t(options));
+  osmdata_t osmdata(boost::make_shared<test_middle_t>(), out_test);
 
   keyval tags;
   initList(&tags);
@@ -153,12 +152,12 @@ int main(int argc, char *argv[]) {
     return ret;
   }
 
-  assert_equal(out_test.sum_ids,       73514L);
-  assert_equal(out_test.num_nodes,       353L);
-  assert_equal(out_test.num_ways,        140L);
-  assert_equal(out_test.num_relations,    40L);
-  assert_equal(out_test.num_nds,         495L);
-  assert_equal(out_test.num_members,     146L);
+  assert_equal(out_test->sum_ids,       73514L);
+  assert_equal(out_test->num_nodes,       353L);
+  assert_equal(out_test->num_ways,        140L);
+  assert_equal(out_test->num_relations,    40L);
+  assert_equal(out_test->num_nds,         495L);
+  assert_equal(out_test->num_members,     146L);
   
   return 0;
 }

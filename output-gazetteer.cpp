@@ -1071,7 +1071,7 @@ middle_t::cb_func *output_gazetteer_t::relation_callback() {
     return NULL;
 }
 
-void output_gazetteer_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id) {
+void output_gazetteer_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
 }
 
 int output_gazetteer_t::pending_way(osmid_t id, int exists) {
@@ -1413,7 +1413,7 @@ int output_gazetteer_t::relation_modify(osmid_t id, struct member *members, int 
 }
 
 
-boost::shared_ptr<output_t> output_gazetteer_t::clone(const middle_query_t* cloned_middle) {
+boost::shared_ptr<output_t> output_gazetteer_t::clone(const middle_query_t* cloned_middle) const {
     output_gazetteer_t *clone = new output_gazetteer_t(*this);
     clone->m_mid = cloned_middle;
     return boost::shared_ptr<output_t>(clone);

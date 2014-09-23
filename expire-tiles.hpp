@@ -1,8 +1,8 @@
 #ifndef EXPIRE_TILES_H
 #define EXPIRE_TILES_H
 
-#include "output.hpp"
 #include "table.hpp"
+#include "options.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>

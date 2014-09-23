@@ -28,6 +28,7 @@
 #include "parse.hpp"
 #include "middle.hpp"
 #include "output.hpp"
+#include "osmdata.hpp"
 #include "util.hpp"
 #include "text-tree.hpp"
 

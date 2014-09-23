@@ -1,6 +1,7 @@
 #include "id-tracker.hpp"
 
 #include <map>
+#include <vector>
 #include <limits>
 #include <algorithm>
 
