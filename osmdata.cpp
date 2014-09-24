@@ -307,7 +307,7 @@ void osmdata_t::stop() {
     const int append = outs[0]->get_options()->append;
 
     //threaded pending processing
-    pending_threaded_processor ptp(mid, outs, 1, pending_count, append);
+    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs, pending_count, outs[0]->get_options()->append);
 
 	/* Pending ways
      * This stage takes ways which were processed earlier, but might be
