@@ -46,7 +46,7 @@ struct middle_pgsql_t : public slim_middle_t {
     int relation_changed(osmid_t id);
 
     void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(cb_func &cb);
+    void iterate_relations(pending_processor& pf);
 
     size_t pending_count() const;
 

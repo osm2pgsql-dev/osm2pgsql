@@ -258,17 +258,6 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 };
 } // anonymous namespace
 
-middle_t::cb_func *output_pgsql_t::relation_callback()
-{
-    /* Processing any remaing to be processed relations */
-    /* During this stage output tables also need to stay out of
-     * extended transactions, as the delete_way_from_output, called
-     * from process_relation, can deadlock if using multi-processing.
-     */
-    rel_cb_func *rel_callback = new rel_cb_func(this);
-    return rel_callback;
-}
-
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
     int ret = 0;
 
@@ -321,48 +310,48 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
     return ret;
 }
 
-output_pgsql_t::rel_cb_func::rel_cb_func(output_pgsql_t *ptr)
-    : m_ptr(ptr), m_sql(),
-      m_next_internal_id(m_ptr->rels_pending_tracker->pop_mark()) {
+void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+    int ret = 0;
+
+    //make sure we get the one passed in
+    job_queue.push(pending_job_t(id, output_id));
+    added++;
+
+    //grab the first one or bail if its not valid
+    osmid_t popped = rels_pending_tracker->pop_mark();
+    if(!id_tracker::is_valid(popped))
+        return;
+
+    //get all the ones up to the id that was passed in
+    while (popped < id) {
+        job_queue.push(pending_job_t(popped, output_id));
+        added++;
+        popped = rels_pending_tracker->pop_mark();
+    }
+
+    //make sure to get this one as well and move to the next
+    if(popped == id) {
+        popped = rels_pending_tracker->pop_mark();
+    }
+    job_queue.push(pending_job_t(popped, output_id));
+    added++;
 }
 
-output_pgsql_t::rel_cb_func::~rel_cb_func() {}
-
-int output_pgsql_t::rel_cb_func::do_single(osmid_t id, int exists) {
+int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     keyval tags_int;
     member *members_int;
     int count_int;
     int ret = 0;
+
     initList(&tags_int);
-    if (!m_ptr->m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
-        ret = m_ptr->pgsql_process_relation(id, members_int, count_int, &tags_int, exists);
+    // Try to fetch the relation from the DB
+    if (!m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
+        ret = pgsql_process_relation(id, members_int, count_int, &tags_int, exists);
         free(members_int);
     }
     resetList(&tags_int);
+
     return ret;
-}
-
-int output_pgsql_t::rel_cb_func::operator()(osmid_t id, int exists) {
-    int ret = 0;
-
-    //loop through the pending rels up to id
-    while (m_next_internal_id < id) {
-        ret = do_single(m_next_internal_id, exists) + ret > 0 ? 1 : 0;
-        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    ret = do_single(id, exists) + ret > 0 ? 1 : 0;
-    if(m_next_internal_id == id) {
-        m_next_internal_id = m_ptr->rels_pending_tracker->pop_mark();
-    }
-
-    //non zero is bad
-    return ret;
-}
-
-void output_pgsql_t::rel_cb_func::finish(int exists) {
-    operator()(std::numeric_limits<osmid_t>::max(), exists);
 }
 
 void output_pgsql_t::commit()

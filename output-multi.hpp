@@ -31,12 +31,14 @@ public:
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
-    middle_t::cb_func *relation_callback();
     void stop();
     void commit();
 
     void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_way(osmid_t id, int exists);
+
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
+    int pending_relation(osmid_t id, int exists);
 
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
@@ -65,19 +67,6 @@ protected:
     int reprocess_way(osmid_t id, const osmNode* nodes, int node_count, struct keyval *tags, bool exists);
     int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists);
     void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
-
-    struct rel_cb_func : public middle_t::cb_func  {
-        output_multi_t *m_ptr;
-        buffer m_sql;
-        osmid_t m_next_internal_id;
-        rel_cb_func(output_multi_t *ptr);
-        virtual ~rel_cb_func();
-        int operator()(osmid_t id, int exists);
-        int do_single(osmid_t id, int exists);
-        void finish(int exists);
-    };
-
-    friend struct rel_cb_func;
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
     boost::scoped_ptr<export_list> m_export_list;

@@ -152,30 +152,6 @@ void osmdata_t::start() {
 
 namespace {
 
-struct cb_func : public middle_t::cb_func {
-    cb_func() {}
-    void add(middle_t::cb_func *ptr) { m_ptrs.push_back(ptr); }
-    bool empty() const { return m_ptrs.empty(); }
-    virtual ~cb_func() {
-        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
-            delete ptr;
-        }
-    }
-    int operator()(osmid_t id, int exists) {
-        int status = 0;
-        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
-            status |= ptr->operator()(id, exists);
-        }
-        return status;
-    }
-    void finish(int exists) {
-        BOOST_FOREACH(middle_t::cb_func *ptr, m_ptrs) {
-            ptr->finish(exists);
-        }
-    }
-    std::vector<middle_t::cb_func*> m_ptrs;
-};
-
 //TODO: have the main thread using the main middle to query the middle for batches of ways (configurable number)
 //and stuffing those into the work queue, so we have a single producer multi consumer threaded queue
 //since the fetching from middle should be faster than the processing in each backend.
@@ -184,10 +160,18 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
     typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-    static void do_batch(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
+    static void do_batch_ways(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
         pending_job_t job;
         while (queue.pop(job)) {
             outputs.at(job.second)->pending_way(job.first, append);
+            ++ids_done;
+        }
+    }
+
+    static void do_batch_rels(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
+        pending_job_t job;
+        while (queue.pop(job)) {
+            outputs.at(job.second)->pending_relation(job.first, append);
             ++ids_done;
         }
     }
@@ -218,7 +202,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
     ~pending_threaded_processor() {}
 
-    void enqueue(osmid_t id) {
+    void enqueue_ways(osmid_t id) {
         for(size_t i = 0; i < outs.size(); ++i) {
             outs[i]->enqueue_ways(queue, id, i, ids_queued);
         }
@@ -231,7 +215,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-            workers.create_thread(boost::bind(do_batch, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
+            workers.create_thread(boost::bind(do_batch_ways, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
         }
 
         //TODO: print out progress
@@ -254,13 +238,37 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
     }
 
+    void enqueue_relations(osmid_t id) {
+        for(size_t i = 0; i < outs.size(); ++i) {
+            outs[i]->enqueue_relations(queue, id, i, ids_queued);
+        }
+    }
 
     void process_relations() {
-        //after all processing
+        //reset the number we've done
+        ids_done = 0;
 
+        //make the threads and start them
+        for (size_t i = 0; i < clones.size(); ++i) {
+            workers.create_thread(boost::bind(do_batch_rels, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
+        }
 
-        //TODO: commit all the outputs (will finish the copies and commit the transactions)
-        //TODO: collapse the expire_tiles trees
+        //wait for them to really be done
+        workers.join_all();
+        ids_queued = 0;
+
+        //collect all the new rels that became pending from each
+        //output in each thread back to their respective main outputs
+        BOOST_FOREACH(const clone_t& clone, clones) {
+            //for each clone/original output
+            for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
+                original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
+                //done copying ways for now
+                clone_output->get()->commit();
+                //merge the expire tree from this threads copy of output back
+                original_output->get()->merge_expire_trees(*clone_output);
+            }
+        }
     }
 
     int thread_count() {
@@ -309,37 +317,20 @@ void osmdata_t::stop() {
     //threaded pending processing
     pending_threaded_processor ptp(mid, outs, 1, pending_count, append);
 
-	/* Pending ways
-     * This stage takes ways which were processed earlier, but might be
-     * involved in a multipolygon relation. They could also be ways that
-     * were modified in diff processing.
-     */
     if (!outs.empty()) {
+        /* Pending ways
+         * This stage takes ways which were processed earlier, but might be
+         * involved in a multipolygon relation. They could also be ways that
+         * were modified in diff processing.
+         */
         mid->iterate_ways( ptp );
-    }
 
-	/* Pending relations
-	 * This is like pending ways, except there aren't pending relations
-	 * on import, only on update.
-	 * TODO: Can we skip this on import?
-	 */
-    {
-        cb_func callback;
-        BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-            middle_t::cb_func *rel_callback = out->relation_callback();
-            if (rel_callback != NULL) {
-                callback.add(rel_callback);
-            }
-        }
-        if (!callback.empty()) {
-            mid->iterate_relations( callback );
-            callback.finish(append);
-
-            mid->commit();
-            BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-                out->commit();
-            }
-        }
+        /* Pending relations
+         * This is like pending ways, except there aren't pending relations
+         * on import, only on update.
+         * TODO: Can we skip this on import?
+         */
+        mid->iterate_relations( ptp );
     }
 
 	/* Clustering, index creation, and cleanup.
