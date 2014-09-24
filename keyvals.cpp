@@ -4,8 +4,6 @@
  * tags, segment lists etc 
  *
  */
-#define USE_TREE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,12 +11,9 @@
 #include <string.h>
 #include "keyvals.hpp"
 
-#ifdef USE_TREE
-#include "text-tree.hpp"
-
 //TODO: no more globals please, is this objects destructor is racing with references to keyvals?
+#include "text-tree.hpp"
 text_tree tree_ctx;
-#endif
 
 #include <algorithm>
 
@@ -38,13 +33,8 @@ void freeItem(struct keyval *p)
     if (!p) 
         return;
 
-#ifdef USE_TREE
     tree_ctx.text_release(p->key);
     tree_ctx.text_release(p->value);
-#else
-    free(p->key);
-    free(p->value);
-#endif
     free(p);
 }
 
@@ -177,13 +167,8 @@ void updateItem(struct keyval *head, const char *name, const char *value)
     item = head->next;
     while(item != head) {
         if (!strcmp(item->key, name)) {
-#ifdef USE_TREE
             tree_ctx.text_release(item->value);
             item->value = (char *)tree_ctx.text_get(value);
-#else
-            free(item->value);
-            item->value = strdup(value);
-#endif
             return;
         }
         item = item->next;
@@ -249,29 +234,15 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
         return 2;
     }
 
-#ifdef USE_TREE
     item->key   = (char *)tree_ctx.text_get(name);
     item->value = (char *)tree_ctx.text_get(value);
-#else
-    item->key   = strdup(name);
-    item->value = strdup(value);
-#endif
     item->has_column=0;
 
-
-#if 1
     /* Add to head */
     item->next = head->next;
     item->prev = head;
     head->next->prev = item;
     head->next = item;
-#else
-    /* Add to tail */
-    item->prev = head->prev;
-    item->next = head;
-    head->prev->next = item;
-    head->prev = item;
-#endif
     return 0;
 }
 
