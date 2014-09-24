@@ -236,7 +236,7 @@ int processOsmHeader(void *data, size_t length)
     return 0;
   }
   
-  header_block__free_unpacked (hmsg, &protobuf_c_default_allocator);
+  header_block__free_unpacked (hmsg, NULL);
 
   return 1;
 }
@@ -520,7 +520,7 @@ int processOsmData(struct osmdata_t *osmdata, void *data, size_t length)
     if (!processOsmDataRelations(osmdata, group, string_table)) return 0;
   }
 
-  primitive_block__free_unpacked (pmsg, &protobuf_c_default_allocator);
+  primitive_block__free_unpacked (pmsg, NULL);
 
   return 1;
 }
@@ -585,8 +585,8 @@ int streamFilePbf(char *filename, int sanitize UNUSED, struct osmdata_t *osmdata
       }
     }
 
-    blob__free_unpacked (blob_msg, &protobuf_c_default_allocator);
-    block_header__free_unpacked (header_msg, &protobuf_c_default_allocator);
+    blob__free_unpacked (blob_msg, NULL);
+    block_header__free_unpacked (header_msg, NULL);
   } while (!feof(input));
 
   if (!feof(input)) {
