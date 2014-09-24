@@ -176,7 +176,9 @@ struct cb_func : public middle_t::cb_func {
     std::vector<middle_t::cb_func*> m_ptrs;
 };
 
-//TODO: batch ids so we can query more than one at once from the middle
+//TODO: have the main thread using the main middle to query the middle for batches of ways (configurable number)
+//and stuffing those into the work queue, so we have a single producer multi consumer threaded queue
+//since the fetching from middle should be faster than the processing in each backend.
 
 struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;

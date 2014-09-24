@@ -1513,7 +1513,7 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
         }
     }
 
-    return boost::shared_ptr<middle_query_t>(mid);
+    return boost::shared_ptr<const middle_query_t>(mid);
 }
 
 size_t middle_pgsql_t::pending_count() const {

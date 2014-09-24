@@ -31,7 +31,7 @@ m_count_way(0), m_max_way(0), m_count_rel(0), m_max_rel(0), m_start_node(0), m_s
 
 parse_delegate_t::~parse_delegate_t()
 {
-	//FREE THE TAGS?
+	//TODO: FREE THE TAGS?
 }
 int parse_delegate_t::streamFile(const char* input_reader, const char* filename,const int sanitize, osmdata_t *osmdata)
 {
