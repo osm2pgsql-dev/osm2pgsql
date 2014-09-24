@@ -91,7 +91,7 @@ relation_helper::~relation_helper()
     //clean up
     for(size_t i = 0; i < way_count; ++i)
     {
-        resetList(&(tags[i]));
+        keyval::resetList(&(tags[i]));
         free(nodes[i]);
     }
 }
@@ -101,7 +101,7 @@ size_t& relation_helper::set(const member* member_list, const int member_list_le
     //clean up
     for(size_t i = 0; i < way_count; ++i)
     {
-        resetList(&(tags[i]));
+        keyval::resetList(&(tags[i]));
         free(nodes[i]);
     }
 

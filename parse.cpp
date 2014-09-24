@@ -26,12 +26,10 @@ m_count_way(0), m_max_way(0), m_count_rel(0), m_max_rel(0), m_start_node(0), m_s
     if (m_bbox) {
 	parse_bbox(*bbox);
     }
-    initList(&m_tags);
 }
 
 parse_delegate_t::~parse_delegate_t()
 {
-	//TODO: FREE THE TAGS?
 }
 int parse_delegate_t::streamFile(const char* input_reader, const char* filename,const int sanitize, osmdata_t *osmdata)
 {
@@ -101,15 +99,15 @@ parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char
 	// if input_reader is forced to a specific iput format
 	if (strcmp("auto", input_reader) != 0) {
 		if (strcmp("libxml2", input_reader) == 0) {
-			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		} else if (strcmp("primitive", input_reader) == 0) {
-			return new parse_primitive_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_primitive_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 #ifdef BUILD_READER_PBF
 		} else if (strcmp("pbf", input_reader) == 0) {
-			return new parse_pbf_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_pbf_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 #endif
 		} else if (strcmp("o5m", input_reader) == 0) {
-			return new parse_o5m_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_o5m_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		} else {
 			fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
 #ifdef BUILD_READER_PBF
@@ -122,16 +120,16 @@ parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char
 	else {
 		if (strcasecmp(".pbf", filename + strlen(filename) - 4) == 0) {
 #ifdef BUILD_READER_PBF
-			return new parse_pbf_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_pbf_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 #else
 			fprintf(stderr, "ERROR: PBF support has not been compiled into this version of osm2pgsql, please either compile it with pbf support or use one of the other input formats\n");
 			exit(EXIT_FAILURE);
 #endif
 		} else if (strcasecmp(".o5m", filename + strlen(filename) - 4) == 0
 				|| strcasecmp(".o5c", filename + strlen(filename) - 4) == 0) {
-			return new parse_o5m_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_o5m_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		} else {
-			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat, m_tags);
+			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		}
 	}
 }
@@ -139,9 +137,9 @@ parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char
 
 
 parse_t::parse_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-	const double minlon_, const double minlat_, const double maxlon_, const double maxlat_, keyval& tags_):
+	const double minlon_, const double minlat_, const double maxlon_, const double maxlat_):
 		extra_attributes(extra_attributes_), bbox(bbox_), minlon(minlon_), minlat(minlat_),
-		maxlon(maxlon_), maxlat(maxlat_), proj(projection_), tags(tags_)
+		maxlon(maxlon_), maxlat(maxlat_), proj(projection_)
 {
 	osm_id = nd_max = count_node = max_node = count_way = max_way = count_rel = 0;
 	max_rel = parallel_indexing = start_node = start_way = start_rel = 0;

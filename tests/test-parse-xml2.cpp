@@ -144,9 +144,7 @@ int main(int argc, char *argv[]) {
   boost::shared_ptr<test_output_t> out_test(new test_output_t(options));
   osmdata_t osmdata(boost::make_shared<test_middle_t>(), out_test);
 
-  keyval tags;
-  initList(&tags);
-  parse_xml2_t parser(0, false, projection, 0, 0, 0, 0, tags);
+  parse_xml2_t parser(0, false, projection, 0, 0, 0, 0);
 
   int ret = parser.streamFile(inputfile.c_str(), 0, &osmdata);
   if (ret != 0) {

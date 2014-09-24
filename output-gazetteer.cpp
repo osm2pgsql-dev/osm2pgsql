@@ -246,12 +246,12 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    streetnumber = 0;
 
    /* Initialise the result lists */
-   initList(names);
-   initList(places);
-   initList(extratags);
+   keyval::initList(names);
+   keyval::initList(places);
+   keyval::initList(extratags);
 
    /* Loop over the tags */
-   while ((item = popItem(tags)) != NULL)
+   while ((item = keyval::popItem(tags)) != NULL)
    {
 
       /* If this is a name tag, add it to the name list */
@@ -301,11 +301,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          if (strcmp(item->key, "name:prefix") == 0)
          {
-            pushItem(extratags, item);
+            keyval::pushItem(extratags, item);
          }
          else
          {
-            pushItem(names, item);
+            keyval::pushItem(names, item);
          }
       }
       else if (strcmp(item->key, "emergency") == 0 ||
@@ -316,11 +316,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          if (strcmp(item->value, "no") && strcmp(item->value, "yes"))
          {
-            pushItem(places, item);
+            keyval::pushItem(places, item);
          }
          else
          {
-            freeItem(item);
+            keyval::freeItem(item);
          }
       }
       else if (strcmp(item->key, "highway") == 0)
@@ -332,11 +332,11 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
              strcmp(item->value, "noexit") &&
              strcmp(item->value, "crossing"))
          {
-             pushItem(places, item);
+             keyval::pushItem(places, item);
          }
          else
          {
-             freeItem(item);
+             keyval::freeItem(item);
          }
       }
       else if (strcmp(item->key, "aerialway") == 0 ||
@@ -353,7 +353,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          if (strcmp(item->value, "no"))
          {
-            pushItem(places, item);
+            keyval::pushItem(places, item);
             if (strcmp(item->key, "boundary") == 0 && strcmp(item->value, "administrative") == 0)
             {
                placeadmin = 1;
@@ -361,13 +361,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          }
          else
          {
-            freeItem(item);
+            keyval::freeItem(item);
          }
       }
       else if (strcmp(item->key, "waterway") == 0 &&
                strcmp(item->value, "riverbank") != 0)
       {
-            pushItem(places, item);
+            keyval::pushItem(places, item);
       }
       else if (strcmp(item->key, "place") == 0) 
       {
@@ -375,13 +375,13 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       }
       else if (strcmp(item->key, "addr:housename") == 0)
       {
-         pushItem(names, item);
+         keyval::pushItem(names, item);
          placehouse = 1;
       }
       else if (strcmp(item->key, "landuse") == 0)
       {
          if (strcmp(item->value, "cemetery") == 0)
-            pushItem(places, item);
+            keyval::pushItem(places, item);
          else
             landuse = item;
       }
@@ -393,7 +393,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "tiger:zip_right") == 0)
       {
          if (*postcode)
-	        freeItem(item);
+	        keyval::freeItem(item);
          else
             *postcode = item;
       }
@@ -424,7 +424,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
           /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
          if (*housenumber)
-             freeItem(item);
+             keyval::freeItem(item);
          else {
              *housenumber = item;
              placehouse = 1;
@@ -433,7 +433,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "addr:conscriptionnumber") == 0)
       {
          if (conscriptionnumber)
-             freeItem(item);
+             keyval::freeItem(item);
          else {
              conscriptionnumber = item;
              placehouse = 1;
@@ -442,7 +442,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       else if (strcmp(item->key, "addr:streetnumber") == 0)
       {
          if (streetnumber)
-             freeItem(item);
+             keyval::freeItem(item);
          else {
              streetnumber = item;
              placehouse = 1;
@@ -452,10 +452,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
           /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
           if (*housenumber) {
-              freeItem(item);
+              keyval::freeItem(item);
           } else {
              *housenumber = item; 
-             addItem(places, "place", "houses", 1);
+             keyval::addItem(places, "place", "houses", 1);
           }
       }
       else if (strcmp(item->key, "tiger:county") == 0)
@@ -470,7 +470,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          strncpy(*isin+1+isinsize, item->value, subval);
          strcpy(*isin+1+isinsize+subval, " county");
          isinsize += 8 + subval;
-         freeItem(item);
+         keyval::freeItem(item);
       }
       else if (strcmp(item->key, "is_in") == 0 ||
           (strncmp(item->key, "is_in:", 5) == 0) ||
@@ -484,12 +484,12 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          *(*isin+isinsize) = ',';
          strcpy(*isin+1+isinsize, item->value);
          isinsize += 1 + strlen(item->value);
-         freeItem(item);
+         keyval::freeItem(item);
       }
       else if (strcmp(item->key, "admin_level") == 0)
       {
          *admin_level = atoi(item->value);
-         freeItem(item);
+         keyval::freeItem(item);
       }
       else if (strcmp(item->key, "tracktype") == 0 ||
                strcmp(item->key, "traffic_calming") == 0 ||
@@ -565,20 +565,20 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
                (strncmp(item->key, "wikipedia:", 10) == 0)
                )
       {
-          pushItem(extratags, item);
+          keyval::pushItem(extratags, item);
       }
       else if (strcmp(item->key, "building") == 0)
       {
           placebuilding = 1;
-          freeItem(item);
+          keyval::freeItem(item);
       }
       else if (strcmp(item->key, "mountain_pass") == 0)
       {
-          pushItem(places, item);
+          keyval::pushItem(places, item);
       }
       else
       {
-         freeItem(item);
+         keyval::freeItem(item);
       }
    }
 
@@ -592,19 +592,19 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    {
       if (*housenumber)
       {
-         freeItem(*housenumber);
+         keyval::freeItem(*housenumber);
       }
       if (!conscriptionnumber)
       {
-         addItem(tags, "addr:housenumber", streetnumber->value, 0);
-         freeItem(streetnumber);
-         *housenumber = popItem(tags);
+         keyval::addItem(tags, "addr:housenumber", streetnumber->value, 0);
+         keyval::freeItem(streetnumber);
+         *housenumber = keyval::popItem(tags);
       }
       if (!streetnumber)
       {
-         addItem(tags, "addr:housenumber", conscriptionnumber->value, 10);
-         freeItem(conscriptionnumber);
-         *housenumber = popItem(tags);
+         keyval::addItem(tags, "addr:housenumber", conscriptionnumber->value, 10);
+         keyval::freeItem(conscriptionnumber);
+         *housenumber = keyval::popItem(tags);
       }
       if (conscriptionnumber && streetnumber)
       {
@@ -613,10 +613,10 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
          completenumber = (char *)realloc(completenumber, completenumberlength + 2 + strlen(streetnumber->value));
          *(completenumber + completenumberlength) = '/';
          strcpy(completenumber + completenumberlength + 1, streetnumber->value);
-         freeItem(conscriptionnumber);
-         freeItem(streetnumber);
-         addItem(tags, "addr:housenumber", completenumber, 0);
-         *housenumber = popItem(tags);
+         keyval::freeItem(conscriptionnumber);
+         keyval::freeItem(streetnumber);
+         keyval::addItem(tags, "addr:housenumber", completenumber, 0);
+         *housenumber = keyval::popItem(tags);
          free(completenumber);
       }
     }
@@ -625,40 +625,40 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
    {
       if (placeadmin)
       {
-         pushItem(extratags, place);
+         keyval::pushItem(extratags, place);
       } 
       else
       {
-         pushItem(places, place);
+         keyval::pushItem(places, place);
       }
    }
 
-   if (placehouse && !listHasData(places))
+   if (placehouse && !keyval::listHasData(places))
    {
-      addItem(places, "place", "house", 1);
+      keyval::addItem(places, "place", "house", 1);
    }
 
    /* Fallback place types - only used if we didn't create something more specific already */
-   if (placebuilding && !listHasData(places) && (listHasData(names) || *housenumber || *postcode))
+   if (placebuilding && !keyval::listHasData(places) && (keyval::listHasData(names) || *housenumber || *postcode))
    {
-      addItem(places, "building", "yes", 1);
+      keyval::addItem(places, "building", "yes", 1);
    }
 
    if (landuse)
    {
-      if (!listHasData(places) && listHasData(names))
+      if (!keyval::listHasData(places) && keyval::listHasData(names))
       {
-          pushItem(places, landuse);
+          keyval::pushItem(places, landuse);
       }
       else
       {
-          freeItem(landuse);
+          keyval::freeItem(landuse);
       }
    }
 
-   if (*postcode && !listHasData(places))
+   if (*postcode && !keyval::listHasData(places))
    {
-      addItem(places, "place", "postcode", 1);
+      keyval::addItem(places, "place", "postcode", 1);
    }
 
    /* Try to convert everything to an area */
@@ -715,7 +715,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
     } else {
         for (i = 0; i < sz; i++) {
             cls = PQgetvalue(res, i, 0);
-            if (!getItem(places, cls)) {
+            if (!keyval::getItem(places, cls)) {
                 if (!clslist) {
                     clslist = (char *)malloc(strlen(cls)+3);
                     sprintf(clslist, "'%s'", cls);
@@ -761,10 +761,10 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
    copy_data("\t");
 
    /* start name array */
-   if (listHasData(names))
+   if (keyval::listHasData(names))
    {
       first = 1;
-      for (name = firstItem(names); name; name = nextItem(names, name))
+      for (name = keyval::firstItem(names); name; name = keyval::nextItem(names, name))
       {
          if (first) first = 0;
          else copy_data(", ");
@@ -859,10 +859,10 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
    }
 
    /* extra tags array */
-   if (listHasData(extratags))
+   if (keyval::listHasData(extratags))
    {
       first = 1;
-      for (name = firstItem(extratags); name; name = nextItem(extratags, name))
+      for (name = keyval::firstItem(extratags); name; name = keyval::nextItem(extratags, name))
       {
          if (first) first = 0;
          else copy_data(", ");
@@ -917,10 +917,10 @@ static void add_polygon_error(char osm_type, osmid_t osm_id, const char *key_cla
    copy_error_data("\t");
 
    /* start name array */
-   if (listHasData(names))
+   if (keyval::listHasData(names))
    {
       first = 1;
-      for (name = firstItem(names); name; name = nextItem(names, name))
+      for (name = keyval::firstItem(names); name; name = keyval::nextItem(names, name))
       {
          if (first) first = 0;
          else copy_error_data(", ");
@@ -1116,26 +1116,26 @@ int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lo
        delete_unused_classes('N', id, &places);
 
    /* Are we interested in this item? */
-   if (listHasData(&places))
+   if (keyval::listHasData(&places))
    {
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
-      for (place = firstItem(&places); place; place = nextItem(&places, place))
+      for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
       {
          add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
       }
    }
 
-   if (housenumber) freeItem(housenumber);
-   if (street) freeItem(street);
-   if (addr_place) freeItem(addr_place);
+   if (housenumber) keyval::freeItem(housenumber);
+   if (street) keyval::freeItem(street);
+   if (addr_place) keyval::freeItem(addr_place);
    if (isin) free(isin);
-   if (postcode) freeItem(postcode);
-   if (countrycode) freeItem(countrycode);
+   if (postcode) keyval::freeItem(postcode);
+   if (countrycode) keyval::freeItem(countrycode);
 
    /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-   resetList(&extratags);
+   keyval::resetList(&names);
+   keyval::resetList(&places);
+   keyval::resetList(&extratags);
 
    return 0;
 }
@@ -1168,7 +1168,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
        delete_unused_classes('W', id, &places);
 
    /* Are we interested in this item? */
-   if (listHasData(&places))
+   if (keyval::listHasData(&places))
    {
       struct osmNode *nodev;
       int nodec;
@@ -1181,7 +1181,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
       geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodev, nodec, area);
       if (wkt)
       {
-         for (place = firstItem(&places); place; place = nextItem(&places, place))
+         for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
          {
             add_place('W', id, place->key, place->value, &names, &extratags, adminlevel,
                       housenumber, street, addr_place, isin, postcode, countrycode, wkt->geom.c_str());
@@ -1192,17 +1192,17 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
       free(nodev);
    }
 
-   if (housenumber) freeItem(housenumber);
-   if (street) freeItem(street);
-   if (addr_place) freeItem(addr_place);
+   if (housenumber) keyval::freeItem(housenumber);
+   if (street) keyval::freeItem(street);
+   if (addr_place) keyval::freeItem(addr_place);
    if (isin) free(isin);
-   if (postcode) freeItem(postcode);
-   if (countrycode) freeItem(countrycode);
+   if (postcode) keyval::freeItem(postcode);
+   if (countrycode) keyval::freeItem(countrycode);
 
    /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-   resetList(&extratags);
+   keyval::resetList(&names);
+   keyval::resetList(&places);
+   keyval::resetList(&extratags);
 
    return 0;
 }
@@ -1229,7 +1229,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    const char *type;
    int cmp_waterway;
 
-   type = getItem(tags, "type");
+   type = keyval::getItem(tags, "type");
    if (!type) {
       if (delete_old) delete_unused_classes('R', id, 0); 
       return 0;
@@ -1259,12 +1259,12 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    if (delete_old)
        delete_unused_classes('R', id, &places);
 
-   if (listHasData(&places))
+   if (keyval::listHasData(&places))
    {
       /* get the boundary path (ways) */
       int i, count;
       int *xcount = (int *)malloc( (member_count+1) * sizeof(int) );
-      struct keyval *xtags  = (struct keyval *)malloc( (member_count+1) * sizeof(struct keyval) );
+      keyval *xtags  = new keyval[member_count+1];
       struct osmNode **xnodes = (struct osmNode **)malloc( (member_count+1) * sizeof(struct osmNode*) );
       osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
 
@@ -1282,7 +1282,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       {
           if (delete_old) delete_unused_classes('R', id, 0);
           free(xcount);
-          free(xtags);
+          delete [] xtags;
           free(xnodes);
           free(xid2);
           return 0;
@@ -1301,7 +1301,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          {
             if ((boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON")))
             {
-                for (place = firstItem(&places); place; place = nextItem(&places, place))
+                for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
                 {
                    add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
                              isin, postcode, countrycode, wkt->geom.c_str());
@@ -1318,7 +1318,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, xcount, id);
          if ((wkt->geom).length() > 0)
          {
-            for (place = firstItem(&places); place; place = nextItem(&places, place))
+            for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
             {
                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
                          isin, postcode, countrycode, wkt->geom.c_str());
@@ -1327,28 +1327,28 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       }
       for( i=0; i<count; i++ )
       {
-         resetList( &(xtags[i]) );
+         keyval::resetList( &(xtags[i]) );
          free( xnodes[i] );
       }
 
       free(xid);
       free(xid2);
       free(xcount);
-      free(xtags);
+      delete [] xtags;
       free(xnodes);
    }
 
-   if (housenumber) freeItem(housenumber);
-   if (street) freeItem(street);
-   if (addr_place) freeItem(addr_place);
+   if (housenumber) keyval::freeItem(housenumber);
+   if (street) keyval::freeItem(street);
+   if (addr_place) keyval::freeItem(addr_place);
    if (isin) free(isin);
-   if (postcode) freeItem(postcode);
-   if (countrycode) freeItem(countrycode);
+   if (postcode) keyval::freeItem(postcode);
+   if (countrycode) keyval::freeItem(countrycode);
 
    /* Free tag lists */
-   resetList(&names);
-   resetList(&places);
-   resetList(&extratags);
+   keyval::resetList(&names);
+   keyval::resetList(&places);
+   keyval::resetList(&extratags);
 
    return 0;
 }

@@ -181,7 +181,7 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
             while ((p = strchr(k, ' ')))
                 *p = '_';
 
-            addItem(&(tags), k, (char *)xv, 0);
+            keyval::addItem(&(tags), k, (char *)xv, 0);
             xmlFree(k);
             xmlFree(xv);
         }
@@ -246,31 +246,31 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
 
         xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
         if (xtmp) {
-	    addItem(&(tags), "osm_user", (char *)xtmp, 0);
+	    keyval::addItem(&(tags), "osm_user", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
 
         xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
         if (xtmp) {
-	    addItem(&(tags), "osm_uid", (char *)xtmp, 0);
+	    keyval::addItem(&(tags), "osm_uid", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
 
         xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
         if (xtmp) {
-	    addItem(&(tags), "osm_version", (char *)xtmp, 0);
+	    keyval::addItem(&(tags), "osm_version", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
 
         xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
         if (xtmp) {
-	    addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
+	    keyval::addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
 
         xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
         if (xtmp) {
-	    addItem(&(tags), "osm_changeset", (char *)xtmp, 0);
+	    keyval::addItem(&(tags), "osm_changeset", (char *)xtmp, 0);
             xmlFree(xtmp);
         }
     }
@@ -294,7 +294,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
                 util::exit_nicely();
             }
         }
-        resetList(&(tags));
+        keyval::resetList(&(tags));
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
         if( action == ACTION_CREATE )
 	    osmdata->way_add(osm_id, nds, nd_count, &(tags) );
@@ -307,7 +307,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        resetList(&(tags));
+        keyval::resetList(&(tags));
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         if( action == ACTION_CREATE )
 	    osmdata->relation_add(osm_id, members, member_count, &(tags));
@@ -320,7 +320,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        resetList(&(tags));
+        keyval::resetList(&(tags));
         resetMembers();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
@@ -343,7 +343,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
         /* ignore */
-	resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
+	keyval::resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "create")) {
@@ -384,8 +384,8 @@ void parse_xml2_t::processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdat
 }
 
 parse_xml2_t::parse_xml2_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+		const double minlon, const double minlat, const double maxlon, const double maxlat):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
 {
     LIBXML_TEST_VERSION;
 }

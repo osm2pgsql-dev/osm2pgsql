@@ -219,7 +219,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
             while ((p = strchr(xk, ' ')))
                 *p = '_';
 
-            addItem(&(tags), xk, (char *)xv, 0);
+            keyval::addItem(&(tags), xk, (char *)xv, 0);
         }
     } else if (!strcmp(name, "way")) {
 
@@ -316,22 +316,22 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
 
         xtmp = extractAttribute(token, tokens, "user");
         if (xtmp) {
-	  addItem(&(tags), "osm_user", (char *)xtmp, 0);
+	  keyval::addItem(&(tags), "osm_user", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "uid");
         if (xtmp) {
-	  addItem(&(tags), "osm_uid", (char *)xtmp, 0);
+	  keyval::addItem(&(tags), "osm_uid", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "version");
         if (xtmp) {
-	  addItem(&(tags), "osm_version", (char *)xtmp, 0);
+	  keyval::addItem(&(tags), "osm_version", (char *)xtmp, 0);
         }
 
         xtmp = extractAttribute(token, tokens, "timestamp");
         if (xtmp) {
-	  addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
+	  keyval::addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
         }
     }
 }
@@ -353,7 +353,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
 	      util::exit_nicely();
             }
         }
-      resetList(&(tags));
+      keyval::resetList(&(tags));
     } else if (!strcmp(name, "way")) {
       if( action == ACTION_CREATE )
 	osmdata->way_add(osm_id, nds, nd_count, &(tags) );
@@ -366,7 +366,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-      resetList(&(tags));
+      keyval::resetList(&(tags));
     } else if (!strcmp(name, "relation")) {
         if( action == ACTION_CREATE )
 	  osmdata->relation_add(osm_id, members, member_count, &(tags));
@@ -379,7 +379,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
 	  fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
 	  util::exit_nicely();
         }
-        resetList(&(tags));
+        keyval::resetList(&(tags));
         resetMembers();
     } else if (!strcmp(name, "tag")) {
         /* ignore */
@@ -402,7 +402,7 @@ void parse_primitive_t::EndElement(const char *name, struct osmdata_t *osmdata)
         /* ignore */
     } else if (!strcmp(name, "changeset")) {
         /* ignore */
-      resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
+      keyval::resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (!strcmp(name, "add")) {
         action = ACTION_NONE;
     } else if (!strcmp(name, "create")) {
@@ -450,8 +450,8 @@ void parse_primitive_t::process(char *line, struct osmdata_t *osmdata) {
 }
 
 parse_primitive_t::parse_primitive_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+		const double minlon, const double minlat, const double maxlon, const double maxlat):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
 {
 
 }
