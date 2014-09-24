@@ -38,12 +38,12 @@ static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 namespace {
 int add_z_order(keyval *tags, int *roads) {
-    const char *layer = getItem(tags, "layer");
-    const char *highway = getItem(tags, "highway");
-    const char *bridge = getItem(tags, "bridge");
-    const char *tunnel = getItem(tags, "tunnel");
-    const char *railway = getItem(tags, "railway");
-    const char *boundary = getItem(tags, "boundary");
+    const char *layer = keyval::getItem(tags, "layer");
+    const char *highway = keyval::getItem(tags, "highway");
+    const char *bridge = keyval::getItem(tags, "bridge");
+    const char *tunnel = keyval::getItem(tags, "tunnel");
+    const char *railway = keyval::getItem(tags, "railway");
+    const char *boundary = keyval::getItem(tags, "boundary");
 
     int z_order = 0;
     int l;
@@ -83,7 +83,7 @@ int add_z_order(keyval *tags, int *roads) {
         z_order -= 10;
 
     snprintf(z, sizeof(z), "%d", z_order);
-    addItem(tags, "z_order", z, 0);
+    keyval::addItem(tags, "z_order", z, 0);
 
     return 0;
 }
@@ -100,7 +100,7 @@ unsigned int c_filter_rel_member_tags(
     int first_outerway, contains_tag;
 
     //if it has a relation figure out what kind it is
-    type = getItem(rel_tags, "type");
+    type = keyval::getItem(rel_tags, "type");
     bool is_route = false, is_boundary = false, is_multipolygon = false;
     if(type)
     {
@@ -115,22 +115,22 @@ unsigned int c_filter_rel_member_tags(
     }
 
     /* Clone tags from relation */
-    initList(&tags);
-    initList(&poly_tags);
+    keyval::initList(&tags);
+    keyval::initList(&poly_tags);
     p = rel_tags->next;
     while (p != rel_tags) {
         //copy the name tag as "route_name"
         if (is_route && (strcmp(p->key, "name") == 0))
-            addItem(&tags, "route_name", p->value, 1);
+            keyval::addItem(&tags, "route_name", p->value, 1);
         //copy all other tags except for "type"
         else if (strcmp(p->key, "type"))
-            addItem(&tags, p->key, p->value, 1);
+            keyval::addItem(&tags, p->key, p->value, 1);
         p = p->next;
     }
 
     if (is_route) {
-        const char *state = getItem(rel_tags, "state");
-        const char *netw = getItem(rel_tags, "network");
+        const char *state = keyval::getItem(rel_tags, "state");
+        const char *netw = keyval::getItem(rel_tags, "network");
         int networknr = -1;
 
         if (state == NULL ) {
@@ -141,87 +141,87 @@ unsigned int c_filter_rel_member_tags(
             if (strcmp(netw, "lcn") == 0) {
                 networknr = 10;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "lcn", "alternate", 1);
+                    keyval::addItem(&tags, "lcn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "lcn", "connection", 1);
+                    keyval::addItem(&tags, "lcn", "connection", 1);
                 } else {
-                    addItem(&tags, "lcn", "yes", 1);
+                    keyval::addItem(&tags, "lcn", "yes", 1);
                 }
             } else if (strcmp(netw, "rcn") == 0) {
                 networknr = 11;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "rcn", "alternate", 1);
+                    keyval::addItem(&tags, "rcn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "rcn", "connection", 1);
+                    keyval::addItem(&tags, "rcn", "connection", 1);
                 } else {
-                    addItem(&tags, "rcn", "yes", 1);
+                    keyval::addItem(&tags, "rcn", "yes", 1);
                 }
             } else if (strcmp(netw, "ncn") == 0) {
                 networknr = 12;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "ncn", "alternate", 1);
+                    keyval::addItem(&tags, "ncn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "ncn", "connection", 1);
+                    keyval::addItem(&tags, "ncn", "connection", 1);
                 } else {
-                    addItem(&tags, "ncn", "yes", 1);
+                    keyval::addItem(&tags, "ncn", "yes", 1);
                 }
 
             } else if (strcmp(netw, "lwn") == 0) {
                 networknr = 20;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "lwn", "alternate", 1);
+                    keyval::addItem(&tags, "lwn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "lwn", "connection", 1);
+                    keyval::addItem(&tags, "lwn", "connection", 1);
                 } else {
-                    addItem(&tags, "lwn", "yes", 1);
+                    keyval::addItem(&tags, "lwn", "yes", 1);
                 }
             } else if (strcmp(netw, "rwn") == 0) {
                 networknr = 21;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "rwn", "alternate", 1);
+                    keyval::addItem(&tags, "rwn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "rwn", "connection", 1);
+                    keyval::addItem(&tags, "rwn", "connection", 1);
                 } else {
-                    addItem(&tags, "rwn", "yes", 1);
+                    keyval::addItem(&tags, "rwn", "yes", 1);
                 }
             } else if (strcmp(netw, "nwn") == 0) {
                 networknr = 22;
                 if (strcmp(state, "alternate") == 0) {
-                    addItem(&tags, "nwn", "alternate", 1);
+                    keyval::addItem(&tags, "nwn", "alternate", 1);
                 } else if (strcmp(state, "connection") == 0) {
-                    addItem(&tags, "nwn", "connection", 1);
+                    keyval::addItem(&tags, "nwn", "connection", 1);
                 } else {
-                    addItem(&tags, "nwn", "yes", 1);
+                    keyval::addItem(&tags, "nwn", "yes", 1);
                 }
             }
         }
 
-        if (getItem(rel_tags, "preferred_color") != NULL ) {
-            const char *a = getItem(rel_tags, "preferred_color");
+        if (keyval::getItem(rel_tags, "preferred_color") != NULL ) {
+            const char *a = keyval::getItem(rel_tags, "preferred_color");
             if (strcmp(a, "0") == 0 || strcmp(a, "1") == 0
                     || strcmp(a, "2") == 0 || strcmp(a, "3") == 0
                     || strcmp(a, "4") == 0) {
-                addItem(&tags, "route_pref_color", a, 1);
+                keyval::addItem(&tags, "route_pref_color", a, 1);
             } else {
-                addItem(&tags, "route_pref_color", "0", 1);
+                keyval::addItem(&tags, "route_pref_color", "0", 1);
             }
         } else {
-            addItem(&tags, "route_pref_color", "0", 1);
+            keyval::addItem(&tags, "route_pref_color", "0", 1);
         }
 
-        if (getItem(rel_tags, "ref") != NULL ) {
+        if (keyval::getItem(rel_tags, "ref") != NULL ) {
             if (networknr == 10) {
-                addItem(&tags, "lcn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "lcn_ref", keyval::getItem(rel_tags, "ref"), 1);
             } else if (networknr == 11) {
-                addItem(&tags, "rcn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "rcn_ref", keyval::getItem(rel_tags, "ref"), 1);
             } else if (networknr == 12) {
-                addItem(&tags, "ncn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "ncn_ref", keyval::getItem(rel_tags, "ref"), 1);
             } else if (networknr == 20) {
-                addItem(&tags, "lwn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "lwn_ref", keyval::getItem(rel_tags, "ref"), 1);
             } else if (networknr == 21) {
-                addItem(&tags, "rwn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "rwn_ref", keyval::getItem(rel_tags, "ref"), 1);
             } else if (networknr == 22) {
-                addItem(&tags, "nwn_ref", getItem(rel_tags, "ref"), 1);
+                keyval::addItem(&tags, "nwn_ref", keyval::getItem(rel_tags, "ref"), 1);
             }
         }
     } else if (is_boundary) {
@@ -230,7 +230,7 @@ unsigned int c_filter_rel_member_tags(
          - Polygon features also go into the polygon table (useful for national_forests)
          The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately. */
         *make_boundary = 1;
-    } else if (is_multipolygon && getItem(&tags, "boundary")) {
+    } else if (is_multipolygon && keyval::getItem(&tags, "boundary")) {
         /* Treat type=multipolygon exactly like type=boundary if it has a boundary tag. */
         *make_boundary = 1;
     } else if (is_multipolygon) {
@@ -241,14 +241,14 @@ unsigned int c_filter_rel_member_tags(
         p = tags.next;
         while (p != &tags) {
             if (!strcmp(p->key, "area")) {
-                addItem(&poly_tags, p->key, p->value, 1);
+                keyval::addItem(&poly_tags, p->key, p->value, 1);
             } else {
                 const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
                 for (i = 0; i < infos.size(); i++) {
                     const taginfo &info = infos[i];
                     if (strcmp(info.name.c_str(), p->key) == 0) {
                         if (info.flags & FLAG_POLYGON) {
-                            addItem(&poly_tags, p->key, p->value, 1);
+                            keyval::addItem(&poly_tags, p->key, p->value, 1);
                         }
                         break;
                     }
@@ -259,7 +259,7 @@ unsigned int c_filter_rel_member_tags(
 
         /* Copy the tags from the outer way(s) if the relation is untagged (with
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
-        if (!listHasData(&poly_tags)) {
+        if (!keyval::listHasData(&poly_tags)) {
             first_outerway = 1;
             for (i = 0; i < member_count; i++) {
                 if (member_roles[i] && !strcmp(member_roles[i], "inner"))
@@ -269,7 +269,7 @@ unsigned int c_filter_rel_member_tags(
                 if (first_outerway) {
                     p = member_tags[i].next;
                     while (p != &(member_tags[i])) {
-                        addItem(&poly_tags, p->key, p->value, 1);                        
+                        keyval::addItem(&poly_tags, p->key, p->value, 1);                        
                         p = p->next;
                     }
                 } else {
@@ -278,13 +278,13 @@ unsigned int c_filter_rel_member_tags(
                        all outer ways to be copied over to the relation */
                     q = poly_tags.next; 
                     while (q != &poly_tags) {
-                        p = getTag(&(member_tags[i]), q->key);
+                        p = keyval::getTag(&(member_tags[i]), q->key);
                         if ((p != NULL) && (strcmp(q->value, p->value) == 0)) {
                             q = q->next;
                         } else {
                             /* This tag is not present on all member outer ways, so don't copy it over to relation */
                             qq = q->next;
-                            removeTag(q);
+                            keyval::removeTag(q);
                             q = qq;
                         }
                     }
@@ -294,7 +294,7 @@ unsigned int c_filter_rel_member_tags(
             /* Copy the list identified outer way tags over to the relation */
             q = poly_tags.next; 
             while (q != &poly_tags) {
-                addItem(&tags, q->key, q->value, 1);                        
+                keyval::addItem(&tags, q->key, q->value, 1);                        
                 q = q->next;
             }
 
@@ -314,24 +314,24 @@ unsigned int c_filter_rel_member_tags(
                 }
                 if (contains_tag == 0) {
                     qq = q->next;
-                    removeTag(q);
+                    keyval::removeTag(q);
                     q = qq;
                 } else {
                     q = q->next;
                 }
             }
         }
-        resetList(&poly_tags);
+        keyval::resetList(&poly_tags);
     } else if(!allow_typeless) {
         /* Unknown type, just exit */
-        resetList(&tags);
-        resetList(&poly_tags);
+        keyval::resetList(&tags);
+        keyval::resetList(&poly_tags);
         return 1;
     }
 
-    if (!listHasData(&tags)) {
-        resetList(&tags);
-        resetList(&poly_tags);
+    if (!keyval::listHasData(&tags)) {
+        keyval::resetList(&tags);
+        keyval::resetList(&poly_tags);
         return 1;
     }
 
@@ -343,7 +343,7 @@ unsigned int c_filter_rel_member_tags(
             int match = 1;
             struct keyval *p = member_tags[i].next;
             while (p != &(member_tags[i])) {
-                const char *v = getItem(&tags, p->key);
+                const char *v = keyval::getItem(&tags, p->key);
                 if (!v || strcmp(v, p->value)) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
                     if ((strcmp(p->key, "z_order") != 0) && (strcmp(p->key, "osm_user") != 0) && 
@@ -363,9 +363,9 @@ unsigned int c_filter_rel_member_tags(
         }
     }
 
-    resetList(rel_tags);
-    cloneList(rel_tags, &tags);
-    resetList(&tags);
+    keyval::resetList(rel_tags);
+    keyval::cloneList(rel_tags, &tags);
+    keyval::resetList(&tags);
 
     add_z_order(rel_tags, roads);
 
@@ -389,11 +389,11 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
     lua_newtable(L);    /* relations key value table */
 
     idx = 1;
-    while( (item = popItem(rel_tags)) != NULL ) {
+    while( (item = keyval::popItem(rel_tags)) != NULL ) {
         lua_pushstring(L, item->key);
         lua_pushstring(L, item->value);
         lua_rawset(L, -3);
-        freeItem(item);
+        keyval::freeItem(item);
         count++;
     }
 
@@ -402,11 +402,11 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
     for (i = 1; i <= member_count; i++) {
         lua_pushnumber(L, i);
         lua_newtable(L);    /* member key value table */
-        while( (item = popItem(&(member_tags[i - 1]))) != NULL ) {
+        while( (item = keyval::popItem(&(member_tags[i - 1]))) != NULL ) {
             lua_pushstring(L, item->key);
             lua_pushstring(L, item->value);
             lua_rawset(L, -3);
-            freeItem(item);
+            keyval::freeItem(item);
             count++;
         }
         lua_rawset(L, -3);
@@ -450,7 +450,7 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
     while (lua_next(L,-2) != 0) {
         key = lua_tostring(L,-2);
         value = lua_tostring(L,-1);
-        addItem(rel_tags, key, value, 0);
+        keyval::addItem(rel_tags, key, value, 0);
         lua_pop(L,1);
     }
     lua_pop(L,1);
@@ -583,11 +583,11 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
     lua_newtable(L);    /* key value table */
 
     idx = 1;
-    while( (item = popItem(tags)) != NULL ) {
+    while( (item = keyval::popItem(tags)) != NULL ) {
         lua_pushstring(L, item->key);
         lua_pushstring(L, item->value);
         lua_rawset(L, -3);
-        freeItem(item);
+        keyval::freeItem(item);
         count++;
     }
 
@@ -611,7 +611,7 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
     while (lua_next(L,-2) != 0) {
         key = lua_tostring(L,-2);
         value = lua_tostring(L,-1);
-        addItem(tags, key, value, 0);
+        keyval::addItem(tags, key, value, 0);
         lua_pop(L,1);
     }
 
@@ -639,7 +639,7 @@ unsigned int tagtransform::c_filter_basic_tags(
 
     //a place to keep the tags we like as we go
     struct keyval temp;
-    initList(&temp);
+    keyval::initList(&temp);
 
     enum OsmType export_type;
     if (type == OSMTYPE_RELATION) {
@@ -651,11 +651,11 @@ unsigned int tagtransform::c_filter_basic_tags(
     /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
     //pop each tag off and keep it in the temp list if we like it
     struct keyval *item;
-    while ((item = popItem(tags)) != NULL ) {
+    while ((item = keyval::popItem(tags)) != NULL ) {
         //if we want to do more than the export list says
         if(!strict) {
             if (type == OSMTYPE_RELATION && !strcmp("type", item->key)) {
-                pushItem(&temp, item);
+                keyval::pushItem(&temp, item);
                 item = NULL;
                 filter = 0;
                 continue;
@@ -669,7 +669,7 @@ unsigned int tagtransform::c_filter_basic_tags(
             /* Discard natural=coastline tags (we render these from a shapefile instead) */
             if (!options->keep_coastlines && !strcmp("natural", item->key)
                     && !strcmp("coastline", item->value)) {
-                freeItem(item);
+                keyval::freeItem(item);
                 item = NULL;
                 continue;
             }
@@ -682,7 +682,7 @@ unsigned int tagtransform::c_filter_basic_tags(
             const taginfo &info = infos[i];
             if (wildMatch(info.name.c_str(), item->key)) {
                 if (info.flags & FLAG_DELETE) {
-                    freeItem(item);
+                    keyval::freeItem(item);
                     item = NULL;
                     break;
                 }
@@ -690,7 +690,7 @@ unsigned int tagtransform::c_filter_basic_tags(
                 filter = 0;
                 flags |= info.flags;
 
-                pushItem(&temp, item);
+                keyval::pushItem(&temp, item);
                 item = NULL;
                 break;
             }
@@ -700,7 +700,7 @@ unsigned int tagtransform::c_filter_basic_tags(
         if (i == infos.size() && !strict) {
             if (options->hstore_mode != HSTORE_NONE) {
                 /* with hstore, copy all tags... */
-                pushItem(&temp, item);
+                keyval::pushItem(&temp, item);
                 /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
                 if (!options->hstore_match_only && strcmp("osm_uid", item->key)
@@ -715,7 +715,7 @@ unsigned int tagtransform::c_filter_basic_tags(
                 for(; j < options->hstore_columns.size(); ++j) {
                     char *pos = strstr(item->key, options->hstore_columns[j].c_str());
                     if (pos == item->key) {
-                        pushItem(&temp, item);
+                        keyval::pushItem(&temp, item);
                         /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
                         if (!options->hstore_match_only
@@ -730,24 +730,24 @@ unsigned int tagtransform::c_filter_basic_tags(
                 }
                 /* if not, skip the tag */
                 if (j == options->hstore_columns.size()) {
-                    freeItem(item);
+                    keyval::freeItem(item);
                 }
             } else {
-                freeItem(item);
+                keyval::freeItem(item);
             }
             item = NULL;
         }
     }
 
     /* Move from temp list back to original list */
-    while ((item = popItem(&temp)) != NULL )
-        pushItem(tags, item);
+    while ((item = keyval::popItem(&temp)) != NULL )
+        keyval::pushItem(tags, item);
 
     *polygon = flags & FLAG_POLYGON;
 
     /* Special case allowing area= to override anything else */
     const char *area;
-    if ((area = getItem(tags, "area"))) {
+    if ((area = keyval::getItem(tags, "area"))) {
         if (!strcmp(area, "yes") || !strcmp(area, "true") || !strcmp(area, "1"))
             *polygon = 1;
         else if (!strcmp(area, "no") || !strcmp(area, "false")
@@ -756,7 +756,7 @@ unsigned int tagtransform::c_filter_basic_tags(
     } else {
         /* If we need to force this as a polygon, append an area tag */
         if (add_area_tag) {
-            addItem(tags, "area", "yes", 0);
+            keyval::addItem(tags, "area", "yes", 0);
             *polygon = 1;
         }
     }

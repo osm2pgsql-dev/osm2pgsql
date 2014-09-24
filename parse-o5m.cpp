@@ -625,8 +625,8 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
   ------------------------------------------------------------ */
 
 parse_o5m_t::parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+		const double minlon, const double minlat, const double maxlon, const double maxlat):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
 {
 
 }
@@ -805,18 +805,18 @@ return 1;
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      addItem(&(tags),"osm_version",tmpstr,0);
+      keyval::addItem(&(tags),"osm_version",tmpstr,0);
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        addItem(&(tags),"osm_timestamp",tmpstr, 0);
+        keyval::addItem(&(tags),"osm_timestamp",tmpstr, 0);
         if(histime!=0) {
             hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          addItem(&(tags),"osm_uid",tmpstr,0);
-          addItem(&(tags),"osm_user",hisuser,0);
+          keyval::addItem(&(tags),"osm_uid",tmpstr,0);
+          keyval::addItem(&(tags),"osm_user",hisuser,0);
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -837,7 +837,7 @@ return 1;
         break;
       default: ;
         }
-      resetList(&(tags));
+      keyval::resetList(&(tags));
       continue;  /* end processing for this object */
     }  /* end   delete request */
     else {  /* not a delete request */
@@ -854,7 +854,7 @@ return 1;
         node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
         if(!node_wanted(node_lat,node_lon)) {
-          resetList(&(tags));
+          keyval::resetList(&(tags));
   continue;
           }
         proj->reproject(&(node_lat),&(node_lon));
@@ -916,7 +916,7 @@ return 1;
             /* replace all blanks in key by underlines */
             p++;
             }
-          addItem(&(tags),k,v,0);
+          keyval::addItem(&(tags),k,v,0);
           }
       }  /* end   for all tags of this object */
 
@@ -950,7 +950,7 @@ return 1;
         }
 
       /* reset temporary storage lists */
-      resetList(&(tags));
+      keyval::resetList(&(tags));
 
     }  /* end   not a delete request */
 

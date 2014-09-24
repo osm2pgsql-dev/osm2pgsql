@@ -9,6 +9,9 @@
 #define KEYVAL_H
 
 #include "buffer.hpp"
+#include "text-tree.hpp"
+
+#include <boost/shared_ptr.hpp>
 
 struct keyval {
     char *key;
@@ -20,23 +23,29 @@ struct keyval {
     int has_column;
     struct keyval *next;
     struct keyval *prev;
+    boost::shared_ptr<text_tree> tree_ctx;
+
+    keyval();
+    ~keyval();
+
+    static void initList(struct keyval *head);
+    static void freeItem(struct keyval *p);
+    static unsigned int countList(const struct keyval *head);
+    static int listHasData(struct keyval *head);
+    static char *getItem(const struct keyval *head, const char *name);
+    static struct keyval *getTag(struct keyval *head, const char *name);
+    static const struct keyval *getTag(const struct keyval *head, const char *name);
+    static void removeTag(struct keyval *tag);
+    static struct keyval *firstItem(struct keyval *head);
+    static struct keyval *nextItem(struct keyval *head, struct keyval *item);
+    static struct keyval *popItem(struct keyval *head);
+    static void pushItem(struct keyval *head, struct keyval *item);
+    static int addItem(struct keyval *head, const char *name, const char *value, int noDupe);
+    static void resetList(struct keyval *head);
+    static struct keyval *getMatches(struct keyval *head, const char *name);
+    static void updateItem(struct keyval *head, const char *name, const char *value);
+    static void cloneList( struct keyval *target, struct keyval *source );
 };
 
-void initList(struct keyval *head);
-void freeItem(struct keyval *p);
-unsigned int countList(const struct keyval *head);
-int listHasData(struct keyval *head);
-char *getItem(const struct keyval *head, const char *name);
-struct keyval *getTag(struct keyval *head, const char *name);
-const struct keyval *getTag(const struct keyval *head, const char *name);
-void removeTag(struct keyval *tag);
-struct keyval *firstItem(struct keyval *head);
-struct keyval *nextItem(struct keyval *head, struct keyval *item);
-struct keyval *popItem(struct keyval *head);
-void pushItem(struct keyval *head, struct keyval *item);
-int addItem(struct keyval *head, const char *name, const char *value, int noDupe);
-void resetList(struct keyval *head);
-struct keyval *getMatches(struct keyval *head, const char *name);
-void updateItem(struct keyval *head, const char *name, const char *value);
-void cloneList( struct keyval *target, struct keyval *source );
+
 #endif

@@ -18,7 +18,7 @@ int test_node_set(middle_t *mid)
   struct osmNode node;
   int status = 0;
 
-  initList(&tags);
+  keyval::initList(&tags);
 
   // set the node
   status = mid->nodes_set(id, lat, lon, &tags);
@@ -45,7 +45,7 @@ int test_node_set(middle_t *mid)
     dynamic_cast<slim_middle_t *>(mid)->nodes_delete(id);
   }
 
-  resetList(&tags);
+  keyval::resetList(&tags);
 
   return 0;
 }
@@ -74,14 +74,14 @@ int test_way_set(middle_t *mid)
   double lat = 12.3456789;
   double lon = 98.7654321;
   struct keyval tags[2]; /* <-- this is needed because the ways_get_list method calls
-                          * initList() on the `count + 1`th tags element. */
+                          * keyval::initList() on the `count + 1`th tags element. */
   struct osmNode *node_ptr = NULL;
   osmid_t way_ids_ptr;
   int node_count = 0;
   int status = 0;
   osmid_t nds[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
   const int nd_count = ((sizeof nds) / (sizeof nds[0]));
-  initList(&tags[0]);
+  keyval::initList(&tags[0]);
 
   // set the nodes
   for (int i = 0; i < nd_count; ++i) {
@@ -152,7 +152,7 @@ int test_way_set(middle_t *mid)
       }
   }
   
-  resetList(&tags[0]);
+  keyval::resetList(&tags[0]);
   free(node_ptr);
 
   // clean up for next test

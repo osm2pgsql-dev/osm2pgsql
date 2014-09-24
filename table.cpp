@@ -355,7 +355,7 @@ void table_t::write_columns(keyval *tags, string& values)
     for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
     {
         keyval *tag = NULL;
-        if ((tag = getTag(tags, column->first.c_str())))
+        if ((tag = keyval::getTag(tags, column->first.c_str())))
         {
             escape_type(tag->value, column->second.c_str(), values);
             //remember we already used this one so we cant use again later in the hstore column

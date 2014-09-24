@@ -187,7 +187,7 @@ int addProtobufItem(struct keyval *head, ProtobufCBinaryData key, ProtobufCBinar
   valstr = (char *)calloc(val.len + 1, 1);
   memcpy(valstr, val.data, val.len);
   
-  retval = addItem(head, keystr, valstr, noDupe);
+  retval = keyval::addItem(head, keystr, valstr, noDupe);
 
   free(keystr);
   free(valstr);
@@ -200,7 +200,7 @@ int addIntItem(struct keyval *head, const char *key, int val, int noDupe)
   char buf[100];
 
   sprintf(buf, "%d", val);
-  return addItem(head, key, buf, noDupe);
+  return keyval::addItem(head, key, buf, noDupe);
 }
 
 int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
@@ -221,7 +221,7 @@ int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
         username = (char *)calloc(user.len + 1, 1);
 	memcpy(username, user.data, user.len);
 
-	addItem(head, "osm_user", username, 0);
+	keyval::addItem(head, "osm_user", username, 0);
     free(username);
       }
 
@@ -250,7 +250,7 @@ int parse_pbf_t::processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *
     Node *node = group->nodes[node_id];
     double lat, lon;
 
-    resetList(&(tags));
+    keyval::resetList(&(tags));
 
     if (node->info && extra_attributes) {
       addInfoItems(&(tags), node->info, string_table);
@@ -303,7 +303,7 @@ int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGr
         DenseNodes *dense = group->dense;
         
         for (node_id = 0; node_id < dense->n_id; node_id++) {
-            resetList(&(tags));
+            keyval::resetList(&(tags));
             
             deltaid += dense->id[node_id];
             deltalat += dense->lat[node_id];
@@ -325,7 +325,7 @@ int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGr
                     addIntItem(&(tags), "osm_uid", deltauid, 0);
                     valstr = (char *)calloc(string_table->s[deltauser_sid].len + 1, 1);
                     memcpy(valstr, string_table->s[deltauser_sid].data, string_table->s[deltauser_sid].len);
-                    addItem(&(tags), "osm_user", valstr,  0);
+                    keyval::addItem(&(tags), "osm_user", valstr,  0);
                     free(valstr);
                 }
             }
@@ -373,7 +373,7 @@ int parse_pbf_t::processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *g
     Way *way = group->ways[way_id];
     osmid_t deltaref = 0;
 
-    resetList(&(tags));
+    keyval::resetList(&(tags));
 
     if (way->info && extra_attributes) {
       addInfoItems(&(tags), way->info, string_table);
@@ -424,7 +424,7 @@ int parse_pbf_t::processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGro
     Relation *relation = group->relations[rel_id];
     osmid_t deltamemids = 0;
 
-    resetList(&(tags));
+    keyval::resetList(&(tags));
 
     member_count = 0;
 
@@ -528,8 +528,8 @@ int parse_pbf_t::processOsmData(struct osmdata_t *osmdata, void *data, size_t le
 }
 
 parse_pbf_t::parse_pbf_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat, tags)
+		const double minlon, const double minlat, const double maxlon, const double maxlat):
+		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
 {
 
 }

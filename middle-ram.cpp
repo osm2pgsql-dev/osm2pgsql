@@ -93,18 +93,12 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
     ways[block][offset].ndids[0] = nd_count;
 
     if (!ways[block][offset].tags) {
-        p = (struct keyval *)malloc(sizeof(struct keyval));
-        if (p) {
-            initList(p);
-            ways[block][offset].tags = p;
-        } else {
-            fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-            util::exit_nicely();
-        }
+        ways[block][offset].tags = new keyval();
+        keyval::initList(ways[block][offset].tags);
     } else
-        resetList(ways[block][offset].tags);
+        keyval::resetList(ways[block][offset].tags);
 
-    cloneList(ways[block][offset].tags, tags);
+    keyval::cloneList(ways[block][offset].tags, tags);
 
     return 0;
 }
@@ -124,18 +118,12 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
     }
 
     if (!rels[block][offset].tags) {
-        p = (struct keyval *)malloc(sizeof(struct keyval));
-        if (p) {
-            initList(p);
-            rels[block][offset].tags = p;
-        } else {
-            fprintf(stderr, "%s malloc failed\n", __FUNCTION__);
-            util::exit_nicely();
-        }
+        rels[block][offset].tags = new keyval();
+        keyval::initList(rels[block][offset].tags);
     } else
-        resetList(rels[block][offset].tags);
+        keyval::resetList(rels[block][offset].tags);
 
-    cloneList(rels[block][offset].tags, tags);
+    keyval::cloneList(rels[block][offset].tags, tags);
 
     if (!rels[block][offset].members)
       free( rels[block][offset].members );
@@ -223,7 +211,7 @@ void middle_ram_t::release_relations()
             if (rels[block][offset].members) {
                 free(rels[block][offset].members);
                 rels[block][offset].members = NULL;
-                resetList(rels[block][offset].tags);
+                keyval::resetList(rels[block][offset].tags);
                 free(rels[block][offset].tags);
                 rels[block][offset].tags=NULL;
             }
@@ -241,7 +229,7 @@ void middle_ram_t::release_ways()
         if (ways[i]) {
             for (j=0; j<PER_BLOCK; j++) {
                 if (ways[i][j].tags) {
-                    resetList(ways[i][j].tags);
+                    keyval::resetList(ways[i][j].tags);
                     free(ways[i][j].tags);
                 }
                 if (ways[i][j].ndids)
@@ -253,7 +241,7 @@ void middle_ram_t::release_ways()
     }
 }
 
-/* Caller must free nodes_ptr and resetList(tags_ptr) */
+/* Caller must free nodes_ptr and keyval::resetList(tags_ptr) */
 int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr) const
 {
     int block = id2block(id), offset = id2offset(id), ndCount = 0;
@@ -271,7 +259,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
         ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
         if (ndCount) {
-            cloneList( tags_ptr, ways[block][offset].tags );
+            keyval::cloneList( tags_ptr, ways[block][offset].tags );
             *nodes_ptr = nodes;
             *count_ptr = ndCount;
             return 0;
@@ -285,19 +273,19 @@ int middle_ram_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_
     int count = 0;
     int i;
 
-    initList(&(tag_ptr[count]));
+    keyval::initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
         
         if (ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
             way_ids[count] = ids[i];
             count++;
-            initList(&(tag_ptr[count]));
+            keyval::initList(&(tag_ptr[count]));
         }
     }
     return count;
 }
 
-/* Caller must free members_ptr and resetList(tags_ptr).
+/* Caller must free members_ptr and keyval::resetList(tags_ptr).
  * Note that the members in members_ptr are copied, but the roles
  * within the members are not, and should not be freed.
  */
@@ -313,7 +301,7 @@ int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *me
         const size_t member_bytes = sizeof(struct member) * rels[block][offset].member_count;
         members = (struct member *)malloc(member_bytes);
         memcpy(members, rels[block][offset].members, member_bytes);
-        cloneList( tags_ptr, rels[block][offset].tags );
+        keyval::cloneList( tags_ptr, rels[block][offset].tags );
 
         *members_ptr = members;
         *member_count = rels[block][offset].member_count;

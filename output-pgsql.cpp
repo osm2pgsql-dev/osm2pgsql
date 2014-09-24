@@ -140,7 +140,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                addItem(tags, "way_area", tmp, 0);
+                keyval::addItem(tags, "way_area", tmp, 0);
             }
             m_tables[t_poly]->write_wkt(id, tags, wkt->geom.c_str());
         } else {
@@ -197,7 +197,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                addItem(rel_tags, "way_area", tmp, 0);
+                keyval::addItem(rel_tags, "way_area", tmp, 0);
             }
             m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         } else {
@@ -233,7 +233,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                addItem(rel_tags, "way_area", tmp, 0);
+                keyval::addItem(rel_tags, "way_area", tmp, 0);
             }
             m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         }
@@ -325,7 +325,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
     int count_int;
     int ret = 0;
 
-    initList(&tags_int);
+    keyval::initList(&tags_int);
     // Try to fetch the way from the DB
     if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
         // Output the way
@@ -333,7 +333,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         ret = pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
         free(nodes_int);
     }
-    resetList(&tags_int);
+    keyval::resetList(&tags_int);
 
     return ret;
 }
@@ -353,14 +353,14 @@ int output_pgsql_t::way_cb_func::do_single(osmid_t id, int exists) {
 
     // Check if it's marked as done
     if (!m_ptr->ways_done_tracker->is_marked(id)) {
-        initList(&tags_int);
+        keyval::initList(&tags_int);
         // Try to fetch the way from the DB
         if (!m_ptr->m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
             // Output the way
             ret = m_ptr->pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
             free(nodes_int);
         }
-        resetList(&tags_int);
+        keyval::resetList(&tags_int);
     }
     return 0;
 }
@@ -399,12 +399,12 @@ int output_pgsql_t::rel_cb_func::do_single(osmid_t id, int exists) {
     member *members_int;
     int count_int;
     int ret = 0;
-    initList(&tags_int);
+    keyval::initList(&tags_int);
     if (!m_ptr->m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
         ret = m_ptr->pgsql_process_relation(id, members_int, count_int, &tags_int, exists);
         free(members_int);
     }
-    resetList(&tags_int);
+    keyval::resetList(&tags_int);
     return ret;
 }
 
@@ -531,7 +531,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
   const char **xrole = (const char **)malloc( (member_count+1) * sizeof(const char *) );
   int *xcount = (int *)malloc( (member_count+1) * sizeof(int) );
-  struct keyval *xtags  = (struct keyval *)malloc( (member_count+1) * sizeof(struct keyval) );
+  keyval *xtags  = new keyval[member_count+1];
   struct osmNode **xnodes = (struct osmNode **)malloc( (member_count+1) * sizeof(struct osmNode*) );
 
   count = 0;
@@ -575,7 +575,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
 
   for( i=0; i<count2; i++ )
   {
-    resetList( &(xtags[i]) );
+    keyval::resetList( &(xtags[i]) );
     free( xnodes[i] );
   }
 
@@ -583,14 +583,14 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   free(xid);
   free(xrole);
   free(xcount);
-  free(xtags);
+  delete [] xtags;
   free(xnodes);
   return 0;
 }
 
 int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-  const char *type = getItem(tags, "type");
+  const char *type = keyval::getItem(tags, "type");
 
   /* Must have a type field or we ignore it */
   if (!type)

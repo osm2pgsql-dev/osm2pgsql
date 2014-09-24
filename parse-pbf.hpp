@@ -39,7 +39,7 @@ class parse_pbf_t: public parse_t
 {
 public:
 	parse_pbf_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-				const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags);
+				const double minlon, const double minlat, const double maxlon, const double maxlat);
 	virtual ~parse_pbf_t();
 	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
 protected:

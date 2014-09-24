@@ -124,14 +124,14 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
     int count_int;
     int ret = 0;
 
-    initList(&tags_int);
+    keyval::initList(&tags_int);
     // Try to fetch the way from the DB
     if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
         // Output the way
         ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
         free(nodes_int);
     }
-    resetList(&tags_int);
+    keyval::resetList(&tags_int);
 
     return ret;
 }
@@ -151,14 +151,14 @@ int output_multi_t::way_cb_func::do_single(osmid_t id, int exists) {
 
     // Check if it's marked as done
     if (!m_ptr->ways_done_tracker->is_marked(id)) {
-        initList(&tags_int);
+        keyval::initList(&tags_int);
         // Try to fetch the way from the DB
         if (!m_ptr->m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
             // Output the way
             ret = m_ptr->reprocess_way(id,  nodes_int, count_int, &tags_int, exists);
             free(nodes_int);
         }
-        resetList(&tags_int);
+        keyval::resetList(&tags_int);
     }
     return 0;
 }
@@ -197,12 +197,12 @@ int output_multi_t::rel_cb_func::do_single(osmid_t id, int exists) {
     member *members_int;
     int count_int;
     int ret = 0;
-    initList(&tags_int);
+    keyval::initList(&tags_int);
     if (!m_ptr->m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
         ret = m_ptr->process_relation(id, members_int, count_int, &tags_int, exists);
         free(members_int);
     }
-    resetList(&tags_int);
+    keyval::resetList(&tags_int);
     return ret;
 }
 

@@ -11,13 +11,20 @@
 #include <string.h>
 #include "keyvals.hpp"
 
-//TODO: no more globals please, is this objects destructor is racing with references to keyvals?
-#include "text-tree.hpp"
-text_tree tree_ctx;
-
 #include <algorithm>
 
-void initList(struct keyval *head)
+keyval::keyval()
+{
+    tree_ctx.reset(new text_tree());
+    keyval::initList(this);
+}
+
+keyval::~keyval()
+{
+    //keyval::resetList(this);
+}
+
+void keyval::initList(struct keyval *head)
 {
     assert(head);
 
@@ -28,18 +35,18 @@ void initList(struct keyval *head)
     head->has_column = 0;
 }
 
-void freeItem(struct keyval *p)
+void keyval::freeItem(struct keyval *p)
 {
     if (!p) 
         return;
 
-    tree_ctx.text_release(p->key);
-    tree_ctx.text_release(p->value);
-    free(p);
+    p->tree_ctx->text_release(p->key);
+    p->tree_ctx->text_release(p->value);
+    delete p;
 }
 
 
-unsigned int countList(const struct keyval *head)
+unsigned int keyval::countList(const struct keyval *head)
 {
     struct keyval *p;
     unsigned int count = 0;	
@@ -55,7 +62,7 @@ unsigned int countList(const struct keyval *head)
     return count;
 }
 
-int listHasData(struct keyval *head) 
+int keyval::listHasData(struct keyval *head)
 {
     if (!head) 
         return 0;
@@ -64,7 +71,7 @@ int listHasData(struct keyval *head)
 }
 
 
-char *getItem(const struct keyval *head, const char *name)
+char *keyval::getItem(const struct keyval *head, const char *name)
 {
     struct keyval *p;
 
@@ -84,7 +91,7 @@ char *getItem(const struct keyval *head, const char *name)
    list item which can be used to remove the tag from the linked list
    with the removeTag function
 */
-struct keyval *getTag(struct keyval *head, const char *name)
+struct keyval *keyval::getTag(struct keyval *head, const char *name)
 {
     struct keyval *p;
 
@@ -100,14 +107,14 @@ struct keyval *getTag(struct keyval *head, const char *name)
     return NULL;
 }
 
-void removeTag(struct keyval *tag)
+void keyval::removeTag(struct keyval *tag)
 {
   tag->prev->next=tag->next;
   tag->next->prev=tag->prev;
   freeItem(tag);
 }
 
-struct keyval *firstItem(struct keyval *head)
+struct keyval *keyval::firstItem(struct keyval *head)
 {
     if (head == NULL || head == head->next)
         return NULL;
@@ -115,7 +122,7 @@ struct keyval *firstItem(struct keyval *head)
     return head->next;
 }
 
-struct keyval *nextItem(struct keyval *head, struct keyval *item)
+struct keyval *keyval::nextItem(struct keyval *head, struct keyval *item)
 {
     if (item->next == head)
         return NULL;
@@ -126,7 +133,7 @@ struct keyval *nextItem(struct keyval *head, struct keyval *item)
 /* Pulls all items from list which match this prefix
  * note: they are removed from the original list an returned in a new one
  */
-struct keyval *getMatches(struct keyval *head, const char *name)
+struct keyval *keyval::getMatches(struct keyval *head, const char *name)
 {
     struct keyval *out = NULL;
     struct keyval *p;
@@ -134,7 +141,8 @@ struct keyval *getMatches(struct keyval *head, const char *name)
     if (!head) 
         return NULL;
 
-    out = (struct keyval *)malloc(sizeof(struct keyval));
+    //TODO: properly copy the tree_ctx from the keyval passed in
+    out = new keyval();
     if (!out)
         return NULL;
 
@@ -153,11 +161,11 @@ struct keyval *getMatches(struct keyval *head, const char *name)
     if (listHasData(out))
         return out;
 
-    free(out);
+    delete out;
     return NULL;
 }
 
-void updateItem(struct keyval *head, const char *name, const char *value)
+void keyval::updateItem(struct keyval *head, const char *name, const char *value)
 {
     struct keyval *item;
 
@@ -167,8 +175,8 @@ void updateItem(struct keyval *head, const char *name, const char *value)
     item = head->next;
     while(item != head) {
         if (!strcmp(item->key, name)) {
-            tree_ctx.text_release(item->value);
-            item->value = (char *)tree_ctx.text_get(value);
+            head->tree_ctx->text_release(item->value);
+            item->value = (char *)head->tree_ctx->text_get(value);
             return;
         }
         item = item->next;
@@ -177,7 +185,7 @@ void updateItem(struct keyval *head, const char *name, const char *value)
 }
 
 
-struct keyval *popItem(struct keyval *head)
+struct keyval *keyval::popItem(struct keyval *head)
 {
     struct keyval *p;
 
@@ -198,7 +206,7 @@ struct keyval *popItem(struct keyval *head)
 }	
 
 
-void pushItem(struct keyval *head, struct keyval *item)
+void keyval::pushItem(struct keyval *head, struct keyval *item)
 {
 
     assert(head);
@@ -210,7 +218,7 @@ void pushItem(struct keyval *head, struct keyval *item)
     head->prev = item;
 }	
 
-int addItem(struct keyval *head, const char *name, const char *value, int noDupe)
+int keyval::addItem(struct keyval *head, const char *name, const char *value, int noDupe)
 {
     struct keyval *item;
 
@@ -227,15 +235,12 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
         }
     }
 
-    item = (struct keyval *)malloc(sizeof(struct keyval));
+    //TODO: properly implement a copy constructor and do the
+    //shallow copy there instead of relying on implicit one?
+    item = new keyval(*head);
 
-    if (!item) {
-        fprintf(stderr, "Error allocating keyval\n");
-        return 2;
-    }
-
-    item->key   = (char *)tree_ctx.text_get(name);
-    item->value = (char *)tree_ctx.text_get(value);
+    item->key   = (char *)head->tree_ctx->text_get(name);
+    item->value = (char *)head->tree_ctx->text_get(value);
     item->has_column=0;
 
     /* Add to head */
@@ -246,15 +251,15 @@ int addItem(struct keyval *head, const char *name, const char *value, int noDupe
     return 0;
 }
 
-void resetList(struct keyval *head) 
+void keyval::resetList(struct keyval *head)
 {
     struct keyval *item;
 	
-    while((item = popItem(head))) 
+    while((item = popItem(head)))
         freeItem(item);
 }
 
-void cloneList( struct keyval *target, struct keyval *source )
+void keyval::cloneList( struct keyval *target, struct keyval *source )
 {
   struct keyval *ptr;
   for( ptr = source->next; ptr != source; ptr=ptr->next )

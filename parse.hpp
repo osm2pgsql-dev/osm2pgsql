@@ -40,7 +40,6 @@ private:
 	boost::shared_ptr<reprojection> m_proj;
 	bool m_bbox;
 	double m_minlon, m_minlat, m_maxlon, m_maxlat;
-	keyval m_tags;
 };
 
 class parse_t
@@ -49,7 +48,7 @@ class parse_t
 
 public:
 	parse_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-			const double minlon, const double minlat, const double maxlon, const double maxlat, keyval& tags_);
+			const double minlon, const double minlat, const double maxlon, const double maxlat);
 	virtual ~parse_t();
 
 	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) = 0;
@@ -73,7 +72,7 @@ protected:
 	start tag and can therefore be cached.
 	*/
 	double node_lon, node_lat;
-	keyval& tags;
+	keyval tags;
 	osmid_t *nds;
 	int nd_count, nd_max;
 	member *members;
