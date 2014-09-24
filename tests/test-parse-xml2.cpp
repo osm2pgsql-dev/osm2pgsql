@@ -98,7 +98,6 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
-    middle_t::cb_func *way_callback() { return NULL; }
     middle_t::cb_func *relation_callback() { return NULL; }
     void stop() { }
     void commit() { }

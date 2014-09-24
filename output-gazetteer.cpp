@@ -1061,11 +1061,6 @@ void output_gazetteer_t::commit()
 {
 }
 
-middle_t::cb_func *output_gazetteer_t::way_callback() {
-    /* Process any remaining ways and relations */
-    return NULL;
-}
-
 middle_t::cb_func *output_gazetteer_t::relation_callback() {
     /* Process any remaining ways and relations */
     return NULL;

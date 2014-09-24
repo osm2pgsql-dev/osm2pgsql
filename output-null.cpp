@@ -20,10 +20,6 @@ int output_null_t::start() {
     return 0;
 }
 
-middle_t::cb_func *output_null_t::way_callback() {
-    return NULL;
-}
-
 middle_t::cb_func *output_null_t::relation_callback() {
     return NULL;
 }

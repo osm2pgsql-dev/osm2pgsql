@@ -31,7 +31,6 @@ public:
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
-    middle_t::cb_func *way_callback();
     middle_t::cb_func *relation_callback();
     void stop();
     void commit();
@@ -61,16 +60,6 @@ public:
 
 protected:
 
-    struct way_cb_func : public middle_t::cb_func {
-        output_pgsql_t *m_ptr;
-        buffer m_sql;
-        osmid_t m_next_internal_id;
-        way_cb_func(output_pgsql_t *ptr);
-        virtual ~way_cb_func();
-        int operator()(osmid_t id, int exists);
-        int do_single(osmid_t id, int exists);
-        void finish(int exists);
-    };
     struct rel_cb_func : public middle_t::cb_func  {
         output_pgsql_t *m_ptr;
         buffer m_sql;
@@ -82,7 +71,6 @@ protected:
         void finish(int exists);
     };
 
-    friend struct way_cb_func;
     friend struct rel_cb_func;
     
     int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);

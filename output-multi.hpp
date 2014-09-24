@@ -31,7 +31,6 @@ public:
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
-    middle_t::cb_func *way_callback();
     middle_t::cb_func *relation_callback();
     void stop();
     void commit();
@@ -67,16 +66,6 @@ protected:
     int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists);
     void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
 
-    struct way_cb_func : public middle_t::cb_func {
-        output_multi_t *m_ptr;
-        buffer m_sql;
-        osmid_t m_next_internal_id;
-        way_cb_func(output_multi_t *ptr);
-        virtual ~way_cb_func();
-        int operator()(osmid_t id, int exists);
-        int do_single(osmid_t id, int exists);
-        void finish(int exists);
-    };
     struct rel_cb_func : public middle_t::cb_func  {
         output_multi_t *m_ptr;
         buffer m_sql;
@@ -88,7 +77,6 @@ protected:
         void finish(int exists);
     };
 
-    friend struct way_cb_func;
     friend struct rel_cb_func;
 
     boost::scoped_ptr<tagtransform> m_tagtransform;

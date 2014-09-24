@@ -16,7 +16,6 @@ public:
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
-    middle_t::cb_func *way_callback();
     middle_t::cb_func *relation_callback();
     void stop();
     void commit();
