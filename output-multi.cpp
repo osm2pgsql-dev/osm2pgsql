@@ -62,10 +62,8 @@ size_t output_multi_t::pending_count() const {
 }
 
 void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    int ret = 0;
-
     //make sure we get the one passed in
-    if (!ways_done_tracker->is_marked(id)) {
+    if(!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         added++;
     }
@@ -88,7 +86,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     if(popped == id) {
         popped = ways_pending_tracker->pop_mark();
     }
-    if (!ways_done_tracker->is_marked(popped)) {
+    if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
         job_queue.push(pending_job_t(popped, output_id));
         added++;
     }
@@ -113,11 +111,11 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
 }
 
 void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    int ret = 0;
-
     //make sure we get the one passed in
-    job_queue.push(pending_job_t(id, output_id));
-    added++;
+    if(id_tracker::is_valid(id)) {
+        job_queue.push(pending_job_t(id, output_id));
+        added++;
+    }
 
     //grab the first one or bail if its not valid
     osmid_t popped = rels_pending_tracker->pop_mark();
@@ -135,8 +133,10 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     if(popped == id) {
         popped = rels_pending_tracker->pop_mark();
     }
-    job_queue.push(pending_job_t(popped, output_id));
-    added++;
+    if(id_tracker::is_valid(popped)) {
+        job_queue.push(pending_job_t(popped, output_id));
+        added++;
+    }
 }
 
 int output_multi_t::pending_relation(osmid_t id, int exists) {

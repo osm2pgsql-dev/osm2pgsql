@@ -731,7 +731,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
         pf.enqueue_ways(id);
     }
     // in case we had higher ones than the middle
-    pf.enqueue_ways(id);
+    pf.enqueue_ways(id_tracker::max());
 
     //let the threads work on them
     pf.process_ways();
@@ -926,7 +926,7 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
         pf.enqueue_relations(id);
     }
     // in case we had higher ones than the middle
-    pf.enqueue_relations(id);
+    pf.enqueue_relations(id_tracker::max());
 
     //let the threads work on them
     pf.process_relations();
