@@ -716,10 +716,6 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
 {
-    time_t start, end;
-    time(&start);
-
-    fprintf(stderr, "\nGoing over pending ways...\n");
 
     // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
@@ -737,23 +733,8 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     // in case we had higher ones than the middle
     pf.enqueue(id);
 
-    size_t pending_count = pf.size();
-    fprintf(stderr, "\t%zu ways are pending\n", pending_count);
-    fprintf(stderr, "\nUsing %i helper-processes\n", pf.thread_count());
-
     //let the threads work on them
     pf.process_ways();
-
-    time(&end);
-    fprintf(stderr, "\rProcess %i finished processing %zu ways in %i sec\n", 0, pending_count, (int)(end - start));
-
-    fprintf(stderr, "\nAll child processes exited\n");
-
-    fprintf(stderr, "\n");
-    time(&end);
-    if (end - start > 0)
-        fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", pending_count, (int)(end - start),
-                ((double)pending_count / (double)(end - start)));
 }
 
 int middle_pgsql_t::way_changed(osmid_t osm_id)

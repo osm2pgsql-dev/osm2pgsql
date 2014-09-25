@@ -229,16 +229,29 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         //reset the number we've done
         ids_done = 0;
 
+        fprintf(stderr, "\nGoing over pending ways...\n");
+        fprintf(stderr, "\t%zu ways are pending\n", ids_queued);
+        fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
+        time_t start = time(NULL);
+
+
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
             workers.create_thread(boost::bind(do_batch, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
         }
 
-        //TODO: print out progress
+        //TODO: print out partial progress
 
         //wait for them to really be done
         workers.join_all();
+
+        time_t finish = time(NULL);
+        fprintf(stderr, "\rFinished processing %zu ways in %i sec\n\n", ids_queued, (int)(finish - start));
+        if (finish - start > 0)
+            fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
+                    ((double)ids_queued / (double)(finish - start)));
         ids_queued = 0;
+        ids_done = 0;
 
         //collect all the new rels that became pending from each
         //output in each thread back to their respective main outputs
