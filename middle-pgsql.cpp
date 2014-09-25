@@ -912,57 +912,24 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
 
 void middle_pgsql_t::iterate_relations(pending_processor& pf)
 {
-    // The flag we pass to indicate that the way in question might exist already in the database */
-    int exists = Append;
-    time_t start, end;
-    time(&start);
-    fprintf(stderr, "\nGoing over pending relations...\n");
-
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-    size_t pending_rels = rels_pending_tracker->size();
-    fprintf(stderr, "\t%zu relations are pending\n", pending_rels);
-
-    /**
-     * TODO
-     * To speed up processing of pending rels, fork noProcs worker processes
-     * each of which independently goes through an equal subset of the pending rels array
-     */
-    fprintf(stderr, "\nUsing %i helper-processes\n", 1);
-
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
 
-    //in memory processing pending rels
+    // enqueue the jobs
     osmid_t id;
-    int count = 0;
-    while((id = rels_pending_tracker->pop_mark()) != std::numeric_limits<osmid_t>::max())
+    while(id_tracker::is_valid(id = rels_pending_tracker->pop_mark()))
     {
-
-        //progress update
-        if (count++ %10 == 0) {
-            time(&end);
-            fprintf(stderr, "\rprocessing relation (%d) at %.2f/s", count,
-                    end > start ? ((double)count / (double)(end - start)) : 0);
-        }
-
-        //send it to the backends
         pf.enqueue_relations(id);
     }
+    // in case we had higher ones than the middle
+    pf.enqueue_relations(id);
 
     //let the threads work on them
     pf.process_relations();
-
-    time(&end);
-    fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", 0, count, (int)(end - start));
-
-    time(&end);
-    if (end - start > 0)
-        fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", pending_rels, (int)(end - start), ((double)pending_rels / (double)(end - start)));
-    fprintf(stderr, "\n");
-
 }
 
 int middle_pgsql_t::relation_changed(osmid_t osm_id)
