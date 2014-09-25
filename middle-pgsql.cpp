@@ -719,10 +719,9 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
 
     // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
-    
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache)); /* at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
 
     // enqueue the jobs
     osmid_t id;
@@ -915,9 +914,8 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
     
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
-
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache)); // at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache));
 
     // enqueue the jobs
     osmid_t id;

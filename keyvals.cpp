@@ -146,7 +146,6 @@ struct keyval *keyval::getMatches(struct keyval *head, const char *name)
     if (!out)
         return NULL;
 
-    initList(out);
     p = head->next;
     while(p != head) {
         struct keyval *next = p->next;

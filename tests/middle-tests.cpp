@@ -18,8 +18,6 @@ int test_node_set(middle_t *mid)
   struct osmNode node;
   int status = 0;
 
-  keyval::initList(&tags);
-
   // set the node
   status = mid->nodes_set(id, lat, lon, &tags);
   if (status != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
@@ -88,7 +86,6 @@ int test_way_set(middle_t *mid)
   int status = 0;
   osmid_t nds[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
   const int nd_count = ((sizeof nds) / (sizeof nds[0]));
-  keyval::initList(&tags[0]);
 
   // set the nodes
   for (int i = 0; i < nd_count; ++i) {
