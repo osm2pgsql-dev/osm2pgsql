@@ -22,6 +22,62 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
+################################################################
+## See if we are running on mingw
+# http://osdir.com/ml/gnu.mingw.devel/2003-09/msg00040.html
+# Note: Windows 95 WINVER=0x400
+# Windows 98 WINVER=0x400  _WIN32_WINDOWS=0x0410
+# Windows Me WINVER=0x400  _WIN32_WINDOWS=0x0490
+# Windows NT 4.0 WINVER=0x0400  _WIN32_WINNT=0x0400
+# Windows NT 4.0 SP3 WINVER=0x0400 _WIN32_WINNT=0x0403
+# Windows 2000 WINVER=0x500 _WIN32_WINNT=0x0500
+# Windows XP WINVER=0x501 _WIN32_WINNT=0x0501
+# Windows Server 2003 WINVER=0x502 _WIN32_WINNT=0x0502
+#
+# mingw32 includes  i686-w64-mingw32 and  x86_64-w64-mingw32
+
+mingw="no"
+case $host in
+  *-*-*linux*-*) 
+     AC_DEFINE([__LINUX__],1,[Linux operating system functions])
+     ;;
+
+  *-*-mingw32*)   
+     LIBS="$LIBS -lpsapi -lws2_32 -lgdi32 -lstdc++"  
+     CPPFLAGS="-DUNICODE -D_UNICODE -D__MSVCRT_VERSION__=0x0601 -DWINVER=0x0500 -D_WIN32_WINNT=0x0500 -g $CPPFLAGS"
+     CPPFLAGS="$CPPFLAGS --static "
+     CFLAGS="$CFLAGS --static -static-libgcc -static-libstdc++"
+     CXXFLAGS="$CXXFLAGS -Wno-format "  # compiler mingw-4.3.0 is broken on I64u formats
+     CXXFLAGS="$CXXFLAGS --static -static-libgcc -static-libstdc++"
+     LDFLAGS="$LDFLAGS --static"
+     mingw="yes"
+     ;;		 		     
+esac
+
+if test x"${mingw}" == "xno" ; then
+  # Bring additional directories where things might be found into our
+  # search path. I don't know why autoconf doesn't do this by default
+  for spfx in /usr/local /opt/local /sw /usr/local/ssl; do
+    AC_MSG_NOTICE([checking ${spfx}/include])
+    if test -d ${spfx}/include; then
+        CPPFLAGS="-isystem${spfx}/include $CPPFLAGS"
+        LDFLAGS="-L${spfx}/lib $LDFLAGS"
+        AC_MSG_NOTICE([ *** ADDING ${spfx}/include to CPPFLAGS *** ])
+        AC_MSG_NOTICE([ *** ADDING ${spfx}/lib to LDFLAGS *** ])
+    fi
+  done
+  AC_MSG_NOTICE([ CPPFLAGS = ${CPPFLAGS} ])        
+  AC_MSG_NOTICE([ LDFLAGS = ${LDFLAGS} ])        
+fi
+
+if [ test -r /bin/uname.exe ] || [ test -r /mingw/bin/uname.exe ]; then
+  if test `uname -o` == "Msys" ; then
+    AC_MSG_NOTICE([Compiling with Msys. Setting flags appropriately.])
+    LIBS="$LIBS -lws2_32 -lgdi32"
+    LDFLAGS="$LDFLAGS -Wl,--enable-auto-import"
+  fi
+fi
+
 AC_GNU_SOURCE
 AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
@@ -96,6 +152,16 @@ then
 fi
 
 dnl Check for protobuf-c library and protoc-c binary
+if test x"${mingw}" == "xyes" ; then
+  if test "${with_protobuf_c+set}" = set; then :
+  withval=$with_protobuf_c;
+    if test "$withval" = "yes"; then
+      protobuf_c_include_dir="${prefix}/include"
+      protobuf_c_lib_libs="-L${prefix}/lib -lprotobuf-c"
+    fi
+  fi
+fi
+
 AX_LIB_PROTOBUF_C([0.14])
 
 dnl Decide whether to include PBF import support
@@ -120,6 +186,7 @@ fi
 
 dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
+
 
 AX_PROG_LUA([5.0],[],[
     AX_LUA_HEADERS([

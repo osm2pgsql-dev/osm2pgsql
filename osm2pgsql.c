@@ -23,7 +23,6 @@
 #-----------------------------------------------------------------------------
 */
 
-#include "config.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -38,6 +37,10 @@
 
 #include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
+
+/*System macros like VERSION and PACKAGE_VERSION can exist in dependent header
+  files. Make sure they don't get overridden.*/
+#include "config.h"
 
 #include "osmtypes.h"
 #include "build_geometry.h"

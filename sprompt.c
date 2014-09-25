@@ -62,7 +62,7 @@
 
 #include <libpq-fe.h>
 
-#ifdef __MINGW_H
+#if defined(__MINGW_H) || defined(__MINGW32__)
 # include <windows.h>
 #else
 # define HAVE_TERMIOS_H
