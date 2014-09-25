@@ -261,36 +261,40 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         //reset the number we've done
         ids_done = 0;
 
+        fprintf(stderr, "\nGoing over pending relations...\n");
+        fprintf(stderr, "\t%zu relations are pending\n", ids_queued);
+        fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
+        time_t start = time(NULL);
+
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
             workers.create_thread(boost::bind(do_batch_rels, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
         }
 
+        //TODO: print out partial progress
+
         //wait for them to really be done
         workers.join_all();
-        ids_queued = 0;
 
-        //collect all the new rels that became pending from each
-        //output in each thread back to their respective main outputs
+        time_t finish = time(NULL);
+        fprintf(stderr, "\rFinished processing %zu relations in %i sec\n\n", ids_queued, (int)(finish - start));
+        if (finish - start > 0)
+            fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
+                    ((double)ids_queued / (double)(finish - start)));
+        ids_queued = 0;
+        ids_done = 0;
+
+        //collect all expiry tree informations together into one
         BOOST_FOREACH(const clone_t& clone, clones) {
             //for each clone/original output
             for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
                 original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
-                //done copying ways for now
+                //done copying rels for now
                 clone_output->get()->commit();
                 //merge the expire tree from this threads copy of output back
                 original_output->get()->merge_expire_trees(*clone_output);
             }
         }
-    }
-
-    int thread_count() {
-        return clones.size();
-    }
-
-    int size() {
-        //TODO: queue.size()????
-        return 0;
     }
 
 private:
@@ -305,7 +309,7 @@ private:
     boost::atomic_size_t ids_done;
     //how many jobs do we have in the queue to start with
     size_t ids_queued;
-    //
+    //appending to output that is already there (diff processing)
     int append;
 
 };

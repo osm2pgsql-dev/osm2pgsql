@@ -52,8 +52,6 @@ struct middle_t : public middle_query_t {
         virtual void process_ways() = 0;
         virtual void enqueue_relations(osmid_t id) = 0;
         virtual void process_relations() = 0;
-        virtual int thread_count() = 0;
-        virtual int size() = 0;
     };
 
     virtual void iterate_ways(pending_processor& pf) = 0;

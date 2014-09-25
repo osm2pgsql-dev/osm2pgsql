@@ -71,9 +71,6 @@ private:
 
     int way_blocks;
 
-    int way_out_count;
-    int rel_out_count;
-
     std::auto_ptr<node_ram_cache> cache;
 
     /* the previous behaviour of iterate_ways was to delete all ways as they

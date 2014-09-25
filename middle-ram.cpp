@@ -160,19 +160,13 @@ void middle_ram_t::iterate_relations(pending_processor& pf)
 {
     int block, offset;
 
-    fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
         if (!rels[block])
             continue;
 
         for (offset=0; offset < PER_BLOCK; offset++) {
             if (rels[block][offset].members) {
-                osmid_t id = block2id(block, offset);
-                rel_out_count++;
-                if (rel_out_count % 10 == 0)
-                    fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
-
-                pf.enqueue_relations(id);
+                pf.enqueue_relations(block2id(block, offset));
             }
         }
     }
@@ -348,7 +342,7 @@ void middle_ram_t::commit(void) {
 }
 
 middle_ram_t::middle_ram_t():
-    ways(), rels(), way_blocks(0), way_out_count(0), rel_out_count(0), cache(),
+    ways(), rels(), way_blocks(0), cache(),
     simulate_ways_deleted(false)
 {
     ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
