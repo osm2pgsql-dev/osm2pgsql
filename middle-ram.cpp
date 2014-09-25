@@ -156,14 +156,9 @@ int middle_ram_t::nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, in
     return count;
 }
 
-void middle_ram_t::iterate_relations(middle_t::cb_func &callback)
+void middle_ram_t::iterate_relations(pending_processor& pf)
 {
     int block, offset;
-
-    // to maintain backwards compatibility, we need to set this flag
-    // which fakes the previous behaviour of having deleted all the
-    // ways.
-    simulate_ways_deleted = true;
 
     fprintf(stderr, "\n");
     for(block=NUM_BLOCKS-1; block>=0; block--) {
@@ -177,12 +172,14 @@ void middle_ram_t::iterate_relations(middle_t::cb_func &callback)
                 if (rel_out_count % 10 == 0)
                     fprintf(stderr, "\rWriting relation (%u)", rel_out_count);
 
-                callback(id, 0);
+                pf.enqueue_relations(id);
             }
         }
     }
+    pf.enqueue_relations(id_tracker::max());
 
-    fprintf(stderr, "\rWriting relation (%u)\n", rel_out_count);
+    //let the threads process the relations
+    pf.process_relations();
 }
 
 size_t middle_ram_t::pending_count() const {
@@ -193,7 +190,7 @@ void middle_ram_t::iterate_ways(middle_t::pending_processor& pf)
 {
     //let the outputs enqueue everything they have the non slim middle
     //has nothing of its own to enqueue as it doesnt have pending anything
-    pf.enqueue(id_tracker::max());
+    pf.enqueue_ways(id_tracker::max());
 
     //let the threads process the ways
     pf.process_ways();

@@ -45,7 +45,7 @@ struct middle_ram_t : public middle_t {
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
 
     void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(cb_func &cb);
+    void iterate_relations(pending_processor& pf);
 
     size_t pending_count() const;
 

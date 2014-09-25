@@ -22,8 +22,5 @@ middle_t::~middle_t() {
 slim_middle_t::~slim_middle_t() {
 }
 
-middle_t::cb_func::~cb_func() {
-}
-
 middle_t::pending_processor::~pending_processor() {
 }

@@ -728,10 +728,10 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     osmid_t id;
     while(id_tracker::is_valid(id = ways_pending_tracker->pop_mark()))
     {
-        pf.enqueue(id);
+        pf.enqueue_ways(id);
     }
     // in case we had higher ones than the middle
-    pf.enqueue(id);
+    pf.enqueue_ways(id);
 
     //let the threads work on them
     pf.process_ways();
@@ -910,7 +910,7 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
     return 0;
 }
 
-void middle_pgsql_t::iterate_relations(middle_t::cb_func &callback)
+void middle_pgsql_t::iterate_relations(pending_processor& pf)
 {
     // The flag we pass to indicate that the way in question might exist already in the database */
     int exists = Append;
@@ -949,8 +949,11 @@ void middle_pgsql_t::iterate_relations(middle_t::cb_func &callback)
         }
 
         //send it to the backends
-        callback(id, exists);
+        pf.enqueue_relations(id);
     }
+
+    //let the threads work on them
+    pf.process_relations();
 
     time(&end);
     fprintf(stderr, "\rProcess %i finished processing %i relations in %i sec\n", 0, count, (int)(end - start));

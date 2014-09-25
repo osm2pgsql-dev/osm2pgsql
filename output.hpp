@@ -30,13 +30,14 @@ public:
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const = 0;
 
     virtual int start() = 0;
-    virtual middle_t::cb_func *way_callback() = 0;
-    virtual middle_t::cb_func *relation_callback() = 0;
     virtual void stop() = 0;
     virtual void commit() = 0;
 
     virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
     virtual int pending_way(osmid_t id, int exists) = 0;
+
+    virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
+    virtual int pending_relation(osmid_t id, int exists) = 0;
 
     virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
     virtual int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;

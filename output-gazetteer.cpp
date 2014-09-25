@@ -1061,20 +1061,17 @@ void output_gazetteer_t::commit()
 {
 }
 
-middle_t::cb_func *output_gazetteer_t::way_callback() {
-    /* Process any remaining ways and relations */
-    return NULL;
-}
-
-middle_t::cb_func *output_gazetteer_t::relation_callback() {
-    /* Process any remaining ways and relations */
-    return NULL;
-}
-
 void output_gazetteer_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
 }
 
 int output_gazetteer_t::pending_way(osmid_t id, int exists) {
+    return 0;
+}
+
+void output_gazetteer_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+}
+
+int output_gazetteer_t::pending_relation(osmid_t id, int exists) {
     return 0;
 }
 

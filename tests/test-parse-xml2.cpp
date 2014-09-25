@@ -40,7 +40,7 @@ struct test_middle_t : public middle_t {
     int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const { return 0; }
 
     void iterate_ways(pending_processor& pf) { }
-    void iterate_relations(cb_func &cb) { }
+    void iterate_relations(pending_processor& pf) { }
 
     virtual size_t pending_count() const { return 0; }
 
@@ -98,8 +98,6 @@ struct test_output_t : public output_t {
 
     int start() { return 0; }
     int connect(int startTransaction) { return 0; }
-    middle_t::cb_func *way_callback() { return NULL; }
-    middle_t::cb_func *relation_callback() { return NULL; }
     void stop() { }
     void commit() { }
     void cleanup(void) { }
@@ -107,6 +105,9 @@ struct test_output_t : public output_t {
 
     void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) { }
     int pending_way(osmid_t id, int exists) { return 0; }
+
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) { }
+    int pending_relation(osmid_t id, int exists) { return 0; }
 
     int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
     int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) { return 0; }

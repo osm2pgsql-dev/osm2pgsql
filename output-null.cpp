@@ -20,14 +20,6 @@ int output_null_t::start() {
     return 0;
 }
 
-middle_t::cb_func *output_null_t::way_callback() {
-    return NULL;
-}
-
-middle_t::cb_func *output_null_t::relation_callback() {
-    return NULL;
-}
-
 void output_null_t::stop() {
 }
 
@@ -38,6 +30,13 @@ void output_null_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t 
 }
 
 int output_null_t::pending_way(osmid_t id, int exists) {
+    return 0;
+}
+
+void output_null_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+}
+
+int output_null_t::pending_relation(osmid_t id, int exists) {
     return 0;
 }
 

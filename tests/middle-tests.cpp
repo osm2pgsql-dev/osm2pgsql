@@ -50,22 +50,29 @@ int test_node_set(middle_t *mid)
   return 0;
 }
 
-struct way_processor : public middle_t::pending_processor {
-    way_processor(): pending_ways() {}
-    virtual ~way_processor() {}
-    virtual void enqueue(osmid_t id) {
+struct test_pending_processor : public middle_t::pending_processor {
+    test_pending_processor(): pending_ways(), pending_rels() {}
+    virtual ~test_pending_processor() {}
+    virtual void enqueue_ways(osmid_t id) {
         pending_ways.push_back(id);
     }
     virtual void process_ways() {
         pending_ways.clear();
     }
+    virtual void enqueue_relations(osmid_t id) {
+        pending_rels.push_back(id);
+    }
+    virtual void process_relations() {
+        pending_rels.clear();
+    }
     virtual int thread_count() {
         return 0;
     }
     virtual int size() {
-        return 0;
+        return pending_ways.size() + pending_rels.size();
     }
     std::list<osmid_t> pending_ways;
+    std::list<osmid_t> pending_rels;
 };
 
 int test_way_set(middle_t *mid)
@@ -125,8 +132,8 @@ int test_way_set(middle_t *mid)
   }
 
   // the way we just inserted should not be pending
-  way_processor way_cb;
-  mid->iterate_ways(way_cb);
+  test_pending_processor tpp;
+  mid->iterate_ways(tpp);
   if (mid->pending_count() != 0) {
     std::cerr << "ERROR: Was expecting no pending ways, but got " 
               << mid->pending_count() << " from middle.\n";
@@ -144,7 +151,7 @@ int test_way_set(middle_t *mid)
       // pending, so any change must be due to the node changing.
       status = slim->node_changed(nds[0]);
       if (status != 0) { std::cerr << "ERROR: Unable to reset node.\n"; return 1; }
-      slim->iterate_ways(way_cb);
+      slim->iterate_ways(tpp);
       if (slim->pending_count() != 1) {
           std::cerr << "ERROR: Was expecting a single pending way from node update, but got " 
                     << slim->pending_count() << " from middle.\n";

@@ -46,22 +46,18 @@ struct middle_t : public middle_query_t {
     virtual int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags) = 0;
     virtual int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
 
-    struct cb_func {
-        virtual ~cb_func();
-        virtual int operator()(osmid_t id, int exists) = 0;
-        virtual void finish(int exists) = 0;
-    };
-
     struct pending_processor {
         virtual ~pending_processor();
-        virtual void enqueue(osmid_t id) = 0;
+        virtual void enqueue_ways(osmid_t id) = 0;
         virtual void process_ways() = 0;
+        virtual void enqueue_relations(osmid_t id) = 0;
+        virtual void process_relations() = 0;
         virtual int thread_count() = 0;
         virtual int size() = 0;
     };
 
     virtual void iterate_ways(pending_processor& pf) = 0;
-    virtual void iterate_relations(cb_func &cb) = 0;
+    virtual void iterate_relations(pending_processor& pf) = 0;
 
     virtual size_t pending_count() const = 0;
 
