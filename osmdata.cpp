@@ -311,7 +311,6 @@ private:
     size_t ids_queued;
     //appending to output that is already there (diff processing)
     int append;
-
 };
 
 } // anonymous namespace

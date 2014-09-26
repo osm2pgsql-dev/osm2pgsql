@@ -82,10 +82,8 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
         way_blocks++;
     }
 
-    if (ways[block][offset].ndids) {
-        free(ways[block][offset].ndids);
-        ways[block][offset].ndids = NULL;
-    }
+    free(ways[block][offset].ndids);
+    ways[block][offset].ndids = NULL;
 
     /* Copy into length prefixed array */
     ways[block][offset].ndids = (osmid_t *)malloc( (nd_count+1)*sizeof(osmid_t) );
@@ -125,8 +123,8 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
 
     keyval::cloneList(rels[block][offset].tags, tags);
 
-    if (!rels[block][offset].members)
-      free( rels[block][offset].members );
+    free( rels[block][offset].members );
+    rels[block][offset].members = NULL;
 
     ptr = (struct member *)malloc(sizeof(struct member) * member_count);
     if (ptr) {
@@ -158,18 +156,10 @@ int middle_ram_t::nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, in
 
 void middle_ram_t::iterate_relations(pending_processor& pf)
 {
-    int block, offset;
+    //TODO: just dont do anything
 
-    for(block=NUM_BLOCKS-1; block>=0; block--) {
-        if (!rels[block])
-            continue;
-
-        for (offset=0; offset < PER_BLOCK; offset++) {
-            if (rels[block][offset].members) {
-                pf.enqueue_relations(block2id(block, offset));
-            }
-        }
-    }
+    //let the outputs enqueue everything they have the non slim middle
+    //has nothing of its own to enqueue as it doesnt have pending anything
     pf.enqueue_relations(id_tracker::max());
 
     //let the threads process the relations

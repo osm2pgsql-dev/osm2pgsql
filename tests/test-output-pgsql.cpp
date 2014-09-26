@@ -12,6 +12,7 @@
 #include "output-pgsql.hpp"
 #include "options.hpp"
 #include "middle-pgsql.hpp"
+#include "middle-ram.hpp"
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 #include "text-tree.hpp"
@@ -201,7 +202,7 @@ void test_route_rel() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], NULL };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    boost::shared_ptr<middle_ram_t> mid_ram(new middle_ram_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -209,9 +210,9 @@ void test_route_rel() {
     options.slim = 0;
     options.style = "default.style";
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_ram.get(), options));
 
-    osmdata_t osmdata(mid_pgsql, out_test);
+    osmdata_t osmdata(mid_ram, out_test);
 
     boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
 
@@ -234,7 +235,7 @@ void test_route_rel() {
     assert_has_table(test_conn, "osm2pgsql_test_roads");
 
     check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_line");
+    check_count(test_conn, 2, "SELECT count(*) FROM osm2pgsql_test_line");
     check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_roads");
     check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
@@ -301,9 +302,9 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
-    /*RUN_TEST(test_regression_simple);
+    RUN_TEST(test_regression_simple);
     RUN_TEST(test_clone);
-    RUN_TEST(test_area_way_simple);*/
+    RUN_TEST(test_area_way_simple);
     RUN_TEST(test_route_rel);
 
     return 0;
