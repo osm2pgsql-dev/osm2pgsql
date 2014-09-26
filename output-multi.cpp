@@ -277,9 +277,6 @@ int output_multi_t::reprocess_way(osmid_t id, const osmNode* nodes, int node_cou
     //but only if we actually care about relations
     if(m_processor->interests(geometry_processor::interest_relation) && exists) {
         way_delete(id);
-        // TODO: this now only has an effect when called from the iterate_ways
-        // call-back, so we need some alternative way to trigger this within
-        // osmdata_t.
         const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
         for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
             rels_pending_tracker->mark(*itr);
@@ -338,7 +335,7 @@ int output_multi_t::process_way(osmid_t id, const osmid_t* node_ids, int node_co
     return 0;
 }
 
-int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, keyval *tags, bool exists) {
+int output_multi_t::process_relation(osmid_t id, const member *members, int member_count, keyval *tags, bool exists, bool pending) {
     //if it may exist already, delete it first
     if(exists)
         relation_delete(id);
@@ -398,7 +395,9 @@ int output_multi_t::process_relation(osmid_t id, const member *members, int memb
                     way_delete(m_relation_helper.ways[i]);
                     //the other option is that we marked them pending in the way processing so here we mark them
                     //done so when we go back over the pendings we can just skip it because its in the done list
-                    ways_done_tracker->mark(m_relation_helper.ways[i]);
+                    //TODO: dont do this when working with pending relations to avoid thread races
+                    if(!pending)
+                        ways_done_tracker->mark(m_relation_helper.ways[i]);
                 }
             }
         }

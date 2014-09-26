@@ -154,7 +154,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
     return 0;
 }
 
-int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const *xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole)
+int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const *xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole, bool pending)
 {
     if (member_count == 0)
         return 0;
@@ -211,11 +211,13 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
      * have fully been dealt with as part of the multi-polygon entry.
      * Set them in the database as done and delete their entry to not
      * have duplicates */
+    //dont do this when working with pending relations as its not needed
     if (make_polygon) {
         for (i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
-                ways_done_tracker->mark(xid[i]);
                 pgsql_delete_way_from_output(xid[i]);
+                if(!pending)
+                    ways_done_tracker->mark(xid[i]);
             }
         }
     }
@@ -346,7 +348,7 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     keyval::initList(&tags_int);
     // Try to fetch the relation from the DB
     if (!m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
-        ret = pgsql_process_relation(id, members_int, count_int, &tags_int, exists);
+        ret = pgsql_process_relation(id, members_int, count_int, &tags_int, exists, true);
         free(members_int);
     }
     keyval::resetList(&tags_int);
@@ -439,7 +441,7 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists)
+int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists, bool pending)
 {
     int i, j, count, count2;
 
@@ -494,7 +496,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   xrole[count2] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole);
+  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole, pending);
 
   for( i=0; i<count2; i++ )
   {
@@ -729,7 +731,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
     m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
-    ways_pending_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
+    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
     expire(new expire_tiles(&m_options))
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);

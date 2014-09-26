@@ -65,7 +65,7 @@ protected:
     int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
     int process_way(osmid_t id, const osmid_t* node_ids, int node_count, struct keyval *tags);
     int reprocess_way(osmid_t id, const osmNode* nodes, int node_count, struct keyval *tags, bool exists);
-    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists);
+    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists, bool pending=false);
     void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
