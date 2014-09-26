@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='hand'>
+  <node id='1' version='1' visible='true' lat='49' lon='-122.5' />
+  <node id='2' version='1' visible='true' lat='49' lon='-122.51' />
+  <way id='1' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='primary' />
+  </way>
+  <relation id='1' version='1' visible='true'>
+    <member type="way" ref="1" role=""/>
+    <tag k="type" v="route"/>
+    <tag k="route" v="road"/>
+  </relation>
+</osm>

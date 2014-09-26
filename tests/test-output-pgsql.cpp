@@ -188,6 +188,57 @@ void test_area_way_simple() {
     check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
+void test_route_rel() {
+    boost::scoped_ptr<pg::tempdb> db;
+
+    try {
+        db.reset(new pg::tempdb);
+    } catch (const std::exception &e) {
+        std::cerr << "Unable to setup database: " << e.what() << "\n";
+        throw skip_test();
+    }
+
+    std::string proc_name("test-output-pgsql"), input_file("-");
+    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+
+    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    options_t options = options_t::parse(2, argv);
+    options.conninfo = db->conninfo().c_str();
+    options.num_procs = 1;
+    options.prefix = "osm2pgsql_test";
+    options.slim = 0;
+    options.style = "default.style";
+
+    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+
+    osmdata_t osmdata(mid_pgsql, out_test);
+
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+
+    osmdata.start();
+
+    if (parser->streamFile("libxml2", "tests/test_output_pgsql_route_rel.osm", options.sanitize, &osmdata) != 0) {
+        throw std::runtime_error("Unable to read input file `tests/test_output_pgsql_way_area.osm'.");
+    }
+
+    parser.reset(NULL);
+
+    osmdata.stop();
+
+    // start a new connection to run tests on
+    pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
+
+    assert_has_table(test_conn, "osm2pgsql_test_point");
+    assert_has_table(test_conn, "osm2pgsql_test_line");
+    assert_has_table(test_conn, "osm2pgsql_test_polygon");
+    assert_has_table(test_conn, "osm2pgsql_test_roads");
+
+    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_point");
+    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_line");
+    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_roads");
+    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_polygon");
+}
+
 // test the same, but clone the output. it should
 // behave the same as the original.
 void test_clone() {
@@ -250,9 +301,10 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
-    RUN_TEST(test_regression_simple);
+    /*RUN_TEST(test_regression_simple);
     RUN_TEST(test_clone);
-    RUN_TEST(test_area_way_simple);
+    RUN_TEST(test_area_way_simple);*/
+    RUN_TEST(test_route_rel);
 
     return 0;
 }
