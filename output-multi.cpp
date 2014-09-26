@@ -49,6 +49,9 @@ output_multi_t::~output_multi_t() {
 boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const{
     output_multi_t *clone = new output_multi_t(*this);
     clone->m_mid = cloned_middle;
+    //NOTE: we need to know which ways were used by relations so each thread
+    //must have a copy of the original marked done ways, its read only so its ok
+    clone->ways_done_tracker = ways_done_tracker;
     return boost::shared_ptr<output_t>(clone);
 }
 

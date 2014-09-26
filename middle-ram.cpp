@@ -203,7 +203,7 @@ void middle_ram_t::release_relations()
                 free(rels[block][offset].members);
                 rels[block][offset].members = NULL;
                 keyval::resetList(rels[block][offset].tags);
-                free(rels[block][offset].tags);
+                delete rels[block][offset].tags;
                 rels[block][offset].tags=NULL;
             }
         }
@@ -221,7 +221,7 @@ void middle_ram_t::release_ways()
             for (j=0; j<PER_BLOCK; j++) {
                 if (ways[i][j].tags) {
                     keyval::resetList(ways[i][j].tags);
-                    free(ways[i][j].tags);
+                    delete ways[i][j].tags;
                 }
                 if (ways[i][j].ndids)
                     free(ways[i][j].ndids);

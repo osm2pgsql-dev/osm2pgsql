@@ -650,6 +650,9 @@ int output_pgsql_t::start()
 boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const {
     output_pgsql_t *clone = new output_pgsql_t(*this);
     clone->m_mid = cloned_middle;
+    //NOTE: we need to know which ways were used by relations so each thread
+    //must have a copy of the original marked done ways, its read only so its ok
+    clone->ways_done_tracker = ways_done_tracker;
     return boost::shared_ptr<output_t>(clone);
 }
 
@@ -726,7 +729,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
     m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
-    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
+    ways_pending_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
     expire(new expire_tiles(&m_options))
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
