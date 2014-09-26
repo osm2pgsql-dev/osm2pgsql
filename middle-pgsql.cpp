@@ -1440,11 +1440,10 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     mid->out_options = out_options;
     mid->Append = out_options->append;
 
-    //TODO: would this be threadsafe if we just copy the shared ptr and not reset it
-    //probably not considering it caches them as it goes.. writes.., we could synchronize cache writes though?
-    mid->cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
-    if (out_options->flat_node_cache_enabled)
-        mid->persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, mid->cache));
+    //NOTE: this is thread safe for use in pending async processing only because
+    //during that process they are only read from
+    mid->cache = cache;
+    mid->persistent_cache = persistent_cache;
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {

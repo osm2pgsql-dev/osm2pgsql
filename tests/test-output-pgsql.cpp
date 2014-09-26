@@ -250,8 +250,8 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
-    /*RUN_TEST(test_regression_simple);
-    RUN_TEST(test_clone);*/
+    RUN_TEST(test_regression_simple);
+    RUN_TEST(test_clone);
     RUN_TEST(test_area_way_simple);
 
     return 0;
