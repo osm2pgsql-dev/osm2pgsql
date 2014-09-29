@@ -5,6 +5,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/thread.hpp>
 
 #include <stdexcept>
 
@@ -323,6 +324,7 @@ void osmdata_t::stop() {
     size_t pending_count = mid->pending_count();
     mid->commit();
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+        //TODO: each of the outs can be in parallel
         out->commit();
         pending_count += out->pending_count();
     }
@@ -334,26 +336,27 @@ void osmdata_t::stop() {
     pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs, pending_count, outs[0]->get_options()->append);
 
     if (!outs.empty()) {
-        /* Pending ways
-         * This stage takes ways which were processed earlier, but might be
-         * involved in a multipolygon relation. They could also be ways that
-         * were modified in diff processing.
-         */
+        //This stage takes ways which were processed earlier, but might be
+        //involved in a multipolygon relation. They could also be ways that
+        //were modified in diff processing.
         mid->iterate_ways( ptp );
 
-        /* Pending relations
-         * This is like pending ways, except there aren't pending relations
-         * on import, only on update.
-         * TODO: Can we skip this on import?
-         */
+        //This is like pending ways, except there aren't pending relations
+        //on import, only on update.
+        //TODO: Can we skip this on import?
         mid->iterate_relations( ptp );
     }
 
-	/* Clustering, index creation, and cleanup.
-	 * All the intensive parts of this are long-running PostgreSQL commands
-	 */
-    mid->stop();
+	//Clustering, index creation, and cleanup.
+	//All the intensive parts of this are long-running PostgreSQL commands
+    std::vector<boost::shared_ptr<boost::thread> > threads;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        out->stop();
+        boost::shared_ptr<boost::thread> out_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
+        threads.push_back(out_thread);
+    }
+    boost::shared_ptr<boost::thread> middle_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));
+    threads.push_back(middle_thread);
+    BOOST_FOREACH(boost::shared_ptr<boost::thread> &thread, threads){
+        thread->join();
     }
 }
