@@ -1,6 +1,5 @@
 #include "osmdata.hpp"
 
-#include <boost/atomic.hpp>
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/thread.hpp>
@@ -9,6 +8,11 @@
 #include <boost/version.hpp>
 
 #include <stdexcept>
+
+#if BOOST_VERSION < 105300
+#else
+#include <boost/atomic.hpp>
+#endif
 
 osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_): mid(mid_)
 {
