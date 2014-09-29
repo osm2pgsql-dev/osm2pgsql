@@ -6,6 +6,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
+#include <boost/version.hpp>
 
 #include <stdexcept>
 
@@ -161,28 +162,56 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
     typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-    static void do_batch_ways(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
-        pending_job_t job;
-        while (queue.pop(job)) {
-            outputs.at(job.second)->pending_way(job.first, append);
-            ++ids_done;
-        }
-    }
+#if BOOST_VERSION < 105300
+    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
+        while (true) {
+            //get the job off the queue synchronously
+            pending_job_t job;
+            mutex.lock();
+            if(queue.empty()) {
+                mutex.unlock();
+                break;
+            }
+            else {
+                job = queue.top();
+                queue.pop();
+            }
+            mutex.unlock();
 
-    static void do_batch_rels(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append) {
+            //process it
+            if(ways)
+                outputs.at(job.second)->pending_way(job.first, append);
+            else
+                outputs.at(job.second)->pending_relation(job.first, append);
+
+            mutex.lock();
+            ++ids_done;
+            mutex.unlock();
+        }
+    }
+#else
+    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append, bool ways) {
         pending_job_t job;
         while (queue.pop(job)) {
-            outputs.at(job.second)->pending_relation(job.first, append);
+            if(ways)
+                outputs.at(job.second)->pending_way(job.first, append);
+            else
+                outputs.at(job.second)->pending_relation(job.first, append);
             ++ids_done;
         }
     }
+#endif
 
     //starts up count threads and works on the queue
     pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
-        : outs(outs), queue(job_count), ids_queued(0), append(append) {
-
-        //nor have we completed any
-        ids_done = 0;
+#if BOOST_VERSION < 105300
+        //note that we cant hint to the stack how large it should be ahead of time
+        //we could use a different datastructure like a deque or vector but then
+        //the outputs the enqueue jobs would need the version check for the push(_back) method
+        : outs(outs), ids_queued(0), append(append), queue(), ids_done(0) {
+#else
+        : outs(outs), ids_queued(0), append(append), queue(job_count), ids_done(0) {
+#endif
 
         //clone all the things we need
         clones.reserve(thread_count);
@@ -222,7 +251,11 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-            workers.create_thread(boost::bind(do_batch_ways, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
+#if BOOST_VERSION < 105300
+            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, true));
+#else
+            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, true));
+#endif
         }
 
         //TODO: print out partial progress
@@ -269,7 +302,11 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-            workers.create_thread(boost::bind(do_batch_rels, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append));
+#if BOOST_VERSION < 105300
+            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, false));
+#else
+            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, false));
+#endif
         }
 
         //TODO: print out partial progress
@@ -304,14 +341,21 @@ private:
     output_vec_t outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //actual threads
     boost::thread_group workers;
-    //job queue
-    pending_queue_t queue;
-    //how many ids within the job have been processed
-    boost::atomic_size_t ids_done;
     //how many jobs do we have in the queue to start with
     size_t ids_queued;
     //appending to output that is already there (diff processing)
     int append;
+    //job queue
+    pending_queue_t queue;
+
+#if BOOST_VERSION < 105300
+    //how many ids within the job have been processed
+    size_t ids_done;
+    //so the threads can manage some of the shared state
+    boost::mutex mutex;
+#else
+    boost::atomic_size_t ids_done;
+#endif
 };
 
 } // anonymous namespace
@@ -349,14 +393,10 @@ void osmdata_t::stop() {
 
 	//Clustering, index creation, and cleanup.
 	//All the intensive parts of this are long-running PostgreSQL commands
-    std::vector<boost::shared_ptr<boost::thread> > threads;
+    boost::thread_group threads;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        boost::shared_ptr<boost::thread> out_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
-        threads.push_back(out_thread);
+        threads.add_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
     }
-    boost::shared_ptr<boost::thread> middle_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));
-    threads.push_back(middle_thread);
-    BOOST_FOREACH(boost::shared_ptr<boost::thread> &thread, threads){
-        thread->join();
-    }
+    threads.add_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));
+    threads.join_all();
 }
