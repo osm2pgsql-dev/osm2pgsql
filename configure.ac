@@ -127,7 +127,6 @@ AX_BOOST_BASE([1.53], , [AC_MSG_ERROR([cannot find Boost libraries, which are ar
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
 AX_BOOST_THREAD
-AX_BOOST_ASIO
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
