@@ -97,7 +97,7 @@ int mark_tile(struct expire_tiles::tile ** tree_head, int x, int y, int zoom) {
 	return _mark_tile(tree_head, x, y, zoom, 0);
 }
 
-void output_dirty_tile(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
+void output_dirty_tile_impl(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
 	int	y_min;
 	int	x_iter;
 	int	y_iter;
@@ -140,7 +140,7 @@ struct tile_output_file : public expire_tiles::tile_output {
   }
 
   virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) {
-    ::output_dirty_tile(outfile, x, y, zoom, min_zoom, outcount);
+    output_dirty_tile_impl(outfile, x, y, zoom, min_zoom, outcount);
   }
 
 private:
