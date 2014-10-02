@@ -460,7 +460,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         node.lat = strtod(PQgetvalue(res, i, 1), NULL);
         node.lon = strtod(PQgetvalue(res, i, 2), NULL);
 #endif
-        pg_nodes.emplace(std::make_pair<osmid_t, osmNode>(id, node));
+        pg_nodes.emplace(id, node);
     }
  
     //copy the nodes back out of the hashmap to the output
