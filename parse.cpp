@@ -14,6 +14,9 @@
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096
 
+#ifdef _MSC_VER
+#define strcasecmp _stricmp
+#endif
 
 
 parse_delegate_t::parse_delegate_t(const int extra_attributes,
