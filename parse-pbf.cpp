@@ -37,10 +37,6 @@
 #include "parse-pbf.hpp"
 #include "output.hpp"
 
-
-
-#define UNUSED  __attribute__ ((unused))
-
 #define MAX_BLOCK_HEADER_SIZE 64*1024
 #define MAX_BLOB_SIZE 32*1024*1024
 
@@ -539,7 +535,7 @@ parse_pbf_t::~parse_pbf_t()
 
 }
 
-int parse_pbf_t::streamFile(const char *filename, const int UNUSED, osmdata_t *osmdata)
+int parse_pbf_t::streamFile(const char *filename, const int, osmdata_t *osmdata)
 {
   void *header = NULL;
   void *blob = NULL;

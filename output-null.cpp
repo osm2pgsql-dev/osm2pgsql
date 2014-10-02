@@ -11,8 +11,6 @@
 #include "output-null.hpp"
 #include "options.hpp"
 
-#define UNUSED  __attribute__ ((unused))
-
 void output_null_t::cleanup() {
 }
 
@@ -40,39 +38,39 @@ int output_null_t::pending_relation(osmid_t id, int exists) {
     return 0;
 }
 
-int output_null_t::node_add(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::node_add(osmid_t a, double b, double c, struct keyval *k) {
   return 0;
 }
 
-int output_null_t::way_add(osmid_t a UNUSED, osmid_t *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::way_add(osmid_t a, osmid_t *b, int c, struct keyval *k) {
   return 0;
 }
 
-int output_null_t::relation_add(osmid_t a UNUSED, struct member *b UNUSED, int c UNUSED, struct keyval *k UNUSED) {
+int output_null_t::relation_add(osmid_t a, struct member *b, int c, struct keyval *k) {
   return 0;
 }
 
-int output_null_t::node_delete(osmid_t i UNUSED) {
+int output_null_t::node_delete(osmid_t i) {
   return 0;
 }
 
-int output_null_t::way_delete(osmid_t i UNUSED) {
+int output_null_t::way_delete(osmid_t i) {
   return 0;
 }
 
-int output_null_t::relation_delete(osmid_t i UNUSED) {
+int output_null_t::relation_delete(osmid_t i) {
   return 0;
 }
 
-int output_null_t::node_modify(osmid_t a UNUSED, double b UNUSED, double c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::node_modify(osmid_t a, double b, double c, struct keyval * k) {
   return 0;
 }
 
-int output_null_t::way_modify(osmid_t a UNUSED, osmid_t * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::way_modify(osmid_t a, osmid_t *b, int c, struct keyval *k) {
   return 0;
 }
 
-int output_null_t::relation_modify(osmid_t a UNUSED, struct member * b UNUSED, int c UNUSED, struct keyval * k UNUSED) {
+int output_null_t::relation_modify(osmid_t a, struct member *b, int c, struct keyval *k) {
   return 0;
 }
 

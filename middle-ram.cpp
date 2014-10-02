@@ -61,8 +61,6 @@ static int block2id(int block, int offset)
     return ((block - NUM_BLOCKS/2) << BLOCK_SHIFT) + offset;
 }
 
-#define UNUSED  __attribute__ ((unused))
-
 int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     return cache->set(id, lat, lon, tags);
 }

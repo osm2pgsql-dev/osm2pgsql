@@ -528,7 +528,6 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
 
   return pgsql_process_relation(id, members, member_count, tags, 0);
 }
-#define UNUSED  __attribute__ ((unused))
 
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
