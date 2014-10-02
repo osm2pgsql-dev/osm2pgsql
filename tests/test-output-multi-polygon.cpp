@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
         check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'osm2pgsql_test_foobar_buildings'");
+        check_count(test_conn, 0, "select count(*) from osm2pgsql_test_foobar_buildings where building is null");
         check_count(test_conn, 3723, "select count(*) from osm2pgsql_test_foobar_buildings");
 
         //check that we have the right spread
