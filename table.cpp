@@ -400,7 +400,6 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
         //a clone of the tags pointer
-        keyval* xtags = tags;
         bool added = false;
 
         //iterate through the list of tags, first one is always null

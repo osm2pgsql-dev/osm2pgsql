@@ -113,7 +113,7 @@ struct ramNode *node_ram_cache::next_chunk(size_t count, size_t size) {
 }
 
 
-int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval *tags UNUSED) {
+int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval *tags) {
     if ((sizeSparseTuples > maxSparseTuples) || ( cacheUsed > cacheSize)) {
         if ((allocStrategy & ALLOC_LOSSY) > 0)
             return 1;
@@ -136,7 +136,7 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval
     return 0;
 }
 
-int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval *tags UNUSED) {
+int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval *tags) {
     int block  = id2block(id);
     int offset = id2offset(id);
     int i = 0;
@@ -423,7 +423,7 @@ node_ram_cache::~node_ram_cache() {
   }
 }
 
-int node_ram_cache::set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED) {
+int node_ram_cache::set(osmid_t id, double lat, double lon, struct keyval *tags) {
     totalNodes++;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through 
      * ram_nodes_set_dense. If a block is non dense, it will automatically

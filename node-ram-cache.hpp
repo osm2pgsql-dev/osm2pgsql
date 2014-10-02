@@ -17,8 +17,6 @@
 #define ALLOC_DENSE_CHUNK 4
 #define ALLOC_LOSSY 8
 
-#define UNUSED  __attribute__ ((unused))
-
 /* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
 #define FIXED_POINT
 
@@ -49,14 +47,14 @@ struct node_ram_cache : public boost::noncopyable
     node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
     ~node_ram_cache();
 
-    int set(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
+    int set(osmid_t id, double lat, double lon, struct keyval *tags);
     int get(struct osmNode *out, osmid_t id);
 
 private:
     void percolate_up( int pos );
     struct ramNode *next_chunk(size_t count, size_t size);
-    int set_sparse(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
-    int set_dense(osmid_t id, double lat, double lon, struct keyval *tags UNUSED);
+    int set_sparse(osmid_t id, double lat, double lon, struct keyval *tags);
+    int set_dense(osmid_t id, double lat, double lon, struct keyval *tags);
     int get_sparse(struct osmNode *out, osmid_t id);
     int get_dense(struct osmNode *out, osmid_t id);
 

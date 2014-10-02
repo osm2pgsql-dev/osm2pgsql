@@ -120,7 +120,6 @@ int read_style_file( const std::string &filename, export_list *exlist )
   char tag[64];
   char datatype[24];
   char flags[128];
-  int i;
   char *str;
   int fields;
   struct taginfo temp;
