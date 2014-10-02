@@ -1225,7 +1225,6 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
-   int wkt_size;
    const char *type;
    int cmp_waterway;
 

@@ -69,7 +69,6 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
 {
     int block  = id2block(id);
     int offset = id2offset(id);
-    struct keyval *p;
 
     if (!ways[block]) {
         ways[block] = (struct ramWay *)calloc(PER_BLOCK, sizeof(struct ramWay));
@@ -101,7 +100,6 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
 
 int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-    struct keyval *p;
     struct member *ptr;
     int block  = id2block(id);
     int offset = id2offset(id);
@@ -223,7 +221,7 @@ void middle_ram_t::release_ways()
 /* Caller must free nodes_ptr and keyval::resetList(tags_ptr) */
 int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode **nodes_ptr, int *count_ptr) const
 {
-    int block = id2block(id), offset = id2offset(id), ndCount = 0;
+    int block = id2block(id), offset = id2offset(id);
     struct osmNode *nodes;
 
     if (simulate_ways_deleted)
@@ -235,7 +233,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
     if (ways[block][offset].ndids) {
         /* First element contains number of nodes */
         nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * ways[block][offset].ndids[0]);
-        ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
+        int ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
         if (ndCount) {
             keyval::cloneList( tags_ptr, ways[block][offset].tags );
@@ -270,7 +268,7 @@ int middle_ram_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_
  */
 int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *member_count, struct keyval *tags_ptr) const
 {
-    int block = id2block(id), offset = id2offset(id), ndCount = 0;
+    int block = id2block(id), offset = id2offset(id);
     struct member *members;
 
     if (!rels[block])
@@ -319,7 +317,6 @@ int middle_ram_t::start(const options_t *out_options_)
 
 void middle_ram_t::stop(void)
 {
-    int i, j;
     cache.reset(NULL);
 
     release_ways();

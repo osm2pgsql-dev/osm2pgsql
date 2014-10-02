@@ -70,8 +70,6 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_
 {
 
     int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
-    int i;
-    struct keyval *tag;
 
     if (filter) return 1;
 
@@ -107,7 +105,6 @@ E4C1421D5BF24D06053E7DF4940
 int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists)
 {
     int polygon = 0, roads = 0;
-    int i, wkt_size;
     double split_at;
 
     /* If the flag says this object may exist already, delete it first */
@@ -159,7 +156,6 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     if (member_count == 0)
         return 0;
 
-    int i, wkt_size;
     int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
@@ -213,7 +209,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
      * have duplicates */
     //dont do this when working with pending relations as its not needed
     if (make_polygon) {
-        for (i=0; xcount[i]; i++) {
+        for (int i=0; xcount[i]; i++) {
             if (members_superseeded[i]) {
                 pgsql_delete_way_from_output(xid[i]);
                 if(!pending)

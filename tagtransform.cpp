@@ -378,7 +378,6 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
         int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
 
     int i;
-    int idx = 0;
     int filter;
     int count = 0;
     struct keyval *item;
@@ -388,7 +387,6 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
 
     lua_newtable(L);    /* relations key value table */
 
-    idx = 1;
     while( (item = keyval::popItem(rel_tags)) != NULL ) {
         lua_pushstring(L, item->key);
         lua_pushstring(L, item->value);
@@ -557,7 +555,6 @@ unsigned int tagtransform::filter_rel_member_tags(struct keyval *rel_tags, int m
 
 unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tags, int * polygon, int * roads) {
 #ifdef HAVE_LUA
-    int idx = 0;
     int filter;
     int count = 0;
     struct keyval *item;
@@ -582,7 +579,6 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
 
     lua_newtable(L);    /* key value table */
 
-    idx = 1;
     while( (item = keyval::popItem(tags)) != NULL ) {
         lua_pushstring(L, item->key);
         lua_pushstring(L, item->value);
