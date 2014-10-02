@@ -34,6 +34,14 @@
 #endif
 #endif 
 
+#ifdef _WIN32
+using namespace std;
+#endif
+
+#ifdef _MSC_VER
+#define alloca _alloca
+#endif
+
 #include <libpq-fe.h>
 
 #include "osmtypes.hpp"

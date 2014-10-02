@@ -62,11 +62,12 @@
 
 #include <libpq-fe.h>
 
-#ifdef __MINGW_H
-# include <windows.h>
-#else
-# define HAVE_TERMIOS_H
-# include <termios.h>
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
 #endif
 
 char *
@@ -81,7 +82,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	struct termios t_orig,
 				t;
 #else
-#ifdef WIN32
+#ifdef _WIN32
 	HANDLE		t = NULL;
 	LPDWORD		t_orig = NULL;
 #endif
@@ -98,7 +99,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	termin = fopen(DEVTTY, "r");
 	termout = fopen(DEVTTY, "w");
 	if (!termin || !termout
-#ifdef WIN32
+#ifdef _WIN32
 	/* See DEVTTY comment for msys */
 		|| (getenv("OSTYPE") && strcmp(getenv("OSTYPE"), "msys") == 0)
 #endif
@@ -121,7 +122,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 		tcsetattr(fileno(termin), TCSAFLUSH, &t);
 	}
 #else
-#ifdef WIN32
+#ifdef _WIN32
 	if (!echo)
 	{
 		/* get a new handle to turn echo off */
@@ -173,7 +174,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 		fflush(termout);
 	}
 #else
-#ifdef WIN32
+#ifdef _WIN32
 	if (!echo)
 	{
 		/* reset to the original console mode */

@@ -3,7 +3,11 @@
 #include "parse.hpp"
 
 #include <getopt.h>
+#ifdef HAVE_LIBGEN_H
 #include <libgen.h>
+#else
+#define basename /*SKIP IT*/
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdexcept>
