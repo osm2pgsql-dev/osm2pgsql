@@ -777,36 +777,40 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     struct keyval member_list;
     char buf[64];
     
-    osmid_t node_parts[member_count],
-            way_parts[member_count],
-            rel_parts[member_count];
     int node_count = 0, way_count = 0, rel_count = 0;
+
+    std::vector<osmid_t> all_parts(member_count), node_parts, way_parts, rel_parts;
+    node_parts.reserve(member_count);
+    way_parts.reserve(member_count);
+    rel_parts.reserve(member_count);
+
+    keyval::initList( &member_list );
     
-    osmid_t all_parts[member_count];
-    int all_count = 0;
-    keyval::initList( &member_list );    
     for( i=0; i<member_count; i++ )
     {
       char tag = 0;
       switch( members[i].type )
       {
-        case OSMTYPE_NODE:     node_parts[node_count++] = members[i].id; tag = 'n'; break;
-        case OSMTYPE_WAY:      way_parts[way_count++] = members[i].id; tag = 'w'; break;
-        case OSMTYPE_RELATION: rel_parts[rel_count++] = members[i].id; tag = 'r'; break;
+        case OSMTYPE_NODE:     node_count++; node_parts.push_back(members[i].id); tag = 'n'; break;
+        case OSMTYPE_WAY:      way_count++; way_parts.push_back(members[i].id); tag = 'w'; break;
+        case OSMTYPE_RELATION: rel_count++; rel_parts.push_back(members[i].id); tag = 'r'; break;
         default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); util::exit_nicely();
       }
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
       keyval::addItem( &member_list, buf, members[i].role, 0 );
     }
-    memcpy( all_parts+all_count, node_parts, node_count*sizeof(osmid_t) ); all_count+=node_count;
-    memcpy( all_parts+all_count, way_parts, way_count*sizeof(osmid_t) ); all_count+=way_count;
-    memcpy( all_parts+all_count, rel_parts, rel_count*sizeof(osmid_t) ); all_count+=rel_count;
+
+    int all_count = 0;
+    std::copy( node_parts.begin(), node_parts.end(), all_parts.begin() );
+    std::copy( way_parts.begin(), way_parts.end(), all_parts.begin() + node_count );
+    std::copy( rel_parts.begin(), rel_parts.end(), all_parts.begin() + node_count + way_count);
+    all_count = node_count + way_count + rel_count;
   
     if( rel_table->copyMode )
     {
       char *tag_buf = strdup(pgsql_store_tags(tags,1));
       const char *member_buf = pgsql_store_tags(&member_list,1);
-      char *parts_buf = pgsql_store_nodes(all_parts, all_count);
+      char *parts_buf = pgsql_store_nodes(&all_parts[0], all_count);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = (char *)alloca(length);
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\n",
@@ -825,7 +829,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     ptr += sprintf(ptr, "%d", node_count ) + 1;
     paramValues[2] = ptr;
     sprintf( ptr, "%d", node_count+way_count );
-    paramValues[3] = pgsql_store_nodes(all_parts, all_count);
+    paramValues[3] = pgsql_store_nodes(&all_parts[0], all_count);
     paramValues[4] = pgsql_store_tags(&member_list,0);
     if( paramValues[4] )
         paramValues[4] = strdup(paramValues[4]);
