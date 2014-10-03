@@ -51,7 +51,7 @@ To install on a Debian or Ubuntu system, first install the prerequisites:
 ```sh
 sudo apt-get install autoconf automake libtool make g++ libxml2-dev libgeos-dev
   libgeos++-dev libpq-dev libbz2-dev libproj-dev protobuf-c-compiler
-  libprotobuf-c0-dev libbz2-dev lua5.2 liblua5.2-dev
+  libprotobuf-c0-dev lua5.2 liblua5.2-dev
 ```
 
 To install on a Fedora system, use
