@@ -1,4 +1,4 @@
-.TH OSM2PGSQL 1 "April 06, 2013"
+.TH OSM2PGSQL 1 "July 25, 2014"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 osm2pgsql \- Openstreetmap data to PostgreSQL converter.
@@ -62,6 +62,9 @@ This allows one to e.g. store the indices on faster storage like SSDs.
 .TP
 \fB\ \fR\-\-tablespace\-main\-data tablespacename
 Store the data tables (non slim) in the given tablespace.
+.TP
+\fB\-X\fR|\-\-schema
+Use the specified schema to store the tables.  Default is public.
 .TP
 \fB\ \fR\-\-tablespace\-main\-index tablespacename
 Store the indices of the main tables (non slim) in the given tablespace.
