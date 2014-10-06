@@ -1068,16 +1068,6 @@ static void *pgsql_out_stop_one(void *arg)
         fprintf(stderr, "Sorting data and creating indexes for %s\n", table->name);
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ANALYZE %s;\n", table->name);
         fprintf(stderr, "Analyzing %s finished\n", table->name);
-        if (Options->tblsmain_data) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp "
-                        "TABLESPACE %s AS SELECT * FROM %s ORDER BY way;\n",
-                        table->name, Options->tblsmain_data, table->name);
-        } else {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "CREATE TABLE %s_tmp AS SELECT * FROM %s ORDER BY way;\n", table->name, table->name);
-        }
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s;\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "ALTER TABLE %s_tmp RENAME TO %s;\n", table->name, table->name);
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", table->name);
         fprintf(stderr, "Creating geometry index on  %s\n", table->name);
         if (Options->tblsmain_index) {
             /* Use fillfactor 100 for un-updatable imports */
