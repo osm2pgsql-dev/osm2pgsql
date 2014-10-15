@@ -116,9 +116,10 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 #endif
     PGresult* res = PQexec(sql_conn, sql);
     if (PQresultStatus(res) != expect) {
+	std::string err_msg = (boost::format("%1% failed: %2%") % sql % PQerrorMessage(sql_conn)).str();
         free(sql);
         PQclear(res);
-        throw std::runtime_error((boost::format("%1% failed: %2%") % sql % PQerrorMessage(sql_conn)).str());
+        throw std::runtime_error(err_msg);
     }
     free(sql);
     PQclear(res);
