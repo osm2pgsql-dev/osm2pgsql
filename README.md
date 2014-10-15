@@ -50,9 +50,9 @@ To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
 sudo apt-get install autoconf automake libtool make g++ libboost-dev \
-  libboost-system-dev libboost-filesystem-dev libxml2-dev libgeos-dev \
-  libgeos++-dev libpq-dev libbz2-dev libproj-dev protobuf-c-compiler \
-  libprotobuf-c0-dev libbz2-dev lua5.2 liblua5.2-dev
+  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libxml2-dev \
+  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev
+  protobuf-c-compiler libprotobuf-c0-dev libbz2-dev lua5.2 liblua5.2-dev
 ```
 
 To install on a Fedora system, use
@@ -101,8 +101,8 @@ When importing a large amount of data such as the complete planet, a typical
 command line would be
 
 ```sh
-    osm2pgsql -c -d gis --slim -C <cache size> \
-      --flat-nodes <flat nodes> planet-latest.osm.pbf
+osm2pgsql -c -d gis --slim -C <cache size> \
+  --flat-nodes <flat nodes> planet-latest.osm.pbf
 ```
 where
 * ``<cache size>`` is 24000 on machines with 32GiB or more RAM
@@ -131,21 +131,18 @@ http://wiki.openstreetmap.org/index.php/Mailing_lists
 ## Testing ##
 
 The code also comes with a suite of tests which can be run by
-executing:
-
-# make check
+executing ``make check``.
 
 Some of these tests depend on being able to set up a database and run
 osm2pgsql against it. You need to ensure that PostgreSQL is running
 and that your user is a superuser of that system. To do that, run:
 
-# sudo -u postgres createuser -s $USER
-
-And you then need to set up a testing tablespace like this:
-
-# sudo mkdir -p /tmp/psql-tablespace
-# sudo /bin/chown postgres.postgres /tmp/psql-tablespace
-# psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
+```sh
+sudo -u postgres createuser -s $USER
+sudo mkdir -p /tmp/psql-tablespace
+sudo chown postgres.postgres /tmp/psql-tablespace
+psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
+```
 
 Once this is all set up, all the tests should run (no SKIPs), and pass
 (no FAILs). If you encounter a failure, you can find more information

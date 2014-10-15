@@ -22,16 +22,27 @@
 
 #include <stdexcept>
 
-#ifdef __APPLE__
-  #define lseek64 lseek
+#ifdef _WIN32
+ #include "win_fsync.h"
+ #define lseek64 _lseeki64
+ #ifndef S_IRUSR
+  #define S_IRUSR S_IREAD
+ #endif
+ #ifndef S_IWUSR
+  #define S_IWUSR S_IWRITE
+ #endif
 #else
+ #ifdef __APPLE__
+ #define lseek64 lseek
+ #else
   #ifndef HAVE_LSEEK64
-  #if SIZEOF_OFF_T == 8
-  #define lseek64 lseek
-  #else
-  #error Flat nodes cache requires a 64 bit capable seek
+   #if SIZEOF_OFF_T == 8
+    #define lseek64 lseek
+   #else
+    #error Flat nodes cache requires a 64 bit capable seek
+   #endif
   #endif
-  #endif
+ #endif
 #endif
 
 void node_persistent_cache::writeout_dirty_nodes(osmid_t id)

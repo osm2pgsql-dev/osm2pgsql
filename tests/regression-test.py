@@ -4,7 +4,6 @@ import unittest
 import psycopg2
 import os
 import fnmatch
-from pwd import getpwnam
 import subprocess
 
 full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"

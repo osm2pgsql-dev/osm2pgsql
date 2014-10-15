@@ -32,7 +32,6 @@ in a production environment.
 
  */
 
-#define UNUSED  __attribute__ ((unused))
 
 #include <unistd.h>
 #include <stdlib.h>
@@ -461,7 +460,7 @@ parse_primitive_t::~parse_primitive_t()
 
 }
 
-int parse_primitive_t::streamFile(const char *filename, const int UNUSED, osmdata_t *osmdata) {
+int parse_primitive_t::streamFile(const char *filename, const int, osmdata_t *osmdata) {
     struct Input *i;
     char buffer[65536];
     int bufsz = 0;

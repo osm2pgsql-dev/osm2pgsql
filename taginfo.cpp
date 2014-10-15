@@ -8,6 +8,12 @@
 #include <boost/format.hpp>
 #include <errno.h>
 
+#ifdef _WIN32
+#ifndef strtok_r
+ #define strtok_r strtok_s
+#endif
+#endif
+
 /* NOTE: section below for flags genuinely is static and
  * constant, so there's no need to hoist this into a per
  * class variable. It doesn't get modified, so it's safe
@@ -120,7 +126,6 @@ int read_style_file( const std::string &filename, export_list *exlist )
   char tag[64];
   char datatype[24];
   char flags[128];
-  int i;
   char *str;
   int fields;
   struct taginfo temp;
