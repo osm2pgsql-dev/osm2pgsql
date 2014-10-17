@@ -486,7 +486,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     if (count != nd_count) {
         j = 0;
         for (i = 0; i < nd_count; i++) {
-            if ( !isnan(nodes[i].lat)) {
+            if ( !std::isnan(nodes[i].lat)) {
                 nodes[j] = nodes[i];
                 j++;
             }
