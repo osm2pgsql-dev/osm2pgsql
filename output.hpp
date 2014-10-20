@@ -17,6 +17,8 @@
 #include <boost/noncopyable.hpp>
 #include <boost/version.hpp>
 
+#include <utility>
+
 typedef std::pair<osmid_t, size_t> pending_job_t;
 #if BOOST_VERSION < 105300
 #include <stack>
