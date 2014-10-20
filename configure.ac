@@ -122,7 +122,7 @@ dnl Check for pthread library
 AX_PTHREAD(,[AC_MSG_ERROR([no])])
 
 dnl Check for Boost libraries
-AX_BOOST_BASE([1.49], , [AC_MSG_ERROR([cannot find Boost libraries, which are are required for building avecado. Please install libboost-dev.])])
+AX_BOOST_BASE([1.48], , [AC_MSG_ERROR([cannot find Boost libraries, which are are required for building osm2pgsql. Please install libboost-dev.])])
 
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
