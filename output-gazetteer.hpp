@@ -45,8 +45,8 @@ private:
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places);
     void add_place(char osm_type, osmid_t osm_id, const char *key_class, const char *type,
-                   struct keyval *names, struct keyval *extratags, int adminlevel, 
-                   struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, 
+                   struct keyval *names, struct keyval *extratags, int adminlevel,
+                   struct keyval *housenumber, struct keyval *street, struct keyval *addr_place,
                    const char *isin, struct keyval *postcode, struct keyval *countrycode,
                    const char *wkt);
     void delete_place(char osm_type, osmid_t osm_id);
@@ -61,10 +61,10 @@ private:
     struct pg_conn *Connection;
     struct pg_conn *ConnectionDelete;
     struct pg_conn *ConnectionError;
-    
+
     int CopyActive;
     unsigned int BufferLen;
-    
+
     char Buffer[BUFFER_SIZE];
 
     geometry_builder builder;

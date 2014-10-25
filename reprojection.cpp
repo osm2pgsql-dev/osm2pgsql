@@ -1,6 +1,6 @@
 /* reprojection.c
  *
- * Convert OSM coordinates to another coordinate system for 
+ * Convert OSM coordinates to another coordinate system for
  * the database (usually convert lat/lon to Spherical Mercator
  * so Mapnik doesn't have to).
  */
@@ -29,20 +29,20 @@ Projection_Info::Projection_Info(const char *descr_, const char *proj4text_, int
 namespace {
 
 const struct Projection_Info Projection_Infos[] = {
-    /*PROJ_LATLONG*/ Projection_Info( 
-        /*descr    */ "Latlong", 
+    /*PROJ_LATLONG*/ Projection_Info(
+        /*descr    */ "Latlong",
         /*proj4text*/ "+init=epsg:4326",
-        /*srs      */ 4326, 
+        /*srs      */ 4326,
         /*option   */ "-l" ),
     /*PROJ_MERC*/ Projection_Info(
-        /*descr    */ "WGS84 Mercator", 
-        /*proj4text*/ "+proj=merc +datum=WGS84  +k=1/*0 +units=m +over +no_defs", 
-        /*srs      */ 3395, 
+        /*descr    */ "WGS84 Mercator",
+        /*proj4text*/ "+proj=merc +datum=WGS84  +k=1/*0 +units=m +over +no_defs",
+        /*srs      */ 3395,
         /*option   */ "-M" ),
-    /*PROJ_SPHERE_MERC*/ Projection_Info( 
-        /*descr    */ "Spherical Mercator",  
-        /*proj4text*/ "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs", 
-        /*srs      */ 900913, 
+    /*PROJ_SPHERE_MERC*/ Projection_Info(
+        /*descr    */ "Spherical Mercator",
+        /*proj4text*/ "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs",
+        /*srs      */ 900913,
         /*option   */ "-m" )
 };
 
@@ -55,12 +55,12 @@ reprojection::reprojection(int proj)
       custom_projection(NULL)
 {
     char buffer[32];
-    
-    /* hard-code the source projection to be lat/lon, since OSM XML always 
+
+    /* hard-code the source projection to be lat/lon, since OSM XML always
      * has coordinates in degrees. */
     pj_source = pj_init_plus("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs");
 
-    /* hard-code the tile projection to be spherical mercator always. 
+    /* hard-code the tile projection to be spherical mercator always.
      * theoretically this could be made selectable but not all projections
      * lend themselves well to making tiles; non-spherical mercator tiles
      * are uncharted waters in OSM. */
@@ -85,13 +85,13 @@ reprojection::reprojection(int proj)
             exit(1);
         }
     }
-            
-    if (!pj_source || !pj_target || !pj_tile) 
+
+    if (!pj_source || !pj_target || !pj_tile)
     {
         fprintf(stderr, "Projection code failed to initialise\n");
         exit(1);
     }
-    
+
     if (proj >= 0)
         return;
 
@@ -131,7 +131,7 @@ struct Projection_Info const *reprojection::project_getprojinfo(void)
 void reprojection::reproject(double *lat, double *lon)
 {
     double x[1], y[1], z[1];
-    
+
     /** Caution: This section is only correct if the source projection is lat/lon;
      *  so even if it looks like pj_source was just a variable, things break if
      *  pj_source is something else than lat/lon. */
@@ -141,7 +141,7 @@ void reprojection::reproject(double *lat, double *lon)
 
     if (Proj == PROJ_SPHERE_MERC)
     {
-      /* The latitude co-ordinate is clipped at slightly larger than the 900913 'world' 
+      /* The latitude co-ordinate is clipped at slightly larger than the 900913 'world'
        * extent of +-85.0511 degrees to ensure that the points appear just outside the
        * edge of the map. */
 
@@ -160,14 +160,14 @@ void reprojection::reproject(double *lat, double *lon)
     z[0] = 0;
 
     /** end of "caution" section. */
-    
+
     pj_transform(pj_source, pj_target, 1, 1, x, y, z);
-    
+
     *lat = y[0];
     *lon = x[0];
 }
 
-/** 
+/**
  * Converts from (target) coordinates to tile coordinates.
  *
  * The zoom level for the coordinates is explicitly given in the
@@ -177,7 +177,7 @@ void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, doub
                                   int map_width)
 {
     double x[1], y[1], z[1];
-    
+
     x[0] = lon;
     y[0] = lat;
     z[0] = 0;
@@ -188,7 +188,7 @@ void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, doub
         y[0] *= DEG_TO_RAD;
     }
 
-    /* since pj_tile is always spherical merc, don't bother doing anything if 
+    /* since pj_tile is always spherical merc, don't bother doing anything if
      *  destination proj is the same. */
 
     if (Proj != PROJ_SPHERE_MERC)
@@ -196,7 +196,7 @@ void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, doub
         pj_transform(pj_target, pj_tile, 1, 1, x, y, z);
         /** FIXME: pj_transform could fail if coordinates are outside +/- 85 degrees latitude */
     }
-    
+
     /* if ever pj_tile were allowed to be PROJ_LATLONG then results would have to
      *  be divided by DEG_TO_RAD here. */
 
@@ -208,4 +208,3 @@ int reprojection::get_proj_id() const
 {
 	return Proj;
 }
-

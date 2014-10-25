@@ -2,7 +2,7 @@
  * storing the data in several PostgreSQL tables
  * with the final PostGIS geometries for each entity
 */
- 
+
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
@@ -23,7 +23,7 @@ public:
     enum table_id {
         t_point = 0, t_line, t_poly, t_roads, t_MAX
     };
-    
+
     output_pgsql_t(const middle_query_t* mid_, const options_t &options_);
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
@@ -60,7 +60,7 @@ public:
     virtual boost::shared_ptr<expire_tiles> get_expire_tree();
 
 protected:
-    
+
     int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
     int pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists);
     int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const * xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole, bool pending);
@@ -74,7 +74,7 @@ protected:
     int m_enable_way_area;
 
     std::vector<boost::shared_ptr<table_t> > m_tables;
-    
+
     boost::scoped_ptr<export_list> m_export_list;
 
     geometry_builder builder;

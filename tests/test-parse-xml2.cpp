@@ -86,7 +86,7 @@ struct test_output_t : public output_t {
         num_nds += uint64_t(node_count);
         return 0;
     }
-    
+
     int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
         assert(id > 0);
         sum_ids += id;
@@ -129,11 +129,11 @@ void assert_equal(uint64_t actual, uint64_t expected) {
 
 int main(int argc, char *argv[]) {
   char *srcdir = getenv("srcdir");
-  
+
   if (srcdir == NULL) {
     std::cerr << "$srcdir not set!\n";
     return 1;
-  } 
+  }
 
   std::string inputfile = std::string(srcdir) + std::string("/tests/test_multipolygon.osm");
 
@@ -157,6 +157,6 @@ int main(int argc, char *argv[]) {
   assert_equal(out_test->num_relations,    40L);
   assert_equal(out_test->num_nds,         495L);
   assert_equal(out_test->num_members,     146L);
-  
+
   return 0;
 }

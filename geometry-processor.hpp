@@ -13,10 +13,10 @@ struct geometry_processor {
 
     virtual ~geometry_processor();
 
-    enum interest { 
+    enum interest {
         interest_NONE     = 0,
-        interest_node     = 1, 
-        interest_way      = 2, 
+        interest_node     = 1,
+        interest_way      = 2,
         interest_relation = 4,
         interest_ALL      = 7
     };

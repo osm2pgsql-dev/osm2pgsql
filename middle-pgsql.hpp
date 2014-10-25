@@ -1,11 +1,11 @@
 /* Implements the mid-layer processing for osm2pgsql
  * using several PostgreSQL tables
- * 
+ *
  * This layer stores data read in from the planet.osm file
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
 */
- 
+
 #ifndef MIDDLE_PGSQL_H
 #define MIDDLE_PGSQL_H
 
@@ -56,7 +56,7 @@ struct middle_pgsql_t : public slim_middle_t {
 
     struct table_desc {
         table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL, 
+                   const char *start_ = NULL,
                    const char *create_ = NULL,
                    const char *create_index_ = NULL,
                    const char *prepare_ = NULL,
@@ -65,7 +65,7 @@ struct middle_pgsql_t : public slim_middle_t {
                    const char *analyze_ = NULL,
                    const char *stop_ = NULL,
                    const char *array_indexes_ = NULL);
-        
+
         const char *name;
         const char *start;
         const char *create;
@@ -76,7 +76,7 @@ struct middle_pgsql_t : public slim_middle_t {
         const char *analyze;
         const char *stop;
         const char *array_indexes;
-        
+
         int copyMode;    /* True if we are in copy mode */
         int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;

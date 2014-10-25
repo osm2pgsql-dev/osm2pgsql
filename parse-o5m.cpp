@@ -147,7 +147,7 @@ static inline void createtimestamp(uint64_t v,char* sp) {
 /*------------------------------------------------------------
   Module pbf_   protobuf conversions module
   ------------------------------------------------------------
-  
+
   this module provides procedures for conversions from
   protobuf formats to regular numbers;
   as usual, all identifiers of a module have the same prefix,
@@ -298,7 +298,7 @@ static inline void pbf_intjump(byte** pp) {
 /*------------------------------------------------------------
   Module read_   OSM file read module
   ------------------------------------------------------------
-  
+
   this module provides procedures for buffered reading of
   standard input;
   as usual, all identifiers of a module have the same prefix,
@@ -345,7 +345,7 @@ static int read_open(const char* filename) {
                read_infop: handle of the file;
                note that you should close every opened file with read_close()
                before the program ends;
-               
+
                save status of presently processed input file (if any) */
     if(read_infop!=NULL) {
     read_infop->bufp= read_bufp;
@@ -477,7 +477,7 @@ static inline bool read_input() {
 /*------------------------------------------------------------
   Module str_   string read module
   ------------------------------------------------------------
-  
+
   this module provides procedures for conversions from
   strings which have been stored in data stream objects to
   c-formatted strings;
@@ -489,7 +489,7 @@ static inline bool read_input() {
   by a horizontal line: ---- */
 
 #define str__tabM (15000+4000)
-/* +4000 because it might happen that an object has a lot of 
+/* +4000 because it might happen that an object has a lot of
    key/val pairs or refroles which are not stored already; */
 #define str__tabstrM 250  /* must be < row size of str__rab[] */
 typedef struct str__info_struct {
@@ -942,7 +942,7 @@ return 1;
           osmdata->way_modify(osm_id,
             nds,nd_count,&(tags));
         break;
-      case 2:  /* relation */ 
+      case 2:  /* relation */
         if(action==ACTION_CREATE)
           osmdata->relation_add(osm_id,
             members,member_count,&(tags));
@@ -965,4 +965,3 @@ return 1;
   read_close();
   return 0;
 }  /* streamFileO5m() */
-

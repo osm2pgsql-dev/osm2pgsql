@@ -24,11 +24,11 @@
 
 #define CREATE_WORDSCORE_TYPE                   \
    "CREATE TYPE wordscore AS ("                 \
-   "  word TEXT,"                                \
-   "  score FLOAT"                               \
+   "  word TEXT,"                               \
+   "  score FLOAT"                              \
    ")"
 
-#define CREATE_PLACE_TABLE                   \
+#define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
    "  osm_type CHAR(1) NOT NULL,"               \
    "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL," \
@@ -38,7 +38,7 @@
    "  admin_level INTEGER,"                     \
    "  housenumber TEXT,"                        \
    "  street TEXT,"                             \
-   "  addr_place TEXT,"                              \
+   "  addr_place TEXT,"                         \
    "  isin TEXT,"                               \
    "  postcode TEXT,"                           \
    "  country_code VARCHAR(2),"                 \
@@ -219,8 +219,12 @@ static void stop_error_copy(void)
 }
 #endif
 
-static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *names, struct keyval *places, struct keyval *extratags, 
-   int* admin_level, struct keyval ** housenumber, struct keyval ** street, struct keyval ** addr_place, char ** isin, struct keyval ** postcode, struct keyval ** countrycode)
+static int split_tags(struct keyval *tags, unsigned int flags,
+                      struct keyval *names, struct keyval *places,
+                      struct keyval *extratags, int* admin_level,
+                      struct keyval ** housenumber, struct keyval ** street,
+                      struct keyval ** addr_place, char ** isin,
+                      struct keyval ** postcode, struct keyval ** countrycode)
 {
    size_t subval;
    int placehouse = 0;
@@ -275,20 +279,20 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           strcmp(item->key, "name") == 0 ||
           (strncmp(item->key, "name:", 5) == 0) ||
           strcmp(item->key, "int_name") == 0 ||
-          (strncmp(item->key, "int_name:", 9) == 0) || 
+          (strncmp(item->key, "int_name:", 9) == 0) ||
           strcmp(item->key, "nat_name") == 0 ||
-          (strncmp(item->key, "nat_name:", 9) == 0) || 
+          (strncmp(item->key, "nat_name:", 9) == 0) ||
           strcmp(item->key, "reg_name") == 0 ||
-          (strncmp(item->key, "reg_name:", 9) == 0) || 
+          (strncmp(item->key, "reg_name:", 9) == 0) ||
           strcmp(item->key, "loc_name") == 0 ||
-          (strncmp(item->key, "loc_name:", 9) == 0) || 
+          (strncmp(item->key, "loc_name:", 9) == 0) ||
           strcmp(item->key, "old_name") == 0 ||
-          (strncmp(item->key, "old_name:", 9) == 0) || 
+          (strncmp(item->key, "old_name:", 9) == 0) ||
           strcmp(item->key, "alt_name") == 0 ||
-          (strncmp(item->key, "alt_name_", 9) == 0) || 
-          (strncmp(item->key, "alt_name:", 9) == 0) || 
+          (strncmp(item->key, "alt_name_", 9) == 0) ||
+          (strncmp(item->key, "alt_name:", 9) == 0) ||
           strcmp(item->key, "official_name") == 0 ||
-          (strncmp(item->key, "official_name:", 14) == 0) || 
+          (strncmp(item->key, "official_name:", 14) == 0) ||
           strcmp(item->key, "commonname") == 0 ||
           (strncmp(item->key, "commonname:", 11) == 0) ||
           strcmp(item->key, "common_name") == 0 ||
@@ -369,7 +373,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
             keyval::pushItem(places, item);
       }
-      else if (strcmp(item->key, "place") == 0) 
+      else if (strcmp(item->key, "place") == 0)
       {
          place = item;
       }
@@ -405,17 +409,17 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       {
          *addr_place = item;
       }
-      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 || 
-                strcmp(item->key, "country_code_iso3166_1") == 0 || 
-                strcmp(item->key, "country_code_iso3166") == 0 || 
-                strcmp(item->key, "country_code") == 0 || 
-                strcmp(item->key, "iso3166-1:alpha2") == 0 || 
-                strcmp(item->key, "iso3166-1") == 0 || 
-                strcmp(item->key, "ISO3166-1") == 0 || 
-                strcmp(item->key, "iso3166") == 0 || 
-                strcmp(item->key, "is_in:country_code") == 0 || 
+      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 ||
+                strcmp(item->key, "country_code_iso3166_1") == 0 ||
+                strcmp(item->key, "country_code_iso3166") == 0 ||
+                strcmp(item->key, "country_code") == 0 ||
+                strcmp(item->key, "iso3166-1:alpha2") == 0 ||
+                strcmp(item->key, "iso3166-1") == 0 ||
+                strcmp(item->key, "ISO3166-1") == 0 ||
+                strcmp(item->key, "iso3166") == 0 ||
+                strcmp(item->key, "is_in:country_code") == 0 ||
                 strcmp(item->key, "addr:country") == 0 ||
-                strcmp(item->key, "addr:country_code") == 0) 
+                strcmp(item->key, "addr:country_code") == 0)
                 && strlen(item->value) == 2)
       {
          *countrycode = item;
@@ -454,7 +458,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
           if (*housenumber) {
               keyval::freeItem(item);
           } else {
-             *housenumber = item; 
+             *housenumber = item;
              keyval::addItem(places, "place", "houses", 1);
           }
       }
@@ -626,7 +630,7 @@ static int split_tags(struct keyval *tags, unsigned int flags, struct keyval *na
       if (placeadmin)
       {
          keyval::pushItem(extratags, place);
-      } 
+      }
       else
       {
          keyval::pushItem(places, place);
@@ -676,10 +680,10 @@ void escape_array_record(char *out, int len, const char *in)
     while(*in && count < len-3) {
         switch(*in) {
             case '\\': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; count+= 8; break;
-            case '\n': 
-            case '\r': 
-            case '\t': 
-            case '"': 
+            case '\n':
+            case '\r':
+            case '\t':
+            case '"':
                 /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
 		*out++ = ' '; count++; break;
             default:   *out++ = *in; count++; break;
@@ -699,7 +703,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
     char tmp2[2];
     char *cls, *clslist = 0;
     char const *paramValues[2];
-    
+
     tmp2[0] = osm_type; tmp2[1] = '\0';
     paramValues[0] = tmp2;
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
@@ -722,7 +726,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
                 } else {
                     slen = strlen(clslist);
                     clslist = (char *)realloc(clslist, slen + 4 + strlen(cls));
-                    sprintf(&(clslist[slen]), ",'%s'", cls); 
+                    sprintf(&(clslist[slen]), ",'%s'", cls);
                 }
             }
         }
@@ -897,8 +901,10 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 }
 
 #if 0
-static void add_polygon_error(char osm_type, osmid_t osm_id, const char *key_class, const char *type, 
-  struct keyval *names, const char *countrycode, const char *wkt)
+static void add_polygon_error(char osm_type, osmid_t osm_id,
+                              const char *key_class, const char *type,
+                              struct keyval *names, const char *countrycode,
+                              const char *wkt)
 {
    int first;
    struct keyval *name;
@@ -1172,7 +1178,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
    {
       struct osmNode *nodev;
       int nodec;
-    
+
       /* Fetch the node details */
       nodev = (struct osmNode *)malloc(ndc * sizeof(struct osmNode));
       nodec = m_mid->nodes_get_list(nodev, ndv, ndc);
@@ -1230,7 +1236,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
 
    type = keyval::getItem(tags, "type");
    if (!type) {
-      if (delete_old) delete_unused_classes('R', id, 0); 
+      if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
 
@@ -1238,12 +1244,12 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
 
    if (!strcmp(type, "associatedStreet"))
    {
-      if (delete_old) delete_unused_classes('R', id, 0); 
+      if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
 
    if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && cmp_waterway) {
-      if (delete_old) delete_unused_classes('R', id, 0); 
+      if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
 
@@ -1352,7 +1358,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    return 0;
 }
 
-int output_gazetteer_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) 
+int output_gazetteer_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
     return gazetteer_process_relation(id, members, member_count, tags, 0);
 }

@@ -39,7 +39,3 @@ protected:
 };
 
 #endif
-
-
-
-

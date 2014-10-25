@@ -24,9 +24,9 @@ struct Input {
   char *name;
   enum { plainFile, gzipFile, bzip2File } type;
   void *fileHandle;
-    /* needed by bzip2 when decompressing from multiple streams. other 
+    /* needed by bzip2 when decompressing from multiple streams. other
        decompressors must ignore it. */
-  FILE *systemHandle; 
+  FILE *systemHandle;
   int eof;
   char buf[4096];
   int buf_ptr, buf_fill;
@@ -44,12 +44,12 @@ int bzReOpen(struct Input *ctx, int *error) {
 
   BZ2_bzReadGetUnused(error, (BZFILE *)(ctx->fileHandle), &unused_tmp_ptr, &nUnused);
   if (*error != BZ_OK) return -1;
-	      
-  /* when bzReadClose is called the unused buffer is deallocated, 
+
+  /* when bzReadClose is called the unused buffer is deallocated,
      so it needs to be copied somewhere safe first. */
   for (i = 0; i < nUnused; ++i)
     unused[i] = ((unsigned char *)unused_tmp_ptr)[i];
-  
+
   BZ2_bzReadClose(error, (BZFILE *)(ctx->fileHandle));
   if (*error != BZ_OK) return -1;
 
@@ -67,7 +67,7 @@ int readFile(struct Input *ctx, char * buffer, int len)
 
     if (ctx->eof || (len == 0))
         return 0;
- 
+
     switch(ctx->type) {
     case Input::plainFile:
         l = read(*(int *)f, buffer, len);
@@ -79,8 +79,8 @@ int readFile(struct Input *ctx, char * buffer, int len)
         break;
     case Input::bzip2File:
         l = BZ2_bzRead(&error, (BZFILE *)f, buffer, len);
-        
-        /* error codes BZ_OK and BZ_STREAM_END are both "OK", but the stream 
+
+        /* error codes BZ_OK and BZ_STREAM_END are both "OK", but the stream
            end means the reader needs to be reset from the original handle. */
         if (error != BZ_OK) {
             /* for stream errors, try re-opening the stream before admitting defeat. */
@@ -150,7 +150,7 @@ struct Input *inputOpen(const char *name)
 
       ctx->fileHandle = (void *)BZ2_bzReadOpen(&error, ctx->systemHandle, 0, 0, NULL, 0);
       ctx->type = Input::bzip2File;
-      
+
     } else {
         int *pfd = (int *)malloc(sizeof(int));
         if (pfd) {

@@ -59,7 +59,7 @@ To install on a Fedora system, use
 
 ```sh
 sudo yum install gcc-c++ boost-devel libxml2-devel geos-devel \
-  postgresql-devel bzip2-devel proj-devel protobuf-compiler 
+  postgresql-devel bzip2-devel proj-devel protobuf-compiler
 ```
 
 Then you should be able to bootstrap the build system:

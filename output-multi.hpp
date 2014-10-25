@@ -3,7 +3,7 @@
  * variety of algorithms plus tag transformation for the
  * database columns.
  */
- 
+
 #ifndef OUTPUT_MULTI_HPP
 #define OUTPUT_MULTI_HPP
 

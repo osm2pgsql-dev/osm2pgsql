@@ -330,7 +330,7 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b, double la
 	hyp_len = sqrt(pow(x_len, 2) + pow(y_len, 2));	/* Pythagoras */
 	x_step = x_len / hyp_len;
 	y_step = y_len / hyp_len;
-	
+
 	for (step = 0; step <= hyp_len; step+= 0.4) {
 		/* Interpolate points 1 tile width apart */
 		next_step = step + 0.4;
@@ -339,7 +339,7 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b, double la
 		y1 = tile_y_a + ((double)step * y_step);
 		x2 = tile_x_a + ((double)next_step * x_step);
 		y2 = tile_y_a + ((double)next_step * y_step);
-		
+
 		/* The line (x1,y1),(x2,y2) is up to 1 tile width long
            x1 will always be <= x2
            We could be smart and figure out the exact tiles intersected,
@@ -442,7 +442,7 @@ void expire_tiles::from_nodes_poly(const struct osmNode * nodes, int count, osmi
 	double	min_lat = 0.0;
 	double	max_lon = 0.0;
 	double	max_lat = 0.0;
-        
+
 	if (Options->expire_tiles_zoom < 0) return;
 	for (i = 0; i < count; i++) {
 		if ((! got_coords) || (nodes[i].lon < min_lon)) min_lon = nodes[i].lon;
@@ -502,7 +502,7 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     //bail if we dont care about expiry
     if (Options->expire_tiles_zoom < 0)
         return -1;
-    
+
     //grab the geom for this id
     boost::shared_ptr<table_t::wkt_reader> wkts = table->get_wkt_reader(osm_id);
 

@@ -84,196 +84,196 @@ void parse_xml2_t::SetFiletype(const xmlChar* name, osmdata_t* osmdata)
 
 void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata)
 {
-    xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
-    char *k;
+  xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
+  char *k;
 
-    //first time in we figure out what kind of data this is
-    if (filetype == FILETYPE_NONE)
-    {
-        SetFiletype(name, osmdata);
-        return;
-    }
-    
-    //remember which this was for collecting tags at the end
-    bool can_have_attribs = false;
+  //first time in we figure out what kind of data this is
+  if (filetype == FILETYPE_NONE)
+  {
+      SetFiletype(name, osmdata);
+      return;
+  }
 
-    if (xmlStrEqual(name, BAD_CAST "node")) {
-    	can_have_attribs = true;
+  //remember which this was for collecting tags at the end
+  bool can_have_attribs = false;
 
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
-        xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
-        assert(xid);
+  if (xmlStrEqual(name, BAD_CAST "node")) {
+    can_have_attribs = true;
 
-        osm_id   = strtoosmid((char *)xid, NULL, 10);
-        action   = ParseAction(reader);
+    xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+    xlon = xmlTextReaderGetAttribute(reader, BAD_CAST "lon");
+    xlat = xmlTextReaderGetAttribute(reader, BAD_CAST "lat");
+    assert(xid);
 
-        if (action != ACTION_DELETE) {
-            assert(xlon); assert(xlat);
-            node_lon = strtod((char *)xlon, NULL);
-            node_lat = strtod((char *)xlat, NULL);
-        }
+    osm_id   = strtoosmid((char *)xid, NULL, 10);
+    action   = ParseAction(reader);
 
-        if (osm_id > max_node)
-            max_node = osm_id;
-
-        if (count_node == 0) {
-            time(&start_node);
-        }
-        count_node++;
-        if (count_node%10000 == 0)
-            printStatus();
-
-        xmlFree(xid);
-        xmlFree(xlon);
-        xmlFree(xlat);
-    } else if (xmlStrEqual(name, BAD_CAST "way")) {
-    	can_have_attribs = true;
-
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        assert(xid);
-        osm_id   = strtoosmid((char *)xid, NULL, 10);
-        action = ParseAction( reader );
-
-        if (osm_id > max_way)
-            max_way = osm_id;
-
-        if (count_way == 0) {
-            time(&start_way);
-        }
-        count_way++;
-        if (count_way%1000 == 0)
-        printStatus();
-
-        nd_count = 0;
-        xmlFree(xid);
-
-    } else if (xmlStrEqual(name, BAD_CAST "relation")) {
-    	can_have_attribs = true;
-
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
-        assert(xid);
-        osm_id   = strtoosmid((char *)xid, NULL, 10);
-        action = ParseAction( reader );
-
-        if (osm_id > max_rel)
-            max_rel = osm_id;
-
-        if (count_rel == 0) {
-            time(&start_rel);
-        }
-        count_rel++;
-        if (count_rel%10 == 0)
-            printStatus();
-
-        member_count = 0;
-        xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "tag")) {
-        xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
-        assert(xk);
-
-        /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
-        if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
-            char *p;
-            xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
-            assert(xv);
-            k  = (char *)xmlStrdup(xk);
-            while ((p = strchr(k, ' ')))
-                *p = '_';
-
-            keyval::addItem(&(tags), k, (char *)xv, 0);
-            xmlFree(k);
-            xmlFree(xv);
-        }
-        xmlFree(xk);
-    } else if (xmlStrEqual(name, BAD_CAST "nd")) {
-        xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
-        assert(xid);
-
-        nds[nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
-
-        if( nd_count >= nd_max )
-          realloc_nodes();
-        xmlFree(xid);
-    } else if (xmlStrEqual(name, BAD_CAST "member")) {
-        xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
-        assert(xrole);
-
-        xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
-        assert(xtype);
-
-        xid = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
-        assert(xid);
-
-        members[member_count].id = strtoosmid((char *) xid, NULL, 0);
-        members[member_count].role = strdup((char *) xrole);
-
-		/* Currently we are only interested in 'way' members since these form polygons with holes */
-        if (xmlStrEqual(xtype, BAD_CAST "way"))
-            members[member_count].type = OSMTYPE_WAY;
-        if (xmlStrEqual(xtype, BAD_CAST "node"))
-            members[member_count].type = OSMTYPE_NODE;
-        if (xmlStrEqual(xtype, BAD_CAST "relation"))
-            members[member_count].type = OSMTYPE_RELATION;
-        member_count++;
-
-        if (member_count >= member_max)
-            realloc_members();
-        xmlFree(xid);
-        xmlFree(xrole);
-        xmlFree(xtype);
-    } else if (xmlStrEqual(name, BAD_CAST "add") ||
-               xmlStrEqual(name, BAD_CAST "create")) {
-        action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
-    } else if (xmlStrEqual(name, BAD_CAST "modify")) {
-        action = ACTION_MODIFY;
-    } else if (xmlStrEqual(name, BAD_CAST "delete")) {
-        action = ACTION_DELETE;
-    } else if (xmlStrEqual(name, BAD_CAST "bound")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
-        /* ignore */
-    } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
-        /* ignore */
-    } else {
-        fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
+    if (action != ACTION_DELETE) {
+      assert(xlon); assert(xlat);
+      node_lon = strtod((char *)xlon, NULL);
+      node_lat = strtod((char *)xlat, NULL);
     }
 
-    /* Collect extra attribute information and add as tags */
-    if (extra_attributes && can_have_attribs)
-    {
-        xmlChar *xtmp;
+    if (osm_id > max_node)
+      max_node = osm_id;
 
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
-        if (xtmp) {
-	    keyval::addItem(&(tags), "osm_user", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
-        if (xtmp) {
-	    keyval::addItem(&(tags), "osm_uid", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
-        if (xtmp) {
-	    keyval::addItem(&(tags), "osm_version", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
-        if (xtmp) {
-	    keyval::addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
-
-        xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
-        if (xtmp) {
-	    keyval::addItem(&(tags), "osm_changeset", (char *)xtmp, 0);
-            xmlFree(xtmp);
-        }
+    if (count_node == 0) {
+      time(&start_node);
     }
+    count_node++;
+    if (count_node%10000 == 0)
+      printStatus();
+
+    xmlFree(xid);
+    xmlFree(xlon);
+    xmlFree(xlat);
+  } else if (xmlStrEqual(name, BAD_CAST "way")) {
+    can_have_attribs = true;
+
+    xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+    assert(xid);
+    osm_id   = strtoosmid((char *)xid, NULL, 10);
+    action = ParseAction( reader );
+
+    if (osm_id > max_way)
+      max_way = osm_id;
+
+    if (count_way == 0) {
+      time(&start_way);
+    }
+    count_way++;
+    if (count_way%1000 == 0)
+      printStatus();
+
+    nd_count = 0;
+    xmlFree(xid);
+
+  } else if (xmlStrEqual(name, BAD_CAST "relation")) {
+    can_have_attribs = true;
+
+    xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "id");
+    assert(xid);
+    osm_id   = strtoosmid((char *)xid, NULL, 10);
+    action = ParseAction( reader );
+
+    if (osm_id > max_rel)
+      max_rel = osm_id;
+
+    if (count_rel == 0) {
+      time(&start_rel);
+    }
+    count_rel++;
+    if (count_rel%10 == 0)
+      printStatus();
+
+    member_count = 0;
+    xmlFree(xid);
+  } else if (xmlStrEqual(name, BAD_CAST "tag")) {
+    xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
+    assert(xk);
+
+    /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
+    if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
+      char *p;
+      xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
+      assert(xv);
+      k  = (char *)xmlStrdup(xk);
+      while ((p = strchr(k, ' ')))
+        *p = '_';
+
+      keyval::addItem(&(tags), k, (char *)xv, 0);
+      xmlFree(k);
+      xmlFree(xv);
+    }
+    xmlFree(xk);
+  } else if (xmlStrEqual(name, BAD_CAST "nd")) {
+      xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
+      assert(xid);
+
+      nds[nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
+
+      if( nd_count >= nd_max )
+        realloc_nodes();
+      xmlFree(xid);
+  } else if (xmlStrEqual(name, BAD_CAST "member")) {
+    xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
+    assert(xrole);
+
+    xtype = xmlTextReaderGetAttribute(reader, BAD_CAST "type");
+    assert(xtype);
+
+    xid = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
+    assert(xid);
+
+    members[member_count].id = strtoosmid((char *) xid, NULL, 0);
+    members[member_count].role = strdup((char *) xrole);
+
+    /* Currently we are only interested in 'way' members since these form polygons with holes */
+    if (xmlStrEqual(xtype, BAD_CAST "way"))
+      members[member_count].type = OSMTYPE_WAY;
+    if (xmlStrEqual(xtype, BAD_CAST "node"))
+      members[member_count].type = OSMTYPE_NODE;
+    if (xmlStrEqual(xtype, BAD_CAST "relation"))
+      members[member_count].type = OSMTYPE_RELATION;
+    member_count++;
+
+    if (member_count >= member_max)
+      realloc_members();
+    xmlFree(xid);
+    xmlFree(xrole);
+    xmlFree(xtype);
+  } else if (xmlStrEqual(name, BAD_CAST "add") ||
+             xmlStrEqual(name, BAD_CAST "create")) {
+      action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
+  } else if (xmlStrEqual(name, BAD_CAST "modify")) {
+      action = ACTION_MODIFY;
+  } else if (xmlStrEqual(name, BAD_CAST "delete")) {
+      action = ACTION_DELETE;
+  } else if (xmlStrEqual(name, BAD_CAST "bound")) {
+      /* ignore */
+  } else if (xmlStrEqual(name, BAD_CAST "bounds")) {
+      /* ignore */
+  } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
+      /* ignore */
+  } else {
+      fprintf(stderr, "%s: Unknown element name: %s\n", __FUNCTION__, name);
+  }
+
+  /* Collect extra attribute information and add as tags */
+  if (extra_attributes && can_have_attribs)
+  {
+      xmlChar *xtmp;
+
+      xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
+      if (xtmp) {
+    keyval::addItem(&(tags), "osm_user", (char *)xtmp, 0);
+          xmlFree(xtmp);
+      }
+
+      xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
+      if (xtmp) {
+    keyval::addItem(&(tags), "osm_uid", (char *)xtmp, 0);
+          xmlFree(xtmp);
+      }
+
+      xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
+      if (xtmp) {
+    keyval::addItem(&(tags), "osm_version", (char *)xtmp, 0);
+          xmlFree(xtmp);
+      }
+
+      xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
+      if (xtmp) {
+    keyval::addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
+          xmlFree(xtmp);
+      }
+
+      xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
+      if (xtmp) {
+    keyval::addItem(&(tags), "osm_changeset", (char *)xtmp, 0);
+          xmlFree(xtmp);
+      }
+  }
 }
 
 
@@ -358,29 +358,29 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
 }
 
 void parse_xml2_t::processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
-    xmlChar *name;
-    name = xmlTextReaderName(reader);
-    if (name == NULL)
-        name = xmlStrdup(BAD_CAST "--");
-	
-    switch(xmlTextReaderNodeType(reader)) {
-        case XML_READER_TYPE_ELEMENT:
-        	StartElement(reader, name, osmdata);
-            if (xmlTextReaderIsEmptyElement(reader))
-            	EndElement(name, osmdata); /* No end_element for self closing tags! */
-            break;
-        case XML_READER_TYPE_END_ELEMENT:
-        	EndElement(name, osmdata);
-            break;
-        case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
-            /* Ignore */
-            break;
-        default:
-            fprintf(stderr, "Unknown node type %d\n", xmlTextReaderNodeType(reader));
-            break;
-    }
+  xmlChar *name;
+  name = xmlTextReaderName(reader);
+  if (name == NULL)
+    name = xmlStrdup(BAD_CAST "--");
 
-    xmlFree(name);
+  switch(xmlTextReaderNodeType(reader)) {
+    case XML_READER_TYPE_ELEMENT:
+      StartElement(reader, name, osmdata);
+      if (xmlTextReaderIsEmptyElement(reader))
+        EndElement(name, osmdata); /* No end_element for self closing tags! */
+      break;
+    case XML_READER_TYPE_END_ELEMENT:
+      EndElement(name, osmdata);
+      break;
+    case XML_READER_TYPE_SIGNIFICANT_WHITESPACE:
+      /* Ignore */
+      break;
+    default:
+      fprintf(stderr, "Unknown node type %d\n", xmlTextReaderNodeType(reader));
+      break;
+  }
+
+  xmlFree(name);
 }
 
 parse_xml2_t::parse_xml2_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
@@ -397,31 +397,30 @@ parse_xml2_t::~parse_xml2_t()
 }
 
 int parse_xml2_t::streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) {
-    xmlTextReaderPtr reader;
-    int ret = 0;
+  xmlTextReaderPtr reader;
+  int ret = 0;
 
-    if (sanitize)
-        reader = sanitizerOpen(filename);
-    else
-        reader = inputUTF8(filename);
+  if (sanitize)
+    reader = sanitizerOpen(filename);
+  else
+    reader = inputUTF8(filename);
 
-    if (reader != NULL) {
-        ret = xmlTextReaderRead(reader);
-        while (ret == 1) {
-	  processNode(reader, osmdata);
-            ret = xmlTextReaderRead(reader);
-        }
-
-        if (ret != 0) {
-            fprintf(stderr, "%s : failed to parse\n", filename);
-            return ret;
-        }
-
-        xmlFreeTextReader(reader);
-    } else {
-        fprintf(stderr, "Unable to open %s\n", filename);
-        return 1;
+  if (reader != NULL) {
+    ret = xmlTextReaderRead(reader);
+    while (ret == 1) {
+      processNode(reader, osmdata);
+      ret = xmlTextReaderRead(reader);
     }
-    return 0;
-}
 
+    if (ret != 0) {
+      fprintf(stderr, "%s : failed to parse\n", filename);
+      return ret;
+    }
+
+    xmlFreeTextReader(reader);
+  } else {
+    fprintf(stderr, "Unable to open %s\n", filename);
+    return 1;
+  }
+  return 0;
+}

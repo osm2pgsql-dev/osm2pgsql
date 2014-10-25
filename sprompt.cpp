@@ -11,7 +11,7 @@
  *	  $PostgreSQL: pgsql/src/port/sprompt.c,v 1.18 2006/10/04 00:30:14 momjian Exp $
  *
  *-------------------------------------------------------------------------
- * 
+ *
  * PostgreSQL Database Management System
  * (formerly known as Postgres, then as Postgres95)
  *

@@ -55,18 +55,18 @@ int main(int argc, char *argv[]) {
                          *    data and check that the updates fire. */
 
     mid_pgsql.start(&options);
-    
+
     int status = 0;
-    
+
     status = test_node_set(&mid_pgsql);
     if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_node_set failed."); }
-    
+
     status = test_way_set(&mid_pgsql);
     if (status != 0) { mid_pgsql.stop(); throw std::runtime_error("test_way_set failed."); }
-    
+
     mid_pgsql.commit();
     mid_pgsql.stop();
-    
+
     return 0;
 
   } catch (const std::exception &e) {

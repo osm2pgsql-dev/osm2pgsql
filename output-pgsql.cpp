@@ -1,6 +1,6 @@
 /* Implements the mid-layer processing for osm2pgsql
  * using several PostgreSQL tables
- * 
+ *
  * This layer stores data read in from the planet.osm file
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
@@ -147,7 +147,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
                 m_tables[t_roads]->write_wkt(id, tags, wkt->geom.c_str());
         }
     }
-	
+
     return 0;
 }
 
@@ -169,7 +169,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         free(members_superseeded);
         return 0;
     }
-    
+
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
     if (m_options.projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
@@ -365,7 +365,7 @@ void output_pgsql_t::stop()
 #ifdef HAVE_PTHREAD
     pthread_t threads[NUM_TABLES];
 #endif
-  
+
 #ifdef HAVE_PTHREAD
     if (m_options.parallel_indexing) {
       pthread_thunk thunks[NUM_TABLES];
@@ -380,7 +380,7 @@ void output_pgsql_t::stop()
               util::exit_nicely();
           }
       }
-  
+
       for (i=0; i<NUM_TABLES; i++) {
           int ret = pthread_join(threads[i], NULL);
           if (ret) {
@@ -538,7 +538,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
 
     if ( expire->from_db(m_tables[t_point].get(), osm_id) != 0)
         m_tables[t_point]->delete_row(osm_id);
-    
+
     return 0;
 }
 

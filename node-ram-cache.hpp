@@ -1,10 +1,10 @@
 /* Implements the node cache in ram.
- * 
+ *
  * There are two different storage strategies, either optimised
  * for dense storage of node ids, or for sparse storage as well as
  * a strategy to combine both in an optimal way.
 */
- 
+
 #ifndef NODE_RAM_CACHE_H
 #define NODE_RAM_CACHE_H
 
@@ -65,20 +65,19 @@ private:
     /* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
     int maxBlocks;
     char *blockCache;
-    
+
     struct ramNodeBlock **queue;
-    
+
     int scale_;
-    
+
     struct ramNodeID *sparseBlock;
     int64_t maxSparseTuples;
     int64_t sizeSparseTuples;
-    
-    
+
     int64_t cacheUsed, cacheSize;
     osmid_t storedNodes, totalNodes;
     int nodesCacheHits, nodesCacheLookups;
-    
+
     int warn_node_order;
 };
 

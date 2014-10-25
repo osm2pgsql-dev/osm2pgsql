@@ -44,7 +44,7 @@ int osmdata_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
 
 int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
     mid->ways_set(id, nodes, node_count, tags);
-    
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->way_add(id, nodes, node_count, tags);
@@ -54,7 +54,7 @@ int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval
 
 int osmdata_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
     mid->relations_set(id, members, member_count, tags);
-    
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
         status |= out->relation_add(id, members, member_count, tags);

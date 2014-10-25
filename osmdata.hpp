@@ -16,7 +16,7 @@ public:
 
     void start();
     void stop();
-    
+
     int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
     int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
     int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);

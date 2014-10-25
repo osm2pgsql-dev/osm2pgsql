@@ -9,8 +9,8 @@
 #include "util.hpp"
 
 struct pgsql_id_tracker::pimpl {
-    pimpl(const std::string &conninfo, 
-          const std::string &prefix, 
+    pimpl(const std::string &conninfo,
+          const std::string &prefix,
           const std::string &type,
           bool owns_table);
     ~pimpl();
@@ -21,10 +21,10 @@ struct pgsql_id_tracker::pimpl {
     osmid_t old_id;
 };
 
-pgsql_id_tracker::pimpl::pimpl(const std::string &conninfo, 
-                               const std::string &prefix, 
+pgsql_id_tracker::pimpl::pimpl(const std::string &conninfo,
+                               const std::string &prefix,
                                const std::string &type,
-                               bool owns_table_) 
+                               bool owns_table_)
     : conn(PQconnectdb(conninfo.c_str())),
       table_name((boost::format("%1%_%2%") % prefix % type).str()),
       owns_table(owns_table_),
@@ -70,10 +70,10 @@ pgsql_id_tracker::pimpl::~pimpl() {
     conn = NULL;
 }
 
-pgsql_id_tracker::pgsql_id_tracker(const std::string &conninfo, 
-                                   const std::string &prefix, 
+pgsql_id_tracker::pgsql_id_tracker(const std::string &conninfo,
+                                   const std::string &prefix,
                                    const std::string &type,
-                                   bool owns_table) 
+                                   bool owns_table)
     : impl() {
     impl.reset(new pimpl(conninfo, prefix, type, owns_table));
 }
@@ -87,7 +87,7 @@ void pgsql_id_tracker::mark(osmid_t id) {
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
-    
+
     pgsql_execPrepared(impl->conn, "set_mark", 1, paramValues, PGRES_COMMAND_OK);
 }
 
@@ -98,7 +98,7 @@ bool pgsql_id_tracker::is_marked(osmid_t id) {
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
-    
+
     result = pgsql_execPrepared(impl->conn, "get_mark", 1, paramValues, PGRES_TUPLES_OK);
     bool done = PQntuples(result) > 0;
     PQclear(result);
@@ -133,7 +133,7 @@ void pgsql_id_tracker::unmark(osmid_t id) {
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
-    
+
     pgsql_execPrepared(impl->conn, "drop_mark", 1, paramValues, PGRES_COMMAND_OK);
 }
 

@@ -23,7 +23,7 @@ typedef boost::shared_ptr<result> result_ptr;
 struct conn
     : public boost::noncopyable,
       public boost::enable_shared_from_this<conn> {
-    
+
     static conn_ptr connect(const std::string &conninfo);
     result_ptr exec(const std::string &query);
     result_ptr exec(const boost::format &fmt);
@@ -48,7 +48,7 @@ private:
     PGresult *m_result;
 };
 
-struct tempdb 
+struct tempdb
   : public boost::noncopyable {
 
     tempdb();
@@ -58,7 +58,7 @@ struct tempdb
 
 private:
     void setup_extension(conn_ptr db, const std::string &extension, ...);
-    
+
     conn_ptr m_conn;
     std::string m_db_name;
     std::string m_conninfo;

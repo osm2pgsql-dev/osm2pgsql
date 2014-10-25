@@ -4,8 +4,8 @@
 #include "id-tracker.hpp"
 
 struct pgsql_id_tracker : public id_tracker {
-    pgsql_id_tracker(const std::string &conninfo, 
-                     const std::string &prefix, 
+    pgsql_id_tracker(const std::string &conninfo,
+                     const std::string &prefix,
                      const std::string &type,
                      bool owns_table);
     ~pgsql_id_tracker();

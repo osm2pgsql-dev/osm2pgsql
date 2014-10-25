@@ -269,14 +269,14 @@ unsigned int c_filter_rel_member_tags(
                 if (first_outerway) {
                     p = member_tags[i].next;
                     while (p != &(member_tags[i])) {
-                        keyval::addItem(&poly_tags, p->key, p->value, 1);                        
+                        keyval::addItem(&poly_tags, p->key, p->value, 1);
                         p = p->next;
                     }
                 } else {
                     /* Check if all of the tags in the list of potential tags are present on this way,
                        otherwise remove from the list of potential tags. Tags need to be present on
                        all outer ways to be copied over to the relation */
-                    q = poly_tags.next; 
+                    q = poly_tags.next;
                     while (q != &poly_tags) {
                         p = keyval::getTag(&(member_tags[i]), q->key);
                         if ((p != NULL) && (strcmp(q->value, p->value) == 0)) {
@@ -292,14 +292,14 @@ unsigned int c_filter_rel_member_tags(
                 first_outerway = 0;
             }
             /* Copy the list identified outer way tags over to the relation */
-            q = poly_tags.next; 
+            q = poly_tags.next;
             while (q != &poly_tags) {
-                keyval::addItem(&tags, q->key, q->value, 1);                        
+                keyval::addItem(&tags, q->key, q->value, 1);
                 q = q->next;
             }
 
             /* We need to re-check and only keep polygon tags in the list of polytags */
-            q = poly_tags.next; 
+            q = poly_tags.next;
             while (q != &poly_tags) {
                 contains_tag = 0;
                 const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
@@ -346,7 +346,7 @@ unsigned int c_filter_rel_member_tags(
                 const char *v = keyval::getItem(&tags, p->key);
                 if (!v || strcmp(v, p->value)) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
-                    if ((strcmp(p->key, "z_order") != 0) && (strcmp(p->key, "osm_user") != 0) && 
+                    if ((strcmp(p->key, "z_order") != 0) && (strcmp(p->key, "osm_user") != 0) &&
                         (strcmp(p->key, "osm_version") != 0) && (strcmp(p->key, "osm_uid") != 0) &&
                         (strcmp(p->key, "osm_changeset")) && (strcmp(p->key, "osm_timestamp") != 0)) {
                         match = 0;
@@ -503,7 +503,7 @@ tagtransform::tagtransform(const options_t *options_)
 tagtransform::~tagtransform() {
 #ifdef HAVE_LUA
 	if (transform_method)
-    	lua_close(L);
+    lua_close(L);
 #endif
 }
 

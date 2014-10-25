@@ -40,7 +40,7 @@ private:
     /** The target projection (used in the PostGIS tables). Controlled by the -l/-M/-m/-E options. */
     void *pj_target;
 
-    /** The projection used for tiles. Currently this is fixed to be Spherical 
+    /** The projection used for tiles. Currently this is fixed to be Spherical
      *  Mercator. You will usually have tiles in the same projection as used
      *  for PostGIS, but it is theoretically possible to have your PostGIS data
      *  in, say, lat/lon but still create tiles in Spherical Mercator.

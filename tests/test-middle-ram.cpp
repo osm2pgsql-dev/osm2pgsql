@@ -23,20 +23,20 @@ int main(int argc, char *argv[]) {
 
     struct middle_ram_t mid_ram;
     struct output_null_t out_test(&mid_ram, options);
-    
+
     mid_ram.start(&options);
-    
+
     int status = 0;
-    
+
     status = test_node_set(&mid_ram);
     if (status != 0) { throw std::runtime_error("test_node_set failed."); }
-    
+
     status = test_way_set(&mid_ram);
     if (status != 0) { throw std::runtime_error("test_node_set failed."); }
-    
+
     mid_ram.commit();
     mid_ram.stop();
-  
+
     return 0;
 
   } catch (const std::exception &e) {

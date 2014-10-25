@@ -37,7 +37,7 @@ static const flagsname tagflags[] = {
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
-taginfo::taginfo() 
+taginfo::taginfo()
     : name(), type(), flags(0) {
 }
 
@@ -138,12 +138,12 @@ int read_style_file( const std::string &filename, export_list *exlist )
       throw std::runtime_error((boost::format("Couldn't open style file '%1%': %2%")
                                 % filename % strerror(errno)).str());
   }
-  
+
   //for each line of the style file
   while( fgets( buffer, sizeof(buffer), in) != NULL )
   {
     lineno++;
-    
+
     //find where a comment starts and terminate the string there
     str = strchr( buffer, '#' );
     if( str )
@@ -163,21 +163,21 @@ int read_style_file( const std::string &filename, export_list *exlist )
     temp.name.assign(tag);
     temp.type.assign(datatype);
     temp.flags = parse_tag_flags(flags, lineno);
-    
-    if ((temp.flags != FLAG_DELETE) && 
-        ((temp.name.find('?') != std::string::npos) || 
+
+    if ((temp.flags != FLAG_DELETE) &&
+        ((temp.name.find('?') != std::string::npos) ||
          (temp.name.find('*') != std::string::npos))) {
         fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name.c_str());
         util::exit_nicely();
     }
-    
+
     if ((temp.name == "way_area") && (temp.flags==FLAG_DELETE)) {
         enable_way_area=0;
     }
 
     /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
     bool kept = false;
-    
+
     //keep this tag info if it applies to nodes
     if( strstr( osmtype, "node" ) )
     {

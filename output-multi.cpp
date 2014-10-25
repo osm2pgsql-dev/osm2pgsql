@@ -433,4 +433,3 @@ boost::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {
 boost::shared_ptr<expire_tiles> output_multi_t::get_expire_tree() {
     return m_expire;
 }
-

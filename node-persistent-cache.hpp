@@ -49,12 +49,12 @@ private:
     int node_cache_fd;
     const char * node_cache_fname;
     int append_mode;
-    
+
     struct persistentCacheHeader cacheHeader;
     struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
     struct ramNodeBlock * readNodeBlockCache;
     struct binary_search_array * readNodeBlockCacheIdx;
-    
+
     int scale_;
     int cache_already_written;
 

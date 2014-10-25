@@ -165,7 +165,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
     {
         if (quote)
         {
-            if (*i == '"') 
+            if (*i == '"')
             {
                 quote = 0;
             }
@@ -201,7 +201,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         if (count_node == 0) {
             time(&start_node);
         }
-        
+
         count_node++;
         if (count_node%10000 == 0)
             printStatus();
@@ -229,11 +229,11 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
 
         if (osm_id > max_way)
             max_way = osm_id;
-        
+
         if (count_way == 0) {
             time(&start_way);
         }
-        
+
         count_way++;
         if (count_way%1000 == 0)
             printStatus();
@@ -255,7 +255,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
 
         if (osm_id > max_rel)
             max_rel = osm_id;
-        
+
         if (count_rel == 0) {
             time(&start_rel);
         }
@@ -288,7 +288,7 @@ void parse_primitive_t::StartElement(char *name, char *line, struct osmdata_t *o
         member_count++;
 
         if( member_count >= member_max )
-        	realloc_members();
+          realloc_members();
     } else if (!strcmp(name, "add") ||
                !strcmp(name, "create")) {
         action = ACTION_MODIFY; /* Turns all creates into modifies, makes it resiliant against inconsistant snapshots. */
@@ -430,9 +430,9 @@ void parse_primitive_t::process(char *line, struct osmdata_t *osmdata) {
         else
         {
             int slash = 0;
-            if (gt != NULL) { 
-                *gt-- = 0; 
-                if (nx == NULL || gt < nx) nx = gt; 
+            if (gt != NULL) {
+                *gt-- = 0;
+                if (nx == NULL || gt < nx) nx = gt;
                 while(gt>lt)
                 {
                     if (*gt=='/') { slash=1; *gt=0; break; }

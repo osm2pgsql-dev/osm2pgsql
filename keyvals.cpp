@@ -1,7 +1,7 @@
 /* Common key-value list processing
  *
- * Used as a small general purpose store for 
- * tags, segment lists etc 
+ * Used as a small general purpose store for
+ * tags, segment lists etc
  *
  */
 #include <stdio.h>
@@ -37,7 +37,7 @@ void keyval::initList(struct keyval *head)
 
 void keyval::freeItem(struct keyval *p)
 {
-    if (!p) 
+    if (!p)
         return;
 
     p->tree_ctx->text_release(p->key);
@@ -49,9 +49,9 @@ void keyval::freeItem(struct keyval *p)
 unsigned int keyval::countList(const struct keyval *head)
 {
     struct keyval *p;
-    unsigned int count = 0;	
+    unsigned int count = 0;
 
-    if (!head) 
+    if (!head)
         return 0;
 
     p = head->next;
@@ -64,7 +64,7 @@ unsigned int keyval::countList(const struct keyval *head)
 
 int keyval::listHasData(struct keyval *head)
 {
-    if (!head) 
+    if (!head)
         return 0;
 
     return (head->next != head);
@@ -75,7 +75,7 @@ char *keyval::getItem(const struct keyval *head, const char *name)
 {
     struct keyval *p;
 
-    if (!head) 
+    if (!head)
         return NULL;
 
     p = head->next;
@@ -85,7 +85,7 @@ char *keyval::getItem(const struct keyval *head, const char *name)
         p = p->next;
     }
     return NULL;
-}	
+}
 
 /* unlike getItem this function gives a pointer to the whole
    list item which can be used to remove the tag from the linked list
@@ -95,7 +95,7 @@ struct keyval *keyval::getTag(struct keyval *head, const char *name)
 {
     struct keyval *p;
 
-    if (!head) 
+    if (!head)
         return NULL;
 
     p = head->next;
@@ -138,7 +138,7 @@ struct keyval *keyval::getMatches(struct keyval *head, const char *name)
     struct keyval *out = NULL;
     struct keyval *p;
 
-    if (!head) 
+    if (!head)
         return NULL;
 
     //TODO: properly copy the tree_ctx from the keyval passed in
@@ -168,7 +168,7 @@ void keyval::updateItem(struct keyval *head, const char *name, const char *value
 {
     struct keyval *item;
 
-    if (!head) 
+    if (!head)
         return;
 
     item = head->next;
@@ -188,9 +188,9 @@ struct keyval *keyval::popItem(struct keyval *head)
 {
     struct keyval *p;
 
-    if (!head) 
+    if (!head)
         return NULL;
- 
+
     p = head->next;
     if (p == head)
         return NULL;
@@ -202,7 +202,7 @@ struct keyval *keyval::popItem(struct keyval *head)
     p->prev = NULL;
 
     return p;
-}	
+}
 
 
 void keyval::pushItem(struct keyval *head, struct keyval *item)
@@ -210,12 +210,12 @@ void keyval::pushItem(struct keyval *head, struct keyval *item)
 
     assert(head);
     assert(item);
- 
+
     item->next = head;
     item->prev = head->prev;
     head->prev->next = item;
     head->prev = item;
-}	
+}
 
 int keyval::addItem(struct keyval *head, const char *name, const char *value, int noDupe)
 {
@@ -253,7 +253,7 @@ int keyval::addItem(struct keyval *head, const char *name, const char *value, in
 void keyval::resetList(struct keyval *head)
 {
     struct keyval *item;
-	
+
     while((item = popItem(head)))
         freeItem(item);
 }
@@ -264,4 +264,3 @@ void keyval::cloneList( struct keyval *target, struct keyval *source )
   for( ptr = source->next; ptr != source; ptr=ptr->next )
     addItem( target, ptr->key, ptr->value, 0 );
 }
-

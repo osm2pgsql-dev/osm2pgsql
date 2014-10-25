@@ -928,4 +928,3 @@ void *
   assert (p != NULL);
   return p;
 }
-

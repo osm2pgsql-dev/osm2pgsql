@@ -96,7 +96,7 @@ check_PROGRAMS = \
 	tests/test-parse-options \
 	tests/test-expire-tiles
 
-tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp 
+tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp
 tests_test_parse_xml2_LDADD = libosm2pgsql.la
 tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
 tests_test_middle_ram_LDADD = libosm2pgsql.la

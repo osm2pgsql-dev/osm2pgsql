@@ -252,7 +252,7 @@ int middle_ram_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_
 
     keyval::initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
-        
+
         if (ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
             way_ids[count] = ids[i];
             count++;
@@ -309,7 +309,7 @@ int middle_ram_t::start(const options_t *out_options_)
        The fixed poing scaling needs adjusting accordingly to
        be stored accurately in an int */
     cache.reset(new node_ram_cache(out_options->alloc_chunkwise, out_options->cache, out_options->scale));
-    
+
     fprintf( stderr, "Mid: Ram, scale=%d\n", out_options->scale );
 
     return 0;

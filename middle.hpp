@@ -1,6 +1,6 @@
 /* Common middle layer interface */
 
-/* Each middle layer data store must provide methods for 
+/* Each middle layer data store must provide methods for
  * storing and retrieving node and way data.
  */
 
@@ -28,7 +28,7 @@ struct middle_query_t {
     virtual std::vector<osmid_t> relations_using_way(osmid_t way_id) const = 0;
 
     virtual boost::shared_ptr<const middle_query_t> get_instance() const = 0;
-};    
+};
 
 struct middle_t : public middle_query_t {
     static boost::shared_ptr<middle_t> create_middle(const bool slim);

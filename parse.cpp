@@ -10,7 +10,6 @@
 #include "parse-xml2.hpp"
 #include "util.hpp"
 
-
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096
 
@@ -87,13 +86,13 @@ void parse_delegate_t::parse_bbox(const std::string &bbox_)
     int n = sscanf(bbox_.c_str(), "%lf,%lf,%lf,%lf", &(m_minlon), &(m_minlat), &(m_maxlon), &(m_maxlat));
     if (n != 4)
         throw std::runtime_error("Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
-    
+
     if (m_maxlon <= m_minlon)
         throw std::runtime_error("Bounding box failed due to maxlon <= minlon\n");
-    
+
     if (m_maxlat <= m_minlat)
         throw std::runtime_error("Bounding box failed due to maxlat <= minlat\n");
-    
+
     fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", m_minlon, m_minlat, m_maxlon, m_maxlat);
 }
 

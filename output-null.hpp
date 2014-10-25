@@ -1,6 +1,6 @@
 /* Implements dummy output-layer processing for testing.
 */
- 
+
 #ifndef OUTPUT_NULL_H
 #define OUTPUT_NULL_H
 

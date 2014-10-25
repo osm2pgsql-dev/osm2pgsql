@@ -95,7 +95,7 @@ void binary_search_add(struct binary_search_array * array, int key,
 
 struct binary_search_array * init_search_array(int capacity)
 {
-    struct binary_search_array * array = 
+    struct binary_search_array * array =
         (struct binary_search_array *)
         calloc(1, sizeof(struct binary_search_array));
     array->array = (struct key_val_tuple *)calloc(capacity + 1, sizeof(struct key_val_tuple));

@@ -1,10 +1,10 @@
 /* Common output layer interface */
 
-/* Each output layer must provide methods for 
+/* Each output layer must provide methods for
  * storing:
  * - Nodes (Points of interest etc)
  * - Way geometries
- * Associated tags: name, type etc. 
+ * Associated tags: name, type etc.
 */
 
 #ifndef OUTPUT_H

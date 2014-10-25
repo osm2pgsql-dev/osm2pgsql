@@ -178,4 +178,3 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int 
     }
     return res;
 }
-

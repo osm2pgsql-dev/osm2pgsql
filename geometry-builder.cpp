@@ -8,12 +8,12 @@
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 2
 # of the License, or (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -130,7 +130,7 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *no
             if (!geom->isValid()) {
                 if (excludepoly) {
                     throw std::runtime_error("Excluding broken polygon.");
-                } else {   
+                } else {
                     geom = geom_ptr(geom->buffer(0));
                 }
             }
@@ -211,7 +211,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *no
                 const Coordinate this_pt = coords->getAt(i);
                 const Coordinate prev_pt = coords->getAt(i-1);
                 const double delta = this_pt.distance(prev_pt);
-                // figure out if the addition of this point would take the total 
+                // figure out if the addition of this point would take the total
                 // length of the line in `segment` over the `split_at` distance.
                 const size_t splits = std::floor((distance + delta) / split_at);
 
@@ -289,7 +289,7 @@ int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int
     CoordinateSequence *	coords;
     size_t			num_geometries;
     size_t			i;
-	
+
     *polygon = 0;
     try {
         geometry = reader.read(wkt_string);

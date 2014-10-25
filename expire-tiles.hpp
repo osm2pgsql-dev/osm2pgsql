@@ -47,7 +47,7 @@ struct expire_tiles : public boost::noncopyable {
     // object, destroying the list in the other object.
     void merge_and_destroy(expire_tiles &);
 
-private: 
+private:
     void expire_tile(int x, int y);
     int normalise_tile_x_coord(int x);
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);

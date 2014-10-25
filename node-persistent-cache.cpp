@@ -58,7 +58,7 @@ void node_persistent_cache::writeout_dirty_nodes(osmid_t id)
             fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
                     strerror(errno));
             util::exit_nicely();
-            
+
         };
         if (write(node_cache_fd, writeNodeBlock.nodes,
                 WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
@@ -351,7 +351,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
                             SYNC_FILE_RANGE_WAIT_BEFORE | SYNC_FILE_RANGE_WRITE | SYNC_FILE_RANGE_WAIT_AFTER) < 0) {
             fprintf(stderr, "Info: Sync_file_range block has an issue. This shouldn't be anything to worry about.: %s\n",
                 strerror(errno));
-            
+
         }
 #ifdef HAVE_POSIX_FADVISE
         if (posix_fadvise(node_cache_fd, (writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode) +

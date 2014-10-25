@@ -21,7 +21,7 @@ int sanitizerProcess(void *context, char *buffer, int len);
  * [   len = 5   ]   [len = 1]
  * X1 X2 X3 X4 X5   X6
  *
- * OUTPUT: nothing is generated for first buffer 
+ * OUTPUT: nothing is generated for first buffer
  * This will itself cause caller to assume EOF (hopefully normal reader will read >> 5 bytes).
  * subsequent read of len=1 whille return all 6 bytes potentially causing output buffer overflow (and overwriting input data)
  *
@@ -85,7 +85,7 @@ xmlTextReaderPtr sanitizerOpen(const char *name)
 }
 
 
-int sanitizerProcess(void *context, char *buffer, int len) 
+int sanitizerProcess(void *context, char *buffer, int len)
 {
   struct Context *ctx = (struct Context *)context;
   int current_char, i, out = 0;
@@ -99,10 +99,10 @@ int sanitizerProcess(void *context, char *buffer, int len)
       current_char=inputGetChar(ctx->file);
       if (inputEof(ctx->file))
           break;
- 
+
       if ((current_char & 128) == 0) {
           /* Handle_ASCII_char(); */
-          if (current_char == '\n') 
+          if (current_char == '\n')
               ctx->line++;
           else
               ctx->chars1++;
@@ -111,7 +111,7 @@ int sanitizerProcess(void *context, char *buffer, int len)
                   fprintf(stderr, "Error at line %lld\n", ctx->line);
               buffer[out++] = '_';
               ctx->state = 1;
-          } 
+          }
           /*  buffer[out++] = current_char; */
           ctx->out_char[ctx->pend++] = current_char;
       } else if ((current_char & (128+64)) == 128) {
@@ -125,7 +125,7 @@ int sanitizerProcess(void *context, char *buffer, int len)
                   }
               }
           } else {
-              if (ctx->verbose) 
+              if (ctx->verbose)
                   fprintf(stderr, "Error at line %lld\n", ctx->line);
               buffer[out++] = '_';
               ctx->state=1;

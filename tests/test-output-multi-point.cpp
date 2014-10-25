@@ -49,14 +49,14 @@ void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
 
 int main(int argc, char *argv[]) {
     boost::scoped_ptr<pg::tempdb> db;
-    
+
     try {
         db.reset(new pg::tempdb);
     } catch (const std::exception &e) {
         std::cerr << "Unable to setup database: " << e.what() << "\n";
         return 77; // <-- code to skip this test.
     }
-    
+
     try {
         boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
@@ -66,19 +66,19 @@ int main(int argc, char *argv[]) {
         options.tblsslim_index = "tablespacetest";
         options.tblsslim_data = "tablespacetest";
         options.slim = 1;
-        
+
         boost::shared_ptr<geometry_processor> processor =
             geometry_processor::create("point", &options);
-        
+
         export_list columns;
         { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
-        
+
         boost::shared_ptr<output_multi_t> out_test(new output_multi_t("foobar_amenities", processor, columns, mid_pgsql.get(), options));
-        
+
         osmdata_t osmdata(mid_pgsql, out_test);
-        
+
         boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
-        
+
         osmdata.start();
 
         if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
@@ -88,11 +88,11 @@ int main(int argc, char *argv[]) {
         parser.reset(NULL);
 
         osmdata.stop();
-        
+
         // start a new connection to run tests on
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
-        check_count(test_conn, 1, 
+        check_count(test_conn, 1,
                     "select count(*) from pg_catalog.pg_class "
                     "where relname = 'osm2pgsql_test_foobar_amenities'");
 
@@ -109,13 +109,13 @@ int main(int argc, char *argv[]) {
                     "select count(*) from osm2pgsql_test_foobar_amenities where amenity='vending_machine'");
 
         return 0;
-        
+
     } catch (const std::exception &e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
-        
+
     } catch (...) {
         std::cerr << "UNKNOWN ERROR" << std::endl;
     }
-    
+
     return 1;
 }

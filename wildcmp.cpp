@@ -1,7 +1,7 @@
 /* Wildcard matching.
 
    heavily based on wildcmp.c copyright 2002 Jim Kent
-   
+
 */
 #include <ctype.h>
 #include "wildcmp.hpp"
@@ -34,7 +34,7 @@ int wildMatch(const char *wildCard, const char *string)
  * anything else etc must match the character exactly.
 
 returns NO_MATCH, FULL_MATCH or WC_MATCH defined in wildcmp.h
- 
+
 */
 {
 int matchStar = 0;
@@ -75,7 +75,7 @@ NEXT_WILD:
 	default:
 	    {
 	    if(matchStar)
-    	        {
+        {
 		for(;;)
 		    {
 		    if(*string == 0) /* if out of string no match */

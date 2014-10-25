@@ -230,8 +230,8 @@ namespace
 
     }
 
-std::string build_conninfo(const std::string &db, 
-                           const boost::optional<std::string> &username, 
+std::string build_conninfo(const std::string &db,
+                           const boost::optional<std::string> &username,
                            const boost::optional<std::string> &password,
                            const boost::optional<std::string> &host,
                            const std::string &port)

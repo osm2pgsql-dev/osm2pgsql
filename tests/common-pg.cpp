@@ -77,7 +77,7 @@ tempdb::tempdb()
     : m_conn(conn::connect("dbname=postgres")) {
     result_ptr res = m_conn->exec("SELECT spcname FROM pg_tablespace WHERE "
                                   "spcname = 'tablespacetest'");
-    
+
     if ((PQresultStatus(res->get()) != PGRES_TUPLES_OK) ||
         (PQntuples(res->get()) != 1)) {
         std::ostringstream out;
@@ -90,7 +90,7 @@ tempdb::tempdb()
             << "'/tmp/psql-tablespace'\" postgres\n";
         throw std::runtime_error(out.str());
     }
-    
+
     m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(NULL)).str();
     m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
     //tests can be run concurrently which means that this query can collide with other similar ones
@@ -105,13 +105,13 @@ tempdb::tempdb()
         status = PQresultStatus(res->get());
     }
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
-        throw std::runtime_error((boost::format("Could not create a database: %1%") 
+        throw std::runtime_error((boost::format("Could not create a database: %1%")
                                   % PQresultErrorMessage(res->get())).str());
     }
-    
+
     m_conninfo = (boost::format("dbname=%1%") % m_db_name).str();
     conn_ptr db = conn::connect(m_conninfo);
-    
+
     setup_extension(db, "postgis", "postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql", NULL);
     setup_extension(db, "hstore", NULL);
 }
@@ -133,13 +133,13 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension, ...) {
         // if that fails, then fall back to trying to find the files on
         // the filesystem to load to create the extension.
         res = db->exec("select regexp_replace(split_part(version(),' ',2),'\\.[0-9]*$','');");
-        
+
         if ((PQresultStatus(res->get()) != PGRES_TUPLES_OK) ||
             (PQntuples(res->get()) != 1)) {
             throw std::runtime_error("Unable to determine PostgreSQL version.");
         }
         std::string pg_version(PQgetvalue(res->get(), 0, 0));
-        
+
         // Guess the directory from the postgres version.
         // TODO: make the contribdir configurable. Probably
         // only works on Debian-based distributions at the moment.
@@ -161,7 +161,7 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension, ...) {
                 }
                 res = db->exec(sql);
                 if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
-                    throw std::runtime_error((boost::format("Could not load extension \"%1%\": %2%") 
+                    throw std::runtime_error((boost::format("Could not load extension \"%1%\": %2%")
                                               % extension
                                               % PQresultErrorMessage(res->get())).str());
                 }
