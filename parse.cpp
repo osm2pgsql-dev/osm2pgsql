@@ -6,7 +6,6 @@
 #ifdef BUILD_READER_PBF
 #  include "parse-pbf.hpp"
 #endif
-#include "parse-primitive.hpp"
 #include "parse-xml2.hpp"
 #include "util.hpp"
 
@@ -103,7 +102,8 @@ parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char
 		if (strcmp("libxml2", input_reader) == 0) {
 			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		} else if (strcmp("primitive", input_reader) == 0) {
-			return new parse_primitive_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
+      // The more robust libxml2 parser can be used instead of primitive
+			return new parse_xml2_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 #ifdef BUILD_READER_PBF
 		} else if (strcmp("pbf", input_reader) == 0) {
 			return new parse_pbf_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
@@ -111,7 +111,7 @@ parse_t* parse_delegate_t::get_input_reader(const char* input_reader, const char
 		} else if (strcmp("o5m", input_reader) == 0) {
 			return new parse_o5m_t(m_extra_attributes, m_bbox, m_proj, m_minlon, m_minlat, m_maxlon, m_maxlat);
 		} else {
-			fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, primitive, o5m"
+			fprintf(stderr, "Input parser `%s' not recognised. Should be one of [libxml2, o5m"
 #ifdef BUILD_READER_PBF
 							", pbf"
 #endif

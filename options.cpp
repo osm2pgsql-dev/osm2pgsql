@@ -178,8 +178,7 @@ namespace
                         e.g. --bbox -0.5,51.25,0.5,51.75\n\
        -p|--prefix      Prefix for table names (default planet_osm)\n\
        -r|--input-reader    Input frontend.\n\
-                        libxml2   - Parse XML using libxml2. (default)\n\
-                        primitive - Primitive XML parsing.\n");
+                        libxml2   - Parse XML using libxml2. (default)\n");
     #ifdef BUILD_READER_PBF
         printf("                    pbf       - OSM binary format.\n");
     #endif

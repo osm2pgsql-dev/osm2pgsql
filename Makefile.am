@@ -25,7 +25,6 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	parse.hpp \
 	parse-o5m.hpp \
 	parse-pbf.hpp \
-	parse-primitive.hpp \
 	parse-xml2.hpp \
 	pgsql.hpp \
 	rb.hpp \
@@ -63,7 +62,6 @@ libosm2pgsql_la_SOURCES = \
 	parse.cpp \
 	parse-o5m.cpp \
 	parse-pbf.cpp \
-	parse-primitive.cpp \
 	parse-xml2.cpp \
 	pgsql.cpp \
 	pgsql-id-tracker.cpp \
