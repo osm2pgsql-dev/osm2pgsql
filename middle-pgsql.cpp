@@ -101,36 +101,6 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
 #define HELPER_STATE_FAILED 3
 
 namespace {
-int pgsql_connect(std::vector<middle_pgsql_t::table_desc> &tables,
-                  const struct options_t *options) {
-    const int num_tables = tables.size();
-
-    // We use a connection per table to enable the use of COPY */
-    for (int i=0; i<num_tables; i++) {
-        PGconn *sql_conn;
-        sql_conn = PQconnectdb(options->conninfo.c_str());
-
-        // Check to see that the backend connection was successfully made */
-        if (PQstatus(sql_conn) != CONNECTION_OK) {
-            throw std::runtime_error((boost::format("Connection to database failed: %1%")
-                                      % PQerrorMessage(sql_conn)).str());
-        }
-        tables[i].sql_conn = sql_conn;
-
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
-        }
-
-        if (tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
-        }
-
-    }
-    return 0;
-}
-
 char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
 {
   static char *buffer;
