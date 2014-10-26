@@ -9,7 +9,6 @@
 
 #include "output.hpp"
 #include "tagtransform.hpp"
-#include "buffer.hpp"
 #include "table.hpp"
 #include "geometry-processor.hpp"
 #include "id-tracker.hpp"

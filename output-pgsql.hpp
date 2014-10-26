@@ -8,7 +8,6 @@
 
 #include "output.hpp"
 #include "tagtransform.hpp"
-#include "buffer.hpp"
 #include "geometry-builder.hpp"
 #include "reprojection.hpp"
 #include "expire-tiles.hpp"
