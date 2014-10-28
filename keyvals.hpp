@@ -8,7 +8,6 @@
 #ifndef KEYVAL_H
 #define KEYVAL_H
 
-#include "buffer.hpp"
 #include "text-tree.hpp"
 
 #include <boost/shared_ptr.hpp>

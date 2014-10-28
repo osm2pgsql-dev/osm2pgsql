@@ -32,7 +32,6 @@
 #include "node-ram-cache.hpp"
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
-#include "buffer.hpp"
 #include "util.hpp"
 
 #include <boost/bind.hpp>

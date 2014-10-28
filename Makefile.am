@@ -41,7 +41,6 @@ osm2pgsql_LDADD = libosm2pgsql.la
 libosm2pgsql_la_SOURCES = \
 	UTF8sanitizer.cpp \
 	binarysearcharray.cpp \
-	buffer.cpp \
 	expire-tiles.cpp \
 	geometry-builder.cpp \
 	geometry-processor.cpp \
