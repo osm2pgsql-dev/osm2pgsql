@@ -8,6 +8,7 @@
 #include <boost/version.hpp>
 
 #include <stdexcept>
+#include <utility>
 
 #if BOOST_VERSION < 105300
 #else

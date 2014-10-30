@@ -5,6 +5,7 @@
 #include "osmtypes.hpp"
 #include <string>
 #include <vector>
+#include <utility>
 
 #define FLAG_POLYGON 1    /* For polygon table */
 #define FLAG_LINEAR  2    /* For lines table */
