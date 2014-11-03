@@ -1194,6 +1194,8 @@ int middle_pgsql_t::start(const options_t *out_options_)
             if(!out_options->append)
                 build_indexes = 1;
         }
+
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
         }
@@ -1209,7 +1211,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
               pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
             }
         }
-
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
         if (tables[i].prepare) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
