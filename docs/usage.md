@@ -69,7 +69,8 @@ database if the database server ever crashes, but are faster to import.
   
 * ``--drop`` discards the slim tables when they are no longer needed in the
   import, significantly reducing disk requirements and saving the time of
-  building slim table indexes. A ``--slim --drop``
+  building slim table indexes. A ``--slim --drop`` import is generally the
+  fastest way to import the planet if updates are not required.
 
 ## Output columns options ##
 
