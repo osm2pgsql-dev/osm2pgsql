@@ -123,7 +123,9 @@ among others. It can also be used for [spatial analysis](docs/analysis.md) or
 In addition to the standard [pgsql](docs/pgsql.md) backend designed for
 rendering there is also the [gazetteer](docs/gazetteer.md) database for
 geocoding, principally with [Nominatim](http://www.nominatim.org/), and the
-null backend for testing.
+null backend for testing. For flexibility a new [multi](docs/multi.md)
+backend is also avialable which allows the configuration of custom
+postgres tables instead of those provided in the pgsql backend.
 
 Any questions should be directed at the osm dev list
 http://wiki.openstreetmap.org/index.php/Mailing_lists
