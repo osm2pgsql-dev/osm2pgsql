@@ -11,23 +11,23 @@ allow more tables to be queried in parallel.
 It connects to a PostgreSQL database and stores the data in one or more tables.
 As sample configuration may resemble the following:
 
-{
-  [
     {
-      "name": "building",
-      "type": "polygon",
-      "tagtransform": "building.lua",
-      "tagtransform-way-function": "ways_proc",
-      "tagtransform-relation-function": "relation_proc",
-      "tagtransform-relation-member-function": "relation_member_proc",
-      "tags": [
-        {"name": "building", "type": "text"},
-        {"name": "shop", "type": "text"},
-        {"name": "amenity", "type": "text"}
+      [
+        {
+          "name": "building",
+          "type": "polygon",
+          "tagtransform": "building.lua",
+          "tagtransform-way-function": "ways_proc",
+          "tagtransform-relation-function": "relation_proc",
+          "tagtransform-relation-member-function": "relation_member_proc",
+          "tags": [
+            {"name": "building", "type": "text"},
+            {"name": "shop", "type": "text"},
+            {"name": "amenity", "type": "text"}
+          ]
+        }
       ]
     }
-  ]
-}
 
 
 Note that each table has a `name` and can target a single type of geometry
