@@ -16,25 +16,22 @@ That is essentially why it was named `multi` because it's basically multiple
 ## Table Configuration ##
 As sample configuration may resemble the following:
 
-    {
-      [
-        {
-          "name": "building",
-          "type": "polygon",
-          "tagtransform": "building.lua",
-          "tagtransform-way-function": "ways_proc",
-          "tagtransform-relation-function": "relation_proc",
-          "tagtransform-relation-member-function": "relation_member_proc",
-          "tags": [
-            {"name": "building", "type": "text"},
-            {"name": "shop", "type": "text"},
-            {"name": "amenity", "type": "text"}
-          ]
-        },
-        ...
-      ]
-    }
-
+    [
+      {
+        "name": "building",
+        "type": "polygon",
+        "tagtransform": "building.lua",
+        "tagtransform-way-function": "ways_proc",
+        "tagtransform-relation-function": "relation_proc",
+        "tagtransform-relation-member-function": "relation_member_proc",
+        "tags": [
+          {"name": "building", "type": "text"},
+          {"name": "shop", "type": "text"},
+          {"name": "amenity", "type": "text"}
+        ]
+      },
+      ...
+    ]
 
 Note that each table has a `name` and can target a single type of geometry
 by setting the `type` to one of `point`, `line` or `polygon`. `tagtransform`
