@@ -27,7 +27,7 @@ tables which are used by the pgsql middle layer, not the backend:
 With the ``--flat-nodes`` option, the ``planet_osm_nodes`` information is
 instead stored in a binary file.
 
-## Importing ##
+## <a name=importing/>Importing ##
 
 1. Runs a parser on the input file and processes the nodes, ways and relations.
 

@@ -40,4 +40,4 @@ TODO: detail the rest of the multi options.
 
 ## Importing ##
 
-See: [Importing](pgsql.md#Importing).
+See: [Importing](pgsql.md#importing).
