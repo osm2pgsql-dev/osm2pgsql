@@ -262,7 +262,6 @@ void table_t::stop()
     fprintf(stderr, "Completed %s\n", name.c_str());
 }
 
-
 void table_t::stop_copy()
 {
     PGresult* res;
@@ -516,6 +515,9 @@ void table_t::escape_type(const char *value, const char *type, string& dst) {
 
 boost::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
 {
+    //cant get wkt using the prepared statement without stopping the copy first
+    stop_copy();
+
     char const *paramValues[1];
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
