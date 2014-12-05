@@ -111,25 +111,25 @@ int main(int argc, char *argv[]) {
 
             check_count(test_conn, 1,
                         (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where relname = 'osm2pgsql_test_foobar_%d'")
+                                       "where relname = 'foobar_%d'")
                          % i).str());
 
             check_count(test_conn, 244,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d")
+                        (boost::format("select count(*) from foobar_%d")
                          % i).str());
 
             check_count(test_conn, 36,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
+                        (boost::format("select count(*) from foobar_%d "
                                        "where amenity='parking'")
                          % i).str());
 
             check_count(test_conn, 34,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
+                        (boost::format("select count(*) from foobar_%d "
                                        "where amenity='bench'")
                          % i).str());
 
             check_count(test_conn, 1,
-                        (boost::format("select count(*) from osm2pgsql_test_foobar_%d "
+                        (boost::format("select count(*) from foobar_%d "
                                        "where amenity='vending_machine'")
                          % i).str());
         }

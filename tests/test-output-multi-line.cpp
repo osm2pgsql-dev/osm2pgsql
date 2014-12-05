@@ -62,7 +62,6 @@ int main(int argc, char *argv[]) {
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
-        options.prefix = "osm2pgsql_test";
         options.tblsslim_index = "tablespacetest";
         options.tblsslim_data = "tablespacetest";
         options.slim = 1;
@@ -92,27 +91,27 @@ int main(int argc, char *argv[]) {
         // start a new connection to run tests on
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'osm2pgsql_test_foobar_highways'");
-        check_count(test_conn, 2753, "select count(*) from osm2pgsql_test_foobar_highways");
+        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");
+        check_count(test_conn, 2753, "select count(*) from foobar_highways");
 
         //check that we have the right spread
-        check_count(test_conn, 13, "select count(*) from osm2pgsql_test_foobar_highways where highway='bridleway'");
-        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_highways where highway='construction'");
-        check_count(test_conn, 96, "select count(*) from osm2pgsql_test_foobar_highways where highway='cycleway'");
-        check_count(test_conn, 249, "select count(*) from osm2pgsql_test_foobar_highways where highway='footway'");
-        check_count(test_conn, 18, "select count(*) from osm2pgsql_test_foobar_highways where highway='living_street'");
-        check_count(test_conn, 171, "select count(*) from osm2pgsql_test_foobar_highways where highway='path'");
-        check_count(test_conn, 6, "select count(*) from osm2pgsql_test_foobar_highways where highway='pedestrian'");
-        check_count(test_conn, 81, "select count(*) from osm2pgsql_test_foobar_highways where highway='primary'");
-        check_count(test_conn, 842, "select count(*) from osm2pgsql_test_foobar_highways where highway='residential'");
-        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_highways where highway='road'");
-        check_count(test_conn, 90, "select count(*) from osm2pgsql_test_foobar_highways where highway='secondary'");
-        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_highways where highway='secondary_link'");
-        check_count(test_conn, 352, "select count(*) from osm2pgsql_test_foobar_highways where highway='service'");
-        check_count(test_conn, 34, "select count(*) from osm2pgsql_test_foobar_highways where highway='steps'");
-        check_count(test_conn, 33, "select count(*) from osm2pgsql_test_foobar_highways where highway='tertiary'");
-        check_count(test_conn, 597, "select count(*) from osm2pgsql_test_foobar_highways where highway='track'");
-        check_count(test_conn, 164, "select count(*) from osm2pgsql_test_foobar_highways where highway='unclassified'");
+        check_count(test_conn, 13, "select count(*) from foobar_highways where highway='bridleway'");
+        check_count(test_conn, 3, "select count(*) from foobar_highways where highway='construction'");
+        check_count(test_conn, 96, "select count(*) from foobar_highways where highway='cycleway'");
+        check_count(test_conn, 249, "select count(*) from foobar_highways where highway='footway'");
+        check_count(test_conn, 18, "select count(*) from foobar_highways where highway='living_street'");
+        check_count(test_conn, 171, "select count(*) from foobar_highways where highway='path'");
+        check_count(test_conn, 6, "select count(*) from foobar_highways where highway='pedestrian'");
+        check_count(test_conn, 81, "select count(*) from foobar_highways where highway='primary'");
+        check_count(test_conn, 842, "select count(*) from foobar_highways where highway='residential'");
+        check_count(test_conn, 3, "select count(*) from foobar_highways where highway='road'");
+        check_count(test_conn, 90, "select count(*) from foobar_highways where highway='secondary'");
+        check_count(test_conn, 1, "select count(*) from foobar_highways where highway='secondary_link'");
+        check_count(test_conn, 352, "select count(*) from foobar_highways where highway='service'");
+        check_count(test_conn, 34, "select count(*) from foobar_highways where highway='steps'");
+        check_count(test_conn, 33, "select count(*) from foobar_highways where highway='tertiary'");
+        check_count(test_conn, 597, "select count(*) from foobar_highways where highway='track'");
+        check_count(test_conn, 164, "select count(*) from foobar_highways where highway='unclassified'");
         return 0;
 
     } catch (const std::exception &e) {

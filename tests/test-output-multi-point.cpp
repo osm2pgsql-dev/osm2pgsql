@@ -94,19 +94,19 @@ int main(int argc, char *argv[]) {
 
         check_count(test_conn, 1,
                     "select count(*) from pg_catalog.pg_class "
-                    "where relname = 'osm2pgsql_test_foobar_amenities'");
+                    "where relname = 'foobar_amenities'");
 
         check_count(test_conn, 244,
-                    "select count(*) from osm2pgsql_test_foobar_amenities");
+                    "select count(*) from foobar_amenities");
 
         check_count(test_conn, 36,
-                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='parking'");
+                    "select count(*) from foobar_amenities where amenity='parking'");
 
         check_count(test_conn, 34,
-                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='bench'");
+                    "select count(*) from foobar_amenities where amenity='bench'");
 
         check_count(test_conn, 1,
-                    "select count(*) from osm2pgsql_test_foobar_amenities where amenity='vending_machine'");
+                    "select count(*) from foobar_amenities where amenity='vending_machine'");
 
         return 0;
 

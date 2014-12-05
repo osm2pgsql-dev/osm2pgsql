@@ -7,14 +7,6 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
-namespace {
-
-std::string mk_column_name(const std::string &name, const options_t &options) {
-    return (boost::format("%1%_%2%") % options.prefix % name).str();
-}
-
-} // anonymous namespace
-
 output_multi_t::output_multi_t(const std::string &name,
                                boost::shared_ptr<geometry_processor> processor_,
                                const struct export_list &export_list_,
@@ -25,7 +17,7 @@ output_multi_t::output_multi_t(const std::string &name,
       m_processor(processor_),
       //TODO: we could in fact have something that is interested in nodes and ways..
       m_osm_type(m_processor->interests(geometry_processor::interest_node) ? OSMTYPE_NODE : OSMTYPE_WAY),
-      m_table(new table_t(m_options.conninfo, mk_column_name(name, m_options), m_processor->column_type(),
+      m_table(new table_t(m_options.conninfo, name, m_processor->column_type(),
                           m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
