@@ -21,7 +21,7 @@ As sample configuration may resemble the following:
         "name": "building",
         "type": "polygon",
         "tagtransform": "building.lua",
-	"tagtransform-node-function": "nodes_proc",
+        "tagtransform-node-function": "nodes_proc",
         "tagtransform-way-function": "ways_proc",
         "tagtransform-relation-function": "rels_proc",
         "tagtransform-relation-member-function": "rel_members_proc",
