@@ -184,9 +184,11 @@ namespace
     #endif
         printf("\
        -O|--output      Output backend.\n\
-                        pgsql - Output to a PostGIS database. (default)\n\
+                        pgsql - Output to a PostGIS database (default)\n\
+                        multi - Multiple Custom Table Output to a PostGIS \n\
+                            database (requires style file for configuration)\n\
                         gazetteer - Output to a PostGIS database for Nominatim\n\
-                        null - No output. Useful for testing.\n");
+                        null - No output. Useful for testing\n");
     #ifdef HAVE_LUA
         printf("\
           --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\

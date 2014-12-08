@@ -91,28 +91,28 @@ int main(int argc, char *argv[]) {
         // start a new connection to run tests on
         pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'osm2pgsql_test_foobar_buildings'");
-        check_count(test_conn, 0, "select count(*) from osm2pgsql_test_foobar_buildings where building is null");
-        check_count(test_conn, 3723, "select count(*) from osm2pgsql_test_foobar_buildings");
+        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_buildings'");
+        check_count(test_conn, 0, "select count(*) from foobar_buildings where building is null");
+        check_count(test_conn, 3723, "select count(*) from foobar_buildings");
 
         //check that we have the right spread
-        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_buildings where building='barn'");
-        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_buildings where building='chapel'");
-        check_count(test_conn, 5, "select count(*) from osm2pgsql_test_foobar_buildings where building='church'");
-        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_buildings where building='commercial'");
-        check_count(test_conn, 6, "select count(*) from osm2pgsql_test_foobar_buildings where building='farm'");
-        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_buildings where building='garage'");
-        check_count(test_conn, 2, "select count(*) from osm2pgsql_test_foobar_buildings where building='glasshouse'");
-        check_count(test_conn, 1, "select count(*) from osm2pgsql_test_foobar_buildings where building='greenhouse'");
-        check_count(test_conn, 153, "select count(*) from osm2pgsql_test_foobar_buildings where building='house'");
-        check_count(test_conn, 4, "select count(*) from osm2pgsql_test_foobar_buildings where building='hut'");
-        check_count(test_conn, 8, "select count(*) from osm2pgsql_test_foobar_buildings where building='industrial'");
-        check_count(test_conn, 200, "select count(*) from osm2pgsql_test_foobar_buildings where building='residential'");
-        check_count(test_conn, 6, "select count(*) from osm2pgsql_test_foobar_buildings where building='roof'");
-        check_count(test_conn, 4, "select count(*) from osm2pgsql_test_foobar_buildings where building='school'");
-        check_count(test_conn, 2, "select count(*) from osm2pgsql_test_foobar_buildings where building='station'");
-        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_foobar_buildings where building='warehouse'");
-        check_count(test_conn, 3323, "select count(*) from osm2pgsql_test_foobar_buildings where building='yes'");
+        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='barn'");
+        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='chapel'");
+        check_count(test_conn, 5, "select count(*) from foobar_buildings where building='church'");
+        check_count(test_conn, 3, "select count(*) from foobar_buildings where building='commercial'");
+        check_count(test_conn, 6, "select count(*) from foobar_buildings where building='farm'");
+        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='garage'");
+        check_count(test_conn, 2, "select count(*) from foobar_buildings where building='glasshouse'");
+        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='greenhouse'");
+        check_count(test_conn, 153, "select count(*) from foobar_buildings where building='house'");
+        check_count(test_conn, 4, "select count(*) from foobar_buildings where building='hut'");
+        check_count(test_conn, 8, "select count(*) from foobar_buildings where building='industrial'");
+        check_count(test_conn, 200, "select count(*) from foobar_buildings where building='residential'");
+        check_count(test_conn, 6, "select count(*) from foobar_buildings where building='roof'");
+        check_count(test_conn, 4, "select count(*) from foobar_buildings where building='school'");
+        check_count(test_conn, 2, "select count(*) from foobar_buildings where building='station'");
+        check_count(test_conn, 3, "select count(*) from foobar_buildings where building='warehouse'");
+        check_count(test_conn, 3323, "select count(*) from foobar_buildings where building='yes'");
         return 0;
 
     } catch (const std::exception &e) {
