@@ -17,10 +17,10 @@
 #include "output.hpp"
 #include "options.hpp"
 #include "node-persistent-cache.hpp"
-#include "binarysearcharray.hpp"
 #include "util.hpp"
 
 #include <stdexcept>
+#include <algorithm>
 
 #ifdef _WIN32
  #include "win_fsync.h"
@@ -171,8 +171,33 @@ int node_persistent_cache::replace_block()
  */
 int node_persistent_cache::find_block(osmid_t block_offset)
 {
-    int idx = binary_search_get(readNodeBlockCacheIdx, block_offset);
-    return idx;
+    cache_index::iterator it = std::lower_bound(readNodeBlockCacheIdx.begin(),
+                                                readNodeBlockCacheIdx.end(),
+                                                block_offset);
+    if (it != readNodeBlockCacheIdx.end() && it->key == block_offset)
+        return it->value;
+
+    return -1;
+}
+
+void node_persistent_cache::remove_from_cache_idx(osmid_t block_offset)
+{
+    cache_index::iterator it = std::lower_bound(readNodeBlockCacheIdx.begin(),
+                                                readNodeBlockCacheIdx.end(),
+                                                block_offset);
+
+    if (it == readNodeBlockCacheIdx.end() || it->key != block_offset)
+        return;
+
+    readNodeBlockCacheIdx.erase(it);
+}
+
+void node_persistent_cache::add_to_cache_idx(cache_index_entry const &entry)
+{
+    cache_index::iterator it = std::lower_bound(readNodeBlockCacheIdx.begin(),
+                                                readNodeBlockCacheIdx.end(),
+                                                entry);
+    readNodeBlockCacheIdx.insert(it, entry);
 }
 
 /**
@@ -232,7 +257,7 @@ void node_persistent_cache::nodes_prefetch_async(osmid_t id)
 #ifdef HAVE_POSIX_FADVISE
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
-    osmid_t block_id = find_block(block_offset);
+    int block_id = find_block(block_offset);
 
     if (block_id < 0)
         {   /* The needed block isn't in cache already, so initiate loading */
@@ -282,8 +307,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
         readNodeBlockCache[block_id].dirty = 0;
     }
 
-    binary_search_remove(readNodeBlockCacheIdx,
-            readNodeBlockCache[block_id].block_offset);
+    remove_from_cache_idx(readNodeBlockCache[block_id].block_offset);
     ramNodes_clear(readNodeBlockCache[block_id].nodes, READ_NODE_BLOCK_SIZE);
     readNodeBlockCache[block_id].block_offset = block_offset;
     readNodeBlockCache[block_id].used = READ_NODE_CACHE_SIZE;
@@ -311,8 +335,8 @@ int node_persistent_cache::load_block(osmid_t block_offset)
                 strerror(errno));
         exit(1);
     }
-    binary_search_add(readNodeBlockCacheIdx,
-            readNodeBlockCache[block_id].block_offset, block_id);
+    add_to_cache_idx(cache_index_entry(readNodeBlockCache[block_id].block_offset,
+                                   block_id));
 
     return block_id;
 }
@@ -461,7 +485,7 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
 {
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
-    osmid_t block_id = find_block(block_offset);
+    int block_id = find_block(block_offset);
 
     if (block_id < 0)
     {
@@ -564,7 +588,7 @@ int node_persistent_cache::get_list(struct osmNode *nodes, const osmid_t *ndids,
 node_persistent_cache::node_persistent_cache(const options_t *options, int append,
                                              boost::shared_ptr<node_ram_cache> ptr)
     : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
-      writeNodeBlock(), readNodeBlockCache(NULL), readNodeBlockCacheIdx(NULL),
+      writeNodeBlock(), readNodeBlockCache(NULL),
       scale_(0), cache_already_written(0), ram_cache(ptr)
 {
     int i, err;
@@ -579,12 +603,7 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
     fprintf(stderr, "Mid: loading persistent node cache from %s\n",
             node_cache_fname);
 
-    readNodeBlockCacheIdx = init_search_array(READ_NODE_CACHE_SIZE);
-    if (readNodeBlockCacheIdx == NULL)
-    {
-	fprintf(stderr, "Unable to initialise binary search array\n");
-	util::exit_nicely();
-    }
+    readNodeBlockCacheIdx.reserve(READ_NODE_CACHE_SIZE);
 
     /* Setup the file for the node position cache */
     if (append_mode)
@@ -746,7 +765,6 @@ node_persistent_cache::~node_persistent_cache()
     {
         free(readNodeBlockCache[i].nodes);
     }
-    shutdown_search_array(&readNodeBlockCacheIdx);
     free(readNodeBlockCache);
     readNodeBlockCache = NULL;
 }
