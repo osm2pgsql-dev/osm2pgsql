@@ -5,7 +5,7 @@
 # See default.style for documentation on all the flags
 
 # OsmType   Tag                     Type    Flags
-# Insert your own columns here, or remove hstore option below
+# Insert your own columns here, or change polygon,hstore to polygon below
 way         abandoned:aeroway       text    polygon,hstore
 way         abandoned:amenity       text    polygon,hstore
 way         abandoned:building      text    polygon,hstore

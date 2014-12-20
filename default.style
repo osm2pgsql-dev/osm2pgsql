@@ -26,6 +26,8 @@
 #
 # hstore - add tag to hstore only instead of its own column
 #
+# phstore - Same as polygon,hstore for backward compatibility
+#
 # delete - Drop this tag completely and don't create a column for it. This also
 # prevents the tag from being added to hstore columns
 #
