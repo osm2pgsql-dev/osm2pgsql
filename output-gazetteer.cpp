@@ -16,18 +16,6 @@
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
-#define CREATE_KEYVALUETYPE_TYPE                \
-   "CREATE TYPE keyvalue AS ("                  \
-   "  key TEXT,"                                \
-   "  value TEXT"                               \
-   ")"
-
-#define CREATE_WORDSCORE_TYPE                   \
-   "CREATE TYPE wordscore AS ("                 \
-   "  word TEXT,"                               \
-   "  score FLOAT"                              \
-   ")"
-
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
    "  osm_type CHAR(1) NOT NULL,"               \
@@ -1015,15 +1003,6 @@ int output_gazetteer_t::start()
    {
       /* Drop any existing table */
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvalue cascade");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists wordscore cascade");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists stringlanguagetype cascade");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TYPE if exists keyvaluetype cascade");
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP FUNCTION IF EXISTS get_connected_ways(integer[])");
-
-      /* Create types and functions */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_KEYVALUETYPE_TYPE);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_WORDSCORE_TYPE);
 
       /* Create the new table */
       if (m_options.tblsmain_data)
