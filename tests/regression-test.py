@@ -3,7 +3,7 @@
 import unittest
 import psycopg2
 import os
-from pwd import getpwnam
+import fnmatch
 import subprocess
 
 full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
@@ -30,14 +30,14 @@ sql_test_statements=[
     ( 11, 'Absence of way table', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_ways\'', 0),
     ( 12, 'Absence of rel line', 'SELECT count(*) FROM pg_tables WHERE tablename = \'planet_osm_rels\'', 0),
     ( 13, 'Basic polygon area', 'SELECT round(sum(cast(ST_Area(way) as numeric)),0) FROM planet_osm_polygon;', 1223800814),
-    ( 14, 'Gazetteer place count', 'SELECT count(*) FROM place', 4499),
-    ( 15, 'Gazetteer place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 779),
-    ( 16, 'Gazetteer place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3697),
-    ( 17, 'Gazetteer place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 23),
-    ( 18, 'Gazetteer post-diff place count', 'SELECT count(*) FROM place', 4553),
-    ( 19, 'Gazetteer post-diff place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 788),
-    ( 20, 'Gazetteer post-diff place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3742),
-    ( 21, 'Gazetteer post-diff place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 23),
+    ( 14, 'Gazetteer place count', 'SELECT count(*) FROM place', 4374),
+    ( 15, 'Gazetteer place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 778),
+    ( 16, 'Gazetteer place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3577),
+    ( 17, 'Gazetteer place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 19),
+    ( 18, 'Gazetteer post-diff place count', 'SELECT count(*) FROM place', 4428),
+    ( 19, 'Gazetteer post-diff place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 787),
+    ( 20, 'Gazetteer post-diff place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 3622),
+    ( 21, 'Gazetteer post-diff place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 19),
     ( 22, 'Gazetteer housenumber count', 'SELECT count(*) FROM place WHERE housenumber is not null', 199),
     ( 23, 'Gazetteer post-diff housenumber count count', 'SELECT count(*) FROM place WHERE housenumber is not null', 199),
     ( 24, 'Gazetteer isin count', 'SELECT count(*) FROM place WHERE isin is not null', 239),
@@ -483,6 +483,22 @@ class BasicGazetteerTestCase(BaseGazetteerTestCase):
         self.executeStatements(self.postDiffStatements)
 
 
+#****************************************************************
+#****************************************************************
+def findContribSql(filename):
+
+    # Try to get base dir for postgres contrib
+    try:
+        postgis_base_dir = os.popen('pg_config | grep -m 1 "^INCLUDEDIR ="').read().strip().split(' ')[2].split('/include')[0]
+    except:
+        postgis_base_dir = '/usr'
+
+    # Search for the actual sql file
+    for root, dirs, files in os.walk(postgis_base_dir):
+        if 'share' in root and 'postgresql' in root and 'contrib' in root and len(fnmatch.filter(files, filename)) > 0:
+            return '/'.join([root, filename])
+    else:
+        raise Exception('Cannot find %s searching under %s' % (filename, postgis_base_dir))
 
 #****************************************************************
 #****************************************************************
@@ -493,21 +509,21 @@ def setupDB():
         gen_conn.autocommit = True
     except Exception, e:
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur = gen_conn.cursor()
     except Exception, e:
         gen_conn.close()
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         gen_cur.execute("""CREATE DATABASE \"osm2pgsql-test\" WITH ENCODING 'UTF8'""")
     except Exception, e:
         print "Failed to create osm2pgsql-test db" + e.pgerror
-        exit();
+        exit(1);
     finally:
         gen_cur.close()
         gen_conn.close()
@@ -517,66 +533,56 @@ def setupDB():
         test_conn.autocommit = True
     except Exception, e:
         print "I am unable to connect to the database." + e
-        exit()
+        exit(1)
 
     try:
         test_cur = test_conn.cursor()
     except Exception, e:
         print "I am unable to connect to the database." + e
         gen_conn.close()
-        exit()
+        exit(1)
 
     try:
+
+        # Check the tablespace
         try:
             global created_tablespace
+            created_tablespace = 0
+
             test_cur.execute("""SELECT spcname FROM pg_tablespace WHERE spcname = 'tablespacetest'""")
             if test_cur.fetchone():
                 print "We already have a tablespace, can use that"
-                created_tablespace = 0
             else:
-                print "For the test, we need to create a tablespace. This needs root privileges"
-                created_tablespace = 1
-                ### This makes postgresql read from /tmp
-                ## Does this have security implications like opening this to a possible symlink attack?
-                try:
-                    os.mkdir("/tmp/psql-tablespace")
-                    returncode = subprocess.call(["/usr/bin/sudo", "/bin/chown", "postgres.postgres", "/tmp/psql-tablespace"])
-                    test_cur.execute("""CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'""")
-                except Exception, e:
-                    os.rmdir("/tmp/psql-tablespace")
-                    self.assertEqual(0, 1, "Failed to create tablespace")
+                print "The test needs a temporary tablespace to run in, but it does not exist. Please create the temporary tablespace. On Linux, you can do this by running:"
+                print "  sudo mkdir -p /tmp/psql-tablespace"
+                print "  sudo /bin/chown postgres.postgres tmp/psql-tablespace"
+                print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
+                exit(77)
         except Exception, e:
             print "Failed to create directory for tablespace" + str(e)
 
-
+        # Check for postgis
         try:
             test_cur.execute("""CREATE EXTENSION postgis;""")
         except:
             test_conn.rollback()
-            # Guess the directory from the postgres version.
-            # TODO: make the postgisdir configurable. Probably
-            # only works on Debian-based distributions at the moment.
-            postgisdir = ('/usr/share/postgresql/%d.%d/contrib' %
-                        (test_conn.server_version / 10000, (test_conn.server_version / 100) % 100))
-            for fl in os.listdir(postgisdir):
-                if fl.startswith('postgis'):
-                    newdir = os.path.join(postgisdir, fl)
-                    if os.path.isdir(newdir):
-                        postgisdir = newdir
-                        break
-            else:
-                raise Exception('Cannot find postgis directory.')
-            pgscript = open(os.path.join(postgisdir, 'postgis.sql'),'r').read()
-            test_cur.execute(pgscript)
-            pgscript = open(os.path.join(postgisdir, 'spatial_ref_sys.sql'), 'r').read()
+
+            pgis = findContribSql('postgis.sql')
+            pgscript = open(pgis).read()
             test_cur.execute(pgscript)
 
+            srs = findContribSql('spatial_ref_sys.sql')
+            pgscript = open(srs).read()
+            test_cur.execute(pgscript)
+
+        # Check for hstore support
         try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
-
         except Exception, e:
-            print "I am unable to create extensions: " + e.pgerror
-            exit()
+            hst = findContribSql('hstore.sql')
+            pgscript = open(hst).read()
+            test_cur.execute(pgscript)
+
     finally:
         test_cur.close()
         test_conn.close()
@@ -589,7 +595,7 @@ def tearDownDB():
         gen_cur = gen_conn.cursor()
     except Exception, e:
         print "I am unable to connect to the database."
-        exit()
+        exit(1)
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
@@ -597,7 +603,7 @@ def tearDownDB():
             gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
     except Exception, e:
         print "Failed to clean up osm2pgsql-test db" + e.pgerror
-        exit();
+        exit(1);
 
     gen_cur.close()
     gen_conn.close()
@@ -620,9 +626,19 @@ if __name__ == "__main__":
 
 
 ts2 = CompleteTestSuite()
+success = False
 try:
     setupDB()
     runner = unittest.TextTestRunner()
-    runner.run(ts2)
+    result = runner.run(ts2)
+    success = result.wasSuccessful()
+
 finally:
     tearDownDB()
+
+if success:
+    print "All tests passed :-)"
+    exit(0)
+else:
+    print "Some tests failed :-("
+    exit(1)
