@@ -273,7 +273,7 @@ void table_t::stop_copy()
     //if there is stuff left over in the copy buffer send it offand copy it before we stop
     else if(buffer.length() != 0)
     {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
         buffer.clear();
     };
 
@@ -345,7 +345,7 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
     //send all the data to postgres
     if(buffer.length() > BUFFER_SEND_SIZE)
     {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
         buffer.clear();
     }
 }

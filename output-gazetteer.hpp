@@ -4,8 +4,11 @@
 #include "output.hpp"
 #include "geometry-builder.hpp"
 #include "reprojection.hpp"
+#include "util.hpp"
 
 #include <boost/shared_ptr.hpp>
+
+#include <iostream>
 
 class output_gazetteer_t : public output_t {
 public:
@@ -38,10 +41,8 @@ public:
     int relation_delete(osmid_t id);
 
 private:
-    static const size_t BUFFER_SIZE = 4096;
+    enum { PLACE_BUFFER_SIZE = 4092 };
 
-    void require_slim_mode(void);
-    void copy_data(const char *sql);
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places);
     void add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type,
@@ -58,14 +59,96 @@ private:
                                    struct keyval *tags, int delete_old);
     int connect();
 
+    void require_slim_mode(void) {
+        if (!m_options.slim)
+        {
+            std::cerr << "Cannot apply diffs unless in slim mode\n";
+            util::exit_nicely();
+        }
+    }
+
+    void flush_place_buffer()
+    {
+        if (buffer.length() >= PLACE_BUFFER_SIZE - 10
+            || (buffer.length() > 0 && buffer[buffer.length() - 1] == '\n'))
+        {
+            if (!CopyActive)
+            {
+                pgsql_exec(Connection, PGRES_COPY_IN, "COPY place (osm_type, osm_id, class, type, name, admin_level, housenumber, street, addr_place, isin, postcode, country_code, extratags, geometry) FROM STDIN");
+                CopyActive = 1;
+            }
+
+            pgsql_CopyData("place", Connection, buffer);
+            buffer.clear();
+        }
+    }
+
+    void value_to_place_table(struct keyval* kv)
+    {
+        if (kv)
+        {
+            escape(kv->value, buffer);
+            buffer += "\t";
+            flush_place_buffer();
+        }
+        else
+            buffer += "\\N\t";
+    }
+
+    void hstore_to_place_table(struct keyval *values)
+    {
+        if (keyval::listHasData(values))
+        {
+            bool first = true;
+            for (struct keyval *entry = keyval::firstItem(values); 
+                 entry;
+                 entry = keyval::nextItem(values, entry))
+            {
+                if (first) first = false;
+                else buffer += ',';
+
+                buffer += "\"";
+
+                escape_array_record(entry->key, buffer);
+                flush_place_buffer();
+
+                buffer += "\"=>\"";
+
+                escape_array_record(entry->value, buffer);
+                flush_place_buffer();
+
+                buffer += "\"";
+            }
+            buffer += "\t";
+        }
+        else
+            buffer += "\\N\t";
+    }
+
+    void escape_array_record(const char *in, std::string &out)
+    {
+        while(*in) {
+            switch(*in) {
+                case '\\': out += "\\\\\\\\\\\\\\\\"; break;
+                case '\n':
+                case '\r':
+                case '\t':
+                case '"':
+                    /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
+                           out += ' '; break;
+                default:   out += *in; break;
+            }
+            in++;
+        }
+    }
+
     struct pg_conn *Connection;
     struct pg_conn *ConnectionDelete;
     struct pg_conn *ConnectionError;
 
     int CopyActive;
-    unsigned int BufferLen;
 
-    char Buffer[BUFFER_SIZE];
+    std::string buffer;
 
     geometry_builder builder;
 

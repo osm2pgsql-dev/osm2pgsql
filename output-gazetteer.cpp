@@ -1,6 +1,6 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <libpq-fe.h>
 #include <boost/make_shared.hpp>
@@ -38,95 +38,47 @@
 #define CREATE_PLACE_ID_INDEX \
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) %s %s"
 
-#define TAGINFO_NODE 0x1u
-#define TAGINFO_WAY  0x2u
-#define TAGINFO_AREA 0x4u
+enum tag_type {
+ TAGINFO_NODE = 0x1u,
+ TAGINFO_WAY = 0x2u,
+ TAGINFO_AREA = 0x4u
+};
 
-void output_gazetteer_t::require_slim_mode(void)
-{
-   if (!m_options.slim)
-   {
-      fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-      util::exit_nicely();
-   }
+enum { BUFFER_SIZE = 4092 };
 
-   return;
-}
-
-void output_gazetteer_t::copy_data(const char *sql)
-{
-   unsigned int sqlLen = strlen(sql);
-
-   /* Make sure we have an active copy */
-   if (!CopyActive)
-   {
-      pgsql_exec(Connection, PGRES_COPY_IN, "COPY place (osm_type, osm_id, class, type, name, admin_level, housenumber, street, addr_place, isin, postcode, country_code, extratags, geometry) FROM STDIN");
-      CopyActive = 1;
-   }
-
-   /* If the combination of old and new data is too big, flush old data */
-   if (BufferLen + sqlLen > BUFFER_SIZE - 10)
-   {
-      pgsql_CopyData("place", Connection, Buffer);
-      BufferLen = 0;
-   }
-
-   /*
-    * If new data by itself is too big, output it immediately,
-    * otherwise just add it to the buffer.
-    */
-   if (sqlLen > BUFFER_SIZE - 10)
-   {
-      pgsql_CopyData("Place", Connection, sql);
-      sqlLen = 0;
-   }
-   else if (sqlLen > 0)
-   {
-      strcpy(Buffer + BufferLen, sql);
-      BufferLen += sqlLen;
-      sqlLen = 0;
-   }
-
-   /* If we have completed a line, output it */
-   if (BufferLen > 0 && Buffer[BufferLen-1] == '\n')
-   {
-      pgsql_CopyData("place", Connection, Buffer);
-      BufferLen = 0;
-   }
-
-   return;
-}
 
 void output_gazetteer_t::stop_copy(void)
 {
-   PGresult *res;
+    /* Do we have a copy active? */
+    if (!CopyActive) return;
 
-   /* Do we have a copy active? */
-   if (!CopyActive) return;
+    if (buffer.length() > 0)
+    {
+        pgsql_CopyData("place", Connection, buffer);
+        buffer.clear();
+    }
 
-   /* Terminate the copy */
-   if (PQputCopyEnd(Connection, NULL) != 1)
-   {
-      fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
-      util::exit_nicely();
-   }
+    /* Terminate the copy */
+    if (PQputCopyEnd(Connection, NULL) != 1)
+    {
+        fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
+        util::exit_nicely();
+    }
 
-   /* Check the result */
-   res = PQgetResult(Connection);
-   if (PQresultStatus(res) != PGRES_COMMAND_OK)
-   {
-      fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
-      PQclear(res);
-      util::exit_nicely();
-   }
+    /* Check the result */
+    PGresult *res = PQgetResult(Connection);
+    if (PQresultStatus(res) != PGRES_COMMAND_OK)
+    {
+        fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
+        PQclear(res);
+        util::exit_nicely();
+    }
 
-   /* Discard the result */
-   PQclear(res);
+    /* Discard the result */
+    PQclear(res);
 
-   /* We no longer have an active copy */
-   CopyActive = 0;
-
-   return;
+    /* We no longer have an active copy */
+    CopyActive = 0;
 }
 
 #if 0
@@ -646,32 +598,6 @@ static int split_tags(struct keyval *tags, unsigned int flags,
    return 1;
 }
 
-void escape_array_record(char *out, int len, const char *in)
-{
-    int count = 0;
-    const char *old_in = in, *old_out = out;
-
-    if (!len)
-        return;
-
-    while(*in && count < len-3) {
-        switch(*in) {
-            case '\\': *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; *out++ = '\\'; count+= 8; break;
-            case '\n':
-            case '\r':
-            case '\t':
-            case '"':
-                /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
-		*out++ = ' '; count++; break;
-            default:   *out++ = *in; count++; break;
-        }
-        in++;
-    }
-    *out = '\0';
-
-    if (*in)
-        fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
-}
 
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places) {
     int i,sz, slen;
@@ -725,154 +651,53 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
 void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type, struct keyval *names, struct keyval *extratags,
    int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
-   int first;
    struct keyval *name;
-   char sql[2048];
+   char sql[70];
 
    /* Output a copy line for this place */
-   sprintf(sql, "%c\t%" PRIdOSMID "\t", osm_type, osm_id);
-   copy_data(sql);
+   buffer += osm_type;
+   buffer += '\t';
 
-   escape(sql, sizeof(sql), key_class.c_str());
-   copy_data(sql);
-   copy_data("\t");
+   snprintf(sql, 70, "%" PRIdOSMID "\t", osm_id);
+   buffer.append(sql);
 
-   escape(sql, sizeof(sql), type.c_str());
-   copy_data(sql);
-   copy_data("\t");
+   escape(key_class, buffer);
+   buffer += '\t';
+   escape(type, buffer);
+   buffer += '\t';
+   flush_place_buffer();
 
    /* start name array */
-   if (names->listHasData())
-   {
-      first = 1;
-      for (name = names->firstItem(); name; name = names->nextItem(name))
-      {
-         if (first) first = 0;
-         else copy_data(", ");
-
-         copy_data("\"");
-
-         escape_array_record(sql, sizeof(sql), name->key.c_str());
-         copy_data(sql);
-
-         copy_data("\"=>\"");
-
-         escape_array_record(sql, sizeof(sql), name->value.c_str());
-         copy_data(sql);
-
-         copy_data("\"");
-      }
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
+   hstore_to_place_table(names);
 
    sprintf(sql, "%d\t", adminlevel);
-   copy_data(sql);
+   buffer.append(sql);
 
-   if (housenumber)
-   {
-      escape(sql, sizeof(sql), housenumber->value.c_str());
-      copy_data(sql);
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
-
-   if (street)
-   {
-      escape(sql, sizeof(sql), street->value.c_str());
-      copy_data(sql);
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
-
-   if (addr_place)
-   {
-      escape(sql, sizeof(sql), addr_place->value.c_str());
-      copy_data(sql);
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
+   value_to_place_table(housenumber);
+   value_to_place_table(street);
+   value_to_place_table(addr_place);
 
    if (isin)
    {
        /* Skip the leading ',' from the contactination */
-      escape(sql, sizeof(sql), isin+1);
-      copy_data(sql);
-      copy_data("\t");
+      escape(isin+1, buffer);
+      buffer += "\t";
+      flush_place_buffer();
    }
    else
-   {
-      copy_data("\\N\t");
-   }
+      buffer += "\\N\t";
 
-   if (postcode)
-   {
-      escape(sql, sizeof(sql), postcode->value.c_str());
-      copy_data(sql);
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
-
-   if (countrycode)
-   {
-      escape(sql, sizeof(sql), countrycode->value.c_str());
-      copy_data(sql);
-      copy_data("\t");
-   }
-   else
-   {
-     copy_data("\\N\t");
-   }
+   value_to_place_table(postcode);
+   value_to_place_table(countrycode);
 
    /* extra tags array */
-   if (extratags->listHasData())
-   {
-      first = 1;
-      for (name = extratags->firstItem(); name; name = extratags->nextItem(name))
-      {
-         if (first) first = 0;
-         else copy_data(", ");
-
-         copy_data("\"");
-
-         escape_array_record(sql, sizeof(sql), name->key.c_str());
-         copy_data(sql);
-
-         copy_data("\"=>\"");
-
-         escape_array_record(sql, sizeof(sql), name->value.c_str());
-         copy_data(sql);
-
-         copy_data("\"");
-      }
-      copy_data("\t");
-   }
-   else
-   {
-      copy_data("\\N\t");
-   }
+   hstore_to_place_table(extratags);
 
    sprintf(sql, "SRID=%d;", SRID);
-   copy_data(sql);
-   copy_data(wkt);
+   buffer.append(sql).append(wkt);
 
-   copy_data("\n");
-
+   buffer += '\n';
+   flush_place_buffer();
 
    return;
 }
@@ -1393,10 +1218,9 @@ output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options
       Connection(NULL),
       ConnectionDelete(NULL),
       ConnectionError(NULL),
-      CopyActive(0),
-      BufferLen(0)
+      CopyActive(0)
 {
-    memset(Buffer, 0, BUFFER_SIZE);
+    buffer.reserve(BUFFER_SIZE);
 }
 
 output_gazetteer_t::output_gazetteer_t(const output_gazetteer_t& other)
@@ -1405,11 +1229,10 @@ output_gazetteer_t::output_gazetteer_t(const output_gazetteer_t& other)
       ConnectionDelete(NULL),
       ConnectionError(NULL),
       CopyActive(0),
-      BufferLen(0),
       reproj(other.reproj)
 {
+    buffer.reserve(BUFFER_SIZE);
     builder.set_exclude_broken_polygon(m_options.excludepoly);
-    memset(Buffer, 0, BUFFER_SIZE);
     connect();
 }
 
