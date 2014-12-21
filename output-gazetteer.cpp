@@ -1,10 +1,7 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
 #include <libpq-fe.h>
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 
 #include "osmtypes.hpp"
 #include "middle.hpp"
@@ -46,7 +43,6 @@ enum tag_type {
 
 enum { BUFFER_SIZE = 4092 };
 
-
 void output_gazetteer_t::stop_copy(void)
 {
     /* Do we have a copy active? */
@@ -61,7 +57,7 @@ void output_gazetteer_t::stop_copy(void)
     /* Terminate the copy */
     if (PQputCopyEnd(Connection, NULL) != 1)
     {
-        fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
+        std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
         util::exit_nicely();
     }
 
@@ -69,7 +65,7 @@ void output_gazetteer_t::stop_copy(void)
     PGresult *res = PQgetResult(Connection);
     if (PQresultStatus(res) != PGRES_COMMAND_OK)
     {
-        fprintf(stderr, "COPY_END for place failed: %s\n", PQerrorMessage(Connection));
+        std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
         PQclear(res);
         util::exit_nicely();
     }
@@ -80,84 +76,6 @@ void output_gazetteer_t::stop_copy(void)
     /* We no longer have an active copy */
     CopyActive = 0;
 }
-
-#if 0
-static void copy_error_data(const char *sql)
-{
-   unsigned int sqlLen = strlen(sql);
-
-   /* Make sure we have an active copy */
-   if (!CopyErrorActive)
-   {
-      pgsql_exec(ConnectionError, PGRES_COPY_IN, "COPY import_polygon_error (osm_type, osm_id, class, type, name, country_code, updated, errormessage, prevgeometry, newgeometry) FROM stdin;");
-      CopyErrorActive = 1;
-   }
-
-   /* If the combination of old and new data is too big, flush old data */
-   if (BufferErrorLen + sqlLen > BUFFER_SIZE - 10)
-   {
-      pgsql_CopyData("import_polygon_error", ConnectionError, BufferError);
-      BufferErrorLen = 0;
-   }
-
-   /*
-    * If new data by itself is too big, output it immediately,
-    * otherwise just add it to the buffer.
-    */
-   if (sqlLen > BUFFER_SIZE - 10)
-   {
-      pgsql_CopyData("import_polygon_error", ConnectionError, sql);
-      sqlLen = 0;
-   }
-   else if (sqlLen > 0)
-   {
-      strcpy(BufferError + BufferErrorLen, sql);
-      BufferErrorLen += sqlLen;
-      sqlLen = 0;
-   }
-
-   /* If we have completed a line, output it */
-   if (BufferErrorLen > 0 && BufferError[BufferErrorLen-1] == '\n')
-   {
-      pgsql_CopyData("place", ConnectionError, BufferError);
-      BufferErrorLen = 0;
-   }
-
-   return;
-}
-
-static void stop_error_copy(void)
-{
-   PGresult *res;
-
-   /* Do we have a copy active? */
-   if (!CopyErrorActive) return;
-
-   /* Terminate the copy */
-   if (PQputCopyEnd(ConnectionError, NULL) != 1)
-   {
-      fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
-      util::exit_nicely();
-   }
-
-   /* Check the result */
-   res = PQgetResult(ConnectionError);
-   if (PQresultStatus(res) != PGRES_COMMAND_OK)
-   {
-      fprintf(stderr, "COPY_END for import_polygon_error failed: %s\n", PQerrorMessage(ConnectionError));
-      PQclear(res);
-      util::exit_nicely();
-   }
-
-   /* Discard the result */
-   PQclear(res);
-
-   /* We no longer have an active copy */
-   CopyErrorActive = 0;
-
-   return;
-}
-#endif
 
 static int split_tags(struct keyval *tags, unsigned int flags,
                       struct keyval *names, struct keyval *places,
@@ -600,66 +518,56 @@ static int split_tags(struct keyval *tags, unsigned int flags,
 
 
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places) {
-    int i,sz, slen;
-    PGresult   *res;
-    char tmp[16];
     char tmp2[2];
-    char *cls, *clslist = 0;
-    char const *paramValues[2];
-
     tmp2[0] = osm_type; tmp2[1] = '\0';
+    char const *paramValues[2];
     paramValues[0] = tmp2;
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, osm_id);
-    paramValues[1] = tmp;
-    res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2, paramValues, PGRES_TUPLES_OK);
+    paramValues[1] = (single_fmt % osm_id).str().c_str();
+    PGresult *res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2, paramValues, PGRES_TUPLES_OK);
 
-    sz = PQntuples(res);
+    int sz = PQntuples(res);
     if (sz > 0 && !places) {
         PQclear(res);
-        /* uncondtional delete of all places */
-        stop_copy();
-        pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id  = %" PRIdOSMID, osm_type, osm_id);
+        /* unconditional delete of all places */
+        delete_place(osm_type, osm_id);
     } else {
-        for (i = 0; i < sz; i++) {
-            cls = PQgetvalue(res, i, 0);
+        std::string clslist;
+        for (int i = 0; i < sz; i++) {
+            const char *cls = PQgetvalue(res, i, 0);
             if (!places->getItem(cls)) {
-                if (!clslist) {
-                    clslist = (char *)malloc(strlen(cls)+3);
-                    sprintf(clslist, "'%s'", cls);
-                } else {
-                    slen = strlen(clslist);
-                    clslist = (char *)realloc(clslist, slen + 4 + strlen(cls));
-                    sprintf(&(clslist[slen]), ",'%s'", cls);
-                }
+                clslist.reserve(clslist.length() + strlen(cls) + 3);
+                if (clslist.length() > 0)
+                    clslist += ',';
+                clslist += '\'';
+                clslist += cls;
+                clslist += '\'';
             }
         }
 
         PQclear(res);
 
-        if (clslist) {
+        if (clslist.length() > 0) {
            /* Stop any active copy */
            stop_copy();
 
            /* Delete all places for this object */
            pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %"
-        PRIdOSMID " and class = any(ARRAY[%s])", osm_type, osm_id, clslist);
-           free(clslist);
+        PRIdOSMID " and class = any(ARRAY[%s])", osm_type, osm_id, clslist.c_str());
         }
     }
 }
 
 void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type, struct keyval *names, struct keyval *extratags,
-   int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
+   int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const std::string &wkt)
 {
    struct keyval *name;
-   char sql[70];
 
    /* Output a copy line for this place */
    buffer += osm_type;
    buffer += '\t';
 
-   snprintf(sql, 70, "%" PRIdOSMID "\t", osm_id);
-   buffer.append(sql);
+   buffer += (single_fmt % osm_id).str();
+   buffer += '\t';
 
    escape(key_class, buffer);
    buffer += '\t';
@@ -670,8 +578,8 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::str
    /* start name array */
    hstore_to_place_table(names);
 
-   sprintf(sql, "%d\t", adminlevel);
-   buffer.append(sql);
+   buffer += (single_fmt % adminlevel).str();
+   buffer += '\t';
 
    value_to_place_table(housenumber);
    value_to_place_table(street);
@@ -693,88 +601,15 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::str
    /* extra tags array */
    hstore_to_place_table(extratags);
 
-   sprintf(sql, "SRID=%d;", SRID);
-   buffer.append(sql).append(wkt);
+   buffer += "SRID=";
+   buffer += (single_fmt % SRID).str();
+   buffer += wkt;
 
    buffer += '\n';
    flush_place_buffer();
 
    return;
 }
-
-#if 0
-static void add_polygon_error(char osm_type, osmid_t osm_id,
-                              const char *key_class, const char *type,
-                              struct keyval *names, const char *countrycode,
-                              const char *wkt)
-{
-   int first;
-   struct keyval *name;
-   char sql[2048];
-
-   /* Output a copy line for this place */
-   sprintf(sql, "%c\t%" PRIdOSMID "\t", osm_type, osm_id);
-   copy_error_data(sql);
-
-   escape(sql, sizeof(sql), key_class);
-   copy_error_data(sql);
-   copy_error_data("\t");
-
-   escape(sql, sizeof(sql), type);
-   copy_error_data(sql);
-   copy_error_data("\t");
-
-   /* start name array */
-   if (keyval::listHasData(names))
-   {
-      first = 1;
-      for (name = keyval::firstItem(names); name; name = keyval::nextItem(names, name))
-      {
-         if (first) first = 0;
-         else copy_error_data(", ");
-
-         copy_error_data("\"");
-
-         escape_array_record(sql, sizeof(sql), name->key);
-         copy_error_data(sql);
-
-         copy_error_data("\"=>\"");
-
-         escape_array_record(sql, sizeof(sql), name->value);
-         copy_error_data(sql);
-
-         copy_error_data("\"");
-      }
-      copy_error_data("\t");
-   }
-   else
-   {
-      copy_error_data("\\N\t");
-   }
-
-   if (countrycode)
-   {
-      escape(sql, sizeof(sql), countrycode);
-      copy_error_data(sql);
-      copy_error_data("\t");
-   }
-   else
-   {
-     copy_error_data("\\N\t");
-   }
-
-   copy_error_data("now\tNot a polygon\t\\N\t");
-
-   sprintf(sql, "SRID=%d;", SRID);
-   copy_error_data(sql);
-   copy_error_data(wkt);
-
-   copy_error_data("\n");
-
-
-   return;
-}
-#endif
 
 
 void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
@@ -795,7 +630,7 @@ int output_gazetteer_t::connect() {
     /* Check to see that the backend connection was successfully made */
     if (PQstatus(Connection) != CONNECTION_OK)
     {
-       fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(Connection));
+       std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";
        return 1;
     }
 
@@ -803,7 +638,7 @@ int output_gazetteer_t::connect() {
         ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
         if (PQstatus(ConnectionDelete) != CONNECTION_OK)
         {
-            fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(ConnectionDelete));
+            std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";
             return 1;
         }
 
@@ -905,7 +740,6 @@ int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lo
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
-   char wkt[128];
 
 
    /* Split the tags */
@@ -917,7 +751,7 @@ int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lo
    /* Are we interested in this item? */
    if (places.listHasData())
    {
-      sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
+      std::string wkt = (point_fmt % lon % lat).str();
       for (place = places.firstItem(); place; place = places.nextItem(place))
       {
          add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
@@ -983,7 +817,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
          for (place = places.firstItem(); place; place = places.nextItem(place))
          {
             add_place('W', id, place->key, place->value, &names, &extratags, adminlevel,
-                      housenumber, street, addr_place, isin, postcode, countrycode, wkt->geom.c_str());
+                      housenumber, street, addr_place, isin, postcode, countrycode, wkt->geom);
          }
       }
 
@@ -1101,7 +935,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
                 for (place = places.firstItem(); place; place = places.nextItem(place))
                 {
                    add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
-                             isin, postcode, countrycode, wkt->geom.c_str());
+                             isin, postcode, countrycode, wkt->geom);
                 }
             }
             else
@@ -1118,7 +952,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
             for (place = places.firstItem(); place; place = places.nextItem(place))
             {
                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
-                         isin, postcode, countrycode, wkt->geom.c_str());
+                         isin, postcode, countrycode, wkt->geom);
             }
          }
       }
@@ -1218,7 +1052,9 @@ output_gazetteer_t::output_gazetteer_t(const middle_query_t* mid_, const options
       Connection(NULL),
       ConnectionDelete(NULL),
       ConnectionError(NULL),
-      CopyActive(0)
+      CopyActive(0),
+      single_fmt("%1%"),
+      point_fmt("POINT(%.15g %.15g)")
 {
     buffer.reserve(BUFFER_SIZE);
 }
@@ -1229,12 +1065,11 @@ output_gazetteer_t::output_gazetteer_t(const output_gazetteer_t& other)
       ConnectionDelete(NULL),
       ConnectionError(NULL),
       CopyActive(0),
-      reproj(other.reproj)
+      reproj(other.reproj),
+      single_fmt(other.single_fmt),
+      point_fmt(other.point_fmt)
 {
     buffer.reserve(BUFFER_SIZE);
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     connect();
-}
-
-output_gazetteer_t::~output_gazetteer_t() {
 }

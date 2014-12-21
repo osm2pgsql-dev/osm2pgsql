@@ -8,13 +8,14 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <string>
 #include <iostream>
 
 class output_gazetteer_t : public output_t {
 public:
     output_gazetteer_t(const middle_query_t* mid_, const options_t &options_);
     output_gazetteer_t(const output_gazetteer_t& other);
-    virtual ~output_gazetteer_t();
+    virtual ~output_gazetteer_t() {}
 
     virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
@@ -49,7 +50,7 @@ private:
                    struct keyval *names, struct keyval *extratags, int adminlevel,
                    struct keyval *housenumber, struct keyval *street, struct keyval *addr_place,
                    const char *isin, struct keyval *postcode, struct keyval *countrycode,
-                   const char *wkt);
+                   const std::string &wkt);
     void delete_place(char osm_type, osmid_t osm_id);
     int gazetteer_process_node(osmid_t id, double lat, double lon, struct keyval *tags,
                                int delete_old);
@@ -153,6 +154,11 @@ private:
     geometry_builder builder;
 
     boost::shared_ptr<reprojection> reproj;
+
+    // string formatters
+    // Need to be part of the class, so we have one per thread.
+    boost::format single_fmt;
+    boost::format point_fmt;
 
     const static std::string NAME;
 };

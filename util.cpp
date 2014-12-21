@@ -1,9 +1,12 @@
 #include "util.hpp"
 
+#include <iostream>
+#include <cstdlib>
+
 namespace util {
 
     void exit_nicely() {
-        fprintf(stderr, "Error occurred, cleaning up\n");
+        std::cerr << "Error occurred, cleaning up\n";
         exit(EXIT_FAILURE);
     }
 
