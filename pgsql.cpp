@@ -10,11 +10,9 @@
 
 void escape(const char* src, std::string& dst)
 {
-    //loop over the chars in the input
-    size_t length = strlen(src);
-    for(size_t i = 0; i < length; ++i)
+    for(; *src; ++src)
     {
-        switch(src[i]) {
+        switch(*src) {
             case '\\':  dst.append("\\\\"); break;
             //case 8:   dst.append("\\\b"); break;
             //case 12:  dst.append("\\\f"); break;
@@ -22,7 +20,7 @@ void escape(const char* src, std::string& dst)
             case '\r':  dst.append("\\\r"); break;
             case '\t':  dst.append("\\\t"); break;
             //case 11:  dst.append("\\\v"); break;
-            default:    dst.push_back(src[i]); break;
+            default:    dst.push_back(*src); break;
         }
     }
 }
