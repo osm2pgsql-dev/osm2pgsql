@@ -1,0 +1,37 @@
+# hstore only Database schema which stores only objects
+# with one of the important tags defined here
+#
+# this does only make sence when --hstore-match-only ist used
+#
+# "important" are those tags which appear in the where clause of
+# select statements in the standard mapnik style
+#
+# import using the following command:
+# osm2pgsql -s -S <this-file> --hstore --hstore-match-only <osm-or-pbf-file>
+#
+node,way   aerialway    text         linear,hstore
+node,way   addr:housenumber text     linear,hstore
+node,way   aeroway      text         polygon,hstore
+node,way   amenity      text         nocache,polygon,hstore
+node,way   barrier      text         linear,hstore
+node,way   boundary     text         linear,hstore
+node,way   building     text         polygon,hstore
+node,way   highway      text         linear,hstore
+node,way   historic     text         polygon,hstore
+node,way   landuse      text         polygon,hstore
+node,way   leisure      text         polygon,hstore
+node,way   lock         text         linear,hstore
+node,way   man_made     text         polygon,hstore
+node,way   military     text         polygon,hstore
+node,way   place        text         polygon,hstore
+node,way   power        text         polygon,hstore
+node,way   railway      text         linear,hstore
+node,way   route        text         linear,hstore
+node,way   shop         text         polygon,hstore
+node,way   tourism      text         polygon,hstore
+node,way   waterway     text         polygon,hstore
+node,way   natural      text         polygon,hstore
+
+node,way   z_order      int4         linear # This is calculated during import
+way        way_area     real                # This is calculated during import
+
