@@ -89,7 +89,6 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
 
     if (!ways[block][offset].tags) {
         ways[block][offset].tags = new keyval();
-        keyval::initList(ways[block][offset].tags);
     } else
         keyval::resetList(ways[block][offset].tags);
 
@@ -113,7 +112,6 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
 
     if (!rels[block][offset].tags) {
         rels[block][offset].tags = new keyval();
-        keyval::initList(rels[block][offset].tags);
     } else
         keyval::resetList(rels[block][offset].tags);
 
@@ -250,13 +248,11 @@ int middle_ram_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_
     int count = 0;
     int i;
 
-    keyval::initList(&(tag_ptr[count]));
     for (i = 0; i < way_count; i++) {
 
         if (ways_get(ids[i], &(tag_ptr[count]), &(node_ptr[count]), &(count_ptr[count])) == 0) {
             way_ids[count] = ids[i];
             count++;
-            keyval::initList(&(tag_ptr[count]));
         }
     }
     return count;

@@ -249,11 +249,6 @@ static int split_tags(struct keyval *tags, unsigned int flags,
    conscriptionnumber = 0;
    streetnumber = 0;
 
-   /* Initialise the result lists */
-   keyval::initList(names);
-   keyval::initList(places);
-   keyval::initList(extratags);
-
    /* Loop over the tags */
    while ((item = keyval::popItem(tags)) != NULL)
    {

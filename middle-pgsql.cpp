@@ -640,11 +640,11 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     count = 0;
-    keyval::initList(&(tags[count]));
     for (i = 0; i < way_count; i++) {
         for (j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
                 way_ids[count] = ids[i];
+                assert(tags[count].next == &tags[count]);
                 pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
 
                 num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
@@ -655,10 +655,12 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
                 count_ptr[count] = nodes_get_list(nodes_ptr[count], list, num_nodes);
 
                 count++;
-                keyval::initList(&(tags[count]));
+                break;
             }
         }
     }
+
+    assert(count<=way_count);
 
     PQclear(res);
     free(tmp2);
@@ -742,8 +744,6 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     node_parts.reserve(member_count);
     way_parts.reserve(member_count);
     rel_parts.reserve(member_count);
-
-    keyval::initList( &member_list );
 
     for( i=0; i<member_count; i++ )
     {
@@ -829,7 +829,6 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     }
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
-    keyval::initList(&member_temp);
     pgsql_parse_tags( PQgetvalue(res, 0, 0), &member_temp );
 
     num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);

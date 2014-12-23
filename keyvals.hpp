@@ -25,9 +25,9 @@ struct keyval {
     boost::shared_ptr<text_tree> tree_ctx;
 
     keyval();
+    keyval(const keyval &other);
     ~keyval();
 
-    static void initList(struct keyval *head);
     static void freeItem(struct keyval *p);
     static unsigned int countList(const struct keyval *head);
     static int listHasData(struct keyval *head);

@@ -14,25 +14,30 @@
 #include <algorithm>
 
 keyval::keyval()
-{
-    tree_ctx.reset(new text_tree());
-    keyval::initList(this);
-}
+: key(NULL), value(NULL), has_column(0),
+  next(this), prev(this), tree_ctx(new text_tree())
+{}
 
 keyval::~keyval()
 {
     //keyval::resetList(this);
 }
 
-void keyval::initList(struct keyval *head)
+keyval::keyval(const keyval &other)
 {
-    assert(head);
-
-    head->next = head;
-    head->prev = head;
-    head->key = NULL;
-    head->value = NULL;
-    head->has_column = 0;
+    tree_ctx = other.tree_ctx;
+    if (other.key)
+        key = (char *)tree_ctx->text_get(other.key);
+    else
+        key = NULL;
+    if (other.value)
+        value = (char *)tree_ctx->text_get(other.value);
+    else
+        value = NULL;
+    // the list cannot be copied, so initialise as empty
+    next = this;
+    prev = this;
+    has_column = other.has_column;
 }
 
 void keyval::freeItem(struct keyval *p)
@@ -141,8 +146,7 @@ struct keyval *keyval::getMatches(struct keyval *head, const char *name)
     if (!head)
         return NULL;
 
-    //TODO: properly copy the tree_ctx from the keyval passed in
-    out = new keyval();
+    out = new keyval(*head);
     if (!out)
         return NULL;
 
@@ -234,8 +238,6 @@ int keyval::addItem(struct keyval *head, const char *name, const char *value, in
         }
     }
 
-    //TODO: properly implement a copy constructor and do the
-    //shallow copy there instead of relying on implicit one?
     item = new keyval(*head);
 
     item->key   = (char *)head->tree_ctx->text_get(name);
@@ -256,6 +258,9 @@ void keyval::resetList(struct keyval *head)
 
     while((item = popItem(head)))
         freeItem(item);
+
+    assert(head->next == head);
+    assert(head->prev == head);
 }
 
 void keyval::cloneList( struct keyval *target, struct keyval *source )

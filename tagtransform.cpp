@@ -115,8 +115,6 @@ unsigned int c_filter_rel_member_tags(
     }
 
     /* Clone tags from relation */
-    keyval::initList(&tags);
-    keyval::initList(&poly_tags);
     p = rel_tags->next;
     while (p != rel_tags) {
         //copy the name tag as "route_name"
@@ -635,7 +633,6 @@ unsigned int tagtransform::c_filter_basic_tags(
 
     //a place to keep the tags we like as we go
     struct keyval temp;
-    keyval::initList(&temp);
 
     enum OsmType export_type;
     if (type == OSMTYPE_RELATION) {

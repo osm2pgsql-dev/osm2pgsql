@@ -93,7 +93,6 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
     int count_int;
     int ret = 0;
 
-    keyval::initList(&tags_int);
     // Try to fetch the way from the DB
     if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
         // Output the way
@@ -140,7 +139,6 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     int count_int;
     int ret = 0;
 
-    keyval::initList(&tags_int);
     // Try to fetch the relation from the DB
     if (!m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
         ret = process_relation(id, members_int, count_int, &tags_int, exists);
