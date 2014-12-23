@@ -468,17 +468,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     return count;
 }
 
-void middle_pgsql_t::cleanup(void)
-{
-    int i;
-
-    for (i=0; i<num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-            tables[i].sql_conn = NULL;
-        }
-    }
-}
 
 int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     cache->set( id, lat, lon, tags );
@@ -1417,6 +1406,12 @@ middle_pgsql_t::middle_pgsql_t()
 }
 
 middle_pgsql_t::~middle_pgsql_t() {
+    for (int i=0; i < num_tables; i++) {
+        if (tables[i].sql_conn) {
+            PQfinish(tables[i].sql_conn);
+        }
+    }
+
 }
 
 boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
