@@ -292,11 +292,6 @@ void middle_ram_t::analyze(void)
     /* No need */
 }
 
-void middle_ram_t::cleanup(void)
-{
-    /* No need */
-}
-
 void middle_ram_t::end(void)
 {
     /* No need */

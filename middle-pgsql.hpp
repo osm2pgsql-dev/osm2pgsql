@@ -23,7 +23,6 @@ struct middle_pgsql_t : public slim_middle_t {
 
     int start(const options_t *out_options_);
     void stop(void);
-    void cleanup(void);
     void analyze(void);
     void end(void);
     void commit(void);
