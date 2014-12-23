@@ -178,8 +178,8 @@ void keyval::updateItem(struct keyval *head, const char *name, const char *value
     item = head->next;
     while(item != head) {
         if (!strcmp(item->key, name)) {
-            head->tree_ctx->text_release(item->value);
-            item->value = (char *)head->tree_ctx->text_get(value);
+            item->tree_ctx->text_release(item->value);
+            item->value = (char *)item->tree_ctx->text_get(value);
             return;
         }
         item = item->next;
@@ -240,8 +240,8 @@ int keyval::addItem(struct keyval *head, const char *name, const char *value, in
 
     item = new keyval(*head);
 
-    item->key   = (char *)head->tree_ctx->text_get(name);
-    item->value = (char *)head->tree_ctx->text_get(value);
+    item->key   = (char *)item->tree_ctx->text_get(name);
+    item->value = (char *)item->tree_ctx->text_get(value);
     item->has_column=0;
 
     /* Add to head */
