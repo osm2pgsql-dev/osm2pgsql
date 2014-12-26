@@ -99,7 +99,7 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
         ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
         free(nodes_int);
     }
-    keyval::resetList(&tags_int);
+    tags_int.resetList();
 
     return ret;
 }
@@ -144,7 +144,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
         ret = process_relation(id, members_int, count_int, &tags_int, exists);
         free(members_int);
     }
-    keyval::resetList(&tags_int);
+    tags_int.resetList();
 
     return ret;
 }

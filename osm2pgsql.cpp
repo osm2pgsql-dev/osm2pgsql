@@ -30,7 +30,6 @@
 #include "output.hpp"
 #include "osmdata.hpp"
 #include "util.hpp"
-#include "text-tree.hpp"
 
 #include <unistd.h>
 #include <assert.h>

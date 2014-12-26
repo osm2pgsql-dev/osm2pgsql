@@ -356,9 +356,9 @@ void table_t::write_columns(keyval *tags, string& values)
     for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
     {
         keyval *tag = NULL;
-        if ((tag = keyval::getTag(tags, column->first.c_str())))
+        if ((tag = tags->getTag(column->first)))
         {
-            escape_type(tag->value, column->second.c_str(), values);
+            escape_type(tag->value.c_str(), column->second.c_str(), values);
             //remember we already used this one so we cant use again later in the hstore column
             if (hstore_mode == HSTORE_NORM)
                 tag->has_column = 1;
@@ -373,18 +373,18 @@ void table_t::write_tags_column(keyval *tags, std::string& values)
 {
     //iterate through the list of tags, first one is always null
     bool added = false;
-    for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
+    for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
     {
         //skip z_order tag and keys which have their own column
-        if ((xtags->has_column) || (strcmp("z_order", xtags->key) == 0))
+        if (xtags->has_column || ("z_order" == xtags->key))
             continue;
 
         //hstore ASCII representation looks like "key"=>"value"
         if(added)
             values.push_back(',');
-        escape4hstore(xtags->key, values);
+        escape4hstore(xtags->key.c_str(), values);
         values.append("=>");
-        escape4hstore(xtags->value, values);
+        escape4hstore(xtags->value.c_str(), values);
 
         //we did at least one so we need commas from here on out
         added = true;
@@ -400,17 +400,16 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
     //iterate over all configured hstore columns in the options
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
-        //a clone of the tags pointer
         bool added = false;
 
         //iterate through the list of tags, first one is always null
-        for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
+        for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
         {
             //check if the tag's key starts with the name of the hstore column
-            if(hstore_column->find(xtags->key) == 0)
+            if(xtags->key.compare(0, hstore_column->size(), *hstore_column) == 0)
             {
                 //generate the short key name, somehow pointer arithmetic works against this member of the keyval data structure...
-                char* shortkey = xtags->key + hstore_column->size();
+                const char* shortkey = xtags->key.c_str() + hstore_column->size();
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "key"=>"value"
@@ -418,7 +417,7 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
                     values.push_back(',');
                 escape4hstore(shortkey, values);
                 values.append("=>");
-                escape4hstore(xtags->value, values);
+                escape4hstore(xtags->value.c_str(), values);
 
                 //we did at least one so we need commas from here on out
                 added = true;

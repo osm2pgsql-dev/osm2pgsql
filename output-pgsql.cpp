@@ -136,7 +136,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                keyval::addItem(tags, "way_area", tmp, 0);
+                tags->addItem("way_area", tmp, false);
             }
             m_tables[t_poly]->write_wkt(id, tags, wkt->geom.c_str());
         } else {
@@ -192,7 +192,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                keyval::addItem(rel_tags, "way_area", tmp, 0);
+                rel_tags->addItem("way_area", tmp, false);
             }
             m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         } else {
@@ -230,7 +230,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                keyval::addItem(rel_tags, "way_area", tmp, 0);
+                rel_tags->addItem("way_area", tmp, false);
             }
             m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
         }
@@ -299,7 +299,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         ret = pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
         free(nodes_int);
     }
-    keyval::resetList(&tags_int);
+    tags_int.resetList();
 
     return ret;
 }
@@ -344,7 +344,7 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
         ret = pgsql_process_relation(id, members_int, count_int, &tags_int, exists, true);
         free(members_int);
     }
-    keyval::resetList(&tags_int);
+    tags_int.resetList();
 
     return ret;
 }
@@ -493,7 +493,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
 
   for( i=0; i<count2; i++ )
   {
-    keyval::resetList( &(xtags[i]) );
+    xtags[i].resetList();
     free( xnodes[i] );
   }
 
@@ -508,14 +508,14 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
 
 int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-  const char *type = keyval::getItem(tags, "type");
+  const std::string *type = tags->getItem("type");
 
   /* Must have a type field or we ignore it */
   if (!type)
       return 0;
 
   /* Only a limited subset of type= is supported, ignore other */
-  if ( (strcmp(type, "route") != 0) && (strcmp(type, "multipolygon") != 0) && (strcmp(type, "boundary") != 0))
+  if ( (*type != "route") && (*type != "multipolygon") && (*type != "boundary"))
     return 0;
 
 

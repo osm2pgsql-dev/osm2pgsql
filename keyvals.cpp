@@ -13,80 +13,37 @@
 
 #include <algorithm>
 
-keyval::keyval()
-: key(NULL), value(NULL), has_column(0),
-  next(this), prev(this), tree_ctx(new text_tree())
-{}
-
-keyval::~keyval()
-{
-    //keyval::resetList(this);
-}
 
 keyval::keyval(const keyval &other)
 {
-    tree_ctx = other.tree_ctx;
-    if (other.key)
-        key = (char *)tree_ctx->text_get(other.key);
-    else
-        key = NULL;
-    if (other.value)
-        value = (char *)tree_ctx->text_get(other.value);
-    else
-        value = NULL;
+    key = other.key;
+    value = other.value;
     // the list cannot be copied, so initialise as empty
     next = this;
     prev = this;
     has_column = other.has_column;
 }
 
-void keyval::freeItem(struct keyval *p)
+
+unsigned int keyval::countList() const
 {
-    if (!p)
-        return;
-
-    p->tree_ctx->text_release(p->key);
-    p->tree_ctx->text_release(p->value);
-    delete p;
-}
-
-
-unsigned int keyval::countList(const struct keyval *head)
-{
-    struct keyval *p;
     unsigned int count = 0;
 
-    if (!head)
-        return 0;
-
-    p = head->next;
-    while(p != head) {
+    keyval *p = next;
+    while(p != this) {
         count++;
         p = p->next;
     }
     return count;
 }
 
-int keyval::listHasData(struct keyval *head)
+
+const std::string *keyval::getItem(const std::string &name) const
 {
-    if (!head)
-        return 0;
-
-    return (head->next != head);
-}
-
-
-char *keyval::getItem(const struct keyval *head, const char *name)
-{
-    struct keyval *p;
-
-    if (!head)
-        return NULL;
-
-    p = head->next;
-    while(p != head) {
-        if (!strcmp(p->key, name))
-            return p->value;
+    keyval *p = next;
+    while(p != this) {
+        if (!p->key.compare(name))
+            return &(p->value);
         p = p->next;
     }
     return NULL;
@@ -96,111 +53,33 @@ char *keyval::getItem(const struct keyval *head, const char *name)
    list item which can be used to remove the tag from the linked list
    with the removeTag function
 */
-struct keyval *keyval::getTag(struct keyval *head, const char *name)
+struct keyval *keyval::getTag(const std::string &name)
 {
-    struct keyval *p;
-
-    if (!head)
-        return NULL;
-
-    p = head->next;
-    while(p != head) {
-        if (!strcmp(p->key, name))
+    keyval *p = next;
+    while(p != this) {
+        if (!p->key.compare(name))
             return p;
         p = p->next;
     }
     return NULL;
 }
 
-void keyval::removeTag(struct keyval *tag)
+void keyval::removeTag()
 {
-  tag->prev->next=tag->next;
-  tag->next->prev=tag->prev;
-  freeItem(tag);
-}
-
-struct keyval *keyval::firstItem(struct keyval *head)
-{
-    if (head == NULL || head == head->next)
-        return NULL;
-
-    return head->next;
-}
-
-struct keyval *keyval::nextItem(struct keyval *head, struct keyval *item)
-{
-    if (item->next == head)
-        return NULL;
-
-    return item->next;
-}
-
-/* Pulls all items from list which match this prefix
- * note: they are removed from the original list an returned in a new one
- */
-struct keyval *keyval::getMatches(struct keyval *head, const char *name)
-{
-    struct keyval *out = NULL;
-    struct keyval *p;
-
-    if (!head)
-        return NULL;
-
-    out = new keyval(*head);
-    if (!out)
-        return NULL;
-
-    p = head->next;
-    while(p != head) {
-        struct keyval *next = p->next;
-        if (!strncmp(p->key, name, strlen(name))) {
-            p->next->prev = p->prev;
-            p->prev->next = p->next;
-            pushItem(out, p);
-        }
-        p = next;
-    }
-
-    if (listHasData(out))
-        return out;
-
-    delete out;
-    return NULL;
-}
-
-void keyval::updateItem(struct keyval *head, const char *name, const char *value)
-{
-    struct keyval *item;
-
-    if (!head)
-        return;
-
-    item = head->next;
-    while(item != head) {
-        if (!strcmp(item->key, name)) {
-            item->tree_ctx->text_release(item->value);
-            item->value = (char *)item->tree_ctx->text_get(value);
-            return;
-        }
-        item = item->next;
-    }
-    addItem(head, name, value, 0);
+  prev->next = next;
+  next->prev = prev;
+  delete(this);
 }
 
 
-struct keyval *keyval::popItem(struct keyval *head)
+struct keyval *keyval::popItem()
 {
-    struct keyval *p;
-
-    if (!head)
+    keyval *p = next;
+    if (p == this)
         return NULL;
 
-    p = head->next;
-    if (p == head)
-        return NULL;
-
-    head->next = p->next;
-    p->next->prev = head;
+    next = p->next;
+    p->next->prev = this;
 
     p->next = NULL;
     p->prev = NULL;
@@ -209,63 +88,57 @@ struct keyval *keyval::popItem(struct keyval *head)
 }
 
 
-void keyval::pushItem(struct keyval *head, struct keyval *item)
+void keyval::pushItem(struct keyval *item)
 {
-
-    assert(head);
     assert(item);
 
-    item->next = head;
-    item->prev = head->prev;
-    head->prev->next = item;
-    head->prev = item;
+    item->next = this;
+    item->prev = prev;
+    prev->next = item;
+    prev = item;
 }
 
-int keyval::addItem(struct keyval *head, const char *name, const char *value, int noDupe)
+int keyval::addItem(const std::string &name, const std::string &value, bool noDupe)
 {
-    struct keyval *item;
-
-    assert(head);
-    assert(name);
-    assert(value);
-
     if (noDupe) {
-        item = head->next;
-        while (item != head) {
-            if (!strcmp(item->value, value) && !strcmp(item->key, name))
+        keyval *item = next;
+        while (item != this) {
+            if (!value.compare(item->value) && !name.compare(item->key))
                 return 1;
             item = item->next;
         }
     }
 
-    item = new keyval(*head);
+    new keyval(name, value, this);
 
-    item->key   = (char *)item->tree_ctx->text_get(name);
-    item->value = (char *)item->tree_ctx->text_get(value);
-    item->has_column=0;
-
-    /* Add to head */
-    item->next = head->next;
-    item->prev = head;
-    head->next->prev = item;
-    head->next = item;
     return 0;
 }
 
-void keyval::resetList(struct keyval *head)
+void keyval::resetList()
 {
     struct keyval *item;
 
-    while((item = popItem(head)))
-        freeItem(item);
-
-    assert(head->next == head);
-    assert(head->prev == head);
+    while((item = popItem()))
+        delete(item);
 }
 
-void keyval::cloneList( struct keyval *target, struct keyval *source )
+void keyval::cloneList(struct keyval *target)
 {
-  struct keyval *ptr;
-  for( ptr = source->next; ptr != source; ptr=ptr->next )
-    addItem( target, ptr->key, ptr->value, 0 );
+  for(keyval *ptr = firstItem(); ptr; ptr = nextItem(ptr))
+    target->addItem(ptr->key, ptr->value, false);
+}
+
+void keyval::moveList(keyval *target)
+{
+    target->resetList();
+
+    if (listHasData()) {
+        target->next = next;
+        target->prev = prev;
+        next->prev = target;
+        prev->next = target;
+
+        next = this;
+        prev = this;
+    }
 }

@@ -44,7 +44,7 @@ private:
     void copy_data(const char *sql);
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id, struct keyval *places);
-    void add_place(char osm_type, osmid_t osm_id, const char *key_class, const char *type,
+    void add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type,
                    struct keyval *names, struct keyval *extratags, int adminlevel,
                    struct keyval *housenumber, struct keyval *street, struct keyval *addr_place,
                    const char *isin, struct keyval *postcode, struct keyval *countrycode,

@@ -90,9 +90,9 @@ int middle_ram_t::ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval
     if (!ways[block][offset].tags) {
         ways[block][offset].tags = new keyval();
     } else
-        keyval::resetList(ways[block][offset].tags);
+        ways[block][offset].tags->resetList();
 
-    keyval::cloneList(ways[block][offset].tags, tags);
+    tags->cloneList(ways[block][offset].tags);
 
     return 0;
 }
@@ -113,9 +113,9 @@ int middle_ram_t::relations_set(osmid_t id, struct member *members, int member_c
     if (!rels[block][offset].tags) {
         rels[block][offset].tags = new keyval();
     } else
-        keyval::resetList(rels[block][offset].tags);
+        rels[block][offset].tags->resetList();
 
-    keyval::cloneList(rels[block][offset].tags, tags);
+    tags->cloneList(rels[block][offset].tags);
 
     free( rels[block][offset].members );
     rels[block][offset].members = NULL;
@@ -186,7 +186,7 @@ void middle_ram_t::release_relations()
             if (rels[block][offset].members) {
                 free(rels[block][offset].members);
                 rels[block][offset].members = NULL;
-                keyval::resetList(rels[block][offset].tags);
+                rels[block][offset].tags->resetList();
                 delete rels[block][offset].tags;
                 rels[block][offset].tags=NULL;
             }
@@ -204,7 +204,7 @@ void middle_ram_t::release_ways()
         if (ways[i]) {
             for (j=0; j<PER_BLOCK; j++) {
                 if (ways[i][j].tags) {
-                    keyval::resetList(ways[i][j].tags);
+                    ways[i][j].tags->resetList();
                     delete ways[i][j].tags;
                 }
                 if (ways[i][j].ndids)
@@ -234,7 +234,7 @@ int middle_ram_t::ways_get(osmid_t id, struct keyval *tags_ptr, struct osmNode *
         int ndCount = nodes_get_list(nodes, ways[block][offset].ndids+1, ways[block][offset].ndids[0]);
 
         if (ndCount) {
-            keyval::cloneList( tags_ptr, ways[block][offset].tags );
+            ways[block][offset].tags->cloneList(tags_ptr);
             *nodes_ptr = nodes;
             *count_ptr = ndCount;
             return 0;
@@ -274,7 +274,7 @@ int middle_ram_t::relations_get(osmid_t id, struct member **members_ptr, int *me
         const size_t member_bytes = sizeof(struct member) * rels[block][offset].member_count;
         members = (struct member *)malloc(member_bytes);
         memcpy(members, rels[block][offset].members, member_bytes);
-        keyval::cloneList( tags_ptr, rels[block][offset].tags );
+        rels[block][offset].tags->cloneList(tags_ptr);
 
         *members_ptr = members;
         *member_count = rels[block][offset].member_count;
