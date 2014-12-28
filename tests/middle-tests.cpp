@@ -43,7 +43,7 @@ int test_node_set(middle_t *mid)
     dynamic_cast<slim_middle_t *>(mid)->nodes_delete(id);
   }
 
-  keyval::resetList(&tags);
+  tags.resetList();
 
   return 0;
 }
@@ -78,8 +78,7 @@ int test_way_set(middle_t *mid)
   osmid_t way_id = 1;
   double lat = 12.3456789;
   double lon = 98.7654321;
-  struct keyval tags[2]; /* <-- this is needed because the ways_get_list method calls
-                          * keyval::initList() on the `count + 1`th tags element. */
+  struct keyval tags;
   struct osmNode *node_ptr = NULL;
   osmid_t way_ids_ptr;
   int node_count = 0;
@@ -89,19 +88,19 @@ int test_way_set(middle_t *mid)
 
   // set the nodes
   for (int i = 0; i < nd_count; ++i) {
-    status = mid->nodes_set(nds[i], lat, lon, &tags[0]);
+    status = mid->nodes_set(nds[i], lat, lon, &tags);
     if (status != 0) { std::cerr << "ERROR: Unable to set node " << nds[i] << ".\n"; return 1; }
   }
 
   // set the way
-  status = mid->ways_set(way_id, nds, nd_count, &tags[0]);
+  status = mid->ways_set(way_id, nds, nd_count, &tags);
   if (status != 0) { std::cerr << "ERROR: Unable to set way.\n"; return 1; }
 
   // commit the setup data
   mid->commit();
 
   // get it back
-  int way_count = mid->ways_get_list(&way_id, 1, &way_ids_ptr, &tags[0], &node_ptr, &node_count);
+  int way_count = mid->ways_get_list(&way_id, 1, &way_ids_ptr, &tags, &node_ptr, &node_count);
   if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
 
   // check that it's the same
@@ -156,7 +155,7 @@ int test_way_set(middle_t *mid)
       }
   }
 
-  keyval::resetList(&tags[0]);
+  tags.resetList();
   free(node_ptr);
 
   // clean up for next test

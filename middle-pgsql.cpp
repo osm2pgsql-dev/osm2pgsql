@@ -189,10 +189,9 @@ const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
   static int buflen;
 
   char *ptr;
-  struct keyval *i;
   int first;
 
-  int countlist = keyval::countList(tags);
+  int countlist = tags->countList();
   if( countlist == 0 )
   {
     if( escape )
@@ -211,10 +210,10 @@ _restart:
   ptr = buffer;
   first = 1;
   *ptr++ = '{';
-  // The lists are circular, exit when we reach the head again */
-  for( i=tags->next; i->key; i = i->next )
+
+  for(keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
   {
-    int maxlen = (strlen(i->key) + strlen(i->value)) * 4;
+    int maxlen = (i->key.length() + i->value.length()) * 4;
     if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
     {
       buflen <<= 1;
@@ -224,11 +223,11 @@ _restart:
     }
     if( !first ) *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->key, escape );
+    ptr = escape_tag( ptr, i->key.c_str(), escape );
     *ptr++ = '"';
     *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->value, escape );
+    ptr = escape_tag( ptr, i->value.c_str(), escape );
     *ptr++ = '"';
 
     first=0;
@@ -284,7 +283,7 @@ void pgsql_parse_tags( const char *string, struct keyval *tags )
     string++;
     string = decode_upto( string, val );
     // String points to the comma or closing '}' */
-    keyval::addItem( tags, key, val, 0 );
+    tags->addItem( key, val, false );
     if( *string == ',' )
       string++;
   }
@@ -640,7 +639,6 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     count = 0;
-    keyval::initList(&(tags[count]));
     for (i = 0; i < way_count; i++) {
         for (j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
@@ -655,10 +653,12 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
                 count_ptr[count] = nodes_get_list(nodes_ptr[count], list, num_nodes);
 
                 count++;
-                keyval::initList(&(tags[count]));
+                break;
             }
         }
     }
+
+    assert(count<=way_count);
 
     PQclear(res);
     free(tmp2);
@@ -743,8 +743,6 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     way_parts.reserve(member_count);
     rel_parts.reserve(member_count);
 
-    keyval::initList( &member_list );
-
     for( i=0; i<member_count; i++ )
     {
       char tag = 0;
@@ -756,7 +754,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
         default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); util::exit_nicely();
       }
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
-      keyval::addItem( &member_list, buf, members[i].role, 0 );
+      member_list.addItem( buf, members[i].role, false );
     }
 
     int all_count = 0;
@@ -776,7 +774,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
               id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
-      keyval::resetList(&member_list);
+      member_list.resetList();
       pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
       return 0;
     }
@@ -796,7 +794,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
     if( paramValues[4] )
         free((void *)paramValues[4]);
-    keyval::resetList(&member_list);
+    member_list.resetList();
     return 0;
 }
 
@@ -812,7 +810,6 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     int num_members;
     struct member *list;
     int i=0;
-    struct keyval *item;
 
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
@@ -829,13 +826,13 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     }
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
-    keyval::initList(&member_temp);
     pgsql_parse_tags( PQgetvalue(res, 0, 0), &member_temp );
 
     num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);
     list = (struct member *)malloc( sizeof(struct member)*num_members );
 
-    while( (item = keyval::popItem(&member_temp)) )
+    keyval *item;
+    while((item = member_temp.popItem()))
     {
         if( i >= num_members )
         {
@@ -844,9 +841,9 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
         }
         tag = item->key[0];
         list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
-        list[i].id = strtoosmid(item->key+1, NULL, 10 );
-        list[i].role = strdup( item->value );
-        keyval::freeItem(item);
+        list[i].id = strtoosmid(item->key.c_str()+1, NULL, 10 );
+        list[i].role = strdup( item->value.c_str() );
+        delete(item);
         i++;
     }
     *members = list;

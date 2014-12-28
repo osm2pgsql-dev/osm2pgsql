@@ -31,7 +31,6 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	sanitizer.hpp \
 	sprompt.hpp \
 	table.hpp \
-	text-tree.hpp \
 	util.hpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
@@ -71,7 +70,6 @@ libosm2pgsql_la_SOURCES = \
 	table.cpp \
 	taginfo.cpp \
 	tagtransform.cpp \
-	text-tree.cpp \
 	util.cpp \
 	wildcmp.cpp
 

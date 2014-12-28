@@ -249,340 +249,334 @@ static int split_tags(struct keyval *tags, unsigned int flags,
    conscriptionnumber = 0;
    streetnumber = 0;
 
-   /* Initialise the result lists */
-   keyval::initList(names);
-   keyval::initList(places);
-   keyval::initList(extratags);
-
    /* Loop over the tags */
-   while ((item = keyval::popItem(tags)) != NULL)
+   while ((item = tags->popItem()) != NULL)
    {
 
       /* If this is a name tag, add it to the name list */
-      if (strcmp(item->key, "ref") == 0 ||
-          strcmp(item->key, "int_ref") == 0 ||
-          strcmp(item->key, "nat_ref") == 0 ||
-          strcmp(item->key, "reg_ref") == 0 ||
-          strcmp(item->key, "loc_ref") == 0 ||
-          strcmp(item->key, "old_ref") == 0 ||
-          strcmp(item->key, "ncn_ref") == 0 ||
-          strcmp(item->key, "rcn_ref") == 0 ||
-          strcmp(item->key, "lcn_ref") == 0 ||
-          strcmp(item->key, "iata") == 0 ||
-          strcmp(item->key, "icao") == 0 ||
-          strcmp(item->key, "pcode:1") == 0 ||
-          strcmp(item->key, "pcode:2") == 0 ||
-          strcmp(item->key, "pcode:3") == 0 ||
-          strcmp(item->key, "un:pcode:1") == 0 ||
-          strcmp(item->key, "un:pcode:2") == 0 ||
-          strcmp(item->key, "un:pcode:3") == 0 ||
-          strcmp(item->key, "name") == 0 ||
-          (strncmp(item->key, "name:", 5) == 0) ||
-          strcmp(item->key, "int_name") == 0 ||
-          (strncmp(item->key, "int_name:", 9) == 0) ||
-          strcmp(item->key, "nat_name") == 0 ||
-          (strncmp(item->key, "nat_name:", 9) == 0) ||
-          strcmp(item->key, "reg_name") == 0 ||
-          (strncmp(item->key, "reg_name:", 9) == 0) ||
-          strcmp(item->key, "loc_name") == 0 ||
-          (strncmp(item->key, "loc_name:", 9) == 0) ||
-          strcmp(item->key, "old_name") == 0 ||
-          (strncmp(item->key, "old_name:", 9) == 0) ||
-          strcmp(item->key, "alt_name") == 0 ||
-          (strncmp(item->key, "alt_name_", 9) == 0) ||
-          (strncmp(item->key, "alt_name:", 9) == 0) ||
-          strcmp(item->key, "official_name") == 0 ||
-          (strncmp(item->key, "official_name:", 14) == 0) ||
-          strcmp(item->key, "commonname") == 0 ||
-          (strncmp(item->key, "commonname:", 11) == 0) ||
-          strcmp(item->key, "common_name") == 0 ||
-          (strncmp(item->key, "common_name:", 12) == 0) ||
-          strcmp(item->key, "place_name") == 0 ||
-          (strncmp(item->key, "place_name:", 11) == 0) ||
-          strcmp(item->key, "short_name") == 0 ||
-          (strncmp(item->key, "short_name:", 11) == 0) ||
-          strcmp(item->key, "operator") == 0) /* operator is a bit of an oddity */
+      if (item->key == "ref" ||
+          item->key == "int_ref" ||
+          item->key == "nat_ref" ||
+          item->key == "reg_ref" ||
+          item->key == "loc_ref" ||
+          item->key == "old_ref" ||
+          item->key == "ncn_ref" ||
+          item->key == "rcn_ref" ||
+          item->key == "lcn_ref" ||
+          item->key == "iata" ||
+          item->key == "icao" ||
+          item->key == "pcode:1" ||
+          item->key == "pcode:2" ||
+          item->key == "pcode:3" ||
+          item->key == "un:pcode:1" ||
+          item->key == "un:pcode:2" ||
+          item->key == "un:pcode:3" ||
+          item->key == "name" ||
+          (strncmp(item->key.c_str(), "name:", 5) == 0) ||
+          item->key == "int_name" ||
+          (strncmp(item->key.c_str(), "int_name:", 9) == 0) ||
+          item->key == "nat_name" ||
+          (strncmp(item->key.c_str(), "nat_name:", 9) == 0) ||
+          item->key == "reg_name" ||
+          (strncmp(item->key.c_str(), "reg_name:", 9) == 0) ||
+          item->key == "loc_name" ||
+          (strncmp(item->key.c_str(), "loc_name:", 9) == 0) ||
+          item->key == "old_name" ||
+          (strncmp(item->key.c_str(), "old_name:", 9) == 0) ||
+          item->key == "alt_name" ||
+          (strncmp(item->key.c_str(), "alt_name_", 9) == 0) ||
+          (strncmp(item->key.c_str(), "alt_name:", 9) == 0) ||
+          item->key == "official_name" ||
+          (strncmp(item->key.c_str(), "official_name:", 14) == 0) ||
+          item->key == "commonname" ||
+          (strncmp(item->key.c_str(), "commonname:", 11) == 0) ||
+          item->key == "common_name" ||
+          (strncmp(item->key.c_str(), "common_name:", 12) == 0) ||
+          item->key == "place_name" ||
+          (strncmp(item->key.c_str(), "place_name:", 11) == 0) ||
+          item->key == "short_name" ||
+          (strncmp(item->key.c_str(), "short_name:", 11) == 0) ||
+          item->key == "operator") /* operator is a bit of an oddity */
       {
-         if (strcmp(item->key, "name:prefix") == 0)
+         if (item->key == "name:prefix")
          {
-            keyval::pushItem(extratags, item);
+            extratags->pushItem(item);
          }
          else
          {
-            keyval::pushItem(names, item);
+            names->pushItem(item);
          }
       }
-      else if (strcmp(item->key, "emergency") == 0 ||
-               strcmp(item->key, "tourism") == 0 ||
-               strcmp(item->key, "historic") == 0 ||
-               strcmp(item->key, "military") == 0 ||
-               strcmp(item->key, "natural") == 0)
+      else if (item->key == "emergency" ||
+               item->key == "tourism" ||
+               item->key == "historic" ||
+               item->key == "military" ||
+               item->key == "natural")
       {
-         if (strcmp(item->value, "no") && strcmp(item->value, "yes"))
+         if (item->value != "no" && item->value != "yes")
          {
-            keyval::pushItem(places, item);
+            places->pushItem(item);
          }
          else
          {
-            keyval::freeItem(item);
+            delete(item);
          }
       }
-      else if (strcmp(item->key, "highway") == 0)
+      else if (item->key == "highway")
       {
-         if (strcmp(item->value, "no") &&
-             strcmp(item->value, "turning_circle") &&
-             strcmp(item->value, "traffic_signals") &&
-             strcmp(item->value, "mini_roundabout") &&
-             strcmp(item->value, "noexit") &&
-             strcmp(item->value, "crossing"))
+         if (item->value != "no" &&
+             item->value != "turning_circle" &&
+             item->value != "traffic_signals" &&
+             item->value != "mini_roundabout" &&
+             item->value != "noexit" &&
+             item->value != "crossing")
          {
-             keyval::pushItem(places, item);
+             places->pushItem(item);
          }
          else
          {
-             keyval::freeItem(item);
+             delete(item);
          }
       }
-      else if (strcmp(item->key, "aerialway") == 0 ||
-               strcmp(item->key, "aeroway") == 0 ||
-               strcmp(item->key, "amenity") == 0 ||
-               strcmp(item->key, "boundary") == 0 ||
-               strcmp(item->key, "bridge") == 0 ||
-               strcmp(item->key, "craft") == 0 ||
-               strcmp(item->key, "leisure") == 0 ||
-               strcmp(item->key, "office") == 0 ||
-               strcmp(item->key, "railway") == 0 ||
-               strcmp(item->key, "shop") == 0 ||
-               strcmp(item->key, "tunnel") == 0 )
+      else if (item->key == "aerialway" ||
+               item->key == "aeroway" ||
+               item->key == "amenity" ||
+               item->key == "boundary" ||
+               item->key == "bridge" ||
+               item->key == "craft" ||
+               item->key == "leisure" ||
+               item->key == "office" ||
+               item->key == "railway" ||
+               item->key == "shop" ||
+               item->key == "tunnel" )
       {
-         if (strcmp(item->value, "no"))
+         if (item->value != "no")
          {
-            keyval::pushItem(places, item);
-            if (strcmp(item->key, "boundary") == 0 && strcmp(item->value, "administrative") == 0)
+            places->pushItem(item);
+            if (item->key == "boundary" && item->value == "administrative")
             {
                placeadmin = 1;
             }
          }
          else
          {
-            keyval::freeItem(item);
+            delete(item);
          }
       }
-      else if (strcmp(item->key, "waterway") == 0 &&
-               strcmp(item->value, "riverbank") != 0)
+      else if (item->key == "waterway" && item->value != "riverbank")
       {
-            keyval::pushItem(places, item);
+            places->pushItem(item);
       }
-      else if (strcmp(item->key, "place") == 0)
+      else if (item->key == "place")
       {
          place = item;
       }
-      else if (strcmp(item->key, "addr:housename") == 0)
+      else if (item->key == "addr:housename")
       {
-         keyval::pushItem(names, item);
+         names->pushItem(item);
          placehouse = 1;
       }
-      else if (strcmp(item->key, "landuse") == 0)
+      else if (item->key == "landuse")
       {
-         if (strcmp(item->value, "cemetery") == 0)
-            keyval::pushItem(places, item);
+         if (item->value == "cemetery")
+            places->pushItem(item);
          else
             landuse = item;
       }
-      else if (strcmp(item->key, "postal_code") == 0 ||
-          strcmp(item->key, "post_code") == 0 ||
-          strcmp(item->key, "postcode") == 0 ||
-          strcmp(item->key, "addr:postcode") == 0 ||
-          strcmp(item->key, "tiger:zip_left") == 0 ||
-          strcmp(item->key, "tiger:zip_right") == 0)
+      else if (item->key == "postal_code" ||
+          item->key == "post_code" ||
+          item->key == "postcode" ||
+          item->key == "addr:postcode" ||
+          item->key == "tiger:zip_left" ||
+          item->key == "tiger:zip_right")
       {
          if (*postcode)
-	        keyval::freeItem(item);
+	        delete(item);
          else
             *postcode = item;
       }
-      else if (strcmp(item->key, "addr:street") == 0)
+      else if (item->key == "addr:street")
       {
          *street = item;
       }
-      else if (strcmp(item->key, "addr:place") == 0)
+      else if (item->key == "addr:place")
       {
          *addr_place = item;
       }
-      else if ((strcmp(item->key, "country_code_iso3166_1_alpha_2") == 0 ||
-                strcmp(item->key, "country_code_iso3166_1") == 0 ||
-                strcmp(item->key, "country_code_iso3166") == 0 ||
-                strcmp(item->key, "country_code") == 0 ||
-                strcmp(item->key, "iso3166-1:alpha2") == 0 ||
-                strcmp(item->key, "iso3166-1") == 0 ||
-                strcmp(item->key, "ISO3166-1") == 0 ||
-                strcmp(item->key, "iso3166") == 0 ||
-                strcmp(item->key, "is_in:country_code") == 0 ||
-                strcmp(item->key, "addr:country") == 0 ||
-                strcmp(item->key, "addr:country_code") == 0)
-                && strlen(item->value) == 2)
+      else if ((item->key == "country_code_iso3166_1_alpha_2" ||
+                item->key == "country_code_iso3166_1" ||
+                item->key == "country_code_iso3166" ||
+                item->key == "country_code" ||
+                item->key == "iso3166-1:alpha2" ||
+                item->key == "iso3166-1" ||
+                item->key == "ISO3166-1" ||
+                item->key == "iso3166" ||
+                item->key == "is_in:country_code" ||
+                item->key == "addr:country" ||
+                item->key == "addr:country_code")
+                && item->value.length() == 2)
       {
          *countrycode = item;
       }
-      else if (strcmp(item->key, "addr:housenumber") == 0)
+      else if (item->key == "addr:housenumber")
       {
           /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
          if (*housenumber)
-             keyval::freeItem(item);
+             delete(item);
          else {
              *housenumber = item;
              placehouse = 1;
          }
       }
-      else if (strcmp(item->key, "addr:conscriptionnumber") == 0)
+      else if (item->key == "addr:conscriptionnumber")
       {
          if (conscriptionnumber)
-             keyval::freeItem(item);
+             delete(item);
          else {
              conscriptionnumber = item;
              placehouse = 1;
          }
       }
-      else if (strcmp(item->key, "addr:streetnumber") == 0)
+      else if (item->key == "addr:streetnumber")
       {
          if (streetnumber)
-             keyval::freeItem(item);
+             delete(item);
          else {
              streetnumber = item;
              placehouse = 1;
          }
       }
-      else if (strcmp(item->key, "addr:interpolation") == 0)
+      else if (item->key == "addr:interpolation")
       {
           /* house number can be far more complex than just a single house number - leave for postgresql to deal with */
           if (*housenumber) {
-              keyval::freeItem(item);
+              delete(item);
           } else {
              *housenumber = item;
-             keyval::addItem(places, "place", "houses", 1);
+             places->addItem("place", "houses", true);
           }
       }
-      else if (strcmp(item->key, "tiger:county") == 0)
+      else if (item->key == "tiger:county")
       {
          /* strip the state and replace it with a county suffix to ensure that
             the tag only matches against counties and not against some town
             with the same name.
           */
-         subval = strcspn(item->value, ",");
+         subval = strcspn(item->value.c_str(), ",");
          *isin = (char *)realloc(*isin, isinsize + 9 + subval);
          *(*isin+isinsize) = ',';
-         strncpy(*isin+1+isinsize, item->value, subval);
+         strncpy(*isin+1+isinsize, item->value.c_str(), subval);
          strcpy(*isin+1+isinsize+subval, " county");
          isinsize += 8 + subval;
-         keyval::freeItem(item);
+         delete(item);
       }
-      else if (strcmp(item->key, "is_in") == 0 ||
-          (strncmp(item->key, "is_in:", 5) == 0) ||
-          strcmp(item->key, "addr:suburb")== 0 ||
-          strcmp(item->key, "addr:county")== 0 ||
-          strcmp(item->key, "addr:city") == 0 ||
-          strcmp(item->key, "addr:state_code") == 0 ||
-          strcmp(item->key, "addr:state") == 0)
+      else if (item->key == "is_in" ||
+          (strncmp(item->key.c_str(), "is_in:", 5) == 0) ||
+          item->key == "addr:suburb" ||
+          item->key == "addr:county" ||
+          item->key == "addr:city" ||
+          item->key == "addr:state_code" ||
+          item->key == "addr:state")
       {
-          *isin = (char *)realloc(*isin, isinsize + 2 + strlen(item->value));
+          *isin = (char *)realloc(*isin, isinsize + 2 + item->value.length());
          *(*isin+isinsize) = ',';
-         strcpy(*isin+1+isinsize, item->value);
-         isinsize += 1 + strlen(item->value);
-         keyval::freeItem(item);
+         strcpy(*isin+1+isinsize, item->value.c_str());
+         isinsize += 1 + item->value.length();
+         delete(item);
       }
-      else if (strcmp(item->key, "admin_level") == 0)
+      else if (item->key == "admin_level")
       {
-         *admin_level = atoi(item->value);
-         keyval::freeItem(item);
+         *admin_level = atoi(item->value.c_str());
+         delete(item);
       }
-      else if (strcmp(item->key, "tracktype") == 0 ||
-               strcmp(item->key, "traffic_calming") == 0 ||
-               strcmp(item->key, "service") == 0 ||
-               strcmp(item->key, "cuisine") == 0 ||
-               strcmp(item->key, "capital") == 0 ||
-               strcmp(item->key, "dispensing") == 0 ||
-               strcmp(item->key, "religion") == 0 ||
-               strcmp(item->key, "denomination") == 0 ||
-               strcmp(item->key, "sport") == 0 ||
-               strcmp(item->key, "internet_access") == 0 ||
-               strcmp(item->key, "lanes") == 0 ||
-               strcmp(item->key, "surface") == 0 ||
-               strcmp(item->key, "smoothness") == 0 ||
-               strcmp(item->key, "width") == 0 ||
-               strcmp(item->key, "est_width") == 0 ||
-               strcmp(item->key, "incline") == 0 ||
-               strcmp(item->key, "opening_hours") == 0 ||
-               strcmp(item->key, "food_hours") == 0 ||
-               strcmp(item->key, "collection_times") == 0 ||
-               strcmp(item->key, "service_times") == 0 ||
-               strcmp(item->key, "smoking_hours") == 0 ||
-               strcmp(item->key, "disused") == 0 ||
-               strcmp(item->key, "wheelchair") == 0 ||
-               strcmp(item->key, "sac_scale") == 0 ||
-               strcmp(item->key, "trail_visibility") == 0 ||
-               strcmp(item->key, "mtb:scale") == 0 ||
-               strcmp(item->key, "mtb:description") == 0 ||
-               strcmp(item->key, "wood") == 0 ||
-               strcmp(item->key, "drive_thru") == 0 ||
-               strcmp(item->key, "drive_in") == 0 ||
-               strcmp(item->key, "access") == 0 ||
-               strcmp(item->key, "vehicle") == 0 ||
-               strcmp(item->key, "bicyle") == 0 ||
-               strcmp(item->key, "foot") == 0 ||
-               strcmp(item->key, "goods") == 0 ||
-               strcmp(item->key, "hgv") == 0 ||
-               strcmp(item->key, "motor_vehicle") == 0 ||
-               strcmp(item->key, "motor_car") == 0 ||
-               (strncmp(item->key, "access:", 7) == 0) ||
-               (strncmp(item->key, "contact:", 8) == 0) ||
-               (strncmp(item->key, "drink:", 6) == 0) ||
-               strcmp(item->key, "oneway") == 0 ||
-               strcmp(item->key, "date_on") == 0 ||
-               strcmp(item->key, "date_off") == 0 ||
-               strcmp(item->key, "day_on") == 0 ||
-               strcmp(item->key, "day_off") == 0 ||
-               strcmp(item->key, "hour_on") == 0 ||
-               strcmp(item->key, "hour_off") == 0 ||
-               strcmp(item->key, "maxweight") == 0 ||
-               strcmp(item->key, "maxheight") == 0 ||
-               strcmp(item->key, "maxspeed") == 0 ||
-               strcmp(item->key, "disused") == 0 ||
-               strcmp(item->key, "toll") == 0 ||
-               strcmp(item->key, "charge") == 0 ||
-               strcmp(item->key, "population") == 0 ||
-               strcmp(item->key, "description") == 0 ||
-               strcmp(item->key, "image") == 0 ||
-               strcmp(item->key, "attribution") == 0 ||
-               strcmp(item->key, "fax") == 0 ||
-               strcmp(item->key, "email") == 0 ||
-               strcmp(item->key, "url") == 0 ||
-               strcmp(item->key, "website") == 0 ||
-               strcmp(item->key, "phone") == 0 ||
-               strcmp(item->key, "tel") == 0 ||
-               strcmp(item->key, "real_ale") == 0 ||
-               strcmp(item->key, "smoking") == 0 ||
-               strcmp(item->key, "food") == 0 ||
-               strcmp(item->key, "camera") == 0 ||
-               strcmp(item->key, "brewery") == 0 ||
-               strcmp(item->key, "locality") == 0 ||
-               strcmp(item->key, "wikipedia") == 0 ||
-               (strncmp(item->key, "wikipedia:", 10) == 0)
+      else if (item->key == "tracktype" ||
+               item->key == "traffic_calming" ||
+               item->key == "service" ||
+               item->key == "cuisine" ||
+               item->key == "capital" ||
+               item->key == "dispensing" ||
+               item->key == "religion" ||
+               item->key == "denomination" ||
+               item->key == "sport" ||
+               item->key == "internet_access" ||
+               item->key == "lanes" ||
+               item->key == "surface" ||
+               item->key == "smoothness" ||
+               item->key == "width" ||
+               item->key == "est_width" ||
+               item->key == "incline" ||
+               item->key == "opening_hours" ||
+               item->key == "food_hours" ||
+               item->key == "collection_times" ||
+               item->key == "service_times" ||
+               item->key == "smoking_hours" ||
+               item->key == "disused" ||
+               item->key == "wheelchair" ||
+               item->key == "sac_scale" ||
+               item->key == "trail_visibility" ||
+               item->key == "mtb:scale" ||
+               item->key == "mtb:description" ||
+               item->key == "wood" ||
+               item->key == "drive_thru" ||
+               item->key == "drive_in" ||
+               item->key == "access" ||
+               item->key == "vehicle" ||
+               item->key == "bicyle" ||
+               item->key == "foot" ||
+               item->key == "goods" ||
+               item->key == "hgv" ||
+               item->key == "motor_vehicle" ||
+               item->key == "motor_car" ||
+               (strncmp(item->key.c_str(), "access:", 7) == 0) ||
+               (strncmp(item->key.c_str(), "contact:", 8) == 0) ||
+               (strncmp(item->key.c_str(), "drink:", 6) == 0) ||
+               item->key == "oneway" ||
+               item->key == "date_on" ||
+               item->key == "date_off" ||
+               item->key == "day_on" ||
+               item->key == "day_off" ||
+               item->key == "hour_on" ||
+               item->key == "hour_off" ||
+               item->key == "maxweight" ||
+               item->key == "maxheight" ||
+               item->key == "maxspeed" ||
+               item->key == "disused" ||
+               item->key == "toll" ||
+               item->key == "charge" ||
+               item->key == "population" ||
+               item->key == "description" ||
+               item->key == "image" ||
+               item->key == "attribution" ||
+               item->key == "fax" ||
+               item->key == "email" ||
+               item->key == "url" ||
+               item->key == "website" ||
+               item->key == "phone" ||
+               item->key == "tel" ||
+               item->key == "real_ale" ||
+               item->key == "smoking" ||
+               item->key == "food" ||
+               item->key == "camera" ||
+               item->key == "brewery" ||
+               item->key == "locality" ||
+               item->key == "wikipedia" ||
+               (strncmp(item->key.c_str(), "wikipedia:", 10) == 0)
                )
       {
-          keyval::pushItem(extratags, item);
+          extratags->pushItem(item);
       }
-      else if (strcmp(item->key, "building") == 0)
+      else if (item->key == "building")
       {
           placebuilding = 1;
-          keyval::freeItem(item);
+          delete(item);
       }
-      else if (strcmp(item->key, "mountain_pass") == 0)
+      else if (item->key == "mountain_pass")
       {
-          keyval::pushItem(places, item);
+          places->pushItem(item);
       }
       else
       {
-         keyval::freeItem(item);
+         delete(item);
       }
    }
 
@@ -596,32 +590,27 @@ static int split_tags(struct keyval *tags, unsigned int flags,
    {
       if (*housenumber)
       {
-         keyval::freeItem(*housenumber);
+         delete(*housenumber);
       }
       if (!conscriptionnumber)
       {
-         keyval::addItem(tags, "addr:housenumber", streetnumber->value, 0);
-         keyval::freeItem(streetnumber);
-         *housenumber = keyval::popItem(tags);
+         streetnumber->key.assign("addr:housenumber");
+         *housenumber = streetnumber;
       }
       if (!streetnumber)
       {
-         keyval::addItem(tags, "addr:housenumber", conscriptionnumber->value, 10);
-         keyval::freeItem(conscriptionnumber);
-         *housenumber = keyval::popItem(tags);
+         conscriptionnumber->key.assign("addr:housenumber");
+         *housenumber = conscriptionnumber;
       }
       if (conscriptionnumber && streetnumber)
       {
-         char * completenumber = strdup(conscriptionnumber->value);
-         size_t completenumberlength = strlen(completenumber);
-         completenumber = (char *)realloc(completenumber, completenumberlength + 2 + strlen(streetnumber->value));
-         *(completenumber + completenumberlength) = '/';
-         strcpy(completenumber + completenumberlength + 1, streetnumber->value);
-         keyval::freeItem(conscriptionnumber);
-         keyval::freeItem(streetnumber);
-         keyval::addItem(tags, "addr:housenumber", completenumber, 0);
-         *housenumber = keyval::popItem(tags);
-         free(completenumber);
+         conscriptionnumber->key.assign("addr:housenumber");
+         conscriptionnumber->value.reserve(conscriptionnumber->value.size() + 1
+                                           + streetnumber->value.size());
+         conscriptionnumber->value += '/';
+         conscriptionnumber->value += streetnumber->value;
+         delete(streetnumber);
+         *housenumber = conscriptionnumber;
       }
     }
 
@@ -629,40 +618,40 @@ static int split_tags(struct keyval *tags, unsigned int flags,
    {
       if (placeadmin)
       {
-         keyval::pushItem(extratags, place);
+         extratags->pushItem(place);
       }
       else
       {
-         keyval::pushItem(places, place);
+         places->pushItem(place);
       }
    }
 
-   if (placehouse && !keyval::listHasData(places))
+   if (placehouse && !places->listHasData())
    {
-      keyval::addItem(places, "place", "house", 1);
+      places->addItem("place", "house", false);
    }
 
    /* Fallback place types - only used if we didn't create something more specific already */
-   if (placebuilding && !keyval::listHasData(places) && (keyval::listHasData(names) || *housenumber || *postcode))
+   if (placebuilding && !places->listHasData() && (names->listHasData() || *housenumber || *postcode))
    {
-      keyval::addItem(places, "building", "yes", 1);
+      places->addItem("building", "yes", false);
    }
 
    if (landuse)
    {
-      if (!keyval::listHasData(places) && keyval::listHasData(names))
+      if (!places->listHasData() && names->listHasData())
       {
-          keyval::pushItem(places, landuse);
+          places->pushItem(landuse);
       }
       else
       {
-          keyval::freeItem(landuse);
+          delete(landuse);
       }
    }
 
-   if (*postcode && !keyval::listHasData(places))
+   if (*postcode && !places->listHasData())
    {
-      keyval::addItem(places, "place", "postcode", 1);
+      places->addItem("place", "postcode", false);
    }
 
    /* Try to convert everything to an area */
@@ -719,7 +708,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
     } else {
         for (i = 0; i < sz; i++) {
             cls = PQgetvalue(res, i, 0);
-            if (!keyval::getItem(places, cls)) {
+            if (!places->getItem(cls)) {
                 if (!clslist) {
                     clslist = (char *)malloc(strlen(cls)+3);
                     sprintf(clslist, "'%s'", cls);
@@ -745,7 +734,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
     }
 }
 
-void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *key_class, const char *type, struct keyval *names, struct keyval *extratags,
+void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type, struct keyval *names, struct keyval *extratags,
    int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const char *wkt)
 {
    int first;
@@ -756,31 +745,31 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
    sprintf(sql, "%c\t%" PRIdOSMID "\t", osm_type, osm_id);
    copy_data(sql);
 
-   escape(sql, sizeof(sql), key_class);
+   escape(sql, sizeof(sql), key_class.c_str());
    copy_data(sql);
    copy_data("\t");
 
-   escape(sql, sizeof(sql), type);
+   escape(sql, sizeof(sql), type.c_str());
    copy_data(sql);
    copy_data("\t");
 
    /* start name array */
-   if (keyval::listHasData(names))
+   if (names->listHasData())
    {
       first = 1;
-      for (name = keyval::firstItem(names); name; name = keyval::nextItem(names, name))
+      for (name = names->firstItem(); name; name = names->nextItem(name))
       {
          if (first) first = 0;
          else copy_data(", ");
 
          copy_data("\"");
 
-         escape_array_record(sql, sizeof(sql), name->key);
+         escape_array_record(sql, sizeof(sql), name->key.c_str());
          copy_data(sql);
 
          copy_data("\"=>\"");
 
-         escape_array_record(sql, sizeof(sql), name->value);
+         escape_array_record(sql, sizeof(sql), name->value.c_str());
          copy_data(sql);
 
          copy_data("\"");
@@ -797,7 +786,7 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 
    if (housenumber)
    {
-      escape(sql, sizeof(sql), housenumber->value);
+      escape(sql, sizeof(sql), housenumber->value.c_str());
       copy_data(sql);
       copy_data("\t");
    }
@@ -808,7 +797,7 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 
    if (street)
    {
-      escape(sql, sizeof(sql), street->value);
+      escape(sql, sizeof(sql), street->value.c_str());
       copy_data(sql);
       copy_data("\t");
    }
@@ -819,7 +808,7 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 
    if (addr_place)
    {
-      escape(sql, sizeof(sql), addr_place->value);
+      escape(sql, sizeof(sql), addr_place->value.c_str());
       copy_data(sql);
       copy_data("\t");
    }
@@ -842,7 +831,7 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 
    if (postcode)
    {
-      escape(sql, sizeof(sql), postcode->value);
+      escape(sql, sizeof(sql), postcode->value.c_str());
       copy_data(sql);
       copy_data("\t");
    }
@@ -853,7 +842,7 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
 
    if (countrycode)
    {
-      escape(sql, sizeof(sql), countrycode->value);
+      escape(sql, sizeof(sql), countrycode->value.c_str());
       copy_data(sql);
       copy_data("\t");
    }
@@ -863,22 +852,22 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const char *ke
    }
 
    /* extra tags array */
-   if (keyval::listHasData(extratags))
+   if (extratags->listHasData())
    {
       first = 1;
-      for (name = keyval::firstItem(extratags); name; name = keyval::nextItem(extratags, name))
+      for (name = extratags->firstItem(); name; name = extratags->nextItem(name))
       {
          if (first) first = 0;
          else copy_data(", ");
 
          copy_data("\"");
 
-         escape_array_record(sql, sizeof(sql), name->key);
+         escape_array_record(sql, sizeof(sql), name->key.c_str());
          copy_data(sql);
 
          copy_data("\"=>\"");
 
-         escape_array_record(sql, sizeof(sql), name->value);
+         escape_array_record(sql, sizeof(sql), name->value.c_str());
          copy_data(sql);
 
          copy_data("\"");
@@ -1122,26 +1111,26 @@ int output_gazetteer_t::gazetteer_process_node(osmid_t id, double lat, double lo
        delete_unused_classes('N', id, &places);
 
    /* Are we interested in this item? */
-   if (keyval::listHasData(&places))
+   if (places.listHasData())
    {
       sprintf(wkt, "POINT(%.15g %.15g)", lon, lat);
-      for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
+      for (place = places.firstItem(); place; place = places.nextItem(place))
       {
          add_place('N', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place, isin, postcode, countrycode, wkt);
       }
    }
 
-   if (housenumber) keyval::freeItem(housenumber);
-   if (street) keyval::freeItem(street);
-   if (addr_place) keyval::freeItem(addr_place);
+   if (housenumber) delete(housenumber);
+   if (street) delete(street);
+   if (addr_place) delete(addr_place);
    if (isin) free(isin);
-   if (postcode) keyval::freeItem(postcode);
-   if (countrycode) keyval::freeItem(countrycode);
+   if (postcode) delete(postcode);
+   if (countrycode) delete(countrycode);
 
    /* Free tag lists */
-   keyval::resetList(&names);
-   keyval::resetList(&places);
-   keyval::resetList(&extratags);
+   names.resetList();
+   places.resetList();
+   extratags.resetList();
 
    return 0;
 }
@@ -1174,7 +1163,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
        delete_unused_classes('W', id, &places);
 
    /* Are we interested in this item? */
-   if (keyval::listHasData(&places))
+   if (places.listHasData())
    {
       struct osmNode *nodev;
       int nodec;
@@ -1187,7 +1176,7 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
       geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodev, nodec, area);
       if (wkt)
       {
-         for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
+         for (place = places.firstItem(); place; place = places.nextItem(place))
          {
             add_place('W', id, place->key, place->value, &names, &extratags, adminlevel,
                       housenumber, street, addr_place, isin, postcode, countrycode, wkt->geom.c_str());
@@ -1198,17 +1187,17 @@ int output_gazetteer_t::gazetteer_process_way(osmid_t id, osmid_t *ndv, int ndc,
       free(nodev);
    }
 
-   if (housenumber) keyval::freeItem(housenumber);
-   if (street) keyval::freeItem(street);
-   if (addr_place) keyval::freeItem(addr_place);
+   if (housenumber) delete(housenumber);
+   if (street) delete(street);
+   if (addr_place) delete(addr_place);
    if (isin) free(isin);
-   if (postcode) keyval::freeItem(postcode);
-   if (countrycode) keyval::freeItem(countrycode);
+   if (postcode) delete(postcode);
+   if (countrycode) delete(countrycode);
 
    /* Free tag lists */
-   keyval::resetList(&names);
-   keyval::resetList(&places);
-   keyval::resetList(&extratags);
+   names.resetList();
+   places.resetList();
+   extratags.resetList();
 
    return 0;
 }
@@ -1231,24 +1220,23 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    char * isin;
    struct keyval * postcode;
    struct keyval * countrycode;
-   const char *type;
    int cmp_waterway;
 
-   type = keyval::getItem(tags, "type");
+   const std::string *type = tags->getItem("type");
    if (!type) {
       if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
 
-   cmp_waterway = strcmp(type, "waterway");
+   cmp_waterway = type->compare("waterway");
 
-   if (!strcmp(type, "associatedStreet"))
+   if (!type->compare("associatedStreet"))
    {
       if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
 
-   if (strcmp(type, "boundary") && strcmp(type, "multipolygon") && cmp_waterway) {
+   if (type->compare("boundary") && type->compare("multipolygon") && cmp_waterway) {
       if (delete_old) delete_unused_classes('R', id, 0);
       return 0;
    }
@@ -1264,7 +1252,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
    if (delete_old)
        delete_unused_classes('R', id, &places);
 
-   if (keyval::listHasData(&places))
+   if (places.listHasData())
    {
       /* get the boundary path (ways) */
       int i, count;
@@ -1306,7 +1294,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          {
             if ((boost::starts_with(wkt->geom,  "POLYGON") || boost::starts_with(wkt->geom,  "MULTIPOLYGON")))
             {
-                for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
+                for (place = places.firstItem(); place; place = places.nextItem(place))
                 {
                    add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
                              isin, postcode, countrycode, wkt->geom.c_str());
@@ -1323,7 +1311,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
          geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, xcount, id);
          if ((wkt->geom).length() > 0)
          {
-            for (place = keyval::firstItem(&places); place; place = keyval::nextItem(&places, place))
+            for (place = places.firstItem(); place; place = places.nextItem(place))
             {
                add_place('R', id, place->key, place->value, &names, &extratags, adminlevel, housenumber, street, addr_place,
                          isin, postcode, countrycode, wkt->geom.c_str());
@@ -1332,7 +1320,7 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       }
       for( i=0; i<count; i++ )
       {
-         keyval::resetList( &(xtags[i]) );
+         xtags[i].resetList();
          free( xnodes[i] );
       }
 
@@ -1343,17 +1331,17 @@ int output_gazetteer_t::gazetteer_process_relation(osmid_t id, struct member *me
       free(xnodes);
    }
 
-   if (housenumber) keyval::freeItem(housenumber);
-   if (street) keyval::freeItem(street);
-   if (addr_place) keyval::freeItem(addr_place);
+   if (housenumber) delete(housenumber);
+   if (street) delete(street);
+   if (addr_place) delete(addr_place);
    if (isin) free(isin);
-   if (postcode) keyval::freeItem(postcode);
-   if (countrycode) keyval::freeItem(countrycode);
+   if (postcode) delete(postcode);
+   if (countrycode) delete(countrycode);
 
    /* Free tag lists */
-   keyval::resetList(&names);
-   keyval::resetList(&places);
-   keyval::resetList(&extratags);
+   names.resetList();
+   places.resetList();
+   extratags.resetList();
 
    return 0;
 }
