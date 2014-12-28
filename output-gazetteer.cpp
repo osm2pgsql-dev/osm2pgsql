@@ -533,10 +533,10 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
     } else {
         std::string clslist;
         for (int i = 0; i < sz; i++) {
-            const char *cls = PQgetvalue(res, i, 0);
+            std::string cls(PQgetvalue(res, i, 0));
             if (!places->getItem(cls)) {
-                clslist.reserve(clslist.length() + strlen(cls) + 3);
-                if (clslist.length() > 0)
+                clslist.reserve(clslist.length() + cls.length() + 3);
+                if (!clslist.empty())
                     clslist += ',';
                 clslist += '\'';
                 clslist += cls;
@@ -546,7 +546,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
 
         PQclear(res);
 
-        if (clslist.length() > 0) {
+        if (!clslist.empty()) {
            /* Stop any active copy */
            stop_copy();
 
@@ -560,8 +560,6 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id, st
 void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type, struct keyval *names, struct keyval *extratags,
    int adminlevel, struct keyval *housenumber, struct keyval *street, struct keyval *addr_place, const char *isin, struct keyval *postcode, struct keyval *countrycode, const std::string &wkt)
 {
-   struct keyval *name;
-
    /* Output a copy line for this place */
    buffer += osm_type;
    buffer += '\t';
@@ -569,9 +567,9 @@ void output_gazetteer_t::add_place(char osm_type, osmid_t osm_id, const std::str
    buffer += (single_fmt % osm_id).str();
    buffer += '\t';
 
-   escape(key_class, buffer);
+   escape(key_class.c_str(), buffer);
    buffer += '\t';
-   escape(type, buffer);
+   escape(type.c_str(), buffer);
    buffer += '\t';
    flush_place_buffer();
 

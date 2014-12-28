@@ -88,7 +88,7 @@ private:
     {
         if (kv)
         {
-            escape(kv->value, buffer);
+            escape(kv->value.c_str(), buffer);
             buffer += "\t";
             flush_place_buffer();
         }
@@ -98,12 +98,10 @@ private:
 
     void hstore_to_place_table(struct keyval *values)
     {
-        if (keyval::listHasData(values))
+        if (values->listHasData())
         {
             bool first = true;
-            for (struct keyval *entry = keyval::firstItem(values); 
-                 entry;
-                 entry = keyval::nextItem(values, entry))
+            for (keyval *entry = values->firstItem(); entry; entry = values->nextItem(entry))
             {
                 if (first) first = false;
                 else buffer += ',';
@@ -126,10 +124,10 @@ private:
             buffer += "\\N\t";
     }
 
-    void escape_array_record(const char *in, std::string &out)
+    void escape_array_record(const std::string &in, std::string &out)
     {
-        while(*in) {
-            switch(*in) {
+        for (std::string::const_iterator i = in.begin(); i != in.end(); ++i) {
+            switch(*i) {
                 case '\\': out += "\\\\\\\\\\\\\\\\"; break;
                 case '\n':
                 case '\r':
@@ -137,9 +135,8 @@ private:
                 case '"':
                     /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
                            out += ' '; break;
-                default:   out += *in; break;
+                default:   out += *i; break;
             }
-            in++;
         }
     }
 
