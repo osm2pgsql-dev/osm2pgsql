@@ -358,7 +358,7 @@ void table_t::write_columns(keyval *tags, string& values)
         keyval *tag = NULL;
         if ((tag = tags->getTag(column->first)))
         {
-            escape_type(tag->value.c_str(), column->second.c_str(), values);
+            escape_type(tag->value, column->second.c_str(), values);
             //remember we already used this one so we cant use again later in the hstore column
             if (hstore_mode == HSTORE_NORM)
                 tag->has_column = 1;
@@ -463,12 +463,12 @@ void table_t::escape4hstore(const char *src, string& dst)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const char *value, const char *type, string& dst) {
+void table_t::escape_type(const string &value, const char *type, string& dst) {
 
     // For integers we take the first number, or the average if it's a-b
     if (!strcmp(type, "int4")) {
         int from, to;
-        int items = sscanf(value, "%d-%d", &from, &to);
+        int items = sscanf(value.c_str(), "%d-%d", &from, &to);
         if (items == 1)
             dst.append((single_fmt % from).str());
         else if (items == 2)

@@ -63,7 +63,7 @@ class table_t
         void write_hstore_columns(keyval *tags, std::string& values);
 
         void escape4hstore(const char *src, std::string& dst);
-        void escape_type(const char *value, const char *type, std::string& dst);
+        void escape_type(const std::string &value, const char *type, std::string& dst);
 
         std::string conninfo;
         std::string name;

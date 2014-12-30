@@ -7,12 +7,13 @@
 #include <string.h>
 #include <libpq-fe.h>
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 
-void escape(const char* src, std::string& dst)
+void escape(const std::string &src, std::string &dst)
 {
-    for(; *src; ++src)
+    BOOST_FOREACH(const char c, src)
     {
-        switch(*src) {
+        switch(c) {
             case '\\':  dst.append("\\\\"); break;
             //case 8:   dst.append("\\\b"); break;
             //case 12:  dst.append("\\\f"); break;
@@ -20,7 +21,7 @@ void escape(const char* src, std::string& dst)
             case '\r':  dst.append("\\\r"); break;
             case '\t':  dst.append("\\\t"); break;
             //case 11:  dst.append("\\\v"); break;
-            default:    dst.push_back(*src); break;
+            default:    dst.push_back(c); break;
         }
     }
 }

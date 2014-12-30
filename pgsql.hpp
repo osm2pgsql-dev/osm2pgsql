@@ -21,7 +21,7 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 #endif
 ;
 
-void escape(const char* src, std::string& dst);
+void escape(const std::string &src, std::string& dst);
 
 
 inline void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql) {
