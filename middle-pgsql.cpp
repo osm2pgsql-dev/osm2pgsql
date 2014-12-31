@@ -68,30 +68,108 @@ enum table_id {
     t_node, t_way, t_rel
 } ;
 
-middle_pgsql_t::table_desc::table_desc(const char *name_,
-                                       const char *start_,
-                                       const char *create_,
-                                       const char *create_index_,
-                                       const char *prepare_,
-                                       const char *prepare_intarray_,
-                                       const char *copy_,
-                                       const char *analyze_,
-                                       const char *stop_,
-                                       const char *array_indexes_)
-    : name(name_),
-      start(start_),
-      create(create_),
-      create_index(create_index_),
-      prepare(prepare_),
-      prepare_intarray(prepare_intarray_),
-      copy(copy_),
-      analyze(analyze_),
-      stop(stop_),
-      array_indexes(array_indexes_),
-      copyMode(0),
-      transactionMode(0),
-      sql_conn(NULL)
-{}
+
+middle_pgsql_t::table_desc::~table_desc() {
+    if (sql_conn)
+        PQfinish(sql_conn);
+}
+
+int middle_pgsql_t::table_desc::connect(const options_t *options) {
+    set_prefix_and_tbls(options, &name);
+    set_prefix_and_tbls(options, &start);
+    set_prefix_and_tbls(options, &create);
+    set_prefix_and_tbls(options, &create_index);
+    set_prefix_and_tbls(options, &prepare);
+    set_prefix_and_tbls(options, &prepare_intarray);
+    set_prefix_and_tbls(options, &copy);
+    set_prefix_and_tbls(options, &analyze);
+    set_prefix_and_tbls(options, &stop);
+    set_prefix_and_tbls(options, &array_indexes);
+
+    std::cerr << "Setting up table: " << name << "\n";
+    sql_conn = PQconnectdb(options->conninfo.c_str());
+
+    // Check to see that the backend connection was successfully made */
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        std::cerr << "Connection to database failed: " << PQerrorMessage(sql_conn) << "\n";
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * Helper to create SQL queries.
+ *
+ * The input string is mangled as follows:
+ * %p replaced by the content of the "prefix" option
+ * %i replaced by the content of the "tblsslim_data" option
+ * %t replaced by the content of the "tblssslim_index" option
+ * %m replaced by "UNLOGGED" if the "unlogged" option is set
+ * other occurrences of the "%" char are treated normally.
+ * any occurrence of { or } will be ignored (not copied to output string);
+ * anything inside {} is only copied if it contained at least one of
+ * %p, %i, %t, %m that was not NULL.
+ *
+ * So, the input string
+ *    Hello{ dear %i}!
+ * will, if i is set to "John", translate to
+ *    Hello dear John!
+ * but if i is unset, translate to
+ *    Hello!
+ *
+ * This is used for constructing SQL queries with proper tablespace settings.
+ */
+void middle_pgsql_t::table_desc::set_prefix_and_tbls(const options_t *options, std::string *str)
+{
+    int lastpos = 0;
+    int startpos = str->find_first_of("{%", lastpos);
+
+    while (startpos != std::string::npos) {
+        int pfind = startpos;
+        if ((*str)[startpos] == '{') {
+            lastpos = str->find('}', startpos + 1);
+            assert (lastpos != std::string::npos);
+
+            pfind = str->find('%', startpos + 1);
+        } else
+            lastpos = pfind + 1;
+        assert (pfind < str->length() - 1);
+        std::string replacement;
+        if (pfind < lastpos) {
+            switch ((*str)[pfind + 1]) {
+                case 'p': replacement = options->prefix; break;
+                case 't':
+                    if (options->tblsslim_data)
+                        replacement = *(options->tblsslim_data);
+                    break;
+                case 'i':
+                    if (options->tblsslim_index)
+                        replacement = *(options->tblsslim_index);
+                    break;
+                case 'm': replacement = "UNLOGGED"; break;
+            default: break; //nothing
+            }
+        }
+        if ((*str)[startpos] == '{') {
+            if (replacement.empty()) {
+                str->erase(startpos, lastpos - startpos + 1);
+                lastpos = startpos;
+            } else {
+                str->erase(lastpos,1);
+                str->replace(pfind, 2, replacement);
+                str->erase(startpos, 1);
+                lastpos += replacement.length() - 4;
+            }
+        } else {
+            str->replace(pfind, 2, replacement);
+            lastpos += replacement.length() - 2;
+        }
+
+        startpos = str->find_first_of("{%", lastpos);
+    }
+}
+
 
 #define HELPER_STATE_UNINITIALIZED -1
 #define HELPER_STATE_FORKED -2
@@ -323,13 +401,13 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
         sql_conn = table->sql_conn;
         stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
+            std::cerr << "COPY_END for " << table->copy << " failed: " << PQerrorMessage(sql_conn) << "\n";
             util::exit_nicely();
         }
 
         res = PQgetResult(sql_conn);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
+            std::cerr << "COPY_END for " << table->copy << " failed: " << PQerrorMessage(sql_conn) << "\n";
             PQclear(res);
             util::exit_nicely();
         }
@@ -945,8 +1023,8 @@ void middle_pgsql_t::analyze(void)
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
 
-        if (tables[i].analyze) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
+        if (!tables[i].analyze.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze.c_str());
         }
     }
 }
@@ -959,124 +1037,15 @@ void middle_pgsql_t::end(void)
         PGconn *sql_conn = tables[i].sql_conn;
 
         // Commit transaction */
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
+        if (!tables[i].stop.empty() && tables[i].transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop.c_str());
             tables[i].transactionMode = 0;
         }
 
     }
 }
 
-/**
- * Helper to create SQL queries.
- *
- * The input string is mangled as follows:
- * %p replaced by the content of the "prefix" option
- * %i replaced by the content of the "tblsslim_data" option
- * %t replaced by the content of the "tblssslim_index" option
- * %m replaced by "UNLOGGED" if the "unlogged" option is set
- * other occurrences of the "%" char are treated normally.
- * any occurrence of { or } will be ignored (not copied to output string);
- * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
- *
- * So, the input string
- *    Hello{ dear %i}!
- * will, if i is set to "John", translate to
- *    Hello dear John!
- * but if i is unset, translate to
- *    Hello!
- *
- * This is used for constructing SQL queries with proper tablespace settings.
- */
-static void set_prefix_and_tbls(const struct options_t *options, const char **string)
-{
-    char buffer[1024];
-    const char *source;
-    char *dest;
-    char *openbrace = NULL;
-    int copied = 0;
 
-    if (*string == NULL) return;
-    source = *string;
-    dest = buffer;
-
-    while (*source) {
-        if (*source == '{') {
-            openbrace = dest;
-            copied = 0;
-            source++;
-            continue;
-        } else if (*source == '}') {
-            if (!copied && openbrace) dest = openbrace;
-            source++;
-            continue;
-        } else if (*source == '%') {
-            if (*(source+1) == 'p') {
-                if (!options->prefix.empty()) {
-                    strcpy(dest, options->prefix.c_str());
-                    dest += strlen(options->prefix.c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 't') {
-                if (options->tblsslim_data) {
-                    strcpy(dest, options->tblsslim_data->c_str());
-                    dest += strlen(options->tblsslim_data->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'i') {
-                if (options->tblsslim_index) {
-                    strcpy(dest, options->tblsslim_index->c_str());
-                    dest += strlen(options->tblsslim_index->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'm') {
-                if (options->unlogged) {
-                    strcpy(dest, "UNLOGGED");
-                    dest += 8;
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            }
-        }
-        *(dest++) = *(source++);
-    }
-    *dest = 0;
-    *string = strdup(buffer);
-}
-
-int middle_pgsql_t::connect(table_desc& table) {
-    PGconn *sql_conn;
-
-    set_prefix_and_tbls(out_options, &(table.name));
-    set_prefix_and_tbls(out_options, &(table.start));
-    set_prefix_and_tbls(out_options, &(table.create));
-    set_prefix_and_tbls(out_options, &(table.create_index));
-    set_prefix_and_tbls(out_options, &(table.prepare));
-    set_prefix_and_tbls(out_options, &(table.prepare_intarray));
-    set_prefix_and_tbls(out_options, &(table.copy));
-    set_prefix_and_tbls(out_options, &(table.analyze));
-    set_prefix_and_tbls(out_options, &(table.stop));
-    set_prefix_and_tbls(out_options, &(table.array_indexes));
-
-    fprintf(stderr, "Setting up table: %s\n", table.name);
-    sql_conn = PQconnectdb(out_options->conninfo.c_str());
-
-    // Check to see that the backend connection was successfully made */
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-        return 1;
-    }
-    table.sql_conn = sql_conn;
-    return 0;
-}
 
 int middle_pgsql_t::start(const options_t *out_options_)
 {
@@ -1084,7 +1053,6 @@ int middle_pgsql_t::start(const options_t *out_options_)
     PGresult   *res;
     int i;
     int dropcreate = !out_options->append;
-    char * sql;
 
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
@@ -1102,7 +1070,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
     // We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         //bomb if you cant connect
-        if(connect(tables[i]))
+        if(tables[i].connect(out_options))
             util::exit_nicely();
         PGconn* sql_conn = tables[i].sql_conn;
 
@@ -1148,11 +1116,12 @@ int middle_pgsql_t::start(const options_t *out_options_)
 
             if (out_options->append)
             {
-                sql = (char *)malloc (2048);
-                snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
-                res = PQexec(sql_conn, sql );
-                free(sql);
-                sql = NULL;
+                std::string sql;
+                sql.reserve(24 + tables[t_node].name.length());
+                sql += "SELECT id FROM ";
+                sql += tables[t_node].name;
+                sql += " LIMIT 1";
+                res = PQexec(sql_conn, sql.c_str());
                 if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
                 {
                     int size = PQfsize(res, 0);
@@ -1177,32 +1146,32 @@ int middle_pgsql_t::start(const options_t *out_options_)
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name.c_str());
         }
 
-        if (tables[i].start) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start);
+        if (!tables[i].start.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start.c_str());
             tables[i].transactionMode = 1;
         }
 
-        if (dropcreate && tables[i].create) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
-            if (tables[i].create_index) {
-              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+        if (dropcreate && !tables[i].create.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create.c_str());
+            if (!tables[i].create_index.empty()) {
+              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index.c_str());
             }
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (!tables[i].prepare.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare.c_str());
         }
 
-        if (Append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (Append && !tables[i].prepare_intarray.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray.c_str());
         }
 
-        if (tables[i].copy) {
-            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
+        if (!tables[i].copy.empty()) {
+            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy.c_str());
             tables[i].copyMode = 1;
         }
     }
@@ -1215,8 +1184,8 @@ void middle_pgsql_t::commit(void) {
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
         pgsql_endCopy(&tables[i]);
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
+        if (!tables[i].stop.empty() && tables[i].transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop.c_str());
             tables[i].transactionMode = 0;
         }
     }
@@ -1232,23 +1201,23 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     struct table_desc *table = (struct table_desc *)arg;
     PGconn *sql_conn = table->sql_conn;
 
-    fprintf(stderr, "Stopping table: %s\n", table->name);
+    std::cerr << "Stopping table: " << table->name << "\n";
     pgsql_endCopy(table);
     time(&start);
     if (out_options->droptemp)
     {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name.c_str());
     }
-    else if (build_indexes && table->array_indexes)
+    else if (build_indexes && !table->array_indexes.empty())
     {
-        fprintf(stderr, "Building index on table: %s\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
+        std::cerr << "Building index on table: " << table->name << "\n";
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes.c_str());
     }
 
     PQfinish(sql_conn);
     table->sql_conn = NULL;
     time(&end);
-    fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
+    std::cerr << "Stopped table: " << table->name << " in " << (int)(end - start) << "s\n";
     return NULL;
 }
 
@@ -1314,17 +1283,17 @@ middle_pgsql_t::middle_pgsql_t()
            /*start*/ "BEGIN;\n",
 #ifdef FIXED_POINT
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
-/*prepare_intarray*/ NULL,
+/*prepare_intarray*/ "",
             /*copy*/ "COPY %p_nodes FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_nodes;\n",
             /*stop*/ "COMMIT;\n"
@@ -1334,7 +1303,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_ways",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
@@ -1353,7 +1322,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_rels",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
@@ -1378,15 +1347,6 @@ middle_pgsql_t::middle_pgsql_t()
     rel_table = &tables[2];
 }
 
-middle_pgsql_t::~middle_pgsql_t() {
-    for (int i=0; i < num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-        }
-    }
-
-}
-
 boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     middle_pgsql_t* mid = new middle_pgsql_t();
     mid->out_options = out_options;
@@ -1403,16 +1363,16 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
         //bomb if you cant connect
-        if(mid->connect(mid->tables[i]))
+        if(mid->tables[i].connect(mid->out_options))
             util::exit_nicely();
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (!tables[i].prepare.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare.c_str());
         }
 
-        if (Append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (Append && !tables[i].prepare_intarray.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray.c_str());
         }
     }
 
