@@ -128,6 +128,18 @@ AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
 AX_BOOST_THREAD
 
+dnl Check if Boost is recent enough for lockfree, and if it hasn't been overridden
+AC_ARG_WITH([lockfree],
+  [AS_HELP_STRING([--without-lockfree],
+    [disable lockfree queue])],
+    [],
+    [with_lockfree=yes])
+
+if test "x$with_lockfree" = "xyes"
+then
+  AX_BOOST_BASE([1.53], AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue]), [])
+fi
+
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
     AX_LUA_HEADERS([
