@@ -54,6 +54,7 @@ using namespace std;
 #include "util.hpp"
 
 #include <stdexcept>
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/unordered_map.hpp>
 
@@ -179,142 +180,101 @@ void middle_pgsql_t::table_desc::set_prefix_and_tbls(const options_t *options, s
 #define HELPER_STATE_FAILED 3
 
 namespace {
-char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
+const char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
 {
-  static char *buffer;
-  static int buflen;
+  static std::string buffer;
+  static boost::format single_fmt = boost::format("%1%");
 
-  char *ptr;
-  int i, first;
+  buffer.clear();
+  buffer.reserve(((nd_count * 10) | 4095) + 1);
 
-  if( buflen <= nd_count * 10 )
+
+  bool first = true;
+  buffer += '{';
+  for(int i = 0; i < nd_count; ++i)
   {
-    buflen = ((nd_count * 10) | 4095) + 1;  // Round up to next page */
-    buffer = (char *)realloc( buffer, buflen );
-  }
-_restart:
-
-  ptr = buffer;
-  first = 1;
-  *ptr++ = '{';
-  for( i=0; i<nd_count; i++ )
-  {
-    if( !first ) *ptr++ = ',';
-    ptr += sprintf(ptr, "%" PRIdOSMID, nds[i] );
-
-    if( (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = (char *)realloc( buffer, buflen );
-
-      goto _restart;
-    }
-    first = 0;
+    if (!first) buffer += ',';
+    buffer.append((single_fmt % nds[i]).str());
+    first = false;
   }
 
-  *ptr++ = '}';
-  *ptr++ = 0;
+  buffer += '}';
 
-  return buffer;
+  return buffer.c_str();
 }
 
 // Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
-inline char *escape_tag( char *ptr, const char *in, const int& escape )
+inline void escape_tag( std::string *ptr, const std::string &in, int escape )
 {
-  while( *in )
+  BOOST_FOREACH(const char c, in)
   {
-    switch(*in)
+    switch(c)
     {
       case '"':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '"';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\\"";
         break;
       case '\\':
-        if( escape ) *ptr++ = '\\';
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '\\';
+        if( escape ) *ptr += '\\';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\\\";
         break;
       case '\n':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'n';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\n";
         break;
       case '\r':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'r';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\r";
         break;
       case '\t':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 't';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\t";
         break;
       default:
-        *ptr++ = *in;
+        *ptr += c;
         break;
     }
-    in++;
   }
-  return ptr;
 }
 
 // escape means we return '\N' for copy mode, otherwise we return just NULL */
-const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
+const char *pgsql_store_tags(const struct keyval *tags, int escape)
 {
-  static char *buffer;
-  static int buflen;
-
-  char *ptr;
-  int first;
+  static std::string buffer;
 
   int countlist = tags->countList();
-  if( countlist == 0 )
+  if (countlist == 0)
   {
-    if( escape )
+    if (escape)
       return "\\N";
     else
       return NULL;
   }
 
-  if( buflen <= countlist * 24 ) // LE so 0 always matches */
+  buffer.clear();
+  buffer.reserve(((countlist * 24) | 4095) + 1);
+
+  bool first = true;
+  buffer += '{';
+
+  for (keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
   {
-    buflen = ((countlist * 24) | 4095) + 1;  // Round up to next page */
-    buffer = (char *)realloc( buffer, buflen );
-  }
-_restart:
+    if (!first) buffer += ',';
+    buffer += '"';
+    escape_tag( &buffer, i->key.c_str(), escape );
+    buffer += '"';
+    buffer += ',';
+    buffer += '"';
+    escape_tag( &buffer, i->value, escape );
+    buffer += '"';
 
-  ptr = buffer;
-  first = 1;
-  *ptr++ = '{';
-
-  for(keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
-  {
-    int maxlen = (i->key.length() + i->value.length()) * 4;
-    if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = (char *)realloc( buffer, buflen );
-
-      goto _restart;
-    }
-    if( !first ) *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag( ptr, i->key.c_str(), escape );
-    *ptr++ = '"';
-    *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag( ptr, i->value.c_str(), escape );
-    *ptr++ = '"';
-
-    first=0;
+    first = false;
   }
 
-  *ptr++ = '}';
-  *ptr++ = 0;
+  buffer += '}';
 
-  return buffer;
+  return buffer.c_str();
 }
 
 // Decodes a portion of an array literal from postgres */
@@ -619,7 +579,7 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
     if( way_table->copyMode )
     {
       const char *tag_buf = pgsql_store_tags(tags,1);
-      char *node_buf = pgsql_store_nodes(nds, nd_count);
+      const char *node_buf = pgsql_store_nodes(nds, nd_count);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = (char *)alloca(length);
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
@@ -842,7 +802,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     {
       char *tag_buf = strdup(pgsql_store_tags(tags,1));
       const char *member_buf = pgsql_store_tags(&member_list,1);
-      char *parts_buf = pgsql_store_nodes(&all_parts[0], all_count);
+      const char *parts_buf = pgsql_store_nodes(&all_parts[0], all_count);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = (char *)alloca(length);
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\n",
