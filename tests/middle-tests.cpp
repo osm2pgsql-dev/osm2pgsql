@@ -9,6 +9,7 @@
 #include "keyvals.hpp"
 #include "tests/middle-tests.hpp"
 
+
 int test_node_set(middle_t *mid)
 {
   osmid_t id = 1234;
@@ -17,6 +18,7 @@ int test_node_set(middle_t *mid)
   struct keyval tags;
   struct osmNode node;
   int status = 0;
+
 
   // set the node
   status = mid->nodes_set(id, lat, lon, &tags);
@@ -85,11 +87,23 @@ int test_way_set(middle_t *mid)
   int status = 0;
   osmid_t nds[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
   const int nd_count = ((sizeof nds) / (sizeof nds[0]));
+  const char *test_tags[] = { "highway", "secondary",
+                              "name", "Гмыри",
+                              "ref", "",
+                              "xxx\\", "yy\"yy",
+                              "test", "\n\t\r" };
+  // XXX test for \n\t\r currently disabled because it fails with middle-pgsql
+  int num_test_tags = 4;
 
   // set the nodes
   for (int i = 0; i < nd_count; ++i) {
     status = mid->nodes_set(nds[i], lat, lon, &tags);
     if (status != 0) { std::cerr << "ERROR: Unable to set node " << nds[i] << ".\n"; return 1; }
+  }
+
+  // set some tags
+  for (unsigned i = 0; i < num_test_tags; ++i) {
+    tags.addItem(test_tags[i*2], test_tags[i*2+1], false);
   }
 
   // set the way
@@ -98,6 +112,8 @@ int test_way_set(middle_t *mid)
 
   // commit the setup data
   mid->commit();
+
+  tags.resetList();
 
   // get it back
   int way_count = mid->ways_get_list(&way_id, 1, &way_ids_ptr, &tags, &node_ptr, &node_count);
@@ -124,6 +140,21 @@ int test_way_set(middle_t *mid)
       std::cerr << "ERROR: Way node should have lat=" << lat << ", but got back "
                 << node_ptr[i].lat << " from middle.\n";
       return 1;
+    }
+  }
+
+  if (tags.countList() != num_test_tags) {
+    std::cerr << "ERROR: Tag count should be 3 but was " << tags.countList() << ".\n";
+    return 1;
+  }
+
+  for (unsigned i = 0; i < num_test_tags; ++i) {
+    keyval * ret = tags.getTag(test_tags[i*2]);
+    if (ret == NULL || ret->value != test_tags[i*2+1]) {
+        std::cerr << "ERROR: Wrong tag returned, expected " << test_tags[i*2]
+                  << "/" << test_tags[i*2+1] << ", got " << ret->key << "/"
+                  << ret->value << ".\n";
+        return 1;
     }
   }
 
