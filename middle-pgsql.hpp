@@ -105,7 +105,7 @@ struct middle_pgsql_t : public slim_middle_t {
     virtual boost::shared_ptr<const middle_query_t> get_instance() const;
 private:
 
-    int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
+    int local_nodes_set(osmid_t id, double lat, double lon, const struct keyval *tags);
     int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
     int local_nodes_delete(osmid_t osm_id);
 
@@ -121,6 +121,7 @@ private:
     boost::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     int build_indexes;
+    std::string buffer; // used for building the COPY string
 };
 
 #endif
