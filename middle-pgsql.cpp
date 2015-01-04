@@ -129,11 +129,11 @@ int middle_pgsql_t::table_desc::connect(const options_t *options) {
  */
 void middle_pgsql_t::table_desc::set_prefix_and_tbls(const options_t *options, std::string *str)
 {
-    int lastpos = 0;
-    int startpos = str->find_first_of("{%", lastpos);
+    size_t lastpos = 0;
+    size_t startpos = str->find_first_of("{%", lastpos);
 
     while (startpos != std::string::npos) {
-        int pfind = startpos;
+        size_t pfind = startpos;
         if ((*str)[startpos] == '{') {
             lastpos = str->find('}', startpos + 1);
             assert (lastpos != std::string::npos);
@@ -419,8 +419,6 @@ int middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon, const st
 // This should be made more efficient by using an IN(ARRAY[]) construct */
 int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const
 {
-    char tmp[16];
-    char *tmp2;
     int count,  countDB, countPG, i,j;
     char const *paramValues[1];
 
@@ -429,11 +427,11 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
 
     count = 0; countDB = 0;
 
-    tmp2 = (char *)malloc(sizeof(char)*nd_count*16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
-
     // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2, "{");
+    std::string tmp2;
+    tmp2.reserve(nd_count*16);
+    tmp2 += '{';
+    char tmp[22];
     for( i=0; i<nd_count; i++ ) {
         // Check cache first */
         if( cache->get( &nodes[i], ndids[i]) == 0 ) {
@@ -445,18 +443,18 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         nodes[i].lat = NAN;
         nodes[i].lon = NAN;
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
-        strncat(tmp2, tmp, sizeof(char)*(nd_count*16 - 2));
+        tmp2.append(tmp);
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
 
     if (countDB == 0) {
-        free(tmp2);
         return count; // All ids where in cache, so nothing more to do */
     }
 
+    tmp2[tmp2.length() - 1] = '}'; // replace last , with } to complete list of ids*/
+
     pgsql_endCopy(node_table);
 
-    paramValues[0] = tmp2;
+    paramValues[0] = tmp2.c_str();
     res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
     countPG = PQntuples(res);
 
@@ -499,7 +497,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     }
 
     PQclear(res);
-    free(tmp2);
     return count;
 }
 
@@ -637,8 +634,6 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
 
 int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
 
-    char tmp[16];
-    char *tmp2;
     int count, countPG, i, j;
     osmid_t *wayidspg;
     char const *paramValues[1];
@@ -650,20 +645,22 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     if (way_count == 0) return 0;
 
-    tmp2 = (char *)malloc(sizeof(char)*way_count*16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
+    std::string tmp2;
+    tmp2.reserve(way_count*16);
 
     // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2, "{");
+    tmp2 += '{';
+    char tmp[22];
     for( i=0; i<way_count; i++ ) {
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
-        strncat(tmp2,tmp, sizeof(char)*(way_count*16 - 2));
+        tmp2.append(tmp);
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
+
+    tmp2[tmp2.length() - 1] = '}'; // replace last , with } to complete list of ids*/
 
     pgsql_endCopy(way_table);
 
-    paramValues[0] = tmp2;
+    paramValues[0] = tmp2.c_str();
     res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
     countPG = PQntuples(res);
 
@@ -701,7 +698,6 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     assert(count<=way_count);
 
     PQclear(res);
-    free(tmp2);
     free(wayidspg);
 
     return count;
