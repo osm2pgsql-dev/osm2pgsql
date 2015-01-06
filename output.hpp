@@ -20,7 +20,7 @@
 #include <utility>
 
 typedef std::pair<osmid_t, size_t> pending_job_t;
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
 #include <stack>
 typedef std::stack<pending_job_t> pending_queue_t;
 #else
