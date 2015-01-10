@@ -33,14 +33,14 @@
 /* Need to know which geos version we have to work out which headers to include */
 #include <geos/version.h>
 
-/* geos (3.0.0+) */
-#if (GEOS_VERSION_MAJOR==3)
-#if (GEOS_VERSION_MINOR>=1)
+#if (GEOS_VERSION_MAJOR==3) and (GEOS_VERSION_MINOR>=1)
 /* Prepared geometries are new in 3.1.0 */
+/* Support for GEOS older than 3.1.0 may be removed at some point */
 #define HAS_PREPARED_GEOMETRIES
 #include <geos/geom/prep/PreparedGeometryFactory.h>
 #include <geos/geom/prep/PreparedPolygon.h>
 #endif
+
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
@@ -58,13 +58,6 @@ using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::util;
 using namespace geos::operation::linemerge;
-#else
-/* geos-2.2.3 */
-#include <geos/geom.h>
-#include <geos/io.h>
-#include <geos/opLinemerge.h>
-using namespace geos;
-#endif
 
 #include "geometry-builder.hpp"
 
