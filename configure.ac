@@ -82,7 +82,7 @@ then
 fi
 
 dnl Check for Geos library
-AX_LIB_GEOS([3.0])
+AX_LIB_GEOS([3.1])
 
 dnl Check for Proj library
 AX_LIB_PROJ
