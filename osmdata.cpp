@@ -9,6 +9,7 @@
 
 #include <stdexcept>
 #include <utility>
+#include <cstdio>
 
 #ifdef HAVE_LOCKFREE
 #include <boost/atomic.hpp>
