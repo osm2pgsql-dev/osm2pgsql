@@ -11,6 +11,8 @@
 #include "options.hpp"
 #include "util.hpp"
 
+#include <algorithm>
+
 #define SRID (reproj->project_getprojinfo()->srs)
 
 #define CREATE_PLACE_TABLE                      \
@@ -52,15 +54,28 @@ void place_tag_processor::clear()
     places.clear();
     extratags.clear();
     address.clear();
+    names.clear();
 }
+
+struct UnnamedPredicate
+{
+    bool operator()(const keyval *val) const {
+        return val->key == "natural" ||
+               val->key == "railway" ||
+               val->key == "waterway" ||
+               (val->key == "highway" && val->value == "traffic_signals");
+    }
+};
 
 void place_tag_processor::process_tags(keyval *tags)
 {
     bool placeadmin = false;
     bool placehouse = false;
     bool placebuilding = false;
-    keyval *place = 0;
-    keyval *landuse = 0;
+    const keyval *place = 0;
+    const keyval *junction = 0;
+    const keyval *landuse = 0;
+    bool isnamed = false;
     bool isinterpolation = false;
     const std::string *house_nr = 0;
     const std::string *conscr_nr = 0;
@@ -80,9 +95,11 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "old_ref" ||
                    item->key == "iata" ||
                    item->key == "icao" ||
+                   item->key == "operator" ||
                    item->key == "pcode" ||
-                   boost::starts_with(item->key, "pcode:") ||
-                   item->key == "name" ||
+                   boost::starts_with(item->key, "pcode:")) {
+            names.push_back(item);
+        } else if (item->key == "name" ||
                    boost::starts_with(item->key, "name:") ||
                    item->key == "int_name" ||
                    boost::starts_with(item->key, "int_name:") ||
@@ -96,42 +113,53 @@ void place_tag_processor::process_tags(keyval *tags)
                    boost::starts_with(item->key, "old_name:") ||
                    item->key == "alt_name" ||
                    boost::starts_with(item->key, "alt_name:") ||
+                   boost::starts_with(item->key, "alt_name_") ||
                    item->key == "official_name" ||
                    boost::starts_with(item->key, "official_name:") ||
                    item->key == "place_name" ||
                    boost::starts_with(item->key, "place_name:") ||
                    item->key == "short_name" ||
                    boost::starts_with(item->key, "short_name:") ||
-                   item->key == "operator" ||
                    item->key == "brand") {
             names.push_back(item);
+            isnamed = true;
         } else if (item->key == "addr:housename") {
             names.push_back(item);
             placehouse = true;
-        } else if (item->key == "emergency" ||
-                   item->key == "tourism" ||
+        } else if (item->key == "emergency") {
+            if (item->value != "fire_hydrant" &&
+                item->value != "yes" &&
+                item->value != "no")
+                places.push_back(item);
+        } else if (item->key == "tourism" ||
                    item->key == "historic" ||
                    item->key == "military" ||
                    item->key == "natural") {
             if (item->value != "no" && item->value != "yes")
                 places.push_back(item);
+        } else if (item->key == "landuse") {
+            if (item->value == "cemetry")
+                places.push_back(item);
+            else
+                landuse = item;
         } else if (item->key == "highway") {
             if (item->value != "no" &&
                 item->value != "turning_circle" &&
-                item->value != "traffic_signals" &&
                 item->value != "mini_roundabout" &&
                 item->value != "noexit" &&
                 item->value != "crossing")
                 places.push_back(item);
         } else if (item->key == "railway") {
-            if (item->value != "level_crossing")
+            if (item->value != "level_crossing" &&
+                item->value != "no")
                 places.push_back(item);
         } else if (item->key == "man_made") {
             if (item->value != "survey_point" &&
                 item->value != "cutline")
                 places.push_back(item);
         } else if (item->key == "aerialway") {
-            if (item->value != "pylon")
+            if (item->value != "pylon" &&
+                item->value != "no")
                 places.push_back(item);
         } else if (item->key == "boundary") {
             if (item->value == "administrative")
@@ -145,7 +173,8 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "leisure" ||
                    item->key == "office" ||
                    item->key == "shop" ||
-                   item->key == "tunnel" ) {
+                   item->key == "tunnel" ||
+                   item->key == "mountain_pass") {
             if (item->value != "no")
             {
                 places.push_back(item);
@@ -155,7 +184,10 @@ void place_tag_processor::process_tags(keyval *tags)
                 places.push_back(item);
         } else if (item->key == "place") {
             place = item;
+        } else if (item->key == "junction") {
+            junction = item;
         } else if (item->key == "addr:interpolation") {
+            housenumber.assign(item->value);
             isinterpolation = true;
         } else if (item->key == "addr:housenumber") {
             house_nr = &item->value;
@@ -170,16 +202,6 @@ void place_tag_processor::process_tags(keyval *tags)
             street = &item->value;
         } else if (item->key == "addr:place") {
             addr_place = &item->value;
-        } else if (boost::starts_with(item->key, "addr:") ||
-                   item->key == "is_in" ||
-                   boost::starts_with(item->key, "is_in:") ||
-                   item->key == "tiger:county") {
-            address.push_back(item);
-        } else if (item->key == "landuse") {
-            if (item->value == "cemetery")
-                places.push_back(item);
-            else
-                landuse = item;
         } else if (item->key == "postal_code" ||
                    item->key == "postcode" ||
                    item->key == "addr:postcode" ||
@@ -194,6 +216,11 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "addr:country_code") {
             if (item->value.length() == 2)
                 countrycode = &item->value;
+        } else if (boost::starts_with(item->key, "addr:") ||
+                   item->key == "is_in" ||
+                   boost::starts_with(item->key, "is_in:") ||
+                   item->key == "tiger:county") {
+            address.push_back(item);
         } else if (item->key == "admin_level") {
             admin_level = atoi(item->value.c_str());
         } else if (item->key == "tracktype" ||
@@ -272,16 +299,66 @@ void place_tag_processor::process_tags(keyval *tags)
         }
     }
 
-    // housenumbers
-    if (street_nr && conscr_nr) {
-        housenumber.assign(*conscr_nr).append("/").append(*street_nr);
-    } else if (conscr_nr) {
-        housenumber.assign(*conscr_nr);
-    } else if (street_nr) {
-        housenumber.assign(*street_nr);
-    } else if (house_nr) {
-        housenumber.assign(*house_nr);
+    // skip some tags, if they don't have a proper name (ref doesn't count)
+    if (!isnamed) {
+        if (!places.empty())
+            places.erase(std::remove_if(places.begin(), places.end(),
+                                        UnnamedPredicate()),
+                         places.end());
     }
+
+    if (isinterpolation) {
+        keyval *b = new keyval("place", "houses");
+        src->pushItem(b); // to make sure it gets deleted
+        places.push_back(b);
+    }
+
+    if (place) {
+        if (isinterpolation ||
+             (placeadmin &&
+              place ->value != "island" &&
+              place ->value != "islet"))
+            extratags.push_back(place);
+        else
+            places.push_back(place);
+    }
+
+    if (isnamed && places.empty()) {
+        if (junction)
+            places.push_back(junction);
+        else if (landuse)
+            places.push_back(landuse);
+    }
+
+    if (places.empty()) {
+        if (placebuilding && (!names.empty() || placehouse || postcode)) {
+            keyval *b = new keyval("building", "yes");
+            src->pushItem(b); // to make sure it gets deleted
+            places.push_back(b);
+        } else if (placehouse) {
+            keyval *b = new keyval("place", "house");
+            src->pushItem(b); // to make sure it gets deleted
+            places.push_back(b);
+        } else if (postcode) {
+            keyval *b = new keyval("place", "postcode");
+            src->pushItem(b); // to make sure it gets deleted
+            places.push_back(b);
+        }
+    }
+
+    // housenumbers
+    if (!isinterpolation) {
+        if (street_nr && conscr_nr) {
+            housenumber.assign(*conscr_nr).append("/").append(*street_nr);
+        } else if (conscr_nr) {
+            housenumber.assign(*conscr_nr);
+        } else if (street_nr) {
+            housenumber.assign(*street_nr);
+        } else if (house_nr) {
+            housenumber.assign(*house_nr);
+        }
+    }
+
 }
 
 void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
@@ -295,6 +372,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             if (name.empty())
                 continue; // don't include unnamed bridges and tunnels
         }
+
         // osm_type
         buffer += osm_type;
         buffer += '\t';
@@ -314,7 +392,9 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             bool first = true;
             // operator will be ignored on anything but these classes
             // (amenity for restaurant and fuel)
-            bool shop = (place->key == "shop") || (place->key == "amenity");
+            bool shop = (place->key == "shop") ||
+                        (place->key == "amenity") ||
+                        (place->key == "tourism");
             BOOST_FOREACH(const keyval *entry, names) {
                 if (!shop && (entry->key == "operator"))
                     continue;
@@ -345,10 +425,16 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         // isin
         if (!address.empty()) {
             BOOST_FOREACH(const keyval *entry, address) {
-                escape(entry->value, buffer);
-                buffer += '\n';
+                if (entry->key == "tiger:county") {
+                    escape(std::string(entry->value, 0, entry->value.find(",")),
+                           buffer);
+                    buffer += " county";
+                } else {
+                    escape(entry->value, buffer);
+                }
+                buffer += ',';
             }
-            buffer += '\t';
+            buffer[buffer.length() - 1] = '\t';
         } else
             buffer += "\\N\t";
         // postcode
@@ -501,7 +587,7 @@ int output_gazetteer_t::start()
    reproj = m_options.projection;
    builder.set_exclude_broken_polygon(m_options.excludepoly);
 
-   places.srid_str = (fmt("SRID=%1") % SRID).str();
+   places.srid_str = (boost::format("SRID=%1%;") % SRID).str();
 
    if(connect())
        util::exit_nicely();
@@ -666,7 +752,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
     if (cmp_waterway) {
         geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
         for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
-            if (boost::starts_with(wkt->geom,  "POLYGON") 
+            if (boost::starts_with(wkt->geom,  "POLYGON")
                     || boost::starts_with(wkt->geom,  "MULTIPOLYGON")) {
                 places.copy_out('R', id, wkt->geom, buffer);
                 flush_place_buffer();

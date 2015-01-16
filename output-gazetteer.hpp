@@ -8,6 +8,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <string>
@@ -52,10 +53,10 @@ private:
     void copy_opt_string(const std::string *val, std::string &buffer)
     {
         if (val) {
-            buffer += "\\N\t";
-        } else {
             escape(*val, buffer);
             buffer += "\t";
+        } else {
+            buffer += "\\N\t";
         }
     }
 
