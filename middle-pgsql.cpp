@@ -687,9 +687,6 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
 
-    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
-
     // enqueue the jobs
     osmid_t id;
     while(id_tracker::is_valid(id = ways_pending_tracker->pop_mark()))
@@ -881,9 +878,6 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
 {
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
-
-    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache));
 
     // enqueue the jobs
     osmid_t id;
@@ -1226,6 +1220,9 @@ void middle_pgsql_t::commit(void) {
             tables[i].transactionMode = 0;
         }
     }
+    // Make sure the flat nodes are committed to disk or there will be
+    // surprises later.
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 }
 
 void *middle_pgsql_t::pgsql_stop_one(void *arg)
@@ -1419,7 +1416,10 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     //NOTE: this is thread safe for use in pending async processing only because
     //during that process they are only read from
     mid->cache = cache;
-    mid->persistent_cache = persistent_cache;
+    // The persistent cache on the other hand is not thread-safe for reading,
+    // so we create one per instance.
+    if (out_options->flat_node_cache_enabled)
+        mid->persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
