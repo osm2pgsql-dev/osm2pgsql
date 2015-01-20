@@ -187,7 +187,8 @@ void place_tag_processor::process_tags(keyval *tags)
         } else if (item->key == "junction") {
             junction = item;
         } else if (item->key == "addr:interpolation") {
-            housenumber.assign(item->value);
+            housenumber.clear();
+            escape(item->value, housenumber);
             isinterpolation = true;
         } else if (item->key == "addr:housenumber") {
             house_nr = &item->value;
@@ -349,13 +350,19 @@ void place_tag_processor::process_tags(keyval *tags)
     // housenumbers
     if (!isinterpolation) {
         if (street_nr && conscr_nr) {
-            housenumber.assign(*conscr_nr).append("/").append(*street_nr);
+            housenumber.clear();
+            escape(*conscr_nr, housenumber);
+            housenumber.append("/");
+            escape(*street_nr, housenumber);
         } else if (conscr_nr) {
-            housenumber.assign(*conscr_nr);
+            housenumber.clear();
+            escape(*conscr_nr, housenumber);
         } else if (street_nr) {
-            housenumber.assign(*street_nr);
+            housenumber.clear();
+            escape(*street_nr, housenumber);
         } else if (house_nr) {
-            housenumber.assign(*house_nr);
+            housenumber.clear();
+            escape(*house_nr, housenumber);
         }
     }
 
