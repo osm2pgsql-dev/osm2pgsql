@@ -44,7 +44,7 @@ void place_tag_processor::clear()
 {
     // set members to sane defaults
     src = NULL;
-    admin_level = 0;
+    admin_level = ADMINLEVEL_NONE;
     countrycode = 0;
     housenumber.assign("\\N");
     street = 0;
@@ -63,7 +63,18 @@ struct UnnamedPredicate
         return val->key == "natural" ||
                val->key == "railway" ||
                val->key == "waterway" ||
-               (val->key == "highway" && val->value == "traffic_signals");
+               val->key == "boundary" ||
+               (val->key == "highway" &&
+                (val->value == "traffic_signals" ||
+                 val->value == "service" ||
+                 val->value == "cycleway" ||
+                 val->value == "path" ||
+                 val->value == "footway" ||
+                 val->value == "steps" ||
+                 val->value == "bridleway" ||
+                 val->value == "track" ||
+                 val->value == "byway" ||
+                 boost::ends_with(val->value, "_link")));
     }
 };
 
@@ -133,9 +144,13 @@ void place_tag_processor::process_tags(keyval *tags)
                 places.push_back(item);
         } else if (item->key == "tourism" ||
                    item->key == "historic" ||
-                   item->key == "military" ||
-                   item->key == "natural") {
+                   item->key == "military") {
             if (item->value != "no" && item->value != "yes")
+                places.push_back(item);
+        } else if (item->key == "natural") {
+            if (item->value != "no" &&
+                item->value != "yes" &&
+                item->value != "costaline")
                 places.push_back(item);
         } else if (item->key == "landuse") {
             if (item->value == "cemetry")
@@ -224,6 +239,8 @@ void place_tag_processor::process_tags(keyval *tags)
             address.push_back(item);
         } else if (item->key == "admin_level") {
             admin_level = atoi(item->value.c_str());
+            if (admin_level <= 0 || admin_level > 100)
+                admin_level = 100;
         } else if (item->key == "tracktype" ||
                    item->key == "traffic_calming" ||
                    item->key == "service" ||
