@@ -82,11 +82,7 @@ then
 fi
 
 dnl Check for Geos library
-AX_LIB_GEOS
-if test "x$GEOS_VERSION" = "x" 
-then
-  AC_MSG_ERROR([geos library not found]);
-fi
+AX_LIB_GEOS([3.1])
 
 dnl Check for Proj library
 AX_LIB_PROJ
