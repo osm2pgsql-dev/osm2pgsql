@@ -14,8 +14,11 @@ use them.
   automatically detected for some reason.
 
 * ``--output`` specifies if the output backend is the default
-  [pgsql](pgsql.md), the [gazetteer](gazetteer.md) output used by Nominatim, or
-  null, which emits no output.
+  [`pgsql`](pgsql.md), the [`gazetteer`](gazetteer.md) output used by Nominatim,
+  the new [`multi`](multi.md) backend which allows more customization of tables,
+  or `null`, which emits no output to the backend.
+
+  `null` will create slim tables if ``--slim`` is also used.
 
 ## Performance
 
