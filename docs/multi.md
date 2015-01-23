@@ -47,7 +47,7 @@ following: `tablespace-index`, `tablespace-data`, `enable-hstore`,
 may be specified via an array of strings named `hstores`. Finally standard columns
 may be specified via an array of objects named `tags` with each object containing
 a `name` and a postgres `type`. Note you may also set `flags` on each tag as with
-the standard osm2pgsql style file.`flags` is formated exactly as in the style file
+the standard osm2pgsql style file. `flags` is formated exactly as in the style file
 as a string of flag names seprated by commas.
 
 ## Example ##
