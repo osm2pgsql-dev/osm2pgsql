@@ -51,9 +51,9 @@ the standard osm2pgsql style file. `flags` is formated exactly as in the style f
 as a string of flag names seprated by commas.
 
 ## Example ##
-An example based on the above is in multi.lua and multi.style.json. It creates two
-tables, one for bus stops and one for buildings. Some Lua processing is done to
-unify tagging values.
+An example based on the above is in [multi.lua](../multi.lua) and
+[multi.style.json](../multi.style.json). It creates two tables, one for bus stops
+and one for buildings. Some Lua processing is done to unify tagging values.
 
 ## Importing ##
 
