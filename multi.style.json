@@ -2,14 +2,15 @@
  *
  * It contains comments so is invalid JSON but the parser doesn't complain.
  *
- * To use this file, pass it in as a style file with the --style switch
+ * To use this file, pass it in as a style file with the --style switch, e.g.
+ * with osm2pgsql --output multi --style multi.style.json
  */
 [
   {
-    "name": "stops",
+    "name": "highways",
     "type": "point",
     "tagtransform": "multi.lua",
-    "tagtransform-node-function": "bus_nodes_proc",
+    "tagtransform-node-function": "bus_nodes",
     "tagtransform-way-function": "drop_all",
     "tagtransform-relation-function": "drop_all",
     "tagtransform-relation-member-function": "drop_all",

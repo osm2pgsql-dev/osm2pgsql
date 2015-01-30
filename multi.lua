@@ -4,43 +4,75 @@
 --
 -- See docs/lua.md and docs/multi.md
 
--- A function to determine if the tags make the object "interesting" to the buildings table
-function building_interesting (keyvals)
-  return keyvals["building"] and keyvals["building"] ~= "no"
+-- These are copied from default.style, except for INT-.* which is used
+-- internally in some stylesheets
+
+delete_tags = {'INT-.*', 'note', 'note:.*', 'source', 'source_ref', 'source:.*',
+               'attribution', 'comment', 'fixme', 'created_by', 'odbl',
+               'odbl:note', 'SK53_bulk:load', 'tiger:.*', 'NHD:.*', 'nhd:.*',
+               'gnis:.*', 'geobase:.*', 'accuracy:meters', 'sub_sea:type',
+               'waterway:type', 'KSJ2:.*', 'yh:.*', 'osak:.*', 'kms:.*', 'ngbe:.*',
+               'naptan:.*', 'CLC:.*', '3dshapes:ggmodelk', 'AND_nosr_r',
+               'import', 'it:fvg:.*'}
+
+-- A function to determine if the tags make the object "interesting" to the
+-- buildings table
+function building_interesting (kv)
+  return kv["building"] and kv["building"] ~= "no"
 end
 
-function building_ways (keyvals, num_keys)
-  return generic_ways(building_interesting, keyvals)
+-- For buildings we're not doing any changes to the tagging, so we don't have
+-- to pass in a transformation function
+function building_ways (kv, num_keys)
+  return generic_ways(building_interesting, kv)
 end
 
-function building_rels (keyvals, num_keys)
-  return generic_rels(building_interesting, keyvals)
+function building_rels (kv, num_keys)
+  return generic_rels(building_interesting, kv)
 end
 
-function builing_rel_members (keyvals, keyvaluemembers, roles, membercount)
-  return generic_rel_members(building_interesting, keyvals, keyvaluemembers, roles, membercount)
+function builing_rel_members (kv, keyvaluemembers, roles, membercount)
+  return generic_rel_members(building_interesting, kv, keyvaluemembers, roles, membercount)
 end
 
-function bus_nodes_proc (keyvals, num_tags)
-  if keyvals["highway"] == "bus_stop" then
-    tags = keyvals
-    -- Turns values into true unless they're no, leaving empty tags as null.
-    -- This lets these columns be boolean, vastly simplifying stylesheet
-    -- logic
-    if tags["shelter"] then
-      -- Checks if the value is no or false, then returns a string that can be turned into a boolean
-      tags["shelter"] = ((tags["shelter"] ~= "no" and tags["shelter"] ~= "false") and "true" or "false")
-    end
-    if tags["bench"] then
-      tags["bench"] = ((tags["bench"] ~= "no" and tags["bench"] ~= "false") and "true" or "false")
-    end
-    if tags["wheelchair"] then
-      tags["wheelchair"] = ((tags["wheelchair"] ~= "no" and tags["wheelchair"] ~= "false") and "true" or "false")
-    end
-    return 0, tags
-  else
-    return 1, {}
-  end
+-- A function to determine if the tags make the object "interesting" to the
+-- bus stop table
+function bus_interesting (kv)
+  return kv["highway"] == "bus_stop"
+end
+
+function bus_transform (kv)
+  kv["shelter"] = yesno(kv["shelter"])
+  kv["bench"] = yesno(kv["bench"])
+  kv["wheelchair"] = yesno(kv["wheelchair"])
+  return kv
+end
+function bus_nodes (kv, num_keys)
+  return generic_nodes(bus_interesting, kv, bus_transform)
+end
+
+-- Some generic and utility helper functions
+
+-- This little function normalizes a tag to true/false. It turns no or false
+-- into false and anything else to true. The result can then be used with a
+-- boolean column.
+-- 
+-- > = yesno(nil)
+-- nil
+-- > = yesno("no")
+-- false
+-- > = yesno("false")
+-- false
+-- > = yesno("yes")
+-- true
+-- > = yesno("foo")
+-- true
+-- 
+-- A typical usage would be on a tag like bridge, tunnel, or shelter, but not
+-- a tag like oneway which could be yes, no, reverse, or unset
+function yesno (v)
+  -- This is a way of doing an inline condition in Lua
+  return v ~= nil and ((v == "no" or v == "false") and "false" or "true") or nil
 end
 
 -- This function gets rid of something we don't care about
@@ -48,10 +80,39 @@ function drop_all (...)
   return 1, {}
 end
 
--- A generic way to process ways, given a function which determines if tags are interesting
-function generic_ways (f, kv)
+function preprocess_tags (kv)
+  tags = {}
+  for k, v in pairs (kv) do
+    match = false
+    for _, d in ipairs(delete_tags) do
+      match = match or string.find(k, d)
+    end
+    if not match then
+      tags[k] = v
+    end
+  end
+  return tags
+end
+
+-- A generic way to process nodes, given a function which determines if tags are interesting
+-- Takes an optional function to process tags
+function generic_nodes (f, kv, t)
   if f(kv) then
-    tags = kv
+    t = t or function (kv) return kv end
+    tags = t(kv)
+    return 0, tags
+  else
+    return 1, {}
+  end
+end
+
+
+-- A generic way to process ways, given a function which determines if tags are interesting
+-- Takes an optional function to process tags. Always says it's a polygon if there's matching tags
+function generic_ways (f, kv, t)
+  if f(kv) then
+    t = t or function (kv) return kv end
+    tags = t(preprocess_tags(kv))
     return 0, tags, 1, 0
   else
     return 1, {}, 0, 0
@@ -59,6 +120,7 @@ function generic_ways (f, kv)
 end
 
 -- A generic way to process relations, given a function which determines if tags are interesting
+-- The tag transformation work is done in generic_rel_members so we don't need to pass in a t
 function generic_rels (f, kv)
   if kv["type"] == "multipolygon" and f(kv) then
     tags = kv
@@ -69,11 +131,12 @@ function generic_rels (f, kv)
 end
 
 -- Basically taken from style.lua
-function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount)
+function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount, t)
   filter = 0
   boundary = 0
   polygon = 0
   roads = 0
+  t = t or function (kv) return kv end
 
   --mark each way of the relation to tell the caller if its going
   --to be used in the relation or by itself as its own standalone way
@@ -108,7 +171,8 @@ function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount)
       end
     end
     if filter == 1 then
-      return filter, keyvals, membersuperseeded, boundary, polygon, roads
+      tags =  t(keyvals)
+      return filter, tags, membersuperseeded, boundary, polygon, roads
     end
 
     --for each tag of each member if the relation have the tag or has a non matching value for it
@@ -125,6 +189,6 @@ function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount)
       membersuperseeded[i] = superseeded
     end
   end
-
-  return filter, keyvals, membersuperseeded, boundary, polygon, roads
+  tags =  t(keyvals)
+  return filter, tags, membersuperseeded, boundary, polygon, roads
 end
