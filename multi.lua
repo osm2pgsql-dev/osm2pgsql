@@ -35,7 +35,7 @@ end
 
 -- If we weren't generating multilingual names we could omit building_transform
 function building_ways (kv, num_keys)
-  return generic_ways(building_interesting, kv, building_transform)
+  return generic_ways(building_interesting, kv, true, building_transform)
 end
 
 function building_rels (kv, num_keys)
@@ -103,7 +103,7 @@ end
 
 
 function highway_ways (kv, num_keys)
-  return generic_ways(highway_interesting, kv, highway_transform)
+  return generic_ways(highway_interesting, kv, false, highway_transform)
 end
 
 -- Some generic and utility helper functions
@@ -186,12 +186,12 @@ end
 
 
 -- A generic way to process ways, given a function which determines if tags are interesting
--- Takes an optional function to process tags. Always says it's a polygon if there's matching tags
-function generic_ways (f, kv, t)
+-- Takes an optional function to process tags.
+function generic_ways (f, kv, area, t)
   if f(kv) then
     t = t or function (kv) return kv end
     tags = t(preprocess_tags(kv))
-    return 0, tags, 1, 0
+    return 0, tags, area and 1 or 0, 0
   else
     return 1, {}, 0, 0
   end
