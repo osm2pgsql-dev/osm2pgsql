@@ -7,7 +7,7 @@
  */
 [
   {
-    "name": "highways",
+    "name": "stops",
     "type": "point",
     "tagtransform": "multi.lua",
     "tagtransform-node-function": "bus_nodes",
@@ -17,12 +17,33 @@
     "tags": [
       /* We don't need a column for highway, since it's always highway=bus_stop */
       {"name": "name", "type": "text"},
+      /* multi-lingual names can be generated at import time */
+      {"name": "name_en", "type": "text"},
+      {"name": "name_fr", "type": "text"},
+      {"name": "name_de", "type": "text"},
       {"name": "ref", "type": "text"},
       {"name": "operator", "type": "text"},
       /* By using boolean columns stylesheet processing can be simplified */
       {"name": "shelter", "type": "boolean"},
       {"name": "bench", "type": "boolean"},
       {"name": "wheelchair", "type": "boolean"}
+    ]
+  },
+  {
+    "name": "highways",
+    "type": "line",
+    "tagtransform": "multi.lua",
+    "tagtransform-node-function": "drop_all",
+    "tagtransform-way-function": "highway_ways",
+    "tagtransform-relation-function": "drop_all",
+    "tagtransform-relation-member-function": "drop_all",
+    "tags": [
+      {"name": "name", "type": "text"},
+      {"name": "name_en", "type": "text"},
+      {"name": "name_fr", "type": "text"},
+      {"name": "name_de", "type": "text"},
+      {"name": "road_class", "type": "integer"},
+      {"name": "road_type", "type": "text"}
     ]
   },
   {
@@ -34,6 +55,10 @@
     "tagtransform-relation-function": "building_rels",
     "tagtransform-relation-member-function": "builing_rel_members",
     "tags": [
+      {"name": "name", "type": "text"},
+      {"name": "name_en", "type": "text"},
+      {"name": "name_fr", "type": "text"},
+      {"name": "name_de", "type": "text"},
       {"name": "building", "type": "text"},
       {"name": "shop", "type": "text"},
       {"name": "amenity", "type": "text"}

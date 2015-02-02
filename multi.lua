@@ -4,10 +4,12 @@
 --
 -- See docs/lua.md and docs/multi.md
 
--- These are copied from default.style, except for INT-.* which is used
--- internally in some stylesheets
+-- These are copied from default.style
+-- If new "tags" are being generated in the Lua code they should normally be
+-- added here. This is why name_.* is dropped. In the raw OSM data
+-- multi-lingual names are stored in name:*.
 
-delete_tags = {'INT-.*', 'note', 'note:.*', 'source', 'source_ref', 'source:.*',
+delete_tags = {'name_.*', 'note', 'note:.*', 'source', 'source_ref', 'source:.*',
                'attribution', 'comment', 'fixme', 'created_by', 'odbl',
                'odbl:note', 'SK53_bulk:load', 'tiger:.*', 'NHD:.*', 'nhd:.*',
                'gnis:.*', 'geobase:.*', 'accuracy:meters', 'sub_sea:type',
@@ -15,16 +17,25 @@ delete_tags = {'INT-.*', 'note', 'note:.*', 'source', 'source_ref', 'source:.*',
                'naptan:.*', 'CLC:.*', '3dshapes:ggmodelk', 'AND_nosr_r',
                'import', 'it:fvg:.*'}
 
+-- In a real transform the Lua code might be split into multiple files with
+-- common code included with "dofile" but a single file is easier for an example
+
 -- A function to determine if the tags make the object "interesting" to the
 -- buildings table
 function building_interesting (kv)
   return kv["building"] and kv["building"] ~= "no"
 end
 
--- For buildings we're not doing any changes to the tagging, so we don't have
--- to pass in a transformation function
+function building_transform (kv)
+  kv["name_en"] = name_lang(kv, "en")
+  kv["name_de"] = name_lang(kv, "de")
+  kv["name_fr"] = name_lang(kv, "fr")
+  return kv
+end
+
+-- If we weren't generating multilingual names we could omit building_transform
 function building_ways (kv, num_keys)
-  return generic_ways(building_interesting, kv)
+  return generic_ways(building_interesting, kv, building_transform)
 end
 
 function building_rels (kv, num_keys)
@@ -32,7 +43,7 @@ function building_rels (kv, num_keys)
 end
 
 function builing_rel_members (kv, keyvaluemembers, roles, membercount)
-  return generic_rel_members(building_interesting, kv, keyvaluemembers, roles, membercount)
+  return generic_rel_members(building_interesting, kv, keyvaluemembers, roles, membercount, building_transform)
 end
 
 -- A function to determine if the tags make the object "interesting" to the
@@ -45,10 +56,54 @@ function bus_transform (kv)
   kv["shelter"] = yesno(kv["shelter"])
   kv["bench"] = yesno(kv["bench"])
   kv["wheelchair"] = yesno(kv["wheelchair"])
+  kv["name_en"] = name_lang(kv, "en")
+  kv["name_de"] = name_lang(kv, "de")
+  kv["name_fr"] = name_lang(kv, "fr")
   return kv
 end
 function bus_nodes (kv, num_keys)
   return generic_nodes(bus_interesting, kv, bus_transform)
+end
+
+-- lookup tables for highways. Using an enum would be better in some ways, but
+-- would require creating the type before importing with osm2pgsql, which is
+-- not well suited to an example.
+
+highway_lookup = {motorway          = 0,
+                  trunk             = 1,
+                  primary           = 2,
+                  secondary         = 3,
+                  tertiary          = 4,
+                  unclassified      = 5,
+                  residential       = 5}
+
+link_lookup    = {motorway_link     = 0,
+                  trunk_link        = 1,
+                  primary_link      = 2,
+                  secondary_link    = 3,
+                  tertiary_link     = 4,
+                  unclassified_link = 5,
+                  residential_link  = 5}
+
+function highway_interesting (kv)
+  -- The kv["highway"] check is not necessary but helps performance
+  return kv["highway"] and (highway_lookup[kv["highway"]] or link_lookup[kv["highway"]])
+end
+
+function highway_transform (kv)
+  -- Thanks to highway_interesting we know that kv["highway"] is in one of
+  -- highway_lookup or link_lookup
+  kv["road_class"] = highway_lookup[kv["highway"]] or link_lookup[kv["highway"]]
+  kv["road_type"] = highway_lookup[kv["highway"]] and "road" or "link"
+  kv["name_en"] = name_lang(kv, "en")
+  kv["name_de"] = name_lang(kv, "de")
+  kv["name_fr"] = name_lang(kv, "fr")
+  return kv
+end
+
+
+function highway_ways (kv, num_keys)
+  return generic_ways(highway_interesting, kv, highway_transform)
 end
 
 -- Some generic and utility helper functions
@@ -73,6 +128,29 @@ end
 function yesno (v)
   -- This is a way of doing an inline condition in Lua
   return v ~= nil and ((v == "no" or v == "false") and "false" or "true") or nil
+end
+
+-- Converts a name and name:lang tag into one combined name
+-- By passing an optional name_tag parameter it can also work with other
+-- multi-lingual tags
+function name_lang(kv, lang, name_tag)
+  if kv then
+    -- Default to the name tag, which is what this will generally be used on.
+    name_tag = name_tag or "name"
+    -- Defaulting to en is a bit of complete Anglo-centrism
+    lang = lang or "en"
+    name = kv[name_tag]
+    name_trans = kv[name_tag .. ":" .. lang]
+    -- If we don't have a translated name, just use the name (which may be blank)
+    if not name_trans then return name end
+    -- If we do have a translated name and not a local language name, use the translated
+    if not name then return name_trans end
+    -- if they're the same, return one of them
+    if name == name_trans then return name end
+    -- This method presents some problems when multiple names get put in the
+    -- name tag.
+    return name_trans .. "(" .. name .. ")"
+  end
 end
 
 -- This function gets rid of something we don't care about
