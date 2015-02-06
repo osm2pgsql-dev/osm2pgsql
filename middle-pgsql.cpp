@@ -499,6 +499,9 @@ int middle_pgsql_t::nodes_delete(osmid_t osm_id)
 
 int middle_pgsql_t::node_changed(osmid_t osm_id)
 {
+    if (!mark_pending)
+        return 0;
+
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
@@ -1089,6 +1092,11 @@ int middle_pgsql_t::start(const options_t *out_options_)
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
 
+    if (out_options->output_backend == "gazetteer") {
+        way_table->array_indexes = NULL;
+        mark_pending = false;
+    }
+
     Append = out_options->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
@@ -1306,7 +1314,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
-      Append(0), cache(), persistent_cache(), build_indexes(0)
+      Append(0), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(
@@ -1391,6 +1399,7 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     middle_pgsql_t* mid = new middle_pgsql_t();
     mid->out_options = out_options;
     mid->Append = out_options->append;
+    mid->mark_pending = mark_pending;
 
     //NOTE: this is thread safe for use in pending async processing only because
     //during that process they are only read from
