@@ -94,6 +94,7 @@ private:
     struct table_desc *node_table, *way_table, *rel_table;
 
     int Append;
+    bool mark_pending;
 
     boost::shared_ptr<node_ram_cache> cache;
     boost::shared_ptr<node_persistent_cache> persistent_cache;
