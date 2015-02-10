@@ -241,6 +241,9 @@ void test_random_perms()
 
         add_arg_and_val_or_not("--number-processes", args, options.num_procs, rand() % 12);
 
+        if (options.schema) {
+            add_arg_and_val_or_not("--schema", args, options.schema->c_str(), get_random_string(6));
+        }
         //add_arg_or_not("--disable-parallel-indexing", args, options.parallel_indexing);
 
         add_arg_or_not("--unlogged", args, options.unlogged);

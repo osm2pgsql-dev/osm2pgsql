@@ -22,7 +22,8 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.hstore_columns, m_processor->srid(), m_options.scale,
                           m_options.append, m_options.slim, m_options.droptemp,
                           m_options.hstore_mode, m_options.enable_hstore_index,
-                          m_options.tblsmain_data, m_options.tblsmain_index)),
+                          m_options.tblsmain_data, m_options.tblsmain_index,
+                          m_options.schema)),
       ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
       m_expire(new expire_tiles(&m_options)) {
 }

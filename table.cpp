@@ -12,10 +12,10 @@ using std::string;
 
 table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
-    const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
+    const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index, const boost::optional<string>& schema) :
     conninfo(conninfo), name(name), type(type), sql_conn(NULL), copyMode(false), srid((fmt("%1%") % srid).str()), scale(scale),
     append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
-    columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
+    columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index), schema(schema)
 {
     //if we dont have any columns
     if(columns.size() == 0)
@@ -34,7 +34,7 @@ table_t::table_t(const table_t& other):
     conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(NULL), copyMode(false), buffer(), srid(other.srid), scale(other.scale),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
-    table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
+    table_space_index(other.table_space_index), schema(other.schema), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -89,6 +89,10 @@ void table_t::connect()
     sql_conn = _conn;
     //let commits happen faster by delaying when they actually occur
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+    if (schema)
+    {
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("SET search_path TO %1%,public;") % schema.get()).str());
+    }
 }
 
 void table_t::start()

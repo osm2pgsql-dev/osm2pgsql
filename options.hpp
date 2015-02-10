@@ -74,6 +74,7 @@ public:
     boost::optional<std::string> host;
     boost::optional<std::string> password;
     std::string port;
+    boost::optional<std::string> schema;
     std::string output_backend ;
     std::string input_reader;
     boost::optional<std::string> bbox;
