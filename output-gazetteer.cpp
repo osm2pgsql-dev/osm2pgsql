@@ -720,8 +720,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
 
     const std::string *type = tags->getItem("type");
     if (!type) {
-        places.clear();
-        if (m_options.append) delete_unused_classes('R', id);
+        delete_unused_full('R', id);
         return 0;
     }
 
@@ -729,8 +728,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
 
     if (*type == "associatedStreet"
             || !(*type == "boundary" || *type == "multipolygon" || !cmp_waterway)) {
-        places.clear();
-        if (m_options.append) delete_unused_classes('R', id);
+        delete_unused_full('R', id);
         return 0;
     }
 
@@ -757,7 +755,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
 
     if (count == 0) {
         if (m_options.append)
-            delete_unused_classes('R', id);
+            delete_unused_full('R', id);
 
         delete [] xid2;
 

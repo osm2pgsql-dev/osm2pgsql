@@ -247,6 +247,13 @@ private:
         buffer.clear();
     }
 
+    void delete_unused_full(char osm_type, osmid_t osm_id)
+    {
+        if (m_options.append) {
+            places.clear();
+            delete_place(osm_type, osm_id);
+        }
+    }
 
     struct pg_conn *Connection;
     struct pg_conn *ConnectionDelete;
