@@ -1235,37 +1235,16 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     fprintf(stderr, "Stopping table: %s\n", table->name);
     pgsql_endCopy(table);
     time(&start);
-    if (!out_options->droptemp)
+    if (out_options->droptemp)
     {
-        if (build_indexes && table->array_indexes) {
-            char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
-            // we need to insert before the TABLESPACE setting, if any */
-            const char *insertpos = strstr(table->array_indexes, "TABLESPACE");
-            if (!insertpos) insertpos = strchr(table->array_indexes, ';');
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name);
+    }
+    else if (build_indexes && table->array_indexes)
+    {
+        fprintf(stderr, "Building index on table: %s\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
+    }
 
-            /* automatically insert FASTUPDATE=OFF when creating,
-               indexes for PostgreSQL 8.4 and higher
-               see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html */
-            if (insertpos && PQserverVersion(sql_conn) >= 80400) {
-                fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
-                size_t n_chars = insertpos - table->array_indexes;
-                strncpy(buffer, table->array_indexes, n_chars);
-                // strncpy doesn't necessarily null-terminate, so we need to add that
-                buffer[n_chars] = '\0';
-                strcat(buffer, " WITH (FASTUPDATE=OFF)");
-                strcat(buffer, insertpos);
-            } else {
-                fprintf(stderr, "Building index on table: %s\n", table->name);
-                strcpy(buffer, table->array_indexes);
-            }
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
-            free(buffer);
-        }
-    }
-    else
-    {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "drop table %s", table->name);
-    }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
     time(&end);
@@ -1367,7 +1346,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_ways FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_ways;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
     tables.push_back(table_desc(
         /*table = t_rel,*/
@@ -1387,7 +1366,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
 
     // set up the rest of the variables from the tables.
