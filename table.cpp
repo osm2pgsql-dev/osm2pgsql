@@ -221,7 +221,9 @@ void table_t::stop()
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
         fprintf(stderr, "Analyzing %s finished\n", name.c_str());
 
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %3% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)") % name % (table_space ? "TABLESPACE " + table_space.get() : "") % name).str());
+        // Special handling for empty geometries because geohash chokes on
+        // empty geometries on postgis 1.5.
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %3% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END") % name % (table_space ? "TABLESPACE " + table_space.get() : "") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %2%") % name % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
