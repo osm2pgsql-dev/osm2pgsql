@@ -106,7 +106,7 @@ struct middle_pgsql_t : public slim_middle_t {
 private:
 
     int local_nodes_set(osmid_t id, double lat, double lon, const struct keyval *tags);
-    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
+    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const;
     int local_nodes_delete(osmid_t osm_id);
 
     std::vector<table_desc> tables;

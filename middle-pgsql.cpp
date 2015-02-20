@@ -73,6 +73,7 @@ enum table_id {
 // not thread safe, needs to be moved in the thread structure before
 // middle tables can be _written_ in multi-threaded mode.
 static boost::format single_fmt = boost::format("%1%");
+static boost::format comma_fmt = boost::format("%1%,");
 static boost::format column_fmt = boost::format("%1%\t");
 static boost::format latlon_fmt = boost::format("%.10g");
 
@@ -187,20 +188,18 @@ void middle_pgsql_t::table_desc::set_prefix_and_tbls(const options_t *options, s
 #define HELPER_STATE_FAILED 3
 
 namespace {
-void pgsql_store_nodes(std::string &buffer, const osmid_t *nds, const int& nd_count)
+void pgsql_store_nodes(std::string &buffer, const osmid_t *nds, int nd_count)
 {
-  buffer.reserve(buffer.length() + (nd_count * 10) + 2);
-
-  bool first = true;
   buffer += '{';
   for(int i = 0; i < nd_count; ++i)
   {
-    if (!first) buffer += ',';
-    buffer.append((single_fmt % nds[i]).str());
-    first = false;
+    buffer.append((comma_fmt % nds[i]).str());
   }
 
-  buffer += '}';
+  if (nd_count)
+    buffer[buffer.length() - 1] = '}'; // replace last comma
+  else
+    buffer += '}';
 }
 
 // Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
@@ -249,22 +248,18 @@ const char *pgsql_store_tags(std::string &buffer, const struct keyval *tags, int
     return NULL;
   }
 
-  bool first = true;
   buffer += '{';
 
   for (keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
   {
-    if (!first) buffer += ',';
     buffer += '"';
     escape_tag( &buffer, i->key, escape );
     buffer += "\",\"";
     escape_tag( &buffer, i->value, escape );
-    buffer += '"';
-
-    first = false;
+    buffer += "\",";
   }
 
-  buffer += '}';
+  buffer[buffer.length() - 1] = '}'; // replace final comma
 
   return buffer.c_str();
 }
@@ -320,7 +315,7 @@ void pgsql_parse_tags( const char *string, struct keyval *tags )
 }
 
 // Parses an array of integers */
-void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
+void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
 {
   int count = 0;
   const char *string = src;
@@ -413,9 +408,9 @@ int middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon, const st
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const
+int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const
 {
-    int count,  countDB, countPG, i,j;
+    int count,  countDB, countPG;
     char const *paramValues[1];
 
     PGresult *res;
@@ -424,11 +419,9 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     count = 0; countDB = 0;
 
     // create a list of ids in tmp2 to query the database  */
-    std::string tmp2;
-    tmp2.reserve(nd_count*16);
-    tmp2 += '{';
-    char tmp[22];
-    for( i=0; i<nd_count; i++ ) {
+    std::string tmp2("{");
+    boost::format fmt("%1%,");
+    for(int i=0; i<nd_count; i++ ) {
         // Check cache first */
         if( cache->get( &nodes[i], ndids[i]) == 0 ) {
             count++;
@@ -438,8 +431,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         // Mark nodes as needing to be fetched from the DB */
         nodes[i].lat = NAN;
         nodes[i].lon = NAN;
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
-        tmp2.append(tmp);
+        tmp2.append((fmt % ndids[i]).str());
     }
 
     if (countDB == 0) {
@@ -457,7 +449,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     //store the pg results in a hashmap and telling it how many we expect
     boost::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
-    for (i = 0; i < countPG; i++) {
+    for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
         osmNode node;
 #ifdef FIXED_POINT
@@ -471,7 +463,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     }
 
     //copy the nodes back out of the hashmap to the output
-    for(i = 0; i < nd_count; ++i){
+    for(int i = 0; i < nd_count; ++i){
         //if we can find a matching id
         boost::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(ndids[i]);
         if(found != pg_nodes.end()) {
@@ -483,8 +475,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     // If some of the nodes in the way don't exist, the returning list has holes.
     //   As the rest of the code expects a continuous list, it needs to be re-compacted */
     if (count != nd_count) {
-        j = 0;
-        for (i = 0; i < nd_count; i++) {
+        int j = 0;
+        for (int i = 0; i < nd_count; i++) {
             if ( !std::isnan(nodes[i].lat)) {
                 nodes[j] = nodes[i];
                 j++;
@@ -629,10 +621,9 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
 
 int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
 
-    int count, countPG, i, j;
+    int count, countPG;
     osmid_t *wayidspg;
     char const *paramValues[1];
-    int num_nodes;
     osmid_t *list;
 
     PGresult *res;
@@ -640,15 +631,13 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     if (way_count == 0) return 0;
 
-    std::string tmp2;
+    std::string tmp2("{");
     tmp2.reserve(way_count*16);
 
     // create a list of ids in tmp2 to query the database  */
-    tmp2 += '{';
-    char tmp[22];
-    for( i=0; i<way_count; i++ ) {
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
-        tmp2.append(tmp);
+    boost::format fmt("%1%,");
+    for(int i=0; i<way_count; i++ ) {
+        tmp2.append((fmt % ids[i]).str());
     }
 
     tmp2[tmp2.length() - 1] = '}'; // replace last , with } to complete list of ids*/
@@ -663,7 +652,7 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     if (wayidspg == NULL) return 0; //failed to allocate memory, return */
 
-    for (i = 0; i < countPG; i++) {
+    for (int i = 0; i < countPG; i++) {
         wayidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
     }
 
@@ -671,13 +660,13 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     count = 0;
-    for (i = 0; i < way_count; i++) {
-        for (j = 0; j < countPG; j++) {
+    for (int i = 0; i < way_count; i++) {
+        for (int j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
                 way_ids[count] = ids[i];
                 pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
 
-                num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
+                int num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
                 list = (osmid_t *)alloca(sizeof(osmid_t)*num_nodes );
                 nodes_ptr[count] = (struct osmNode *)malloc(sizeof(struct osmNode) * num_nodes);
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list, num_nodes);
@@ -757,7 +746,6 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
 
 int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-    int i;
     struct keyval member_list;
     char buf[64];
 
@@ -768,7 +756,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     way_parts.reserve(member_count);
     rel_parts.reserve(member_count);
 
-    for( i=0; i<member_count; i++ )
+    for(int i=0; i<member_count; i++ )
     {
       char tag = 0;
       switch( members[i].type )
@@ -976,7 +964,7 @@ void middle_pgsql_t::analyze(void)
 {
     int i;
 
-    for (i=0; i<num_tables; i++) {
+    for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
 
         if (!tables[i].analyze.empty()) {
