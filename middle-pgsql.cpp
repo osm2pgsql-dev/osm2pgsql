@@ -73,6 +73,7 @@ enum table_id {
 // not thread safe, needs to be moved in the thread structure before
 // middle tables can be _written_ in multi-threaded mode.
 static boost::format single_fmt = boost::format("%1%");
+static boost::format column_fmt = boost::format("%1%\t");
 static boost::format latlon_fmt = boost::format("%.10g");
 
 
@@ -374,15 +375,12 @@ int middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon, const st
     if (node_table->copyMode) {
       buffer.clear();
       // id
-      buffer.append((single_fmt % id).str());
-      buffer += '\t';
+      buffer.append((column_fmt % id).str());
 
       // lat, lon
 #ifdef FIXED_POINT
-      buffer.append((single_fmt % util::double_to_fix(lat, out_options->scale)).str());
-      buffer += '\t';
-      buffer.append((single_fmt % util::double_to_fix(lon, out_options->scale)).str());
-      buffer += '\t';
+      buffer.append((column_fmt % util::double_to_fix(lat, out_options->scale)).str());
+      buffer.append((column_fmt % util::double_to_fix(lon, out_options->scale)).str());
 #else
       buffer.append((latlon_fmt % lat).str());
       buffer += '\t';
@@ -570,8 +568,7 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
     {
       buffer.clear();
       // id
-      buffer.append((single_fmt % way_id).str());
-      buffer += '\t';
+      buffer.append((column_fmt % way_id).str());
       // nodes
       pgsql_store_nodes(buffer, nds, nd_count);
       buffer += '\t';
@@ -795,14 +792,11 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     {
       buffer.clear();
       // id
-      buffer.append((single_fmt % id).str());
-      buffer += '\t';
+      buffer.append((column_fmt % id).str());
       // way_off
-      buffer.append((single_fmt % node_count).str());
-      buffer += '\t';
+      buffer.append((column_fmt % node_count).str());
       // rel_off
-      buffer.append((single_fmt % (node_count + way_count)).str());
-      buffer += '\t';
+      buffer.append((column_fmt % (node_count + way_count)).str());
       // parts
       pgsql_store_nodes(buffer, &all_parts[0], all_count);
       buffer += '\t';
