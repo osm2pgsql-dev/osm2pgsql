@@ -256,9 +256,7 @@ const char *pgsql_store_tags(std::string &buffer, const struct keyval *tags, int
     if (!first) buffer += ',';
     buffer += '"';
     escape_tag( &buffer, i->key, escape );
-    buffer += '"';
-    buffer += ',';
-    buffer += '"';
+    buffer += "\",\"";
     escape_tag( &buffer, i->value, escape );
     buffer += '"';
 
@@ -396,7 +394,7 @@ int middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon, const st
       pgsql_store_tags(buffer, tags, 1);
       buffer += '\n';
 
-      pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer.c_str());
+      pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
     } else {
         std::string idstr = (single_fmt % id).str();
     #ifdef FIXED_POINT
@@ -581,7 +579,7 @@ int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct 
       pgsql_store_tags(buffer, tags, 1);
       buffer += '\n';
 
-      pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer.c_str());
+      pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
     } else {
       // Three params: id, nodes, tags */
       std::string idstr = (single_fmt % way_id).str();
@@ -815,7 +813,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
       pgsql_store_tags(buffer, tags, 1);
       buffer += '\n';
 
-      pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer.c_str());
+      pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
     } else {
       std::string idstr = (single_fmt % id).str();
       std::string wstr = (single_fmt % node_count).str();
