@@ -158,14 +158,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
-    int * members_superseeded;
     double split_at;
 
-    members_superseeded = (int *)calloc(sizeof(int), member_count);
+    std::vector<int> members_superseeded(member_count);
 
     //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
-    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list.get())) {
-        free(members_superseeded);
+    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, &members_superseeded[0], &make_boundary, &make_polygon, &roads, m_export_list.get())) {
         return 0;
     }
 
@@ -180,7 +178,6 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
     geometry_builder::maybe_wkts_t wkts  = builder.build_both(xnodes, xcount, make_polygon, m_options.enable_multi, split_at, id);
 
     if (!wkts->size()) {
-        free(members_superseeded);
         return 0;
     }
 
@@ -216,8 +213,6 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             }
         }
     }
-
-    free(members_superseeded);
 
     // If the tag transform said the polygon looked like a boundary we want to make that as well
     // If we are making a boundary then also try adding any relations which form complete rings
@@ -424,10 +419,9 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
   if( !polygon && !filter )
   {
     /* Get actual node data and generate output */
-    struct osmNode *nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * nd_count );
-    int count = m_mid->nodes_get_list( nodes, nds, nd_count );
-    pgsql_out_way(id, tags, nodes, count, 0);
-    free(nodes);
+    std::vector<struct osmNode> nodes(nd_count);
+    int count = m_mid->nodes_get_list(&nodes[0], nds, nd_count);
+    pgsql_out_way(id, tags, &nodes[0], count, 0);
   }
   return 0;
 }
@@ -446,11 +440,11 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
       return 1;
   }
 
-  osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
-  const char **xrole = (const char **)malloc( (member_count+1) * sizeof(const char *) );
-  int *xcount = (int *)malloc( (member_count+1) * sizeof(int) );
-  keyval *xtags  = new keyval[member_count+1];
-  struct osmNode **xnodes = (struct osmNode **)malloc( (member_count+1) * sizeof(struct osmNode*) );
+  std::vector<osmid_t> xid2(member_count+1);
+  std::vector<const char*> xrole(member_count+1);
+  std::vector<int> xcount(member_count+1);
+  std::vector<keyval> xtags(member_count+1);
+  std::vector<struct osmNode*> xnodes(member_count+1);
 
   count = 0;
   for( i=0; i<member_count; i++ )
@@ -462,8 +456,8 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
     count++;
   }
 
-  osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
-  count2 = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
+  std::vector<osmid_t> xid(count + 1);
+  count2 = m_mid->ways_get_list(&xid2[0], count, &xid[0], &xtags[0], &xnodes[0], &xcount[0]);
   int polygon = 0, roads = 0;;
 
   for (i = 0; i < count2; i++) {
@@ -489,7 +483,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
   xrole[count2] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole, pending);
+  pgsql_out_relation(id, tags, count2, &xnodes[0], &xtags[0], &xcount[0], &xid[0], &xrole[0], pending);
 
   for( i=0; i<count2; i++ )
   {
@@ -497,12 +491,6 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *memb
     free( xnodes[i] );
   }
 
-  free(xid2);
-  free(xid);
-  free(xrole);
-  free(xcount);
-  delete [] xtags;
-  free(xnodes);
   return 0;
 }
 
