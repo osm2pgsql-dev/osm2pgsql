@@ -402,7 +402,7 @@ static void read_close() {
 return;
   fd= read_infop->fd;
   if(loglevel>=1) {  /* verbose */
-      fprintf(stderr,"osm2pgsql: Number of bytes read: %"PRIu64"\n",
+      fprintf(stderr,"osm2pgsql: Number of bytes read: %" PRIu64 "\n",
       read_infop->read__counter);
     }
   if(loglevel>=2) {

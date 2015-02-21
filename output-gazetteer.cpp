@@ -692,22 +692,20 @@ int output_gazetteer_t::process_way(osmid_t id, osmid_t *ndv, int ndc,
 
     /* Are we interested in this item? */
     if (places.has_data()) {
-        struct osmNode *nodev;
         int nodec;
 
+        assert(ndc > 0 && "no nodes to proccess");
+
         /* Fetch the node details */
-        nodev = (struct osmNode *)malloc(ndc * sizeof(struct osmNode));
-        nodec = m_mid->nodes_get_list(nodev, ndv, ndc);
+        std::vector<struct osmNode> nodev(ndc);
+        nodec = m_mid->nodes_get_list(&nodev[0], ndv, ndc);
 
         /* Get the geometry of the object */
-        geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodev, nodec, 1);
+        geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(&nodev[0], nodec, 1);
         if (wkt) {
             places.copy_out('W', id, wkt->geom, buffer);
             flush_place_buffer();
         }
-
-        /* Free the nodes */
-        free(nodev);
     }
 
     return 0;
@@ -742,7 +740,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
         return 0;
 
     /* get the boundary path (ways) */
-    osmid_t *xid2 = new osmid_t[member_count+1];
+    std::vector<osmid_t> xid2(member_count+1);
 
     int count = 0;
     for (int i=0; i<member_count; ++i) {
@@ -757,22 +755,20 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
         if (m_options.append)
             delete_unused_full('R', id);
 
-        delete [] xid2;
-
         return 0;
     }
 
-    int *xcount = new int[count + 1];
-    keyval *xtags  = new keyval[count+1];
-    struct osmNode **xnodes = new osmNode*[count + 1];
-    osmid_t *xid = new osmid_t[count + 1];
-    count = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
+    std::vector<int> xcount(count + 1);
+    std::vector<keyval> xtags(count + 1);
+    std::vector<struct osmNode*> xnodes(count + 1);
+    std::vector<osmid_t> xid(count + 1);
+    count = m_mid->ways_get_list(&xid2[0], count, &xid[0], &xtags[0], &xnodes[0], &xcount[0]);
 
     xnodes[count] = NULL;
     xcount[count] = 0;
 
     if (cmp_waterway) {
-        geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
+        geometry_builder::maybe_wkts_t wkts = builder.build_both(&xnodes[0], &xcount[0], 1, 1, 1000000, id);
         for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
             if (boost::starts_with(wkt->geom,  "POLYGON")
                     || boost::starts_with(wkt->geom,  "MULTIPOLYGON")) {
@@ -784,7 +780,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
         }
     } else {
         /* waterways result in multilinestrings */
-        geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, xcount, id);
+        geometry_builder::maybe_wkt_t wkt = builder.build_multilines(&xnodes[0], &xcount[0], id);
         if ((wkt->geom).length() > 0) {
             places.copy_out('R', id, wkt->geom, buffer);
             flush_place_buffer();
@@ -794,14 +790,7 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
     for (int i=0; i<count; ++i)
     {
         xtags[i].resetList();
-        free(xnodes[i]);
     }
-
-    free(xid);
-    delete [] xid2;
-    delete [] xcount;
-    delete [] xtags;
-    delete [] xnodes;
 
     return 0;
 }

@@ -21,6 +21,7 @@
 */
 
 #include <iostream>
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #include <cmath>
@@ -81,15 +82,12 @@ struct polygondata
     unsigned        containedbyid;
 };
 
-int polygondata_comparearea(const void* vp1, const void* vp2)
-{
-    const polygondata* p1 = (const polygondata*)vp1;
-    const polygondata* p2 = (const polygondata*)vp2;
+struct polygondata_comparearea {
+  bool operator()(const polygondata& lhs, const polygondata& rhs) {
+    return lhs.area > rhs.area;
+  }
+};
 
-    if (p1->area == p2->area) return 0;
-    if (p1->area > p2->area) return -1;
-    return 1;
-}
 } // anonymous namespace
 
 geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *nodes, int count, int polygon) const
@@ -130,12 +128,12 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *no
         wkt->geom = WKTWriter().write(geom.get());
         return wkt;
     }
-    catch (std::bad_alloc&)
+    catch (const std::bad_alloc&)
     {
         std::cerr << std::endl << "Exception caught processing way. You are likelly running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
     }
-    catch (std::runtime_error& e)
+    catch (const std::runtime_error& e)
     {
         //std::cerr << std::endl << "Exception caught processing way: " << e.what() << std::endl;
     }
@@ -247,12 +245,12 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *no
             }
         }
     }
-    catch (std::bad_alloc&)
+    catch (const std::bad_alloc&)
     {
         std::cerr << std::endl << "Exception caught processing way. You are likely running out of memory." << std::endl;
         std::cerr << "Try in slim mode, using -s parameter." << std::endl;
     }
-    catch (std::runtime_error& e)
+    catch (const std::runtime_error& e)
     {
         //std::cerr << std::endl << "Exception caught processing way: " << e.what() << std::endl;
     }
@@ -363,7 +361,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
         WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
-        polygondata* polys = new polygondata[merged->size()];
+        std::vector<polygondata> polys(merged->size());
 
         unsigned totalpolys = 0;
         for (unsigned i=0 ;i < merged->size(); ++i)
@@ -387,7 +385,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
 
         if (totalpolys)
         {
-            qsort(polys, totalpolys, sizeof(polygondata), polygondata_comparearea);
+            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
@@ -509,9 +507,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
         {
             delete(polys[i].polygon);
         }
-        delete[](polys);
     }//TODO: don't show in message id when osm_id == -1
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
     }
@@ -556,7 +553,7 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode *
 	wkt->geom = writer.write(mline.get());
 	wkt->area = 0;
     }//TODO: don't show in message id when osm_id == -1
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
     }
@@ -604,7 +601,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
         WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
-        polygondata* polys = new polygondata[merged->size()];
+        std::vector<polygondata> polys(merged->size());
 
         unsigned totalpolys = 0;
         for (unsigned i=0 ;i < merged->size(); ++i)
@@ -657,7 +654,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
 
         if (totalpolys)
         {
-            qsort(polys, totalpolys, sizeof(polygondata), polygondata_comparearea);
+            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
@@ -779,9 +776,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
         {
             delete(polys[i].polygon);
         }
-        delete[](polys);
     }//TODO: don't show in message id when osm_id == -1
-    catch (std::exception& e)
+    catch (const std::exception& e)
     {
         std::cerr << std::endl << "Standard exception processing relation id="<< osm_id << ": " << e.what()  << std::endl;
     }

@@ -336,7 +336,7 @@ class BaseTestCase(unittest.TestCase):
             self.conn=psycopg2.connect("dbname='osm2pgsql-test'")
             self.conn.autocommit = True
             self.cur = self.conn.cursor()
-        except Exception, e:
+        except Exception as e:
             print "I am unable to connect to the database." + e
 
     def dbClose(self):
@@ -352,7 +352,7 @@ class BaseTestCase(unittest.TestCase):
                 try:
                     self.cur.execute(sql_test_statements[i][2])
                     res = self.cur.fetchall()
-                except Exception, e:
+                except Exception as e:
                     self.assertEqual(0, 1, str(sql_test_statements[i][0]) + ": Failed to execute " + sql_test_statements[i][1] +
                                      " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
                 if (res == None):
@@ -507,13 +507,13 @@ def setupDB():
     try:
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database."
         exit(1)
 
     try:
         gen_cur = gen_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         gen_conn.close()
         print "I am unable to connect to the database."
         exit(1)
@@ -521,7 +521,7 @@ def setupDB():
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         gen_cur.execute("""CREATE DATABASE \"osm2pgsql-test\" WITH ENCODING 'UTF8'""")
-    except Exception, e:
+    except Exception as e:
         print "Failed to create osm2pgsql-test db" + e.pgerror
         exit(1);
     finally:
@@ -531,13 +531,13 @@ def setupDB():
     try:
         test_conn=psycopg2.connect("dbname='osm2pgsql-test'")
         test_conn.autocommit = True
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database." + e
         exit(1)
 
     try:
         test_cur = test_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database." + e
         gen_conn.close()
         exit(1)
@@ -558,7 +558,7 @@ def setupDB():
                 print "  sudo /bin/chown postgres.postgres tmp/psql-tablespace"
                 print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
                 exit(77)
-        except Exception, e:
+        except Exception as e:
             print "Failed to create directory for tablespace" + str(e)
 
         # Check for postgis
@@ -578,7 +578,7 @@ def setupDB():
         # Check for hstore support
         try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
-        except Exception, e:
+        except Exception as e:
             hst = findContribSql('hstore.sql')
             pgscript = open(hst).read()
             test_cur.execute(pgscript)
@@ -593,7 +593,7 @@ def tearDownDB():
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
         gen_cur = gen_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database."
         exit(1)
 
@@ -601,7 +601,7 @@ def tearDownDB():
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         if (created_tablespace == 1):
             gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
-    except Exception, e:
+    except Exception as e:
         print "Failed to clean up osm2pgsql-test db" + e.pgerror
         exit(1);
 

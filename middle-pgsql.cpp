@@ -1263,21 +1263,21 @@ struct pthread_thunk {
 extern "C" void *pthread_middle_pgsql_stop_one(void *arg) {
     pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
     return thunk->obj->pgsql_stop_one(thunk->ptr);
-};
+}
 } // anonymous namespace
 
 void middle_pgsql_t::stop(void)
 {
     int i;
 #ifdef HAVE_PTHREAD
-    pthread_t threads[num_tables];
+    std::vector<pthread_t> threads(num_tables);
 #endif
 
     cache.reset();
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
 #ifdef HAVE_PTHREAD
-    pthread_thunk thunks[num_tables];
+    std::vector<pthread_thunk> thunks(num_tables);
     for (i=0; i<num_tables; i++) {
         thunks[i].obj = this;
         thunks[i].ptr = &tables[i];
