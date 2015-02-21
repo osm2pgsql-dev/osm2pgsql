@@ -9,17 +9,10 @@
 #include <inttypes.h>
 #include <config.h>
 
-#ifdef OSMID64
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
 #define PRIdOSMID PRId64
 #define POSTGRES_OSMID_TYPE "int8"
-#else
-typedef int32_t osmid_t;
-#define strtoosmid strtol
-#define PRIdOSMID PRId32
-#define POSTGRES_OSMID_TYPE "int4"
-#endif
 
 enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
 
