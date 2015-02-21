@@ -252,7 +252,7 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
     pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
     thunk->ptr->stop();
     return NULL;
-};
+}
 } // anonymous namespace
 
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
