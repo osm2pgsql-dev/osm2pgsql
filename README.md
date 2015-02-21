@@ -83,7 +83,7 @@ process.
 
 On FreeBSD instead bootstrap and then run
 
-    LUA=`which lua52` LUA_INCLUDE=`pkg-config --cflags lua-5.2` LUA_LIB=`pkg-config --libs lua-5.2` ./configure --without-lockfree && gmake && gmake install
+    LUA_LIB=`pkg-config --libs lua-5.2` ./configure --without-lockfree && gmake && gmake install
 
 ## Usage ##
 
