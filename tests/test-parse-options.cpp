@@ -24,7 +24,7 @@ void run_test(const char* test_name, void (*testfunc)())
         fprintf(stderr, "%s\n", test_name);
         testfunc();
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
         fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "FAIL\n");
@@ -40,7 +40,7 @@ void parse_fail(const int argc, const char* argv[], const std::string& fail_mess
         options_t options = options_t::parse(argc, const_cast<char **>(argv));
         throw std::logic_error((boost::format("Expected '%1%'") % fail_message).str());
     }
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         if(!alg::icontains(e.what(), fail_message))
             throw std::logic_error((boost::format("Expected '%1%' but instead got '%2%'") % fail_message % e.what()).str());
@@ -125,7 +125,7 @@ void test_outputs()
         out = outs.front().get();
         throw std::logic_error("Expected 'not recognised'");
     }
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         if(!alg::icontains(e.what(), "not recognised"))
             throw std::logic_error((boost::format("Expected 'not recognised' but instead got '%2%'") % e.what()).str());

@@ -666,7 +666,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
     try {
         m_tagtransform.reset(new tagtransform(&m_options));
     }
-    catch(std::runtime_error& e) {
+    catch(const std::runtime_error& e) {
         fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         util::exit_nicely();
