@@ -37,7 +37,6 @@ struct middle_t : public middle_query_t {
 
     virtual int start(const options_t *out_options_) = 0;
     virtual void stop(void) = 0;
-    virtual void cleanup(void) = 0;
     virtual void analyze(void) = 0;
     virtual void end(void) = 0;
     virtual void commit(void) = 0;

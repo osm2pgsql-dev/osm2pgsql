@@ -70,10 +70,14 @@
 # way_area - datatype real. The area of the way, in the units of the projection
 # (e.g. square mercator meters). Only applies to areas
 #
-# osm_user, osm_uid, osm_version, osm_timestamp - datatype text. Used with the
-# --extra-attributes option to include metadata in the database. If importing
-# with both --hstore and --extra-attributes the meta-data will end up in the
-# tags hstore column regardless of the style file.
+# osm_user - datatype text
+# osm_uid - datatype integer
+# osm_version - datatype integer
+# osm_changeset - datatype integer
+# osm_timestamp - datatype timestamptz(0).
+# Used with the --extra-attributes option to include metadata in the database.
+# If importing with both --hstore and --extra-attributes the meta-data will
+# end up in the tags hstore column regardless of the style file.
 
 # OsmType  Tag          DataType     Flags
 node,way   access       text         linear
@@ -128,7 +132,7 @@ node,way   power_source text         linear
 node,way   public_transport text     polygon
 node,way   railway      text         linear
 node,way   ref          text         linear
-node,way   religion     text         nocache
+node,way   religion     text
 node,way   route        text         linear
 node,way   service      text         linear
 node,way   shop         text         polygon

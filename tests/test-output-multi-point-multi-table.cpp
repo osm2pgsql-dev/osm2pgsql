@@ -14,7 +14,6 @@
 #include "middle-pgsql.hpp"
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
-#include "text-tree.hpp"
 
 #include <libpq-fe.h>
 #include <sys/types.h>

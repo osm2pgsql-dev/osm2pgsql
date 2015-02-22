@@ -181,7 +181,7 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
       while ((p = strchr(k, ' ')))
         *p = '_';
 
-      keyval::addItem(&(tags), k, (char *)xv, 0);
+      tags.addItem(k, (char *)xv, 0);
       xmlFree(k);
       xmlFree(xv);
     }
@@ -246,31 +246,31 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
       if (xtmp) {
-    keyval::addItem(&(tags), "osm_user", (char *)xtmp, 0);
+          tags.addItem("osm_user", (char *)xtmp, false);
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
       if (xtmp) {
-    keyval::addItem(&(tags), "osm_uid", (char *)xtmp, 0);
+          tags.addItem("osm_uid", (char *)xtmp, false);
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
       if (xtmp) {
-    keyval::addItem(&(tags), "osm_version", (char *)xtmp, 0);
+          tags.addItem("osm_version", (char *)xtmp, false);
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
       if (xtmp) {
-    keyval::addItem(&(tags), "osm_timestamp", (char *)xtmp, 0);
+          tags.addItem("osm_timestamp", (char *)xtmp, false);
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
       if (xtmp) {
-    keyval::addItem(&(tags), "osm_changeset", (char *)xtmp, 0);
+          tags.addItem("osm_changeset", (char *)xtmp, false);
           xmlFree(xtmp);
       }
   }
@@ -294,7 +294,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
                 util::exit_nicely();
             }
         }
-        keyval::resetList(&(tags));
+        tags.resetList();
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
         if( action == ACTION_CREATE )
 	    osmdata->way_add(osm_id, nds, nd_count, &(tags) );
@@ -307,7 +307,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        keyval::resetList(&(tags));
+        tags.resetList();
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         if( action == ACTION_CREATE )
 	    osmdata->relation_add(osm_id, members, member_count, &(tags));
@@ -320,7 +320,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        keyval::resetList(&(tags));
+        tags.resetList();
         resetMembers();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
@@ -343,7 +343,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
         /* ignore */
-	keyval::resetList(&(tags)); /* We may have accumulated some tags even if we ignored the changeset */
+    tags.resetList(); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "create")) {

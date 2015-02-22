@@ -30,17 +30,8 @@
 #define GEOS_INLINE
 #endif
 
-/* Need to know which geos version we have to work out which headers to include */
-#include <geos/version.h>
-
-/* geos (3.0.0+) */
-#if (GEOS_VERSION_MAJOR==3)
-#if (GEOS_VERSION_MINOR>=1)
-/* Prepared geometries are new in 3.1.0 */
-#define HAS_PREPARED_GEOMETRIES
 #include <geos/geom/prep/PreparedGeometryFactory.h>
 #include <geos/geom/prep/PreparedPolygon.h>
-#endif
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
@@ -58,13 +49,6 @@ using namespace geos::geom;
 using namespace geos::io;
 using namespace geos::util;
 using namespace geos::operation::linemerge;
-#else
-/* geos-2.2.3 */
-#include <geos/geom.h>
-#include <geos/io.h>
-#include <geos/opLinemerge.h>
-using namespace geos;
-#endif
 
 #include "geometry-builder.hpp"
 
@@ -347,9 +331,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
-#ifdef HAS_PREPARED_GEOMETRIES
     geos::geom::prep::PreparedGeometryFactory pgf;
-#endif
+
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
 
@@ -413,19 +396,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
             {
                 if (polys[i].iscontained != 0) continue;
                 toplevelpolygons++;
-#ifdef HAS_PREPARED_GEOMETRIES
                 const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
-#endif
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-#ifdef HAS_PREPARED_GEOMETRIES
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
                     if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
-#else
-                    // Does polygon[i] contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && polys[i].polygon->contains(polys[j].polygon))
-#endif
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
@@ -462,9 +438,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
                         }
                     }
                 }
-#ifdef HAS_PREPARED_GEOMETRIES
-        pgf.destroy(preparedtoplevelpolygon);
-#endif
+              pgf.destroy(preparedtoplevelpolygon);
             }
             // polys now is a list of polygons tagged with which ones are inside each other
 
@@ -599,9 +573,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
-#ifdef HAS_PREPARED_GEOMETRIES
     geos::geom::prep::PreparedGeometryFactory pgf;
-#endif
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
 
@@ -694,19 +666,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
             {
                 if (polys[i].iscontained != 0) continue;
                 toplevelpolygons++;
-#ifdef HAS_PREPARED_GEOMETRIES
                 const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
-#endif
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-#ifdef HAS_PREPARED_GEOMETRIES
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
                     if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
-#else
-                    // Does polygon[i] contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && polys[i].polygon->contains(polys[j].polygon))
-#endif
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
@@ -743,9 +708,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
                         }
                     }
                 }
-#ifdef HAS_PREPARED_GEOMETRIES
-        pgf.destroy(preparedtoplevelpolygon);
-#endif
+              pgf.destroy(preparedtoplevelpolygon);
             }
             // polys now is a list of polygons tagged with which ones are inside each other
 

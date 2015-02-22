@@ -10,7 +10,6 @@
 #include "parse-xml2.hpp"
 #include "output.hpp"
 #include "options.hpp"
-#include "text-tree.hpp"
 #include "keyvals.hpp"
 
 void exit_nicely()

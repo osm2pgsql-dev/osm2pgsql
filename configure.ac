@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(osm2pgsql, 0.87.1)
+AC_INIT(osm2pgsql, 0.87.2-dev)
 
 dnl Required autoconf version
 AC_PREREQ(2.61)
@@ -49,17 +49,6 @@ AC_SUBST(LFS_CFLAGS)
 AC_CHECK_FUNC(lseek64,[AC_DEFINE(HAVE_LSEEK64, [1], [lseek64 is present])],[AX_COMPILE_CHECK_SIZEOF(off_t)])
 AC_CHECK_FUNCS([posix_fallocate posix_fadvise sync_file_range fork])
 
-
-dnl legacy 32bit ID mode
-AC_ARG_ENABLE([64bit-ids],
-    AS_HELP_STRING([--disable-64bit-ids], [Disable 64bit IDs for OSM IDs]), 
-    [ if test "$enableval" = "yes"
-      then
-        AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])
-      fi
-    ], [ AC_DEFINE(OSMID64, [1], [Enable 64bit OSM IDs])])
-
-
 dnl Check for libxml2 library
 AX_LIB_XML2
 if test "$HAVE_XML2" = "no" 
@@ -82,11 +71,7 @@ then
 fi
 
 dnl Check for Geos library
-AX_LIB_GEOS
-if test "x$GEOS_VERSION" = "x" 
-then
-  AC_MSG_ERROR([geos library not found]);
-fi
+AX_LIB_GEOS([3.1])
 
 dnl Check for Proj library
 AX_LIB_PROJ
@@ -127,6 +112,18 @@ AX_BOOST_BASE([1.48], , [AC_MSG_ERROR([cannot find Boost libraries, which are ar
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
 AX_BOOST_THREAD
+
+dnl Check if Boost is recent enough for lockfree, and if it hasn't been overridden
+AC_ARG_WITH([lockfree],
+  [AS_HELP_STRING([--without-lockfree],
+    [disable lockfree queue])],
+    [],
+    [with_lockfree=yes])
+
+if test "x$with_lockfree" = "xyes"
+then
+  AX_BOOST_BASE([1.53], AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue]), [])
+fi
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[

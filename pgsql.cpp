@@ -7,14 +7,13 @@
 #include <string.h>
 #include <libpq-fe.h>
 #include <boost/format.hpp>
+#include <boost/foreach.hpp>
 
-void escape(const char* src, std::string& dst)
+void escape(const std::string &src, std::string &dst)
 {
-    //loop over the chars in the input
-    size_t length = strlen(src);
-    for(size_t i = 0; i < length; ++i)
+    BOOST_FOREACH(const char c, src)
     {
-        switch(src[i]) {
+        switch(c) {
             case '\\':  dst.append("\\\\"); break;
             //case 8:   dst.append("\\\b"); break;
             //case 12:  dst.append("\\\f"); break;
@@ -22,41 +21,11 @@ void escape(const char* src, std::string& dst)
             case '\r':  dst.append("\\\r"); break;
             case '\t':  dst.append("\\\t"); break;
             //case 11:  dst.append("\\\v"); break;
-            default:    dst.push_back(src[i]); break;
+            default:    dst.push_back(c); break;
         }
     }
 }
 
-void escape(char *out, const int len, const char *in)
-{
-    /* Apply escaping of TEXT COPY data
-    Escape: backslash itself, newline, carriage return, and the current delimiter character (tab)
-    file:///usr/share/doc/postgresql-8.1.8/html/sql-copy.html
-    */
-    int count = 0;
-    const char *old_in = in, *old_out = out;
-
-    if (!len)
-        return;
-
-    while(*in && count < len-3) {
-        switch(*in) {
-            case '\\': *out++ = '\\'; *out++ = '\\'; count+= 2; break;
-                /*    case    8: *out++ = '\\'; *out++ = '\b'; count+= 2; break; */
-                /*    case   12: *out++ = '\\'; *out++ = '\f'; count+= 2; break; */
-            case '\n': *out++ = '\\'; *out++ = '\n'; count+= 2; break;
-            case '\r': *out++ = '\\'; *out++ = '\r'; count+= 2; break;
-            case '\t': *out++ = '\\'; *out++ = '\t'; count+= 2; break;
-                /*    case   11: *out++ = '\\'; *out++ = '\v'; count+= 2; break; */
-            default:   *out++ = *in; count++; break;
-        }
-        in++;
-    }
-    *out = '\0';
-
-    if (*in)
-        fprintf(stderr, "%s truncated at %d chars: %s\n%s\n", __FUNCTION__, count, old_in, old_out);
-}
 
 boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql)
 {
@@ -126,12 +95,12 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
     return 0;
 }
 
-void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql)
+void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql, int len)
 {
 #ifdef DEBUG_PGSQL
     fprintf(stderr, "%s>>> %s\n", context, sql );
 #endif
-    int r = PQputCopyData(sql_conn, sql, strlen(sql));
+    int r = PQputCopyData(sql_conn, sql, len);
     switch(r)
     {
         //need to wait for write ready

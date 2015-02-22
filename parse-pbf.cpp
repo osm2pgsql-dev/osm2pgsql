@@ -172,27 +172,19 @@ static size_t uncompress_blob(Blob *bmsg, void *buf, int32_t max_size)
 
 int addProtobufItem(struct keyval *head, ProtobufCBinaryData key, ProtobufCBinaryData val, int noDupe)
 {
-  char *keystr, *valstr;
-  int retval;
+  std::string keystr((const char *) key.data, key.len);
 
-  keystr = (char *)calloc(key.len + 1, 1);
-  memcpy(keystr, key.data, key.len);
+  assert(keystr.find('\0') == std::string::npos);
 
   /* drop certain keys (matching parse-xml2) */
-  if ((strcmp(keystr, "created_by") == 0) || (strcmp(keystr, "source") == 0)) {
-    free(keystr);
+  if ((keystr == "created_by") || (keystr == "source"))
     return 0;
-  }
 
-  valstr = (char *)calloc(val.len + 1, 1);
-  memcpy(valstr, val.data, val.len);
+  std::string valstr((const char *) val.data, val.len);
 
-  retval = keyval::addItem(head, keystr, valstr, noDupe);
+  assert(valstr.find('\0') == std::string::npos);
 
-  free(keystr);
-  free(valstr);
-
-  return retval;
+  return head->addItem(keystr, valstr, noDupe);
 }
 
 int addIntItem(struct keyval *head, const char *key, int val, int noDupe)
@@ -200,7 +192,7 @@ int addIntItem(struct keyval *head, const char *key, int val, int noDupe)
   char buf[100];
 
   sprintf(buf, "%d", val);
-  return keyval::addItem(head, key, buf, noDupe);
+  return head->addItem(key, buf, noDupe);
 }
 
 int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
@@ -221,7 +213,7 @@ int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
         username = (char *)calloc(user.len + 1, 1);
 	memcpy(username, user.data, user.len);
 
-	keyval::addItem(head, "osm_user", username, 0);
+	head->addItem("osm_user", username, false);
     free(username);
       }
 
@@ -250,7 +242,7 @@ int parse_pbf_t::processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *
     Node *node = group->nodes[node_id];
     double lat, lon;
 
-    keyval::resetList(&(tags));
+    tags.resetList();
 
     if (node->info && extra_attributes) {
       addInfoItems(&(tags), node->info, string_table);
@@ -303,7 +295,7 @@ int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGr
         DenseNodes *dense = group->dense;
 
         for (node_id = 0; node_id < dense->n_id; node_id++) {
-            keyval::resetList(&(tags));
+            tags.resetList();
 
             deltaid += dense->id[node_id];
             deltalat += dense->lat[node_id];
@@ -325,7 +317,7 @@ int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGr
                     addIntItem(&(tags), "osm_uid", deltauid, 0);
                     valstr = (char *)calloc(string_table->s[deltauser_sid].len + 1, 1);
                     memcpy(valstr, string_table->s[deltauser_sid].data, string_table->s[deltauser_sid].len);
-                    keyval::addItem(&(tags), "osm_user", valstr, 0);
+                    tags.addItem("osm_user", valstr, false);
                     free(valstr);
                 }
             }
@@ -373,7 +365,7 @@ int parse_pbf_t::processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *g
     Way *way = group->ways[way_id];
     osmid_t deltaref = 0;
 
-    keyval::resetList(&(tags));
+    tags.resetList();
 
     if (way->info && extra_attributes) {
       addInfoItems(&(tags), way->info, string_table);
@@ -424,7 +416,7 @@ int parse_pbf_t::processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGro
     Relation *relation = group->relations[rel_id];
     osmid_t deltamemids = 0;
 
-    keyval::resetList(&(tags));
+    tags.resetList();
 
     member_count = 0;
 

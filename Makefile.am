@@ -5,7 +5,6 @@ bin_PROGRAMS = osm2pgsql nodecachefilereader
 noinst_LTLIBRARIES = libosm2pgsql.la
 
 osm2pgsql_SOURCES = osm2pgsql.cpp \
-	binarysearcharray.hpp \
 	geometry-builder.hpp \
 	expire-tiles.hpp \
 	input.hpp \
@@ -32,14 +31,12 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	sanitizer.hpp \
 	sprompt.hpp \
 	table.hpp \
-	text-tree.hpp \
 	util.hpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
 
 libosm2pgsql_la_SOURCES = \
 	UTF8sanitizer.cpp \
-	binarysearcharray.cpp \
 	expire-tiles.cpp \
 	geometry-builder.cpp \
 	geometry-processor.cpp \
@@ -73,7 +70,6 @@ libosm2pgsql_la_SOURCES = \
 	table.cpp \
 	taginfo.cpp \
 	tagtransform.cpp \
-	text-tree.cpp \
 	util.cpp \
 	wildcmp.cpp
 

@@ -18,6 +18,7 @@
 #include "geometry-builder.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
+#include "table.hpp"
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)

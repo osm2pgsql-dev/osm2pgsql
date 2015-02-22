@@ -189,10 +189,9 @@ const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
   static int buflen;
 
   char *ptr;
-  struct keyval *i;
   int first;
 
-  int countlist = keyval::countList(tags);
+  int countlist = tags->countList();
   if( countlist == 0 )
   {
     if( escape )
@@ -211,10 +210,10 @@ _restart:
   ptr = buffer;
   first = 1;
   *ptr++ = '{';
-  // The lists are circular, exit when we reach the head again */
-  for( i=tags->next; i->key; i = i->next )
+
+  for(keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
   {
-    int maxlen = (strlen(i->key) + strlen(i->value)) * 4;
+    int maxlen = (i->key.length() + i->value.length()) * 4;
     if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
     {
       buflen <<= 1;
@@ -224,11 +223,11 @@ _restart:
     }
     if( !first ) *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->key, escape );
+    ptr = escape_tag( ptr, i->key.c_str(), escape );
     *ptr++ = '"';
     *ptr++ = ',';
     *ptr++ = '"';
-    ptr = escape_tag( ptr, i->value, escape );
+    ptr = escape_tag( ptr, i->value.c_str(), escape );
     *ptr++ = '"';
 
     first=0;
@@ -284,7 +283,7 @@ void pgsql_parse_tags( const char *string, struct keyval *tags )
     string++;
     string = decode_upto( string, val );
     // String points to the comma or closing '}' */
-    keyval::addItem( tags, key, val, 0 );
+    tags->addItem( key, val, false );
     if( *string == ',' )
       string++;
   }
@@ -468,17 +467,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     return count;
 }
 
-void middle_pgsql_t::cleanup(void)
-{
-    int i;
-
-    for (i=0; i<num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-            tables[i].sql_conn = NULL;
-        }
-    }
-}
 
 int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) {
     cache->set( id, lat, lon, tags );
@@ -651,7 +639,6 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     count = 0;
-    keyval::initList(&(tags[count]));
     for (i = 0; i < way_count; i++) {
         for (j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
@@ -666,10 +653,12 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
                 count_ptr[count] = nodes_get_list(nodes_ptr[count], list, num_nodes);
 
                 count++;
-                keyval::initList(&(tags[count]));
+                break;
             }
         }
     }
+
+    assert(count<=way_count);
 
     PQclear(res);
     free(tmp2);
@@ -697,9 +686,6 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
 
     // Make sure we're out of copy mode */
     pgsql_endCopy( way_table );
-
-    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
 
     // enqueue the jobs
     osmid_t id;
@@ -754,8 +740,6 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     way_parts.reserve(member_count);
     rel_parts.reserve(member_count);
 
-    keyval::initList( &member_list );
-
     for( i=0; i<member_count; i++ )
     {
       char tag = 0;
@@ -767,7 +751,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
         default: fprintf( stderr, "Internal error: Unknown member type %d\n", members[i].type ); util::exit_nicely();
       }
       sprintf( buf, "%c%" PRIdOSMID, tag, members[i].id );
-      keyval::addItem( &member_list, buf, members[i].role, 0 );
+      member_list.addItem( buf, members[i].role, false );
     }
 
     int all_count = 0;
@@ -787,7 +771,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
               id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
       free(tag_buf);
-      keyval::resetList(&member_list);
+      member_list.resetList();
       pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
       return 0;
     }
@@ -807,7 +791,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
     if( paramValues[4] )
         free((void *)paramValues[4]);
-    keyval::resetList(&member_list);
+    member_list.resetList();
     return 0;
 }
 
@@ -823,7 +807,6 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     int num_members;
     struct member *list;
     int i=0;
-    struct keyval *item;
 
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
@@ -840,13 +823,13 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
     }
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
-    keyval::initList(&member_temp);
     pgsql_parse_tags( PQgetvalue(res, 0, 0), &member_temp );
 
     num_members = strtol(PQgetvalue(res, 0, 2), NULL, 10);
     list = (struct member *)malloc( sizeof(struct member)*num_members );
 
-    while( (item = keyval::popItem(&member_temp)) )
+    keyval *item;
+    while((item = member_temp.popItem()))
     {
         if( i >= num_members )
         {
@@ -855,9 +838,9 @@ int middle_pgsql_t::relations_get(osmid_t id, struct member **members, int *memb
         }
         tag = item->key[0];
         list[i].type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
-        list[i].id = strtoosmid(item->key+1, NULL, 10 );
-        list[i].role = strdup( item->value );
-        keyval::freeItem(item);
+        list[i].id = strtoosmid(item->key.c_str()+1, NULL, 10 );
+        list[i].role = strdup( item->value.c_str() );
+        delete(item);
         i++;
     }
     *members = list;
@@ -895,9 +878,6 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
 {
     // Make sure we're out of copy mode */
     pgsql_endCopy( rel_table );
-
-    // at this point we always want to be in append mode, to not delete and recreate the node cache file */
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, 1, cache));
 
     // enqueue the jobs
     osmid_t id;
@@ -1240,6 +1220,9 @@ void middle_pgsql_t::commit(void) {
             tables[i].transactionMode = 0;
         }
     }
+    // Make sure the flat nodes are committed to disk or there will be
+    // surprises later.
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 }
 
 void *middle_pgsql_t::pgsql_stop_one(void *arg)
@@ -1252,37 +1235,16 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     fprintf(stderr, "Stopping table: %s\n", table->name);
     pgsql_endCopy(table);
     time(&start);
-    if (!out_options->droptemp)
+    if (out_options->droptemp)
     {
-        if (build_indexes && table->array_indexes) {
-            char *buffer = (char *) malloc(strlen(table->array_indexes) + 99);
-            // we need to insert before the TABLESPACE setting, if any */
-            const char *insertpos = strstr(table->array_indexes, "TABLESPACE");
-            if (!insertpos) insertpos = strchr(table->array_indexes, ';');
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name);
+    }
+    else if (build_indexes && table->array_indexes)
+    {
+        fprintf(stderr, "Building index on table: %s\n", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
+    }
 
-            /* automatically insert FASTUPDATE=OFF when creating,
-               indexes for PostgreSQL 8.4 and higher
-               see http://lists.openstreetmap.org/pipermail/dev/2011-January/021704.html */
-            if (insertpos && PQserverVersion(sql_conn) >= 80400) {
-                fprintf(stderr, "Building index on table: %s (fastupdate=off)\n", table->name);
-                size_t n_chars = insertpos - table->array_indexes;
-                strncpy(buffer, table->array_indexes, n_chars);
-                // strncpy doesn't necessarily null-terminate, so we need to add that
-                buffer[n_chars] = '\0';
-                strcat(buffer, " WITH (FASTUPDATE=OFF)");
-                strcat(buffer, insertpos);
-            } else {
-                fprintf(stderr, "Building index on table: %s\n", table->name);
-                strcpy(buffer, table->array_indexes);
-            }
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", buffer);
-            free(buffer);
-        }
-    }
-    else
-    {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "drop table %s", table->name);
-    }
     PQfinish(sql_conn);
     table->sql_conn = NULL;
     time(&end);
@@ -1384,7 +1346,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_ways FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_ways;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
     tables.push_back(table_desc(
         /*table = t_rel,*/
@@ -1404,7 +1366,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
 
     // set up the rest of the variables from the tables.
@@ -1417,6 +1379,12 @@ middle_pgsql_t::middle_pgsql_t()
 }
 
 middle_pgsql_t::~middle_pgsql_t() {
+    for (int i=0; i < num_tables; i++) {
+        if (tables[i].sql_conn) {
+            PQfinish(tables[i].sql_conn);
+        }
+    }
+
 }
 
 boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
@@ -1427,7 +1395,10 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     //NOTE: this is thread safe for use in pending async processing only because
     //during that process they are only read from
     mid->cache = cache;
-    mid->persistent_cache = persistent_cache;
+    // The persistent cache on the other hand is not thread-safe for reading,
+    // so we create one per instance.
+    if (out_options->flat_node_cache_enabled)
+        mid->persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {

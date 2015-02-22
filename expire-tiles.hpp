@@ -1,11 +1,12 @@
 #ifndef EXPIRE_TILES_H
 #define EXPIRE_TILES_H
 
-#include "table.hpp"
 #include "options.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+
+class table_t;
 
 struct expire_tiles : public boost::noncopyable {
     explicit expire_tiles(const struct options_t *options);

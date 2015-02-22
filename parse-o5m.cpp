@@ -809,18 +809,18 @@ return 1;
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      keyval::addItem(&(tags),"osm_version",tmpstr,0);
+      tags.addItem("osm_version",tmpstr,false);
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        keyval::addItem(&(tags),"osm_timestamp",tmpstr, 0);
+        tags.addItem("osm_timestamp",tmpstr, false);
         if(histime!=0) {
             hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          keyval::addItem(&(tags),"osm_uid",tmpstr,0);
-          keyval::addItem(&(tags),"osm_user",hisuser,0);
+          tags.addItem("osm_uid",tmpstr,false);
+          tags.addItem("osm_user",hisuser,false);
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -841,7 +841,7 @@ return 1;
         break;
       default: ;
         }
-      keyval::resetList(&(tags));
+      tags.resetList();
       continue;  /* end processing for this object */
     }  /* end   delete request */
     else {  /* not a delete request */
@@ -858,7 +858,7 @@ return 1;
         node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
         if(!node_wanted(node_lat,node_lon)) {
-          keyval::resetList(&(tags));
+          tags.resetList();
   continue;
           }
         proj->reproject(&(node_lat),&(node_lon));
@@ -920,7 +920,7 @@ return 1;
             /* replace all blanks in key by underlines */
             p++;
             }
-          keyval::addItem(&(tags),k,v,0);
+          tags.addItem(k,v,false);
           }
       }  /* end   for all tags of this object */
 
@@ -954,7 +954,7 @@ return 1;
         }
 
       /* reset temporary storage lists */
-      keyval::resetList(&(tags));
+      tags.resetList();
 
     }  /* end   not a delete request */
 

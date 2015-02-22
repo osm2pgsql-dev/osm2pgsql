@@ -16,7 +16,6 @@
 #include "options.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
-#include "binarysearcharray.hpp"
 
 void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
                         int itterations, int max_size, int process_number) {

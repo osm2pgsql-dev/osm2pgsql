@@ -4,6 +4,8 @@
 #include "node-ram-cache.hpp"
 #include <boost/shared_ptr.hpp>
 
+#include <vector>
+
 #define MAXIMUM_INITIAL_ID 2600000000
 
 #define READ_NODE_CACHE_SIZE 10000
@@ -22,6 +24,29 @@ struct persistentCacheHeader {
 	int id_size;
     osmid_t max_initialised_id;
 };
+
+struct cache_index_entry {
+    osmid_t key;
+    int value;
+
+    cache_index_entry(osmid_t k, int v) : key(k), value(v) {}
+    cache_index_entry() {}
+};
+
+inline bool operator<(cache_index_entry const &a, cache_index_entry const &b)
+{
+    return a.key < b.key;
+}
+
+inline bool operator<(cache_index_entry const &a, osmid_t b)
+{
+    return a.key < b;
+}
+
+inline bool operator<(osmid_t a, cache_index_entry const &b)
+{
+    return a < b.key;
+}
 
 struct node_persistent_cache : public boost::noncopyable
 {
@@ -46,6 +71,9 @@ private:
     int load_block(osmid_t block_offset);
     void nodes_set_create_writeout_block();
 
+    void remove_from_cache_idx(osmid_t block_offset);
+    void add_to_cache_idx(cache_index_entry const &entry);
+
     int node_cache_fd;
     const char * node_cache_fname;
     int append_mode;
@@ -53,7 +81,9 @@ private:
     struct persistentCacheHeader cacheHeader;
     struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
     struct ramNodeBlock * readNodeBlockCache;
-    struct binary_search_array * readNodeBlockCacheIdx;
+
+    typedef std::vector<cache_index_entry> cache_index;
+    cache_index readNodeBlockCacheIdx;
 
     int scale_;
     int cache_already_written;

@@ -22,9 +22,9 @@
  */
 struct flagsname {
     flagsname(const char *name_, int flag_)
-        : name(strdup(name_)), flag(flag_) {
+        : name(name_), flag(flag_) {
     }
-    char *name;
+    const char *name;
     int flag;
 };
 

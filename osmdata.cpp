@@ -9,9 +9,9 @@
 
 #include <stdexcept>
 #include <utility>
+#include <cstdio>
 
-#if BOOST_VERSION < 105300
-#else
+#ifdef HAVE_LOCKFREE
 #include <boost/atomic.hpp>
 #endif
 
@@ -167,7 +167,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
     typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
         while (true) {
             //get the job off the queue synchronously
@@ -209,7 +209,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
     //starts up count threads and works on the queue
     pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
@@ -256,7 +256,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, true));
 #else
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, true));
@@ -307,7 +307,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, false));
 #else
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, false));
@@ -353,7 +353,7 @@ private:
     //job queue
     pending_queue_t queue;
 
-#if BOOST_VERSION < 105300
+#ifndef HAVE_LOCKFREE
     //how many ids within the job have been processed
     size_t ids_done;
     //so the threads can manage some of the shared state

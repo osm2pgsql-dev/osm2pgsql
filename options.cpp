@@ -96,7 +96,8 @@ namespace
                         reduces the RAM usage but is much slower. This switch is\n\
                         required if you want to update with --append later.\n\
        -S|--style       Location of the style file. Defaults to\n");
-        printf("                    %s/default.style.\n", OSM2PGSQL_DATADIR);
+        printf("\
+                        %s/default.style.\n", OSM2PGSQL_DATADIR);
         printf("%s", "\
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
     \n\
@@ -157,10 +158,12 @@ namespace
                             us twice as much virtual memory, but no more physical \n\
                             memory.\n");
     #ifdef __amd64__
-        printf("                    The default is \"optimized\"\n");
+        printf("\
+                        The default is \"optimized\"\n");
     #else
         /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
-        printf("                    The default is \"sparse\"\n");
+        printf("\
+                        The default is \"sparse\"\n");
     #endif
         printf("%s", "\
           --flat-nodes  Specifies the flat file to use to persistently store node \n\
@@ -180,7 +183,8 @@ namespace
        -r|--input-reader    Input frontend.\n\
                         libxml2   - Parse XML using libxml2. (default)\n");
     #ifdef BUILD_READER_PBF
-        printf("                    pbf       - OSM binary format.\n");
+        printf("\
+                        pbf       - OSM binary format.\n");
     #endif
         printf("\
        -O|--output      Output backend.\n\

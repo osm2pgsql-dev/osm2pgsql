@@ -62,6 +62,14 @@ sudo yum install gcc-c++ boost-devel libxml2-devel geos-devel \
   postgresql-devel bzip2-devel proj-devel protobuf-compiler
 ```
 
+To install on a FreeBSD system, use
+
+```sh
+pkg install devel/git devel/autoconf devel/automake devel/gmake devel/libtool \
+  textproc/libxml2 graphics/geos graphics/proj databases/postgresql94-client \
+  devel/boost-libs devel/protobuf-c lang/lua52 devel/pkgconf
+```
+
 Then you should be able to bootstrap the build system:
 
     ./autogen.sh
@@ -72,6 +80,10 @@ And then run the standard GNU build install:
 
 Please see `./configure --help` for more options on how to control the build
 process.
+
+On FreeBSD instead bootstrap and then run
+
+    LUA_LIB=`pkg-config --libs lua-5.2` ./configure --without-lockfree && gmake && gmake install
 
 ## Usage ##
 

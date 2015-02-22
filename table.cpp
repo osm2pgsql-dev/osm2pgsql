@@ -221,7 +221,9 @@ void table_t::stop()
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
         fprintf(stderr, "Analyzing %s finished\n", name.c_str());
 
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %3% ORDER BY way") % name % (table_space ? "TABLESPACE " + table_space.get() : "") % name).str());
+        // Special handling for empty geometries because geohash chokes on
+        // empty geometries on postgis 1.5.
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %3% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END") % name % (table_space ? "TABLESPACE " + table_space.get() : "") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %2%") % name % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
@@ -273,7 +275,7 @@ void table_t::stop_copy()
     //if there is stuff left over in the copy buffer send it offand copy it before we stop
     else if(buffer.length() != 0)
     {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
         buffer.clear();
     };
 
@@ -345,7 +347,7 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
     //send all the data to postgres
     if(buffer.length() > BUFFER_SEND_SIZE)
     {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer.c_str());
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
         buffer.clear();
     }
 }
@@ -356,7 +358,7 @@ void table_t::write_columns(keyval *tags, string& values)
     for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
     {
         keyval *tag = NULL;
-        if ((tag = keyval::getTag(tags, column->first.c_str())))
+        if ((tag = tags->getTag(column->first)))
         {
             escape_type(tag->value, column->second.c_str(), values);
             //remember we already used this one so we cant use again later in the hstore column
@@ -373,18 +375,18 @@ void table_t::write_tags_column(keyval *tags, std::string& values)
 {
     //iterate through the list of tags, first one is always null
     bool added = false;
-    for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
+    for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
     {
         //skip z_order tag and keys which have their own column
-        if ((xtags->has_column) || (strcmp("z_order", xtags->key) == 0))
+        if (xtags->has_column || ("z_order" == xtags->key))
             continue;
 
         //hstore ASCII representation looks like "key"=>"value"
         if(added)
             values.push_back(',');
-        escape4hstore(xtags->key, values);
+        escape4hstore(xtags->key.c_str(), values);
         values.append("=>");
-        escape4hstore(xtags->value, values);
+        escape4hstore(xtags->value.c_str(), values);
 
         //we did at least one so we need commas from here on out
         added = true;
@@ -400,17 +402,16 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
     //iterate over all configured hstore columns in the options
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
     {
-        //a clone of the tags pointer
         bool added = false;
 
         //iterate through the list of tags, first one is always null
-        for (keyval* xtags = tags->next; xtags->key != NULL; xtags = xtags->next)
+        for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
         {
             //check if the tag's key starts with the name of the hstore column
-            if(hstore_column->find(xtags->key) == 0)
+            if(xtags->key.compare(0, hstore_column->size(), *hstore_column) == 0)
             {
                 //generate the short key name, somehow pointer arithmetic works against this member of the keyval data structure...
-                char* shortkey = xtags->key + hstore_column->size();
+                const char* shortkey = xtags->key.c_str() + hstore_column->size();
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "key"=>"value"
@@ -418,7 +419,7 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
                     values.push_back(',');
                 escape4hstore(shortkey, values);
                 values.append("=>");
-                escape4hstore(xtags->value, values);
+                escape4hstore(xtags->value.c_str(), values);
 
                 //we did at least one so we need commas from here on out
                 added = true;
@@ -464,12 +465,12 @@ void table_t::escape4hstore(const char *src, string& dst)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const char *value, const char *type, string& dst) {
+void table_t::escape_type(const string &value, const char *type, string& dst) {
 
     // For integers we take the first number, or the average if it's a-b
     if (!strcmp(type, "int4")) {
         int from, to;
-        int items = sscanf(value, "%d-%d", &from, &to);
+        int items = sscanf(value.c_str(), "%d-%d", &from, &to);
         if (items == 1)
             dst.append((single_fmt % from).str());
         else if (items == 2)
