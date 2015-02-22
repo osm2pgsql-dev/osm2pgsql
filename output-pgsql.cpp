@@ -39,9 +39,19 @@
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/exception_ptr.hpp>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+
+/* make the diagnostic information work with older versions of
+ * boost - the function signature changed at version 1.54.
+ */
+#if BOOST_VERSION >= 105400
+#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e), true)
+#else
+#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e))
+#endif
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
@@ -245,13 +255,21 @@ namespace {
 /* Using pthreads requires us to shoe-horn everything into various void*
  * pointers. Improvement for the future: just use boost::thread. */
 struct pthread_thunk {
-    table_t *ptr;
+  table_t *ptr;
+  boost::exception_ptr error;
 };
 
 extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
-    pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
+  pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
+
+  try {
     thunk->ptr->stop();
-    return NULL;
+
+  } catch (...) {
+    thunk->error = boost::current_exception();
+  }
+
+  return NULL;
 };
 } // anonymous namespace
 
@@ -368,22 +386,34 @@ void output_pgsql_t::stop()
       pthread_thunk thunks[NUM_TABLES];
       for (i=0; i<NUM_TABLES; i++) {
           thunks[i].ptr = m_tables[i].get();
+          thunks[i].error = boost::exception_ptr();
       }
 
       for (i=0; i<NUM_TABLES; i++) {
           int ret = pthread_create(&threads[i], NULL, pthread_output_pgsql_stop_one, &thunks[i]);
           if (ret) {
-              fprintf(stderr, "pthread_create() returned an error (%d)", ret);
+              fprintf(stderr, "pthread_create() returned an error (%d)\n", ret);
               util::exit_nicely();
           }
       }
 
+      // set a flag if there are any errors - this allows us to collect all the
+      // threads and check them all for errors before shutting down the process.
+      bool thread_had_error = false;
       for (i=0; i<NUM_TABLES; i++) {
           int ret = pthread_join(threads[i], NULL);
           if (ret) {
-              fprintf(stderr, "pthread_join() returned an error (%d)", ret);
-              util::exit_nicely();
+              fprintf(stderr, "pthread_join() returned an error (%d)\n", ret);
+              thread_had_error = true;
           }
+          if (thunks[i].error) {
+            std::string error_message = BOOST_DIAGNOSTIC_INFO(thunks[i].error);
+            fprintf(stderr, "pthread_join() returned exception: %s\n", error_message.c_str());
+            thread_had_error = true;
+          }
+      }
+      if (thread_had_error) {
+        util::exit_nicely();
       }
     } else {
 #endif
