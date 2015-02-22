@@ -24,7 +24,9 @@
 #
 # linear - Create a column for this tag
 #
-# phstore - Don't create a column for this tag, but objects with the tag are areas
+# hstore - add tag to hstore only instead of its own column
+#
+# phstore - Same as polygon,hstore for backward compatibility
 #
 # delete - Drop this tag completely and don't create a column for it. This also
 # prevents the tag from being added to hstore columns
@@ -152,12 +154,12 @@ way        way_area     real                # This is calculated during import
 # Area tags
 # We don't make columns for these tags, but objects with them are areas.
 # Mainly for use with hstore
-way         abandoned:aeroway       text    phstore
-way         abandoned:amenity       text    phstore
-way         abandoned:building      text    phstore
-way         abandoned:landuse       text    phstore
-way         abandoned:power         text    phstore
-way         area:highway            text    phstore
+way         abandoned:aeroway       text    polygon,hstore
+way         abandoned:amenity       text    polygon,hstore
+way         abandoned:building      text    polygon,hstore
+way         abandoned:landuse       text    polygon,hstore
+way         abandoned:power         text    polygon,hstore
+way         area:highway            text    polygon,hstore
 
 # Deleted tags
 # These are tags that are generally regarded as useless for most rendering.
