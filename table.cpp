@@ -218,8 +218,6 @@ void table_t::stop()
         time(&start);
 
         fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
-        fprintf(stderr, "Analyzing %s finished\n", name.c_str());
 
         // Special handling for empty geometries because geohash chokes on
         // empty geometries on postgis 1.5.
