@@ -44,6 +44,15 @@
 #include <limits>
 #include <stdexcept>
 
+/* make the diagnostic information work with older versions of
+ * boost - the function signature changed at version 1.54.
+ */
+#if BOOST_VERSION >= 105400
+#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e), true)
+#else
+#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e))
+#endif
+
 #define SRID (reproj->project_getprojinfo()->srs)
 
 /* FIXME: Shouldn't malloc this all to begin with but call realloc()
@@ -398,7 +407,7 @@ void output_pgsql_t::stop()
               thread_had_error = true;
           }
           if (thunks[i].error) {
-            std::string error_message = boost::diagnostic_information(thunks[i].error, true);
+            std::string error_message = BOOST_DIAGNOSTIC_INFO(thunks[i].error);
             fprintf(stderr, "pthread_join() returned exception: %s\n", error_message.c_str());
             thread_had_error = true;
           }
