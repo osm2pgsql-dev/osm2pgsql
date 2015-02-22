@@ -5,34 +5,34 @@
 # See default.style for documentation on all the flags
 
 # OsmType   Tag                     Type    Flags
-# Insert your own columns here, or change polygon,hstore to polygon below
-way         abandoned:aeroway       text    polygon,hstore
-way         abandoned:amenity       text    polygon,hstore
-way         abandoned:building      text    polygon,hstore
-way         abandoned:landuse       text    polygon,hstore
-way         abandoned:power         text    polygon,hstore
-way         area:highway            text    polygon,hstore
-node,way    aeroway                 text    polygon,hstore
-node,way    amenity                 text    polygon,hstore
-node,way    building                text    polygon,hstore
-way         building:part           text    polygon,hstore
-node,way    harbour                 text    polygon,hstore
-node,way    historic                text    polygon,hstore
-node,way    landuse                 text    polygon,hstore
-node,way    leisure                 text    polygon,hstore
-node,way    man_made                text    polygon,hstore
-node,way    military                text    polygon,hstore
-node,way    natural                 text    polygon,hstore
-node,way    office                  text    polygon,hstore
-node,way    place                   text    polygon,hstore
-node,way    power                   text    polygon,hstore
-node,way    public_transport        text    polygon,hstore
-node,way    shop                    text    polygon,hstore
-node,way    sport                   text    polygon,hstore
-node,way    tourism                 text    polygon,hstore
-node,way    water                   text    polygon,hstore
-node,way    waterway                text    polygon,hstore
-node,way    wetland                 text    polygon,hstore
+# Insert your own columns here, or change polygon,nocolumn to polygon below
+way         abandoned:aeroway       text    polygon,nocolumn
+way         abandoned:amenity       text    polygon,nocolumn
+way         abandoned:building      text    polygon,nocolumn
+way         abandoned:landuse       text    polygon,nocolumn
+way         abandoned:power         text    polygon,nocolumn
+way         area:highway            text    polygon,nocolumn
+node,way    aeroway                 text    polygon,nocolumn
+node,way    amenity                 text    polygon,nocolumn
+node,way    building                text    polygon,nocolumn
+way         building:part           text    polygon,nocolumn
+node,way    harbour                 text    polygon,nocolumn
+node,way    historic                text    polygon,nocolumn
+node,way    landuse                 text    polygon,nocolumn
+node,way    leisure                 text    polygon,nocolumn
+node,way    man_made                text    polygon,nocolumn
+node,way    military                text    polygon,nocolumn
+node,way    natural                 text    polygon,nocolumn
+node,way    office                  text    polygon,nocolumn
+node,way    place                   text    polygon,nocolumn
+node,way    power                   text    polygon,nocolumn
+node,way    public_transport        text    polygon,nocolumn
+node,way    shop                    text    polygon,nocolumn
+node,way    sport                   text    polygon,nocolumn
+node,way    tourism                 text    polygon,nocolumn
+node,way    water                   text    polygon,nocolumn
+node,way    waterway                text    polygon,nocolumn
+node,way    wetland                 text    polygon,nocolumn
 node,way    z_order                 int4    linear  # This is calculated during import
 way         way_area                real            # This is calculated during import
 
