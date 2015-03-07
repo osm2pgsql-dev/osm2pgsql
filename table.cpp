@@ -108,15 +108,6 @@ void table_t::start()
     if (!append)
     {
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%") % name).str());
-    }//we are checking in append mode that the srid you specified matches whats already there
-    else
-    {
-        boost::shared_ptr<PGresult> res =  pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT srid FROM geometry_columns WHERE f_table_name='%1%';") % name).str());
-        if (!((PQntuples(res.get()) == 1) && (PQnfields(res.get()) == 1)))
-            throw std::runtime_error((fmt("Problem reading geometry information for table %1% - does it exist?\n") % name).str());
-        char* their_srid = PQgetvalue(res.get(), 0, 0);
-        if (srid.compare(their_srid) != 0)
-            throw std::runtime_error((fmt("SRID mismatch: cannot append to table %1% (SRID %2%) using selected SRID %3%\n") % name % their_srid % srid).str());
     }
 
     /* These _tmp tables can be left behind if we run out of disk space */
