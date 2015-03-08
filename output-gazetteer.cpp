@@ -150,7 +150,7 @@ void place_tag_processor::process_tags(keyval *tags)
         } else if (item->key == "natural") {
             if (item->value != "no" &&
                 item->value != "yes" &&
-                item->value != "costaline")
+                item->value != "coastline")
                 places.push_back(item);
         } else if (item->key == "landuse") {
             if (item->value == "cemetry")
