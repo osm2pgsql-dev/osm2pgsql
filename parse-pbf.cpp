@@ -176,10 +176,6 @@ int addProtobufItem(struct keyval *head, ProtobufCBinaryData key, ProtobufCBinar
 
   assert(keystr.find('\0') == std::string::npos);
 
-  /* drop certain keys (matching parse-xml2) */
-  if ((keystr == "created_by") || (keystr == "source"))
-    return 0;
-
   std::string valstr((const char *) val.data, val.len);
 
   assert(valstr.find('\0') == std::string::npos);

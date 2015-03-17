@@ -172,19 +172,16 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
     xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
     assert(xk);
 
-    /* 'created_by' and 'source' are common and not interesting to mapnik renderer */
-    if (strcmp((char *)xk, "created_by") && strcmp((char *)xk, "source")) {
-      char *p;
-      xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
-      assert(xv);
-      k  = (char *)xmlStrdup(xk);
-      while ((p = strchr(k, ' ')))
-        *p = '_';
+    char *p;
+    xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
+    assert(xv);
+    k  = (char *)xmlStrdup(xk);
+    while ((p = strchr(k, ' ')))
+      *p = '_';
 
-      tags.addItem(k, (char *)xv, 0);
-      xmlFree(k);
-      xmlFree(xv);
-    }
+    tags.addItem(k, (char *)xv, 0);
+    xmlFree(k);
+    xmlFree(xv);
     xmlFree(xk);
   } else if (xmlStrEqual(name, BAD_CAST "nd")) {
       xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");

@@ -913,15 +913,13 @@ return 1;
         char* k,*v,*p;
 
         str_read(&bufp,&k,&v);
-        if(strcmp(k,"created_by") && strcmp(k,"source")) {
-          p= k;
-          while(*p!=0) {
-            if(*p==' ') *p= '_';
-            /* replace all blanks in key by underlines */
-            p++;
-            }
-          tags.addItem(k,v,false);
+        p= k;
+        while(*p!=0) {
+          if(*p==' ') *p= '_';
+          /* replace all blanks in key by underlines */
+          p++;
           }
+        tags.addItem(k,v,false);
       }  /* end   for all tags of this object */
 
       /* write object into database */
