@@ -38,15 +38,15 @@ int output_null_t::pending_relation(osmid_t id, int exists) {
     return 0;
 }
 
-int output_null_t::node_add(osmid_t a, double b, double c, struct keyval *k) {
+int output_null_t::node_add(osmid_t, double, double, const taglist_t &) {
   return 0;
 }
 
-int output_null_t::way_add(osmid_t a, osmid_t *b, int c, struct keyval *k) {
+int output_null_t::way_add(osmid_t a, const idlist_t &, const taglist_t &) {
   return 0;
 }
 
-int output_null_t::relation_add(osmid_t a, struct member *b, int c, struct keyval *k) {
+int output_null_t::relation_add(osmid_t a, const memberlist_t &, const taglist_t &) {
   return 0;
 }
 
@@ -62,15 +62,15 @@ int output_null_t::relation_delete(osmid_t i) {
   return 0;
 }
 
-int output_null_t::node_modify(osmid_t a, double b, double c, struct keyval * k) {
+int output_null_t::node_modify(osmid_t, double, double, const taglist_t &) {
   return 0;
 }
 
-int output_null_t::way_modify(osmid_t a, osmid_t *b, int c, struct keyval *k) {
+int output_null_t::way_modify(osmid_t, const idlist_t &, const taglist_t &) {
   return 0;
 }
 
-int output_null_t::relation_modify(osmid_t a, struct member *b, int c, struct keyval *k) {
+int output_null_t::relation_modify(osmid_t, const memberlist_t &, const taglist_t &) {
   return 0;
 }
 

@@ -2,7 +2,6 @@
 #define ID_TRACKER_HPP
 
 #include "osmtypes.hpp"
-#include <string>
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
 

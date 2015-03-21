@@ -44,11 +44,16 @@ public:
 	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
 protected:
 	parse_pbf_t();
-	int processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
-	int processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
-	int processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
-	int processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
-	int processOsmData(struct osmdata_t *osmdata, void *data, size_t length);
+	int processOsmDataNodes(osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
+	int processOsmDataDenseNodes(osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity);
+	int processOsmDataWays(osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
+	int processOsmDataRelations(osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table);
+	int processOsmData(osmdata_t *osmdata, void *data, size_t length);
+
+private:
+    void addProtobufItem(ProtobufCBinaryData &key, ProtobufCBinaryData &val);
+    void addIntItem(const char *key, int val);
+    void addInfoItems(Info *info, StringTable *string_table);
 };
 
 #endif //BUILD_READER_PBF

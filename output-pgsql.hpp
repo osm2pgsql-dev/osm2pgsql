@@ -39,13 +39,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
@@ -60,10 +60,13 @@ public:
 
 protected:
 
-    int pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon);
-    int pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists);
-    int pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const * xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole, bool pending);
-    int pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists, bool pending=false);
+    int pgsql_out_node(osmid_t id, const taglist_t &tags, double node_lat, double node_lon);
+    int pgsql_out_way(osmid_t id, const taglist_t &tags, const nodelist_t &nodes, int exists);
+    int pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
+                           const multinodelist_t &xnodes, const multitaglist_t & xtags,
+                           const idlist_t &xid, const rolelist_t &xrole,
+                           bool pending);
+    int pgsql_process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, int exists, bool pending=false);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 

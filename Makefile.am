@@ -8,7 +8,6 @@ osm2pgsql_SOURCES = osm2pgsql.cpp \
 	geometry-builder.hpp \
 	expire-tiles.hpp \
 	input.hpp \
-	keyvals.hpp \
 	middle-pgsql.hpp \
 	middle-ram.hpp \
 	middle.hpp \
@@ -42,7 +41,6 @@ libosm2pgsql_la_SOURCES = \
 	geometry-processor.cpp \
 	id-tracker.cpp \
 	input.cpp \
-	keyvals.cpp \
 	middle.cpp \
 	middle-pgsql.cpp \
 	middle-ram.cpp \

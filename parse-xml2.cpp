@@ -22,7 +22,6 @@
 #-----------------------------------------------------------------------------
 */
 
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -82,10 +81,9 @@ void parse_xml2_t::SetFiletype(const xmlChar* name, osmdata_t* osmdata)
 	}
 }
 
-void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, struct osmdata_t *osmdata)
+void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, osmdata_t *osmdata)
 {
   xmlChar *xid, *xlat, *xlon, *xk, *xv, *xrole, *xtype;
-  char *k;
 
   //first time in we figure out what kind of data this is
   if (filetype == FILETYPE_NONE)
@@ -122,7 +120,7 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
     }
     count_node++;
     if (count_node%10000 == 0)
-      printStatus();
+      print_status();
 
     xmlFree(xid);
     xmlFree(xlon);
@@ -143,9 +141,9 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
     }
     count_way++;
     if (count_way%1000 == 0)
-      printStatus();
+      print_status();
 
-    nd_count = 0;
+    nds.clear();
     xmlFree(xid);
 
   } else if (xmlStrEqual(name, BAD_CAST "relation")) {
@@ -164,33 +162,27 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
     }
     count_rel++;
     if (count_rel%10 == 0)
-      printStatus();
+      print_status();
 
-    member_count = 0;
+    members.clear();
     xmlFree(xid);
   } else if (xmlStrEqual(name, BAD_CAST "tag")) {
     xk = xmlTextReaderGetAttribute(reader, BAD_CAST "k");
     assert(xk);
 
-    char *p;
     xv = xmlTextReaderGetAttribute(reader, BAD_CAST "v");
     assert(xv);
-    k  = (char *)xmlStrdup(xk);
-    while ((p = strchr(k, ' ')))
-      *p = '_';
 
-    tags.addItem(k, (char *)xv, 0);
-    xmlFree(k);
+    tags.push_back(tag((const char *)xk, (const char *)xv));
+
     xmlFree(xv);
     xmlFree(xk);
   } else if (xmlStrEqual(name, BAD_CAST "nd")) {
       xid  = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
       assert(xid);
 
-      nds[nd_count++] = strtoosmid( (char *)xid, NULL, 10 );
+      nds.push_back(strtoosmid( (char *)xid, NULL, 10 ));
 
-      if( nd_count >= nd_max )
-        realloc_nodes();
       xmlFree(xid);
   } else if (xmlStrEqual(name, BAD_CAST "member")) {
     xrole = xmlTextReaderGetAttribute(reader, BAD_CAST "role");
@@ -202,20 +194,16 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
     xid = xmlTextReaderGetAttribute(reader, BAD_CAST "ref");
     assert(xid);
 
-    members[member_count].id = strtoosmid((char *) xid, NULL, 0);
-    members[member_count].role = strdup((char *) xrole);
-
-    /* Currently we are only interested in 'way' members since these form polygons with holes */
+    OsmType type = OSMTYPE_NODE;
     if (xmlStrEqual(xtype, BAD_CAST "way"))
-      members[member_count].type = OSMTYPE_WAY;
-    if (xmlStrEqual(xtype, BAD_CAST "node"))
-      members[member_count].type = OSMTYPE_NODE;
-    if (xmlStrEqual(xtype, BAD_CAST "relation"))
-      members[member_count].type = OSMTYPE_RELATION;
-    member_count++;
+      type = OSMTYPE_WAY;
+    else if (xmlStrEqual(xtype, BAD_CAST "node"))
+      type = OSMTYPE_NODE;
+    else if (xmlStrEqual(xtype, BAD_CAST "relation"))
+      type = OSMTYPE_RELATION;
 
-    if (member_count >= member_max)
-      realloc_members();
+    members.push_back(member(type, strtoosmid((char *) xid, NULL, 0),
+                             (const char *) xrole));
     xmlFree(xid);
     xmlFree(xrole);
     xmlFree(xtype);
@@ -243,46 +231,46 @@ void parse_xml2_t::StartElement(xmlTextReaderPtr reader, const xmlChar *name, st
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "user");
       if (xtmp) {
-          tags.addItem("osm_user", (char *)xtmp, false);
+          tags.push_back(tag("osm_user", (const char *)xtmp));
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "uid");
       if (xtmp) {
-          tags.addItem("osm_uid", (char *)xtmp, false);
+          tags.push_back(tag("osm_uid", (const char *)xtmp));
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "version");
       if (xtmp) {
-          tags.addItem("osm_version", (char *)xtmp, false);
+          tags.push_back(tag("osm_version", (const char *)xtmp));
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "timestamp");
       if (xtmp) {
-          tags.addItem("osm_timestamp", (char *)xtmp, false);
+          tags.push_back(tag("osm_timestamp", (const char *)xtmp));
           xmlFree(xtmp);
       }
 
       xtmp = xmlTextReaderGetAttribute(reader, BAD_CAST "changeset");
       if (xtmp) {
-          tags.addItem("osm_changeset", (char *)xtmp, false);
+          tags.push_back(tag("osm_changeset", (const char *)xtmp));
           xmlFree(xtmp);
       }
   }
 }
 
 
-void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
+void parse_xml2_t::EndElement(const xmlChar *name, osmdata_t *osmdata)
 {
     if (xmlStrEqual(name, BAD_CAST "node")) {
-      if (node_wanted(node_lat, node_lon)) {
-	  proj->reproject(&(node_lat), &(node_lon));
+        if (node_wanted(node_lat, node_lon)) {
+            proj->reproject(&(node_lat), &(node_lon));
             if( action == ACTION_CREATE )
-	        osmdata->node_add(osm_id, node_lat, node_lon, &(tags));
+                osmdata->node_add(osm_id, node_lat, node_lon, tags);
             else if( action == ACTION_MODIFY )
-	        osmdata->node_modify(osm_id, node_lat, node_lon, &(tags));
+                osmdata->node_modify(osm_id, node_lat, node_lon, tags);
             else if( action == ACTION_DELETE )
                 osmdata->node_delete(osm_id);
             else
@@ -291,12 +279,12 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
                 util::exit_nicely();
             }
         }
-        tags.resetList();
+        tags.clear();
     } else if (xmlStrEqual(name, BAD_CAST "way")) {
         if( action == ACTION_CREATE )
-	    osmdata->way_add(osm_id, nds, nd_count, &(tags) );
+            osmdata->way_add(osm_id, nds, tags);
         else if( action == ACTION_MODIFY )
-	    osmdata->way_modify(osm_id, nds, nd_count, &(tags) );
+            osmdata->way_modify(osm_id, nds, tags);
         else if( action == ACTION_DELETE )
             osmdata->way_delete(osm_id);
         else
@@ -304,12 +292,12 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for way %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        tags.resetList();
+        tags.clear();
     } else if (xmlStrEqual(name, BAD_CAST "relation")) {
         if( action == ACTION_CREATE )
-	    osmdata->relation_add(osm_id, members, member_count, &(tags));
+            osmdata->relation_add(osm_id, members, tags);
         else if( action == ACTION_MODIFY )
-	    osmdata->relation_modify(osm_id, members, member_count, &(tags));
+            osmdata->relation_modify(osm_id, members, tags);
         else if( action == ACTION_DELETE )
             osmdata->relation_delete(osm_id);
         else
@@ -317,8 +305,8 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
             fprintf( stderr, "Don't know action for relation %" PRIdOSMID "\n", osm_id );
             util::exit_nicely();
         }
-        tags.resetList();
-        resetMembers();
+        tags.clear();
+        members.clear();
     } else if (xmlStrEqual(name, BAD_CAST "tag")) {
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "nd")) {
@@ -326,13 +314,13 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
     } else if (xmlStrEqual(name, BAD_CAST "member")) {
 	/* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "osm")) {
-        printStatus();
+        print_status();
         filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "osmChange")) {
-        printStatus();
+        print_status();
         filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "planetdiff")) {
-        printStatus();
+        print_status();
         filetype = FILETYPE_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "bound")) {
         /* ignore */
@@ -340,7 +328,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
         /* ignore */
     } else if (xmlStrEqual(name, BAD_CAST "changeset")) {
         /* ignore */
-    tags.resetList(); /* We may have accumulated some tags even if we ignored the changeset */
+        tags.clear(); /* We may have accumulated some tags even if we ignored the changeset */
     } else if (xmlStrEqual(name, BAD_CAST "add")) {
         action = ACTION_NONE;
     } else if (xmlStrEqual(name, BAD_CAST "create")) {
@@ -354,7 +342,7 @@ void parse_xml2_t::EndElement(const xmlChar *name, struct osmdata_t *osmdata)
     }
 }
 
-void parse_xml2_t::processNode(xmlTextReaderPtr reader, struct osmdata_t *osmdata) {
+void parse_xml2_t::processNode(xmlTextReaderPtr reader, osmdata_t *osmdata) {
   xmlChar *name;
   name = xmlTextReaderName(reader);
   if (name == NULL)

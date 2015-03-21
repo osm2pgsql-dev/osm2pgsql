@@ -75,33 +75,18 @@ psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
 Workaround - output SRID=4326;<WKB>
 */
 
-int output_pgsql_t::pgsql_out_node(osmid_t id, struct keyval *tags, double node_lat, double node_lon)
+int output_pgsql_t::pgsql_out_node(osmid_t id, const taglist_t &tags, double node_lat, double node_lon)
 {
-
-    int filter = m_tagtransform->filter_node_tags(tags, m_export_list.get());
-
-    if (filter) return 1;
+    taglist_t outtags;
+    if (m_tagtransform->filter_node_tags(tags, *m_export_list.get(), outtags))
+        return 1;
 
     expire->from_bbox(node_lon, node_lat, node_lon, node_lat);
-    m_tables[t_point]->write_node(id, tags, node_lat, node_lon);
+    m_tables[t_point]->write_node(id, outtags, node_lat, node_lon);
 
     return 0;
 }
 
-/*static int tag_indicates_polygon(enum OsmType type, const char *key)
-{
-    int i;
-
-    if (!strcmp(key, "area"))
-        return 1;
-
-    for (i=0; i < exportListCount[type]; i++) {
-        if( strcmp( exportList[type][i].name, key ) == 0 )
-            return exportList[type][i].flags & FLAG_POLYGON;
-    }
-
-    return 0;
-}*/
 
 /*
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
@@ -111,25 +96,27 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct osmNode *nodes, int count, int exists)
+int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodelist_t &nodes, int exists)
 {
     int polygon = 0, roads = 0;
     double split_at;
 
     /* If the flag says this object may exist already, delete it first */
-    if(exists) {
+    if (exists) {
         pgsql_delete_way_from_output(id);
         // TODO: this now only has an effect when called from the iterate_ways
         // call-back, so we need some alternative way to trigger this within
         // osmdata_t.
-        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
-        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
+        const idlist_t rel_ids = m_mid->relations_using_way(id);
+        for (idlist_t::const_iterator itr = rel_ids.begin();
              itr != rel_ids.end(); ++itr) {
             rels_pending_tracker->mark(*itr);
         }
     }
 
-    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get()))
+    taglist_t outtags;
+    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, *m_export_list.get(),
+                                        outtags))
         return 0;
     /* Split long ways after around 1 degree or 100km */
     if (m_options.projection->get_proj_id() == PROJ_LATLONG)
@@ -137,45 +124,48 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, struct keyval *tags, const struct 
     else
         split_at = 100 * 1000;
 
-    geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, count, polygon, split_at);
-    for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
-    {
+    geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, polygon, split_at);
+    for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
         /* FIXME: there should be a better way to detect polygons */
         if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
-            expire->from_nodes_poly(nodes, count, id);
+            expire->from_nodes_poly(nodes, id);
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                tags->addItem("way_area", tmp, false);
+                outtags.push_back(tag("way_area", tmp));
             }
-            m_tables[t_poly]->write_wkt(id, tags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(id, outtags, wkt->geom.c_str());
         } else {
-            expire->from_nodes_line(nodes, count);
-            m_tables[t_line]->write_wkt(id, tags, wkt->geom.c_str());
+            expire->from_nodes_line(nodes);
+            m_tables[t_line]->write_wkt(id, outtags, wkt->geom.c_str());
             if (roads)
-                m_tables[t_roads]->write_wkt(id, tags, wkt->geom.c_str());
+                m_tables[t_roads]->write_wkt(id, outtags, wkt->geom.c_str());
         }
     }
 
     return 0;
 }
 
-int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int member_count, const struct osmNode * const *xnodes, struct keyval *xtags, const int *xcount, const osmid_t *xid, const char * const *xrole, bool pending)
+int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
+                           const multinodelist_t &xnodes, const multitaglist_t & xtags,
+                           const idlist_t &xid, const rolelist_t &xrole,
+                           bool pending)
 {
-    if (member_count == 0)
+    if (xnodes.empty())
         return 0;
 
     int roads = 0;
     int make_polygon = 0;
     int make_boundary = 0;
-    int * members_superseeded;
     double split_at;
 
-    members_superseeded = (int *)calloc(sizeof(int), member_count);
+    std::vector<int> members_superseeded(xnodes.size(), 0);
+    taglist_t outtags;
 
     //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
-    if (m_tagtransform->filter_rel_member_tags(rel_tags, member_count, xtags, xrole, members_superseeded, &make_boundary, &make_polygon, &roads, m_export_list.get())) {
-        free(members_superseeded);
+    if (m_tagtransform->filter_rel_member_tags(rel_tags, xtags, xrole, 
+              &(members_superseeded[0]), &make_boundary, &make_polygon, &roads,
+              *m_export_list.get(), outtags)) {
         return 0;
     }
 
@@ -187,10 +177,9 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
 
     //this will either make lines or polygons (unless the lines arent a ring or are less than 3 pts) depending on the tag transform above
     //TODO: pick one or the other based on which we expect to care about
-    geometry_builder::maybe_wkts_t wkts  = builder.build_both(xnodes, xcount, make_polygon, m_options.enable_multi, split_at, id);
+    geometry_builder::maybe_wkts_t wkts  = builder.build_both(xnodes, make_polygon, m_options.enable_multi, split_at, id);
 
     if (!wkts->size()) {
-        free(members_superseeded);
         return 0;
     }
 
@@ -202,13 +191,13 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                rel_tags->addItem("way_area", tmp, false);
+                outtags.push_back(tag("way_area", tmp));
             }
-            m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
         } else {
-            m_tables[t_line]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+            m_tables[t_line]->write_wkt(-id, outtags, wkt->geom.c_str());
             if (roads)
-                m_tables[t_roads]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+                m_tables[t_roads]->write_wkt(-id, outtags, wkt->geom.c_str());
         }
     }
 
@@ -218,7 +207,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
      * have duplicates */
     //dont do this when working with pending relations as its not needed
     if (make_polygon) {
-        for (int i=0; xcount[i]; i++) {
+        for (int i=0; i < xid.size(); i++) {
             if (members_superseeded[i]) {
                 pgsql_delete_way_from_output(xid[i]);
                 if(!pending)
@@ -227,22 +216,20 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, struct keyval *rel_tags, int 
         }
     }
 
-    free(members_superseeded);
-
     // If the tag transform said the polygon looked like a boundary we want to make that as well
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
-        wkts = builder.build_polygons(xnodes, xcount, m_options.enable_multi, id);
+        wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
         {
             expire->from_wkt(wkt->geom.c_str(), -id);
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                rel_tags->addItem("way_area", tmp, false);
+                outtags.push_back(tag("way_area", tmp));
             }
-            m_tables[t_poly]->write_wkt(-id, rel_tags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
         }
     }
 
@@ -305,19 +292,16 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 }
 
 int output_pgsql_t::pending_way(osmid_t id, int exists) {
-    keyval tags_int;
-    osmNode *nodes_int;
-    int count_int;
+    taglist_t tags_int;
+    nodelist_t nodes_int;
     int ret = 0;
 
     // Try to fetch the way from the DB
-    if (!m_mid->ways_get(id, &tags_int, &nodes_int, &count_int)) {
+    if (!m_mid->ways_get(id, tags_int, nodes_int)) {
         // Output the way
         //ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
-        ret = pgsql_out_way(id, &tags_int, nodes_int, count_int, exists);
-        free(nodes_int);
+        ret = pgsql_out_way(id, tags_int, nodes_int, exists);
     }
-    tags_int.resetList();
 
     return ret;
 }
@@ -352,17 +336,14 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 }
 
 int output_pgsql_t::pending_relation(osmid_t id, int exists) {
-    keyval tags_int;
-    member *members_int;
-    int count_int;
+    taglist_t tags_int;
+    memberlist_t members_int;
     int ret = 0;
 
     // Try to fetch the relation from the DB
-    if (!m_mid->relations_get(id, &members_int, &count_int, &tags_int)) {
-        ret = pgsql_process_relation(id, members_int, count_int, &tags_int, exists, true);
-        free(members_int);
+    if (!m_mid->relations_get(id, members_int, tags_int)) {
+        ret = pgsql_process_relation(id, members_int, tags_int, exists, true);
     }
-    tags_int.resetList();
 
     return ret;
 }
@@ -431,21 +412,21 @@ void output_pgsql_t::stop()
     expire.reset();
 }
 
-int output_pgsql_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags)
+int output_pgsql_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
 {
   pgsql_out_node(id, tags, lat, lon);
 
   return 0;
 }
 
-int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags)
+int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &tags)
 {
   int polygon = 0;
   int roads = 0;
-
+  taglist_t outtags;
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, m_export_list.get());
+  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, *m_export_list.get(), outtags);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -454,91 +435,72 @@ int output_pgsql_t::way_add(osmid_t id, osmid_t *nds, int nd_count, struct keyva
   if( !polygon && !filter )
   {
     /* Get actual node data and generate output */
-    struct osmNode *nodes = (struct osmNode *)malloc( sizeof(struct osmNode) * nd_count );
-    int count = m_mid->nodes_get_list( nodes, nds, nd_count );
-    pgsql_out_way(id, tags, nodes, count, 0);
-    free(nodes);
+    nodelist_t nodes;
+    m_mid->nodes_get_list(nodes, nds);
+    pgsql_out_way(id, outtags, nodes, 0);
   }
   return 0;
 }
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, const struct member *members, int member_count, struct keyval *tags, int exists, bool pending)
+int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &members,
+                                           const taglist_t &tags, int exists, bool pending)
 {
-    int i, j, count, count2;
-
   /* If the flag says this object may exist already, delete it first */
   if(exists)
       pgsql_delete_relation_from_output(id);
 
-  if (m_tagtransform->filter_rel_tags(tags, m_export_list.get())) {
+  taglist_t outtags;
+
+  if (m_tagtransform->filter_rel_tags(tags, *m_export_list.get(), outtags))
       return 1;
-  }
 
-  osmid_t *xid2 = (osmid_t *)malloc( (member_count+1) * sizeof(osmid_t) );
-  const char **xrole = (const char **)malloc( (member_count+1) * sizeof(const char *) );
-  int *xcount = (int *)malloc( (member_count+1) * sizeof(int) );
-  keyval *xtags  = new keyval[member_count+1];
-  struct osmNode **xnodes = (struct osmNode **)malloc( (member_count+1) * sizeof(struct osmNode*) );
+  idlist_t xid2;
+  multitaglist_t xtags2;
+  multinodelist_t xnodes;
 
-  count = 0;
-  for( i=0; i<member_count; i++ )
+  for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it)
   {
     /* Need to handle more than just ways... */
-    if( members[i].type != OSMTYPE_WAY )
-        continue;
-    xid2[count] = members[i].id;
-    count++;
+    if (it->type == OSMTYPE_WAY)
+        xid2.push_back(it->id);
   }
 
-  osmid_t *xid = (osmid_t *)malloc( sizeof(osmid_t) * (count + 1));
-  count2 = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
-  int polygon = 0, roads = 0;;
+  idlist_t xid;
+  m_mid->ways_get_list(xid2, xid, xtags2, xnodes);
+  int polygon = 0, roads = 0;
+  multitaglist_t xtags(xid.size(), taglist_t());
+  rolelist_t xrole(xid.size(), 0);
 
-  for (i = 0; i < count2; i++) {
-      for (j = i; j < member_count; j++) {
+  for (int i = 0; i < xid.size(); i++) {
+      for (int j = i; j < members.size(); j++) {
           if (members[j].id == xid[i]) {
               //filter the tags on this member because we got it from the middle
               //and since the middle is no longer tied to the output it no longer
               //shares any kind of tag transform and therefore all original tags
               //will come back and need to be filtered by individual outputs before
               //using these ways
-              m_tagtransform->filter_way_tags(&xtags[i], &polygon, &roads, m_export_list.get());
+              m_tagtransform->filter_way_tags(xtags2[i], &polygon, &roads,
+                                              *m_export_list.get(), xtags[i]);
               //TODO: if the filter says that this member is now not interesting we
               //should decrement the count and remove his nodes and tags etc. for
               //now we'll just keep him with no tags so he will get filtered later
+              xrole[i] = &members[j].role;
               break;
           }
       }
-      xrole[i] = members[j].role;
   }
-  xnodes[count2] = NULL;
-  xcount[count2] = 0;
-  xid[count2] = 0;
-  xrole[count2] = NULL;
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, tags, count2, xnodes, xtags, xcount, xid, xrole, pending);
+  pgsql_out_relation(id, outtags, xnodes, xtags, xid, xrole, pending);
 
-  for( i=0; i<count2; i++ )
-  {
-    xtags[i].resetList();
-    free( xnodes[i] );
-  }
-
-  free(xid2);
-  free(xid);
-  free(xrole);
-  free(xcount);
-  delete [] xtags;
-  free(xnodes);
   return 0;
 }
 
-int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+int output_pgsql_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
-  const std::string *type = tags->getItem("type");
+  const std::string *type = tags.get("type");
 
   /* Must have a type field or we ignore it */
   if (!type)
@@ -549,7 +511,7 @@ int output_pgsql_t::relation_add(osmid_t id, struct member *members, int member_
     return 0;
 
 
-  return pgsql_process_relation(id, members, member_count, tags, 0);
+  return pgsql_process_relation(id, members, tags, 0);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -623,7 +585,7 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct keyval *tags)
+int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, const taglist_t &tags)
 {
     if( !m_options.slim )
     {
@@ -635,7 +597,7 @@ int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, struct k
     return 0;
 }
 
-int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, struct keyval *tags)
+int output_pgsql_t::way_modify(osmid_t osm_id, const idlist_t &nodes, const taglist_t &tags)
 {
     if( !m_options.slim )
     {
@@ -643,12 +605,12 @@ int output_pgsql_t::way_modify(osmid_t osm_id, osmid_t *nodes, int node_count, s
         util::exit_nicely();
     }
     way_delete(osm_id);
-    way_add(osm_id, nodes, node_count, tags);
+    way_add(osm_id, nodes, tags);
 
     return 0;
 }
 
-int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int member_count, struct keyval *tags)
+int output_pgsql_t::relation_modify(osmid_t osm_id, const memberlist_t &members, const taglist_t &tags)
 {
     if( !m_options.slim )
     {
@@ -656,7 +618,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, struct member *members, int 
         util::exit_nicely();
     }
     relation_delete(osm_id);
-    relation_add(osm_id, members, member_count, tags);
+    relation_add(osm_id, members, tags);
     return 0;
 }
 

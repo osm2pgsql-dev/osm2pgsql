@@ -402,7 +402,7 @@ static void read_close() {
 return;
   fd= read_infop->fd;
   if(loglevel>=1) {  /* verbose */
-      fprintf(stderr,"osm2pgsql: Number of bytes read: %"PRIu64"\n",
+      fprintf(stderr,"osm2pgsql: Number of bytes read: %" PRIu64 "\n",
       read_infop->read__counter);
     }
   if(loglevel>=2) {
@@ -762,8 +762,9 @@ return 1;
     hiscset= 0;
     hisuid= 0;
     hisuser= NULL;
-    nd_count= 0;
-    member_count= 0;
+
+    nds.clear();
+    members.clear();
 
     /* read object id */
     bufp++;
@@ -780,7 +781,7 @@ return 1;
         time(&start_node);
       }
       count_node++;
-      if(count_node%10000==0) printStatus();
+      if(count_node%10000==0) print_status();
       break;
     case 1:  /* way */
       if(osm_id>max_way)
@@ -789,7 +790,7 @@ return 1;
         time(&start_way);
       }
       count_way++;
-      if(count_way%1000==0) printStatus();
+      if(count_way%1000==0) print_status();
       break;
     case 2:  /* relation */
       if(osm_id>max_rel)
@@ -798,7 +799,7 @@ return 1;
         time(&start_rel);
       }
       count_rel++;
-      if(count_rel%10==0) printStatus();
+      if(count_rel%10==0) print_status();
       break;
     default: ;
       }
@@ -809,18 +810,18 @@ return 1;
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      tags.addItem("osm_version",tmpstr,false);
+      tags.push_back(tag("osm_version",tmpstr));
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        tags.addItem("osm_timestamp",tmpstr, false);
+        tags.push_back(tag("osm_timestamp",tmpstr));
         if(histime!=0) {
             hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          tags.addItem("osm_uid",tmpstr,false);
-          tags.addItem("osm_user",hisuser,false);
+          tags.push_back(tag("osm_uid",tmpstr));
+          tags.push_back(tag("osm_user",hisuser));
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -841,7 +842,7 @@ return 1;
         break;
       default: ;
         }
-      tags.resetList();
+      tags.clear();
       continue;  /* end processing for this object */
     }  /* end   delete request */
     else {  /* not a delete request */
@@ -858,7 +859,7 @@ return 1;
         node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
         if(!node_wanted(node_lat,node_lon)) {
-          tags.resetList();
+          tags.clear();
   continue;
           }
         proj->reproject(&(node_lat),&(node_lon));
@@ -870,9 +871,8 @@ return 1;
         bp= bufp+l;
         if(bp>bufe) bp= bufe;  /* (format error) */
         while(bufp<bp) {  /* for all noderefs of this way */
-          nds[nd_count++]= o5rid[0]+= pbf_sint64(&bufp);
-          if(nd_count>=nd_max)
-            realloc_nodes();
+          o5rid[0]+= pbf_sint64(&bufp);
+          nds.push_back(o5rid[0]);
         }  /* end   for all noderefs of this way */
       }  /* end   way */
 
@@ -889,22 +889,20 @@ return 1;
           ri= pbf_sint64(&bufp);
           str_read(&bufp,&rr,NULL);
           rt= (*rr++ -'0')%3;
+          OsmType type;
           switch(rt) {
           case 0:  /* node */
-            members[member_count].type= OSMTYPE_NODE;
+            type= OSMTYPE_NODE;
             break;
           case 1:  /* way */
-            members[member_count].type= OSMTYPE_WAY;
+            type= OSMTYPE_WAY;
             break;
           case 2:  /* relation */
-            members[member_count].type= OSMTYPE_RELATION;
+            type= OSMTYPE_RELATION;
             break;
             }
-          members[member_count].id= o5rid[rt]+= ri;
-          members[member_count].role= rr;
-          member_count++;
-          if(member_count>=member_max)
-            realloc_members();
+          o5rid[rt]+= ri;
+          members.push_back(member(type, o5rid[rt], rr));
         }  /* end   for all references of this relation */
       }  /* end   relation */
 
@@ -919,7 +917,7 @@ return 1;
           /* replace all blanks in key by underlines */
           p++;
           }
-        tags.addItem(k,v,false);
+        tags.push_back(tag(k,v));
       }  /* end   for all tags of this object */
 
       /* write object into database */
@@ -927,39 +925,39 @@ return 1;
       case 0:  /* node */
         if(action==ACTION_CREATE)
           osmdata->node_add(osm_id,
-            node_lat,node_lon,&(tags));
+            node_lat,node_lon,tags);
         else /* ACTION_MODIFY */
           osmdata->node_modify(osm_id,
-            node_lat,node_lon,&(tags));
+            node_lat,node_lon,tags);
         break;
       case 1:  /* way */
         if(action==ACTION_CREATE)
           osmdata->way_add(osm_id,
-            nds,nd_count,&(tags));
+            nds,tags);
         else /* ACTION_MODIFY */
           osmdata->way_modify(osm_id,
-            nds,nd_count,&(tags));
+            nds,tags);
         break;
       case 2:  /* relation */
         if(action==ACTION_CREATE)
           osmdata->relation_add(osm_id,
-            members,member_count,&(tags));
+            members,tags);
         else /* ACTION_MODIFY */
           osmdata->relation_modify(osm_id,
-            members,member_count,&(tags));
+            members,tags);
         break;
       default: ;
         }
 
       /* reset temporary storage lists */
-      tags.resetList();
+      tags.clear();
 
     }  /* end   not a delete request */
 
   }  /* end   read input file */
 
   /* close the input file */
-  printStatus();
+  print_status();
   read_close();
   return 0;
 }  /* streamFileO5m() */

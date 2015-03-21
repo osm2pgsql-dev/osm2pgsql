@@ -1,6 +1,7 @@
 #ifndef NODE_PERSISTENT_CACHE_H
 #define NODE_PERSISTENT_CACHE_H
 
+#include "osmtypes.hpp"
 #include "node-ram-cache.hpp"
 #include <boost/shared_ptr.hpp>
 
@@ -56,7 +57,7 @@ struct node_persistent_cache : public boost::noncopyable
 
     int set(osmid_t id, double lat, double lon);
     int get(struct osmNode *out, osmid_t id);
-    int get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count);
+    int get_list(nodelist_t &out, const idlist_t nds);
 
 private:
 

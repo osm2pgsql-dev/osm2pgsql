@@ -528,61 +528,38 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
     return 0;
 }
 
-int node_persistent_cache::get_list(struct osmNode *nodes, const osmid_t *ndids,
-        int nd_count)
+int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 {
-    int count = 0;
-    int i;
-    for (i = 0; i < nd_count; i++)
-    {
+    out.assign(nds.size(), osmNode());
+
+    bool need_fetch = false;;
+    for (int i = 0; i < nds.size(); ++i) {
         /* Check cache first */
-        if (ram_cache && (ram_cache->get(&nodes[i], ndids[i]) == 0))
-        {
-            count++;
-        }
-        else
-        {
-            nodes[i].lat = NAN;
-            nodes[i].lon = NAN;
+        if (ram_cache && (ram_cache->get(&out[i], nds[i]) != 0)) {
+            /* In order to have a higher OS level I/O queue depth
+               issue posix_fadvise(WILLNEED) requests for all I/O */
+            nodes_prefetch_async(nds[i]);
+            need_fetch = true;
         }
     }
-    if (count == nd_count)
-        return count;
+    if (!need_fetch)
+        return out.size();
 
-    for (i = 0; i < nd_count; i++)
-    {
-        /* In order to have a higher OS level I/O queue depth
-           issue posix_fadvise(WILLNEED) requests for all I/O */
-        if (isnan(nodes[i].lat) && isnan(nodes[i].lon))
-            nodes_prefetch_async(ndids[i]);
-    }
-    for (i = 0; i < nd_count; i++)
-    {
-        if ((isnan(nodes[i].lat) && isnan(nodes[i].lon))
-                && (get(&(nodes[i]), ndids[i]) == 0))
-            count++;
-    }
-
-    if (count < nd_count)
-    {
-        int j = 0;
-        for (i = 0; i < nd_count; i++)
-        {
-            if (!isnan(nodes[i].lat))
-            {
-                nodes[j].lat = nodes[i].lat;
-                nodes[j].lon = nodes[i].lon;
-                j++;
-            }
-        }
-        for (i = count; i < nd_count; i++)
-        {
-            nodes[i].lat = NAN;
-            nodes[i].lon = NAN;
+    int wrtidx = 0;
+    for (int i = 0; i < nds.size(); i++) {
+        if (isnan(out[i].lat) && isnan(out[i].lon)) {
+            if (get(&(out[wrtidx]), nds[i]) == 0)
+                wrtidx++;
+        } else {
+            if (wrtidx < i)
+                out[wrtidx] = out[i];
+            wrtidx++;
         }
     }
 
-    return count;
+    out.resize(wrtidx);
+
+    return wrtidx;
 }
 
 node_persistent_cache::node_persistent_cache(const options_t *options, int append,

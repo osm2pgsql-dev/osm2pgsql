@@ -10,7 +10,6 @@
 #include "parse-xml2.hpp"
 #include "output.hpp"
 #include "options.hpp"
-#include "keyvals.hpp"
 
 void exit_nicely()
 {
@@ -28,15 +27,17 @@ struct test_middle_t : public middle_t {
     void end(void) { }
     void commit(void) { }
 
-    int nodes_set(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
-    int nodes_get_list(struct osmNode *out, const osmid_t *nds, int nd_count) const { return 0; }
+    int nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) { return 0; }
+    int nodes_get_list(nodelist_t &out, const idlist_t nds) const { return 0; }
 
-    int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags) { return 0; }
-    int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const { return 0; }
-    int ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const { return 0; }
+    int ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) { return 0; }
+    int ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const { return 0; }
+    int ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+                              std::vector<taglist_t> &tags,
+                              std::vector<nodelist_t> &nodes) const { return 0; }
 
-    int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
-    int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const { return 0; }
+    int relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) { return 0; }
+    int relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const { return 0; }
 
     void iterate_ways(pending_processor& pf) { }
     void iterate_relations(pending_processor& pf) { }
@@ -70,28 +71,28 @@ struct test_output_t : public output_t {
         return boost::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
         assert(id > 0);
         sum_ids += id;
         num_nodes += 1;
         return 0;
     }
 
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+    int way_add(osmid_t id, const idlist_t &nds, const taglist_t &tags) {
         assert(id > 0);
         sum_ids += id;
         num_ways += 1;
-        assert(node_count >= 0);
-        num_nds += uint64_t(node_count);
+        assert(nds.size() >= 0);
+        num_nds += uint64_t(nds.size());
         return 0;
     }
 
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
         assert(id > 0);
         sum_ids += id;
         num_relations += 1;
-        assert(member_count >= 0);
-        num_members += uint64_t(member_count);
+        assert(members.size() >= 0);
+        num_members += uint64_t(members.size());
         return 0;
     }
 
@@ -108,9 +109,9 @@ struct test_output_t : public output_t {
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) { }
     int pending_relation(osmid_t id, int exists) { return 0; }
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) { return 0; }
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) { return 0; }
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) { return 0; }
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) { return 0; }
+    int way_modify(osmid_t id, const idlist_t &nds, const taglist_t &tags) { return 0; }
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) { return 0; }
 
     int node_delete(osmid_t id) { return 0; }
     int way_delete(osmid_t id) { return 0; }

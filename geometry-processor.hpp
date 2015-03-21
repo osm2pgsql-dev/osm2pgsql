@@ -39,12 +39,12 @@ struct geometry_processor {
     // process a way
     // position data and optionally returning WKT-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::maybe_wkt_t process_way(const osmNode *nodes, const size_t node_count);
+    virtual geometry_builder::maybe_wkt_t process_way(const nodelist_t &nodes);
 
     // process a way, taking a middle query object to get way and
     // node position data. optionally returns a WKT-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::maybe_wkts_t process_relation(const osmNode * const * nodes, const int* node_counts);
+    virtual geometry_builder::maybe_wkts_t process_relation(const multinodelist_t &nodes);
 
     // returns the SRID of the output geometry.
     int srid() const;
@@ -69,9 +69,9 @@ struct way_helper
 {
     way_helper();
     ~way_helper();
-    size_t set(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid);
+    size_t set(const idlist_t &node_ids, const middle_query_t *mid);
 
-    std::vector<osmNode> node_cache;
+    nodelist_t node_cache;
 };
 
 //various bits for continuous processing of members of relations
@@ -79,20 +79,17 @@ struct relation_helper
 {
     relation_helper();
     ~relation_helper();
-    size_t& set(const member* member_list, const int member_list_length, const middle_t* mid);
+    size_t set(const memberlist_t *member_list, const middle_t *mid);
 
-    const member* members;
-    size_t member_count;
-    std::vector<keyval> tags;
-    std::vector<int> node_counts;
-    std::vector<osmNode*> nodes;
-    std::vector<osmid_t> ways;
-    size_t way_count;
-    std::vector<const char*> roles;
+    const memberlist_t *members;
+    multitaglist_t tags;
+    multinodelist_t nodes;
+    idlist_t ways;
+    rolelist_t roles;
     std::vector<int> superseeded;
 
 private:
-    std::vector<osmid_t> input_way_ids;
+    idlist_t input_way_ids;
 };
 
 #endif /* GEOMETRY_PROCESSOR_HPP */

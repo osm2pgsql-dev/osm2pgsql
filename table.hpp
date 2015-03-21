@@ -1,7 +1,6 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "keyvals.hpp"
 #include "pgsql.hpp"
 #include "osmtypes.hpp"
 
@@ -30,8 +29,8 @@ class table_t
         void begin();
         void commit();
 
-        void write_wkt(const osmid_t id, struct keyval *tags, const char *wkt);
-        void write_node(const osmid_t id, struct keyval *tags, double lat, double lon);
+        void write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt);
+        void write_node(const osmid_t id, const taglist_t &tags, double lat, double lon);
         void delete_row(const osmid_t id);
 
         std::string const& get_name();
@@ -58,12 +57,13 @@ class table_t
         void stop_copy();
         void teardown();
 
-        void write_columns(struct keyval *tags, std::string& values);
-        void write_tags_column(keyval *tags, std::string& values);
-        void write_hstore_columns(keyval *tags, std::string& values);
+        void write_columns(const taglist_t &tags, std::string& values, std::vector<bool> *used);
+        void write_tags_column(const taglist_t &tags, std::string& values,
+                               const std::vector<bool> &used);
+        void write_hstore_columns(const taglist_t &tags, std::string& values);
 
         void escape4hstore(const char *src, std::string& dst);
-        void escape_type(const std::string &value, const char *type, std::string& dst);
+        void escape_type(const std::string &value, const std::string &type, std::string& dst);
 
         std::string conninfo;
         std::string name;

@@ -1,9 +1,10 @@
 #ifndef OUTPUT_GAZETTEER_H
 #define OUTPUT_GAZETTEER_H
 
+#include "osmtypes.hpp"
 #include "output.hpp"
 #include "geometry-builder.hpp"
-#include "reprojection.hpp"
+#include "pgsql.hpp"
 #include "util.hpp"
 
 #include <boost/shared_ptr.hpp>
@@ -30,14 +31,14 @@ public:
 
     ~place_tag_processor() {}
 
-    void process_tags(keyval *tags);
+    void process_tags(const taglist_t &tags);
 
     bool has_data() const { return !places.empty(); }
 
     bool has_place(const std::string &cls)
     {
-        BOOST_FOREACH(const keyval *item, places) {
-            if (cls == item->key)
+        BOOST_FOREACH(const tag &item, places) {
+            if (cls == item.key)
                 return true;
         }
 
@@ -67,7 +68,7 @@ private:
 
         std::string prefix(cls + ":name");
 
-        for (keyval *item = src->firstItem(); item; item = src->nextItem(item)) {
+        for (taglist_t::const_iterator item = src->begin(); item != src->end(); ++item) {
             if (boost::starts_with(item->key, prefix) &&
                 (item->key.length() == prefix.length()
                  || item->key[prefix.length()] == ':')) {
@@ -105,11 +106,11 @@ private:
     }
 
 
-    std::vector<const keyval *> places;
-    std::vector<const keyval *> names;
-    std::vector<const keyval *> extratags;
-    std::vector<const keyval *> address;
-    keyval *src;
+    std::vector<tag> places;
+    std::vector<const tag *> names;
+    std::vector<const tag *> extratags;
+    std::vector<const tag *> address;
+    const taglist_t *src;
     int admin_level;
     const std::string *countrycode;
     std::string housenumber;
@@ -171,34 +172,34 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {}
     int pending_relation(osmid_t id, int exists) { return 0; }
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags)
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
     {
         return process_node(id, lat, lon, tags);
     }
 
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags)
+    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
     {
-        return process_way(id, nodes, node_count, tags);
+        return process_way(id, nodes, tags);
     }
 
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags)
     {
-        return process_relation(id, members, member_count, tags);
+        return process_relation(id, members, tags);
     }
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags)
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags)
     {
         return process_node(id, lat, lon, tags);
     }
 
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags)
+    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
     {
-        return process_way(id, nodes, node_count, tags);
+        return process_way(id, nodes, tags);
     }
 
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags)
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags)
     {
-        return process_relation(id, members, member_count, tags);
+        return process_relation(id, members, tags);
     }
 
     int node_delete(osmid_t id)
@@ -224,15 +225,10 @@ private:
 
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id);
-    void add_place(char osm_type, osmid_t osm_id, const std::string &key_class, const std::string &type,
-                   struct keyval *names, struct keyval *extratags, int adminlevel,
-                   struct keyval *housenumber, struct keyval *street, struct keyval *addr_place,
-                   const char *isin, struct keyval *postcode, struct keyval *countrycode,
-                   const std::string &wkt);
     void delete_place(char osm_type, osmid_t osm_id);
-    int process_node(osmid_t id, double lat, double lon, keyval *tags);
-    int process_way(osmid_t id, osmid_t *ndv, int ndc, keyval *tags);
-    int process_relation(osmid_t id, member *members, int member_count, keyval *tags);
+    int process_node(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags);
     int connect();
 
     void flush_place_buffer()

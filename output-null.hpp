@@ -25,13 +25,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
