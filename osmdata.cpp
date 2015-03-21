@@ -185,9 +185,9 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
             //process it
             if(ways)
-                outputs.at(job.second)->pending_way(job.first, append);
+                outputs.at(job.output_id)->pending_way(job.osm_id, append);
             else
-                outputs.at(job.second)->pending_relation(job.first, append);
+                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
 
             mutex.lock();
             ++ids_done;
@@ -199,9 +199,9 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         pending_job_t job;
         while (queue.pop(job)) {
             if(ways)
-                outputs.at(job.second)->pending_way(job.first, append);
+                outputs.at(job.output_id)->pending_way(job.osm_id, append);
             else
-                outputs.at(job.second)->pending_relation(job.first, append);
+                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
             ++ids_done;
         }
     }

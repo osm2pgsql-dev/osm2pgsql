@@ -19,7 +19,14 @@
 
 #include <utility>
 
-typedef std::pair<osmid_t, size_t> pending_job_t;
+struct pending_job_t {
+    osmid_t osm_id;
+    size_t  output_id;
+
+    pending_job_t() : osm_id(0), output_id(0) {}
+    pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
+};
+
 #ifndef HAVE_LOCKFREE
 #include <stack>
 typedef std::stack<pending_job_t> pending_queue_t;
