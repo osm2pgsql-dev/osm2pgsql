@@ -75,11 +75,12 @@ way_helper::~way_helper()
 }
 size_t way_helper::set(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid)
 {
-    //if we don't have enough space already get more
-    if(node_cache.size() < node_count)
-        node_cache.resize(node_count);
-    //get the node data
-    mid->nodes_get_list(&node_cache.front(), node_ids, node_count);
+    // other parts of the code assume that the node cache is the size of the way
+    // TODO: Fix this, and use std::vector everywhere
+    node_cache.resize(node_count);
+    // get the node data, and resize the node cache in case there were missing nodes
+    node_cache.resize(mid->nodes_get_list(&node_cache.front(), node_ids, node_count));
+    // equivalent to returning node_count for complete ways, different for partial extractsx
     return node_cache.size();
 }
 
