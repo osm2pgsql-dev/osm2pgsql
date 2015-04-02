@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 		nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
 		osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
 		for (i = 0; i < node_cnt; i++) {
-			osmids[i] = atoi(argv[2 + i]);
+			osmids[i] = atoll(argv[2 + i]);
 		}
 		cache->get_list(nodes,osmids,node_cnt);
 		for (i = 0; i < node_cnt; i++) {
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 	} else {
                 cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		if (strstr(argv[2],",") == NULL) {
-			cache->get(&node, atoi(argv[2]));
+			cache->get(&node, atoll(argv[2]));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
 		} else {
                     char * node_list = (char *)malloc(sizeof(char) * (strlen(argv[2]) + 1));
@@ -132,10 +132,10 @@ int main(int argc, char *argv[]) {
 			nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
 			osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
 			strcpy(node_list,argv[2]);
-			osmids[0] = atoi(strtok(node_list,","));
+			osmids[0] = atoll(strtok(node_list,","));
 			for (i = 1; i < node_cnt; i++) {
 				char * tmp = strtok(NULL,",");
-				osmids[i] = atoi(tmp);
+				osmids[i] = atoll(tmp);
 			}
 			cache->get_list(nodes,osmids,node_cnt);
 			for (i = 0; i < node_cnt; i++) {
