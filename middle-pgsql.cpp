@@ -54,6 +54,7 @@ using namespace std;
 #include "util.hpp"
 
 #include <stdexcept>
+#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/unordered_map.hpp>
 
@@ -68,30 +69,116 @@ enum table_id {
     t_node, t_way, t_rel
 } ;
 
-middle_pgsql_t::table_desc::table_desc(const char *name_,
-                                       const char *start_,
-                                       const char *create_,
-                                       const char *create_index_,
-                                       const char *prepare_,
-                                       const char *prepare_intarray_,
-                                       const char *copy_,
-                                       const char *analyze_,
-                                       const char *stop_,
-                                       const char *array_indexes_)
-    : name(name_),
-      start(start_),
-      create(create_),
-      create_index(create_index_),
-      prepare(prepare_),
-      prepare_intarray(prepare_intarray_),
-      copy(copy_),
-      analyze(analyze_),
-      stop(stop_),
-      array_indexes(array_indexes_),
-      copyMode(0),
-      transactionMode(0),
-      sql_conn(NULL)
-{}
+
+// not thread safe, needs to be moved in the thread structure before
+// middle tables can be _written_ in multi-threaded mode.
+static boost::format single_fmt = boost::format("%1%");
+static boost::format comma_fmt = boost::format("%1%,");
+static boost::format column_fmt = boost::format("%1%\t");
+static boost::format latlon_fmt = boost::format("%.10g");
+
+
+middle_pgsql_t::table_desc::~table_desc() {
+    if (sql_conn)
+        PQfinish(sql_conn);
+}
+
+int middle_pgsql_t::table_desc::connect(const options_t *options) {
+    set_prefix_and_tbls(options, &name);
+    set_prefix_and_tbls(options, &start);
+    set_prefix_and_tbls(options, &create);
+    set_prefix_and_tbls(options, &create_index);
+    set_prefix_and_tbls(options, &prepare);
+    set_prefix_and_tbls(options, &prepare_intarray);
+    set_prefix_and_tbls(options, &copy);
+    set_prefix_and_tbls(options, &analyze);
+    set_prefix_and_tbls(options, &stop);
+    set_prefix_and_tbls(options, &array_indexes);
+
+    std::cerr << "Setting up table: " << name << "\n";
+    sql_conn = PQconnectdb(options->conninfo.c_str());
+
+    // Check to see that the backend connection was successfully made */
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        std::cerr << "Connection to database failed: " << PQerrorMessage(sql_conn) << "\n";
+        return 1;
+    }
+
+    return 0;
+}
+
+/**
+ * Helper to create SQL queries.
+ *
+ * The input string is mangled as follows:
+ * %p replaced by the content of the "prefix" option
+ * %i replaced by the content of the "tblsslim_data" option
+ * %t replaced by the content of the "tblssslim_index" option
+ * %m replaced by "UNLOGGED" if the "unlogged" option is set
+ * other occurrences of the "%" char are treated normally.
+ * any occurrence of { or } will be ignored (not copied to output string);
+ * anything inside {} is only copied if it contained at least one of
+ * %p, %i, %t, %m that was not NULL.
+ *
+ * So, the input string
+ *    Hello{ dear %i}!
+ * will, if i is set to "John", translate to
+ *    Hello dear John!
+ * but if i is unset, translate to
+ *    Hello!
+ *
+ * This is used for constructing SQL queries with proper tablespace settings.
+ */
+void middle_pgsql_t::table_desc::set_prefix_and_tbls(const options_t *options, std::string *str)
+{
+    size_t lastpos = 0;
+    size_t startpos = str->find_first_of("{%", lastpos);
+
+    while (startpos != std::string::npos) {
+        size_t pfind = startpos;
+        if ((*str)[startpos] == '{') {
+            lastpos = str->find('}', startpos + 1);
+            assert (lastpos != std::string::npos);
+
+            pfind = str->find('%', startpos + 1);
+        } else
+            lastpos = pfind + 1;
+        assert (pfind < str->length() - 1);
+        std::string replacement;
+        if (pfind < lastpos) {
+            switch ((*str)[pfind + 1]) {
+                case 'p': replacement = options->prefix; break;
+                case 't':
+                    if (options->tblsslim_data)
+                        replacement = *(options->tblsslim_data);
+                    break;
+                case 'i':
+                    if (options->tblsslim_index)
+                        replacement = *(options->tblsslim_index);
+                    break;
+                case 'm': replacement = "UNLOGGED"; break;
+            default: break; //nothing
+            }
+        }
+        if ((*str)[startpos] == '{') {
+            if (replacement.empty()) {
+                str->erase(startpos, lastpos - startpos + 1);
+                lastpos = startpos;
+            } else {
+                str->erase(lastpos,1);
+                str->replace(pfind, 2, replacement);
+                str->erase(startpos, 1);
+                lastpos += replacement.length() - 4;
+            }
+        } else {
+            str->replace(pfind, 2, replacement);
+            lastpos += replacement.length() - 2;
+        }
+
+        startpos = str->find_first_of("{%", lastpos);
+    }
+}
+
 
 #define HELPER_STATE_UNINITIALIZED -1
 #define HELPER_STATE_FORKED -2
@@ -101,142 +188,80 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
 #define HELPER_STATE_FAILED 3
 
 namespace {
-char *pgsql_store_nodes(const osmid_t *nds, const int& nd_count)
+void pgsql_store_nodes(std::string &buffer, const osmid_t *nds, int nd_count)
 {
-  static char *buffer;
-  static int buflen;
-
-  char *ptr;
-  int i, first;
-
-  if( buflen <= nd_count * 10 )
+  buffer += '{';
+  for(int i = 0; i < nd_count; ++i)
   {
-    buflen = ((nd_count * 10) | 4095) + 1;  // Round up to next page */
-    buffer = (char *)realloc( buffer, buflen );
-  }
-_restart:
-
-  ptr = buffer;
-  first = 1;
-  *ptr++ = '{';
-  for( i=0; i<nd_count; i++ )
-  {
-    if( !first ) *ptr++ = ',';
-    ptr += sprintf(ptr, "%" PRIdOSMID, nds[i] );
-
-    if( (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = (char *)realloc( buffer, buflen );
-
-      goto _restart;
-    }
-    first = 0;
+    buffer.append((comma_fmt % nds[i]).str());
   }
 
-  *ptr++ = '}';
-  *ptr++ = 0;
-
-  return buffer;
+  if (nd_count)
+    buffer[buffer.length() - 1] = '}'; // replace last comma
+  else
+    buffer += '}';
 }
 
 // Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
-inline char *escape_tag( char *ptr, const char *in, const int& escape )
+inline void escape_tag( std::string *ptr, const std::string &in, int escape )
 {
-  while( *in )
+  BOOST_FOREACH(const char c, in)
   {
-    switch(*in)
+    switch(c)
     {
       case '"':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '"';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\\"";
         break;
       case '\\':
-        if( escape ) *ptr++ = '\\';
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '\\';
+        if( escape ) *ptr += '\\';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\\\";
         break;
       case '\n':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'n';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\n";
         break;
       case '\r':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'r';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\r";
         break;
       case '\t':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 't';
+        if( escape ) *ptr += '\\';
+        *ptr += "\\t";
         break;
       default:
-        *ptr++ = *in;
+        *ptr += c;
         break;
     }
-    in++;
   }
-  return ptr;
 }
 
 // escape means we return '\N' for copy mode, otherwise we return just NULL */
-const char *pgsql_store_tags(const struct keyval *tags, const int& escape)
+const char *pgsql_store_tags(std::string &buffer, const struct keyval *tags, int escape)
 {
-  static char *buffer;
-  static int buflen;
-
-  char *ptr;
-  int first;
-
-  int countlist = tags->countList();
-  if( countlist == 0 )
+  if (!tags->listHasData())
   {
-    if( escape )
-      return "\\N";
-    else
-      return NULL;
+    if (escape)
+      buffer += "\\N";
+
+    return NULL;
   }
 
-  if( buflen <= countlist * 24 ) // LE so 0 always matches */
+  buffer += '{';
+
+  for (keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
   {
-    buflen = ((countlist * 24) | 4095) + 1;  // Round up to next page */
-    buffer = (char *)realloc( buffer, buflen );
-  }
-_restart:
-
-  ptr = buffer;
-  first = 1;
-  *ptr++ = '{';
-
-  for(keyval* i = tags->firstItem(); i; i = tags->nextItem(i))
-  {
-    int maxlen = (i->key.length() + i->value.length()) * 4;
-    if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = (char *)realloc( buffer, buflen );
-
-      goto _restart;
-    }
-    if( !first ) *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag( ptr, i->key.c_str(), escape );
-    *ptr++ = '"';
-    *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag( ptr, i->value.c_str(), escape );
-    *ptr++ = '"';
-
-    first=0;
+    buffer += '"';
+    escape_tag( &buffer, i->key, escape );
+    buffer += "\",\"";
+    escape_tag( &buffer, i->value, escape );
+    buffer += "\",";
   }
 
-  *ptr++ = '}';
-  *ptr++ = 0;
+  buffer[buffer.length() - 1] = '}'; // replace final comma
 
-  return buffer;
+  return buffer.c_str();
 }
 
 // Decodes a portion of an array literal from postgres */
@@ -290,7 +315,7 @@ void pgsql_parse_tags( const char *string, struct keyval *tags )
 }
 
 // Parses an array of integers */
-void pgsql_parse_nodes(const char *src, osmid_t *nds, const int& nd_count )
+void pgsql_parse_nodes(const char *src, osmid_t *nds, int nd_count )
 {
   int count = 0;
   const char *string = src;
@@ -323,13 +348,13 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
         sql_conn = table->sql_conn;
         stop = PQputCopyEnd(sql_conn, NULL);
         if (stop != 1) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
+            std::cerr << "COPY_END for " << table->copy << " failed: " << PQerrorMessage(sql_conn) << "\n";
             util::exit_nicely();
         }
 
         res = PQgetResult(sql_conn);
         if (PQresultStatus(res) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
+            std::cerr << "COPY_END for " << table->copy << " failed: " << PQerrorMessage(sql_conn) << "\n";
             PQclear(res);
             util::exit_nicely();
         }
@@ -340,52 +365,52 @@ int pgsql_endCopy( struct middle_pgsql_t::table_desc *table)
 }
 } // anonymous namespace
 
-int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags)
+int middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon, const struct keyval *tags)
 {
-    // Four params: id, lat, lon, tags */
-    const char *paramValues[4];
-    char *buffer;
+    if (node_table->copyMode) {
+      buffer.clear();
+      // id
+      buffer.append((column_fmt % id).str());
 
-    if( node_table->copyMode )
-    {
-      const char *tag_buf = pgsql_store_tags(tags,1);
-      int length = strlen(tag_buf) + 64;
-      buffer = (char *)alloca( length );
+      // lat, lon
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
+      buffer.append((column_fmt % util::double_to_fix(lat, out_options->scale)).str());
+      buffer.append((column_fmt % util::double_to_fix(lon, out_options->scale)).str());
 #else
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
+      buffer.append((latlon_fmt % lat).str());
+      buffer += '\t';
+      buffer.append((latlon_fmt % lon).str());
+      buffer += '\t';
 #endif
+
+      // tags
+      pgsql_store_tags(buffer, tags, 1);
+      buffer += '\n';
+
       pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
-      return 0;
+    } else {
+        std::string idstr = (single_fmt % id).str();
+    #ifdef FIXED_POINT
+        std::string latstr = (single_fmt % util::double_to_fix(lat, out_options->scale)).str();
+        std::string lonstr = (single_fmt % util::double_to_fix(lon, out_options->scale)).str();
+    #else
+        std::string latstr = (latlon_fmt % lat).str();
+        std::string lonstr = (latlon_fmt % lon).str();
+    #endif
+        std::string tagstr;
+        // Four params: id, lat, lon, tags */
+        const char *paramValues[] = { idstr.c_str(), latstr.c_str(), lonstr.c_str(),
+                                      pgsql_store_tags(tagstr, tags, 0) };
+        pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, paramValues, PGRES_COMMAND_OK);
     }
-    buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
-    paramValues[1] = ptr;
-#ifdef FIXED_POINT
-    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
-#else
-    ptr += sprintf( ptr, "%.10f", lat ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%.10f", lon );
-#endif
-    paramValues[3] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
+
     return 0;
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const
+int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const
 {
-    char tmp[16];
-    char *tmp2;
-    int count,  countDB, countPG, i,j;
+    int count,  countDB, countPG;
     char const *paramValues[1];
 
     PGresult *res;
@@ -393,12 +418,10 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
 
     count = 0; countDB = 0;
 
-    tmp2 = (char *)malloc(sizeof(char)*nd_count*16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
-
     // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2, "{");
-    for( i=0; i<nd_count; i++ ) {
+    std::string tmp2("{");
+    boost::format fmt("%1%,");
+    for(int i=0; i<nd_count; i++ ) {
         // Check cache first */
         if( cache->get( &nodes[i], ndids[i]) == 0 ) {
             count++;
@@ -408,26 +431,25 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
         // Mark nodes as needing to be fetched from the DB */
         nodes[i].lat = NAN;
         nodes[i].lon = NAN;
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ndids[i]);
-        strncat(tmp2, tmp, sizeof(char)*(nd_count*16 - 2));
+        tmp2.append((fmt % ndids[i]).str());
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
 
     if (countDB == 0) {
-        free(tmp2);
         return count; // All ids where in cache, so nothing more to do */
     }
 
+    tmp2[tmp2.length() - 1] = '}'; // replace last , with } to complete list of ids*/
+
     pgsql_endCopy(node_table);
 
-    paramValues[0] = tmp2;
+    paramValues[0] = tmp2.c_str();
     res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
     countPG = PQntuples(res);
 
     //store the pg results in a hashmap and telling it how many we expect
     boost::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
-    for (i = 0; i < countPG; i++) {
+    for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
         osmNode node;
 #ifdef FIXED_POINT
@@ -441,7 +463,7 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     }
 
     //copy the nodes back out of the hashmap to the output
-    for(i = 0; i < nd_count; ++i){
+    for(int i = 0; i < nd_count; ++i){
         //if we can find a matching id
         boost::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(ndids[i]);
         if(found != pg_nodes.end()) {
@@ -453,8 +475,8 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     // If some of the nodes in the way don't exist, the returning list has holes.
     //   As the rest of the code expects a continuous list, it needs to be re-compacted */
     if (count != nd_count) {
-        j = 0;
-        for (i = 0; i < nd_count; i++) {
+        int j = 0;
+        for (int i = 0; i < nd_count; i++) {
             if ( !std::isnan(nodes[i].lat)) {
                 nodes[j] = nodes[i];
                 j++;
@@ -463,7 +485,6 @@ int middle_pgsql_t::local_nodes_get_list(struct osmNode *nodes, const osmid_t *n
     }
 
     PQclear(res);
-    free(tmp2);
     return count;
 }
 
@@ -537,29 +558,32 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
 
 int middle_pgsql_t::ways_set(osmid_t way_id, osmid_t *nds, int nd_count, struct keyval *tags)
 {
-    // Three params: id, nodes, tags */
-    const char *paramValues[4];
-    char *buffer;
 
     if( way_table->copyMode )
     {
-      const char *tag_buf = pgsql_store_tags(tags,1);
-      char *node_buf = pgsql_store_nodes(nds, nd_count);
-      int length = strlen(tag_buf) + strlen(node_buf) + 64;
-      buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
-              way_id, node_buf, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
+      buffer.clear();
+      // id
+      buffer.append((column_fmt % way_id).str());
+      // nodes
+      pgsql_store_nodes(buffer, nds, nd_count);
+      buffer += '\t';
+      // tags
+      pgsql_store_tags(buffer, tags, 1);
+      buffer += '\n';
+
       pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
-      return 0;
+    } else {
+      // Three params: id, nodes, tags */
+      std::string idstr = (single_fmt % way_id).str();
+      std::string nodestr;
+      pgsql_store_nodes(nodestr, nds, nd_count);
+      std::string tagstr;
+      const char *paramValues[] = { idstr.c_str(),
+                                    nodestr.c_str(),
+                                    pgsql_store_tags(tagstr, tags, 0) };
+      pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, paramValues, PGRES_COMMAND_OK);
     }
-    buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    sprintf(ptr, "%" PRIdOSMID, way_id);
-    paramValues[1] = pgsql_store_nodes(nds, nd_count);
-    paramValues[2] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, (const char * const *)paramValues, PGRES_COMMAND_OK);
+
     return 0;
 }
 
@@ -600,12 +624,9 @@ int middle_pgsql_t::ways_get(osmid_t id, struct keyval *tags, struct osmNode **n
 
 int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tags, struct osmNode **nodes_ptr, int *count_ptr) const {
 
-    char tmp[16];
-    char *tmp2;
-    int count, countPG, i, j;
+    int count, countPG;
     osmid_t *wayidspg;
     char const *paramValues[1];
-    int num_nodes;
     osmid_t *list;
 
     PGresult *res;
@@ -613,20 +634,20 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     if (way_count == 0) return 0;
 
-    tmp2 = (char *)malloc(sizeof(char)*way_count*16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
+    std::string tmp2("{");
+    tmp2.reserve(way_count*16);
 
     // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2, "{");
-    for( i=0; i<way_count; i++ ) {
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", ids[i]);
-        strncat(tmp2,tmp, sizeof(char)*(way_count*16 - 2));
+    boost::format fmt("%1%,");
+    for(int i=0; i<way_count; i++ ) {
+        tmp2.append((fmt % ids[i]).str());
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
+
+    tmp2[tmp2.length() - 1] = '}'; // replace last , with } to complete list of ids*/
 
     pgsql_endCopy(way_table);
 
-    paramValues[0] = tmp2;
+    paramValues[0] = tmp2.c_str();
     res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
     countPG = PQntuples(res);
 
@@ -634,7 +655,7 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
 
     if (wayidspg == NULL) return 0; //failed to allocate memory, return */
 
-    for (i = 0; i < countPG; i++) {
+    for (int i = 0; i < countPG; i++) {
         wayidspg[i] = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
     }
 
@@ -642,13 +663,13 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     count = 0;
-    for (i = 0; i < way_count; i++) {
-        for (j = 0; j < countPG; j++) {
+    for (int i = 0; i < way_count; i++) {
+        for (int j = 0; j < countPG; j++) {
             if (ids[i] == wayidspg[j]) {
                 way_ids[count] = ids[i];
                 pgsql_parse_tags( PQgetvalue(res, j, 2), &(tags[count]) );
 
-                num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
+                int num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
                 list = (osmid_t *)alloca(sizeof(osmid_t)*num_nodes );
                 nodes_ptr[count] = (struct osmNode *)malloc(sizeof(struct osmNode) * num_nodes);
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list, num_nodes);
@@ -664,7 +685,6 @@ int middle_pgsql_t::ways_get_list(const osmid_t *ids, int way_count, osmid_t *wa
     assert(count<=way_count);
 
     PQclear(res);
-    free(tmp2);
     free(wayidspg);
 
     return count;
@@ -729,10 +749,6 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
 
 int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags)
 {
-    // Params: id, way_off, rel_off, parts, members, tags */
-    const char *paramValues[6];
-    char *buffer;
-    int i;
     struct keyval member_list;
     char buf[64];
 
@@ -743,7 +759,7 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
     way_parts.reserve(member_count);
     rel_parts.reserve(member_count);
 
-    for( i=0; i<member_count; i++ )
+    for(int i=0; i<member_count; i++ )
     {
       char tag = 0;
       switch( members[i].type )
@@ -765,35 +781,41 @@ int middle_pgsql_t::relations_set(osmid_t id, struct member *members, int member
 
     if( rel_table->copyMode )
     {
-      char *tag_buf = strdup(pgsql_store_tags(tags,1));
-      const char *member_buf = pgsql_store_tags(&member_list,1);
-      char *parts_buf = pgsql_store_nodes(&all_parts[0], all_count);
-      int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
-      buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\t%s\t%s\n",
-              id, node_count, node_count+way_count, parts_buf, member_buf, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
-      free(tag_buf);
-      member_list.resetList();
+      buffer.clear();
+      // id
+      buffer.append((column_fmt % id).str());
+      // way_off
+      buffer.append((column_fmt % node_count).str());
+      // rel_off
+      buffer.append((column_fmt % (node_count + way_count)).str());
+      // parts
+      pgsql_store_nodes(buffer, &all_parts[0], all_count);
+      buffer += '\t';
+      // members
+      pgsql_store_tags(buffer, &member_list, 1);
+      buffer += '\t';
+      // tags
+      pgsql_store_tags(buffer, tags, 1);
+      buffer += '\n';
+
       pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
-      return 0;
+    } else {
+      std::string idstr = (single_fmt % id).str();
+      std::string wstr = (single_fmt % node_count).str();
+      std::string rstr = (single_fmt % (node_count + way_count)).str();
+      std::string partstr;
+      pgsql_store_nodes(partstr, &all_parts[0], all_count);
+      std::string memberstr;
+      std::string tagstr;
+      // Params: id, way_off, rel_off, parts, members, tags */
+      const char *paramValues[] = { idstr.c_str(), wstr.c_str(), rstr.c_str(),
+                                    partstr.c_str(),
+                                    pgsql_store_tags(memberstr, &member_list, 0),
+                                    pgsql_store_tags(tagstr, tags, 0)
+                                  };
+      pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, paramValues, PGRES_COMMAND_OK);
     }
-    buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    ptr += sprintf(ptr, "%" PRIdOSMID, id ) + 1;
-    paramValues[1] = ptr;
-    ptr += sprintf(ptr, "%d", node_count ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%d", node_count+way_count );
-    paramValues[3] = pgsql_store_nodes(&all_parts[0], all_count);
-    paramValues[4] = pgsql_store_tags(&member_list,0);
-    if( paramValues[4] )
-        paramValues[4] = strdup(paramValues[4]);
-    paramValues[5] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
-    if( paramValues[4] )
-        free((void *)paramValues[4]);
+
     member_list.resetList();
     return 0;
 }
@@ -945,11 +967,11 @@ void middle_pgsql_t::analyze(void)
 {
     int i;
 
-    for (i=0; i<num_tables; i++) {
+    for (int i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
 
-        if (tables[i].analyze) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
+        if (!tables[i].analyze.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze.c_str());
         }
     }
 }
@@ -962,124 +984,15 @@ void middle_pgsql_t::end(void)
         PGconn *sql_conn = tables[i].sql_conn;
 
         // Commit transaction */
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
+        if (!tables[i].stop.empty() && tables[i].transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop.c_str());
             tables[i].transactionMode = 0;
         }
 
     }
 }
 
-/**
- * Helper to create SQL queries.
- *
- * The input string is mangled as follows:
- * %p replaced by the content of the "prefix" option
- * %i replaced by the content of the "tblsslim_data" option
- * %t replaced by the content of the "tblssslim_index" option
- * %m replaced by "UNLOGGED" if the "unlogged" option is set
- * other occurrences of the "%" char are treated normally.
- * any occurrence of { or } will be ignored (not copied to output string);
- * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
- *
- * So, the input string
- *    Hello{ dear %i}!
- * will, if i is set to "John", translate to
- *    Hello dear John!
- * but if i is unset, translate to
- *    Hello!
- *
- * This is used for constructing SQL queries with proper tablespace settings.
- */
-static void set_prefix_and_tbls(const struct options_t *options, const char **string)
-{
-    char buffer[1024];
-    const char *source;
-    char *dest;
-    char *openbrace = NULL;
-    int copied = 0;
 
-    if (*string == NULL) return;
-    source = *string;
-    dest = buffer;
-
-    while (*source) {
-        if (*source == '{') {
-            openbrace = dest;
-            copied = 0;
-            source++;
-            continue;
-        } else if (*source == '}') {
-            if (!copied && openbrace) dest = openbrace;
-            source++;
-            continue;
-        } else if (*source == '%') {
-            if (*(source+1) == 'p') {
-                if (!options->prefix.empty()) {
-                    strcpy(dest, options->prefix.c_str());
-                    dest += strlen(options->prefix.c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 't') {
-                if (options->tblsslim_data) {
-                    strcpy(dest, options->tblsslim_data->c_str());
-                    dest += strlen(options->tblsslim_data->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'i') {
-                if (options->tblsslim_index) {
-                    strcpy(dest, options->tblsslim_index->c_str());
-                    dest += strlen(options->tblsslim_index->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'm') {
-                if (options->unlogged) {
-                    strcpy(dest, "UNLOGGED");
-                    dest += 8;
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            }
-        }
-        *(dest++) = *(source++);
-    }
-    *dest = 0;
-    *string = strdup(buffer);
-}
-
-int middle_pgsql_t::connect(table_desc& table) {
-    PGconn *sql_conn;
-
-    set_prefix_and_tbls(out_options, &(table.name));
-    set_prefix_and_tbls(out_options, &(table.start));
-    set_prefix_and_tbls(out_options, &(table.create));
-    set_prefix_and_tbls(out_options, &(table.create_index));
-    set_prefix_and_tbls(out_options, &(table.prepare));
-    set_prefix_and_tbls(out_options, &(table.prepare_intarray));
-    set_prefix_and_tbls(out_options, &(table.copy));
-    set_prefix_and_tbls(out_options, &(table.analyze));
-    set_prefix_and_tbls(out_options, &(table.stop));
-    set_prefix_and_tbls(out_options, &(table.array_indexes));
-
-    fprintf(stderr, "Setting up table: %s\n", table.name);
-    sql_conn = PQconnectdb(out_options->conninfo.c_str());
-
-    // Check to see that the backend connection was successfully made */
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-        return 1;
-    }
-    table.sql_conn = sql_conn;
-    return 0;
-}
 
 int middle_pgsql_t::start(const options_t *out_options_)
 {
@@ -1087,7 +1000,6 @@ int middle_pgsql_t::start(const options_t *out_options_)
     PGresult   *res;
     int i;
     int dropcreate = !out_options->append;
-    char * sql;
 
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
@@ -1116,7 +1028,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
     // We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
         //bomb if you cant connect
-        if(connect(tables[i]))
+        if(tables[i].connect(out_options))
             util::exit_nicely();
         PGconn* sql_conn = tables[i].sql_conn;
 
@@ -1162,11 +1074,12 @@ int middle_pgsql_t::start(const options_t *out_options_)
 
             if (out_options->append)
             {
-                sql = (char *)malloc (2048);
-                snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
-                res = PQexec(sql_conn, sql );
-                free(sql);
-                sql = NULL;
+                std::string sql;
+                sql.reserve(24 + tables[t_node].name.length());
+                sql += "SELECT id FROM ";
+                sql += tables[t_node].name;
+                sql += " LIMIT 1";
+                res = PQexec(sql_conn, sql.c_str());
                 if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
                 {
                     int size = PQfsize(res, 0);
@@ -1191,32 +1104,32 @@ int middle_pgsql_t::start(const options_t *out_options_)
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name.c_str());
         }
 
-        if (tables[i].start) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start);
+        if (!tables[i].start.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start.c_str());
             tables[i].transactionMode = 1;
         }
 
-        if (dropcreate && tables[i].create) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
-            if (tables[i].create_index) {
-              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+        if (dropcreate && !tables[i].create.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create.c_str());
+            if (!tables[i].create_index.empty()) {
+              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index.c_str());
             }
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (!tables[i].prepare.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare.c_str());
         }
 
-        if (Append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (Append && !tables[i].prepare_intarray.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray.c_str());
         }
 
-        if (tables[i].copy) {
-            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
+        if (!tables[i].copy.empty()) {
+            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy.c_str());
             tables[i].copyMode = 1;
         }
     }
@@ -1229,8 +1142,8 @@ void middle_pgsql_t::commit(void) {
     for (i=0; i<num_tables; i++) {
         PGconn *sql_conn = tables[i].sql_conn;
         pgsql_endCopy(&tables[i]);
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
+        if (!tables[i].stop.empty() && tables[i].transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop.c_str());
             tables[i].transactionMode = 0;
         }
     }
@@ -1246,23 +1159,23 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     struct table_desc *table = (struct table_desc *)arg;
     PGconn *sql_conn = table->sql_conn;
 
-    fprintf(stderr, "Stopping table: %s\n", table->name);
+    std::cerr << "Stopping table: " << table->name << "\n";
     pgsql_endCopy(table);
     time(&start);
     if (out_options->droptemp)
     {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name.c_str());
     }
-    else if (build_indexes && table->array_indexes)
+    else if (build_indexes && !table->array_indexes.empty())
     {
-        fprintf(stderr, "Building index on table: %s\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
+        std::cerr << "Building index on table: " << table->name << "\n";
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes.c_str());
     }
 
     PQfinish(sql_conn);
     table->sql_conn = NULL;
     time(&end);
-    fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
+    std::cerr << "Stopped table: " << table->name << " in " << (int)(end - start) << "s\n";
     return NULL;
 }
 
@@ -1322,23 +1235,24 @@ middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
       Append(0), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
 {
+    buffer.reserve(8 * 1024);
     /*table = t_node,*/
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
            /*start*/ "BEGIN;\n",
 #ifdef FIXED_POINT
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
-/*prepare_intarray*/ NULL,
+/*prepare_intarray*/ "",
             /*copy*/ "COPY %p_nodes FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_nodes;\n",
             /*stop*/ "COMMIT;\n"
@@ -1348,7 +1262,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_ways",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
@@ -1367,7 +1281,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_rels",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ "",
          /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
@@ -1392,15 +1306,6 @@ middle_pgsql_t::middle_pgsql_t()
     rel_table = &tables[2];
 }
 
-middle_pgsql_t::~middle_pgsql_t() {
-    for (int i=0; i < num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
-        }
-    }
-
-}
-
 boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     middle_pgsql_t* mid = new middle_pgsql_t();
     mid->out_options = out_options;
@@ -1418,16 +1323,16 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
         //bomb if you cant connect
-        if(mid->connect(mid->tables[i]))
+        if(mid->tables[i].connect(mid->out_options))
             util::exit_nicely();
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (!tables[i].prepare.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare.c_str());
         }
 
-        if (Append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (Append && !tables[i].prepare_intarray.empty()) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray.c_str());
         }
     }
 

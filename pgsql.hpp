@@ -12,7 +12,7 @@
 #include <boost/shared_ptr.hpp>
 
 PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int nParams, const char *const * paramValues, const ExecStatusType expect);
-void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql, int len);
+void pgsql_CopyData(const char *context, PGconn *sql_conn, const std::string &sql);
 boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql);
 boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql);
 int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)
@@ -23,12 +23,4 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 
 void escape(const std::string &src, std::string& dst);
 
-
-inline void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql) {
-    pgsql_CopyData(context, sql_conn, sql, strlen(sql));
-}
-
-inline void pgsql_CopyData(const char *context, PGconn *sql_conn, const std::string &sql) {
-    pgsql_CopyData(context, sql_conn, sql.c_str(), sql.length());
-}
 #endif

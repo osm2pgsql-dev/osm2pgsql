@@ -19,7 +19,7 @@
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
-    virtual ~middle_pgsql_t();
+    virtual ~middle_pgsql_t() {}
 
     int start(const options_t *out_options_);
     void stop(void);
@@ -54,39 +54,59 @@ struct middle_pgsql_t : public slim_middle_t {
     void *pgsql_stop_one(void *arg);
 
     struct table_desc {
-        table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL,
-                   const char *create_ = NULL,
-                   const char *create_index_ = NULL,
-                   const char *prepare_ = NULL,
-                   const char *prepare_intarray_ = NULL,
-                   const char *copy_ = NULL,
-                   const char *analyze_ = NULL,
-                   const char *stop_ = NULL,
-                   const char *array_indexes_ = NULL);
+        table_desc(const char *name_ = "",
+                   const char *start_ = "",
+                   const char *create_ = "",
+                   const char *create_index_ = "",
+                   const char *prepare_ = "",
+                   const char *prepare_intarray_ = "",
+                   const char *copy_ = "",
+                   const char *analyze_ = "",
+                   const char *stop_ = "",
+                   const char *array_indexes_ = "")
+        : name(name_),
+          start(start_),
+          create(create_),
+          create_index(create_index_),
+          prepare(prepare_),
+          prepare_intarray(prepare_intarray_),
+          copy(copy_),
+          analyze(analyze_),
+          stop(stop_),
+          array_indexes(array_indexes_),
+          copyMode(0),
+          transactionMode(0),
+          sql_conn(NULL)
+        {}
 
-        const char *name;
-        const char *start;
-        const char *create;
-        const char *create_index;
-        const char *prepare;
-        const char *prepare_intarray;
-        const char *copy;
-        const char *analyze;
-        const char *stop;
-        const char *array_indexes;
+        ~table_desc();
+
+        int connect(const struct options_t *options);
+
+        std::string name;
+        std::string start;
+        std::string create;
+        std::string create_index;
+        std::string prepare;
+        std::string prepare_intarray;
+        std::string copy;
+        std::string analyze;
+        std::string stop;
+        std::string array_indexes;
 
         int copyMode;    /* True if we are in copy mode */
         int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
+
+        private:
+        void set_prefix_and_tbls(const options_t *options, std::string *str);
     };
 
     virtual boost::shared_ptr<const middle_query_t> get_instance() const;
 private:
 
-    int connect(table_desc& table);
-    int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
-    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
+    int local_nodes_set(osmid_t id, double lat, double lon, const struct keyval *tags);
+    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, int nd_count) const;
     int local_nodes_delete(osmid_t osm_id);
 
     std::vector<table_desc> tables;
@@ -102,6 +122,7 @@ private:
     boost::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     int build_indexes;
+    std::string buffer; // used for building the COPY string
 };
 
 #endif
