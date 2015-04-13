@@ -37,6 +37,8 @@ then
   AC_MSG_ERROR([Could not find a c++ compiler]);
 fi
 
+AX_CXX_COMPILE_STDCXX_11(,optional)
+
 AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
 
