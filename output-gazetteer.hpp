@@ -256,7 +256,6 @@ private:
     struct pg_conn *ConnectionError;
 
     bool copy_active;
-    bool append_mode;
 
     std::string buffer;
     place_tag_processor places;

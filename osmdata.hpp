@@ -11,7 +11,7 @@
 #include "osmtypes.hpp"
 
 class output_t;
-class middle_t;
+struct middle_t;
 
 class osmdata_t {
 public:
