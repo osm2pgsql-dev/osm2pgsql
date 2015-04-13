@@ -55,14 +55,9 @@ class taglist_t : public std::vector<tag> {
   typedef std::vector<tag> base_t;
 
 public:
-  const tag *find(const std::string &key) const
-  {
-    for (base_t::const_iterator it = begin() ; it != end(); ++it)
-      if (it->key == key)
-        return &(*it);
+  const tag *find(const std::string &key) const { return _find(key); }
 
-    return 0;
-  }
+  tag *find(const std::string &key) {  return const_cast<tag *>(_find(key)); }
 
   size_t indexof(const std::string &key) const
   {
@@ -104,7 +99,19 @@ public:
           push_back(t);
   }
 
-  bool contains(const std::string &key) const { return find(key) != 0; }
+  bool contains(const std::string &key) const { return _find(key) != 0; }
+
+private:
+  const tag *_find(const std::string &key) const
+  {
+    for (base_t::const_iterator it = begin() ; it != end(); ++it)
+      if (it->key == key)
+        return &(*it);
+
+    return 0;
+  }
+
+
 };
 
 typedef std::vector<taglist_t> multitaglist_t;

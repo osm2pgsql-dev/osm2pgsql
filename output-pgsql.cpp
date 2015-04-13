@@ -124,6 +124,12 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodel
     else
         split_at = 100 * 1000;
 
+    tag *areatag = 0;
+    if (m_enable_way_area) {
+        outtags.push_dedupe(tag("way_area", "\\N"));
+        areatag = outtags.find("way_area");
+    }
+
     geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, polygon, split_at);
     for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
         /* FIXME: there should be a better way to detect polygons */
@@ -132,7 +138,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodel
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                outtags.push_back(tag("way_area", tmp));
+                areatag->value = tmp;
             }
             m_tables[t_poly]->write_wkt(id, outtags, wkt->geom.c_str());
         } else {
@@ -183,6 +189,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         return 0;
     }
 
+    tag *areatag = 0;
+    if (m_enable_way_area) {
+        outtags.push_dedupe(tag("way_area", "\\N"));
+        areatag = outtags.find("way_area");
+    }
+
     for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
     {
         expire->from_wkt(wkt->geom.c_str(), -id);
@@ -191,7 +203,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                outtags.push_back(tag("way_area", tmp));
+                areatag->value = tmp;
             }
             m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
         } else {
@@ -220,6 +232,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
+        tag *areatag = 0;
+        if (m_enable_way_area) {
+            outtags.push_dedupe(tag("way_area", "\\N"));
+            areatag = outtags.find("way_area");
+        }
+
         wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
         {
@@ -227,7 +245,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
             if ((wkt->area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt->area);
-                outtags.push_back(tag("way_area", tmp));
+                areatag->value = tmp;
             }
             m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
         }
