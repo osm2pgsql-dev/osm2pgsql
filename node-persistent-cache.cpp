@@ -62,7 +62,7 @@ void node_persistent_cache::writeout_dirty_nodes(osmid_t id)
         };
         if (write(node_cache_fd, writeNodeBlock.nodes,
                 WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                < WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+                < ssize_t(WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
         {
             fprintf(stderr, "Failed to write out node cache: %s\n",
                     strerror(errno));
@@ -108,7 +108,7 @@ void node_persistent_cache::writeout_dirty_nodes(osmid_t id)
                 };
                 if (write(node_cache_fd, readNodeBlockCache[i].nodes,
                         READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                        < READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+                        < ssize_t(READ_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
                 {
                     fprintf(stderr, "Failed to write out node cache: %s\n",
                             strerror(errno));
@@ -226,7 +226,7 @@ void node_persistent_cache::expand_cache(osmid_t block_offset)
     {
         if (write(node_cache_fd, dummyNodes,
                 READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                < READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+                < ssize_t(READ_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
         {
             fprintf(stderr, "Failed to expand persistent node cache: %s\n",
                     strerror(errno));
@@ -241,7 +241,7 @@ void node_persistent_cache::expand_cache(osmid_t block_offset)
         util::exit_nicely();
     };
     if (write(node_cache_fd, &cacheHeader, sizeof(struct persistentCacheHeader))
-            != sizeof(struct persistentCacheHeader))
+            != ssize_t(sizeof(struct persistentCacheHeader)))
     {
         fprintf(stderr, "Failed to update persistent cache header: %s\n",
                 strerror(errno));
@@ -298,7 +298,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
         };
         if (write(node_cache_fd, readNodeBlockCache[block_id].nodes,
                 READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                < READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+                < ssize_t(READ_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
         {
             fprintf(stderr, "Failed to write out node cache: %s\n",
                     strerror(errno));
@@ -345,7 +345,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
 {
     if (write(node_cache_fd, writeNodeBlock.nodes,
               WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-        < WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+        < ssize_t(WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
     {
         fprintf(stderr, "Failed to write out node cache: %s\n",
                 strerror(errno));
@@ -533,7 +533,7 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     out.assign(nds.size(), osmNode());
 
     bool need_fetch = false;;
-    for (int i = 0; i < nds.size(); ++i) {
+    for (size_t i = 0; i < nds.size(); ++i) {
         /* Check cache first */
         if (ram_cache && (ram_cache->get(&out[i], nds[i]) != 0)) {
             /* In order to have a higher OS level I/O queue depth
@@ -545,8 +545,8 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     if (!need_fetch)
         return out.size();
 
-    int wrtidx = 0;
-    for (int i = 0; i < nds.size(); i++) {
+    size_t wrtidx = 0;
+    for (size_t i = 0; i < nds.size(); i++) {
         if (isnan(out[i].lat) && isnan(out[i].lon)) {
             if (get(&(out[wrtidx]), nds[i]) == 0)
                 wrtidx++;

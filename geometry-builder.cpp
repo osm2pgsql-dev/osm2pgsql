@@ -61,7 +61,7 @@ void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
     size_t num_coords = coords->getSize();
     nodes.reserve(num_coords);
 
-    for (int i = 0; i < num_coords; i++) {
+    for (size_t i = 0; i < num_coords; i++) {
         Coordinate coord = coords->getAt(i);
         nodes.push_back(osmNode(coord.x, coord.y));
     }

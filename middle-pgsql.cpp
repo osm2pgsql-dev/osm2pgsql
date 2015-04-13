@@ -94,7 +94,7 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
 namespace {
 char *pgsql_store_nodes(const idlist_t &nds) {
   static char *buffer;
-  static int buflen;
+  static size_t buflen;
 
   if( buflen <= nds.size() * 10 )
   {
@@ -112,7 +112,7 @@ _restart:
       *ptr++ = ',';
     ptr += sprintf(ptr, "%" PRIdOSMID, *it);
 
-    if( (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
+    if( (size_t) (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
     {
       buflen <<= 1;
       buffer = (char *)realloc( buffer, buflen );
@@ -559,11 +559,11 @@ int middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) con
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
 
-    int num_nodes = strtol(PQgetvalue(res, 0, 2), NULL, 10);
+    size_t num_nodes = strtoul(PQgetvalue(res, 0, 2), NULL, 10);
     idlist_t list;
     pgsql_parse_nodes( PQgetvalue(res, 0, 0), list);
     if (num_nodes != list.size()) {
-        fprintf(stderr, "parse_nodes problem for way %s: expected nodes %d got %zu\n",
+        fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
                 tmp, num_nodes, list.size());
         util::exit_nicely();
     }
@@ -603,7 +603,7 @@ int middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 
     idlist_t wayidspg;
 
-    for (unsigned i = 0; i < countPG; i++) {
+    for (int i = 0; i < countPG; i++) {
         wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), NULL, 10));
     }
 
@@ -611,17 +611,17 @@ int middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
     for(idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
-        for (unsigned j = 0; j < countPG; j++) {
+        for (int j = 0; j < countPG; j++) {
             if (*it == wayidspg[j]) {
                 way_ids.push_back(*it);
                 tags.push_back(taglist_t());
                 pgsql_parse_tags(PQgetvalue(res, j, 2), tags.back());
 
-                int num_nodes = strtol(PQgetvalue(res, j, 3), NULL, 10);
+                size_t num_nodes = strtoul(PQgetvalue(res, j, 3), NULL, 10);
                 idlist_t list;
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list);
                 if (num_nodes != list.size()) {
-                    fprintf(stderr, "parse_nodes problem for way %s: expected nodes %d got %zu\n",
+                    fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
                             tmp, num_nodes, list.size());
                     util::exit_nicely();
                 }
@@ -790,7 +790,7 @@ int middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &
     pgsql_parse_tags(PQgetvalue(res, 0, 1), tags);
     pgsql_parse_tags(PQgetvalue(res, 0, 0), member_temp);
 
-    if (member_temp.size() != strtol(PQgetvalue(res, 0, 2), NULL, 10)) {
+    if (member_temp.size() != strtoul(PQgetvalue(res, 0, 2), NULL, 10)) {
         fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
         util::exit_nicely();
     }

@@ -380,7 +380,7 @@ void table_t::write_tags_column(const taglist_t &tags, std::string& values,
 {
     //iterate through the list of tags, first one is always null
     bool added = false;
-    for (int i = 0; i < tags.size(); ++i)
+    for (size_t i = 0; i < tags.size(); ++i)
     {
         const tag& xtag = tags[i];
         //skip z_order tag and keys which have their own column

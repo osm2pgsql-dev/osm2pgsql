@@ -64,9 +64,9 @@ public:
     return 0;
   }
 
-  int indexof(const std::string &key) const
+  size_t indexof(const std::string &key) const
   {
-      for (int i = 0; i < size(); ++i)
+      for (size_t i = 0; i < size(); ++i)
           if (at(i).key == key)
               return i;
 

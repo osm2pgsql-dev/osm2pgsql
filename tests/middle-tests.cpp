@@ -85,7 +85,7 @@ int test_way_set(middle_t *mid)
       nds.push_back(i);
 
   // set the nodes
-  for (int i = 0; i < nds.size(); ++i) {
+  for (size_t i = 0; i < nds.size(); ++i) {
     status = mid->nodes_set(nds[i], lat, lon, tags);
     if (status != 0) { std::cerr << "ERROR: Unable to set node " << nds[i] << ".\n"; return 1; }
   }
@@ -116,7 +116,7 @@ int test_way_set(middle_t *mid)
               << xways[0] << " from middle.\n";
     return 1;
   }
-  for (int i = 0; i < nds.size(); ++i) {
+  for (size_t i = 0; i < nds.size(); ++i) {
     if (xnodes[0][i].lon != lon) {
       std::cerr << "ERROR: Way node should have lon=" << lon << ", but got back "
                 << node_ptr[i].lon << " from middle.\n";
@@ -161,7 +161,7 @@ int test_way_set(middle_t *mid)
   if (dynamic_cast<slim_middle_t *>(mid)) {
       slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
 
-      for (int i = 0; i < nds.size(); ++i) {
+      for (size_t i = 0; i < nds.size(); ++i) {
           slim->nodes_delete(nds[i]);
       }
       slim->ways_delete(way_id);

@@ -207,7 +207,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
      * have duplicates */
     //dont do this when working with pending relations as its not needed
     if (make_polygon) {
-        for (int i=0; i < xid.size(); i++) {
+        for (size_t i=0; i < xid.size(); i++) {
             if (members_superseeded[i]) {
                 pgsql_delete_way_from_output(xid[i]);
                 if(!pending)
@@ -473,8 +473,8 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &membe
   multitaglist_t xtags(xid.size(), taglist_t());
   rolelist_t xrole(xid.size(), 0);
 
-  for (int i = 0; i < xid.size(); i++) {
-      for (int j = i; j < members.size(); j++) {
+  for (size_t i = 0; i < xid.size(); i++) {
+      for (size_t j = i; j < members.size(); j++) {
           if (members[j].id == xid[i]) {
               //filter the tags on this member because we got it from the middle
               //and since the middle is no longer tied to the output it no longer
@@ -715,8 +715,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
     m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
-    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
-    expire(new expire_tiles(&m_options))
+    expire(new expire_tiles(&m_options)),
+    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     for(std::vector<boost::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {

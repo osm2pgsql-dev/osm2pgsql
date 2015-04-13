@@ -259,7 +259,7 @@ expire_tiles::~expire_tiles() {
 }
 
 expire_tiles::expire_tiles(const struct options_t *options)
-    : Options(options), map_width(0), tile_width(0),
+    : map_width(0), tile_width(0), Options(options),
       dirty(NULL)
 {
 	if (Options->expire_tiles_zoom < 0) return;
@@ -421,7 +421,7 @@ void expire_tiles::from_nodes_line(const nodelist_t &nodes)
     if (nodes.size() == 1) {
         from_bbox(nodes[0].lon, nodes[0].lat, nodes[0].lon, nodes[0].lat);
     } else {
-        for (int i = 1; i < nodes.size(); ++i)
+        for (size_t i = 1; i < nodes.size(); ++i)
             from_line(nodes[i-1].lon, nodes[i-1].lat, nodes[i].lon, nodes[i].lat);
     }
 }
@@ -439,7 +439,7 @@ void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
     double max_lon = nodes[0].lon;
     double max_lat = nodes[0].lat;
 
-    for (int i = 1; i < nodes.size(); ++i) {
+    for (size_t i = 1; i < nodes.size(); ++i) {
         if (nodes[i].lon < min_lon) min_lon = nodes[i].lon;
         if (nodes[i].lat < min_lat) min_lat = nodes[i].lat;
         if (nodes[i].lon > max_lon) max_lon = nodes[i].lon;

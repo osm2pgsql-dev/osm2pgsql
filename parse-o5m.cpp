@@ -647,10 +647,8 @@ int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t 
   /* 0: node; 1: way; 2: relation; */
   uint32_t hisver;
   int64_t histime;
-  int64_t hiscset;
   uint32_t hisuid;
   char* hisuser;
-  str_info_t* str;  /* string unit handle (if o5m format) */
   bool endoffile;
   int64_t o5id;  /* for o5m delta coding */
   int32_t o5lon,o5lat;  /* for o5m delta coding */
@@ -660,13 +658,12 @@ int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t 
   byte* bufp;  /* pointer in read buffer */
 #define bufsp ((char*)bufp)  /* for signed char */
   byte* bufe;  /* pointer in read buffer, end of object */
-  char c;  /* latest character which has been read */
   byte b;  /* latest byte which has been read */
   int l;
   byte* bp;
 
   /* procedure initializations */
-  str= str_open();
+  str_open();
   /* call some initialization of string read module */
   str_reset();
   o5id= 0;
@@ -715,7 +712,7 @@ return 1;
       /* get next object */
     read_input();
     bufp= read_bufp;
-    b= *bufp; c= (char)b;
+    b= *bufp;
 
     /* care about file end */
     if(read_bufp>=read_bufe)  /* at end of input file; */
@@ -759,7 +756,6 @@ return 1;
     /* object initialization */
     hisver= 0;
     histime= 0;
-    hiscset= 0;
     hisuid= 0;
     hisuser= NULL;
 
@@ -816,7 +812,7 @@ return 1;
         createtimestamp(histime,tmpstr);
         tags.push_back(tag("osm_timestamp",tmpstr));
         if(histime!=0) {
-            hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
+          o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
@@ -889,7 +885,7 @@ return 1;
           ri= pbf_sint64(&bufp);
           str_read(&bufp,&rr,NULL);
           rt= (*rr++ -'0')%3;
-          OsmType type;
+          OsmType type = OSMTYPE_NODE;
           switch(rt) {
           case 0:  /* node */
             type= OSMTYPE_NODE;

@@ -213,7 +213,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
         if (poly_tags.empty()) {
             int first_outerway = 1;
-            for (int i = 0; i < member_tags.size(); i++) {
+            for (size_t i = 0; i < member_tags.size(); i++) {
                 if (member_roles[i] && *(member_roles[i]) == "inner")
                     continue;
 
@@ -277,7 +277,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
      mark each member so that we can skip them during iterate_ways
      but only if the polygon-tags look the same as the outer ring */
     if (make_polygon) {
-        for (int i = 0; i < member_tags.size(); i++) {
+        for (size_t i = 0; i < member_tags.size(); i++) {
             member_superseeded[i] = 1;
             for (taglist_t::const_iterator p = member_tags[i].begin();
                  p != member_tags[i].end(); ++p) {
@@ -334,7 +334,7 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
 
     lua_newtable(L);    /* member roles table */
 
-    for (int i = 0; i < member_roles.size(); i++) {
+    for (size_t i = 0; i < member_roles.size(); i++) {
         lua_pushnumber(L, i + 1);
         lua_pushstring(L, member_roles[i]->c_str());
         lua_rawset(L, -3);
@@ -356,7 +356,7 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
     lua_pop(L,1);
 
     lua_pushnil(L);
-    for (int i = 0; i < member_tags.size(); i++) {
+    for (size_t i = 0; i < member_tags.size(); i++) {
         if (lua_next(L,-2)) {
             member_superseeded[i] = lua_tointeger(L,-1);
             lua_pop(L,1);

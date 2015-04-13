@@ -161,7 +161,7 @@ int middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     tags.assign(ids.size(), taglist_t());
     nodes.assign(ids.size(), nodelist_t());
 
-    int count = 0;
+    size_t count = 0;
     for (idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
         if (ways_get(*it, tags[count], nodes[count]) == 0) {
             way_ids.push_back(*it);

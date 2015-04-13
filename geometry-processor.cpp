@@ -118,7 +118,7 @@ size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid
 
     //grab the roles of each way
     roles.reserve(ways.size());
-    int memberpos = 0;
+    size_t memberpos = 0;
     for (idlist_t::const_iterator it = ways.begin(); it != ways.end(); ++it) {
         while (memberpos < members->size()) {
             if (members->at(memberpos).id == *it) {

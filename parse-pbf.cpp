@@ -48,26 +48,13 @@
 
 static uint32_t get_length(FILE *input)
 {
-  char buf[4];
+  uint32_t buf;
 
-  if (1 != fread(buf, sizeof(buf), 1, input))
+  if (1 != fread(reinterpret_cast<char *>(&buf), sizeof(buf), 1, input))
     return 0;
 
-  return ntohl(*((size_t *)buf));
+  return ntohl(buf);
 }
-
-#if 0
-static void *realloc_or_free(void *p, size_t len)
-{
-  void *new = realloc(p, len);
-
-  if (new == NULL) {
-    free(p);
-  }
-
-  return new;
-}
-#endif
 
 static BlockHeader *read_header(FILE *input, void *buf)
 {
