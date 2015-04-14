@@ -10,10 +10,10 @@ processor_line::~processor_line()
 {
 }
 
-geometry_builder::maybe_wkt_t processor_line::process_way(const osmNode *nodes, size_t node_count)
+geometry_builder::maybe_wkt_t processor_line::process_way(const nodelist_t &nodes)
 {
     //have the builder make the wkt
-    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, node_count, false);
+    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, false);
     //hand back the wkt
     return wkt;
 }

@@ -48,26 +48,13 @@
 
 static uint32_t get_length(FILE *input)
 {
-  char buf[4];
+  uint32_t buf;
 
-  if (1 != fread(buf, sizeof(buf), 1, input))
+  if (1 != fread(reinterpret_cast<char *>(&buf), sizeof(buf), 1, input))
     return 0;
 
-  return ntohl(*((size_t *)buf));
+  return ntohl(buf);
 }
-
-#if 0
-static void *realloc_or_free(void *p, size_t len)
-{
-  void *new = realloc(p, len);
-
-  if (new == NULL) {
-    free(p);
-  }
-
-  return new;
-}
-#endif
 
 static BlockHeader *read_header(FILE *input, void *buf)
 {
@@ -170,55 +157,47 @@ static size_t uncompress_blob(Blob *bmsg, void *buf, int32_t max_size)
   return 0;
 }
 
-int addProtobufItem(struct keyval *head, ProtobufCBinaryData key, ProtobufCBinaryData val, int noDupe)
+void parse_pbf_t::addProtobufItem(ProtobufCBinaryData &key,
+                                  ProtobufCBinaryData &val)
 {
   std::string keystr((const char *) key.data, key.len);
-
   assert(keystr.find('\0') == std::string::npos);
 
   std::string valstr((const char *) val.data, val.len);
-
   assert(valstr.find('\0') == std::string::npos);
 
-  return head->addItem(keystr, valstr, noDupe);
+  tags.push_back(tag(keystr, valstr));
 }
 
-int addIntItem(struct keyval *head, const char *key, int val, int noDupe)
+void parse_pbf_t::addIntItem(const char *key, int val)
 {
   char buf[100];
-
   sprintf(buf, "%d", val);
-  return head->addItem(key, buf, noDupe);
+
+  tags.push_back(tag(key, buf));
 }
 
-int addInfoItems(struct keyval *head, Info *info, StringTable *string_table)
+void parse_pbf_t::addInfoItems(Info *info, StringTable *string_table)
 {
-      if (info->has_version) {
-	addIntItem(head, "osm_version", info->version, 0);
-      }
-      if (info->has_changeset) {
-	addIntItem(head, "osm_changeset", info->changeset, 0);
-      }
-      if (info->has_uid) {
-	addIntItem(head, "osm_uid", info->uid, 0);
-      }
-      if (info->has_user_sid) {
-	ProtobufCBinaryData user = string_table->s[info->user_sid];
-	char *username;
+  if (info->has_version)
+    addIntItem("osm_version", info->version);
 
-        username = (char *)calloc(user.len + 1, 1);
-	memcpy(username, user.data, user.len);
+  if (info->has_changeset)
+    addIntItem("osm_changeset", info->changeset);
 
-	head->addItem("osm_user", username, false);
-    free(username);
-      }
+  if (info->has_uid)
+    addIntItem("osm_uid", info->uid);
 
-      /* TODO timestamp */
+  if (info->has_user_sid) {
+    ProtobufCBinaryData user = string_table->s[info->user_sid];
 
-      return 0;
+    tags.push_back(tag("osm_user", std::string((const char *) user.data, user.len)));
+  }
+
+  /* TODO timestamp */
 }
 
-int processOsmHeader(void *data, size_t length)
+static int processOsmHeader(void *data, size_t length)
 {
   HeaderBlock *hmsg = header_block__unpack (NULL, length, (const uint8_t *)data);
   if (hmsg == NULL) {
@@ -231,32 +210,30 @@ int processOsmHeader(void *data, size_t length)
   return 1;
 }
 
-int parse_pbf_t::processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity)
+int parse_pbf_t::processOsmDataNodes(osmdata_t *osmdata, PrimitiveGroup *group,
+                                     StringTable *string_table, double lat_offset,
+                                     double lon_offset, double granularity)
 {
-    unsigned node_id, key_id;
-  for (node_id = 0; node_id < group->n_nodes; node_id++) {
+  for (unsigned node_id = 0; node_id < group->n_nodes; node_id++) {
     Node *node = group->nodes[node_id];
-    double lat, lon;
 
-    tags.resetList();
+    tags.clear();
 
     if (node->info && extra_attributes) {
-      addInfoItems(&(tags), node->info, string_table);
+      addInfoItems(node->info, string_table);
     }
 
-    for (key_id = 0; key_id < node->n_keys; key_id++) {
-      addProtobufItem(&(tags),
-		      string_table->s[node->keys[key_id]],
-		      string_table->s[node->vals[key_id]],
-		      0);
+    for (unsigned key_id = 0; key_id < node->n_keys; key_id++) {
+      addProtobufItem(string_table->s[node->keys[key_id]],
+                      string_table->s[node->vals[key_id]]);
     }
 
-    lat = lat_offset + (node->lat * granularity);
-    lon = lon_offset + (node->lon * granularity);
+    double lat = lat_offset + (node->lat * granularity);
+    double lon = lon_offset + (node->lon * granularity);
     if (node_wanted(lat, lon)) {
         proj->reproject(&lat, &lon);
 
-        osmdata->node_add(node->id, lat, lon, &(tags));
+        osmdata->node_add(node->id, lat, lon, tags);
 
         if (node->id > max_node) {
             max_node = node->id;
@@ -267,226 +244,191 @@ int parse_pbf_t::processOsmDataNodes(struct osmdata_t *osmdata, PrimitiveGroup *
         }
         count_node++;
         if (count_node%10000 == 0)
-            printStatus();
+            print_status();
     }
   }
 
   return 1;
 }
 
-int parse_pbf_t::processOsmDataDenseNodes(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table, double lat_offset, double lon_offset, double granularity)
+int parse_pbf_t::processOsmDataDenseNodes(osmdata_t *osmdata, PrimitiveGroup *group,
+                                          StringTable *string_table,
+                                          double lat_offset, double lon_offset,
+                                          double granularity)
 {
-    unsigned node_id;
-    if (group->dense) {
-        unsigned l = 0;
-        osmid_t deltaid = 0;
-        long int deltalat = 0;
-        long int deltalon = 0;
-        unsigned long int deltatimestamp = 0;
-        unsigned long int deltachangeset = 0;
-        long int deltauid = 0;
-        unsigned long int deltauser_sid = 0;
-        double lat, lon;
-
-        DenseNodes *dense = group->dense;
-
-        for (node_id = 0; node_id < dense->n_id; node_id++) {
-            tags.resetList();
-
-            deltaid += dense->id[node_id];
-            deltalat += dense->lat[node_id];
-            deltalon += dense->lon[node_id];
-
-            if (dense->denseinfo && extra_attributes) {
-                DenseInfo *denseinfo = dense->denseinfo;
-
-                deltatimestamp += denseinfo->timestamp[node_id];
-                deltachangeset += denseinfo->changeset[node_id];
-                deltauid += denseinfo->uid[node_id];
-                deltauser_sid += denseinfo->user_sid[node_id];
-
-                addIntItem(&(tags), "osm_version", denseinfo->version[node_id], 0);
-                addIntItem(&(tags), "osm_changeset", deltachangeset, 0);
-
-                if (deltauid != -1) { /* osmosis devs failed to read the specs */
-                    char * valstr;
-                    addIntItem(&(tags), "osm_uid", deltauid, 0);
-                    valstr = (char *)calloc(string_table->s[deltauser_sid].len + 1, 1);
-                    memcpy(valstr, string_table->s[deltauser_sid].data, string_table->s[deltauser_sid].len);
-                    tags.addItem("osm_user", valstr, false);
-                    free(valstr);
-                }
-            }
-
-            if (l < dense->n_keys_vals) {
-                while (dense->keys_vals[l] != 0 && l < dense->n_keys_vals) {
-                    addProtobufItem(&(tags),
-                                    string_table->s[dense->keys_vals[l]],
-                                    string_table->s[dense->keys_vals[l+1]],
-                                    0);
-
-                    l += 2;
-                }
-                l += 1;
-            }
-
-            lat = lat_offset + (deltalat * granularity);
-            lon = lon_offset + (deltalon * granularity);
-            if (node_wanted(lat, lon)) {
-                proj->reproject(&lat, &lon);
-
-                osmdata->node_add(deltaid, lat, lon, &(tags));
-
-                if (deltaid > max_node) {
-                    max_node = deltaid;
-                }
-
-                if (count_node == 0) {
-                    time(&start_node);
-                }
-                count_node++;
-                if (count_node%10000 == 0)
-                    printStatus();
-            }
-        }
-    }
-
+  if (!group->dense)
     return 1;
+
+  unsigned l = 0;
+  osmid_t deltaid = 0;
+  long int deltalat = 0;
+  long int deltalon = 0;
+  unsigned long int deltatimestamp = 0;
+  unsigned long int deltachangeset = 0;
+  long int deltauid = 0;
+  unsigned long int deltauser_sid = 0;
+
+  DenseNodes *dense = group->dense;
+
+  for (unsigned node_id = 0; node_id < dense->n_id; node_id++) {
+      tags.clear();
+
+      deltaid += dense->id[node_id];
+      deltalat += dense->lat[node_id];
+      deltalon += dense->lon[node_id];
+
+      if (dense->denseinfo && extra_attributes) {
+          DenseInfo *denseinfo = dense->denseinfo;
+
+          deltatimestamp += denseinfo->timestamp[node_id];
+          deltachangeset += denseinfo->changeset[node_id];
+          deltauid += denseinfo->uid[node_id];
+          deltauser_sid += denseinfo->user_sid[node_id];
+
+          addIntItem("osm_version", denseinfo->version[node_id]);
+          addIntItem("osm_changeset", deltachangeset);
+
+          if (deltauid != -1) { /* osmosis devs failed to read the specs */
+              addIntItem("osm_uid", deltauid);
+              tags.push_back(tag("osm_user",
+                                 std::string((const char *) string_table->s[deltauser_sid].data,
+                                             string_table->s[deltauser_sid].len)));
+          }
+      }
+
+      if (l < dense->n_keys_vals) {
+          while (dense->keys_vals[l] != 0 && l < dense->n_keys_vals) {
+              addProtobufItem(string_table->s[dense->keys_vals[l]],
+                              string_table->s[dense->keys_vals[l+1]]);
+
+              l += 2;
+          }
+          l += 1;
+      }
+
+      double lat = lat_offset + (deltalat * granularity);
+      double lon = lon_offset + (deltalon * granularity);
+      if (node_wanted(lat, lon)) {
+          proj->reproject(&lat, &lon);
+
+          osmdata->node_add(deltaid, lat, lon, tags);
+
+          if (deltaid > max_node) {
+              max_node = deltaid;
+          }
+
+          if (count_node == 0) {
+              time(&start_node);
+          }
+          count_node++;
+          if (count_node%10000 == 0)
+              print_status();
+      }
+  }
+
+  return 1;
 }
 
-int parse_pbf_t::processOsmDataWays(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table)
+int parse_pbf_t::processOsmDataWays(osmdata_t *osmdata, PrimitiveGroup *group,
+                                    StringTable *string_table)
 {
-    unsigned way_id, key_id, ref_id;
-  for (way_id = 0; way_id < group->n_ways; way_id++) {
+  for (unsigned way_id = 0; way_id < group->n_ways; way_id++) {
     Way *way = group->ways[way_id];
     osmid_t deltaref = 0;
 
-    tags.resetList();
+    tags.clear();
 
     if (way->info && extra_attributes) {
-      addInfoItems(&(tags), way->info, string_table);
+      addInfoItems(way->info, string_table);
     }
 
-    nd_count = 0;
+    nds.clear();
 
-    for (ref_id = 0; ref_id < way->n_refs; ref_id++) {
+    for (unsigned ref_id = 0; ref_id < way->n_refs; ref_id++) {
       deltaref += way->refs[ref_id];
 
-      nds[nd_count++] = deltaref;
-
-      if( nd_count >= nd_max )
-	realloc_nodes();
+      nds.push_back(deltaref);
     }
 
-    for (key_id = 0; key_id < way->n_keys; key_id++) {
-      addProtobufItem(&(tags),
-		      string_table->s[way->keys[key_id]],
-		      string_table->s[way->vals[key_id]],
-		      0);
+    for (unsigned key_id = 0; key_id < way->n_keys; key_id++) {
+      addProtobufItem(string_table->s[way->keys[key_id]],
+                      string_table->s[way->vals[key_id]]);
     }
 
-    osmdata->way_add(way->id,
-                     nds,
-                     nd_count,
-                     &(tags) );
+    osmdata->way_add(way->id, nds, tags);
 
     if (way->id > max_way) {
       max_way = way->id;
     }
 
-	if (count_way == 0) {
-		time(&start_way);
-	}
+    if (count_way == 0) {
+        time(&start_way);
+    }
     count_way++;
     if (count_way%1000 == 0)
-      printStatus();
+      print_status();
   }
 
   return 1;
 }
 
-int parse_pbf_t::processOsmDataRelations(struct osmdata_t *osmdata, PrimitiveGroup *group, StringTable *string_table)
+int parse_pbf_t::processOsmDataRelations(osmdata_t *osmdata, PrimitiveGroup *group,
+                                         StringTable *string_table)
 {
-    unsigned rel_id, member_id, key_id;
-  for (rel_id = 0; rel_id < group->n_relations; rel_id++) {
+  for (unsigned rel_id = 0; rel_id < group->n_relations; rel_id++) {
     Relation *relation = group->relations[rel_id];
     osmid_t deltamemids = 0;
 
-    tags.resetList();
-
-    member_count = 0;
+    tags.clear();
+    members.clear();
 
     if (relation->info && extra_attributes) {
-      addInfoItems(&(tags), relation->info, string_table);
+      addInfoItems(relation->info, string_table);
     }
 
-    for (member_id = 0; member_id < relation->n_memids; member_id++) {
+    for (unsigned member_id = 0; member_id < relation->n_memids; member_id++) {
       ProtobufCBinaryData role =  string_table->s[relation->roles_sid[member_id]];
-      char *rolestr;
 
       deltamemids += relation->memids[member_id];
 
-      members[member_count].id = deltamemids;
-
-      rolestr = (char *)calloc(role.len + 1, 1);
-      memcpy(rolestr, role.data, role.len);
-      members[member_count].role = rolestr;
-
+      OsmType type;
       switch (relation->types[member_id]) {
-      case RELATION__MEMBER_TYPE__NODE:
-	members[member_count].type = OSMTYPE_NODE;
-	break;
-      case RELATION__MEMBER_TYPE__WAY:
-	members[member_count].type = OSMTYPE_WAY;
-	break;
-      case RELATION__MEMBER_TYPE__RELATION:
-	members[member_count].type = OSMTYPE_RELATION;
-	break;
-      default:
-	fprintf(stderr, "Unsupported type: %u""\n", relation->types[member_id]);
-	return 0;
+        case RELATION__MEMBER_TYPE__NODE: type = OSMTYPE_NODE; break;
+        case RELATION__MEMBER_TYPE__WAY: type = OSMTYPE_WAY; break;
+        case RELATION__MEMBER_TYPE__RELATION: type = OSMTYPE_RELATION; break;
+        default:
+          fprintf(stderr, "Unsupported type: %u""\n", relation->types[member_id]);
+          return 0;
       }
 
-      member_count++;
-
-      if( member_count >= member_max ) {
-	realloc_members();
-      }
+      members.push_back(member(type, deltamemids,
+                               std::string((const char *)role.data, role.len)));
     }
 
-    for (key_id = 0; key_id < relation->n_keys; key_id++) {
-      addProtobufItem(&(tags),
-		      string_table->s[relation->keys[key_id]],
-		      string_table->s[relation->vals[key_id]],
-		      0);
+    for (unsigned key_id = 0; key_id < relation->n_keys; key_id++) {
+      addProtobufItem(string_table->s[relation->keys[key_id]],
+                      string_table->s[relation->vals[key_id]]);
     }
 
-    osmdata->relation_add(relation->id,
-                          members,
-                          member_count,
-                          &(tags));
-
-    for (member_id = 0; member_id < member_count; member_id++) {
-      free(members[member_id].role);
-    }
+    osmdata->relation_add(relation->id, members, tags);
 
     if (relation->id > max_rel) {
       max_rel = relation->id;
     }
 
-	if (count_rel == 0) {
-		time(&start_rel);
-	}
+    if (count_rel == 0) {
+        time(&start_rel);
+    }
     count_rel++;
     if (count_rel%10 == 0)
-      printStatus();
+      print_status();
   }
 
   return 1;
 }
 
 
-int parse_pbf_t::processOsmData(struct osmdata_t *osmdata, void *data, size_t length)
+int parse_pbf_t::processOsmData(osmdata_t *osmdata, void *data, size_t length)
 {
   unsigned int j;
   double lat_offset, lon_offset, granularity;

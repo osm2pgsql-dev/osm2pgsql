@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdexcept>
 #include "osmtypes.hpp"
-#include "keyvals.hpp"
 #include "tagtransform.hpp"
 #include "output-pgsql.hpp"
 #include "options.hpp"
@@ -37,16 +36,16 @@ static const struct {
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
 
 namespace {
-int add_z_order(keyval *tags, int *roads) {
-    const std::string *layer = tags->getItem("layer");
-    const std::string *highway = tags->getItem("highway");
-    const std::string *bridge = tags->getItem("bridge");
-    const std::string *tunnel = tags->getItem("tunnel");
-    const std::string *railway = tags->getItem("railway");
-    const std::string *boundary = tags->getItem("boundary");
+void add_z_order(taglist_t &tags, int *roads)
+{
+    const std::string *layer = tags.get("layer");
+    const std::string *highway = tags.get("highway");
+    bool bridge = tags.get_bool("bridge", false);
+    bool tunnel = tags.get_bool("tunnel", false);
+    const std::string *railway = tags.get("railway");
+    const std::string *boundary = tags.get("boundary");
 
     int z_order = 0;
-    char z[13];
 
     int l = layer ? strtol(layer->c_str(), NULL, 10) : 0;
     z_order = 10 * l;
@@ -54,6 +53,7 @@ int add_z_order(keyval *tags, int *roads) {
 
     if (highway) {
         for (unsigned i = 0; i < nLayers; i++) {
+            //if (layers[i].highway == *highway) {
             if (!strcmp(layers[i].highway, highway->c_str())) {
                 z_order += layers[i].offset;
                 *roads = layers[i].roads;
@@ -70,36 +70,34 @@ int add_z_order(keyval *tags, int *roads) {
     if (boundary && *boundary == "administrative")
         *roads = 1;
 
-    if (bridge  && (*bridge == "true" || *bridge == "yes" || *bridge == "1"))
+    if (bridge)
         z_order += 10;
 
-    if (tunnel && (*tunnel == "true" || *tunnel == "yes" || *tunnel == "1"))
+    if (tunnel)
         z_order -= 10;
 
+    char z[13];
     snprintf(z, sizeof(z), "%d", z_order);
-    tags->addItem("z_order", z, 0);
-
-    return 0;
+    tags.push_back(tag("z_order", z));
 }
 
-unsigned int c_filter_rel_member_tags(
-        keyval *rel_tags, const int member_count,
-        keyval *member_tags, const char * const *member_roles,
-        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads,
-        const export_list *exlist, bool allow_typeless) {
-
-    struct keyval tags, *q, poly_tags;
-    int first_outerway, contains_tag;
-
+unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
+        const multitaglist_t &member_tags, const rolelist_t &member_roles,
+        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        const export_list &exlist, taglist_t &out_tags, bool allow_typeless)
+{
     //if it has a relation figure out what kind it is
-    const std::string *type = rel_tags->getItem("type");
+    const std::string *type = rel_tags.get("type");
     bool is_route = false, is_boundary = false, is_multipolygon = false;
     if (type)
     {
         //what kind of relation is it
-        is_route = *type == "route";
-        is_boundary = *type == "boundary";
-        is_multipolygon = *type == "multipolygon";
+        if (*type == "route")
+            is_route = true;
+        else if (*type == "boundary")
+            is_boundary = true;
+        else if (*type == "multipolygon")
+            is_multipolygon = true;
     }//you didnt have a type and it was required
     else if (!allow_typeless)
     {
@@ -107,21 +105,21 @@ unsigned int c_filter_rel_member_tags(
     }
 
     /* Clone tags from relation */
-    for (keyval *p = rel_tags->firstItem(); p; p = rel_tags->nextItem(p)) {
+    for (taglist_t::const_iterator it = rel_tags.begin(); it != rel_tags.end(); ++it) {
         //copy the name tag as "route_name"
-        if (is_route && (p->key == "name"))
-            tags.addItem("route_name", p->value, true);
+        if (is_route && (it->key == "name"))
+            out_tags.push_dedupe(tag("route_name", it->value));
         //copy all other tags except for "type"
-        else if (p->key != "type")
-            tags.addItem(p->key, p->value, true);
+        else if (it->key != "type")
+            out_tags.push_dedupe(*it);
     }
 
     if (is_route) {
-        const std::string *netw = rel_tags->getItem("network");
+        const std::string *netw = rel_tags.get("network");
         int networknr = -1;
 
         if (netw != NULL) {
-            const std::string *state = rel_tags->getItem("state");
+            const std::string *state = rel_tags.get("state");
             std::string statetype("yes");
             if (state) {
                 if (*state == "alternate")
@@ -131,52 +129,52 @@ unsigned int c_filter_rel_member_tags(
             }
             if (*netw == "lcn") {
                 networknr = 10;
-                tags.addItem("lcn", statetype, true);
+                out_tags.push_dedupe(tag("lcn", statetype));
             } else if (*netw == "rcn") {
                 networknr = 11;
-                tags.addItem("rcn", statetype, true);
+                out_tags.push_dedupe(tag("rcn", statetype));
             } else if (*netw == "ncn") {
                 networknr = 12;
-                tags.addItem("ncn", statetype, true);
+                out_tags.push_dedupe(tag("ncn", statetype));
             } else if (*netw == "lwn") {
                 networknr = 20;
-                tags.addItem("lwn", statetype, true);
+                out_tags.push_dedupe(tag("lwn", statetype));
             } else if (*netw == "rwn") {
                 networknr = 21;
-                tags.addItem("rwn", statetype, true);
+                out_tags.push_dedupe(tag("rwn", statetype));
             } else if (*netw == "nwn") {
                 networknr = 22;
-                tags.addItem("nwn", statetype, true);
+                out_tags.push_dedupe(tag("nwn", statetype));
             }
         }
 
-        const std::string *prefcol = rel_tags->getItem("preferred_color");
+        const std::string *prefcol = rel_tags.get("preferred_color");
         if (prefcol != NULL && prefcol->size() == 1) {
             if ((*prefcol)[0] == '0' || (*prefcol)[0] == '1'
                     || (*prefcol)[0] == '2' || (*prefcol)[0] == '3'
                     || (*prefcol)[0] == '4') {
-                tags.addItem("route_pref_color", *prefcol, true);
+                out_tags.push_dedupe(tag("route_pref_color", *prefcol));
             } else {
-                tags.addItem("route_pref_color", "0", true);
+                out_tags.push_dedupe(tag("route_pref_color", "0"));
             }
         } else {
-            tags.addItem("route_pref_color", "0", true);
+            out_tags.push_dedupe(tag("route_pref_color", "0"));
         }
 
-        const std::string *relref = rel_tags->getItem("ref");
+        const std::string *relref = rel_tags.get("ref");
         if (relref != NULL ) {
             if (networknr == 10) {
-                tags.addItem("lcn_ref", *relref, true);
+                out_tags.push_dedupe(tag("lcn_ref", *relref));
             } else if (networknr == 11) {
-                tags.addItem("rcn_ref", *relref, true);
+                out_tags.push_dedupe(tag("rcn_ref", *relref));
             } else if (networknr == 12) {
-                tags.addItem("ncn_ref", *relref, true);
+                out_tags.push_dedupe(tag("ncn_ref", *relref));
             } else if (networknr == 20) {
-                tags.addItem("lwn_ref", *relref, true);
+                out_tags.push_dedupe(tag("lwn_ref", *relref));
             } else if (networknr == 21) {
-                tags.addItem("rwn_ref", *relref, true);
+                out_tags.push_dedupe(tag("rwn_ref", *relref));
             } else if (networknr == 22) {
-                tags.addItem("nwn_ref", *relref, true);
+                out_tags.push_dedupe(tag("nwn_ref", *relref));
             }
         }
     } else if (is_boundary) {
@@ -185,7 +183,7 @@ unsigned int c_filter_rel_member_tags(
          - Polygon features also go into the polygon table (useful for national_forests)
          The edges of the polygon also get treated as linear fetaures allowing these to be rendered seperately. */
         *make_boundary = 1;
-    } else if (is_multipolygon && tags.getItem("boundary")) {
+    } else if (is_multipolygon && out_tags.contains("boundary")) {
         /* Treat type=multipolygon exactly like type=boundary if it has a boundary tag. */
         *make_boundary = 1;
     } else if (is_multipolygon) {
@@ -193,16 +191,17 @@ unsigned int c_filter_rel_member_tags(
 
         /* Collect a list of polygon-like tags, these are used later to
          identify if an inner rings looks like it should be rendered separately */
-        for (keyval *p = tags.firstItem(); p; p = tags.nextItem(p)) {
-            if (p->key == "area") {
-                poly_tags.addItem(p->key, p->value, true);
+        taglist_t poly_tags;
+        for (taglist_t::const_iterator it = out_tags.begin(); it != out_tags.end(); ++it) {
+            if (it->key == "area") {
+                poly_tags.push_back(*it);
             } else {
-                const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
-                for (unsigned i = 0; i < infos.size(); i++) {
-                    const taginfo &info = infos[i];
-                    if (info.name == p->key) {
-                        if (info.flags & FLAG_POLYGON) {
-                            poly_tags.addItem(p->key, p->value, true);
+                const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+                for (std::vector<taginfo>::const_iterator info = infos.begin();
+                     info != infos.end(); ++info) {
+                    if (info->name == it->key) {
+                        if (info->flags & FLAG_POLYGON) {
+                            poly_tags.push_back(*it);
                         }
                         break;
                     }
@@ -212,73 +211,65 @@ unsigned int c_filter_rel_member_tags(
 
         /* Copy the tags from the outer way(s) if the relation is untagged (with
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
-        if (!poly_tags.listHasData()) {
-            first_outerway = 1;
-            for (int i = 0; i < member_count; i++) {
-                if (member_roles[i] && !strcmp(member_roles[i], "inner"))
+        if (poly_tags.empty()) {
+            int first_outerway = 1;
+            for (size_t i = 0; i < member_tags.size(); i++) {
+                if (member_roles[i] && *(member_roles[i]) == "inner")
                     continue;
 
                 /* insert all tags of the first outerway to the potential list of copied tags. */
                 if (first_outerway) {
-                    for (keyval *p = member_tags[i].firstItem(); p; p = member_tags[i].nextItem(p))
-                        poly_tags.addItem(p->key, p->value, true);
+                    for (taglist_t::const_iterator it = member_tags[i].begin();
+                         it != member_tags[i].end(); ++it)
+                        poly_tags.push_back(*it);
                 } else {
                     /* Check if all of the tags in the list of potential tags are present on this way,
                        otherwise remove from the list of potential tags. Tags need to be present on
                        all outer ways to be copied over to the relation */
-                    q = poly_tags.firstItem();
-                    while (q) {
-                        const keyval *p = member_tags[i].getTag(q->key);
-                        if ((p != NULL) && (p->value == q->value)) {
-                            q = poly_tags.nextItem(q);
-                        } else {
+                    taglist_t::iterator it = poly_tags.begin();
+                    while (it != poly_tags.end()) {
+                        if (!member_tags[i].contains(it->key))
                             /* This tag is not present on all member outer ways, so don't copy it over to relation */
-                            keyval *qq = poly_tags.nextItem(q);
-                            q->removeTag();
-                            q = qq;
-                        }
+                            it = poly_tags.erase(it);
+                        else
+                            ++it;
                     }
                 }
                 first_outerway = 0;
             }
             /* Copy the list identified outer way tags over to the relation */
-            for (q = poly_tags.firstItem(); q; q = poly_tags.nextItem(q))
-                tags.addItem(q->key, q->value, true);
+            for (taglist_t::const_iterator it = poly_tags.begin(); it != poly_tags.end(); ++it)
+                out_tags.push_dedupe(*it);
 
             /* We need to re-check and only keep polygon tags in the list of polytags */
-            q = poly_tags.firstItem();
-            while (q) {
-                contains_tag = 0;
-                const std::vector<taginfo> &infos = exlist->get(OSMTYPE_WAY);
-                for (unsigned j = 0; j < infos.size(); j++) {
-                    const taginfo &info = infos[j];
-                    if (info.name == q->key) {
-                        if (info.flags & FLAG_POLYGON) {
-                            contains_tag = 1;
-                            break;
+            // TODO what is that for? The list is cleared just below.
+            taglist_t::iterator q = poly_tags.begin();
+            const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+            while (q != poly_tags.end()) {
+                bool contains_tag = false;
+                for (std::vector<taginfo>::const_iterator info = infos.begin();
+                     info != infos.end(); ++info) {
+                    if (info->name == q->key) {
+                        if (info->flags & FLAG_POLYGON) {
+                            contains_tag = true;
                         }
+                        break;
                     }
                 }
-                if (contains_tag == 0) {
-                    keyval *qq = poly_tags.nextItem(q);
-                    q->removeTag();
-                    q = qq;
-                } else {
-                    q = poly_tags.nextItem(q);
-                }
+
+                if (contains_tag)
+                    ++q;
+                else
+                    q = poly_tags.erase(q);
             }
         }
-        poly_tags.resetList();
     } else if(!allow_typeless) {
         /* Unknown type, just exit */
-        tags.resetList();
-        poly_tags.resetList();
+        out_tags.clear();
         return 1;
     }
 
-    if (!tags.listHasData()) {
-        tags.resetList();
-        poly_tags.resetList();
+    if (out_tags.empty()) {
         return 1;
     }
 
@@ -286,82 +277,70 @@ unsigned int c_filter_rel_member_tags(
      mark each member so that we can skip them during iterate_ways
      but only if the polygon-tags look the same as the outer ring */
     if (make_polygon) {
-        for (int i = 0; i < member_count; i++) {
-            int match = 1;
-            for (const keyval *p = member_tags[i].firstItem(); p; p = member_tags[i].nextItem(p)) {
-                const std::string *v = tags.getItem(p->key);
+        for (size_t i = 0; i < member_tags.size(); i++) {
+            member_superseeded[i] = 1;
+            for (taglist_t::const_iterator p = member_tags[i].begin();
+                 p != member_tags[i].end(); ++p) {
+                const std::string *v = out_tags.get(p->key);
                 if (!v || *v != p->value) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
                     if ((p->key != "z_order") && (p->key != "osm_user") &&
                         (p->key != "osm_version") && (p->key != "osm_uid") &&
                         (p->key != "osm_changeset") && (p->key != "osm_timestamp")) {
-                        match = 0;
+                        member_superseeded[i] = 0;
                         break;
                     }
                 }
             }
-            if (match) {
-                member_superseeded[i] = 1;
-            } else {
-                member_superseeded[i] = 0;
-            }
         }
     }
 
-    tags.moveList(rel_tags);
-
-    add_z_order(rel_tags, roads);
+    add_z_order(out_tags, roads);
 
     return 0;
 }
+} // anonymous namespace
 
 #ifdef HAVE_LUA
-unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, keyval *rel_tags, const int member_count,
-        keyval *member_tags,const char * const * member_roles,
-        int * member_superseeded, int * make_boundary, int * make_polygon, int * roads) {
-
-    int i;
-    int filter;
-    int count = 0;
-    struct keyval *item;
-    const char * key, * value;
-
-    lua_getglobal(L, rel_mem_func);
+unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
+        const multitaglist_t &member_tags, const rolelist_t &member_roles,
+        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        taglist_t &out_tags)
+{
+    lua_getglobal(L, m_rel_mem_func.c_str());
 
     lua_newtable(L);    /* relations key value table */
 
-    while( (item = rel_tags->popItem()) != NULL ) {
-        lua_pushstring(L, item->key.c_str());
-        lua_pushstring(L, item->value.c_str());
+    for (taglist_t::const_iterator it = rel_tags.begin(); it != rel_tags.end(); ++it) {
+        lua_pushstring(L, it->key.c_str());
+        lua_pushstring(L, it->value.c_str());
         lua_rawset(L, -3);
-        delete(item);
-        count++;
     }
 
     lua_newtable(L);    /* member tags table */
 
-    for (i = 1; i <= member_count; i++) {
-        lua_pushnumber(L, i);
+    int idx = 1;
+    for (multitaglist_t::const_iterator list = member_tags.begin();
+         list != member_tags.end(); ++list) {
+        lua_pushnumber(L, idx++);
         lua_newtable(L);    /* member key value table */
-        while( (item = member_tags[i - 1].popItem()) != NULL ) {
-            lua_pushstring(L, item->key.c_str());
-            lua_pushstring(L, item->value.c_str());
+        for (taglist_t::const_iterator it = list->begin(); it != list->end(); ++it) {
+            lua_pushstring(L, it->key.c_str());
+            lua_pushstring(L, it->value.c_str());
             lua_rawset(L, -3);
-            delete(item);
-            count++;
         }
         lua_rawset(L, -3);
     }
 
     lua_newtable(L);    /* member roles table */
 
-    for (i = 0; i < member_count; i++) {
+    for (size_t i = 0; i < member_roles.size(); i++) {
         lua_pushnumber(L, i + 1);
-        lua_pushstring(L, member_roles[i]);
+        lua_pushstring(L, member_roles[i]->c_str());
         lua_rawset(L, -3);
     }
 
-    lua_pushnumber(L, member_count);
+    lua_pushnumber(L, member_roles.size());
 
     if (lua_pcall(L,4,6,0)) {
         fprintf(stderr, "Failed to execute lua function for relation tag processing: %s\n", lua_tostring(L, -1));
@@ -377,7 +356,7 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
     lua_pop(L,1);
 
     lua_pushnil(L);
-    for (i = 0; i < member_count; i++) {
+    for (size_t i = 0; i < member_tags.size(); i++) {
         if (lua_next(L,-2)) {
             member_superseeded[i] = lua_tointeger(L,-1);
             lua_pop(L,1);
@@ -389,21 +368,22 @@ unsigned int lua_filter_rel_member_tags(lua_State* L, const char* rel_mem_func, 
 
     lua_pushnil(L);
     while (lua_next(L,-2) != 0) {
-        key = lua_tostring(L,-2);
-        value = lua_tostring(L,-1);
-        rel_tags->addItem(key, value, false);
+        const char *key = lua_tostring(L,-2);
+        const char *value = lua_tostring(L,-1);
+        out_tags.push_back(tag(key, value));
         lua_pop(L,1);
     }
     lua_pop(L,1);
 
-    filter = lua_tointeger(L, -1);
+    int filter = lua_tointeger(L, -1);
 
     lua_pop(L,1);
 
     return filter;
 }
 
-void check_lua_function_exists(lua_State *L, const std::string &func_name) {
+void tagtransform::check_lua_function_exists(const std::string &func_name)
+{
     lua_getglobal(L, func_name.c_str());
     if (!lua_isfunction (L, -1)) {
         throw std::runtime_error((boost::format("Tag transform style does not contain a function %1%")
@@ -412,7 +392,6 @@ void check_lua_function_exists(lua_State *L, const std::string &func_name) {
     lua_pop(L,1);
 }
 #endif
-} // anonymous namespace
 
 tagtransform::tagtransform(const options_t *options_)
     : options(options_), transform_method(options_->tag_transform_script)
@@ -423,7 +402,7 @@ tagtransform::tagtransform(const options_t *options_)
     , m_rel_func(    options->tag_transform_rel_func.    get_value_or("filter_basic_tags_rel"))
     , m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or("filter_tags_relation_member"))
 #endif /* HAVE_LUA */
- {
+{
 	if (transform_method) {
                 fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script->c_str());
 #ifdef HAVE_LUA
@@ -431,10 +410,10 @@ tagtransform::tagtransform(const options_t *options_)
 		luaL_openlibs(L);
 		luaL_dofile(L, options->tag_transform_script->c_str());
 
-                check_lua_function_exists(L, m_node_func);
-                check_lua_function_exists(L, m_way_func);
-                check_lua_function_exists(L, m_rel_func);
-                check_lua_function_exists(L, m_rel_mem_func);
+        check_lua_function_exists(m_node_func);
+        check_lua_function_exists(m_way_func);
+        check_lua_function_exists(m_rel_func);
+        check_lua_function_exists(m_rel_mem_func);
 #else
 		throw std::runtime_error("Error: Could not init lua tag transform, as lua support was not compiled into this version");
 #endif
@@ -450,61 +429,59 @@ tagtransform::~tagtransform() {
 #endif
 }
 
-unsigned int tagtransform::filter_node_tags(struct keyval *tags, const export_list *exlist, bool strict) {
-    int poly, roads;
+unsigned int tagtransform::filter_node_tags(const taglist_t &tags, const export_list &exlist,
+                                            taglist_t &out_tags, bool strict)
+{
     if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads);
+        return lua_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, out_tags);
     } else {
-        return c_filter_basic_tags(OSMTYPE_NODE, tags, &poly, &roads, exlist, strict);
+        return c_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, exlist, out_tags, strict);
     }
 }
 
 /*
  * This function gets called twice during initial import per way. Once from add_way and once from out_way
  */
-unsigned int tagtransform::filter_way_tags(struct keyval *tags, int * polygon, int * roads,
-                                          const export_list *exlist, bool strict) {
+unsigned tagtransform::filter_way_tags(const taglist_t &tags, int *polygon, int *roads,
+                                       const export_list &exlist, taglist_t &out_tags, bool strict)
+{
+    if (transform_method) {
+        return lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, out_tags);
+    } else {
+        return c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist, out_tags, strict);
+    }
+}
+
+unsigned tagtransform::filter_rel_tags(const taglist_t &tags, const export_list &exlist,
+                                       taglist_t &out_tags, bool strict)
+{
+    if (transform_method) {
+        return lua_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, out_tags);
+    } else {
+        return c_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, exlist, out_tags, strict);
+    }
+}
+
+unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
+        const multitaglist_t &member_tags, const rolelist_t &member_roles,
+        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        const export_list &exlist, taglist_t &out_tags, bool allow_typeless)
+{
     if (transform_method) {
 #ifdef HAVE_LUA
-        return lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads);
+        return lua_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, out_tags);
 #else
         return 1;
 #endif
     } else {
-        return c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist, strict);
+        return c_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, exlist, out_tags, allow_typeless);
     }
 }
 
-unsigned int tagtransform::filter_rel_tags(struct keyval *tags, const export_list *exlist, bool strict) {
-    int poly, roads;
-    if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_RELATION, tags, &poly, &roads, exlist, strict);
-    }
-}
-
-unsigned int tagtransform::filter_rel_member_tags(struct keyval *rel_tags, int member_count, struct keyval *member_tags,const char * const * member_roles, int * member_superseeded, int * make_boundary, int * make_polygon, int * roads, const export_list *exlist, bool allow_typeless) {
-    if (transform_method) {
+unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags,
+                                             int *polygon, int *roads, taglist_t &out_tags)
+{
 #ifdef HAVE_LUA
-        return lua_filter_rel_member_tags(L, m_rel_mem_func.c_str(), rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads);
-#else
-        return 1;
-#endif
-    } else {
-        return c_filter_rel_member_tags(rel_tags, member_count, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, exlist, allow_typeless);
-    }
-}
-
-unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tags, int * polygon, int * roads) {
-#ifdef HAVE_LUA
-    int filter;
-    int count = 0;
-    struct keyval *item;
-    const char * key, * value;
-
-    *polygon = 0; *roads = 0;
-
     switch (type) {
     case OSMTYPE_NODE: {
         lua_getglobal(L, m_node_func.c_str());
@@ -522,16 +499,13 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
 
     lua_newtable(L);    /* key value table */
 
-    while( (item = tags->popItem()) != NULL ) {
-        lua_pushstring(L, item->key.c_str());
-        lua_pushstring(L, item->value.c_str());
+    for (taglist_t::const_iterator it = tags.begin(); it != tags.end(); ++it) {
+        lua_pushstring(L, it->key.c_str());
+        lua_pushstring(L, it->value.c_str());
         lua_rawset(L, -3);
-        delete(item);
-        count++;
     }
 
-    //printf("C count %i\n", count);
-    lua_pushinteger(L, count);
+    lua_pushinteger(L, tags.size());
 
     if (lua_pcall(L,2,type == OSMTYPE_WAY ? 4 : 2,0)) {
         fprintf(stderr, "Failed to execute lua function for basic tag processing: %s\n", lua_tostring(L, -1));
@@ -540,21 +514,23 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
     }
 
     if (type == OSMTYPE_WAY) {
+        assert(roads);
         *roads = lua_tointeger(L, -1);
         lua_pop(L,1);
+        assert(polygon);
         *polygon = lua_tointeger(L, -1);
         lua_pop(L,1);
     }
 
     lua_pushnil(L);
     while (lua_next(L,-2) != 0) {
-        key = lua_tostring(L,-2);
-        value = lua_tostring(L,-1);
-        tags->addItem(key, value, false);
+        const char *key = lua_tostring(L,-2);
+        const char *value = lua_tostring(L,-1);
+        out_tags.push_back(tag(key, value));
         lua_pop(L,1);
     }
 
-    filter = lua_tointeger(L, -2);
+    int filter = lua_tointeger(L, -2);
 
     lua_pop(L,2);
 
@@ -566,78 +542,69 @@ unsigned int tagtransform::lua_filter_basic_tags(const OsmType type, keyval *tag
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
-unsigned int tagtransform::c_filter_basic_tags(
-    const OsmType type, keyval *tags, int *polygon, int * roads,
-    const export_list *exlist, bool strict) {
-
+unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &tags, int *polygon,
+                                               int *roads, const export_list &exlist,
+                                               taglist_t &out_tags, bool strict)
+{
     //assume we dont like this set of tags
     int filter = 1;
 
     int flags = 0;
     int add_area_tag = 0;
 
-    //a place to keep the tags we like as we go
-    struct keyval temp;
-
-    enum OsmType export_type;
+    OsmType export_type;
     if (type == OSMTYPE_RELATION) {
         export_type = OSMTYPE_WAY;
     } else {
         export_type = type;
     }
+    const std::vector<taginfo> &infos = exlist.get(export_type);
 
-    /* We used to only go far enough to determine if it's a polygon or not, but now we go through and filter stuff we don't need */
-    //pop each tag off and keep it in the temp list if we like it
-    struct keyval *item;
-    while ((item = tags->popItem()) != NULL ) {
+    /* We used to only go far enough to determine if it's a polygon or not,
+       but now we go through and filter stuff we don't need
+       pop each tag off and keep it in the temp list if we like it */
+    for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
         //if we want to do more than the export list says
         if(!strict) {
             if (type == OSMTYPE_RELATION && "type" == item->key) {
-                temp.pushItem(item);
-                item = NULL;
+                out_tags.push_back(*item);
                 filter = 0;
                 continue;
             }
             /* Allow named islands to appear as polygons */
             if ("natural" == item->key && "coastline" == item->value) {
                 add_area_tag = 1;
-            }
 
-            /* Discard natural=coastline tags (we render these from a shapefile instead) */
-            if (!options->keep_coastlines && "natural" == item->key
-                    && "coastline" == item->value) {
-                delete(item);
-                item = NULL;
-                continue;
+                /* Discard natural=coastline tags (we render these from a shapefile instead) */
+                if (!options->keep_coastlines) {
+                    continue;
+                }
             }
         }
 
         //go through the actual tags found on the item and keep the ones in the export list
-        const std::vector<taginfo> &infos = exlist->get(export_type);
         size_t i = 0;
         for (; i < infos.size(); i++) {
             const taginfo &info = infos[i];
             if (wildMatch(info.name.c_str(), item->key.c_str())) {
                 if (info.flags & FLAG_DELETE) {
-                    delete(item);
-                    item = NULL;
                     break;
                 }
 
                 filter = 0;
                 flags |= info.flags;
 
-                temp.pushItem(item);
-                item = NULL;
+                out_tags.push_back(*item);
                 break;
             }
         }
 
-        //if we didnt find any tags that we wanted to export and we aren't strictly adhering to the list
+        // if we didn't find any tags that we wanted to export
+        // and we aren't strictly adhering to the list
         if (i == infos.size() && !strict) {
             if (options->hstore_mode != HSTORE_NONE) {
                 /* with hstore, copy all tags... */
-                temp.pushItem(item);
+                out_tags.push_back(*item);
                 /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
                 if (!options->hstore_match_only && "osm_uid" != item->key
@@ -652,7 +619,7 @@ unsigned int tagtransform::c_filter_basic_tags(
                 for(; j < options->hstore_columns.size(); ++j) {
                     size_t pos = item->key.find(options->hstore_columns[j]);
                     if (pos == 0) {
-                        temp.pushItem(item);
+                        out_tags.push_back(*item);
                         /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
                         if (!options->hstore_match_only
@@ -665,40 +632,22 @@ unsigned int tagtransform::c_filter_basic_tags(
                         break;
                     }
                 }
-                /* if not, skip the tag */
-                if (j == options->hstore_columns.size()) {
-                    delete(item);
-                }
-            } else {
-                delete(item);
-            }
-            item = NULL;
+            } 
         }
     }
 
-    /* Move from temp list back to original list */
-    while ((item = temp.popItem()) != NULL )
-        tags->pushItem(item);
-
-    *polygon = flags & FLAG_POLYGON;
-
-    /* Special case allowing area= to override anything else */
-    const std::string *area;
-    if ((area = tags->getItem("area"))) {
-        if (*area == "yes" || *area == "true" || *area == "1")
-            *polygon = 1;
-        else if (*area == "no" || *area == "false" || *area == "0")
-            *polygon = 0;
-    } else {
-        /* If we need to force this as a polygon, append an area tag */
+    if (polygon) {
         if (add_area_tag) {
-            tags->addItem("area", "yes", false);
+            /* If we need to force this as a polygon, append an area tag */
+            out_tags.push_dedupe(tag("area", "yes"));
             *polygon = 1;
+        } else {
+            *polygon = tags.get_bool("area", flags & FLAG_POLYGON);
         }
     }
 
-    if (!filter && (type == OSMTYPE_WAY)) {
-        add_z_order(tags,roads);
+    if (roads && !filter && (type == OSMTYPE_WAY)) {
+        add_z_order(out_tags, roads);
     }
 
     return filter;

@@ -20,10 +20,10 @@
 void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
                         int itterations, int max_size, int process_number) {
     int i, j, node_cnt, node_cnt_total;
-    struct osmNode *nodes;
+    nodelist_t nodes;
     struct timeval start, stop;
     struct timeval start_overall, stop_overall;
-    osmid_t *osmids;
+    idlist_t osmids;
 
     node_cnt_total = 0;
     gettimeofday(&start_overall, NULL);
@@ -32,18 +32,16 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
         node_cnt_total += node_cnt;
 
         printf("Process %i: Getting %i nodes....\n", process_number, node_cnt);
-        nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
-        osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
         for (j = 0; j < node_cnt; j++) {
-            osmids[j] = random() % (1 << 31);
+            osmids.push_back(random() % (1 << 31));
         }
         gettimeofday(&start, NULL);
-        cache->get_list(nodes,osmids,node_cnt);
+        cache->get_list(nodes,osmids);
         gettimeofday(&stop, NULL);
         double duration = ((stop.tv_sec - start.tv_sec)*1000000.0 + (stop.tv_usec - start.tv_usec))/1000000.0;
         printf("Process %i: Got nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt / duration);
-        free(nodes);
-        free(osmids);
+        nodes.clear();
+        osmids.clear();
     }
     gettimeofday(&stop_overall, NULL);
     double duration = ((stop_overall.tv_sec - start_overall.tv_sec)*1000000.0 + (stop_overall.tv_usec - start_overall.tv_usec))/1000000.0;
@@ -53,10 +51,10 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
 int main(int argc, char *argv[]) {
 	int i,p;
 	options_t options;
-	struct osmNode node;
-	struct osmNode *nodes;
+	osmNode node;
+	nodelist_t nodes;
 	struct timeval start;
-	osmid_t *osmids;
+	idlist_t osmids;
 	int node_cnt;
 	options.append = 1;
 	options.flat_node_cache_enabled = 1;
@@ -68,12 +66,10 @@ int main(int argc, char *argv[]) {
 	if (argc > 3) {
                 cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		node_cnt = argc - 2;
-		nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
-		osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
 		for (i = 0; i < node_cnt; i++) {
-			osmids[i] = atoi(argv[2 + i]);
+			osmids.push_back(atoi(argv[2 + i]));
 		}
-		cache->get_list(nodes,osmids,node_cnt);
+		cache->get_list(nodes, osmids);
 		for (i = 0; i < node_cnt; i++) {
 			printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 		}
@@ -129,15 +125,13 @@ int main(int argc, char *argv[]) {
 			strtok(node_list,",");
 			while (strtok(NULL,",") != NULL) node_cnt++;
 			printf("Processing %i nodes\n", node_cnt);
-			nodes = (struct osmNode *)malloc(sizeof(struct osmNode) * node_cnt);
-			osmids = (osmid_t *)malloc(sizeof(osmid_t) * node_cnt);
 			strcpy(node_list,argv[2]);
-			osmids[0] = atoi(strtok(node_list,","));
+			osmids.push_back(atoi(strtok(node_list,",")));
 			for (i = 1; i < node_cnt; i++) {
 				char * tmp = strtok(NULL,",");
-				osmids[i] = atoi(tmp);
+				osmids.push_back(atoi(tmp));
 			}
-			cache->get_list(nodes,osmids,node_cnt);
+			cache->get_list(nodes,osmids);
 			for (i = 0; i < node_cnt; i++) {
 				printf("lat: %f / lon: %f\n", nodes[i].lat, nodes[i].lon);
 			}

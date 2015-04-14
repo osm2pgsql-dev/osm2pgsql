@@ -56,20 +56,15 @@ typedef std::auto_ptr<Geometry> geom_ptr;
 
 namespace {
 
-int coords2nodes(CoordinateSequence * coords, struct osmNode ** nodes) {
-    size_t			num_coords;
-    size_t			i;
-    Coordinate		coord;
+void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
+{
+    size_t num_coords = coords->getSize();
+    nodes.reserve(num_coords);
 
-    num_coords = coords->getSize();
-    *nodes = (struct osmNode *) malloc(num_coords * sizeof(struct osmNode));
-
-    for (i = 0; i < num_coords; i++) {
-        coord = coords->getAt(i);
-        (*nodes)[i].lon = coord.x;
-        (*nodes)[i].lat = coord.y;
+    for (size_t i = 0; i < num_coords; i++) {
+        Coordinate coord = coords->getAt(i);
+        nodes.push_back(osmNode(coord.x, coord.y));
     }
-    return num_coords;
 }
 
 struct polygondata
@@ -92,18 +87,15 @@ int polygondata_comparearea(const void* vp1, const void* vp2)
 }
 } // anonymous namespace
 
-geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *nodes, int count, int polygon) const
+geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t &nodes, int polygon) const
 {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
 
     try
     {
-        for (int i = 0; i < count ; i++) {
-            Coordinate c;
-            c.x = nodes[i].lon;
-            c.y = nodes[i].lat;
-            coords->add(c, 0);
+        for (nodelist_t::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
+            coords->add(Coordinate(it->lon, it->lat), 0);
         }
 
         maybe_wkt_t wkt(new geometry_builder::wkt_t());
@@ -147,7 +139,7 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const osmNode *no
     return maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *nodes, int count, int polygon, double split_at) const
+geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const
 {
     GeometryFactory gf;
     std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
@@ -157,11 +149,8 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *no
 
     try
     {
-        for (int i = 0; i < count ; i++) {
-            Coordinate c;
-            c.x = nodes[i].lon;
-            c.y = nodes[i].lat;
-            coords->add(c, 0);
+        for (nodelist_t::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
+            coords->add(Coordinate(it->lon, it->lat), 0);
         }
 
         geom_ptr geom;
@@ -263,20 +252,17 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const osmNode *no
     return wkts;
 }
 
-int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int ** xcount, int * polygon) {
+int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, int *polygon) {
     GeometryFactory		gf;
     WKTReader		reader(&gf);
     std::string		wkt_string(wkt);
-    Geometry *		geometry;
-    const Geometry *	subgeometry;
     GeometryCollection *	gc;
     CoordinateSequence *	coords;
     size_t			num_geometries;
-    size_t			i;
 
     *polygon = 0;
     try {
-        geometry = reader.read(wkt_string);
+        Geometry * geometry = reader.read(wkt_string);
         switch (geometry->getGeometryTypeId()) {
             // Single geometries
             case GEOS_POLYGON:
@@ -287,11 +273,9 @@ int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int
             case GEOS_POINT:
                 // Drop through
             case GEOS_LINESTRING:
-                *xnodes = (struct osmNode **) malloc(2 * sizeof(struct osmNode *));
-                *xcount = (int *) malloc(sizeof(int));
+                nodes.push_back(nodelist_t());
                 coords = geometry->getCoordinates();
-                (*xcount)[0] = coords2nodes(coords, &((*xnodes)[0]));
-                (*xnodes)[1] = NULL;
+                coords2nodes(coords, nodes.back());
                 delete coords;
                 break;
             // Geometry collections
@@ -301,17 +285,15 @@ int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int
             case GEOS_MULTIPOINT:
                 // Drop through
             case GEOS_MULTILINESTRING:
-                gc = dynamic_cast<GeometryCollection *>(geometry);;
+                gc = dynamic_cast<GeometryCollection *>(geometry);
                 num_geometries = gc->getNumGeometries();
-                *xnodes = (struct osmNode **) malloc((num_geometries + 1) * sizeof(struct osmNode *));
-                *xcount = (int *) malloc(num_geometries * sizeof(int));
-                for (i = 0; i < num_geometries; i++) {
-                    subgeometry = gc->getGeometryN(i);
+                nodes.assign(num_geometries, nodelist_t());
+                for (size_t i = 0; i < num_geometries; i++) {
+                    const Geometry *subgeometry = gc->getGeometryN(i);
                     coords = subgeometry->getCoordinates();
-                    (*xcount)[i] = coords2nodes(coords, &((*xnodes)[i]));
+                    coords2nodes(coords, nodes[i]);
                     delete coords;
                 }
-                (*xnodes)[i] = NULL;
                 break;
             default:
                 std::cerr << std::endl << "unexpected object type while processing PostGIS data" << std::endl;
@@ -326,7 +308,8 @@ int geometry_builder::parse_wkt(const char * wkt, struct osmNode *** xnodes, int
     return 0;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * const * xnodes, const int *xcount, bool enable_multi, osmid_t osm_id) const
+geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodelist_t &xnodes,
+                                                                bool enable_multi, osmid_t osm_id) const
 {
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
@@ -338,13 +321,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
 
     try
     {
-        for (int c=0; xnodes[c]; c++) {
+        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
             std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (int i = 0; i < xcount[c]; i++) {
-                const osmNode *nodes = xnodes[c];
+            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
                 Coordinate c;
-                c.x = nodes[i].lon;
-                c.y = nodes[i].lat;
+                c.x = node->lon;
+                c.y = node->lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
@@ -523,7 +505,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const osmNode * 
     return wkts;
 }
 
-geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode * const * xnodes, const int *xcount, osmid_t osm_id) const
+geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const
 {
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
@@ -533,13 +515,12 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode *
 
     try
     {
-        for (int c=0; xnodes[c]; c++) {
+        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
             std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (int i = 0; i < xcount[c]; i++) {
-                const osmNode *nodes = xnodes[c];
+            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
                 Coordinate c;
-                c.x = nodes[i].lon;
-                c.y = nodes[i].lat;
+                c.x = node->lon;
+                c.y = node->lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
@@ -553,8 +534,8 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode *
         //geom_ptr noded (segment->Union(mline.get()));
 
         WKTWriter writer;
-	wkt->geom = writer.write(mline.get());
-	wkt->area = 0;
+        wkt->geom = writer.write(mline.get());
+        wkt->area = 0;
     }//TODO: don't show in message id when osm_id == -1
     catch (std::exception& e)
     {
@@ -567,8 +548,9 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const osmNode *
     return wkt;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * const * xnodes, const int *xcount, int make_polygon,
-                                                                             int enable_multi, double split_at, osmid_t osm_id) const
+geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_t &xnodes,
+                                                            int make_polygon, int enable_multi,
+                                                            double split_at, osmid_t osm_id) const
 {
     std::auto_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
@@ -579,13 +561,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const osmNode * cons
 
     try
     {
-        for (int c=0; xnodes[c]; c++) {
+        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
             std::auto_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (int i = 0; i < xcount[c]; i++) {
-                const osmNode *nodes = xnodes[c];
+            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
                 Coordinate c;
-                c.x = nodes[i].lon;
-                c.y = nodes[i].lat;
+                c.x = node->lon;
+                c.y = node->lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {

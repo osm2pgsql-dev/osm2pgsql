@@ -24,14 +24,14 @@ m_extra_attributes(extra_attributes), m_proj(projection), m_count_node(0), m_max
 m_count_way(0), m_max_way(0), m_count_rel(0), m_max_rel(0), m_start_node(0), m_start_way(0), m_start_rel(0)
 {
     m_bbox = bool(bbox);
-    if (m_bbox) {
-	parse_bbox(*bbox);
-    }
+    if (m_bbox)
+        parse_bbox(*bbox);
 }
 
 parse_delegate_t::~parse_delegate_t()
 {
 }
+
 int parse_delegate_t::streamFile(const char* input_reader, const char* filename,const int sanitize, osmdata_t *osmdata)
 {
 	//process the input file with the right parser
@@ -143,65 +143,20 @@ parse_t::parse_t(const int extra_attributes_, const bool bbox_, const boost::sha
 		extra_attributes(extra_attributes_), bbox(bbox_), minlon(minlon_), minlat(minlat_),
 		maxlon(maxlon_), maxlat(maxlat_), proj(projection_)
 {
-	osm_id = nd_max = count_node = max_node = count_way = max_way = count_rel = 0;
+	osm_id = count_node = max_node = count_way = max_way = count_rel = 0;
 	max_rel = parallel_indexing = start_node = start_way = start_rel = 0;
-	nd_count = nd_max = node_lon = node_lat = member_count = member_max = 0;
-	members = NULL;
-	nds = NULL;
+	node_lon = node_lat = 0;
 
 	filetype = FILETYPE_NONE;
 	action   = ACTION_NONE;
-
-	realloc_nodes();
-	realloc_members();
 }
 
 parse_t::~parse_t()
 {
-	if(nds != NULL)
-		free(nds);
-	if(members != NULL)
-		free(members);
 }
 
-void parse_t::realloc_nodes()
-{
-  if( nd_max == 0 )
-    nd_max = INIT_MAX_NODES;
-  else
-    nd_max <<= 1;
 
-  nds = (osmid_t *)realloc( nds, nd_max * sizeof( nds[0] ) );
-  if( !nds )
-  {
-    fprintf( stderr, "Failed to expand node list to %d\n", nd_max );
-    util::exit_nicely();
-  }
-}
-
-void parse_t::realloc_members()
-{
-  if( member_max == 0 )
-    member_max = INIT_MAX_NODES;
-  else
-    member_max <<= 1;
-
-  members = (struct member *)realloc( members, member_max * sizeof( members[0] ) );
-  if( !members )
-  {
-    fprintf( stderr, "Failed to expand member list to %d\n", member_max );
-    util::exit_nicely();
-  }
-}
-
-void parse_t::resetMembers()
-{
-  unsigned i;
-  for(i = 0; i < member_count; i++ )
-    free( members[i].role );
-}
-
-void parse_t::printStatus()
+void parse_t::print_status()
 {
 	time_t now = time(NULL);
 	time_t end_nodes = start_way > 0 ? start_way : now;
@@ -216,14 +171,4 @@ void parse_t::printStatus()
 			count_rel > 0 ?	(double) count_rel / ((double) (end_rel - start_rel) > 0.0 ? (double) (end_rel - start_rel) : 1.0) : 0.0);
 }
 
-int parse_t::node_wanted(double lat, double lon)
-{
-    if (!bbox)
-        return 1;
 
-    if (lat < minlat || lat > maxlat)
-        return 0;
-    if (lon < minlon || lon > maxlon)
-        return 0;
-    return 1;
-}

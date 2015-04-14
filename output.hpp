@@ -54,13 +54,13 @@ public:
     virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
     virtual int pending_relation(osmid_t id, int exists) = 0;
 
-    virtual int node_add(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
-    virtual int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;
-    virtual int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
+    virtual int node_add(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
+    virtual int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) = 0;
+    virtual int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
 
-    virtual int node_modify(osmid_t id, double lat, double lon, struct keyval *tags) = 0;
-    virtual int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) = 0;
-    virtual int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) = 0;
+    virtual int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
+    virtual int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) = 0;
+    virtual int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
 
     virtual int node_delete(osmid_t id) = 0;
     virtual int way_delete(osmid_t id) = 0;
@@ -80,7 +80,5 @@ protected:
     const middle_query_t* m_mid;
     const options_t m_options;
 };
-
-unsigned int pgsql_filter_tags(enum OsmType type, struct keyval *tags, int *polygon);
 
 #endif

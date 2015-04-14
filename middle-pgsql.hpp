@@ -27,20 +27,21 @@ struct middle_pgsql_t : public slim_middle_t {
     void end(void);
     void commit(void);
 
-    int nodes_set(osmid_t id, double lat, double lon, struct keyval *tags);
-    int nodes_get_list(struct osmNode *out, const osmid_t *nds, int nd_count) const;
+    int nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    int ways_set(osmid_t id, osmid_t *nds, int nd_count, struct keyval *tags);
-    int ways_get(osmid_t id, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const;
-    int ways_get_list(const osmid_t *ids, int way_count, osmid_t *way_ids, struct keyval *tag_ptr, struct osmNode **node_ptr, int *count_ptr) const;
+    int ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
+    int ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
+    int ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+                      multitaglist_t &tags, multinodelist_t &nodes) const;
 
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
-    int relations_get(osmid_t id, struct member **members, int *member_count, struct keyval *tags) const;
-    int relations_set(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
+    int relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
@@ -85,15 +86,15 @@ struct middle_pgsql_t : public slim_middle_t {
 private:
 
     int connect(table_desc& table);
-    int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const struct keyval *tags);
-    int local_nodes_get_list(struct osmNode *nodes, const osmid_t *ndids, const int& nd_count) const;
+    int local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const taglist_t &tags);
+    int local_nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     int local_nodes_delete(osmid_t osm_id);
 
     std::vector<table_desc> tables;
     int num_tables;
-    struct table_desc *node_table, *way_table, *rel_table;
+    table_desc *node_table, *way_table, *rel_table;
 
-    int Append;
+    int append;
     bool mark_pending;
 
     boost::shared_ptr<node_ram_cache> cache;

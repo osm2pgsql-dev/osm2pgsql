@@ -3,10 +3,15 @@
 
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
-#include <config.h>
+#include "config.h"
+
+#include <boost/shared_ptr.hpp>
 #include <vector>
 
-#include "output.hpp"
+#include "osmtypes.hpp"
+
+class output_t;
+struct middle_t;
 
 class osmdata_t {
 public:
@@ -17,13 +22,13 @@ public:
     void start();
     void stop();
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);

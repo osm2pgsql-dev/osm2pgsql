@@ -59,11 +59,11 @@ geometry_builder::maybe_wkt_t geometry_processor::process_node(double lat, doubl
     return geometry_builder::maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkt_t geometry_processor::process_way(const osmNode *nodes, const size_t node_count) {
+geometry_builder::maybe_wkt_t geometry_processor::process_way(const nodelist_t &nodes) {
     return geometry_builder::maybe_wkt_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_processor::process_relation(const osmNode * const * nodes, const int* node_counts) {
+geometry_builder::maybe_wkts_t geometry_processor::process_relation(const multinodelist_t &nodes) {
     return geometry_builder::maybe_wkts_t();
 }
 
@@ -73,85 +73,65 @@ way_helper::way_helper()
 way_helper::~way_helper()
 {
 }
-size_t way_helper::set(const osmid_t *node_ids, size_t node_count, const middle_query_t *mid)
+size_t way_helper::set(const idlist_t &node_ids, const middle_query_t *mid)
 {
-    // other parts of the code assume that the node cache is the size of the way
-    // TODO: Fix this, and use std::vector everywhere
-    node_cache.resize(node_count);
-    // get the node data, and resize the node cache in case there were missing nodes
-    node_cache.resize(mid->nodes_get_list(&node_cache.front(), node_ids, node_count));
-    // equivalent to returning node_count for complete ways, different for partial extractsx
+    node_cache.clear();
+    mid->nodes_get_list(node_cache, node_ids);
+
+    // equivalent to returning node_count for complete ways, different for partial extracts
     return node_cache.size();
 }
 
-relation_helper::relation_helper():members(NULL), member_count(0), way_count(0)
+relation_helper::relation_helper()
 {
-}
-relation_helper::~relation_helper()
-{
-    //clean up
-    for(size_t i = 0; i < way_count; ++i)
-    {
-        tags[i].resetList();
-        free(nodes[i]);
-    }
 }
 
-size_t& relation_helper::set(const member* member_list, const int member_list_length, const middle_t* mid)
+relation_helper::~relation_helper()
 {
-    //clean up
-    for(size_t i = 0; i < way_count; ++i)
-    {
-        tags[i].resetList();
-        free(nodes[i]);
-    }
+}
+
+size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid)
+{
+    // cleanup
+    input_way_ids.clear();
+    ways.clear();
+    tags.clear();
+    nodes.clear();
+    roles.clear();
 
     //keep a few things
     members = member_list;
-    member_count = member_list_length;
 
     //grab the way members' ids
-    input_way_ids.resize(member_count);
-    size_t used = 0;
-    for(size_t i = 0; i < member_count; ++i)
-        if(members[i].type == OSMTYPE_WAY)
-            input_way_ids[used++] = members[i].id;
-
-    //if we didnt end up using any well bail
-    if(used == 0)
-    {
-        way_count = 0;
-        return way_count;
+    input_way_ids.reserve(member_list->size());
+    for (memberlist_t::const_iterator it = members->begin(); it != members->end(); ++it) {
+        if(it->type == OSMTYPE_WAY)
+            input_way_ids.push_back(it->id);
     }
 
+    //if we didn't end up using any we'll bail
+    if (input_way_ids.empty())
+        return 0;
+
     //get the nodes of the ways
-    tags.resize(used + 1);
-    node_counts.resize(used + 1);
-    nodes.resize(used + 1);
-    ways.resize(used + 1);
-    //this is mildly abusive treating vectors like arrays but the memory is contiguous so...
-    way_count = mid->ways_get_list(&input_way_ids.front(), used, &ways.front(), &tags.front(), &nodes.front(), &node_counts.front());
+    mid->ways_get_list(input_way_ids, ways, tags, nodes);
 
     //grab the roles of each way
-    roles.resize(way_count + 1);
-    roles[way_count] = NULL;
-    for (size_t i = 0; i < way_count; ++i)
-    {
-        size_t j = i;
-        for (; j < member_count; ++j)
-        {
-            if (members[j].id == ways[i])
-            {
+    roles.reserve(ways.size());
+    size_t memberpos = 0;
+    for (idlist_t::const_iterator it = ways.begin(); it != ways.end(); ++it) {
+        while (memberpos < members->size()) {
+            if (members->at(memberpos).id == *it) {
+                roles.push_back(&(members->at(memberpos).role));
+                memberpos++;
                 break;
             }
+            memberpos++;
         }
-        roles[i] = members[j].role;
     }
 
     //mark the ends of each so whoever uses them will know where they end..
-    nodes[way_count] = NULL;
-    node_counts[way_count] = 0;
-    ways[way_count] = 0;
-    superseeded.resize(way_count);
-    return way_count;
+    superseeded.resize(ways.size());
+
+    return ways.size();
 }

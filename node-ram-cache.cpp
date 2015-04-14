@@ -63,7 +63,7 @@
 #define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
 #define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
-#define SAFETY_MARGIN 1024*PER_BLOCK*sizeof(struct ramNode)
+#define SAFETY_MARGIN 1024*PER_BLOCK*sizeof(ramNode)
 
 static int id2block(osmid_t id)
 {
@@ -81,7 +81,7 @@ static osmid_t block2id(int block, int offset)
     return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
 }
 
-#define Swap(a,b) { struct ramNodeBlock * __tmp = a; a = b; b = __tmp; }
+#define Swap(a,b) { ramNodeBlock * __tmp = a; a = b; b = __tmp; }
 
 void node_ram_cache::percolate_up( int pos )
 {
@@ -99,21 +99,21 @@ void node_ram_cache::percolate_up( int pos )
     }
 }
 
-struct ramNode *node_ram_cache::next_chunk(size_t count, size_t size) {
+ramNode *node_ram_cache::next_chunk(size_t count, size_t size) {
     if ( (allocStrategy & ALLOC_DENSE_CHUNK) == 0 ) {
         static size_t pos = 0;
         char *result;
         pos += count * size;
         result = blockCache + cacheSize - pos + SAFETY_MARGIN;
 
-        return (struct ramNode *)result;
+        return (ramNode *)result;
     } else {
-        return (struct ramNode *)calloc(PER_BLOCK, sizeof(struct ramNode));
+        return (ramNode *)calloc(PER_BLOCK, sizeof(ramNode));
     }
 }
 
 
-int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval *tags) {
+int node_ram_cache::set_sparse(osmid_t id, double lat, double lon) {
     if ((sizeSparseTuples > maxSparseTuples) || ( cacheUsed > cacheSize)) {
         if ((allocStrategy & ALLOC_LOSSY) > 0)
             return 1;
@@ -131,12 +131,12 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon, struct keyval
     sparseBlock[sizeSparseTuples].coord.lon = lon;
 #endif
     sizeSparseTuples++;
-    cacheUsed += sizeof(struct ramNodeID);
+    cacheUsed += sizeof(ramNodeID);
     storedNodes++;
     return 0;
 }
 
-int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval *tags) {
+int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
     int block  = id2block(id);
     int offset = id2offset(id);
     int i = 0;
@@ -155,12 +155,12 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
                  * to the sparse node cache and reuse memory of the previous block for the current block */
                 if ( ((allocStrategy & ALLOC_SPARSE) == 0) ||
                      ((queue[usedBlocks - 1]->used / (double)(1<< BLOCK_SHIFT)) >
-                      (sizeof(struct ramNode) / (double)sizeof(struct ramNodeID)))) {
+                      (sizeof(ramNode) / (double)sizeof(ramNodeID)))) {
                     /* Block has reached the level to keep it in dense representation */
                     /* We've just finished with the previous block, so we need to percolate it up the queue to its correct position */
                     /* Upto log(usedBlocks) iterations */
                     percolate_up( usedBlocks-1 );
-                    blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(struct ramNode));
+                    blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(ramNode));
                 } else {
                     /* previous block was not dense enough, so push it into the sparse node cache instead */
                     for (i = 0; i < (1 << BLOCK_SHIFT); i++) {
@@ -168,24 +168,24 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
                             set_sparse(block2id(queue[usedBlocks - 1]->block_offset,i),
 #ifdef FIXED_POINT
                                                        util::fix_to_double(queue[usedBlocks -1]->nodes[i].lat, scale_),
-                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lon, scale_),
+                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lon, scale_)
 #else
                                                        queue[usedBlocks -1]->nodes[i].lat,
-                                                       queue[usedBlocks -1]->nodes[i].lon,
+                                                       queue[usedBlocks -1]->nodes[i].lon
 #endif
-                                                       NULL);
+                                                       );
                         }
                     }
                     /* reuse previous block, as it's content is now in the dense representation */
                     storedNodes -= queue[usedBlocks - 1]->used;
                     blocks[block].nodes = queue[usedBlocks - 1]->nodes;
                     blocks[queue[usedBlocks - 1]->block_offset].nodes = NULL;
-                    memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(struct ramNode) );
+                    memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(ramNode) );
                     usedBlocks--;
-                    cacheUsed -= PER_BLOCK * sizeof(struct ramNode);
+                    cacheUsed -= PER_BLOCK * sizeof(ramNode);
                 }
             } else {
-                blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(struct ramNode));
+                blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(ramNode));
             }
 
             blocks[block].used = 0;
@@ -196,7 +196,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
             }
             queue[usedBlocks] = &blocks[block];
             usedBlocks++;
-            cacheUsed += PER_BLOCK * sizeof(struct ramNode);
+            cacheUsed += PER_BLOCK * sizeof(ramNode);
 
             /* If we've just used up the last possible block we enter the
              * transition and we change the invariant. To do this we percolate
@@ -232,7 +232,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
             /* Now the head of the queue is the smallest, so it becomes our replacement candidate */
             blocks[block].nodes = queue[0]->nodes;
             blocks[block].used = 0;
-            memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(struct ramNode) );
+            memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(ramNode) );
 
             /* Clear old head block and point to new block */
             storedNodes -= queue[0]->used;
@@ -273,7 +273,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon, struct keyval 
 }
 
 
-int node_ram_cache::get_sparse(struct osmNode *out, osmid_t id) {
+int node_ram_cache::get_sparse(osmNode *out, osmid_t id) {
     int64_t pivotPos = sizeSparseTuples >> 1;
     int64_t minPos = 0;
     int64_t maxPos = sizeSparseTuples;
@@ -303,7 +303,7 @@ int node_ram_cache::get_sparse(struct osmNode *out, osmid_t id) {
     return 1;
 }
 
-int node_ram_cache::get_dense(struct osmNode *out, osmid_t id) {
+int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
     int block  = id2block(id);
     int offset = id2offset(id);
 
@@ -336,19 +336,19 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
-    maxBlocks = (cacheSize/(PER_BLOCK*sizeof(struct ramNode)));
-    maxSparseTuples = (cacheSize/sizeof(struct ramNodeID))+1;
+    maxBlocks = (cacheSize/(PER_BLOCK*sizeof(ramNode)));
+    maxSparseTuples = (cacheSize/sizeof(ramNodeID))+1;
 
     allocStrategy = strategy;
 
     if ((allocStrategy & ALLOC_DENSE) > 0 ) {
         fprintf(stderr, "Allocating memory for dense node cache\n");
-        blocks = (struct ramNodeBlock *)calloc(NUM_BLOCKS,sizeof(struct ramNodeBlock));
+        blocks = (ramNodeBlock *)calloc(NUM_BLOCKS,sizeof(ramNodeBlock));
         if (!blocks) {
             fprintf(stderr, "Out of memory for node cache dense index, try using \"--cache-strategy sparse\" instead \n");
             util::exit_nicely();
         }
-        queue = (struct ramNodeBlock **)calloc( maxBlocks,sizeof(struct ramNodeBlock *) );
+        queue = (ramNodeBlock **)calloc( maxBlocks,sizeof(ramNodeBlock *) );
         /* Use this method of allocation if virtual memory is limited,
          * or if OS allocs physical memory right away, rather than page by page
          * once it is needed.
@@ -361,7 +361,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
-            blockCache = (char *)calloc(maxBlocks + 1024,PER_BLOCK * sizeof(struct ramNode));
+            blockCache = (char *)calloc(maxBlocks + 1024,PER_BLOCK * sizeof(ramNode));
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
                 util::exit_nicely();
@@ -379,10 +379,10 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     if ((allocStrategy & ALLOC_SPARSE) > 0 ) {
         fprintf(stderr, "Allocating memory for sparse node cache\n");
         if (!blockCache) {
-            sparseBlock = (struct ramNodeID *)calloc(maxSparseTuples,sizeof(struct ramNodeID));
+            sparseBlock = (ramNodeID *)calloc(maxSparseTuples,sizeof(ramNodeID));
         } else {
             fprintf(stderr, "Sharing dense sparse\n");
-            sparseBlock = (struct ramNodeID *)blockCache;
+            sparseBlock = (ramNodeID *)blockCache;
         }
         if (!sparseBlock) {
             fprintf(stderr, "Out of memory for sparse node cache, reduce --cache size\n");
@@ -391,16 +391,16 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     }
 
 #ifdef __MINGW_H
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(ramNode), allocStrategy );
 #else
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(struct ramNode), allocStrategy );
+    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(ramNode), allocStrategy );
 #endif
 }
 
 node_ram_cache::~node_ram_cache() {
   int i;
   fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n",
-           storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(struct ramNode)/cacheUsed,
+           storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
            100.0f*nodesCacheHits/nodesCacheLookups );
 
@@ -422,21 +422,21 @@ node_ram_cache::~node_ram_cache() {
   }
 }
 
-int node_ram_cache::set(osmid_t id, double lat, double lon, struct keyval *tags) {
+int node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
     totalNodes++;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through
      * ram_nodes_set_dense. If a block is non dense, it will automatically
      * get pushed to the sparse cache if a block is sparse and ALLOC_SPARSE is set
      */
     if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
-        return set_dense(id, lat, lon, tags);
+        return set_dense(id, lat, lon);
     }
     if ( (allocStrategy & ALLOC_SPARSE) > 0 )
-        return set_sparse(id, lat, lon, tags);
+        return set_sparse(id, lat, lon);
     return 1;
 }
 
-int node_ram_cache::get(struct osmNode *out, osmid_t id) {
+int node_ram_cache::get(osmNode *out, osmid_t id) {
     nodesCacheLookups++;
 
     if ((allocStrategy & ALLOC_DENSE) > 0) {

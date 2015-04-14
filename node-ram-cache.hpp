@@ -47,16 +47,16 @@ struct node_ram_cache : public boost::noncopyable
     node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
     ~node_ram_cache();
 
-    int set(osmid_t id, double lat, double lon, struct keyval *tags);
-    int get(struct osmNode *out, osmid_t id);
+    int set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int get(osmNode *out, osmid_t id);
 
 private:
     void percolate_up( int pos );
     struct ramNode *next_chunk(size_t count, size_t size);
-    int set_sparse(osmid_t id, double lat, double lon, struct keyval *tags);
-    int set_dense(osmid_t id, double lat, double lon, struct keyval *tags);
-    int get_sparse(struct osmNode *out, osmid_t id);
-    int get_dense(struct osmNode *out, osmid_t id);
+    int set_sparse(osmid_t id, double lat, double lon);
+    int set_dense(osmid_t id, double lat, double lon);
+    int get_sparse(osmNode *out, osmid_t id);
+    int get_dense(osmNode *out, osmid_t id);
 
     int allocStrategy;
 
