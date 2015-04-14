@@ -37,8 +37,6 @@ then
   AC_MSG_ERROR([Could not find a c++ compiler]);
 fi
 
-AX_CXX_COMPILE_STDCXX_11(,optional)
-
 AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
 
@@ -126,6 +124,10 @@ if test "x$with_lockfree" = "xyes"
 then
   AX_BOOST_BASE([1.53], AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue]), [])
 fi
+
+dnl Boost json parser in 1.49 has a bug when compiled with C++11
+dnl see https://svn.boost.org/trac/boost/ticket/6785
+AX_BOOST_BASE([1.50], [ AX_CXX_COMPILE_STDCXX_11(,optional) ], [])
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
