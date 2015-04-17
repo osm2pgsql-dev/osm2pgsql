@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
         check_count(test_conn, 2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 2");
         check_count(test_conn, 2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 3");
 
+        check_count(test_conn, 3, "SELECT COUNT(*) FROM test_line WHERE foo = 'bar'");
         return 0;
 
     } catch (const std::exception &e) {

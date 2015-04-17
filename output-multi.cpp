@@ -317,7 +317,7 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
                     m_expire->from_nodes_poly(m_way_helper.node_cache, id);
                 else
                     m_expire->from_nodes_line(m_way_helper.node_cache);
-                copy_to_table(id, wkt->geom.c_str(), tags);
+                copy_to_table(id, wkt->geom.c_str(), outtags);
             }
         }
     }
