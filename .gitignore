@@ -47,6 +47,7 @@ tests/test-middle-ram
 tests/test-middle-pgsql
 tests/test-pgsql-escape
 tests/test-parse-options
+tests/test-output-multi-tags
 tests/test-output-multi-line
 tests/test-output-multi-line-storage
 tests/test-output-multi-point

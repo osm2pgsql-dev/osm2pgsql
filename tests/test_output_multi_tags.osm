@@ -1,0 +1,28 @@
+<osm version="0.6">
+<!--
+ 43
+ 21
+-->
+ <node id="1" lat="49.00" lon="-123.00">
+ <tag k="foo" v="n1"/>
+ </node>
+ <node id="2" lat="49.00" lon="-123.01">
+ <tag k="foo" v="n2"/>
+ </node>
+ <node id="3" lat="49.01" lon="-123.00"/>
+ <node id="4" lat="49.01" lon="-123.01"/>
+ <way id="1">
+  <nd ref="1"/>
+  <nd ref="2"/>
+ <tag k="foo" v="w1"/>
+ <tag k="area" v="false"/>
+ </way>
+ <way id="2">
+  <nd ref="1"/>
+  <nd ref="3"/>
+  <nd ref="4"/>
+  <nd ref="1"/>
+ <tag k="foo" v="w2"/>
+ <tag k="area" v="true"/>
+ </way>
+</osm>

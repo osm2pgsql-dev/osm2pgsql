@@ -78,6 +78,7 @@ check_PROGRAMS = \
 	tests/test-parse-xml2 \
 	tests/test-middle-ram \
 	tests/test-middle-pgsql \
+	tests/test-output-multi-tags \
 	tests/test-output-multi-line \
 	tests/test-output-multi-line-storage \
 	tests/test-output-multi-point \
@@ -94,6 +95,8 @@ tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
 tests_test_middle_ram_LDADD = libosm2pgsql.la
 tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests.cpp tests/common-pg.cpp
 tests_test_middle_pgsql_LDADD = libosm2pgsql.la
+tests_test_output_multi_tags_SOURCES = tests/test-output-multi-tags.cpp tests/common-pg.cpp
+tests_test_output_multi_tags_LDADD = libosm2pgsql.la
 tests_test_output_multi_line_SOURCES = tests/test-output-multi-line.cpp tests/common-pg.cpp
 tests_test_output_multi_line_LDADD = libosm2pgsql.la
 tests_test_output_multi_line_storage_SOURCES = tests/test-output-multi-line-storage.cpp tests/common-pg.cpp
@@ -159,6 +162,7 @@ osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_multi_tags_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_line_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_line_storage_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_LDADD += $(GLOBAL_LDFLAGS)
