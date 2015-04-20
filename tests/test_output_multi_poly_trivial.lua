@@ -18,6 +18,7 @@ function test_members (kv, member_tags, roles, num_members)
   end
 
   tags = kv
+  tags["bar"] = "baz"
 
   return 0, tags, membersuperseeded, 0, 0, 0
 end

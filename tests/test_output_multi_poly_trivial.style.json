@@ -8,7 +8,8 @@
     "tagtransform-relation-function": "test_rels",
     "tagtransform-relation-member-function": "test_members",
     "tags": [
-      {"name": "foo", "type": "text"}
+      {"name": "foo", "type": "text"},
+      {"name": "bar", "type": "text"}
     ]
   }
 ]

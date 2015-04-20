@@ -93,6 +93,7 @@ void check_output_poly_trivial(int enable_multi, std::string conninfo) {
   if (enable_multi) {
     check_count(test_conn, 1, "select count(*) from test_poly");
     check_count(test_conn, 1, "select count(*) from test_poly where foo='bar'");
+    check_count(test_conn, 1, "select count(*) from test_poly where bar='baz'");
 
     // this should be a 2-pointed multipolygon
     check_count(test_conn, 5, "select distinct st_numpoints(st_exteriorring(way)) from (select (st_dump(way)).geom as way from test_poly) x");
@@ -100,6 +101,7 @@ void check_output_poly_trivial(int enable_multi, std::string conninfo) {
   } else {
     check_count(test_conn, 2, "select count(*) from test_poly");
     check_count(test_conn, 2, "select count(*) from test_poly where foo='bar'");
+    check_count(test_conn, 2, "select count(*) from test_poly where bar='baz'");
 
     // although there are 2 rows, they should both be 4-pointed polygons
     check_count(test_conn, 5, "select distinct st_numpoints(st_exteriorring(way)) from test_poly");
