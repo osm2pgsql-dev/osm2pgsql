@@ -331,9 +331,9 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
         relation_delete(id);
 
     //does this relation have anything interesting to us
-    taglist_t outtags;
+    taglist_t rel_outtags;
     unsigned filter = m_tagtransform->filter_rel_tags(tags, *m_export_list.get(),
-                                                      outtags, true);
+                                                      rel_outtags, true);
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
@@ -364,7 +364,7 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
         //all this trickery
         int make_boundary, make_polygon = 1;
         taglist_t outtags;
-        filter = m_tagtransform->filter_rel_member_tags(tags, filtered, m_relation_helper.roles,
+        filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
                                                         &m_relation_helper.superseeded.front(),
                                                         &make_boundary, &make_polygon, &roads,
                                                         *m_export_list.get(), outtags, true);
