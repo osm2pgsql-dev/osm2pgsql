@@ -53,6 +53,7 @@ tests/test-output-multi-line-storage
 tests/test-output-multi-point
 tests/test-output-multi-point-multi-table
 tests/test-output-multi-polygon
+tests/test-output-multi-poly-trivial
 tests/test-output-pgsql
 tests/test-expire-tiles
 tests/*.log
