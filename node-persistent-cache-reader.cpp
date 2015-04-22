@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
                 cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		node_cnt = argc - 2;
 		for (i = 0; i < node_cnt; i++) {
-			osmids.push_back(atoi(argv[2 + i]));
+			osmids.push_back(strtoosmid(argv[2 + i], NULL, 10));
 		}
 		cache->get_list(nodes, osmids);
 		for (i = 0; i < node_cnt; i++) {
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
 	} else {
                 cache.reset(new node_persistent_cache(&options, 1, ram_cache));
 		if (strstr(argv[2],",") == NULL) {
-			cache->get(&node, atoi(argv[2]));
+			cache->get(&node, strtoosmid(argv[2], NULL, 10));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
 		} else {
                     char * node_list = (char *)malloc(sizeof(char) * (strlen(argv[2]) + 1));
@@ -126,10 +126,10 @@ int main(int argc, char *argv[]) {
 			while (strtok(NULL,",") != NULL) node_cnt++;
 			printf("Processing %i nodes\n", node_cnt);
 			strcpy(node_list,argv[2]);
-			osmids.push_back(atoi(strtok(node_list,",")));
+			osmids.push_back(strtoosmid(strtok(node_list,","), NULL, 10));
 			for (i = 1; i < node_cnt; i++) {
 				char * tmp = strtok(NULL,",");
-				osmids.push_back(atoi(tmp));
+				osmids.push_back(strtoosmid(tmp, NULL, 10));
 			}
 			cache->get_list(nodes,osmids);
 			for (i = 0; i < node_cnt; i++) {
