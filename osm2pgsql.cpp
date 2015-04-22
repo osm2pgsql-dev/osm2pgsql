@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 
         return 0;
     }//something went wrong along the way
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         fprintf(stderr, "Osm2pgsql failed due to ERROR: %s\n", e.what());
         exit(EXIT_FAILURE);
