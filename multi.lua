@@ -81,9 +81,7 @@ link_lookup    = {motorway_link     = 0,
                   trunk_link        = 1,
                   primary_link      = 2,
                   secondary_link    = 3,
-                  tertiary_link     = 4,
-                  unclassified_link = 5,
-                  residential_link  = 5}
+                  tertiary_link     = 4}
 
 function highway_interesting (kv)
   -- The kv["highway"] check is not necessary but helps performance
@@ -94,6 +92,7 @@ function highway_transform (kv)
   -- Thanks to highway_interesting we know that kv["highway"] is in one of
   -- highway_lookup or link_lookup
   kv["road_class"] = highway_lookup[kv["highway"]] or link_lookup[kv["highway"]]
+  -- This is a lua way of doing an inline conditional
   kv["road_type"] = highway_lookup[kv["highway"]] and "road" or "link"
   kv["name_en"] = name_lang(kv, "en")
   kv["name_de"] = name_lang(kv, "de")
@@ -101,17 +100,15 @@ function highway_transform (kv)
   return kv
 end
 
-
 function highway_ways (kv, num_keys)
   return generic_ways(highway_interesting, kv, false, highway_transform)
 end
 
 -- Some generic and utility helper functions
 
--- This little function normalizes a tag to true/false. It turns no or false
--- into false and anything else to true. The result can then be used with a
+-- This function normalizes a tag to true/false. It turns no or false into
+-- false and anything else to true. The result can then be used with a
 -- boolean column.
--- 
 -- > = yesno(nil)
 -- nil
 -- > = yesno("no")
@@ -153,11 +150,12 @@ function name_lang(kv, lang, name_tag)
   end
 end
 
--- This function gets rid of something we don't care about
+-- This function gets rid of an object we don't care about
 function drop_all (...)
   return 1, {}
 end
 
+-- This eliminates tags to be deleted
 function preprocess_tags (kv)
   tags = {}
   for k, v in pairs (kv) do
@@ -187,9 +185,9 @@ end
 
 -- A generic way to process ways, given a function which determines if tags are interesting
 -- Takes an optional function to process tags.
-function generic_ways (f, kv, area, t)
-  if f(kv) then
-    t = t or function (kv) return kv end
+function generic_ways (interesting, kv, area, transform)
+  if interesting(kv) then
+    t = transform or function (kv) return kv end
     tags = t(preprocess_tags(kv))
     return 0, tags, area and 1 or 0, 0
   else
@@ -197,8 +195,9 @@ function generic_ways (f, kv, area, t)
   end
 end
 
--- A generic way to process relations, given a function which determines if tags are interesting
--- The tag transformation work is done in generic_rel_members so we don't need to pass in a t
+-- A generic way to process relations, given a function which determines if
+-- tags are interesting. The tag transformation work is done in
+-- generic_rel_members so we don't need to pass in a transformation function.
 function generic_rels (f, kv)
   if kv["type"] == "multipolygon" and f(kv) then
     tags = kv
@@ -208,13 +207,13 @@ function generic_rels (f, kv)
   end
 end
 
--- Basically taken from style.lua
-function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount, t)
+-- Basically taken from style.lua, with the potential for a transform added
+function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount, transform)
   filter = 0
   boundary = 0
   polygon = 0
   roads = 0
-  t = t or function (kv) return kv end
+  t = transform or function (kv) return kv end
 
   --mark each way of the relation to tell the caller if its going
   --to be used in the relation or by itself as its own standalone way
