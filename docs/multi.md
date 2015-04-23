@@ -52,8 +52,9 @@ as a string of flag names seprated by commas.
 
 ## Example ##
 An example based on the above is in [multi.lua](../multi.lua) and
-[multi.style.json](../multi.style.json). It creates two tables, one for bus stops
-and one for buildings. Some Lua processing is done to unify tagging values.
+[multi.style.json](../multi.style.json). It creates three tables, one for bus
+stops, one for buildings, and one for highways. Some Lua processing is done to
+unify tagging values.
 
 ## Importing ##
 
