@@ -1,3 +1,4 @@
+#include <iostream>
 #include "pgsql.hpp"
 
 void test_escape(const char *in, const char *out) {

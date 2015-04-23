@@ -1228,7 +1228,7 @@ struct pthread_thunk {
 extern "C" void *pthread_middle_pgsql_stop_one(void *arg) {
     pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
     return thunk->obj->pgsql_stop_one(thunk->ptr);
-};
+}
 } // anonymous namespace
 
 void middle_pgsql_t::stop(void)
