@@ -58,8 +58,9 @@ sudo apt-get install autoconf automake libtool make g++ libboost-dev \
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ boost-devel libxml2-devel geos-devel \
-  postgresql-devel bzip2-devel proj-devel protobuf-compiler
+sudo yum install gcc-c++ automake libtool boost-devel libxml2-devel \
+  bzip2-devel postgresql-devel geos-devel proj-devel lua-devel \
+  protobuf-c-devel
 ```
 
 To install on a FreeBSD system, use
