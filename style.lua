@@ -6,6 +6,12 @@ polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisu
       'public_transport', 'shop', 'sport', 'tourism', 'waterway',
       'wetland', 'water', 'aeroway' }
 
+-- Objects with any of the following key/value combinations will be treated as polygon
+polygon_values = {highway='services'}
+
+-- Objects with any of the following key/value combinations will be treated as linestring
+linestring_values = {man_made='embankment', natural='cliff'}
+
 -- Objects without any of the following keys will be deleted
 generic_keys = {'access','addr:housename','addr:housenumber','addr:interpolation','admin_level','aerialway','aeroway','amenity','area','barrier',
    'bicycle','brand','bridge','boundary','building','capital','construction','covered','culvert','cutting','denomination','disused','ele',
@@ -127,6 +133,22 @@ function filter_tags_way (keyvalues, numberofkeys)
       end
    end
 
+  -- Treat objects with a key/value combination in polygon_values as polygon
+   for k,v in pairs(polygon_values) do
+      if keyvalues[k] == v then
+         polygon=1
+         break
+      end
+   end
+
+  -- Treat objects with a key/value combination in linestring_values not as polygon
+   for k,v in pairs(linestring_values) do
+      if keyvalues[k] == v then
+         polygon=0
+         break
+      end
+   end
+   
    -- Treat objects tagged as area=yes, area=1, or area=true as polygon,
    -- and treat objects tagged as area=no, area=0, or area=false not as polygon
    if ((keyvalues["area"] == "yes") or (keyvalues["area"] == "1") or (keyvalues["area"] == "true")) then
@@ -168,14 +190,29 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
       -- Treat as polygon
       polygon = 1
       polytagcount = 0;
-      -- Count the number of polygon tags of the object
+      -- Count the number of polygon tags
+      -- First count keys in polygon_keys
       for i,k in ipairs(polygon_keys) do
          if keyvalues[k] then
             polytagcount = polytagcount + 1
          end
       end
-      -- If there are no polygon tags, add tags from all outer elements to the multipolygon itself
-      if (polytagcount == 0) then
+      -- Then add key/value combinations in polygon_values
+      for k,v in pairs(polygon_values) do
+         if keyvalues[k] == v then
+            polytagcount = polytagcount + 1
+         end
+      end
+      -- Then substract key/value combinations in linestring_values
+      for k,v in pairs(linestring_values) do
+         if keyvalues[k] == v then
+            polytagcount = polytagcount - 1
+         end
+      end
+
+      -- If the multipolygon has no polygon keys or polygon key/value combinations,
+      -- add tags from all outer elements to the multipolygon itself
+      if (polytagcount <= 0) then
          for i = 1,membercount do
             if (roles[i] == "outer") then
                for k,v in pairs(keyvaluemembers[i]) do
