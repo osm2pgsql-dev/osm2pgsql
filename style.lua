@@ -207,5 +207,5 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
    -- Add z_order key/value combination and determine if the object should also be added to planet_osm_roads
    keyvalues, roads = add_z_order(keyvalues)
 
-   return filter, keyvalues, membersuperseded, boundary, polygon, roads
+   return filter, keyvalues, membersuperseded, linestring, polygon, roads
 end
