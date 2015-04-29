@@ -10,7 +10,11 @@ polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisu
 polygon_values = {highway='services'}
 
 -- Objects with any of the following key/value combinations will be treated as linestring
-linestring_values = {man_made='embankment', natural='cliff'}
+linestring_values = {man_made='embankment', man_made='breakwater', man_made='groyne',
+      natural='cliff', natural='tree_row', historic='citywalls',  waterway='derelict_canal',
+      waterway='ditch', waterway='drain', waterway='river', waterway='stream', waterway='wadi',
+      waterway='weir', power='line', power='minor_line'
+      }
 
 -- Objects without any of the following keys will be deleted
 generic_keys = {'access','addr:housename','addr:housenumber','addr:interpolation','admin_level','aerialway','aeroway','amenity','area','barrier',
