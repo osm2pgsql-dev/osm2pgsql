@@ -53,7 +53,7 @@
     "tagtransform-node-function": "drop_all",
     "tagtransform-way-function": "building_ways",
     "tagtransform-relation-function": "building_rels",
-    "tagtransform-relation-member-function": "builing_rel_members",
+    "tagtransform-relation-member-function": "building_rel_members",
     "tags": [
       {"name": "name", "type": "text"},
       {"name": "name_en", "type": "text"},
