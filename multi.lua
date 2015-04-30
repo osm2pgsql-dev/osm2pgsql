@@ -42,7 +42,7 @@ function building_rels (kv, num_keys)
   return generic_rels(building_interesting, kv)
 end
 
-function builing_rel_members (kv, keyvaluemembers, roles, membercount)
+function building_rel_members (kv, keyvaluemembers, roles, membercount)
   return generic_rel_members(building_interesting, kv, keyvaluemembers, roles, membercount, building_transform)
 end
 
