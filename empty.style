@@ -34,7 +34,7 @@ node,way    water                   text    phstore
 node,way    waterway                text    phstore
 node,way    wetland                 text    phstore
 node,way    z_order                 int4    linear  # This is calculated during import
-way         way_area                real            # This is calculated during import
+way         way_area                real    linear  # This is calculated during import
 
 # Deleted tags
 # These are tags that are generally regarded as useless for most rendering.
