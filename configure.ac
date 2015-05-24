@@ -112,6 +112,10 @@ AX_BOOST_BASE([1.48], , [AC_MSG_ERROR([cannot find Boost libraries, which are ar
 AX_BOOST_SYSTEM
 AX_BOOST_FILESYSTEM
 AX_BOOST_THREAD
+if test "x$BOOST_SYSTEM_LIB" = "x" -o "x$BOOST_FILESYSTEM_LIB" = "x" -o "x$BOOST_THREAD_LIB" = "x"
+then
+    AC_MSG_ERROR([One or more of the mandatory Boost libraries not found.])
+fi
 
 dnl Check if Boost is recent enough for lockfree, and if it hasn't been overridden
 AC_ARG_WITH([lockfree],
@@ -122,7 +126,14 @@ AC_ARG_WITH([lockfree],
 
 if test "x$with_lockfree" = "xyes"
 then
-  AX_BOOST_BASE([1.53], AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue]), [])
+  AX_BOOST_BASE([1.53],
+                [
+                  AX_BOOST_ATOMIC
+                  if test "x$BOOST_ATOMIC_LIB" != "x"; then
+                    AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue])
+                  fi
+                ]
+                , [])
 fi
 
 dnl Boost json parser in 1.49 has a bug when compiled with C++11
