@@ -138,7 +138,6 @@ int get_random_proj(std::vector<std::string>& args)
     switch(proj)
     {
     case PROJ_LATLONG:
-    case PROJ_MERC:
     case PROJ_SPHERE_MERC:
         args.push_back(reprojection(proj).project_getprojinfo()->option);
         break;

@@ -19,7 +19,7 @@ struct Projection_Info {
     const char *option;
 };
 
-enum Projection { PROJ_LATLONG = 0, PROJ_MERC, PROJ_SPHERE_MERC,   PROJ_COUNT };
+enum Projection { PROJ_LATLONG = 0, PROJ_SPHERE_MERC, PROJ_COUNT };
 
 struct reprojection : public boost::noncopyable
 {

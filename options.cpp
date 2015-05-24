@@ -29,7 +29,6 @@ namespace
         {"prefix",   1, 0, 'p'},
         {"proj",     1, 0, 'E'},
         {"merc",     0, 0, 'm'},
-        {"oldmerc",  0, 0, 'M'},
         {"utf8-sanitize", 0, 0, 'u'},
         {"cache",    1, 0, 'C'},
         {"username", 1, 0, 'U'},
@@ -128,7 +127,6 @@ namespace
     Obsolete options:\n\
        -u|--utf8-sanitize   Repair bad UTF8 input data (present in planet\n\
                         dumps prior to August 2007). Adds about 10% overhead.\n\
-       -M|--oldmerc     Store data in the legacy OSM mercator format\n\
     \n\
     Performance options:\n\
        -i|--tablespace-index    The name of the PostgreSQL tablespace where\n\
@@ -325,9 +323,6 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'm':
             options.projection.reset(new reprojection(PROJ_SPHERE_MERC));
-            break;
-        case 'M':
-            options.projection.reset(new reprojection(PROJ_MERC));
             break;
         case 'E':
             options.projection.reset(new reprojection(-atoi(optarg)));
