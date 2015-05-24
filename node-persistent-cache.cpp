@@ -335,8 +335,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
                 strerror(errno));
         exit(1);
     }
-    add_to_cache_idx(cache_index_entry(readNodeBlockCache[block_id].block_offset,
-                                       block_id));
+    add_to_cache_idx(cache_index_entry(block_offset, block_id));
 
     return block_id;
 }
@@ -532,10 +531,10 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 {
     out.assign(nds.size(), osmNode());
 
-    bool need_fetch = false;;
+    bool need_fetch = false;
     for (size_t i = 0; i < nds.size(); ++i) {
         /* Check cache first */
-        if (ram_cache && (ram_cache->get(&out[i], nds[i]) != 0)) {
+        if (!ram_cache || (ram_cache->get(&out[i], nds[i]) == 0)) {
             /* In order to have a higher OS level I/O queue depth
                issue posix_fadvise(WILLNEED) requests for all I/O */
             nodes_prefetch_async(nds[i]);
