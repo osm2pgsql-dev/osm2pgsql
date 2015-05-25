@@ -7,6 +7,7 @@
 #include <boost/make_shared.hpp>
 
 #include "osmtypes.hpp"
+#include "osmdata.hpp"
 #include "parse-xml2.hpp"
 #include "output.hpp"
 #include "options.hpp"

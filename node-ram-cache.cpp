@@ -5,20 +5,13 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
 #include "node-ram-cache.hpp"
 #include "util.hpp"
-
-
-
-
 
 /* Here we use a similar storage structure as middle-ram, except we allow
  * the array to be lossy so we can cap the total memory usage. Hence it is a

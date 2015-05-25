@@ -1,3 +1,4 @@
+#include "config.h" // for FIXED_POINT
 #include "processor-point.hpp"
 #include "util.hpp"
 

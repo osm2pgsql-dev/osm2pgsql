@@ -1,15 +1,15 @@
 #ifndef EXPIRE_TILES_H
 #define EXPIRE_TILES_H
 
-#include "options.hpp"
+#include "osmtypes.hpp"
 
 #include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
 
 class table_t;
+struct options_t;
 
 struct expire_tiles : public boost::noncopyable {
-    explicit expire_tiles(const struct options_t *options);
+    explicit expire_tiles(const options_t *options);
     ~expire_tiles();
 
     //TODO: copy constructor
@@ -57,7 +57,7 @@ private:
 
     int map_width;
     double tile_width;
-    const struct options_t *Options;
+    const options_t *Options;
     struct tile *dirty;
 };
 

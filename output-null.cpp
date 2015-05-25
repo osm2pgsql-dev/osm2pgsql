@@ -1,15 +1,8 @@
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
-
-#include <boost/make_shared.hpp>
-
 #include "osmtypes.hpp"
 #include "output-null.hpp"
-#include "options.hpp"
+
+struct middle_query_t;
+struct options_t;
 
 void output_null_t::cleanup() {
 }

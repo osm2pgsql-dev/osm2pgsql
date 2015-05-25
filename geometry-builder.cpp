@@ -22,26 +22,29 @@
 
 #include <iostream>
 #include <algorithm>
-#include <cstring>
-#include <cstdlib>
 #include <cmath>
-#include <exception>
+#include <cstddef>
+#include <stdexcept>
+#include <memory>
+#include <new>
 
 #if defined(__CYGWIN__)
 #define GEOS_INLINE
 #endif
 
+#include <geos/geom/prep/PreparedGeometry.h>
 #include <geos/geom/prep/PreparedGeometryFactory.h>
-#include <geos/geom/prep/PreparedPolygon.h>
 #include <geos/geom/GeometryFactory.h>
+#include <geos/geom/Coordinate.h>
+#include <geos/geom/CoordinateSequence.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
 #include <geos/geom/Geometry.h>
+#include <geos/geom/GeometryCollection.h>
 #include <geos/geom/LineString.h>
 #include <geos/geom/LinearRing.h>
 #include <geos/geom/MultiLineString.h>
 #include <geos/geom/Polygon.h>
 #include <geos/geom/MultiPolygon.h>
-#include <geos/geom/Point.h>
 #include <geos/io/WKTReader.h>
 #include <geos/io/WKTWriter.h>
 #include <geos/util/GEOSException.h>

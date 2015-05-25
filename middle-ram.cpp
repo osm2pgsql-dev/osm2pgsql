@@ -9,20 +9,13 @@
 
 #include <stdexcept>
 #include <cstdio>
-#include <cstdlib>
 #include <cstring>
 #include <cassert>
 
-#include "osmtypes.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
-#include "output-pgsql.hpp"
 #include "options.hpp"
-#include "util.hpp"
-
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
+#include "id-tracker.hpp"
 
 /* Object storage now uses 2 levels of storage arrays.
  *

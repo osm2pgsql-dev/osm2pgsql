@@ -25,8 +25,6 @@
 #ifndef PARSE_PBF_H
 #define PARSE_PBF_H
 
-#include "parse.hpp"
-
 #include "config.h"
 
 #ifdef BUILD_READER_PBF
@@ -34,6 +32,14 @@ extern "C" {
 #include "fileformat.pb-c.h"
 #include "osmformat.pb-c.h"
 }
+
+#include "parse.hpp"
+
+#include <cstddef>
+#include <boost/shared_ptr.hpp>
+
+struct reprojection;
+class osmdata_t;
 
 class parse_pbf_t: public parse_t
 {

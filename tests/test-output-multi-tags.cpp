@@ -11,7 +11,7 @@
 #include "middle.hpp"
 #include "output-multi.hpp"
 #include "options.hpp"
-#include "middle-pgsql.hpp"
+#include "osmdata.hpp"
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 

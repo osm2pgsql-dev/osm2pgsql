@@ -1,7 +1,5 @@
 #include "processor-polygon.hpp"
 
-#include <boost/format.hpp>
-
 processor_polygon::processor_polygon(int srid, bool enable_multi) : geometry_processor(srid, "GEOMETRY", interest_way | interest_relation), enable_multi(enable_multi)
 {
 }

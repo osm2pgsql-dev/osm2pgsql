@@ -2,10 +2,13 @@
 #include "processor-line.hpp"
 #include "processor-point.hpp"
 #include "processor-polygon.hpp"
-
+#include "middle.hpp"
+#include "options.hpp"
+#include "reprojection.hpp"
 
 #include <boost/make_shared.hpp>
 #include <boost/format.hpp>
+#include <boost/optional.hpp>
 #include <stdexcept>
 
 boost::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,

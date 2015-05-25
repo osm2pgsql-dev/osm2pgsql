@@ -1,13 +1,10 @@
 #ifndef PARSE_H
 #define PARSE_H
 
-#include <time.h>
-
-#include "config.h"
 #include "osmtypes.hpp"
-#include "reprojection.hpp"
-#include "osmdata.hpp"
 
+#include <time.h>
+#include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/optional.hpp>
 
@@ -15,6 +12,8 @@ typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETD
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
 class parse_t;
+class osmdata_t;
+struct reprojection;
 
 class parse_delegate_t
 {

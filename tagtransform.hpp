@@ -2,14 +2,17 @@
 #ifndef TAGTRANSFORM_H
 #define TAGTRANSFORM_H
 
-#include "output.hpp"
-#include "taginfo.hpp"
+#include "config.h"
+#include "osmtypes.hpp"
+
+#include <string>
+
+struct options_t;
+struct export_list;
 
 #ifdef HAVE_LUA
 extern "C" {
-	#include <lua.h>
-	#include <lualib.h>
-	#include <lauxlib.h>
+    #include <lua.h>
 }
 #endif
 

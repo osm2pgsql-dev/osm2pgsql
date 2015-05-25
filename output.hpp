@@ -10,14 +10,15 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
+#include "options.hpp"
 #include "middle.hpp"
 #include "id-tracker.hpp"
 #include "expire-tiles.hpp"
 
 #include <boost/noncopyable.hpp>
 #include <boost/version.hpp>
-
 #include <utility>
+
 
 struct pending_job_t {
     osmid_t osm_id;

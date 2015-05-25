@@ -40,7 +40,6 @@
 
 #include "parse.hpp"
 
-#include <libxml/xmlstring.h>
 #include <libxml/xmlreader.h>
 
 class parse_xml2_t: public parse_t

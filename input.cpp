@@ -6,18 +6,15 @@
 #include <io.h>
 #define STDIN_FILENO 0
 #else
-#include <stdio.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <cstdio>
 #endif
 
+#include <cstdlib>
+#include <cstring>
 #include <fcntl.h>
 #include <zlib.h>
 #include <bzlib.h>
-#include <string.h>
 
-#include "sanitizer.hpp"
 #include "input.hpp"
 
 struct Input {

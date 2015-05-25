@@ -1,15 +1,23 @@
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <stdexcept>
-#include "osmtypes.hpp"
+#include <vector>
+#include <boost/format.hpp>
+
 #include "tagtransform.hpp"
-#include "output-pgsql.hpp"
 #include "options.hpp"
 #include "config.h"
 #include "wildcmp.hpp"
 #include "taginfo_impl.hpp"
+
+#ifdef HAVE_LUA
+extern "C" {
+    #include <lualib.h>
+    #include <lauxlib.h>
+}
+#endif
 
 
 static const struct {

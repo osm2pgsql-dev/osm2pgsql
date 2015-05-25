@@ -10,7 +10,7 @@ struct processor_point : public geometry_processor {
     geometry_builder::maybe_wkt_t process_node(double lat, double lon);
 
 private:
-    double m_scale; // <-- used only when FIXED_POINT is defined, which seems like never?
+    double m_scale; // <-- used only when FIXED_POINT is defined
 };
 
 #endif /* PROCESSOR_POINT_HPP */

@@ -138,7 +138,15 @@ fi
 
 dnl Boost json parser in 1.49 has a bug when compiled with C++11
 dnl see https://svn.boost.org/trac/boost/ticket/6785
-AX_BOOST_BASE([1.50], [ AX_CXX_COMPILE_STDCXX_11(,optional) ], [])
+AC_ARG_WITH([cxx11],
+  [AS_HELP_STRING([--without-cxx11],
+    [do not check for C++11-capable compiler (for testing only)])],
+    [],
+    [with_cxx11=yes])
+
+if test "x$with_cxx11" = "xyes"; then
+    AX_BOOST_BASE([1.50], [ AX_CXX_COMPILE_STDCXX_11(,optional) ], [])
+fi
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
@@ -149,6 +157,13 @@ AX_PROG_LUA([5.0],[],[
         ],[AC_MSG_WARN([cannot find Lua libs])])
     ],[AC_MSG_WARN([cannot find Lua includes])])
 ],[AC_MSG_WARN([cannot find Lua interpreter])])
+
+dnl Enable fixed point
+AC_ARG_WITH([fixed-point],
+  [AS_HELP_STRING([--without-fixed-point],
+    [use double instead of fixed point floats for coordinates])],
+    [],
+    [AC_DEFINE([FIXED_POINT], [1], [Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision])])
 
 dnl Generate Makefile
 AC_OUTPUT(Makefile)
