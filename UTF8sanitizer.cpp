@@ -1,10 +1,6 @@
-#include <stdio.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <zlib.h>
-#include <bzlib.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
 
 #include "sanitizer.hpp"
 #include "input.hpp"

@@ -1,11 +1,9 @@
 /* Helper functions for the postgresql connections */
 #include "pgsql.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <libpq-fe.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 

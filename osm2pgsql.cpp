@@ -24,6 +24,8 @@
 */
 
 #include "config.h"
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 #include "options.hpp"
 #include "parse.hpp"
 #include "middle.hpp"
@@ -31,10 +33,12 @@
 #include "osmdata.hpp"
 #include "util.hpp"
 
-#include <unistd.h>
-#include <assert.h>
 #include <time.h>
 #include <stdexcept>
+#include <string>
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
 
 #include <libpq-fe.h>
 #include <boost/format.hpp>

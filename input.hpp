@@ -1,6 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+#include <libxml/xmlreader.h>
 struct Input;
 
 int readFile(struct Input *context, char * buffer, int len);

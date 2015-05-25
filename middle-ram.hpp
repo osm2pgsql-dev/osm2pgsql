@@ -9,9 +9,13 @@
 #ifndef MIDDLE_RAM_H
 #define MIDDLE_RAM_H
 
+#include <memory>
+
 #include "middle.hpp"
-#include "node-ram-cache.hpp"
 #include <vector>
+
+struct node_ram_cache;
+struct options_t;
 
 struct middle_ram_t : public middle_t {
     middle_ram_t();

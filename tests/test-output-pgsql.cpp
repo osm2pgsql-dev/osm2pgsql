@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
+#include "osmdata.hpp"
 #include "output-pgsql.hpp"
 #include "options.hpp"
 #include "middle-pgsql.hpp"
@@ -264,7 +264,7 @@ void test_clone() {
     options.slim = 1;
     options.style = "default.style";
 
-    struct output_pgsql_t out_test(mid_pgsql.get(), options);
+    output_pgsql_t out_test(mid_pgsql.get(), options);
 
     //TODO: make the middle testable too
     //boost::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();

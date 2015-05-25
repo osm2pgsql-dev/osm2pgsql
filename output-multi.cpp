@@ -1,9 +1,13 @@
 #include "output-multi.hpp"
 #include "taginfo_impl.hpp"
+#include "table.hpp"
+#include "tagtransform.hpp"
+#include "options.hpp"
+#include "middle.hpp"
+#include "id-tracker.hpp"
+#include "geometry-builder.hpp"
+#include "expire-tiles.hpp"
 
-#include <boost/format.hpp>
-#include <boost/foreach.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 

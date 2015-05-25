@@ -8,15 +8,15 @@
  * https://subversion.nexusuk.org/trac/browser/openpistemap/trunk/scripts/expire_tiles.py
  */
 
-#include <libpq-fe.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include "output.hpp"
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+#include <string>
+
+#include "expire-tiles.hpp"
 #include "options.hpp"
 #include "geometry-builder.hpp"
-#include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
 

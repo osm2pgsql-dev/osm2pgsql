@@ -22,17 +22,20 @@
 #-----------------------------------------------------------------------------
 */
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cassert>
 #include <time.h>
 
 #include "sanitizer.hpp"
 #include "input.hpp"
 
 #include "parse-xml2.hpp"
-#include "output.hpp"
+#include "osmtypes.hpp"
+#include "osmdata.hpp"
 #include "util.hpp"
+#include "reprojection.hpp"
 
 /* Parses the action="foo" tags in JOSM change files. Obvisouly not useful from osmChange files */
 actions_t parse_xml2_t::ParseAction( xmlTextReaderPtr reader)

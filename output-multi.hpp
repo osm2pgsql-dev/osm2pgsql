@@ -7,22 +7,28 @@
 #ifndef OUTPUT_MULTI_HPP
 #define OUTPUT_MULTI_HPP
 
+#include "osmtypes.hpp"
 #include "output.hpp"
-#include "tagtransform.hpp"
-#include "table.hpp"
 #include "geometry-processor.hpp"
-#include "id-tracker.hpp"
-#include "expire-tiles.hpp"
 
-#include <vector>
+#include <cstddef>
+#include <string>
 #include <boost/scoped_ptr.hpp>
-#include <boost/variant.hpp>
+#include <boost/shared_ptr.hpp>
+
+class table_t;
+class tagtransform;
+struct expire_tiles;
+struct export_list;
+struct id_tracker;
+struct middle_query_t;
+struct options_t;
 
 class output_multi_t : public output_t {
 public:
     output_multi_t(const std::string &name,
                    boost::shared_ptr<geometry_processor> processor_,
-                   const struct export_list &export_list_,
+                   const export_list &export_list_,
                    const middle_query_t* mid_, const options_t &options_);
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();

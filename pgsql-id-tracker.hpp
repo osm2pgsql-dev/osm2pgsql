@@ -3,6 +3,9 @@
 
 #include "id-tracker.hpp"
 
+#include <string>
+#include <boost/smart_ptr/scoped_ptr.hpp>
+
 struct pgsql_id_tracker : public id_tracker {
     pgsql_id_tracker(const std::string &conninfo,
                      const std::string &prefix,

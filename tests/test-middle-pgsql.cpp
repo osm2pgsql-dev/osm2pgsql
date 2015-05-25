@@ -8,7 +8,6 @@
 #include <memory>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
 #include "output-null.hpp"
 #include "options.hpp"
 #include "middle-pgsql.hpp"
@@ -32,7 +31,7 @@ int main(int argc, char *argv[]) {
     return 77; // <-- code to skip this test.
   }
 
-  struct middle_pgsql_t mid_pgsql;
+  middle_pgsql_t mid_pgsql;
   options_t options;
   options.conninfo = db->conninfo().c_str();
   options.scale = 10000000;
@@ -42,7 +41,7 @@ int main(int argc, char *argv[]) {
   options.tblsslim_data = "tablespacetest";
   options.slim = 1;
 
-  struct output_null_t out_test(&mid_pgsql, options);
+  output_null_t out_test(&mid_pgsql, options);
 
   try {
     // start an empty table to make the middle create the

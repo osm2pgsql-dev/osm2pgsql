@@ -4,33 +4,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 bin_PROGRAMS = osm2pgsql nodecachefilereader
 noinst_LTLIBRARIES = libosm2pgsql.la
 
-osm2pgsql_SOURCES = osm2pgsql.cpp \
-	geometry-builder.hpp \
-	expire-tiles.hpp \
-	input.hpp \
-	middle-pgsql.hpp \
-	middle-ram.hpp \
-	middle.hpp \
-	node-persistent-cache.hpp \
-	node-ram-cache.hpp \
-	options.hpp \
-	osmdata.hpp \
-	osmtypes.hpp \
-	output-gazetteer.hpp \
-	output-null.hpp \
-	output-pgsql.hpp \
-	output.hpp \
-	parse.hpp \
-	parse-o5m.hpp \
-	parse-pbf.hpp \
-	parse-xml2.hpp \
-	pgsql.hpp \
-	rb.hpp \
-	reprojection.hpp \
-	sanitizer.hpp \
-	sprompt.hpp \
-	table.hpp \
-	util.hpp
+osm2pgsql_SOURCES = osm2pgsql.cpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
 
@@ -62,7 +36,6 @@ libosm2pgsql_la_SOURCES = \
 	processor-line.cpp \
 	processor-point.cpp \
 	processor-polygon.cpp \
-	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \
 	table.cpp \

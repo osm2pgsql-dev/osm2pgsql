@@ -1,13 +1,17 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdexcept>
+#include "config.h"
+#include "parse.hpp"
 #include "parse-o5m.hpp"
 #ifdef BUILD_READER_PBF
 #  include "parse-pbf.hpp"
 #endif
 #include "parse-xml2.hpp"
-#include "util.hpp"
+
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+#include <stdexcept>
+#include <algorithm>
+
 
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096

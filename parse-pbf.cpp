@@ -22,9 +22,15 @@
 #-----------------------------------------------------------------------------
 */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "config.h"
+
+#ifdef BUILD_READER_PBF
+
+#include <cassert>
+#include <cstdlib>
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
 #ifdef _WIN32
 #include <winsock2.h>
 #else
@@ -33,13 +39,13 @@
 #include <time.h>
 
 #include <zlib.h>
-
-#include "config.h"
-
-#ifdef BUILD_READER_PBF
+#include <string>
 
 #include "parse-pbf.hpp"
-#include "output.hpp"
+#include "fileformat.pb-c.h"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 #define MAX_BLOCK_HEADER_SIZE 64*1024
 #define MAX_BLOB_SIZE 32*1024*1024

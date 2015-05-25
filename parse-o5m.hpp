@@ -26,6 +26,9 @@
 #define PARSE_O5M_H
 
 #include "parse.hpp"
+#include <boost/shared_ptr.hpp>
+
+struct reprojection;
 
 class parse_o5m_t: public parse_t
 {
@@ -33,7 +36,7 @@ public:
 	parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
 				const double minlon, const double minlat, const double maxlon, const double maxlat);
 	virtual ~parse_o5m_t();
-	virtual int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
+	int streamFile(const char *filename, const int sanitize, osmdata_t *osmdata);
 protected:
 	parse_o5m_t();
 };

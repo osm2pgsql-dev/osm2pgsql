@@ -1,18 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
+#include <cstring>
 #include <sys/wait.h>
 #include <sys/time.h>
+#include <boost/shared_ptr.hpp>
 
 #include "osmtypes.hpp"
-#include "output.hpp"
 #include "options.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"

@@ -1,11 +1,17 @@
 #include "table.hpp"
 #include "options.hpp"
 #include "util.hpp"
+#include "node-ram-cache.hpp" // for FIXED_POINT
 
-#include <string.h>
+#include <exception>
+#include <algorithm>
+#include <cstring>
+#include <cstdio>
 #include <utility>
+#include <time.h>
 
 using std::string;
+typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 

@@ -4,15 +4,17 @@
 #include "pgsql.hpp"
 #include "osmtypes.hpp"
 
+#include <cstddef>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
+#include <boost/shared_ptr.hpp>
 
 typedef std::vector<std::string> hstores_t;
 typedef std::vector<std::pair<std::string, std::string> > columns_t;
-typedef boost::format fmt;
 
 class table_t
 {
@@ -84,7 +86,7 @@ class table_t
         boost::optional<std::string> table_space;
         boost::optional<std::string> table_space_index;
 
-        fmt single_fmt, point_fmt, del_fmt;
+        boost::format single_fmt, point_fmt, del_fmt;
 };
 
 #endif

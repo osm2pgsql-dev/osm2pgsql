@@ -1,4 +1,5 @@
 #include "expire-tiles.hpp"
+#include "options.hpp"
 
 #include <stdio.h>
 #include <string.h>

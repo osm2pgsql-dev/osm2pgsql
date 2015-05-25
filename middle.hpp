@@ -8,8 +8,11 @@
 #define MIDDLE_H
 
 #include "osmtypes.hpp"
-#include "options.hpp"
-#include <vector>
+
+#include <cstddef>
+#include <boost/shared_ptr.hpp>
+
+struct options_t;
 
 struct middle_query_t {
     virtual ~middle_query_t() {}

@@ -1,7 +1,9 @@
 #include "pgsql-id-tracker.hpp"
 
+#include <cassert>
+#include <cstdio>
+#include <limits>
 #include <libpq-fe.h>
-#include <string>
 #include <boost/format.hpp>
 
 #include "osmtypes.hpp"
