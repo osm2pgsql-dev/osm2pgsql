@@ -12,7 +12,7 @@
 #include "osmtypes.hpp"
 
 #include <cstddef>
-#include <cstdint>
+#include <stdint.h>
 #include <boost/noncopyable.hpp>
 
 #define ALLOC_SPARSE 1

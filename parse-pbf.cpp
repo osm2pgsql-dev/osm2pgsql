@@ -28,7 +28,7 @@
 
 #include <cassert>
 #include <cstdlib>
-#include <cstdint>
+#include <stdint.h>
 #include <cstdio>
 #include <cstring>
 #ifdef _WIN32
@@ -42,7 +42,6 @@
 #include <string>
 
 #include "parse-pbf.hpp"
-#include "fileformat.pb-c.h"
 #include "osmdata.hpp"
 #include "osmtypes.hpp"
 #include "reprojection.hpp"

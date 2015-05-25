@@ -127,7 +127,15 @@ fi
 
 dnl Boost json parser in 1.49 has a bug when compiled with C++11
 dnl see https://svn.boost.org/trac/boost/ticket/6785
-AX_BOOST_BASE([1.50], [ AX_CXX_COMPILE_STDCXX_11(,optional) ], [])
+AC_ARG_WITH([cxx11],
+  [AS_HELP_STRING([--without-cxx11],
+    [do not check for C++11-capable compiler (for testing only)])],
+    [],
+    [with_cxx11=yes])
+
+if test "x$with_cxx11" = "xyes"; then
+    AX_BOOST_BASE([1.50], [ AX_CXX_COMPILE_STDCXX_11(,optional) ], [])
+fi
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[

@@ -29,7 +29,7 @@
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <cstdint>
+#include <stdint.h>
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
