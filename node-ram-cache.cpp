@@ -116,13 +116,8 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon) {
         }
     }
     sparseBlock[sizeSparseTuples].id = id;
-#ifdef FIXED_POINT
     sparseBlock[sizeSparseTuples].coord.lat = util::double_to_fix(lat, scale_);
     sparseBlock[sizeSparseTuples].coord.lon = util::double_to_fix(lon, scale_);
-#else
-    sparseBlock[sizeSparseTuples].coord.lat = lat;
-    sparseBlock[sizeSparseTuples].coord.lon = lon;
-#endif
     sizeSparseTuples++;
     cacheUsed += sizeof(ramNodeID);
     storedNodes++;
@@ -159,13 +154,8 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
                     for (i = 0; i < (1 << BLOCK_SHIFT); i++) {
                         if (queue[usedBlocks -1]->nodes[i].lat || queue[usedBlocks -1]->nodes[i].lon) {
                             set_sparse(block2id(queue[usedBlocks - 1]->block_offset,i),
-#ifdef FIXED_POINT
                                                        util::fix_to_double(queue[usedBlocks -1]->nodes[i].lat, scale_),
                                                        util::fix_to_double(queue[usedBlocks -1]->nodes[i].lon, scale_)
-#else
-                                                       queue[usedBlocks -1]->nodes[i].lat,
-                                                       queue[usedBlocks -1]->nodes[i].lon
-#endif
                                                        );
                         }
                     }
@@ -253,13 +243,8 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
         }
     }
 
-#ifdef FIXED_POINT
     blocks[block].nodes[offset].lat = util::double_to_fix(lat, scale_);
     blocks[block].nodes[offset].lon = util::double_to_fix(lon, scale_);
-#else
-    blocks[block].nodes[offset].lat = lat;
-    blocks[block].nodes[offset].lon = lon;
-#endif
     blocks[block].used++;
     storedNodes++;
     return 0;
@@ -273,13 +258,8 @@ int node_ram_cache::get_sparse(osmNode *out, osmid_t id) {
 
     while (minPos <= maxPos) {
         if ( sparseBlock[pivotPos].id == id ) {
-#ifdef FIXED_POINT
             out->lat = util::fix_to_double(sparseBlock[pivotPos].coord.lat, scale_);
             out->lon = util::fix_to_double(sparseBlock[pivotPos].coord.lon, scale_);
-#else
-            out->lat = sparseBlock[pivotPos].coord.lat;
-            out->lon = sparseBlock[pivotPos].coord.lon;
-#endif
             return 0;
         }
         if ( (pivotPos == minPos) || (pivotPos == maxPos)) return 1;
@@ -306,13 +286,8 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
     if (!blocks[block].nodes[offset].lat && !blocks[block].nodes[offset].lon)
         return 1;
 
-#ifdef FIXED_POINT
     out->lat = util::fix_to_double(blocks[block].nodes[offset].lat, scale_);
     out->lon = util::fix_to_double(blocks[block].nodes[offset].lon, scale_);
-#else
-    out->lat = blocks[block].nodes[offset].lat;
-    out->lon = blocks[block].nodes[offset].lon;
-#endif
 
     return 0;
 }

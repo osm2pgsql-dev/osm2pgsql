@@ -126,13 +126,8 @@ static void ramNodes_clear(struct ramNode * nodes, int size)
     int i;
     for (i = 0; i < size; i++)
     {
-#ifdef FIXED_POINT
         nodes[i].lon = INT_MIN;
         nodes[i].lat = INT_MIN;
-#else
-        nodes[i].lon = NAN;
-        nodes[i].lat = NAN;
-#endif
     }
 }
 
@@ -426,13 +421,8 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
         writeNodeBlock.used = 0;
         writeNodeBlock.block_offset = block_offset;
     }
-#ifdef FIXED_POINT
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = util::double_to_fix(lat, scale_);
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = util::double_to_fix(lon, scale_);
-#else
-    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = lat;
-    writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = lon;
-#endif
     writeNodeBlock.used++;
     writeNodeBlock.dirty = 1;
 
@@ -448,7 +438,6 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
     if (block_id < 0)
         block_id = load_block(block_offset);
 
-#ifdef FIXED_POINT
     if (isnan(lat) && isnan(lon))
     {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat =
@@ -463,10 +452,6 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon =
                 util::double_to_fix(lon, scale_);
     }
-#else
-    readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat = lat;
-    readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon = lon;
-#endif
     readNodeBlockCache[block_id].used++;
     readNodeBlockCache[block_id].dirty = 1;
 
@@ -494,7 +479,6 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
 
     readNodeBlockCache[block_id].used++;
 
-#ifdef FIXED_POINT
     if ((readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat
             == INT_MIN)
             && (readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon
@@ -510,19 +494,6 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
                 util::fix_to_double(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon, scale_);
         return 0;
     }
-#else
-    if ((isnan(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat)) &&
-            (isnan(readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon)))
-    {
-        return 1;
-    }
-    else
-    {
-        out->lat = readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lat;
-        out->lon = readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].lon;
-        return 0;
-    }
-#endif
 
     return 0;
 }

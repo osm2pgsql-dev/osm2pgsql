@@ -321,13 +321,8 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
       const char *tag_buf = pgsql_store_tags(tags,1);
       int length = strlen(tag_buf) + 64;
       char *buffer = (char *)alloca( length );
-#ifdef FIXED_POINT
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
-#else
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
-#endif
       pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
       return 0;
     }
@@ -339,15 +334,9 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
     paramValues[0] = ptr;
     ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
     paramValues[1] = ptr;
-#ifdef FIXED_POINT
     ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
     paramValues[2] = ptr;
     sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
-#else
-    ptr += sprintf( ptr, "%.10f", lat ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%.10f", lon );
-#endif
     paramValues[3] = pgsql_store_tags(tags,0);
     pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
     return 0;
@@ -404,13 +393,8 @@ int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) co
     for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
         osmNode node;
-#ifdef FIXED_POINT
         node.lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
         node.lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
-#else
-        node.lat = strtod(PQgetvalue(res, i, 1), NULL);
-        node.lon = strtod(PQgetvalue(res, i, 2), NULL);
-#endif
         pg_nodes.emplace(id, node);
     }
 
@@ -1277,15 +1261,9 @@ middle_pgsql_t::middle_pgsql_t()
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
            /*start*/ "BEGIN;\n",
-#ifdef FIXED_POINT
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
     /*create_index*/ NULL,
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#else
-          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
-         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",

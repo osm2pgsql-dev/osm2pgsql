@@ -21,13 +21,8 @@
 #define ALLOC_LOSSY 8
 
 struct ramNode {
-#ifdef FIXED_POINT
     int lon;
     int lat;
-#else
-    double lon;
-    double lat;
-#endif
 };
 
 struct ramNodeID {
