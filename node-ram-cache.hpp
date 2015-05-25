@@ -8,6 +8,7 @@
 #ifndef NODE_RAM_CACHE_H
 #define NODE_RAM_CACHE_H
 
+#include "config.h"
 #include "osmtypes.hpp"
 
 #include <cstddef>
@@ -18,9 +19,6 @@
 #define ALLOC_DENSE 2
 #define ALLOC_DENSE_CHUNK 4
 #define ALLOC_LOSSY 8
-
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-#define FIXED_POINT
 
 struct ramNode {
 #ifdef FIXED_POINT

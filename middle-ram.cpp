@@ -17,10 +17,6 @@
 #include "options.hpp"
 #include "id-tracker.hpp"
 
-/* Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision */
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-#define FIXED_POINT
-
 /* Object storage now uses 2 levels of storage arrays.
  *
  * - Low level storage of 2^16 (~65k) objects in an indexed array

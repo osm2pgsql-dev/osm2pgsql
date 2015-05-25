@@ -139,6 +139,13 @@ AX_PROG_LUA([5.0],[],[
     ],[AC_MSG_WARN([cannot find Lua includes])])
 ],[AC_MSG_WARN([cannot find Lua interpreter])])
 
+dnl Enable fixed point
+AC_ARG_WITH([fixed-point],
+  [AS_HELP_STRING([--without-fixed-point],
+    [use double instead of fixed point floats for coordinates])],
+    [],
+    [AC_DEFINE([FIXED_POINT], [1], [Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision])])
+
 dnl Generate Makefile
 AC_OUTPUT(Makefile)
 

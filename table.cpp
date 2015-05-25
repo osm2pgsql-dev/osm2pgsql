@@ -1,7 +1,7 @@
+#include "config.h" // for FIXED_POINT
 #include "table.hpp"
 #include "options.hpp"
 #include "util.hpp"
-#include "node-ram-cache.hpp" // for FIXED_POINT
 
 #include <exception>
 #include <algorithm>
