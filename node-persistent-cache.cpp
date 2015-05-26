@@ -45,80 +45,33 @@
  #endif
 #endif
 
-void node_persistent_cache::writeout_dirty_nodes(osmid_t id)
+void node_persistent_cache::writeout_dirty_nodes()
 {
-    int i;
-
-    if (writeNodeBlock.dirty > 0)
+    for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
     {
-        if (lseek64(node_cache_fd,
-                (writeNodeBlock.block_offset << WRITE_NODE_BLOCK_SHIFT)
-                        * sizeof(struct ramNode)
-                    + sizeof(struct persistentCacheHeader), SEEK_SET) < 0) {
-            fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
-                    strerror(errno));
-            util::exit_nicely();
-
-        };
-        if (write(node_cache_fd, writeNodeBlock.nodes,
-                WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                < ssize_t(WRITE_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
+        if (readNodeBlockCache[i].dirty)
         {
-            fprintf(stderr, "Failed to write out node cache: %s\n",
-                    strerror(errno));
-            util::exit_nicely();
-        }
-        cacheHeader.max_initialised_id = ((writeNodeBlock.block_offset + 1)
-                << WRITE_NODE_BLOCK_SHIFT) - 1;
-        writeNodeBlock.used = 0;
-        writeNodeBlock.dirty = 0;
-        if (lseek64(node_cache_fd, 0, SEEK_SET) < 0) {
-            fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
-                    strerror(errno));
-            util::exit_nicely();
-        };
-        if (write(node_cache_fd, &cacheHeader,
-                sizeof(struct persistentCacheHeader))
-                != sizeof(struct persistentCacheHeader))
-        {
-            fprintf(stderr, "Failed to update persistent cache header: %s\n",
-                    strerror(errno));
-            util::exit_nicely();
-        }
-        if (fsync(node_cache_fd) < 0) {
-            fprintf(stderr, "Info: Node cache could not be guaranteeded to be made durable. fsync failed: %s\n",
-                    strerror(errno));
-        };
-    }
-    if (id < 0)
-    {
-        for (i = 0; i < READ_NODE_CACHE_SIZE; i++)
-        {
-            if (readNodeBlockCache[i].dirty)
+            if (lseek64(node_cache_fd,
+                    (readNodeBlockCache[i].block_offset
+                            << READ_NODE_BLOCK_SHIFT)
+                            * sizeof(struct ramNode)
+                            + sizeof(struct persistentCacheHeader),
+                        SEEK_SET) < 0) {
+                fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
+                        strerror(errno));
+                util::exit_nicely();
+            };
+            if (write(node_cache_fd, readNodeBlockCache[i].nodes,
+                    READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
+                    < ssize_t(READ_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
             {
-                if (lseek64(node_cache_fd,
-                        (readNodeBlockCache[i].block_offset
-                                << READ_NODE_BLOCK_SHIFT)
-                                * sizeof(struct ramNode)
-                                + sizeof(struct persistentCacheHeader),
-                            SEEK_SET) < 0) {
-                    fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
-                            strerror(errno));
-                    util::exit_nicely();
-                };
-                if (write(node_cache_fd, readNodeBlockCache[i].nodes,
-                        READ_NODE_BLOCK_SIZE * sizeof(struct ramNode))
-                        < ssize_t(READ_NODE_BLOCK_SIZE * sizeof(struct ramNode)))
-                {
-                    fprintf(stderr, "Failed to write out node cache: %s\n",
-                            strerror(errno));
-                    util::exit_nicely();
-                }
+                fprintf(stderr, "Failed to write out node cache: %s\n",
+                        strerror(errno));
+                util::exit_nicely();
             }
-            readNodeBlockCache[i].dirty = 0;
         }
+        readNodeBlockCache[i].dirty = 0;
     }
-
 }
 
 static void ramNodes_clear(struct ramNode * nodes, int size)
@@ -259,14 +212,13 @@ void node_persistent_cache::nodes_prefetch_async(osmid_t id)
 
     int block_id = find_block(block_offset);
 
-    if (block_id < 0)
-        {   /* The needed block isn't in cache already, so initiate loading */
-        writeout_dirty_nodes(id);
-
-        /* Make sure the node cache is correctly initialised for the block that will be read */
-        if (cacheHeader.max_initialised_id
-                < ((block_offset + 1) << READ_NODE_BLOCK_SHIFT))
-            expand_cache(block_offset);
+    if (block_id < 0) {
+        // The needed block isn't in cache already, so initiate loading
+        if (cacheHeader.max_initialised_id < id) {
+            fprintf(stderr, "Warning: reading node outside node cache. (%lu vs. %lu)\n",
+                    cacheHeader.max_initialised_id, id);
+            return;
+        }
 
         if (posix_fadvise(node_cache_fd, (block_offset << READ_NODE_BLOCK_SHIFT) * sizeof(struct ramNode)
                       + sizeof(struct persistentCacheHeader), READ_NODE_BLOCK_SIZE * sizeof(struct ramNode),
@@ -354,7 +306,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
     /* writing out large files can cause trouble on some operating systems.
      * For one, if to much dirty data is in RAM, the whole OS can stall until
      * enough dirty data is written out which can take a while. It can also interfere
-     * with outher disk caching operations and might push things out to swap. By forcing the OS to
+     * with other disk caching operations and might push things out to swap. By forcing the OS to
      * immediately write out the data and blocking after a while, we ensure that no more
      * than a couple of 10s of MB are dirty in RAM at a time.
      * Secondly, the nodes are stored in an additional ram cache during import. Keeping the
@@ -389,18 +341,16 @@ void node_persistent_cache::nodes_set_create_writeout_block()
 
 int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
 {
-    osmid_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
-    int i;
+    assert(!append_mode);
+    assert(!read_mode);
 
-    if (cache_already_written)
-        return 0;
+    osmid_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
 
     if (writeNodeBlock.block_offset != block_offset)
     {
         if (writeNodeBlock.dirty)
         {
             nodes_set_create_writeout_block();
-            writeNodeBlock.used = 0;
             writeNodeBlock.dirty = 0;
             /* After writing out the node block, the file pointer is at the next block level */
             writeNodeBlock.block_offset++;
@@ -415,16 +365,15 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
             util::exit_nicely();
         }
 
+        ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
+
         /* We need to fill the intermediate node cache with node nodes to identify which nodes are valid */
-        for (i = writeNodeBlock.block_offset; i < block_offset; i++)
+        while (writeNodeBlock.block_offset < block_offset)
         {
-            ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
             nodes_set_create_writeout_block();
+            writeNodeBlock.block_offset++;
         }
 
-        ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
-        writeNodeBlock.used = 0;
-        writeNodeBlock.block_offset = block_offset;
     }
 #ifdef FIXED_POINT
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = util::double_to_fix(lat, scale_);
@@ -433,7 +382,6 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lat = lat;
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK].lon = lon;
 #endif
-    writeNodeBlock.used++;
     writeNodeBlock.dirty = 1;
 
     return 0;
@@ -441,6 +389,8 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
 
 int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
 {
+    assert(!read_mode);
+
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
     int block_id = find_block(block_offset);
@@ -480,15 +430,16 @@ int node_persistent_cache::set(osmid_t id, double lat, double lon)
         set_create(id, lat, lon);
 }
 
-int node_persistent_cache::get(struct osmNode *out, osmid_t id)
+int node_persistent_cache::get(osmNode *out, osmid_t id)
 {
+    set_read_mode();
+
     osmid_t block_offset = id >> READ_NODE_BLOCK_SHIFT;
 
     int block_id = find_block(block_offset);
 
     if (block_id < 0)
     {
-        writeout_dirty_nodes(id);
         block_id = load_block(block_offset);
     }
 
@@ -529,6 +480,8 @@ int node_persistent_cache::get(struct osmNode *out, osmid_t id)
 
 int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 {
+    set_read_mode();
+
     out.assign(nds.size(), osmNode());
 
     bool need_fetch = false;
@@ -561,11 +514,44 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     return wrtidx;
 }
 
+void node_persistent_cache::set_read_mode()
+{
+    if (read_mode)
+        return;
+
+    if (writeNodeBlock.dirty > 0) {
+        assert(!append_mode);
+        fprintf(stderr, "Switching to read mode\n");
+        nodes_set_create_writeout_block();
+        writeNodeBlock.dirty = 0;
+        writeNodeBlock.block_offset++;
+        cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
+                << WRITE_NODE_BLOCK_SHIFT) - 1;
+
+        /* write out the header */
+        if (lseek64(node_cache_fd, 0, SEEK_SET) < 0) {
+            fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
+                    strerror(errno));
+            util::exit_nicely();
+        };
+        if (write(node_cache_fd, &cacheHeader, sizeof(struct persistentCacheHeader))
+                != sizeof(struct persistentCacheHeader)) {
+            fprintf(stderr, "Failed to update persistent cache header: %s\n",
+                    strerror(errno));
+            util::exit_nicely();
+        }
+    }
+
+    read_mode = true;
+
+    fprintf(stderr, "Switching to read mode done\n");
+}
+
 node_persistent_cache::node_persistent_cache(const options_t *options, int append,
-                                             boost::shared_ptr<node_ram_cache> ptr)
+                                             bool ro, boost::shared_ptr<node_ram_cache> ptr)
     : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
       writeNodeBlock(), readNodeBlockCache(NULL),
-      scale_(0), cache_already_written(0), ram_cache(ptr)
+      scale_(0), read_mode(ro), ram_cache(ptr)
 {
     int i, err;
     scale_ = options->scale;
@@ -594,7 +580,7 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
     }
     else
     {
-        if (cache_already_written)
+        if (read_mode)
         {
             node_cache_fd = open(node_cache_fname, O_RDWR, S_IRUSR | S_IWUSR);
         }
@@ -615,7 +601,11 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
                     strerror(errno));
             util::exit_nicely();
         };
-        if (cache_already_written == 0)
+
+        writeNodeBlock.block_offset = 0;
+        writeNodeBlock.dirty = 0;
+
+        if (!read_mode)
         {
 
             #ifdef HAVE_POSIX_FALLOCATE
@@ -642,9 +632,6 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
                 util::exit_nicely();
             }
             ramNodes_clear(writeNodeBlock.nodes, WRITE_NODE_BLOCK_SIZE);
-            writeNodeBlock.block_offset = 0;
-            writeNodeBlock.used = 0;
-            writeNodeBlock.dirty = 0;
             cacheHeader.format_version = PERSISTENT_CACHE_FORMAT_VERSION;
             cacheHeader.id_size = sizeof(osmid_t);
             cacheHeader.max_initialised_id = 0;
@@ -712,8 +699,10 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
 
 node_persistent_cache::~node_persistent_cache()
 {
-    int i;
-    writeout_dirty_nodes(-1);
+    if (writeNodeBlock.dirty > 0)
+        nodes_set_create_writeout_block();
+
+    writeout_dirty_nodes();
 
     if (lseek64(node_cache_fd, 0, SEEK_SET) < 0) {
         fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
@@ -737,10 +726,11 @@ node_persistent_cache::~node_persistent_cache()
                 strerror(errno));
     }
 
-    for (i = 0; i < READ_NODE_CACHE_SIZE; i++)
-    {
-        free(readNodeBlockCache[i].nodes);
+    if (readNodeBlockCache) {
+        for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
+        {
+            free(readNodeBlockCache[i].nodes);
+        }
+        free(readNodeBlockCache);
     }
-    free(readNodeBlockCache);
-    readNodeBlockCache = NULL;
 }
