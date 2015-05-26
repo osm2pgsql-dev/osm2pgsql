@@ -534,7 +534,7 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     bool need_fetch = false;
     for (size_t i = 0; i < nds.size(); ++i) {
         /* Check cache first */
-        if (!ram_cache || (ram_cache->get(&out[i], nds[i]) == 0)) {
+        if (ram_cache->get(&out[i], nds[i]) != 0) {
             /* In order to have a higher OS level I/O queue depth
                issue posix_fadvise(WILLNEED) requests for all I/O */
             nodes_prefetch_async(nds[i]);
