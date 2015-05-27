@@ -185,11 +185,12 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 const Coordinate this_pt = coords->getAt(i);
                 const Coordinate prev_pt = coords->getAt(i-1);
                 const double delta = this_pt.distance(prev_pt);
+                assert(!isnan(delta));
                 // figure out if the addition of this point would take the total
                 // length of the line in `segment` over the `split_at` distance.
-                const size_t splits = std::floor((distance + delta) / split_at);
 
-                if (splits > 0) {
+                if (distance + delta > split_at) {
+                  const size_t splits = std::floor((distance + delta) / split_at);
                   // use the splitting distance to split the current segment up
                   // into as many parts as necessary to keep each part below
                   // the `split_at` distance.
