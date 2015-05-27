@@ -1,4 +1,3 @@
-#include "config.h" // for FIXED_POINT
 #include "table.hpp"
 #include "options.hpp"
 #include "util.hpp"
@@ -301,11 +300,9 @@ void table_t::stop_copy()
 
 void table_t::write_node(const osmid_t id, const taglist_t &tags, double lat, double lon)
 {
-#ifdef FIXED_POINT
     // guarantee that we use the same values as in the node cache
     lon = util::fix_to_double(util::double_to_fix(lon, scale), scale);
     lat = util::fix_to_double(util::double_to_fix(lat, scale), scale);
-#endif
 
     write_wkt(id, tags, (point_fmt % lon % lat).str().c_str());
 }
