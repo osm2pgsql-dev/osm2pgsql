@@ -300,6 +300,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
 
     ramNode::scale = fixpointscale;
     blockCache = 0;
+    blockCachePos = 0;
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
