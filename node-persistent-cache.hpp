@@ -80,14 +80,13 @@ private:
     const char * node_cache_fname;
     int append_mode;
 
-    struct persistentCacheHeader cacheHeader;
-    struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
-    struct ramNodeBlock * readNodeBlockCache;
+    persistentCacheHeader cacheHeader;
+    ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
+    ramNodeBlock * readNodeBlockCache;
 
     typedef std::vector<cache_index_entry> cache_index;
     cache_index readNodeBlockCacheIdx;
 
-    int scale_;
     bool read_mode;
 
     boost::shared_ptr<node_ram_cache> ram_cache;
