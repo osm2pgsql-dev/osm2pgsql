@@ -322,7 +322,9 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
       int length = strlen(tag_buf) + 64;
       char *buffer = (char *)alloca( length );
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
+      ramNode n(lon, lat);
+      if( snprintf(buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n",
+                   id, n.int_lat(), n.int_lon(), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
@@ -340,9 +342,10 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
     ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
     paramValues[1] = ptr;
 #ifdef FIXED_POINT
-    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
+    ramNode n(lon, lat);
+    ptr += sprintf(ptr, "%d", n.int_lat()) + 1;
     paramValues[2] = ptr;
-    sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
+    sprintf(ptr, "%d", n.int_lon());
 #else
     ptr += sprintf( ptr, "%.10f", lat ) + 1;
     paramValues[2] = ptr;
@@ -405,8 +408,11 @@ int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) co
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
         osmNode node;
 #ifdef FIXED_POINT
-        node.lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
-        node.lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
+        ramNode n((int) strtol(PQgetvalue(res, i, 2), NULL, 10),
+                  (int) strtol(PQgetvalue(res, i, 1), NULL, 10));
+
+        node.lat = n.lat();
+        node.lon = n.lon();
 #else
         node.lat = strtod(PQgetvalue(res, i, 1), NULL);
         node.lon = strtod(PQgetvalue(res, i, 2), NULL);

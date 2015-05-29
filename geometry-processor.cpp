@@ -15,10 +15,9 @@ boost::shared_ptr<geometry_processor> geometry_processor::create(const std::stri
                                                                  const options_t *options) {
     boost::shared_ptr<geometry_processor> ptr;
     int srid = options->projection->project_getprojinfo()->srs;
-    double scale = options->scale;
 
     if (type == "point") {
-        ptr = boost::make_shared<processor_point>(srid, scale);
+        ptr = boost::make_shared<processor_point>(srid);
     }
     else if (type == "line") {
         ptr = boost::make_shared<processor_line>(srid);

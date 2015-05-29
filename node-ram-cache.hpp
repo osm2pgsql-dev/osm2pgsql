@@ -30,10 +30,13 @@ public:
     /// Default constructor creates an invalid nde
     ramNode() : _lon(INT_MIN), _lat(INT_MIN) {}
     ramNode(double lon, double lat) : _lon(dbl2fix(lon)), _lat(dbl2fix(lat)) {}
+    ramNode(int lon, int lat) : _lon(lon), _lat(lat) {}
 
     bool is_valid() const { return _lon != INT_MIN; }
     double lon() const { return fix2dbl(_lon); }
     double lat() const { return fix2dbl(_lat); }
+    int int_lon() const { return _lon; }
+    int int_lat() const { return _lat; }
 
 private:
     int _lon;
@@ -94,8 +97,6 @@ private:
     size_t blockCachePos;
 
     ramNodeBlock **queue;
-
-    int scale_;
 
     ramNodeID *sparseBlock;
     int64_t maxSparseTuples;

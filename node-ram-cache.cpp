@@ -293,11 +293,12 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
 
 node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale )
     : allocStrategy(ALLOC_DENSE), blocks(NULL), usedBlocks(0),
-      maxBlocks(0), blockCache(NULL), queue(NULL), scale_(fixpointscale), sparseBlock(NULL),
+      maxBlocks(0), blockCache(NULL), queue(NULL), sparseBlock(NULL),
       maxSparseTuples(0), sizeSparseTuples(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
 
+    ramNode::scale = fixpointscale;
     blockCache = 0;
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
