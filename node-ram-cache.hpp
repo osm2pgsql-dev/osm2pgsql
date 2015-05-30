@@ -21,21 +21,40 @@
 #define ALLOC_DENSE_CHUNK 4
 #define ALLOC_LOSSY 8
 
-/// A set of coordinates, for caching in RAM or on disk
+/**
+ * A set of coordinates, for caching in RAM or on disk.
+ *
+ * If FIXED_POINT is enabled, it uses internally a more efficient
+ * representation as integer.
+ */ 
 class ramNode {
 public:
 #ifdef FIXED_POINT
     static int scale;
 
-    /// Default constructor creates an invalid nde
+    /// Default constructor creates an invalid node
     ramNode() : _lon(INT_MIN), _lat(INT_MIN) {}
+    /**
+     * Standard constructor takes geographic coordinates and saves them
+     * in the internal node representation.
+     */
     ramNode(double lon, double lat) : _lon(dbl2fix(lon)), _lat(dbl2fix(lat)) {}
+    /**
+     * Internal constructor which takes already encoded nodes.
+     *
+     * Used by middle-pgsql which stores encoded nodes in the DB.
+     */
     ramNode(int lon, int lat) : _lon(lon), _lat(lat) {}
 
+    /// Return true if the node currently stores valid coordinates.
     bool is_valid() const { return _lon != INT_MIN; }
+    /// Return longitude (converting from internal representation)
     double lon() const { return fix2dbl(_lon); }
+    /// Return latitude (converting from internal representation)
     double lat() const { return fix2dbl(_lat); }
+    /// Return internal representation of longitude (for external storage).
     int int_lon() const { return _lon; }
+    /// Return internal representation of latitude (for external storage).
     int int_lat() const { return _lat; }
 
 private:

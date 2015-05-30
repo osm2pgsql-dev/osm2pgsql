@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
 
 	if (argc > 3) {
-        cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
+		cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
 		node_cnt = argc - 2;
 		for (i = 0; i < node_cnt; i++) {
 			osmids.push_back(strtoosmid(argv[2 + i], NULL, 10));
@@ -74,9 +74,9 @@ int main(int argc, char *argv[]) {
         setstate(state);
 
 	    printf("Testing mode\n");
-            cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
+	    cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
 	    test_get_node_list(cache, 10, 200, 0);
-            cache.reset();
+	    cache.reset();
 #ifdef HAVE_FORK
 	    printf("Testing using multiple processes\n");
 	    int noProcs = 4;
@@ -94,11 +94,11 @@ int main(int argc, char *argv[]) {
 	    gettimeofday(&start, NULL);
 	    initstate(start.tv_usec, state, 8);
 	    setstate(state);
-            cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
+	    cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
 	    test_get_node_list(cache, 10,200,p);
 
 	    if (pid == 0) {
-                cache.reset();
+	        cache.reset();
 	        fprintf(stderr,"Exiting process %i\n", p);
 	        exit(0);
 	    } else {
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
 	    fprintf(stderr, "\nAll child processes exited\n");
 #endif
 	} else {
-                cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
+		cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
 		if (strstr(argv[2],",") == NULL) {
 			cache->get(&node, strtoosmid(argv[2], NULL, 10));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
@@ -133,8 +133,8 @@ int main(int argc, char *argv[]) {
 	}
 
 
-        cache.reset();
-        ram_cache.reset();
+    cache.reset();
+    ram_cache.reset();
 
     return 0;
 }
