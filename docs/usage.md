@@ -1,6 +1,6 @@
 # Command-line usage #
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
+Osm2pgsql has one program, the executable itself, which has **44** command line
 options. A full list of options can be obtained with ``osm2pgsql -h -v``. This
 document provides an overview of options, and more importantly, why you might
 use them.
@@ -47,6 +47,10 @@ that only impact performance.
 osm2pgsql supports standard options for how to connect to PostgreSQL. If left
 unset, it will attempt to connect to the ``gis`` database using a unix socket.
 Most usage only requires setting ``--database``.
+
+``--schema`` allows a [PostgreSQL schema](http://www.postgresql.org/docs/current/static/ddl-schemas.html)
+to be set. This is similar to creating a dedicated user for osm2pgsql and using
+``ALTER ROLE ... SET search_path TO ...``.
 
 ``--tablespace`` options allow the location of main and slim tables and indexes
 to be set to different tablespaces independently, typically on machines with

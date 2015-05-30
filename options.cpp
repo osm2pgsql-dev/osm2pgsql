@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:X:i:IE:C:S:e:o:O:xkjGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -35,6 +35,7 @@ namespace
         {"password", 0, 0, 'W'},
         {"host",     1, 0, 'H'},
         {"port",     1, 0, 'P'},
+        {"schema",   1, 0, 'X'},
         {"tablespace-index", 1, 0, 'i'},
         {"tablespace-slim-data", 1, 0, 200},
         {"tablespace-slim-index", 1, 0, 201},
@@ -107,7 +108,8 @@ namespace
                         environment variable or use -W).\n\
        -W|--password    Force password prompt.\n\
        -H|--host        Database server host name or socket location.\n\
-       -P|--port        Database server port.\n");
+       -P|--port        Database server port.\n\
+       -X|--schema      Database target schema.\n");
 
         if (verbose)
         {
@@ -273,7 +275,7 @@ options_t::options_t():
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
     create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
-    password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
+    password(boost::none), port("5432"), schema(boost::none), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
 {
 
 }
@@ -347,6 +349,9 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'P':
             options.port = optarg;
+            break;
+        case 'X':
+            options.schema = optarg;
             break;
         case 'S':
             options.style = optarg;

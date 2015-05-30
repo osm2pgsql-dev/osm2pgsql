@@ -1028,6 +1028,8 @@ int middle_pgsql_t::connect(table_desc& table) {
         fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
         return 1;
     }
+
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (boost::format("SET search_path TO %1%,public;") % out_options->schema.get()).str());
     table.sql_conn = sql_conn;
     return 0;
 }

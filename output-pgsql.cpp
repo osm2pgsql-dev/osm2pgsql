@@ -721,7 +721,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
             new table_t(
                 m_options.conninfo, name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
-                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
+                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index, m_options.schema
             )
         ));
     }

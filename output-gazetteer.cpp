@@ -584,12 +584,22 @@ int output_gazetteer_t::connect() {
        return 1;
     }
 
+    if (m_options.schema)
+    {
+        pgsql_exec_simple(Connection, PGRES_COMMAND_OK, (boost::format("SET search_path TO %1%,public;") % m_options.schema.get()).str());
+    }
+
     if (m_options.append) {
         ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
         if (PQstatus(ConnectionDelete) != CONNECTION_OK)
         {
             std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";
             return 1;
+        }
+
+        if (m_options.schema)
+        {
+            pgsql_exec_simple(ConnectionDelete, PGRES_COMMAND_OK, (boost::format("SET search_path TO %1%,public;") % m_options.schema.get()).str());
         }
 
         pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
