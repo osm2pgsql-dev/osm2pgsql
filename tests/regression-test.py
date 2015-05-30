@@ -115,7 +115,7 @@ sql_test_statements=[
     ( 65, 'Multipolygon non copying of tags from outer with polygon tags on relation (presence of way)',
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 83 and "landuse" = \'farmland\'', 24859),
     ( 66, 'Multipolygon diff moved point of outer way case (Tags from outer way)',
-      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -15 and landuse = \'residential\' and name = \'Name_way\'', 24751),
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -15 and landuse = \'residential\' and name = \'Name_way\'', 24750),
     ( 67, 'Multipolygon diff moved point of inner way case (Tags from relation)',
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -1 and landuse = \'residential\' and name = \'Name_rel\'', 13949),
     ( 68, 'Multipolygon point of inner way case (Tags from relation)',
