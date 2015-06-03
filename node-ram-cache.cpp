@@ -58,6 +58,8 @@
 
 #define SAFETY_MARGIN 1024*PER_BLOCK*sizeof(ramNode)
 
+int ramNode::scale;
+
 static int id2block(osmid_t id)
 {
     /* + NUM_BLOCKS/2 allows for negative IDs */
@@ -92,21 +94,20 @@ void node_ram_cache::percolate_up( int pos )
     }
 }
 
-ramNode *node_ram_cache::next_chunk(size_t count, size_t size) {
+ramNode *node_ram_cache::next_chunk() {
     if ( (allocStrategy & ALLOC_DENSE_CHUNK) == 0 ) {
-        static size_t pos = 0;
-        char *result;
-        pos += count * size;
-        result = blockCache + cacheSize - pos + SAFETY_MARGIN;
+        // allocate starting from the upper end of the block cache
+        blockCachePos += PER_BLOCK * sizeof(ramNode);
+        char *result = blockCache + cacheSize - blockCachePos + SAFETY_MARGIN;
 
-        return (ramNode *)result;
+        return new(result) ramNode[PER_BLOCK];
     } else {
-        return (ramNode *)calloc(PER_BLOCK, sizeof(ramNode));
+        return new ramNode[PER_BLOCK];
     }
 }
 
 
-int node_ram_cache::set_sparse(osmid_t id, double lat, double lon) {
+int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
     if ((sizeSparseTuples > maxSparseTuples) || ( cacheUsed > cacheSize)) {
         if ((allocStrategy & ALLOC_LOSSY) > 0)
             return 1;
@@ -116,20 +117,15 @@ int node_ram_cache::set_sparse(osmid_t id, double lat, double lon) {
         }
     }
     sparseBlock[sizeSparseTuples].id = id;
-#ifdef FIXED_POINT
-    sparseBlock[sizeSparseTuples].coord.lat = util::double_to_fix(lat, scale_);
-    sparseBlock[sizeSparseTuples].coord.lon = util::double_to_fix(lon, scale_);
-#else
-    sparseBlock[sizeSparseTuples].coord.lat = lat;
-    sparseBlock[sizeSparseTuples].coord.lon = lon;
-#endif
+    sparseBlock[sizeSparseTuples].coord = coord;
+
     sizeSparseTuples++;
     cacheUsed += sizeof(ramNodeID);
     storedNodes++;
     return 0;
 }
 
-int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
+int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
     int block  = id2block(id);
     int offset = id2offset(id);
     int i = 0;
@@ -153,32 +149,25 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
                     /* We've just finished with the previous block, so we need to percolate it up the queue to its correct position */
                     /* Upto log(usedBlocks) iterations */
                     percolate_up( usedBlocks-1 );
-                    blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(ramNode));
+                    blocks[block].nodes = next_chunk();
                 } else {
                     /* previous block was not dense enough, so push it into the sparse node cache instead */
                     for (i = 0; i < (1 << BLOCK_SHIFT); i++) {
-                        if (queue[usedBlocks -1]->nodes[i].lat || queue[usedBlocks -1]->nodes[i].lon) {
-                            set_sparse(block2id(queue[usedBlocks - 1]->block_offset,i),
-#ifdef FIXED_POINT
-                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lat, scale_),
-                                                       util::fix_to_double(queue[usedBlocks -1]->nodes[i].lon, scale_)
-#else
-                                                       queue[usedBlocks -1]->nodes[i].lat,
-                                                       queue[usedBlocks -1]->nodes[i].lon
-#endif
-                                                       );
+                        if (queue[usedBlocks -1]->nodes[i].is_valid()) {
+                            set_sparse(block2id(queue[usedBlocks - 1]->block_offset, i),
+                                       queue[usedBlocks -1]->nodes[i]);
+                            queue[usedBlocks -1]->nodes[i] = ramNode(); // invalidate
                         }
                     }
-                    /* reuse previous block, as it's content is now in the dense representation */
+                    /* reuse previous block, as its content is now in the sparse representation */
                     storedNodes -= queue[usedBlocks - 1]->used;
                     blocks[block].nodes = queue[usedBlocks - 1]->nodes;
                     blocks[queue[usedBlocks - 1]->block_offset].nodes = NULL;
-                    memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(ramNode) );
                     usedBlocks--;
                     cacheUsed -= PER_BLOCK * sizeof(ramNode);
                 }
             } else {
-                blocks[block].nodes = next_chunk(PER_BLOCK, sizeof(ramNode));
+                blocks[block].nodes = next_chunk();
             }
 
             blocks[block].used = 0;
@@ -225,7 +214,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
             /* Now the head of the queue is the smallest, so it becomes our replacement candidate */
             blocks[block].nodes = queue[0]->nodes;
             blocks[block].used = 0;
-            memset( blocks[block].nodes, 0, PER_BLOCK * sizeof(ramNode) );
+            new(blocks[block].nodes) ramNode[PER_BLOCK];
 
             /* Clear old head block and point to new block */
             storedNodes -= queue[0]->used;
@@ -253,13 +242,7 @@ int node_ram_cache::set_dense(osmid_t id, double lat, double lon) {
         }
     }
 
-#ifdef FIXED_POINT
-    blocks[block].nodes[offset].lat = util::double_to_fix(lat, scale_);
-    blocks[block].nodes[offset].lon = util::double_to_fix(lon, scale_);
-#else
-    blocks[block].nodes[offset].lat = lat;
-    blocks[block].nodes[offset].lon = lon;
-#endif
+    blocks[block].nodes[offset] = coord;
     blocks[block].used++;
     storedNodes++;
     return 0;
@@ -273,13 +256,8 @@ int node_ram_cache::get_sparse(osmNode *out, osmid_t id) {
 
     while (minPos <= maxPos) {
         if ( sparseBlock[pivotPos].id == id ) {
-#ifdef FIXED_POINT
-            out->lat = util::fix_to_double(sparseBlock[pivotPos].coord.lat, scale_);
-            out->lon = util::fix_to_double(sparseBlock[pivotPos].coord.lon, scale_);
-#else
-            out->lat = sparseBlock[pivotPos].coord.lat;
-            out->lon = sparseBlock[pivotPos].coord.lon;
-#endif
+            out->lat = sparseBlock[pivotPos].coord.lat();
+            out->lon = sparseBlock[pivotPos].coord.lon();
             return 0;
         }
         if ( (pivotPos == minPos) || (pivotPos == maxPos)) return 1;
@@ -303,16 +281,11 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
     if (!blocks[block].nodes)
         return 1;
 
-    if (!blocks[block].nodes[offset].lat && !blocks[block].nodes[offset].lon)
+    if (!blocks[block].nodes[offset].is_valid())
         return 1;
 
-#ifdef FIXED_POINT
-    out->lat = util::fix_to_double(blocks[block].nodes[offset].lat, scale_);
-    out->lon = util::fix_to_double(blocks[block].nodes[offset].lon, scale_);
-#else
-    out->lat = blocks[block].nodes[offset].lat;
-    out->lon = blocks[block].nodes[offset].lon;
-#endif
+    out->lat = blocks[block].nodes[offset].lat();
+    out->lon = blocks[block].nodes[offset].lon();
 
     return 0;
 }
@@ -320,12 +293,14 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
 
 node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale )
     : allocStrategy(ALLOC_DENSE), blocks(NULL), usedBlocks(0),
-      maxBlocks(0), blockCache(NULL), queue(NULL), scale_(fixpointscale), sparseBlock(NULL),
+      maxBlocks(0), blockCache(NULL), queue(NULL), sparseBlock(NULL),
       maxSparseTuples(0), sizeSparseTuples(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
 
+    ramNode::scale = fixpointscale;
     blockCache = 0;
+    blockCachePos = 0;
     cacheUsed = 0;
     cacheSize = (int64_t)cacheSizeMB*(1024*1024);
     /* How much we can fit, and make sure it's odd */
@@ -354,7 +329,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
             }
         } else {
             fprintf(stderr, "Allocating dense node cache in one big chunk\n");
-            blockCache = (char *)calloc(maxBlocks + 1024,PER_BLOCK * sizeof(ramNode));
+            blockCache = (char *)malloc((maxBlocks + 1024) * PER_BLOCK * sizeof(ramNode));
             if (!queue || !blockCache) {
                 fprintf(stderr, "Out of memory for dense node cache, reduce --cache size\n");
                 util::exit_nicely();
@@ -372,7 +347,7 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
     if ((allocStrategy & ALLOC_SPARSE) > 0 ) {
         fprintf(stderr, "Allocating memory for sparse node cache\n");
         if (!blockCache) {
-            sparseBlock = (ramNodeID *)calloc(maxSparseTuples,sizeof(ramNodeID));
+            sparseBlock = (ramNodeID *)malloc(maxSparseTuples * sizeof(ramNodeID));
         } else {
             fprintf(stderr, "Sharing dense sparse\n");
             sparseBlock = (ramNodeID *)blockCache;
@@ -391,7 +366,6 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
 }
 
 node_ram_cache::~node_ram_cache() {
-  int i;
   fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n",
            storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
@@ -399,8 +373,8 @@ node_ram_cache::~node_ram_cache() {
 
   if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
       if ( (allocStrategy & ALLOC_DENSE_CHUNK) > 0 ) {
-          for( i=0; i<usedBlocks; i++ ) {
-              free(queue[i]->nodes);
+          for(int i = 0; i < usedBlocks; ++i) {
+              delete[] queue[i]->nodes;
               queue[i]->nodes = NULL;
           }
       } else {
@@ -422,10 +396,10 @@ int node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
      * get pushed to the sparse cache if a block is sparse and ALLOC_SPARSE is set
      */
     if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
-        return set_dense(id, lat, lon);
+        return set_dense(id, ramNode(lon, lat));
     }
     if ( (allocStrategy & ALLOC_SPARSE) > 0 )
-        return set_sparse(id, lat, lon);
+        return set_sparse(id, ramNode(lon, lat));
     return 1;
 }
 
@@ -433,13 +407,13 @@ int node_ram_cache::get(osmNode *out, osmid_t id) {
     nodesCacheLookups++;
 
     if ((allocStrategy & ALLOC_DENSE) > 0) {
-        if (get_dense(out,id) == 0) {
+        if (get_dense(out, id) == 0) {
             nodesCacheHits++;
             return 0;
         }
     }
     if ((allocStrategy & ALLOC_SPARSE) > 0) {
-        if (get_sparse(out,id) == 0) {
+        if (get_sparse(out, id) == 0) {
             nodesCacheHits++;
             return 0;
         }

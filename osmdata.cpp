@@ -1,6 +1,7 @@
 #include "osmdata.hpp"
 #include "output.hpp"
 #include "middle.hpp"
+#include "node-ram-cache.hpp"
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
@@ -38,9 +39,12 @@ osmdata_t::~osmdata_t()
 int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
     mid->nodes_set(id, lat, lon, tags);
 
+    // guarantee that we use the same values as in the node cache
+    ramNode n(lon, lat);
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->node_add(id, lat, lon, tags);
+        status |= out->node_add(id, n.lat(), n.lon(), tags);
     }
     return status;
 }
@@ -71,9 +75,12 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &
     slim->nodes_delete(id);
     slim->nodes_set(id, lat, lon, tags);
 
+    // guarantee that we use the same values as in the node cache
+    ramNode n(lon, lat);
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->node_modify(id, lat, lon, tags);
+        status |= out->node_modify(id, n.lat(), n.lon(), tags);
     }
 
     slim->node_changed(id);

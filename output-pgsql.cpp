@@ -719,7 +719,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(boost::shared_ptr<table_t>(
             new table_t(
-                m_options.conninfo, name, type, columns, m_options.hstore_columns, SRID, m_options.scale,
+                m_options.conninfo, name, type, columns, m_options.hstore_columns, SRID,
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
                 m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
             )

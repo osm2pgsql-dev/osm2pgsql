@@ -322,7 +322,9 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
       int length = strlen(tag_buf) + 64;
       char *buffer = (char *)alloca( length );
 #ifdef FIXED_POINT
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n", id, util::double_to_fix(lat, out_options->scale), util::double_to_fix(lon, out_options->scale), tag_buf ) > (length-10) )
+      ramNode n(lon, lat);
+      if( snprintf(buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n",
+                   id, n.int_lat(), n.int_lon(), tag_buf ) > (length-10) )
       { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
 #else
       if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
@@ -340,9 +342,10 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
     ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
     paramValues[1] = ptr;
 #ifdef FIXED_POINT
-    ptr += sprintf( ptr, "%d", util::double_to_fix(lat, out_options->scale) ) + 1;
+    ramNode n(lon, lat);
+    ptr += sprintf(ptr, "%d", n.int_lat()) + 1;
     paramValues[2] = ptr;
-    sprintf( ptr, "%d", util::double_to_fix(lon, out_options->scale) );
+    sprintf(ptr, "%d", n.int_lon());
 #else
     ptr += sprintf( ptr, "%.10f", lat ) + 1;
     paramValues[2] = ptr;
@@ -405,8 +408,11 @@ int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) co
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
         osmNode node;
 #ifdef FIXED_POINT
-        node.lat = util::fix_to_double(strtol(PQgetvalue(res, i, 1), NULL, 10), out_options->scale);
-        node.lon = util::fix_to_double(strtol(PQgetvalue(res, i, 2), NULL, 10), out_options->scale);
+        ramNode n((int) strtol(PQgetvalue(res, i, 2), NULL, 10),
+                  (int) strtol(PQgetvalue(res, i, 1), NULL, 10));
+
+        node.lat = n.lat();
+        node.lon = n.lon();
 #else
         node.lat = strtod(PQgetvalue(res, i, 1), NULL);
         node.lon = strtod(PQgetvalue(res, i, 2), NULL);
@@ -1060,7 +1066,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
     build_indexes = 0;
 
     cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, cache));
+    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
 
@@ -1364,7 +1370,7 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     // The persistent cache on the other hand is not thread-safe for reading,
     // so we create one per instance.
     if (out_options->flat_node_cache_enabled)
-        mid->persistent_cache.reset(new node_persistent_cache(out_options,1,cache));
+        mid->persistent_cache.reset(new node_persistent_cache(out_options, 1, true, cache));
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {

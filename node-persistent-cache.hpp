@@ -51,12 +51,12 @@ inline bool operator<(osmid_t a, cache_index_entry const &b)
 
 struct node_persistent_cache : public boost::noncopyable
 {
-    node_persistent_cache(const struct options_t *options, const int append,
-                          boost::shared_ptr<node_ram_cache> ptr);
+    node_persistent_cache(const struct options_t *options, int append,
+                          bool ro, boost::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 
     int set(osmid_t id, double lat, double lon);
-    int get(struct osmNode *out, osmid_t id);
+    int get(osmNode *out, osmid_t id);
     int get_list(nodelist_t &out, const idlist_t nds);
 
 private:
@@ -64,7 +64,7 @@ private:
     int set_append(osmid_t id, double lat, double lon);
     int set_create(osmid_t id, double lat, double lon);
 
-    void writeout_dirty_nodes(osmid_t id);
+    void writeout_dirty_nodes();
     int replace_block();
     int find_block(osmid_t block_offset);
     void expand_cache(osmid_t block_offset);
@@ -74,20 +74,20 @@ private:
 
     void remove_from_cache_idx(osmid_t block_offset);
     void add_to_cache_idx(cache_index_entry const &entry);
+    void set_read_mode();
 
     int node_cache_fd;
     const char * node_cache_fname;
     int append_mode;
 
-    struct persistentCacheHeader cacheHeader;
-    struct ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
-    struct ramNodeBlock * readNodeBlockCache;
+    persistentCacheHeader cacheHeader;
+    ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */
+    ramNodeBlock * readNodeBlockCache;
 
     typedef std::vector<cache_index_entry> cache_index;
     cache_index readNodeBlockCacheIdx;
 
-    int scale_;
-    int cache_already_written;
+    bool read_mode;
 
     boost::shared_ptr<node_ram_cache> ram_cache;
 };
