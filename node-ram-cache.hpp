@@ -83,11 +83,23 @@ struct ramNodeID {
     ramNode coord;
 };
 
-struct ramNodeBlock {
+class ramNodeBlock {
+public:
+    ramNodeBlock() : nodes(NULL), block_offset(-1), _used(0) {}
+
+    void set_dirty() { _used |= 1; }
+    bool dirty() const { return _used & 1; }
+
+    void reset_used() { _used = 0; }
+    void inc_used() { _used += 2; }
+    void dec_used() { _used -= 2; }
+    void set_used(int used) { _used = (used << 1) || (_used & 1); }
+    int used() const { return _used >> 1; }
+
     ramNode *nodes;
-    osmid_t block_offset;
-    int used;
-    int dirty;
+    int block_offset;
+private:
+    int _used; // 0-bit indicates dirty
 };
 
 struct node_ram_cache : public boost::noncopyable

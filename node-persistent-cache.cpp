@@ -49,7 +49,7 @@ void node_persistent_cache::writeout_dirty_nodes()
 {
     for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
     {
-        if (readNodeBlockCache[i].dirty)
+        if (readNodeBlockCache[i].dirty())
         {
             if (lseek64(node_cache_fd,
                     (readNodeBlockCache[i].block_offset
@@ -70,7 +70,7 @@ void node_persistent_cache::writeout_dirty_nodes()
                 util::exit_nicely();
             }
         }
-        readNodeBlockCache[i].dirty = 0;
+        readNodeBlockCache[i].reset_used();
     }
 }
 
@@ -85,9 +85,9 @@ int node_persistent_cache::replace_block()
 
     for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
     {
-        if (readNodeBlockCache[i].used < min_used)
+        if (readNodeBlockCache[i].used() < min_used)
         {
-            min_used = readNodeBlockCache[i].used;
+            min_used = readNodeBlockCache[i].used();
             block_id = i;
         }
     }
@@ -95,9 +95,9 @@ int node_persistent_cache::replace_block()
     {
         for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
         {
-            if (readNodeBlockCache[i].used > 1)
+            if (readNodeBlockCache[i].used() > 1)
             {
-                readNodeBlockCache[i].used--;
+                readNodeBlockCache[i].dec_used();
             }
         }
     }
@@ -214,7 +214,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
 {
     const int block_id = replace_block();
 
-    if (readNodeBlockCache[block_id].dirty)
+    if (readNodeBlockCache[block_id].dirty())
     {
         if (lseek64(node_cache_fd,
                 (readNodeBlockCache[block_id].block_offset
@@ -232,7 +232,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
                     strerror(errno));
             util::exit_nicely();
         }
-        readNodeBlockCache[block_id].dirty = 0;
+        readNodeBlockCache[block_id].reset_used();
     }
 
     if (readNodeBlockCache[block_id].nodes) {
@@ -246,7 +246,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
         }
     }
     readNodeBlockCache[block_id].block_offset = block_offset;
-    readNodeBlockCache[block_id].used = READ_NODE_CACHE_SIZE;
+    readNodeBlockCache[block_id].set_used(READ_NODE_CACHE_SIZE);
 
     /* Make sure the node cache is correctly initialised for the block that will be read */
     if (cacheHeader.max_initialised_id
@@ -328,14 +328,13 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
     assert(!append_mode);
     assert(!read_mode);
 
-    osmid_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
+    int block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
 
     if (writeNodeBlock.block_offset != block_offset)
     {
-        if (writeNodeBlock.dirty)
+        if (writeNodeBlock.dirty())
         {
             nodes_set_create_writeout_block();
-            writeNodeBlock.dirty = 0;
             /* After writing out the node block, the file pointer is at the next block level */
             writeNodeBlock.block_offset++;
             cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
@@ -344,7 +343,7 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
         if (writeNodeBlock.block_offset > block_offset)
         {
             fprintf(stderr,
-                    "ERROR: Block_offset not in sequential order: %" PRIdOSMID "%" PRIdOSMID "\n",
+                    "ERROR: Block_offset not in sequential order: %d %d\n",
                     writeNodeBlock.block_offset, block_offset);
             util::exit_nicely();
         }
@@ -361,7 +360,7 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
     }
 
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK] = ramNode(lon, lat);
-    writeNodeBlock.dirty = 1;
+    writeNodeBlock.set_dirty();
 
     return 0;
 }
@@ -381,8 +380,8 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode();
     else
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode(lon, lat);
-    readNodeBlockCache[block_id].used++;
-    readNodeBlockCache[block_id].dirty = 1;
+    readNodeBlockCache[block_id].inc_used();
+    readNodeBlockCache[block_id].set_dirty();
 
     return 1;
 }
@@ -407,7 +406,7 @@ int node_persistent_cache::get(osmNode *out, osmid_t id)
         block_id = load_block(block_offset);
     }
 
-    readNodeBlockCache[block_id].used++;
+    readNodeBlockCache[block_id].inc_used();
 
     if (!readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK].is_valid())
         return 1;
@@ -459,11 +458,11 @@ void node_persistent_cache::set_read_mode()
     if (read_mode)
         return;
 
-    if (writeNodeBlock.dirty > 0) {
+    if (writeNodeBlock.dirty()) {
         assert(!append_mode);
         fprintf(stderr, "Switching to read mode\n");
         nodes_set_create_writeout_block();
-        writeNodeBlock.dirty = 0;
+        writeNodeBlock.reset_used();
         writeNodeBlock.block_offset++;
         cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
                 << WRITE_NODE_BLOCK_SHIFT) - 1;
@@ -492,7 +491,6 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
     : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
       writeNodeBlock(), readNodeBlockCache(NULL), read_mode(ro), ram_cache(ptr)
 {
-    int i, err;
     append_mode = append;
     if (options->flat_node_file) {
         node_cache_fname = options->flat_node_file->c_str();
@@ -541,12 +539,10 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
         };
 
         writeNodeBlock.block_offset = 0;
-        writeNodeBlock.dirty = 0;
-        writeNodeBlock.nodes = 0;
 
         if (!read_mode)
         {
-
+            int err;
             #ifdef HAVE_POSIX_FALLOCATE
             if ((err = posix_fallocate(node_cache_fd, 0,
                     sizeof(ramNode) * MAXIMUM_INITIAL_ID)) != 0)
@@ -614,23 +610,16 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
 
     fprintf(stderr,"Maximum node in persistent node cache: %" PRIdOSMID "\n", cacheHeader.max_initialised_id);
 
-    readNodeBlockCache = new ramNodeBlock [READ_NODE_CACHE_SIZE];
+    readNodeBlockCache = new ramNodeBlock[READ_NODE_CACHE_SIZE];
     if (!readNodeBlockCache) {
         fprintf(stderr, "Out of memory: Failed to allocate node read cache\n");
         util::exit_nicely();
-    }
-    for (i = 0; i < READ_NODE_CACHE_SIZE; i++)
-    {
-        readNodeBlockCache[i].nodes = 0;
-        readNodeBlockCache[i].block_offset = -1;
-        readNodeBlockCache[i].used = 0;
-        readNodeBlockCache[i].dirty = 0;
     }
 }
 
 node_persistent_cache::~node_persistent_cache()
 {
-    if (writeNodeBlock.dirty > 0)
+    if (writeNodeBlock.dirty())
         nodes_set_create_writeout_block();
 
     writeout_dirty_nodes();
