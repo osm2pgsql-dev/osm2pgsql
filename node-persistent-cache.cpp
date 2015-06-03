@@ -235,8 +235,16 @@ int node_persistent_cache::load_block(osmid_t block_offset)
         readNodeBlockCache[block_id].dirty = 0;
     }
 
-    remove_from_cache_idx(readNodeBlockCache[block_id].block_offset);
-    new(readNodeBlockCache[block_id].nodes) ramNode[READ_NODE_BLOCK_SIZE];
+    if (readNodeBlockCache[block_id].nodes) {
+        remove_from_cache_idx(readNodeBlockCache[block_id].block_offset);
+        new(readNodeBlockCache[block_id].nodes) ramNode[READ_NODE_BLOCK_SIZE];
+    } else {
+        readNodeBlockCache[block_id].nodes = new ramNode[READ_NODE_BLOCK_SIZE];
+        if (!readNodeBlockCache[block_id].nodes) {
+            fprintf(stderr, "Out of memory: Failed to allocate node read cache\n");
+            util::exit_nicely();
+        }
+    }
     readNodeBlockCache[block_id].block_offset = block_offset;
     readNodeBlockCache[block_id].used = READ_NODE_CACHE_SIZE;
 
@@ -613,11 +621,7 @@ node_persistent_cache::node_persistent_cache(const options_t *options, int appen
     }
     for (i = 0; i < READ_NODE_CACHE_SIZE; i++)
     {
-        readNodeBlockCache[i].nodes = new ramNode[READ_NODE_BLOCK_SIZE];
-        if (!readNodeBlockCache[i].nodes) {
-            fprintf(stderr, "Out of memory: Failed to allocate node read cache\n");
-            util::exit_nicely();
-        }
+        readNodeBlockCache[i].nodes = 0;
         readNodeBlockCache[i].block_offset = -1;
         readNodeBlockCache[i].used = 0;
         readNodeBlockCache[i].dirty = 0;
@@ -659,7 +663,8 @@ node_persistent_cache::~node_persistent_cache()
     if (readNodeBlockCache) {
         for (int i = 0; i < READ_NODE_CACHE_SIZE; i++)
         {
-            delete[] readNodeBlockCache[i].nodes;
+            if (readNodeBlockCache[i].nodes)
+                delete[] readNodeBlockCache[i].nodes;
         }
         delete[] readNodeBlockCache;
     }
