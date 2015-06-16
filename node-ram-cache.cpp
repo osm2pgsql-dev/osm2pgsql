@@ -60,7 +60,7 @@
 
 int ramNode::scale;
 
-static int id2block(osmid_t id)
+static int32_t id2block(osmid_t id)
 {
     /* + NUM_BLOCKS/2 allows for negative IDs */
     return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
@@ -71,7 +71,7 @@ static int id2offset(osmid_t id)
     return id & (PER_BLOCK-1);
 }
 
-static osmid_t block2id(int block, int offset)
+static osmid_t block2id(int32_t block, int offset)
 {
     return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
 }
@@ -131,9 +131,8 @@ int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
 }
 
 int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
-    int block  = id2block(id);
-    int offset = id2offset(id);
-    int i = 0;
+    int32_t const block  = id2block(id);
+    int const offset = id2offset(id);
 
     if (maxBlocks == 0) return 1;
 
@@ -157,7 +156,7 @@ int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
                     blocks[block].nodes = next_chunk();
                 } else {
                     /* previous block was not dense enough, so push it into the sparse node cache instead */
-                    for (i = 0; i < (1 << BLOCK_SHIFT); i++) {
+                    for (int i = 0; i < (1 << BLOCK_SHIFT); i++) {
                         if (queue[usedBlocks -1]->nodes[i].is_valid()) {
                             set_sparse(block2id(queue[usedBlocks - 1]->block_offset, i),
                                        queue[usedBlocks -1]->nodes[i]);
@@ -199,7 +198,7 @@ int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
              * current head of the tree down to the right level to restore the
              * priority queue invariant. Upto log(maxBlocks) iterations */
 
-            i=0;
+            int i = 0;
             while( 2*i+1 < usedBlocks - 1 ) {
                 if( queue[2*i+1]->used() <= queue[2*i+2]->used() ) {
                     if( queue[i]->used() > queue[2*i+1]->used() ) {
@@ -280,8 +279,8 @@ int node_ram_cache::get_sparse(osmNode *out, osmid_t id) {
 }
 
 int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
-    int block  = id2block(id);
-    int offset = id2offset(id);
+    int32_t const block  = id2block(id);
+    int const offset = id2offset(id);
 
     if (!blocks[block].nodes)
         return 1;
@@ -395,6 +394,11 @@ node_ram_cache::~node_ram_cache() {
 }
 
 int node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
+    if ((id > 0 && id >> BLOCK_SHIFT >> 32) || (id < 0 && ~id >> BLOCK_SHIFT >> 32 )) {
+        fprintf(stderr, "\nAbsolute node IDs must not be larger than %lld (got %lld)\n",
+                1ULL << 42, (long long) id);
+        util::exit_nicely();
+    }
     totalNodes++;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through
      * ram_nodes_set_dense. If a block is non dense, it will automatically

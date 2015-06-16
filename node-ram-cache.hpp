@@ -97,9 +97,9 @@ public:
     int used() const { return _used >> 1; }
 
     ramNode *nodes;
-    int block_offset;
+    int32_t block_offset;
 private:
-    int _used; // 0-bit indicates dirty
+    int32_t _used; // 0-bit indicates dirty
 };
 
 struct node_ram_cache : public boost::noncopyable
