@@ -108,7 +108,11 @@ ramNode *node_ram_cache::next_chunk() {
 
 
 int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
-    if ((sizeSparseTuples > maxSparseTuples) || ( cacheUsed > cacheSize)) {
+    // Sparse cache depends on ordered nodes, reject out-of-order ids.
+    // Also check that there is still space.
+    if ((maxSparseId && id < maxSparseId)
+        || (sizeSparseTuples > maxSparseTuples)
+        || ( cacheUsed > cacheSize)) {
         if ((allocStrategy & ALLOC_LOSSY) > 0)
             return 1;
         else {
@@ -116,6 +120,7 @@ int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
             util::exit_nicely();
         }
     }
+    maxSparseId = id;
     sparseBlock[sizeSparseTuples].id = id;
     sparseBlock[sizeSparseTuples].coord = coord;
 
@@ -294,7 +299,7 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
 node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale )
     : allocStrategy(ALLOC_DENSE), blocks(NULL), usedBlocks(0),
       maxBlocks(0), blockCache(NULL), queue(NULL), sparseBlock(NULL),
-      maxSparseTuples(0), sizeSparseTuples(0), cacheUsed(0),
+      maxSparseTuples(0), sizeSparseTuples(0), maxSparseId(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
 

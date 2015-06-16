@@ -132,6 +132,7 @@ private:
     ramNodeID *sparseBlock;
     int64_t maxSparseTuples;
     int64_t sizeSparseTuples;
+    osmid_t maxSparseId;
 
     int64_t cacheUsed, cacheSize;
     osmid_t storedNodes, totalNodes;
