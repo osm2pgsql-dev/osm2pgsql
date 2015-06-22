@@ -52,7 +52,7 @@ void node_persistent_cache::writeout_dirty_nodes()
         if (readNodeBlockCache[i].dirty())
         {
             if (lseek64(node_cache_fd,
-                    (readNodeBlockCache[i].block_offset
+                    ((osmid_t) readNodeBlockCache[i].block_offset
                             << READ_NODE_BLOCK_SHIFT)
                             * sizeof(ramNode)
                             + sizeof(persistentCacheHeader),
@@ -217,7 +217,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
     if (readNodeBlockCache[block_id].dirty())
     {
         if (lseek64(node_cache_fd,
-                (readNodeBlockCache[block_id].block_offset
+                ((osmid_t) readNodeBlockCache[block_id].block_offset
                         << READ_NODE_BLOCK_SHIFT) * sizeof(ramNode)
                     + sizeof(struct persistentCacheHeader), SEEK_SET) < 0) {
             fprintf(stderr, "Failed to seek to correct position in node cache: %s\n",
@@ -236,7 +236,7 @@ int node_persistent_cache::load_block(osmid_t block_offset)
     }
 
     if (readNodeBlockCache[block_id].nodes) {
-        remove_from_cache_idx(readNodeBlockCache[block_id].block_offset);
+        remove_from_cache_idx((osmid_t) readNodeBlockCache[block_id].block_offset);
         new(readNodeBlockCache[block_id].nodes) ramNode[READ_NODE_BLOCK_SIZE];
     } else {
         readNodeBlockCache[block_id].nodes = new ramNode[READ_NODE_BLOCK_SIZE];
@@ -297,7 +297,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
      * node cache file in buffer cache therefore duplicates the data wasting 16GB of ram.
      * Therefore tell the OS not to cache the node-persistent-cache during initial import.
      * */
-    if (sync_file_range(node_cache_fd, writeNodeBlock.block_offset*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
+    if (sync_file_range(node_cache_fd, (osmid_t) writeNodeBlock.block_offset*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
                         sizeof(persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(ramNode),
                         SYNC_FILE_RANGE_WRITE) < 0) {
         fprintf(stderr, "Info: Sync_file_range writeout has an issue. This shouldn't be anything to worry about.: %s\n",
@@ -305,7 +305,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
     };
 
     if (writeNodeBlock.block_offset > 16) {
-        if(sync_file_range(node_cache_fd, (writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
+        if(sync_file_range(node_cache_fd, ((osmid_t) writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
                            sizeof(persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(ramNode),
                             SYNC_FILE_RANGE_WAIT_BEFORE | SYNC_FILE_RANGE_WRITE | SYNC_FILE_RANGE_WAIT_AFTER) < 0) {
             fprintf(stderr, "Info: Sync_file_range block has an issue. This shouldn't be anything to worry about.: %s\n",
@@ -313,7 +313,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
 
         }
 #ifdef HAVE_POSIX_FADVISE
-        if (posix_fadvise(node_cache_fd, (writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
+        if (posix_fadvise(node_cache_fd, ((osmid_t) writeNodeBlock.block_offset - 16)*WRITE_NODE_BLOCK_SIZE * sizeof(ramNode) +
                           sizeof(persistentCacheHeader), WRITE_NODE_BLOCK_SIZE * sizeof(ramNode), POSIX_FADV_DONTNEED) !=0 ) {
             fprintf(stderr, "Info: Posix_fadvise failed. This shouldn't be anything to worry about.: %s\n",
                 strerror(errno));
@@ -328,7 +328,7 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
     assert(!append_mode);
     assert(!read_mode);
 
-    int block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
+    int32_t block_offset = id >> WRITE_NODE_BLOCK_SHIFT;
 
     if (writeNodeBlock.block_offset != block_offset)
     {
@@ -337,7 +337,7 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
             nodes_set_create_writeout_block();
             /* After writing out the node block, the file pointer is at the next block level */
             writeNodeBlock.block_offset++;
-            cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
+            cacheHeader.max_initialised_id = ((osmid_t) writeNodeBlock.block_offset
                     << WRITE_NODE_BLOCK_SHIFT) - 1;
         }
         if (writeNodeBlock.block_offset > block_offset)
@@ -464,7 +464,7 @@ void node_persistent_cache::set_read_mode()
         nodes_set_create_writeout_block();
         writeNodeBlock.reset_used();
         writeNodeBlock.block_offset++;
-        cacheHeader.max_initialised_id = (writeNodeBlock.block_offset
+        cacheHeader.max_initialised_id = ((osmid_t) writeNodeBlock.block_offset
                 << WRITE_NODE_BLOCK_SHIFT) - 1;
 
         /* write out the header */
