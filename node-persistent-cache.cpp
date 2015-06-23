@@ -460,7 +460,6 @@ void node_persistent_cache::set_read_mode()
 
     if (writeNodeBlock.dirty()) {
         assert(!append_mode);
-        fprintf(stderr, "Switching to read mode\n");
         nodes_set_create_writeout_block();
         writeNodeBlock.reset_used();
         writeNodeBlock.block_offset++;
@@ -482,8 +481,6 @@ void node_persistent_cache::set_read_mode()
     }
 
     read_mode = true;
-
-    fprintf(stderr, "Switching to read mode done\n");
 }
 
 node_persistent_cache::node_persistent_cache(const options_t *options, int append,
