@@ -12,26 +12,37 @@
 
 #include "tests/middle-tests.hpp"
 
+void run_tests(const options_t options, const std::string cache_type) {
+  middle_ram_t mid_ram;
+  output_null_t out_test(&mid_ram, options);
+
+  mid_ram.start(&options);
+
+  if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with " + cache_type + " cache."); }
+
+  if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with " + cache_type + " cache."); }
+
+  mid_ram.commit();
+  mid_ram.stop();
+}
+
 int main(int argc, char *argv[]) {
   try {
     options_t options;
     options.scale = 10000000;
     options.cache = 1; // Non-zero cache is needed to test
 
-    {
-      options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // optimized
-      middle_ram_t mid_ram;
-      output_null_t out_test(&mid_ram, options);
+    options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
+    run_tests(options, "optimized");
 
-      mid_ram.start(&options);
+    options.alloc_chunkwise = ALLOC_SPARSE;
+    run_tests(options, "sparse");
 
-      if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with optimized cache."); }
+    options.alloc_chunkwise = ALLOC_DENSE;
+    run_tests(options, "dense");
 
-      if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with optimized cache."); }
-
-      mid_ram.commit();
-      mid_ram.stop();
-    }
+    options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK; // what you get with chunk
+    run_tests(options, "chunk");
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;
