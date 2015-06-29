@@ -13,17 +13,36 @@
 #include "tests/middle-tests.hpp"
 
 void run_tests(const options_t options, const std::string cache_type) {
-  middle_ram_t mid_ram;
-  output_null_t out_test(&mid_ram, options);
+  {
+    middle_ram_t mid_ram;
+    output_null_t out_test(&mid_ram, options);
 
-  mid_ram.start(&options);
+    mid_ram.start(&options);
 
-  if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with " + cache_type + " cache."); }
+    if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with " + cache_type + " cache."); }
+    mid_ram.commit();
+    mid_ram.stop();
+  }
+  {
+    middle_ram_t mid_ram;
+    output_null_t out_test(&mid_ram, options);
 
-  if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with " + cache_type + " cache."); }
+    mid_ram.start(&options);
 
-  mid_ram.commit();
-  mid_ram.stop();
+    if (test_nodes_comprehensive_set(&mid_ram) != 0) { throw std::runtime_error("test_nodes_comprehensive_set failed with " + cache_type + " cache."); }
+    mid_ram.commit();
+    mid_ram.stop();
+  }
+  {
+    middle_ram_t mid_ram;
+    output_null_t out_test(&mid_ram, options);
+
+    mid_ram.start(&options);
+
+    if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with " + cache_type + " cache."); }
+    mid_ram.commit();
+    mid_ram.stop();
+  }
 }
 
 int main(int argc, char *argv[]) {
