@@ -8,6 +8,23 @@
 #include "osmtypes.hpp"
 #include "tests/middle-tests.hpp"
 
+bool lon_okay(osmNode node, double lon) {
+  if (node.lon != lon) {
+    std::cerr << "ERROR: Node should have lon=" << lon << ", but got back "
+              << node.lon << " from middle.\n";
+    return false;
+  }
+  return true;
+}
+bool lat_okay(osmNode node, double lat) {
+  if (node.lat != lat) {
+    std::cerr << "ERROR: Node should have lat=" << lat << ", but got back "
+              << node.lat << " from middle.\n";
+    return false;
+  }
+  return true;
+}
+
 int test_node_set(middle_t *mid)
 {
   idlist_t ids;
@@ -16,26 +33,19 @@ int test_node_set(middle_t *mid)
   double lon = 98.7654321;
   taglist_t tags;
   nodelist_t nodes;
-  int status = 0;
 
   // set the node
-  status = mid->nodes_set(id, lat, lon, tags);
-  if (status != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
+  if (mid->nodes_set(id, lat, lon, tags) != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
 
   // get it back
   ids.push_back(id);
-  int count = mid->nodes_get_list(nodes, ids);
-  if (count != 1) { std::cerr << "ERROR: Unable to get node list.\n"; return 1; }
+  if (mid->nodes_get_list(nodes, ids) != 1) { std::cerr << "ERROR: Unable to get node list.\n"; return 1; }
 
   // check that it's the same
-  if (nodes[0].lon != lon) {
-    std::cerr << "ERROR: Node should have lon=" << lon << ", but got back "
-              << nodes[0].lon << " from middle.\n";
+  if (!lon_okay(nodes[0], lon)) {
     return 1;
   }
-  if (nodes[0].lat != lat) {
-    std::cerr << "ERROR: Node should have lat=" << lat << ", but got back "
-              << nodes[0].lat << " from middle.\n";
+  if (!lat_okay(nodes[0], lat)) {
     return 1;
   }
 
