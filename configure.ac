@@ -117,25 +117,6 @@ then
     AC_MSG_ERROR([One or more of the mandatory Boost libraries not found.])
 fi
 
-dnl Check if Boost is recent enough for lockfree, and if it hasn't been overridden
-AC_ARG_WITH([lockfree],
-  [AS_HELP_STRING([--without-lockfree],
-    [disable lockfree queue])],
-    [],
-    [with_lockfree=yes])
-
-if test "x$with_lockfree" = "xyes"
-then
-  AX_BOOST_BASE([1.53],
-                [
-                  AX_BOOST_ATOMIC
-                  if test "x$BOOST_ATOMIC_LIB" != "x"; then
-                    AC_DEFINE([HAVE_LOCKFREE], [1], [Using lockfree queue])
-                  fi
-                ]
-                , [])
-fi
-
 dnl Boost json parser in 1.49 has a bug when compiled with C++11
 dnl see https://svn.boost.org/trac/boost/ticket/6785
 AC_ARG_WITH([cxx11],

@@ -14,10 +14,6 @@
 #include <utility>
 #include <cstdio>
 
-#ifdef HAVE_LOCKFREE
-#include <boost/atomic.hpp>
-#endif
-
 osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_): mid(mid_)
 {
     outs.push_back(out_);
@@ -176,7 +172,6 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
     typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-#ifndef HAVE_LOCKFREE
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
         while (true) {
             //get the job off the queue synchronously
@@ -203,29 +198,13 @@ struct pending_threaded_processor : public middle_t::pending_processor {
             mutex.unlock();
         }
     }
-#else
-    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append, bool ways) {
-        pending_job_t job;
-        while (queue.pop(job)) {
-            if(ways)
-                outputs.at(job.output_id)->pending_way(job.osm_id, append);
-            else
-                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
-            ++ids_done;
-        }
-    }
-#endif
 
     //starts up count threads and works on the queue
     pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
-#ifndef HAVE_LOCKFREE
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
         : outs(outs), ids_queued(0), append(append), queue(), ids_done(0) {
-#else
-        : outs(outs), ids_queued(0), append(append), queue(job_count), ids_done(0) {
-#endif
 
         //clone all the things we need
         clones.reserve(thread_count);
@@ -265,11 +244,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, true));
-#else
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, true));
-#endif
         }
 
         //TODO: print out partial progress
@@ -316,11 +291,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, false));
-#else
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, false));
-#endif
         }
 
         //TODO: print out partial progress
@@ -362,14 +333,10 @@ private:
     //job queue
     pending_queue_t queue;
 
-#ifndef HAVE_LOCKFREE
     //how many ids within the job have been processed
     size_t ids_done;
     //so the threads can manage some of the shared state
     boost::mutex mutex;
-#else
-    boost::atomic_size_t ids_done;
-#endif
 };
 
 } // anonymous namespace
