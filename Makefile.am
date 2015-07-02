@@ -51,6 +51,7 @@ check_PROGRAMS = \
 	tests/test-parse-xml2 \
 	tests/test-middle-ram \
 	tests/test-middle-pgsql \
+	tests/test-middle-flat \
 	tests/test-output-multi-tags \
 	tests/test-output-multi-line \
 	tests/test-output-multi-line-storage \
@@ -69,6 +70,8 @@ tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
 tests_test_middle_ram_LDADD = libosm2pgsql.la
 tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests.cpp tests/common-pg.cpp
 tests_test_middle_pgsql_LDADD = libosm2pgsql.la
+tests_test_middle_flat_SOURCES = tests/test-middle-flat.cpp tests/middle-tests.cpp tests/common-pg.cpp
+tests_test_middle_flat_LDADD = libosm2pgsql.la
 tests_test_output_multi_tags_SOURCES = tests/test-output-multi-tags.cpp tests/common-pg.cpp
 tests_test_output_multi_tags_LDADD = libosm2pgsql.la
 tests_test_output_multi_line_SOURCES = tests/test-output-multi-line.cpp tests/common-pg.cpp
@@ -91,6 +94,8 @@ tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
 tests_test_parse_options_LDADD = libosm2pgsql.la
 tests_test_expire_tiles_SOURCES = tests/test-expire-tiles.cpp
 tests_test_expire_tiles_LDADD = libosm2pgsql.la
+
+MOSTLYCLEANFILES = tests/test_middle_flat.flat.nodes.bin tests/test_output_pgsql_area_way.flat.nodes.bin
 
 TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
@@ -138,6 +143,7 @@ osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_middle_flat_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_tags_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_line_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_line_storage_LDADD += $(GLOBAL_LDFLAGS)

@@ -45,6 +45,7 @@ tests/.dirstamp
 tests/test-parse-xml2
 tests/test-middle-ram
 tests/test-middle-pgsql
+tests/test-middle-flat
 tests/test-pgsql-escape
 tests/test-parse-options
 tests/test-output-multi-tags
@@ -58,7 +59,7 @@ tests/test-output-pgsql
 tests/test-expire-tiles
 tests/*.log
 tests/*.trs
-tests/test_output_pgsql_area_way.flat.nodes.bin
+tests/*.flat.nodes.bin
 
 .libs/
 *.lo
