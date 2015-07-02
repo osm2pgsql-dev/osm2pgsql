@@ -18,7 +18,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/version.hpp>
 #include <utility>
-
+#include <stack>
 
 struct pending_job_t {
     osmid_t osm_id;
@@ -28,13 +28,7 @@ struct pending_job_t {
     pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
 };
 
-#ifndef HAVE_LOCKFREE
-#include <stack>
 typedef std::stack<pending_job_t> pending_queue_t;
-#else
-#include <boost/lockfree/queue.hpp>
-typedef boost::lockfree::queue<pending_job_t> pending_queue_t;
-#endif
 
 class output_t : public boost::noncopyable {
 public:
