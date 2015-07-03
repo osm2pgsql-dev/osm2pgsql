@@ -1,5 +1,5 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(osm2pgsql, 0.87.4-dev)
+AC_INIT(osm2pgsql, 0.87.4)
 
 dnl Required autoconf version
 AC_PREREQ(2.61)
