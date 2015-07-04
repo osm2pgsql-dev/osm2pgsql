@@ -81,9 +81,9 @@ struct polygondata
 };
 
 struct polygondata_comparearea {
-  bool operator()(const polygondata& lhs, const polygondata& rhs) {
-    return lhs.area > rhs.area;
-  }
+    bool operator()(const polygondata& lhs, const polygondata& rhs) {
+        return lhs.area > rhs.area;
+    }
 };
 
 } // anonymous namespace
@@ -190,25 +190,25 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 // length of the line in `segment` over the `split_at` distance.
 
                 if (distance + delta > split_at) {
-                  const size_t splits = std::floor((distance + delta) / split_at);
-                  // use the splitting distance to split the current segment up
-                  // into as many parts as necessary to keep each part below
-                  // the `split_at` distance.
-                  for (size_t i = 0; i < splits; ++i) {
-                    double frac = (double(i + 1) * split_at - distance) / delta;
-                    const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
-                                                  frac * (this_pt.y - prev_pt.y) + prev_pt.y);
-                    segment->add(interpolated);
-                    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+                    const size_t splits = std::floor((distance + delta) / split_at);
+                    // use the splitting distance to split the current segment up
+                    // into as many parts as necessary to keep each part below
+                    // the `split_at` distance.
+                    for (size_t i = 0; i < splits; ++i) {
+                        double frac = (double(i + 1) * split_at - distance) / delta;
+                        const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
+                                                      frac * (this_pt.y - prev_pt.y) + prev_pt.y);
+                        segment->add(interpolated);
+                        geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
 
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(geom.get());
-                    wkts->back().area = 0;
+                        //copy of an empty one should be cheapest
+                        wkts->push_back(geometry_builder::wkt_t());
+                        //then we set on the one we already have
+                        wkts->back().geom = writer.write(geom.get());
+                        wkts->back().area = 0;
 
-                    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-                    segment->add(interpolated);
+                        segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+                        segment->add(interpolated);
                   }
                   // reset the distance based on the final splitting point for
                   // the next iteration.
@@ -255,12 +255,12 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 }
 
 int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, int *polygon) {
-    GeometryFactory		gf;
-    WKTReader		reader(&gf);
-    std::string		wkt_string(wkt);
-    GeometryCollection *	gc;
-    CoordinateSequence *	coords;
-    size_t			num_geometries;
+    GeometryFactory gf;
+    WKTReader reader(&gf);
+    std::string wkt_string(wkt);
+    GeometryCollection * gc;
+    CoordinateSequence * coords;
+    size_t num_geometries;
 
     *polygon = 0;
     try {
@@ -319,7 +319,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
     geos::geom::prep::PreparedGeometryFactory pgf;
 
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
-
 
     try
     {
@@ -422,7 +421,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         }
                     }
                 }
-              pgf.destroy(preparedtoplevelpolygon);
+                pgf.destroy(preparedtoplevelpolygon);
             }
             // polys now is a list of polygons tagged with which ones are inside each other
 
@@ -608,7 +607,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             }
             else
             {
-                        //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
+                //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
                 double distance = 0;
                 std::auto_ptr<CoordinateSequence> segment;
                 segment = std::auto_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
