@@ -32,7 +32,6 @@ libosm2pgsql_la_SOURCES = \
 	parse-pbf.cpp \
 	parse-xml2.cpp \
 	pgsql.cpp \
-	pgsql-id-tracker.cpp \
 	processor-line.cpp \
 	processor-point.cpp \
 	processor-polygon.cpp \
