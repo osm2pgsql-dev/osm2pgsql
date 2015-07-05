@@ -56,6 +56,7 @@ tests/test-output-multi-point-multi-table
 tests/test-output-multi-polygon
 tests/test-output-multi-poly-trivial
 tests/test-output-pgsql
+tests/test-output-pgsql-tablespace
 tests/test-expire-tiles
 tests/*.log
 tests/*.trs
