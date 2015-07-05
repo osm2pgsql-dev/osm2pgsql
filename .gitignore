@@ -60,7 +60,7 @@ tests/test-output-pgsql-tablespace
 tests/test-expire-tiles
 tests/*.log
 tests/*.trs
-tests/test_output_pgsql_area_way.flat.nodes.bin
+tests/*.flat.nodes.bin
 
 .libs/
 *.lo
