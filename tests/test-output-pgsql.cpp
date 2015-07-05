@@ -100,8 +100,6 @@ void test_regression_simple() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.tblsslim_index = "tablespacetest";
-    options.tblsslim_data = "tablespacetest";
     options.slim = 1;
     options.style = "default.style";
 
@@ -259,8 +257,6 @@ void test_clone() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.tblsslim_index = "tablespacetest";
-    options.tblsslim_data = "tablespacetest";
     options.slim = 1;
     options.style = "default.style";
 

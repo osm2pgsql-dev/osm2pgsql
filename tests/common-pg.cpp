@@ -75,22 +75,7 @@ result::~result() {
 
 tempdb::tempdb()
     : m_conn(conn::connect("dbname=postgres")) {
-    result_ptr res = m_conn->exec("SELECT spcname FROM pg_tablespace WHERE "
-                                  "spcname = 'tablespacetest'");
-
-    if ((PQresultStatus(res->get()) != PGRES_TUPLES_OK) ||
-        (PQntuples(res->get()) != 1)) {
-        std::ostringstream out;
-        out << "The test needs a temporary tablespace to run in, but it does not "
-            << "exist. Please create the temporary tablespace. On Linux, you can "
-            << "do this by running:\n"
-            << "  sudo mkdir -p /tmp/psql-tablespace\n"
-            << "  sudo /bin/chown postgres.postgres /tmp/psql-tablespace\n"
-            << "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION "
-            << "'/tmp/psql-tablespace'\" postgres\n";
-        throw std::runtime_error(out.str());
-    }
-
+    result_ptr res = NULL;
     m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(NULL)).str();
     m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
     //tests can be run concurrently which means that this query can collide with other similar ones
@@ -114,6 +99,24 @@ tempdb::tempdb()
 
     setup_extension(db, "postgis", "postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql", NULL);
     setup_extension(db, "hstore", NULL);
+}
+
+void tempdb::check_tblspc() {
+  result_ptr res = m_conn->exec("SELECT spcname FROM pg_tablespace WHERE "
+                                "spcname = 'tablespacetest'");
+  if ((PQresultStatus(res->get()) != PGRES_TUPLES_OK) ||
+      (PQntuples(res->get()) != 1)) {
+      std::ostringstream out;
+      out << "The test needs a temporary tablespace to run in, but it does not "
+          << "exist. Please create the temporary tablespace. On Linux, you can "
+          << "do this by running:\n"
+          << "  sudo mkdir -p /tmp/psql-tablespace\n"
+          << "  sudo /bin/chown postgres.postgres /tmp/psql-tablespace\n"
+          << "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION "
+          << "'/tmp/psql-tablespace'\" postgres\n";
+      throw std::runtime_error(out.str());
+  }
+
 }
 
 tempdb::~tempdb() {
