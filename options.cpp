@@ -484,6 +484,10 @@ options_t options_t::parse(int argc, char *argv[])
         throw std::runtime_error("Error: --append and --create options can not be used at the same time!\n");
     }
 
+    if (options.append && !options.slim) {
+        throw std::runtime_error("Error: --append can only be used with slim mode!\n");
+    }
+
     if (options.droptemp && !options.slim) {
         throw std::runtime_error("Error: --drop only makes sense with --slim.\n");
     }
