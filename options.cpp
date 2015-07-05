@@ -385,7 +385,7 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'k':
             if (options.hstore_mode != HSTORE_NONE) {
-                throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+                throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
             options.hstore_mode = HSTORE_NORM;
             break;
@@ -394,7 +394,7 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'j':
             if (options.hstore_mode != HSTORE_NONE) {
-                throw std::runtime_error("ERROR: You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+                throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
             options.hstore_mode = HSTORE_ALL;
             break;
@@ -425,7 +425,7 @@ options_t options_t::parse(int argc, char *argv[])
             else if (strcmp(optarg, "optimized") == 0)
                 options.alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
             else {
-                throw std::runtime_error((boost::format("ERROR: Unrecognized cache strategy %1%.\n") % optarg).str());
+                throw std::runtime_error((boost::format("Unrecognized cache strategy %1%.\n") % optarg).str());
             }
             break;
         case 205:
@@ -481,15 +481,15 @@ options_t options_t::parse(int argc, char *argv[])
     }
 
     if (options.append && options.create) {
-        throw std::runtime_error("Error: --append and --create options can not be used at the same time!\n");
+        throw std::runtime_error("--append and --create options can not be used at the same time!\n");
     }
 
     if (options.append && !options.slim) {
-        throw std::runtime_error("Error: --append can only be used with slim mode!\n");
+        throw std::runtime_error("--append can only be used with slim mode!\n");
     }
 
     if (options.droptemp && !options.slim) {
-        throw std::runtime_error("Error: --drop only makes sense with --slim.\n");
+        throw std::runtime_error("--drop only makes sense with --slim.\n");
     }
 
     if (options.unlogged && !options.create) {
