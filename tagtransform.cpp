@@ -118,7 +118,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         if (is_route && (it->key == "name"))
             out_tags.push_dedupe(tag("route_name", it->value));
         //copy all other tags except for "type"
-        else if (it->key != "type")
+        if (it->key != "type")
             out_tags.push_dedupe(*it);
     }
 
