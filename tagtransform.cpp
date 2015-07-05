@@ -25,20 +25,31 @@ static const struct {
     const char *highway;
     int roads;
 } layers[] = {
-    { 3, "minor",         0 },
-    { 3, "road",          0 },
-    { 3, "unclassified",  0 },
-    { 3, "residential",   0 },
-    { 4, "tertiary_link", 0 },
-    { 4, "tertiary",      0 },
-    { 6, "secondary_link",1 },
-    { 6, "secondary",     1 },
-    { 7, "primary_link",  1 },
-    { 7, "primary",       1 },
-    { 8, "trunk_link",    1 },
-    { 8, "trunk",         1 },
-    { 9, "motorway_link", 1 },
-    { 9, "motorway",      1 }
+    { 10, "steps", 0 },
+    { 10, "cycleway", 0 },
+    { 10, "bridleway", 0 },
+    { 10, "footway", 0 },
+    { 10, "path", 0 },
+    { 11, "track", 0 },
+    { 15, "service", 0 },
+
+    { 24, "tertiary_link", 0 },
+    { 25, "secondary_link",1 },
+    { 27, "primary_link",  1 },
+    { 28, "trunk_link",    1 },
+    { 29, "motorway_link", 1 },
+
+    { 30, "raceway",       0 },
+    { 31, "pedestrian",    0 },
+    { 32, "living_street", 0 },
+    { 33, "road",          0 },
+    { 33, "unclassified",  0 },
+    { 33, "residential",   0 },
+    { 34, "tertiary",      0 },
+    { 36, "secondary",     1 },
+    { 37, "primary",       1 },
+    { 38, "trunk",         1 },
+    { 39, "motorway",      1 }
 };
 
 static const unsigned int nLayers = (sizeof(layers)/sizeof(*layers));
@@ -56,12 +67,11 @@ void add_z_order(taglist_t &tags, int *roads)
     int z_order = 0;
 
     int l = layer ? strtol(layer->c_str(), NULL, 10) : 0;
-    z_order = 10 * l;
+    z_order = 100 * l;
     *roads = 0;
 
     if (highway) {
         for (unsigned i = 0; i < nLayers; i++) {
-            //if (layers[i].highway == *highway) {
             if (!strcmp(layers[i].highway, highway->c_str())) {
                 z_order += layers[i].offset;
                 *roads = layers[i].roads;
@@ -71,7 +81,7 @@ void add_z_order(taglist_t &tags, int *roads)
     }
 
     if (railway && !railway->empty()) {
-        z_order += 5;
+        z_order += 35;
         *roads = 1;
     }
     /* Administrative boundaries are rendered at low zooms so we prefer to use the roads table */
@@ -79,10 +89,10 @@ void add_z_order(taglist_t &tags, int *roads)
         *roads = 1;
 
     if (bridge)
-        z_order += 10;
+        z_order += 100;
 
     if (tunnel)
-        z_order -= 10;
+        z_order -= 100;
 
     char z[13];
     snprintf(z, sizeof(z), "%d", z_order);
