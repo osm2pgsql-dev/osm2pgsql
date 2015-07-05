@@ -168,11 +168,11 @@ sql_test_statements=[
     ( 92, 'Basic line length', 'SELECT round(sum(ST_Length(way))) FROM planet_osm_roads;', 2032023),
     ( 93, 'Basic number of hstore points tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_point;', 4228),
     ( 94, 'Basic number of hstore roads tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_roads;', 2316),
-    ( 95, 'Basic number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 10897),
+    ( 95, 'Basic number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11131),
     ( 96, 'Basic number of hstore polygons tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_polygon;', 9540),
     ( 97, 'Diff import number of hstore points tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_point;', 4352),
     ( 98, 'Diff import number of hstore roads tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_roads;', 2340),
-    ( 99, 'Diff import number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11020),
+    ( 99, 'Diff import number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11254),
     ( 100, 'Diff import number of hstore polygons tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_polygon;', 9834),
     #**** Tests to check if inner polygon appears when outer tags change after initially identicall inner and outer way tags in a multi-polygon ****
     #**** These tests are currently broken and noted in trac ticket #2853 ****
