@@ -59,11 +59,11 @@ public:
 
   tag *find(const std::string &key) {  return const_cast<tag *>(_find(key)); }
 
-  size_t indexof(const std::string &key) const
+  int indexof(const std::string &key) const
   {
       for (size_t i = 0; i < size(); ++i)
           if (at(i).key == key)
-              return i;
+              return int(i);
 
       return -1;
   }

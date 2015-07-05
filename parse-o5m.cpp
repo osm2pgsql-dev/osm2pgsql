@@ -340,7 +340,7 @@ static byte* read_bufp= NULL;  /* may be incremented by external */
    called again; */
 static byte* read_bufe= NULL;  /* may not be changed from external */
 
-static int read_open(const char* filename) {
+static int read_open(const std::string &filename) {
     /* open an input file;
        filename[]: path and name of input file;
                ==NULL: standard input;
@@ -376,16 +376,15 @@ return 1;
   /* open the file */
   if(loglevel>=2)
     fprintf(stderr,"Read-opening: %s",
-      filename==NULL? "stdin": filename);
-  if(filename==NULL)  /* stdin shall be opened */
+      (filename == "-") ? "stdin": filename.c_str());
+  if(filename=="-")  /* stdin shall be opened */
     read_infop->fd= 0;
-  else if(filename!=NULL) {  /* a real file shall be opened */
-    read_infop->fd= open(filename,O_RDONLY|O_BINARY);
+  else {  /* a real file shall be opened */
+    read_infop->fd= open(filename.c_str(),O_RDONLY|O_BINARY);
     if(read_infop->fd<0) {
       if(loglevel>=2)
         fprintf(stderr," -> failed\n");
-      PERRv("could not open input file: %.80s\n",
-        filename==NULL? "standard input": filename)
+      PERRv("could not open input file: %.80s\n", filename.c_str())
       free(read_infop); read_infop= NULL;
       read_bufp= read_bufe= NULL;
 return 1;
@@ -631,19 +630,12 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
   end   Module str_   string read module
   ------------------------------------------------------------ */
 
-parse_o5m_t::parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
-{
+parse_o5m_t::parse_o5m_t(int extra_attrs, const bbox_t &box, const reprojection *projection)
+: parse_t(extra_attrs, box, projection)
+{}
 
-}
 
-parse_o5m_t::~parse_o5m_t()
-{
-
-}
-
-int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) {
+void parse_o5m_t::stream_file(const std::string &filename, osmdata_t *osmdata) {
     /* open and parse an .o5m file; */
     /* return: ==0: ok; !=0: error; */
     int otype;  /*  type of currently processed object; */
@@ -677,27 +669,25 @@ int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t 
 
   /* open the input file */
   if(read_open(filename)!=0) {
-    fprintf(stderr,"Unable to open %s\n",filename);
-return 1;
+      std::runtime_error("Unable to open file\n");
     }
   endoffile= false;
 
   /* determine file type */ {
-      const char* p = NULL;
-
     read_input();
     if(*read_bufp!=0xff) {  /* cannot be an .o5m file, nor an .o5c file */
-      PERR("File format neither .o5m nor .o5c")
-return 1;
+        std::runtime_error("File format neither .o5m nor .o5c");
       }
-    p= strchr(filename,0)-4;  /* get end of filename */
+    std::string fext;
+    if (filename.length() >= 4)
+        fext = filename.substr(filename.length() - 4, 4);  /* get end of filename */
     if(memcmp(read_bufp,"\xff\xe0\0x04""o5m2",7)==0)
       filetype= FILETYPE_OSM;
     else if(memcmp(read_bufp,"\xff\xe0\0x04""o5c2",7)==0)
       filetype= FILETYPE_OSMCHANGE;
-    else if(p>=filename && strcmp(p,".o5m")==0)
+    else if(fext==".o5m")
       filetype= FILETYPE_OSM;
-    else if(p>=filename && (strcmp(p,".o5c")==0 || strcmp(p,".o5h")==0))
+    else if(fext==".o5c" || fext==".o5h")
       filetype= FILETYPE_OSMCHANGE;
     else {
       WARN("File type not specified. Assuming .o5m")
@@ -774,31 +764,13 @@ return 1;
     /* do statistics on object id */
     switch(otype) {
     case 0:  /* node */
-      if(osm_id>max_node)
-        max_node= osm_id;
-      if (count_node == 0) {
-        time(&start_node);
-      }
-      count_node++;
-      if(count_node%10000==0) print_status();
+      stats.add_node(osm_id);
       break;
     case 1:  /* way */
-      if(osm_id>max_way)
-        max_way= osm_id;
-      if (count_way == 0) {
-        time(&start_way);
-      }
-      count_way++;
-      if(count_way%1000==0) print_status();
+      stats.add_way(osm_id);
       break;
     case 2:  /* relation */
-      if(osm_id>max_rel)
-        max_rel= osm_id;
-      if (count_rel == 0) {
-        time(&start_rel);
-      }
-      count_rel++;
-      if(count_rel%10==0) print_status();
+      stats.add_rel(osm_id);
       break;
     default: ;
       }
@@ -857,7 +829,7 @@ return 1;
           /* read node body */
         node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
-        if(!node_wanted(node_lat,node_lon)) {
+        if(!bbox.inside(node_lat,node_lon)) {
           tags.clear();
   continue;
           }
@@ -956,7 +928,6 @@ return 1;
   }  /* end   read input file */
 
   /* close the input file */
-  print_status();
+  stats.print_status();
   read_close();
-  return 0;
 }  /* streamFileO5m() */

@@ -61,9 +61,7 @@ void run_osm2pgsql(options_t &options) {
 
   osmdata.start();
 
-  if (parser.streamFile("libxml2", "tests/test_output_multi_poly_trivial.osm", options.sanitize, &osmdata) != 0) {
-    throw std::runtime_error("Unable to read input file `tests/test_output_multi_poly_trivial.osm'.");
-  }
+  parser.stream_file("libxml2", "tests/test_output_multi_poly_trivial.osm", &osmdata);
 
   osmdata.stop();
 }

@@ -228,7 +228,6 @@ void test_random_perms()
         //--hstore-column   Add an additional hstore (key/value) column containing all tags that start with the specified string, eg --hstore-column "name:" will produce an extra hstore column that contains all name:xx tags
 
         add_arg_or_not("--hstore-add-index", args, options.enable_hstore_index);
-        add_arg_or_not("--utf8-sanitize", args, options.sanitize);
 
         //--tablespace-index    The name of the PostgreSQL tablespace where all indexes will be created. The following options allow more fine-grained control:
         //      --tablespace-main-data    tablespace for main tables

@@ -92,9 +92,7 @@ int main(int argc, char *argv[]) {
 
         osmdata.start();
 
-        if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
-            throw std::runtime_error("Unable to read input file `tests/liechtenstein-2013-08-03.osm.pbf'.");
-        }
+        parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
         parser.reset(NULL);
 

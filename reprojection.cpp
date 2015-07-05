@@ -123,7 +123,7 @@ struct Projection_Info const *reprojection::project_getprojinfo(void)
     return custom_projection;
 }
 
-void reprojection::reproject(double *lat, double *lon)
+void reprojection::reproject(double *lat, double *lon) const
 {
     double x[1], y[1], z[1];
 

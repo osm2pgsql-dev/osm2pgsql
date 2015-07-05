@@ -29,7 +29,6 @@ namespace
         {"prefix",   1, 0, 'p'},
         {"proj",     1, 0, 'E'},
         {"merc",     0, 0, 'm'},
-        {"utf8-sanitize", 0, 0, 'u'},
         {"cache",    1, 0, 'C'},
         {"username", 1, 0, 'U'},
         {"password", 0, 0, 'W'},
@@ -123,10 +122,6 @@ namespace
                         --hstore-column \"name:\" will produce an extra hstore\n\
                         column that contains all name:xx tags\n\
           --hstore-add-index    Add index to hstore column.\n\
-    \n\
-    Obsolete options:\n\
-       -u|--utf8-sanitize   Repair bad UTF8 input data (present in planet\n\
-                        dumps prior to August 2007). Adds about 10% overhead.\n\
     \n\
     Performance options:\n\
        -i|--tablespace-index    The name of the PostgreSQL tablespace where\n\
@@ -272,7 +267,7 @@ options_t::options_t():
     num_procs(1), droptemp(0),  unlogged(0), hstore_match_only(0), flat_node_cache_enabled(0), excludepoly(0), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-    create(0), sanitize(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
+    create(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
     password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
 {
 
@@ -314,9 +309,6 @@ options_t options_t::parse(int argc, char *argv[])
             break;
         case 'K':
             options.keep_coastlines = 1;
-            break;
-        case 'u':
-            options.sanitize = 1;
             break;
         case 'l':
             options.projection.reset(new reprojection(PROJ_LATLONG));
