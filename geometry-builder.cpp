@@ -452,7 +452,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             if ((toplevelpolygons > 1) && enable_multi)
             {
                 geom_ptr multipoly(gf.createMultiPolygon(polygons.release()));
-                if (!multipoly->isValid() && (excludepoly == 0)) {
+                if (!multipoly->isValid() && !excludepoly) {
                     multipoly = geom_ptr(multipoly->buffer(0));
                 }
                 multipoly->normalize();
@@ -471,7 +471,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 for(unsigned i=0; i<toplevelpolygons; i++)
                 {
                     Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
-                    if (!poly->isValid() && (excludepoly == 0)) {
+                    if (!poly->isValid() && !excludepoly) {
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
@@ -720,7 +720,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             if ((toplevelpolygons > 1) && enable_multi)
             {
                 geom_ptr multipoly(gf.createMultiPolygon(polygons.release()));
-                if (!multipoly->isValid() && (excludepoly == 0)) {
+                if (!multipoly->isValid() && !excludepoly) {
                     multipoly = geom_ptr(multipoly->buffer(0));
                 }
                 multipoly->normalize();
@@ -739,11 +739,11 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 for(unsigned i=0; i<toplevelpolygons; i++)
                 {
                     Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
-                    if (!poly->isValid() && (excludepoly == 0)) {
+                    if (!poly->isValid() && !excludepoly) {
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
-                    if ((excludepoly == 0) || (poly->isValid()))
+                    if (!excludepoly || (poly->isValid()))
                     {
                         //copy of an empty one should be cheapest
                         wkts->push_back(geometry_builder::wkt_t());
@@ -779,7 +779,7 @@ void geometry_builder::set_exclude_broken_polygon(int exclude)
 }
 
 geometry_builder::geometry_builder()
-    : excludepoly(0) {
+    : excludepoly(false) {
 }
 
 geometry_builder::~geometry_builder() {

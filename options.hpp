@@ -20,7 +20,6 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 enum { DEFAULT_SCALE = 100 };
 
-//TODO: GO THROUGH AND UPDATE TO BOOL WHERE MEMBER DENOTES ONLY ON OR OFF OPTION
 struct options_t {
 public:
     /* construct with sensible defaults */
@@ -44,19 +43,19 @@ public:
     int expire_tiles_zoom; /* Zoom level for tile expiry list */
     int expire_tiles_zoom_min; /* Minimum zoom level for tile expiry list */
     std::string expire_tiles_filename; /* File name to output expired tiles list to */
-    int hstore_mode; /* add an additional hstore column with objects key/value pairs */
-    int enable_hstore_index; /* add an index on the hstore column */
+    int hstore_mode; /* add an additional hstore column with objects key/value pairs, and what type of hstore column */
+    bool enable_hstore_index; /* add an index on the hstore column */
     bool enable_multi; /* Output multi-geometries intead of several simple geometries */
     std::vector<std::string> hstore_columns; /* list of columns that should be written into their own hstore column */
-    int keep_coastlines;
-    int parallel_indexing;
+    bool keep_coastlines;
+    bool parallel_indexing;
     int alloc_chunkwise;
     int num_procs;
-    int droptemp; /* drop slim mode temp tables after act */
-    int unlogged; /* use unlogged tables where possible */
-    int hstore_match_only; /* only copy rows that match an explicitly listed key */
-    int flat_node_cache_enabled;
-    int excludepoly;
+    bool droptemp; /* drop slim mode temp tables after act */
+    bool unlogged; /* use unlogged tables where possible */
+    bool hstore_match_only; /* only copy rows that match an explicitly listed key */
+    bool flat_node_cache_enabled;
+    bool excludepoly;
     boost::optional<std::string> flat_node_file;
     boost::optional<std::string> tag_transform_script,
         tag_transform_node_func,    // these options allow you to control the name of the
@@ -64,19 +63,20 @@ public:
         tag_transform_rel_func,     // script. this is mostly useful in with the "multi"
         tag_transform_rel_mem_func; // output so that a single script file can be used.
 
-    int create;
-    int long_usage_bool;
-    int pass_prompt;
+    bool create;
+    bool long_usage_bool;
+    bool pass_prompt;
+
     std::string db;
     boost::optional<std::string> username;
     boost::optional<std::string> host;
     boost::optional<std::string> password;
     std::string port;
-    std::string output_backend ;
+    std::string output_backend;
     std::string input_reader;
     boost::optional<std::string> bbox;
-    int extra_attributes;
-    int verbose;
+    bool extra_attributes;
+    bool verbose;
 
     std::vector<std::string> input_files;
 private:

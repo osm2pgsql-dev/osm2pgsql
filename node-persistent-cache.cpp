@@ -483,12 +483,11 @@ void node_persistent_cache::set_read_mode()
     read_mode = true;
 }
 
-node_persistent_cache::node_persistent_cache(const options_t *options, int append,
+node_persistent_cache::node_persistent_cache(const options_t *options, bool append,
                                              bool ro, boost::shared_ptr<node_ram_cache> ptr)
-    : node_cache_fd(0), node_cache_fname(NULL), append_mode(0), cacheHeader(),
+    : node_cache_fd(0), node_cache_fname(NULL), append_mode(append), cacheHeader(),
       writeNodeBlock(), readNodeBlockCache(NULL), read_mode(ro), ram_cache(ptr)
 {
-    append_mode = append;
     if (options->flat_node_file) {
         node_cache_fname = options->flat_node_file->c_str();
     } else {

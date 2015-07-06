@@ -22,8 +22,8 @@
 #include "tests/common-pg.hpp"
 
 void run_tests(options_t options, const std::string cache_type) {
-  options.append = 0;
-  options.create = 1;
+  options.append = false;
+  options.create = true;
   {
     middle_pgsql_t mid_pgsql;
     output_null_t out_test(&mid_pgsql, options);
@@ -54,8 +54,8 @@ void run_tests(options_t options, const std::string cache_type) {
     mid_pgsql.commit();
     mid_pgsql.stop();
     // Switch to append mode because this tests updates
-    options.append = 1;
-    options.create = 0;
+    options.append = true;
+    options.create = false;
     mid_pgsql.start(&options);
     if (test_way_set(&mid_pgsql) != 0) { throw std::runtime_error("test_way_set failed."); }
 
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     options.cache = 1;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
 
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
     run_tests(options, "optimized");

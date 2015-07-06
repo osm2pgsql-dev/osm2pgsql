@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
-        options.slim = 1;
+        options.slim = true;
 
         boost::shared_ptr<geometry_processor> processor =
             geometry_processor::create("line", &options);

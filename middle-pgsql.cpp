@@ -1043,7 +1043,7 @@ int middle_pgsql_t::start(const options_t *out_options_)
     out_options = out_options_;
     PGresult   *res;
     int i;
-    int dropcreate = !out_options->append;
+    bool dropcreate = !out_options->append;
     char * sql;
 
     ways_pending_tracker.reset(new id_tracker());
@@ -1277,7 +1277,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
-      append(0), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
+      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(

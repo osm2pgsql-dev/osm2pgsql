@@ -94,7 +94,7 @@ private:
     int num_tables;
     table_desc *node_table, *way_table, *rel_table;
 
-    int append;
+    bool append;
     bool mark_pending;
 
     boost::shared_ptr<node_ram_cache> cache;

@@ -50,8 +50,8 @@ int main(int argc, char *argv[]) {
 	struct timeval start;
 	idlist_t osmids;
 	int node_cnt;
-	options.append = 1;
-	options.flat_node_cache_enabled = 1;
+	options.append = true;
+	options.flat_node_cache_enabled = true;
 	options.flat_node_file = argv[1];
         boost::shared_ptr<node_ram_cache> ram_cache(new node_ram_cache(0, 10, options.scale));
         boost::shared_ptr<node_persistent_cache> cache;
