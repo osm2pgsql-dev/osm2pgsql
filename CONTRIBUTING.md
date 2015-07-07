@@ -33,7 +33,7 @@ Old branches and versions are not generally maintained.
 
 The current codebase is a mix of styles, but new code should be written in the 
 [K&R 1TBS style](https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS) with
-4 spaces indentation. Tabs should never be used in the C++ cope.
+4 spaces indentation. Tabs should never be used in the C++ code.
 
 e.g.
 
