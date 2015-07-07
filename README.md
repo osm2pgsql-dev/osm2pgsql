@@ -143,33 +143,12 @@ postgres tables instead of those provided in the pgsql backend.
 Any questions should be directed at the osm dev list
 http://wiki.openstreetmap.org/index.php/Mailing_lists
 
-## Testing ##
-
-The code also comes with a suite of tests which can be run by
-executing ``make check``.
-
-Some of these tests depend on being able to set up a database and run
-osm2pgsql against it. You need to ensure that PostgreSQL is running
-and that your user is a superuser of that system. To do that, run:
-
-```sh
-sudo -u postgres createuser -s $USER
-sudo mkdir -p /tmp/psql-tablespace
-sudo chown postgres.postgres /tmp/psql-tablespace
-psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
-```
-
-Once this is all set up, all the tests should run (no SKIPs), and pass
-(no FAILs). If you encounter a failure, you can find more information
-by looking in the `test-suite.log`. If you find something which seems
-to be a bug, please check to see if it is a known issue at
-https://github.com/openstreetmap/osm2pgsql/issues and, if it's not
-already known, report it there.
-
 ## Contributing ##
 
 We welcome contributions to osm2pgsql. If you would like to report an issue,
 please use the [issue tracker on GitHub](https://github.com/openstreetmap/osm2pgsql/issues).
+
+More information can be found in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 General queries can be sent to the tile-serving@ or dev@
 [mailing lists](http://wiki.openstreetmap.org/wiki/Mailing_lists).
