@@ -146,7 +146,7 @@ int main(int argc, char *argv[]) {
   osmdata_t osmdata(boost::make_shared<test_middle_t>(), out_test);
 
   boost::optional<std::string> bbox;
-  parse_osmium_t parser("", false, bbox, projection.get());
+  parse_osmium_t parser("", false, bbox, projection.get(), false);
 
   parser.stream_file(inputfile, &osmdata);
 

@@ -92,8 +92,10 @@ void parse_stats_t::print_status() const
 
 parse_delegate_t::parse_delegate_t(int extra_attributes,
                                    const boost::optional<std::string> &bbox,
-                                   boost::shared_ptr<reprojection> projection)
-: m_extra_attributes(extra_attributes), m_proj(projection), m_bbox(bbox)
+                                   boost::shared_ptr<reprojection> projection,
+                                   bool append)
+: m_extra_attributes(extra_attributes), m_proj(projection), m_bbox(bbox),
+  m_append(append)
 {}
 
 parse_delegate_t::~parse_delegate_t() = default;
@@ -123,7 +125,7 @@ parse_delegate_t::get_input_reader(const std::string &input_reader,
         return std::unique_ptr<parse_t>(new parse_o5m_t(m_extra_attributes, m_bbox, m_proj.get()));
 
     // default is the libosmium parser
-    return std::unique_ptr<parse_t>(new parse_osmium_t(input_reader, m_extra_attributes, m_bbox, m_proj.get()));
+    return std::unique_ptr<parse_t>(new parse_osmium_t(input_reader, m_extra_attributes, m_bbox, m_proj.get(), m_append));
 }
 
 

@@ -128,7 +128,7 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -191,7 +191,7 @@ void test_latlong() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -254,7 +254,7 @@ void test_area_way_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -303,7 +303,7 @@ void test_route_rel() {
 
     osmdata_t osmdata(mid_ram, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -358,7 +358,7 @@ void test_clone() {
 
     osmdata_t osmdata(mid_pgsql, out_clone);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 

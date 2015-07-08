@@ -111,7 +111,7 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 

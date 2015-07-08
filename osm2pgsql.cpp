@@ -75,7 +75,8 @@ int main(int argc, char *argv[])
             return 0;
 
         //setup the front (input)
-        parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection);
+        parse_delegate_t parser(options.extra_attributes, options.bbox,
+                                options.projection, options.append);
 
         //setup the middle
         boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);

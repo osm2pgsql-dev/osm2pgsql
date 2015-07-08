@@ -41,7 +41,7 @@ class parse_osmium_t: public parse_t, public osmium::handler::Handler
 {
 public:
     parse_osmium_t(const std::string &fmt, int extra_attrs,
-                   const bbox_t &bbox, const reprojection *proj);
+                   const bbox_t &bbox, const reprojection *proj, bool do_append);
     void stream_file(const std::string &filename, osmdata_t *osmdata) override;
 
     void node(osmium::Node& node);
@@ -53,6 +53,7 @@ private:
     void convert_members(const osmium::RelationMemberList &in_rels);
     osmdata_t *data;
     std::string format;
+    bool append;
 };
 
 #endif

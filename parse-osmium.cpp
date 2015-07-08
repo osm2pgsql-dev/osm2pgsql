@@ -31,8 +31,9 @@
 
 
 parse_osmium_t::parse_osmium_t(const std::string &fmt, int extra_attrs,
-                               const bbox_t &bbox, const reprojection *proj)
-: parse_t(extra_attrs, bbox, proj), data(nullptr), format(fmt)
+                               const bbox_t &bbox, const reprojection *proj,
+                               bool do_append)
+: parse_t(extra_attrs, bbox, proj), data(nullptr), format(fmt), append(do_append)
 {}
 
 void
@@ -54,8 +55,16 @@ void parse_osmium_t::node(osmium::Node& node)
     if (bbox.inside(lat, lon)) {
         proj->reproject(&lat, &lon);
 
-        convert_tags(node);
-        data->node_add(node.id(), lat, lon, tags);
+        if (node.deleted()) {
+            data->node_delete(node.id());
+        } else {
+            convert_tags(node);
+            if (append) {
+                data->node_modify(node.id(), lat, lon, tags);
+            } else {
+                data->node_add(node.id(), lat, lon, tags);
+            }
+        }
 
         stats.add_node(node.id());
     }
@@ -63,17 +72,33 @@ void parse_osmium_t::node(osmium::Node& node)
 
 void parse_osmium_t::way(osmium::Way& way)
 {
-    convert_tags(way);
-    convert_nodes(way.nodes());
-    data->way_add(way.id(), nds, tags);
+    if (way.deleted()) {
+        data->way_delete(way.id());
+    } else {
+        convert_tags(way);
+        convert_nodes(way.nodes());
+        if (append) {
+            data->way_modify(way.id(), nds, tags);
+        } else {
+            data->way_add(way.id(), nds, tags);
+        }
+    }
     stats.add_way(way.id());
 }
 
 void parse_osmium_t::relation(osmium::Relation& rel)
 {
-    convert_tags(rel);
-    convert_members(rel.members());
-    data->relation_add(rel.id(), members, tags);
+    if (rel.deleted()) {
+        data->relation_delete(rel.id());
+    } else {
+        convert_tags(rel);
+        convert_members(rel.members());
+        if (append) {
+            data->relation_modify(rel.id(), members, tags);
+        } else {
+            data->relation_add(rel.id(), members, tags);
+        }
+    }
     stats.add_rel(rel.id());
 }
 

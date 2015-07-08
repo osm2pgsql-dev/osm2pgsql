@@ -89,7 +89,7 @@ private:
 class parse_delegate_t
 {
 public:
-     parse_delegate_t(int extra_attributes, const boost::optional<std::string> &bbox, boost::shared_ptr<reprojection> projection);
+     parse_delegate_t(int extra_attributes, const boost::optional<std::string> &bbox, boost::shared_ptr<reprojection> projection, bool append);
      ~parse_delegate_t();
 
     void stream_file(const std::string &input_reader, const std::string &filename,
@@ -104,6 +104,7 @@ private:
     int m_extra_attributes;
     boost::shared_ptr<reprojection> m_proj;
     bbox_t m_bbox;
+    bool m_append;
     parse_stats_t m_stats;
 };
 
