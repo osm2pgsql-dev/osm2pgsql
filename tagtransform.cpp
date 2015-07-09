@@ -25,6 +25,8 @@ static const struct {
     const char *highway;
     int roads;
 } layers[] = {
+    { 1, "proposed", 0 },
+    { 2, "construction", 0 },
     { 10, "steps", 0 },
     { 10, "cycleway", 0 },
     { 10, "bridleway", 0 },
