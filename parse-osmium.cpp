@@ -40,9 +40,11 @@ void
 parse_osmium_t::stream_file(const std::string &filename, osmdata_t *osmdata)
 {
     data = osmdata;
-    osmium::io::File infile(filename);
-    osmium::io::Reader reader(infile);
+    osmium::io::File infile(filename, format);
 
+    fprintf(stderr, "Using %s parser.\n", osmium::io::as_string(infile.format()));
+
+    osmium::io::Reader reader(infile);
     osmium::apply(reader, *this);
     reader.close();
     data = nullptr;

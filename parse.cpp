@@ -119,7 +119,9 @@ std::unique_ptr<parse_t>
 parse_delegate_t::get_input_reader(const std::string &input_reader,
                                    const std::string &filename)
 {
-    std::string fext = filename.substr(filename.length() - 4, 4);
+    std::string fext;
+    if (filename.length() > 3)
+       fext = filename.substr(filename.length() - 4, 4);
     if (input_reader == "o5m"
         || (input_reader == "auto" && (fext == ".o5m" || fext == ".o5c")))
         return std::unique_ptr<parse_t>(new parse_o5m_t(m_extra_attributes, m_bbox, m_proj.get()));

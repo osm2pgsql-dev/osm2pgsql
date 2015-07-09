@@ -84,7 +84,10 @@ dnl Check for protobuf-c library and protoc-c binary
 BUILD_READER_PBF=no
 PKG_CHECK_MODULES(PROTOBUF, protobuf-lite >= 0.28,
    [ AC_CHECK_PROG([PROTOC], [protoc], [protoc])
-     AS_IF([test "x${PROTOC}" != "x"], [ BUILD_READER_PBF=yes ])
+     AS_IF([test "x${PROTOC}" != "x"], [
+         BUILD_READER_PBF=yes
+         AC_DEFINE([BUILD_READER_PBF], [1], [Requirements for building the PBF reader are met])
+     ])
    ]
 )
 AM_CONDITIONAL([READER_PBF], [test "$BUILD_READER_PBF" = "yes"])

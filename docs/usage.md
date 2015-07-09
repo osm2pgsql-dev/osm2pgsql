@@ -10,7 +10,7 @@ use them.
 * ``--append`` or ``--create`` specify if osm2pgsql is conducting a new import
   or adding to an existing one. ``--slim`` is required with ``--append``.
 
-* ``--input-reader`` specifies the parser if the filetype can't be
+* ``--input-reader`` specifies the format if the filetype can't be
   automatically detected for some reason.
 
 * ``--output`` specifies if the output backend is the default
