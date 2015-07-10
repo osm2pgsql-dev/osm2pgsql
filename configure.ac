@@ -80,17 +80,13 @@ then
   AC_MSG_ERROR([required library not found]);
 fi
 
-dnl Check for protobuf-c library and protoc-c binary
-BUILD_READER_PBF=no
+dnl Check for protobuf library and protoc binary
 PKG_CHECK_MODULES(PROTOBUF, protobuf-lite >= 0.28,
    [ AC_CHECK_PROG([PROTOC], [protoc], [protoc])
-     AS_IF([test "x${PROTOC}" != "x"], [
-         BUILD_READER_PBF=yes
-         AC_DEFINE([BUILD_READER_PBF], [1], [Requirements for building the PBF reader are met])
-     ])
-   ]
+     AS_IF([test "x${PROTOC}" == "x"],
+           [AC_MSG_ERROR([protoc compiler not found.])])
+   ], [AC_MSG_ERROR([protobuf development libraries not found.])]
 )
-AM_CONDITIONAL([READER_PBF], [test "$BUILD_READER_PBF" = "yes"])
 
 dnl Check for PostgresSQL client library
 AX_LIB_POSTGRESQL
@@ -138,16 +134,6 @@ AC_ARG_WITH([fixed-point],
 
 dnl Generate Makefile
 AC_OUTPUT(Makefile)
-
-if test "$BUILD_READER_PBF" != "yes"
-then
-    AC_MSG_WARN([
-protobuf libraries not found. You will NOT be able to import PBF files.
-
-To enable PBF support, the protobuf library and compiler are required. 
-Look for packages named: libprotobuf-dev protobuf-c-compiler
-])
-fi
 
 if test "$HAVE_LUA" != "yes"
 then

@@ -100,7 +100,6 @@ TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = sh
 
-if READER_PBF
 libosm2pgsql_la_SOURCES += fileformat.pb.cc osmformat.pb.cc
 
 fileformat.pb.cc: contrib/protobuf/fileformat.proto
@@ -124,8 +123,6 @@ BUILT_SOURCES = \
 CLEANFILES = \
   fileformat.pb.cc fileformat.pb.h contrib/protobuf/osmpbf/fileformat.pb.h \
   osmformat.pb.cc osmformat.pb.h contrib/protobuf/osmpbf/osmformat.pb.h
-
-endif
 
 osm2pgsqldir = $(datadir)/osm2pgsql
 

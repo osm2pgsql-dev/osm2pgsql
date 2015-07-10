@@ -176,12 +176,8 @@ namespace
        -r|--input-reader    Input format.\n\
                         auto      - Detect file format. (default)\n\
                         o5m       - Parse as o5m format.\n\
-                        xml       - Parse as OSM XML.\n");
-    #ifdef BUILD_READER_PBF
-        printf("\
-                        pbf       - OSM binary format.\n");
-    #endif
-        printf("\
+                        xml       - Parse as OSM XML.\n\
+                        pbf       - OSM binary format.\n\
        -O|--output      Output backend.\n\
                         pgsql - Output to a PostGIS database (default)\n\
                         multi - Multiple Custom Table Output to a PostGIS \n\
