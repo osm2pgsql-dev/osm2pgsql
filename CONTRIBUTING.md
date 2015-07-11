@@ -27,7 +27,8 @@ Osm2pgsql uses a X.Y.Z version number, where Y tells you if you are on a stable
 or development series. Like the Linux Kernel, even numbers are stable and 
 development versions are odd.
 
-Old branches and versions are not generally maintained.
+Bugs and known issues are fixed on the main branch only. Exceptions may be made
+for easy bug fixes, or if a patch backporting a fix is provided.
 
 ## Code style
 
