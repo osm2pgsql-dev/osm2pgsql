@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version='0.6' generator='hand'>
+  <node id='1' version='1' visible='true' lat='49' lon='-122.5'>
+    <tag k='highway' v='bus_stop' />
+  </node>
+  <node id='2' version='1' visible='true' lat='49.005' lon='-122.51'>
+    <tag k='highway' v='bus_stop' />
+  </node>
+  <node id='3' version='1' visible='true' lat='49.01' lon='-122.5' />
+  <!-- yes, all the ways have the same linestring -->
+  <way id='1' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='motorway' />
+  </way>
+  <way id='2' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='motorway_link' />
+  </way>
+  <way id='3' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='trunk' />
+  </way>
+  <way id='4' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='trunk_link' />
+  </way>
+  <way id='5' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='primary' />
+  </way>
+  <way id='6' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='primary_link' />
+  </way>
+  <way id='7' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='secondary' />
+  </way>
+  <way id='8' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='secondary_link' />
+  </way>
+  <way id='9' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='tertiary' />
+  </way>
+  <way id='10' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='tertiary_link' />
+  </way>
+  <way id='11' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <tag k='highway' v='residential' />
+    <tag k='layer' v='5' />
+  </way>
+  <!-- put *something* in the polygon table -->
+  <way id='1000' version='1' visible='true'>
+    <nd ref='1' />
+    <nd ref='2' />
+    <nd ref='3' />
+    <nd ref='1' />
+    <tag k='building' v='yes' />
+  </way>
+</osm>
