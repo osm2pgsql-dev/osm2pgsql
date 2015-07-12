@@ -38,7 +38,10 @@ matrix:
     - os: linux
       compiler: clang
       env: USE_LUA=true BOOST_PPA=1.54
-
+    # OS X tests
+    - os: osx
+      compiler: clang
+      env: USA_LUA=true
 before_install:
   # BOOST_PPA is only set on linux
   - if [ -z ${BOOST_PPA+x} ]; then
@@ -49,6 +52,8 @@ before_install:
     fi
   - if [[ $(uname -s) == 'Linux' ]]; then
       sudo apt-get update -qq;
+    else
+      brew update;
     fi
 install:
   - if [[ $(uname -s) == 'Linux' ]]; then
@@ -60,7 +65,9 @@ install:
       if [[ "${USE_LUA}" = "true" ]]; then
         sudo apt-get install -y -qq lua5.2 liblua5.2-dev;
       fi;
-    fi;
+    else
+      brew install protobuf protobuf-c postgresql lua libxml2 libtool geos boost;
+    fi
 before_script:
   - xml2-config --version
   - geos-config --version
