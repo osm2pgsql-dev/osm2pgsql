@@ -42,9 +42,9 @@ to configure and build itself and requires
 It also requires access to a database server running
 [PostgreSQL](http://www.postgresql.org/) and [PostGIS](http://www.postgis.net/).
 
-Make sure you have installed the development packages for the 
-libraries mentioned in the requirements section and a C and C++
-compiler.
+Make sure you have installed the development packages for the libraries
+mentioned in the requirements section and a C++ compiler which supports C++11.
+Both GCC 4.8 and Clang 3.4 meet this requirement.
 
 To install on a Debian or Ubuntu system, first install the prerequisites:
 
