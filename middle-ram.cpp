@@ -31,20 +31,6 @@
  *
  */
 
-#define BLOCK_SHIFT 10
-#define PER_BLOCK  (1 << BLOCK_SHIFT)
-#define NUM_BLOCKS (1 << (32 - BLOCK_SHIFT))
-
-static osmid_t id2block(osmid_t id)
-{
-    /* + NUM_BLOCKS/2 allows for negative IDs */
-    return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
-}
-
-static  osmid_t id2offset(osmid_t id)
-{
-    return id & (PER_BLOCK-1);
-}
 
 int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
     return cache->set(id, lat, lon, tags);
@@ -52,30 +38,13 @@ int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t 
 
 int middle_ram_t::ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags)
 {
-    int block  = id2block(id);
-    int offset = id2offset(id);
-
-    if (ways[block].empty()) {
-        ways[block].assign(PER_BLOCK, ramWay());
-    }
-
-    ways[block][offset].ndids = nds;
-    ways[block][offset].tags = tags;
-
+    ways.set(id, new ramWay(tags, nds));
     return 0;
 }
 
 int middle_ram_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
-    int block  = id2block(id);
-    int offset = id2offset(id);
-    if (rels[block].empty()) {
-        rels[block].assign(PER_BLOCK, ramRel());
-    }
-
-    rels[block][offset].tags = tags;
-    rels[block][offset].members = members;
-
+    rels.set(id, new ramRel(tags, members));
     return 0;
 }
 
@@ -87,7 +56,7 @@ int middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
             out.push_back(n);
     }
 
-    return out.size();
+    return int(out.size());
 }
 
 void middle_ram_t::iterate_relations(pending_processor& pf)
@@ -132,14 +101,14 @@ int middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
     if (simulate_ways_deleted)
         return 1;
 
-    int block = id2block(id), offset = id2offset(id);
+    auto const *ele = ways.get(id);
 
-    if (ways[block].empty() || ways[block][offset].ndids.empty())
+    if (!ele) {
         return 1;
+    }
 
-    tags = ways[block][offset].tags;
-
-    nodes_get_list(nodes, ways[block][offset].ndids);
+    tags = ele->tags;
+    nodes_get_list(nodes, ele->ndids);
 
     return 0;
 }
@@ -170,18 +139,19 @@ int middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
         nodes.resize(count);
     }
 
-    return count;
+    return int(count);
 }
 
 int middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
 {
-    int block = id2block(id), offset = id2offset(id);
+    auto const *ele = rels.get(id);
 
-    if (rels[block].empty() || rels[block][offset].members.empty())
+    if (!ele) {
         return 1;
+    }
 
-    members = rels[block][offset].members;
-    tags = rels[block][offset].tags;
+    tags = ele->tags;
+    members = ele->members;
 
     return 0;
 }
@@ -221,11 +191,8 @@ void middle_ram_t::commit(void) {
 }
 
 middle_ram_t::middle_ram_t():
-    ways(), rels(), cache(),
-    simulate_ways_deleted(false)
+    ways(), rels(), cache(), simulate_ways_deleted(false)
 {
-    ways.resize(NUM_BLOCKS); memset(&ways[0], 0, NUM_BLOCKS * sizeof ways[0]);
-    rels.resize(NUM_BLOCKS); memset(&rels[0], 0, NUM_BLOCKS * sizeof rels[0]);
 }
 
 middle_ram_t::~middle_ram_t() {
