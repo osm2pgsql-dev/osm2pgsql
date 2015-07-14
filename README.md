@@ -42,14 +42,14 @@ to configure and build itself and requires
 It also requires access to a database server running
 [PostgreSQL](http://www.postgresql.org/) and [PostGIS](http://www.postgis.net/).
 
-Make sure you have installed the development packages for the 
-libraries mentioned in the requirements section and a C and C++
-compiler.
+Make sure you have installed the development packages for the libraries
+mentioned in the requirements section and a C++ compiler which supports C++11.
+Both GCC 4.8 and Clang 3.4 meet this requirement.
 
 To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
-sudo apt-get install autoconf automake libtool make g++ libboost-dev \
+sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
   libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
   libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev \
   protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
@@ -58,9 +58,9 @@ sudo apt-get install autoconf automake libtool make g++ libboost-dev \
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ automake libtool boost-devel expat-devel \
-  bzip2-devel postgresql-devel geos-devel proj-devel lua-devel \
-  protobuf-devel protobuf-lite-devel
+sudo yum install gcc-c++ automake libtool pkgconfig boost-devel \
+  expat-devel bzip2-devel postgresql-devel geos-devel proj-devel \
+  lua-devel protobuf-devel protobuf-lite-devel
 ```
 
 To install on a FreeBSD system, use
@@ -88,7 +88,7 @@ On FreeBSD instead bootstrap and then run
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
+Osm2pgsql has one program, the executable itself, which has **42** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
