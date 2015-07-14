@@ -146,6 +146,10 @@ void table_t::start()
         else
             sql[sql.length() - 1] = ')';
 
+        // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
+        // This means that they won't get this autovacuum setting, so it doesn't
+        // doesn't need to be RESET on these tables
+        sql += " WITH ( autovacuum_enabled = FALSE )";
         //add the main table space
         if (table_space)
             sql += " TABLESPACE " + table_space.get();
