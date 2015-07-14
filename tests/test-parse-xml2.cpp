@@ -8,7 +8,7 @@
 
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
-#include "parse-xml2.hpp"
+#include "parse-osmium.hpp"
 #include "output.hpp"
 #include "options.hpp"
 
@@ -145,12 +145,10 @@ int main(int argc, char *argv[]) {
   boost::shared_ptr<test_output_t> out_test(new test_output_t(options));
   osmdata_t osmdata(boost::make_shared<test_middle_t>(), out_test);
 
-  parse_xml2_t parser(0, false, projection, 0, 0, 0, 0);
+  boost::optional<std::string> bbox;
+  parse_osmium_t parser("", false, bbox, projection.get(), false);
 
-  int ret = parser.streamFile(inputfile.c_str(), 0, &osmdata);
-  if (ret != 0) {
-    return ret;
-  }
+  parser.stream_file(inputfile, &osmdata);
 
   assert_equal(out_test->sum_ids,       73514L);
   assert_equal(out_test->num_nodes,       353L);

@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
         options.style = "tests/test_output_multi_line_trivial.style.json";
 
         //setup the front (input)
-        parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection);
+        parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection, options.append);
 
         //setup the middle
         boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
@@ -81,9 +81,7 @@ int main(int argc, char *argv[]) {
 
         osmdata.start();
 
-        if (parser.streamFile("libxml2", "tests/test_output_multi_line_storage.osm", options.sanitize, &osmdata) != 0) {
-            throw std::runtime_error("Unable to read input file `tests/test_output_multi_line_storage.osm'.");
-        }
+        parser.stream_file("libxml2", "tests/test_output_multi_line_storage.osm", &osmdata);
 
         osmdata.stop();
 

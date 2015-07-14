@@ -30,7 +30,7 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 Osm2pgsql uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html)
 to configure and build itself and requires 
 
-* [libxml2](http://xmlsoft.org/)
+* [expat](http://www.libexpat.org/)
 * [geos](http://geos.osgeo.org/)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
@@ -50,25 +50,25 @@ To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
 sudo apt-get install autoconf automake libtool make g++ libboost-dev \
-  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libxml2-dev \
+  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
   libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev \
-  protobuf-c-compiler libprotobuf-c0-dev lua5.2 liblua5.2-dev
+  protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
 ```
 
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ automake libtool boost-devel libxml2-devel \
+sudo yum install gcc-c++ automake libtool boost-devel expat-devel \
   bzip2-devel postgresql-devel geos-devel proj-devel lua-devel \
-  protobuf-c-devel
+  protobuf-devel protobuf-lite-devel
 ```
 
 To install on a FreeBSD system, use
 
 ```sh
 pkg install devel/git devel/autoconf devel/automake devel/gmake devel/libtool \
-  textproc/libxml2 graphics/geos graphics/proj databases/postgresql94-client \
-  devel/boost-libs devel/protobuf-c lang/lua52 devel/pkgconf
+  textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client \
+  devel/boost-libs devel/protobuf lang/lua52 devel/pkgconf
 ```
 
 Then you should be able to bootstrap the build system:

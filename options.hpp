@@ -65,7 +65,6 @@ public:
         tag_transform_rel_mem_func; // output so that a single script file can be used.
 
     int create;
-    int sanitize;
     int long_usage_bool;
     int pass_prompt;
     std::string db;

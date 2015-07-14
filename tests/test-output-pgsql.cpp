@@ -128,13 +128,11 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
-    if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/liechtenstein-2013-08-03.osm.pbf'.");
-    }
+    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
     parser.reset(NULL);
 
@@ -193,13 +191,11 @@ void test_latlong() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
-    if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/liechtenstein-2013-08-03.osm.pbf'.");
-    }
+    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
     parser.reset(NULL);
 
@@ -258,13 +254,11 @@ void test_area_way_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
-    if (parser->streamFile("libxml2", "tests/test_output_pgsql_way_area.osm", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/test_output_pgsql_way_area.osm'.");
-    }
+    parser->stream_file("libxml2", "tests/test_output_pgsql_way_area.osm", &osmdata);
 
     parser.reset(NULL);
 
@@ -309,13 +303,11 @@ void test_route_rel() {
 
     osmdata_t osmdata(mid_ram, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
-    if (parser->streamFile("libxml2", "tests/test_output_pgsql_route_rel.osm", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/test_output_pgsql_way_area.osm'.");
-    }
+    parser->stream_file("libxml2", "tests/test_output_pgsql_route_rel.osm", &osmdata);
 
     parser.reset(NULL);
 
@@ -366,13 +358,11 @@ void test_clone() {
 
     osmdata_t osmdata(mid_pgsql, out_clone);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
-    if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/liechtenstein-2013-08-03.osm.pbf'.");
-    }
+    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
     parser.reset(NULL);
 

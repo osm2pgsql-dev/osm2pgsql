@@ -188,7 +188,7 @@ sql_test_statements=[
       'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = 112 and "natural" = \'heath\'', 1234),
     #**** Test to check that only polygon tags that are present on all outer ways get copied over to the multi-polygon relation ****
     ( 106, 'Multipolygon copy outer tags (presence of relation)',
-      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\'', 29340),
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\'', 29341),
     ( 107, 'Multipolygon copy outer tags (absence of partial outer tags)',
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\' and "man_made" = \'pier\'', 0),
     ( 108, 'Multipolygon copy outer tags (absence of multi-polygon tagged outer way)',
@@ -209,7 +209,7 @@ sql_test_statements=[
       'SELECT round(sum(ST_length(way))) FROM planet_osm_line WHERE (osm_id = 127 OR osm_id = 122) AND "man_made" = \'pier\'', 318),
     #**** Test to check that if polygon tags are on both outer ways and relation, polygons don't get duplicated in the db ****
     ( 116, 'Multipolygon tags on both outer and relation (presence of relation)',
-      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -39 and "landuse" = \'forest\'', 10379),
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -39 and "landuse" = \'forest\'', 10378),
     ( 117, 'Multipolygon tags on both outer and relation (absence of outer way)',
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 138', 0),
     ( 118, 'Multipolygon tags on both outer and relation with additional tags on relation (presence of relation)',

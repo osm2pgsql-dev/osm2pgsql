@@ -48,7 +48,7 @@ void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
 
 void run_osm2pgsql(options_t &options) {
   //setup the front (input)
-  parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection);
+  parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection, options.append);
 
   //setup the middle
   boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
@@ -61,9 +61,7 @@ void run_osm2pgsql(options_t &options) {
 
   osmdata.start();
 
-  if (parser.streamFile("libxml2", "tests/test_output_multi_poly_trivial.osm", options.sanitize, &osmdata) != 0) {
-    throw std::runtime_error("Unable to read input file `tests/test_output_multi_poly_trivial.osm'.");
-  }
+  parser.stream_file("libxml2", "tests/test_output_multi_poly_trivial.osm", &osmdata);
 
   osmdata.stop();
 }

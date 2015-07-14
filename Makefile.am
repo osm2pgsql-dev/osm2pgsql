@@ -9,12 +9,10 @@ osm2pgsql_SOURCES = osm2pgsql.cpp
 osm2pgsql_LDADD = libosm2pgsql.la
 
 libosm2pgsql_la_SOURCES = \
-	UTF8sanitizer.cpp \
 	expire-tiles.cpp \
 	geometry-builder.cpp \
 	geometry-processor.cpp \
 	id-tracker.cpp \
-	input.cpp \
 	middle.cpp \
 	middle-pgsql.cpp \
 	middle-ram.cpp \
@@ -29,8 +27,7 @@ libosm2pgsql_la_SOURCES = \
 	output-pgsql.cpp \
 	parse.cpp \
 	parse-o5m.cpp \
-	parse-pbf.cpp \
-	parse-xml2.cpp \
+	parse-osmium.cpp \
 	pgsql.cpp \
 	processor-line.cpp \
 	processor-point.cpp \
@@ -106,44 +103,36 @@ TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = sh
 
-if READER_PBF
-osm2pgsql_SOURCES += parse-pbf.hpp fileformat.pb-c.h osmformat.pb-c.h
-libosm2pgsql_la_SOURCES += parse-pbf.cpp fileformat.pb-c.c osmformat.pb-c.c
+libosm2pgsql_la_SOURCES += fileformat.pb.cc osmformat.pb.cc
 
-fileformat.pb-c.c: protobuf/fileformat.proto
-	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<
+fileformat.pb.cc: contrib/protobuf/fileformat.proto
+	 $(AM_V_GEN) $(PROTOC) --proto_path=contrib/protobuf --cpp_out=. $<
 
-fileformat.pb-c.h: fileformat.pb-c.c
-	@if test ! -f $@; then \
-	  rm -f $<; \
-	  $(MAKE) $(AM_MAKEFLAGS) $<; \
-	else :; fi
+contrib/protobuf/osmpbf/fileformat.pb.h: fileformat.pb.cc
+	cp fileformat.pb.h $@
 
-osmformat.pb-c.c: protobuf/osmformat.proto
-	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<
+osmformat.pb.cc: contrib/protobuf/osmformat.proto
+	 $(AM_V_GEN) $(PROTOC) --proto_path=contrib/protobuf --cpp_out=. $<
 
-osmformat.pb-c.h: osmformat.pb-c.c
-	@if test ! -f $@; then \
-	  rm -f $<; \
-	  $(MAKE) $(AM_MAKEFLAGS) $<; \
-	else :; fi
+contrib/protobuf/osmpbf/osmformat.pb.h: osmformat.pb.cc
+	cp osmformat.pb.h $@
+
+parse-osmium.cpp: contrib/protobuf/osmpbf/fileformat.pb.h contrib/protobuf/osmpbf/osmformat.pb.h
 
 BUILT_SOURCES = \
-  fileformat.pb-c.c fileformat.pb-c.h \
-  osmformat.pb-c.c osmformat.pb-c.h
+  fileformat.pb.cc contrib/protobuf/osmpbf/fileformat.pb.h \
+  osmformat.pb.cc contrib/protobuf/osmpbf/osmformat.pb.h
 
 CLEANFILES = \
-  fileformat.pb-c.c fileformat.pb-c.h \
-  osmformat.pb-c.c osmformat.pb-c.h
-
-endif
+  fileformat.pb.cc fileformat.pb.h contrib/protobuf/osmpbf/fileformat.pb.h \
+  osmformat.pb.cc osmformat.pb.h contrib/protobuf/osmpbf/osmformat.pb.h
 
 osm2pgsqldir = $(datadir)/osm2pgsql
 
-AM_CFLAGS = @PTHREAD_CFLAGS@ @LFS_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ @PROTOBUF_C_CFLAGS@ @ZLIB_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -DVERSION='"@PACKAGE_VERSION@"' @LUA_INCLUDE@
-AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@ @BOOST_CPPFLAGS@
+AM_CFLAGS = @PTHREAD_CFLAGS@ @LFS_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @EXPAT_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ @PROTOBUF_CFLAGS@ @ZLIB_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -DVERSION='"@PACKAGE_VERSION@"' @LUA_INCLUDE@
+AM_CPPFLAGS = -Icontrib/protobuf -Icontrib/libosmium @PTHREAD_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @EXPAT_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@ @BOOST_CPPFLAGS@
 
-GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_C_LDFLAGS@ @PROTOBUF_C_LIBS@ -L/usr/lib/x86_64-linux-gnu @LUA_LIB@ @BOOST_LDFLAGS@ @BOOST_FILESYSTEM_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_THREAD_LIB@
+GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @EXPAT_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_LIBS@ -L/usr/lib/x86_64-linux-gnu @EXPAT_LIBS@ @LUA_LIB@ @BOOST_LDFLAGS@ @BOOST_FILESYSTEM_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_THREAD_LIB@
 osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
@@ -170,8 +159,8 @@ man1_MANS = docs/osm2pgsql.1 docs/nodecachefilereader.1
 
 EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
-             protobuf/fileformat.proto \
-             protobuf/osmformat.proto \
+             contrib/protobuf/fileformat.proto \
+             contrib/protobuf/osmformat.proto \
              debian \
              $(osm2pgsql_DATA)
 
