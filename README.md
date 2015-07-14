@@ -49,7 +49,7 @@ Both GCC 4.8 and Clang 3.4 meet this requirement.
 To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
-sudo apt-get install autoconf automake libtool make g++ libboost-dev \
+sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
   libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
   libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev \
   protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
@@ -58,9 +58,9 @@ sudo apt-get install autoconf automake libtool make g++ libboost-dev \
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ automake libtool boost-devel expat-devel \
-  bzip2-devel postgresql-devel geos-devel proj-devel lua-devel \
-  protobuf-devel protobuf-lite-devel
+sudo yum install gcc-c++ automake libtool pkgconfig boost-devel \
+  expat-devel bzip2-devel postgresql-devel geos-devel proj-devel \
+  lua-devel protobuf-devel protobuf-lite-devel
 ```
 
 To install on a FreeBSD system, use
