@@ -148,13 +148,11 @@ void test_z_order() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, false));
 
     osmdata.start();
 
-    if (parser->streamFile("libxml2", "tests/test_output_pgsql_z_order.osm", options.sanitize, &osmdata) != 0) {
-        throw std::runtime_error("Unable to read input file `tests/test_output_pgsql_z_order.osm'.");
-    }
+    parser->stream_file("libxml2", "tests/test_output_pgsql_z_order.osm", &osmdata);
 
     parser.reset(NULL);
 
