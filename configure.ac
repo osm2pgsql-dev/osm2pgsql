@@ -1,8 +1,8 @@
 dnl Process this file with autoconf to produce a configure script.
-AC_INIT(osm2pgsql, 0.89.0-dev)
+AC_INIT([osm2pgsql],[0.89.0-dev])
 
 dnl Required autoconf version
-AC_PREREQ(2.61)
+AC_PREREQ([2.61])
 
 AX_CONFIG_NICE
 
@@ -133,7 +133,8 @@ AC_ARG_WITH([fixed-point],
     [AC_DEFINE([FIXED_POINT], [1], [Store +-20,000km Mercator co-ordinates as fixed point 32bit number with maximum precision])])
 
 dnl Generate Makefile
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
 
 if test "$HAVE_LUA" != "yes"
 then
