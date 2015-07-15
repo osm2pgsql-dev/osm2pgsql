@@ -97,8 +97,8 @@ tempdb::tempdb()
     m_conninfo = (boost::format("dbname=%1%") % m_db_name).str();
     conn_ptr db = conn::connect(m_conninfo);
 
-    setup_extension(db, "postgis", "postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql", NULL);
-    setup_extension(db, "hstore", NULL);
+    setup_extension(db, "postgis", {"postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql"});
+    setup_extension(db, "hstore");
 }
 
 void tempdb::check_tblspc() {
@@ -129,10 +129,14 @@ const std::string &tempdb::conninfo() const {
     return m_conninfo;
 }
 
-void tempdb::setup_extension(conn_ptr db, const std::string &extension, ...) {
+void tempdb::setup_extension(conn_ptr db, const std::string &extension, 
+                             const std::vector<std::string> &extension_files) {
     // first, try the new way of setting up extensions
     result_ptr res = db->exec(boost::format("CREATE EXTENSION %1%") % extension);
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
+        if (extension_files.size() == 0) {
+            throw std::runtime_error((boost::format("Unable to load extension %1% and no files specified") % extension).str());
+        }
         // if that fails, then fall back to trying to find the files on
         // the filesystem to load to create the extension.
         res = db->exec("select regexp_replace(split_part(version(),' ',2),'\\.[0-9]*$','');");
@@ -147,11 +151,10 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension, ...) {
         // TODO: make the contribdir configurable. Probably
         // only works on Debian-based distributions at the moment.
         fs::path contribdir = fs::path("/usr/share/postgresql/") / pg_version / fs::path("contrib");
-        va_list ap;
-        va_start(ap, extension);
-        const char *str = NULL;
-        while ((str = va_arg(ap, const char *)) != NULL) {
-            fs::path sql_file = contribdir / fs::path(str);
+
+        for (auto filename : extension_files) {
+            fs::path sql_file = contribdir / fs::path(filename);
+            // Should this throw an error if the file can't be found?
             if (fs::exists(sql_file) && fs::is_regular_file(sql_file)) {
                 size_t size = fs::file_size(sql_file);
                 std::string sql(size + 1, '\0');
@@ -170,7 +173,6 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension, ...) {
                 }
             }
         }
-        va_end(ap);
     }
 }
 } // namespace pg
