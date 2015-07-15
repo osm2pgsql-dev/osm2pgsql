@@ -59,6 +59,7 @@ tests/test-output-pgsql
 tests/test-output-pgsql-tablespace
 tests/test-output-pgsql-z_order
 tests/test-expire-tiles
+tests/test-hstore-match-only
 tests/*.log
 tests/*.trs
 tests/*.flat.nodes.bin

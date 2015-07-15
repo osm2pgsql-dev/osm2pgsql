@@ -1,0 +1,31 @@
+# hstore only Database schema which stores only objects
+# with one of the important tags defined here
+#
+# this only makes sense when --hstore-match-only is used
+#
+node,way   aerialway    text         linear,nocolumn
+node,way   addr:housenumber text     linear,nocolumn
+node,way   aeroway      text         polygon,nocolumn
+node,way   amenity      text         polygon,nocolumn
+node,way   barrier      text         linear,nocolumn
+node,way   boundary     text         linear,nocolumn
+node,way   building     text         polygon,nocolumn
+node,way   highway      text         linear,nocolumn
+node,way   historic     text         polygon,nocolumn
+node,way   landuse      text         polygon,nocolumn
+node,way   leisure      text         polygon,nocolumn
+node,way   lock         text         linear,nocolumn
+node,way   man_made     text         polygon,nocolumn
+node,way   military     text         polygon,nocolumn
+node,way   place        text         polygon,nocolumn
+node,way   power        text         polygon,nocolumn
+node,way   railway      text         linear,nocolumn
+node,way   route        text         linear,nocolumn
+node,way   shop         text         polygon,nocolumn
+node,way   tourism      text         polygon,nocolumn
+node,way   waterway     text         polygon,nocolumn
+node,way   natural      text         polygon,nocolumn
+
+node,way   z_order      int4         linear # This is calculated during import
+way        way_area     real                # This is calculated during import
+

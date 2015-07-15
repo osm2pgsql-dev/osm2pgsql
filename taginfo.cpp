@@ -33,7 +33,8 @@ static const flagsname tagflags[] = {
     flagsname("linear",  FLAG_LINEAR),
     flagsname("nocache", FLAG_NOCACHE),
     flagsname("delete",  FLAG_DELETE),
-    flagsname("phstore", FLAG_PHSTORE)
+    flagsname("phstore", FLAG_PHSTORE),
+    flagsname("nocolumn", FLAG_NOCOLUMN)
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
@@ -83,7 +84,7 @@ columns_t export_list::normal_columns(enum OsmType id) const {
     {
         if( info->flags & FLAG_DELETE )
             continue;
-        if( (info->flags & FLAG_PHSTORE ) == FLAG_PHSTORE)
+        if( (info->flags & FLAG_NOCOLUMN ) == FLAG_NOCOLUMN)
             continue;
         columns.push_back(std::pair<std::string, std::string>(info->name, info->type));
     }

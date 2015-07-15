@@ -60,7 +60,8 @@ check_PROGRAMS = \
 	tests/test-output-pgsql-tablespace \
 	tests/test-pgsql-escape \
 	tests/test-parse-options \
-	tests/test-expire-tiles
+	tests/test-expire-tiles \
+	tests/test-hstore-match-only
 
 tests_test_parse_xml2_SOURCES = tests/test-parse-xml2.cpp
 tests_test_parse_xml2_LDADD = libosm2pgsql.la
@@ -82,6 +83,8 @@ tests_test_output_multi_point_multi_table_SOURCES = tests/test-output-multi-poin
 tests_test_output_multi_point_multi_table_LDADD = libosm2pgsql.la
 tests_test_output_multi_polygon_SOURCES = tests/test-output-multi-polygon.cpp tests/common-pg.cpp
 tests_test_output_multi_polygon_LDADD = libosm2pgsql.la
+tests_test_hstore_match_only_SOURCES = tests/test-hstore-match-only.cpp tests/common-pg.cpp
+tests_test_hstore_match_only_LDADD = libosm2pgsql.la
 tests_test_output_multi_poly_trivial_SOURCES = tests/test-output-multi-poly-trivial.cpp tests/common-pg.cpp
 tests_test_output_multi_poly_trivial_LDADD = libosm2pgsql.la
 tests_test_output_pgsql_SOURCES = tests/test-output-pgsql.cpp tests/common-pg.cpp
@@ -144,6 +147,7 @@ tests_test_output_multi_line_storage_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_multi_table_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_polygon_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_hstore_match_only_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_poly_trivial_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_tablespace_LDADD += $(GLOBAL_LDFLAGS)
