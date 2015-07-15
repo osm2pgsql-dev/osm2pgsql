@@ -43,6 +43,8 @@ before_script:
   - proj | head -n1
   - lua -v
 script:
-  ./autogen.sh && ./configure && make -j2
+  ./autogen.sh && ./configure && make -j2 check TESTS=''
 after_failure:
   - cat config.log
+  # rerun make, but verbosely
+  - make check TESTS='' V=1

@@ -10,11 +10,8 @@ dnl Allow maintainer mode to be disabled (debian build scripts do this)
 AM_MAINTAINER_MODE([enable])
 
 dnl use automake to generate standard Makefiles
-AM_INIT_AUTOMAKE([1.9.6 dist-bzip2 std-options check-news])
-
-dnl use 'silent' make rules by default (disabled for now)
-dnl AM_INIT_AUTOMAKE([1.11 dist-bzip2 silent-rules])
-dnl AM_SILENT_RULES([yes])
+AM_INIT_AUTOMAKE([1.11 foreign dist-bzip2 std-options])
+AM_SILENT_RULES([yes])
 
 dnl Additional macro definitions are in here
 AC_CONFIG_MACRO_DIR([m4])
@@ -22,7 +19,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
 
@@ -41,7 +38,7 @@ AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
 
 dnl Make sure we have libtool installed
-AM_PROG_LIBTOOL
+LT_INIT
 
 LFS_CFLAGS=`getconf LFS_CFLAGS`
 AC_SUBST(LFS_CFLAGS)

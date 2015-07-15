@@ -42,7 +42,7 @@
 AC_DEFUN([AX_LIB_BZIP2],
 [
     AC_ARG_WITH([bzip2],
-        AC_HELP_STRING([--with-bzip2=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-bzip2=@<:@ARG@:>@],
             [use bzip2 library from given prefix (ARG=path); check standard prefixes (ARG=yes); disable (ARG=no)]
         ),
         [
@@ -76,14 +76,14 @@ AC_DEFUN([AX_LIB_BZIP2],
     )
 
     AC_ARG_WITH([bzip2-inc],
-        AC_HELP_STRING([--with-bzip2-inc=@<:@DIR@:>@],
+        AS_HELP_STRING([--with-bzip2-inc=@<:@DIR@:>@],
             [path to bzip2 library headers]
         ),
         [bzlib_include_dir="$withval"],
         [bzlib_include_dir=""]
     )
     AC_ARG_WITH([bzip2-lib],
-        AC_HELP_STRING([--with-bzip2-lib=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-bzip2-lib=@<:@ARG@:>@],
             [link options for bzip2 library]
         ),
         [bzlib_lib_flags="$withval"],
