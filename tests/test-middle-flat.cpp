@@ -24,8 +24,8 @@
 /* This is basically the same as test-middle-pgsql, but with flat nodes. */
 
 void run_tests(options_t options, const std::string cache_type) {
-  options.append = 0;
-  options.create = 1;
+  options.append = false;
+  options.create = true;
   options.flat_node_cache_enabled = true;
   // flat nodes truncates the file each time it's started, so we can reuse the same file
   options.flat_node_file = boost::optional<std::string>("tests/test_middle_flat.flat.nodes.bin");
@@ -63,8 +63,8 @@ void run_tests(options_t options, const std::string cache_type) {
     mid_pgsql.commit();
     mid_pgsql.stop();
     // Switch to append mode because this tests updates
-    options.append = 1;
-    options.create = 0;
+    options.append = true;
+    options.create = false;
     mid_pgsql.start(&options);
     if (test_way_set(&mid_pgsql) != 0) { throw std::runtime_error("test_way_set failed."); }
 
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     options.cache = 1;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
 
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
     run_tests(options, "optimized");

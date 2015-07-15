@@ -253,20 +253,21 @@ std::string build_conninfo(const std::string &db,
 
 
 options_t::options_t():
-    conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(0), slim(0),
+    conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(false), slim(false),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(0),
-    enable_multi(false), hstore_columns(), keep_coastlines(0), parallel_indexing(1),
+    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(false),
+    enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
     #else
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
-    num_procs(1), droptemp(0),  unlogged(0), hstore_match_only(0), flat_node_cache_enabled(0), excludepoly(0), flat_node_file(boost::none),
+    num_procs(1), droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-    create(0), long_usage_bool(0), pass_prompt(0), db("gis"), username(boost::none), host(boost::none),
-    password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), extra_attributes(0), verbose(0)
+    create(false), long_usage_bool(false), pass_prompt(false), db("gis"), username(boost::none), host(boost::none),
+    password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), 
+    extra_attributes(false), verbose(false)
 {
 
 }
@@ -291,22 +292,22 @@ options_t options_t::parse(int argc, char *argv[])
         //handle the current arg
         switch (c) {
         case 'a':
-            options.append = 1;
+            options.append = true;
             break;
         case 'b':
             options.bbox = optarg;
             break;
         case 'c':
-            options.create = 1;
+            options.create = true;
             break;
         case 'v':
-            options.verbose = 1;
+            options.verbose = true;
             break;
         case 's':
-            options.slim = 1;
+            options.slim = true;
             break;
         case 'K':
-            options.keep_coastlines = 1;
+            options.keep_coastlines = true;
             break;
         case 'l':
             options.projection.reset(new reprojection(PROJ_LATLONG));
@@ -330,7 +331,7 @@ options_t options_t::parse(int argc, char *argv[])
             options.username = optarg;
             break;
         case 'W':
-            options.pass_prompt = 1;
+            options.pass_prompt = true;
             break;
         case 'H':
             options.host = optarg;
@@ -371,7 +372,7 @@ options_t options_t::parse(int argc, char *argv[])
             options.output_backend = optarg;
             break;
         case 'x':
-            options.extra_attributes = 1;
+            options.extra_attributes = true;
             break;
         case 'k':
             if (options.hstore_mode != HSTORE_NONE) {
@@ -380,7 +381,7 @@ options_t options_t::parse(int argc, char *argv[])
             options.hstore_mode = HSTORE_NORM;
             break;
         case 208:
-            options.hstore_match_only = 1;
+            options.hstore_match_only = true;
             break;
         case 'j':
             if (options.hstore_mode != HSTORE_NONE) {
@@ -398,11 +399,11 @@ options_t options_t::parse(int argc, char *argv[])
             options.input_reader = optarg;
             break;
         case 'h':
-            options.long_usage_bool = 1;
+            options.long_usage_bool = true;
             break;
         case 'I':
 #ifdef HAVE_PTHREAD
-            options.parallel_indexing = 0;
+            options.parallel_indexing = false;
 #endif
             break;
         case 204:
@@ -426,20 +427,20 @@ options_t options_t::parse(int argc, char *argv[])
 #endif
             break;
         case 206:
-            options.droptemp = 1;
+            options.droptemp = true;
             break;
         case 207:
-            options.unlogged = 1;
+            options.unlogged = true;
             break;
         case 209:
-            options.flat_node_cache_enabled = 1;
+            options.flat_node_cache_enabled = true;
             options.flat_node_file = optarg;
             break;
         case 210:
-            options.excludepoly = 1;
+            options.excludepoly = true;
             break;
         case 211:
-            options.enable_hstore_index = 1;
+            options.enable_hstore_index = true;
             break;
         case 212:
             options.tag_transform_script = optarg;
@@ -484,17 +485,17 @@ options_t options_t::parse(int argc, char *argv[])
 
     if (options.unlogged && !options.create) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
-        options.unlogged = 0;
+        options.unlogged = false;
     }
 
     if (options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0 && options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
-        options.hstore_match_only = 0;
+        options.hstore_match_only = false;
     }
 
     if (options.enable_hstore_index && options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
-        options.enable_hstore_index = 0;
+        options.enable_hstore_index = false;
     }
 
     if (options.cache < 0)
@@ -503,7 +504,7 @@ options_t options_t::parse(int argc, char *argv[])
     if (options.cache == 0) {
         fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
     }
-    if (sizeof(int*) == 4 && options.slim != 1) {
+    if (sizeof(int*) == 4 && !options.slim) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");

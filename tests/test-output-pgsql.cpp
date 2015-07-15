@@ -121,7 +121,7 @@ void test_regression_simple() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
     options.style = "default.style";
 
     boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
@@ -181,7 +181,7 @@ void test_latlong() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
     options.style = "default.style";
 
     options.projection.reset(new reprojection(PROJ_LATLONG));
@@ -245,7 +245,7 @@ void test_area_way_simple() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
     options.style = "default.style";
     options.flat_node_cache_enabled = true;
     options.flat_node_file = boost::optional<std::string>("tests/test_output_pgsql_area_way.flat.nodes.bin");
@@ -296,7 +296,7 @@ void test_route_rel() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 0;
+    options.slim = false;
     options.style = "default.style";
 
     boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_ram.get(), options));
@@ -347,7 +347,7 @@ void test_clone() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
     options.style = "default.style";
 
     output_pgsql_t out_test(mid_pgsql.get(), options);

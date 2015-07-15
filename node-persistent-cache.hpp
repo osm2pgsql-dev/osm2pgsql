@@ -51,7 +51,7 @@ inline bool operator<(osmid_t a, cache_index_entry const &b)
 
 struct node_persistent_cache : public boost::noncopyable
 {
-    node_persistent_cache(const struct options_t *options, int append,
+    node_persistent_cache(const struct options_t *options, bool append,
                           bool ro, boost::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 
@@ -78,7 +78,7 @@ private:
 
     int node_cache_fd;
     const char * node_cache_fname;
-    int append_mode;
+    bool append_mode;
 
     persistentCacheHeader cacheHeader;
     ramNodeBlock writeNodeBlock; /* larger node block for more efficient initial sequential writing of node cache */

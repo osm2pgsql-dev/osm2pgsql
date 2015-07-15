@@ -329,7 +329,7 @@ private:
     //how many jobs do we have in the queue to start with
     size_t ids_queued;
     //appending to output that is already there (diff processing)
-    int append;
+    bool append;
     //job queue
     pending_queue_t queue;
 
@@ -355,7 +355,7 @@ void osmdata_t::stop() {
     }
 
     // should be the same for all outputs
-    const int append = outs[0]->get_options()->append;
+    const bool append = outs[0]->get_options()->append;
 
     //threaded pending processing
     pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs, pending_count, append);

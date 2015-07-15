@@ -60,7 +60,7 @@ struct geometry_builder : public boost::noncopyable
     void set_exclude_broken_polygon(int exclude);
 
 private:
-    int excludepoly;
+    bool excludepoly;
 };
 
 #endif

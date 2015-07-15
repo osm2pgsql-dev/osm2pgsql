@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
-        options.slim = 1;
+        options.slim = true;
 
         boost::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
 

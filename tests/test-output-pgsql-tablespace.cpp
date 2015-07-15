@@ -101,7 +101,7 @@ void test_regression_simple() {
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = 1;
+    options.slim = true;
     options.style = "default.style";
 
     options.tblsslim_index = "tablespacetest";

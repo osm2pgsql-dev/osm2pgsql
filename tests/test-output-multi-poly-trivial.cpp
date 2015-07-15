@@ -66,7 +66,7 @@ void run_osm2pgsql(options_t &options) {
   osmdata.stop();
 }
 
-void check_output_poly_trivial(int enable_multi, std::string conninfo) {
+void check_output_poly_trivial(bool enable_multi, std::string conninfo) {
   options_t options;
   options.conninfo = conninfo.c_str();
   options.num_procs = 1;

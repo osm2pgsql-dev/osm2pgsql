@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
-        options.slim = 1;
+        options.slim = true;
 
         export_list columns;
         { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }

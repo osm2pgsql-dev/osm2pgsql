@@ -130,7 +130,7 @@ protected:
     osmid_t osm_id;
     filetypes_t filetype;
     actions_t action;
-    int parallel_indexing;
+    bool parallel_indexing;
 
     const int extra_attributes;
     const reprojection *proj;
