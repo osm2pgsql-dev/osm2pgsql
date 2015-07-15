@@ -29,7 +29,7 @@
 namespace {
 
 struct skip_test : public std::exception {
-    const char *what() { return "Test skipped."; }
+    const char *what() const noexcept { return "Test skipped."; }
 };
 
 void run_test(const char* test_name, void (*testfunc)()) {
