@@ -42,7 +42,7 @@
 AC_DEFUN([AX_LIB_ZLIB],
 [
     AC_ARG_WITH([zlib],
-        AC_HELP_STRING([--with-zlib=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-zlib=@<:@ARG@:>@],
             [use zlib library from given prefix (ARG=path); check standard prefixes (ARG=yes); disable (ARG=no)]
         ),
         [
@@ -76,14 +76,14 @@ AC_DEFUN([AX_LIB_ZLIB],
     )
 
     AC_ARG_WITH([zlib-inc],
-        AC_HELP_STRING([--with-zlib-inc=@<:@DIR@:>@],
+        AS_HELP_STRING([--with-zlib-inc=@<:@DIR@:>@],
             [path to zlib library headers]
         ),
         [zlib_include_dir="$withval"],
         [zlib_include_dir=""]
     )
     AC_ARG_WITH([zlib-lib],
-        AC_HELP_STRING([--with-zlib-lib=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-zlib-lib=@<:@ARG@:>@],
             [link options for zlib library]
         ),
         [zlib_lib_flags="$withval"],

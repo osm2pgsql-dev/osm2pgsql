@@ -22,7 +22,7 @@ AC_CONFIG_MACRO_DIR([m4])
 dnl Generate configuration header file
 AC_CONFIG_HEADER(config.h)
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
 
@@ -41,7 +41,7 @@ AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
 
 dnl Make sure we have libtool installed
-AM_PROG_LIBTOOL
+LT_INIT
 
 LFS_CFLAGS=`getconf LFS_CFLAGS`
 AC_SUBST(LFS_CFLAGS)

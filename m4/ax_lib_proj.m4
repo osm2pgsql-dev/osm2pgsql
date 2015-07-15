@@ -42,7 +42,7 @@
 AC_DEFUN([AX_LIB_PROJ],
 [
     AC_ARG_WITH([proj],
-        AC_HELP_STRING([--with-proj=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-proj=@<:@ARG@:>@],
             [use proj library from given prefix (ARG=path); check standard prefixes (ARG=yes); disable (ARG=no)]
         ),
         [
@@ -76,14 +76,14 @@ AC_DEFUN([AX_LIB_PROJ],
     )
 
     AC_ARG_WITH([proj-inc],
-        AC_HELP_STRING([--with-proj-inc=@<:@DIR@:>@],
+        AS_HELP_STRING([--with-proj-inc=@<:@DIR@:>@],
             [path to proj library headers]
         ),
         [proj_include_dir="$withval"],
         [proj_include_dir=""]
     )
     AC_ARG_WITH([proj-lib],
-        AC_HELP_STRING([--with-proj-lib=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-proj-lib=@<:@ARG@:>@],
             [link options for proj library]
         ),
         [proj_lib_flags="$withval"],

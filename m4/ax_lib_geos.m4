@@ -43,7 +43,7 @@
 AC_DEFUN([AX_LIB_GEOS],
 [
     AC_ARG_WITH([geos],
-        AC_HELP_STRING([--with-geos=@<:@ARG@:>@],
+        AS_HELP_STRING([--with-geos=@<:@ARG@:>@],
             [use geos library @<:@default=yes@:>@, optionally specify path to geos-config]
         ),
         [
