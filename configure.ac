@@ -78,7 +78,7 @@ then
 fi
 
 dnl Check for protobuf library and protoc binary
-PKG_CHECK_MODULES(PROTOBUF, protobuf-lite >= 0.28,
+PKG_CHECK_MODULES(PROTOBUF, protobuf-lite >= 2.4.0,
    [ AC_CHECK_PROG([PROTOC], [protoc], [protoc])
      AS_IF([test "x${PROTOC}" == "x"],
            [AC_MSG_ERROR([protoc compiler not found.])])
