@@ -46,3 +46,5 @@ script:
   ./autogen.sh && ./configure && make -j2
 after_failure:
   - cat config.log
+  # rerun make, but verbosely
+  - make V=1
