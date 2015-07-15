@@ -1,0 +1,15 @@
+[
+  {
+    "name": "test_poly",
+    "type": "polygon",
+    "tagtransform": "tests/test_output_multi_poly_trivial.lua",
+    "tagtransform-node-function": "drop_all",
+    "tagtransform-way-function": "drop_ways",
+    "tagtransform-relation-function": "test_rels",
+    "tagtransform-relation-member-function": "test_members",
+    "tags": [
+      {"name": "foo", "type": "text"},
+      {"name": "bar", "type": "text"}
+    ]
+  }
+]

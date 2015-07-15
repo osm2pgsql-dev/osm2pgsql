@@ -4,45 +4,15 @@ AUTOMAKE_OPTIONS = subdir-objects
 bin_PROGRAMS = osm2pgsql nodecachefilereader
 noinst_LTLIBRARIES = libosm2pgsql.la
 
-osm2pgsql_SOURCES = osm2pgsql.cpp \
-	geometry-builder.hpp \
-	expire-tiles.hpp \
-	input.hpp \
-	keyvals.hpp \
-	middle-pgsql.hpp \
-	middle-ram.hpp \
-	middle.hpp \
-	node-persistent-cache.hpp \
-	node-ram-cache.hpp \
-	options.hpp \
-	osmdata.hpp \
-	osmtypes.hpp \
-	output-gazetteer.hpp \
-	output-null.hpp \
-	output-pgsql.hpp \
-	output.hpp \
-	parse.hpp \
-	parse-o5m.hpp \
-	parse-pbf.hpp \
-	parse-xml2.hpp \
-	pgsql.hpp \
-	rb.hpp \
-	reprojection.hpp \
-	sanitizer.hpp \
-	sprompt.hpp \
-	table.hpp \
-	util.hpp
+osm2pgsql_SOURCES = osm2pgsql.cpp
 
 osm2pgsql_LDADD = libosm2pgsql.la
 
 libosm2pgsql_la_SOURCES = \
-	UTF8sanitizer.cpp \
 	expire-tiles.cpp \
 	geometry-builder.cpp \
 	geometry-processor.cpp \
 	id-tracker.cpp \
-	input.cpp \
-	keyvals.cpp \
 	middle.cpp \
 	middle-pgsql.cpp \
 	middle-ram.cpp \
@@ -57,14 +27,11 @@ libosm2pgsql_la_SOURCES = \
 	output-pgsql.cpp \
 	parse.cpp \
 	parse-o5m.cpp \
-	parse-pbf.cpp \
-	parse-xml2.cpp \
+	parse-osmium.cpp \
 	pgsql.cpp \
-	pgsql-id-tracker.cpp \
 	processor-line.cpp \
 	processor-point.cpp \
 	processor-polygon.cpp \
-	rb.cpp \
 	reprojection.cpp \
 	sprompt.cpp \
 	table.cpp \
@@ -80,11 +47,17 @@ check_PROGRAMS = \
 	tests/test-parse-xml2 \
 	tests/test-middle-ram \
 	tests/test-middle-pgsql \
+	tests/test-middle-flat \
+	tests/test-output-multi-tags \
 	tests/test-output-multi-line \
+	tests/test-output-multi-line-storage \
 	tests/test-output-multi-point \
 	tests/test-output-multi-point-multi-table \
 	tests/test-output-multi-polygon \
+	tests/test-output-multi-poly-trivial \
 	tests/test-output-pgsql \
+	tests/test-output-pgsql-z_order \
+	tests/test-output-pgsql-tablespace \
 	tests/test-pgsql-escape \
 	tests/test-parse-options \
 	tests/test-expire-tiles \
@@ -96,8 +69,14 @@ tests_test_middle_ram_SOURCES = tests/test-middle-ram.cpp tests/middle-tests.cpp
 tests_test_middle_ram_LDADD = libosm2pgsql.la
 tests_test_middle_pgsql_SOURCES = tests/test-middle-pgsql.cpp tests/middle-tests.cpp tests/common-pg.cpp
 tests_test_middle_pgsql_LDADD = libosm2pgsql.la
+tests_test_middle_flat_SOURCES = tests/test-middle-flat.cpp tests/middle-tests.cpp tests/common-pg.cpp
+tests_test_middle_flat_LDADD = libosm2pgsql.la
+tests_test_output_multi_tags_SOURCES = tests/test-output-multi-tags.cpp tests/common-pg.cpp
+tests_test_output_multi_tags_LDADD = libosm2pgsql.la
 tests_test_output_multi_line_SOURCES = tests/test-output-multi-line.cpp tests/common-pg.cpp
 tests_test_output_multi_line_LDADD = libosm2pgsql.la
+tests_test_output_multi_line_storage_SOURCES = tests/test-output-multi-line-storage.cpp tests/common-pg.cpp
+tests_test_output_multi_line_storage_LDADD = libosm2pgsql.la
 tests_test_output_multi_point_SOURCES = tests/test-output-multi-point.cpp tests/common-pg.cpp
 tests_test_output_multi_point_LDADD = libosm2pgsql.la
 tests_test_output_multi_point_multi_table_SOURCES = tests/test-output-multi-point-multi-table.cpp tests/common-pg.cpp
@@ -106,8 +85,14 @@ tests_test_output_multi_polygon_SOURCES = tests/test-output-multi-polygon.cpp te
 tests_test_output_multi_polygon_LDADD = libosm2pgsql.la
 tests_test_hstore_match_only_SOURCES = tests/test-hstore-match-only.cpp tests/common-pg.cpp
 tests_test_hstore_match_only_LDADD = libosm2pgsql.la
+tests_test_output_multi_poly_trivial_SOURCES = tests/test-output-multi-poly-trivial.cpp tests/common-pg.cpp
+tests_test_output_multi_poly_trivial_LDADD = libosm2pgsql.la
 tests_test_output_pgsql_SOURCES = tests/test-output-pgsql.cpp tests/common-pg.cpp
 tests_test_output_pgsql_LDADD = libosm2pgsql.la
+tests_test_output_pgsql_tablespace_SOURCES = tests/test-output-pgsql-tablespace.cpp tests/common-pg.cpp
+tests_test_output_pgsql_tablespace_LDADD = libosm2pgsql.la
+tests_test_output_pgsql_z_order_SOURCES = tests/test-output-pgsql-z_order.cpp tests/common-pg.cpp
+tests_test_output_pgsql_z_order_LDADD = libosm2pgsql.la
 tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_parse_options_SOURCES = tests/test-parse-options.cpp
@@ -115,58 +100,58 @@ tests_test_parse_options_LDADD = libosm2pgsql.la
 tests_test_expire_tiles_SOURCES = tests/test-expire-tiles.cpp
 tests_test_expire_tiles_LDADD = libosm2pgsql.la
 
+MOSTLYCLEANFILES = tests/test_middle_flat.flat.nodes.bin tests/test_output_pgsql_area_way.flat.nodes.bin
+
 TESTS = $(check_PROGRAMS) tests/regression-test.sh
 TEST_EXTENSIONS = .sh
 SH_LOG_COMPILER = sh
 
-if READER_PBF
-osm2pgsql_SOURCES += parse-pbf.hpp fileformat.pb-c.h osmformat.pb-c.h
-libosm2pgsql_la_SOURCES += parse-pbf.cpp fileformat.pb-c.c osmformat.pb-c.c
+libosm2pgsql_la_SOURCES += fileformat.pb.cc osmformat.pb.cc
 
-fileformat.pb-c.c: protobuf/fileformat.proto
-	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<
+fileformat.pb.cc: contrib/protobuf/fileformat.proto
+	 $(AM_V_GEN) $(PROTOC) --proto_path=contrib/protobuf --cpp_out=. $<
 
-fileformat.pb-c.h: fileformat.pb-c.c
-	@if test ! -f $@; then \
-	  rm -f $<; \
-	  $(MAKE) $(AM_MAKEFLAGS) $<; \
-	else :; fi
+contrib/protobuf/osmpbf/fileformat.pb.h: fileformat.pb.cc
+	cp fileformat.pb.h $@
 
-osmformat.pb-c.c: protobuf/osmformat.proto
-	 $(AM_V_GEN) $(PROTOC_C) --proto_path=protobuf --c_out=. $<
+osmformat.pb.cc: contrib/protobuf/osmformat.proto
+	 $(AM_V_GEN) $(PROTOC) --proto_path=contrib/protobuf --cpp_out=. $<
 
-osmformat.pb-c.h: osmformat.pb-c.c
-	@if test ! -f $@; then \
-	  rm -f $<; \
-	  $(MAKE) $(AM_MAKEFLAGS) $<; \
-	else :; fi
+contrib/protobuf/osmpbf/osmformat.pb.h: osmformat.pb.cc
+	cp osmformat.pb.h $@
+
+parse-osmium.cpp: contrib/protobuf/osmpbf/fileformat.pb.h contrib/protobuf/osmpbf/osmformat.pb.h
 
 BUILT_SOURCES = \
-  fileformat.pb-c.c fileformat.pb-c.h \
-  osmformat.pb-c.c osmformat.pb-c.h
+  fileformat.pb.cc contrib/protobuf/osmpbf/fileformat.pb.h \
+  osmformat.pb.cc contrib/protobuf/osmpbf/osmformat.pb.h
 
 CLEANFILES = \
-  fileformat.pb-c.c fileformat.pb-c.h \
-  osmformat.pb-c.c osmformat.pb-c.h
-
-endif
+  fileformat.pb.cc fileformat.pb.h contrib/protobuf/osmpbf/fileformat.pb.h \
+  osmformat.pb.cc osmformat.pb.h contrib/protobuf/osmpbf/osmformat.pb.h
 
 osm2pgsqldir = $(datadir)/osm2pgsql
 
-AM_CFLAGS = @PTHREAD_CFLAGS@ @LFS_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ @PROTOBUF_C_CFLAGS@ @ZLIB_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -DVERSION='"@PACKAGE_VERSION@"' @LUA_INCLUDE@
-AM_CPPFLAGS = @PTHREAD_CFLAGS@ @POSTGRESQL_CFLAGS@ @XML2_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@ @BOOST_CPPFLAGS@
+AM_CFLAGS = @PTHREAD_CFLAGS@ @LFS_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @EXPAT_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ @PROTOBUF_CFLAGS@ @ZLIB_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -DVERSION='"@PACKAGE_VERSION@"' @LUA_INCLUDE@
+AM_CPPFLAGS = -Icontrib/protobuf -Icontrib/libosmium @PTHREAD_CFLAGS@ @POSTGRESQL_CPPFLAGS@ @EXPAT_CFLAGS@ @BZIP2_CFLAGS@ @GEOS_CFLAGS@ @PROJ_CFLAGS@ -DOSM2PGSQL_DATADIR='"$(osm2pgsqldir)"' -Igeos-fallback @LUA_INCLUDE@ @BOOST_CPPFLAGS@
 
-GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @XML2_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_C_LDFLAGS@ @PROTOBUF_C_LIBS@ -L/usr/lib/x86_64-linux-gnu @LUA_LIB@ @BOOST_LDFLAGS@ @BOOST_FILESYSTEM_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_THREAD_LIB@ -lstdc++
+GLOBAL_LDFLAGS = @PTHREAD_CFLAGS@ @ZLIB_LDFLAGS@ @ZLIB_LIBS@ @POSTGRESQL_LDFLAGS@ @POSTGRESQL_LIBS@ @EXPAT_LDFLAGS@ @BZIP2_LDFLAGS@ @BZIP2_LIBS@ @GEOS_LDFLAGS@ @GEOS_LIBS@ @PROJ_LDFLAGS@ @PROJ_LIBS@ @PROTOBUF_LIBS@ -L/usr/lib/x86_64-linux-gnu @EXPAT_LIBS@ @LUA_LIB@ @BOOST_LDFLAGS@ @BOOST_FILESYSTEM_LIB@ @BOOST_SYSTEM_LIB@ @BOOST_THREAD_LIB@
 osm2pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_xml2_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_ram_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_middle_pgsql_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_middle_flat_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_multi_tags_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_line_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_multi_line_storage_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_point_multi_table_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_multi_polygon_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_hstore_match_only_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_multi_poly_trivial_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_pgsql_tablespace_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_pgsql_z_order_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_parse_options_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_expire_tiles_LDADD += $(GLOBAL_LDFLAGS)
@@ -178,8 +163,8 @@ man1_MANS = docs/osm2pgsql.1 docs/nodecachefilereader.1
 
 EXTRA_DIST = osm2pgsql.spec.in \
              osm2pgsql.spec \
-             protobuf/fileformat.proto \
-             protobuf/osmformat.proto \
+             contrib/protobuf/fileformat.proto \
+             contrib/protobuf/osmformat.proto \
              debian \
              $(osm2pgsql_DATA)
 

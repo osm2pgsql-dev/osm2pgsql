@@ -2,18 +2,23 @@
 #include "options.hpp"
 #include "util.hpp"
 
-#include <string.h>
+#include <exception>
+#include <algorithm>
+#include <cstring>
+#include <cstdio>
 #include <utility>
+#include <time.h>
 
 using std::string;
+typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 
 
 table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srid, const int scale, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
+    const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(NULL), copyMode(false), srid((fmt("%1%") % srid).str()), scale(scale),
+    conninfo(conninfo), name(name), type(type), sql_conn(NULL), copyMode(false), srid((fmt("%1%") % srid).str()),
     append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
@@ -31,7 +36,7 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 }
 
 table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(NULL), copyMode(false), buffer(), srid(other.srid), scale(other.scale),
+    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(NULL), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
     table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
@@ -141,6 +146,10 @@ void table_t::start()
         else
             sql[sql.length() - 1] = ')';
 
+        // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
+        // This means that they won't get this autovacuum setting, so it doesn't
+        // doesn't need to be RESET on these tables
+        sql += " WITH ( autovacuum_enabled = FALSE )";
         //add the main table space
         if (table_space)
             sql += " TABLESPACE " + table_space.get();
@@ -218,8 +227,6 @@ void table_t::stop()
         time(&start);
 
         fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
-        fprintf(stderr, "Analyzing %s finished\n", name.c_str());
 
         // Special handling for empty geometries because geohash chokes on
         // empty geometries on postgis 1.5.
@@ -295,14 +302,8 @@ void table_t::stop_copy()
     copyMode = false;
 }
 
-void table_t::write_node(const osmid_t id, struct keyval *tags, double lat, double lon)
+void table_t::write_node(const osmid_t id, const taglist_t &tags, double lat, double lon)
 {
-#ifdef FIXED_POINT
-    // guarantee that we use the same values as in the node cache
-    lon = util::fix_to_double(util::double_to_fix(lon, scale), scale);
-    lat = util::fix_to_double(util::double_to_fix(lat, scale), scale);
-#endif
-
     write_wkt(id, tags, (point_fmt % lon % lat).str().c_str());
 }
 
@@ -312,21 +313,27 @@ void table_t::delete_row(const osmid_t id)
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (del_fmt % name % id).str());
 }
 
-void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
+void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt)
 {
     //add the osm id
     buffer.append((single_fmt % id).str());
     buffer.push_back('\t');
 
+    // used to remember which columns have been written out already.
+    std::vector<bool> used;
+
+    if (hstore_mode != HSTORE_NONE)
+        used.assign(tags.size(), false);
+
     //get the regular columns' values
-    write_columns(tags, buffer);
+    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:NULL);
 
     //get the hstore columns' values
     write_hstore_columns(tags, buffer);
 
     //get the key value pairs for the tags column
     if (hstore_mode != HSTORE_NONE)
-        write_tags_column(tags, buffer);
+        write_tags_column(tags, buffer, used);
 
     //give the wkt an srid
     buffer.append("SRID=");
@@ -352,18 +359,18 @@ void table_t::write_wkt(const osmid_t id, struct keyval *tags, const char *wkt)
     }
 }
 
-void table_t::write_columns(keyval *tags, string& values)
+void table_t::write_columns(const taglist_t &tags, string& values, std::vector<bool> *used)
 {
     //for each column
     for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
     {
-        keyval *tag = NULL;
-        if ((tag = tags->getTag(column->first)))
+        int idx;
+        if ((idx = tags.indexof(column->first)) >= 0)
         {
-            escape_type(tag->value, column->second.c_str(), values);
+            escape_type(tags[idx].value, column->second, values);
             //remember we already used this one so we cant use again later in the hstore column
-            if (hstore_mode == HSTORE_NORM)
-                tag->has_column = 1;
+            if (used)
+                (*used)[idx] = true;
         }
         else
             values.append("\\N");
@@ -371,22 +378,24 @@ void table_t::write_columns(keyval *tags, string& values)
     }
 }
 
-void table_t::write_tags_column(keyval *tags, std::string& values)
+void table_t::write_tags_column(const taglist_t &tags, std::string& values,
+                                const std::vector<bool> &used)
 {
     //iterate through the list of tags, first one is always null
     bool added = false;
-    for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
+    for (size_t i = 0; i < tags.size(); ++i)
     {
+        const tag& xtag = tags[i];
         //skip z_order tag and keys which have their own column
-        if (xtags->has_column || ("z_order" == xtags->key))
+        if (used[i] || ("z_order" == xtag.key))
             continue;
 
         //hstore ASCII representation looks like "key"=>"value"
         if(added)
             values.push_back(',');
-        escape4hstore(xtags->key.c_str(), values);
+        escape4hstore(xtag.key.c_str(), values);
         values.append("=>");
-        escape4hstore(xtags->value.c_str(), values);
+        escape4hstore(xtag.value.c_str(), values);
 
         //we did at least one so we need commas from here on out
         added = true;
@@ -397,7 +406,7 @@ void table_t::write_tags_column(keyval *tags, std::string& values)
 }
 
 /* write an hstore column to the database */
-void table_t::write_hstore_columns(keyval *tags, std::string& values)
+void table_t::write_hstore_columns(const taglist_t &tags, std::string& values)
 {
     //iterate over all configured hstore columns in the options
     for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
@@ -405,12 +414,12 @@ void table_t::write_hstore_columns(keyval *tags, std::string& values)
         bool added = false;
 
         //iterate through the list of tags, first one is always null
-        for (keyval* xtags = tags->firstItem(); xtags; xtags = tags->nextItem(xtags))
+        for (taglist_t::const_iterator xtags = tags.begin(); xtags != tags.end(); ++xtags)
         {
             //check if the tag's key starts with the name of the hstore column
             if(xtags->key.compare(0, hstore_column->size(), *hstore_column) == 0)
             {
-                //generate the short key name, somehow pointer arithmetic works against this member of the keyval data structure...
+                //generate the short key name, somehow pointer arithmetic works against the key string...
                 const char* shortkey = xtags->key.c_str() + hstore_column->size();
 
                 //and pack the shortkey with its value into the hstore
@@ -465,10 +474,10 @@ void table_t::escape4hstore(const char *src, string& dst)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const string &value, const char *type, string& dst) {
+void table_t::escape_type(const string &value, const string &type, string& dst) {
 
     // For integers we take the first number, or the average if it's a-b
-    if (!strcmp(type, "int4")) {
+    if (type == "int4") {
         int from, to;
         int items = sscanf(value.c_str(), "%d-%d", &from, &to);
         if (items == 1)
@@ -485,7 +494,7 @@ void table_t::escape_type(const string &value, const char *type, string& dst) {
          * convert feet to meters (1 foot = 0.3048 meters)
          * reject anything else
          */
-    else if (!strcmp(type, "real"))
+    else if (type == "real")
     {
         string escaped(value);
         std::replace(escaped.begin(), escaped.end(), ',', '.');

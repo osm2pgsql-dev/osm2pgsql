@@ -8,15 +8,15 @@
  * https://subversion.nexusuk.org/trac/browser/openpistemap/trunk/scripts/expire_tiles.py
  */
 
-#include <libpq-fe.h>
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include "output.hpp"
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <cerrno>
+#include <string>
+
+#include "expire-tiles.hpp"
 #include "options.hpp"
 #include "geometry-builder.hpp"
-#include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
 
@@ -259,7 +259,7 @@ expire_tiles::~expire_tiles() {
 }
 
 expire_tiles::expire_tiles(const struct options_t *options)
-    : Options(options), map_width(0), tile_width(0),
+    : map_width(0), tile_width(0), Options(options),
       dirty(NULL)
 {
 	if (Options->expire_tiles_zoom < 0) return;
@@ -413,80 +413,71 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 	return 0;
 }
 
-void expire_tiles::from_nodes_line(const struct osmNode * nodes, int count) {
-	int	i;
-	double	last_lat;
-	double	last_lon;
+void expire_tiles::from_nodes_line(const nodelist_t &nodes)
+{
+    if (Options->expire_tiles_zoom < 0 || nodes.empty())
+        return;
 
-	if (Options->expire_tiles_zoom < 0) return;
-	if (count < 1) return;
-	last_lat = nodes[0].lat;
-	last_lon = nodes[0].lon;
-	if (count < 2) {
-		from_bbox(last_lon, last_lat, last_lon, last_lat);
-		return;
-	}
-	for (i = 1; i < count; i ++) {
-		from_line(last_lon, last_lat, nodes[i].lon, nodes[i].lat);
-		last_lat = nodes[i].lat;
-		last_lon = nodes[i].lon;
-	}
+    if (nodes.size() == 1) {
+        from_bbox(nodes[0].lon, nodes[0].lat, nodes[0].lon, nodes[0].lat);
+    } else {
+        for (size_t i = 1; i < nodes.size(); ++i)
+            from_line(nodes[i-1].lon, nodes[i-1].lat, nodes[i].lon, nodes[i].lat);
+    }
 }
 
 /*
  * Calculate a bounding box from a list of nodes and expire all tiles within it
  */
-void expire_tiles::from_nodes_poly(const struct osmNode * nodes, int count, osmid_t osm_id) {
-	int	i;
-	int	got_coords = 0;
-	double	min_lon = 0.0;
-	double	min_lat = 0.0;
-	double	max_lon = 0.0;
-	double	max_lat = 0.0;
+void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
+{
+    if (Options->expire_tiles_zoom < 0 || nodes.empty())
+        return;
 
-	if (Options->expire_tiles_zoom < 0) return;
-	for (i = 0; i < count; i++) {
-		if ((! got_coords) || (nodes[i].lon < min_lon)) min_lon = nodes[i].lon;
-		if ((! got_coords) || (nodes[i].lat < min_lat)) min_lat = nodes[i].lat;
-		if ((! got_coords) || (nodes[i].lon > max_lon)) max_lon = nodes[i].lon;
-		if ((! got_coords) || (nodes[i].lat > max_lat)) max_lat = nodes[i].lat;
-		got_coords = 1;
-	}
-	if (got_coords) {
-		if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {
-			/* Bounding box too big - just expire tiles on the line */
-			fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
-			from_nodes_line(nodes, count);
-		}
-	}
+    double min_lon = nodes[0].lon;
+    double min_lat = nodes[0].lat;
+    double max_lon = nodes[0].lon;
+    double max_lat = nodes[0].lat;
+
+    for (size_t i = 1; i < nodes.size(); ++i) {
+        if (nodes[i].lon < min_lon) min_lon = nodes[i].lon;
+        if (nodes[i].lat < min_lat) min_lat = nodes[i].lat;
+        if (nodes[i].lon > max_lon) max_lon = nodes[i].lon;
+        if (nodes[i].lat > max_lat) max_lat = nodes[i].lat;
+    }
+
+    if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {
+        /* Bounding box too big - just expire tiles on the line */
+        fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
+        from_nodes_line(nodes);
+    }
 }
 
-void expire_tiles::from_xnodes_poly(const struct osmNode * const * xnodes, int * xcount, osmid_t osm_id) {
-	int	i;
-
-        for (i = 0; xnodes[i]; i++) from_nodes_poly(xnodes[i], xcount[i], osm_id);
+void expire_tiles::from_xnodes_poly(const multinodelist_t &xnodes, osmid_t osm_id)
+{
+    for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it)
+        from_nodes_poly(*it, osm_id);
 }
 
-void expire_tiles::from_xnodes_line(const struct osmNode * const * xnodes, int * xcount) {
-	int	i;
-
-        for (i = 0; xnodes[i]; i++) from_nodes_line(xnodes[i], xcount[i]);
+void expire_tiles::from_xnodes_line(const multinodelist_t &xnodes)
+{
+    for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it)
+        from_nodes_line(*it);
 }
 
-void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id) {
-	struct osmNode **	xnodes;
-	int *			xcount;
-	int			polygon;
-	int			i;
+void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id)
+{
+    if (Options->expire_tiles_zoom < 0) return;
 
-	if (Options->expire_tiles_zoom < 0) return;
-	if (! geometry_builder::parse_wkt(wkt, &xnodes, &xcount, &polygon)) {
-		if (polygon) from_xnodes_poly(xnodes, xcount, osm_id);
-		else from_xnodes_line(xnodes, xcount);
-		for (i = 0; xnodes[i]; i++) free(xnodes[i]);
-		free(xnodes);
-		free(xcount);
-	}
+    multinodelist_t xnodes;
+    int polygon;
+
+    if (!geometry_builder::parse_wkt(wkt, xnodes, &polygon)) {
+        if (polygon)
+            from_xnodes_poly(xnodes, osm_id);
+        else
+            from_xnodes_line(xnodes);
+    }
 }
 
 /*

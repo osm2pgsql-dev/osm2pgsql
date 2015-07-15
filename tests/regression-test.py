@@ -34,9 +34,9 @@ sql_test_statements=[
     ( 15, 'Gazetteer place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 759),
     ( 16, 'Gazetteer place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 2059),
     ( 17, 'Gazetteer place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 19),
-    ( 18, 'Gazetteer post-diff place count', 'SELECT count(*) FROM place', 2879),
+    ( 18, 'Gazetteer post-diff place count', 'SELECT count(*) FROM place', 2878),
     ( 19, 'Gazetteer post-diff place node count', 'SELECT count(*) FROM place WHERE osm_type = \'N\'', 764),
-    ( 20, 'Gazetteer post-diff place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 2096),
+    ( 20, 'Gazetteer post-diff place way count', 'SELECT count(*) FROM place WHERE osm_type = \'W\'', 2095),
     ( 21, 'Gazetteer post-diff place rel count', 'SELECT count(*) FROM place WHERE osm_type = \'R\'', 19),
     ( 22, 'Gazetteer housenumber count', 'SELECT count(*) FROM place WHERE housenumber is not null', 199),
     ( 23, 'Gazetteer post-diff housenumber count count', 'SELECT count(*) FROM place WHERE housenumber is not null', 199),
@@ -115,7 +115,7 @@ sql_test_statements=[
     ( 65, 'Multipolygon non copying of tags from outer with polygon tags on relation (presence of way)',
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = 83 and "landuse" = \'farmland\'', 24859),
     ( 66, 'Multipolygon diff moved point of outer way case (Tags from outer way)',
-      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -15 and landuse = \'residential\' and name = \'Name_way\'', 24751),
+      'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -15 and landuse = \'residential\' and name = \'Name_way\'', 24750),
     ( 67, 'Multipolygon diff moved point of inner way case (Tags from relation)',
       'SELECT round(ST_Area(way)) FROM planet_osm_polygon WHERE osm_id = -1 and landuse = \'residential\' and name = \'Name_rel\'', 13949),
     ( 68, 'Multipolygon point of inner way case (Tags from relation)',
@@ -168,11 +168,11 @@ sql_test_statements=[
     ( 92, 'Basic line length', 'SELECT round(sum(ST_Length(way))) FROM planet_osm_roads;', 2032023),
     ( 93, 'Basic number of hstore points tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_point;', 4228),
     ( 94, 'Basic number of hstore roads tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_roads;', 2316),
-    ( 95, 'Basic number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 10897),
+    ( 95, 'Basic number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11131),
     ( 96, 'Basic number of hstore polygons tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_polygon;', 9540),
     ( 97, 'Diff import number of hstore points tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_point;', 4352),
     ( 98, 'Diff import number of hstore roads tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_roads;', 2340),
-    ( 99, 'Diff import number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11020),
+    ( 99, 'Diff import number of hstore lines tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_line;', 11254),
     ( 100, 'Diff import number of hstore polygons tags', 'SELECT sum(array_length(akeys(tags),1)) FROM planet_osm_polygon;', 9834),
     #**** Tests to check if inner polygon appears when outer tags change after initially identicall inner and outer way tags in a multi-polygon ****
     #**** These tests are currently broken and noted in trac ticket #2853 ****
@@ -188,7 +188,7 @@ sql_test_statements=[
       'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = 112 and "natural" = \'heath\'', 1234),
     #**** Test to check that only polygon tags that are present on all outer ways get copied over to the multi-polygon relation ****
     ( 106, 'Multipolygon copy outer tags (presence of relation)',
-      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\'', 29340),
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\'', 29341),
     ( 107, 'Multipolygon copy outer tags (absence of partial outer tags)',
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = -38 and "natural" = \'water\' and "man_made" = \'pier\'', 0),
     ( 108, 'Multipolygon copy outer tags (absence of multi-polygon tagged outer way)',
@@ -209,7 +209,7 @@ sql_test_statements=[
       'SELECT round(sum(ST_length(way))) FROM planet_osm_line WHERE (osm_id = 127 OR osm_id = 122) AND "man_made" = \'pier\'', 318),
     #**** Test to check that if polygon tags are on both outer ways and relation, polygons don't get duplicated in the db ****
     ( 116, 'Multipolygon tags on both outer and relation (presence of relation)',
-      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -39 and "landuse" = \'forest\'', 10379),
+      'SELECT round(sum(ST_Area(way))) FROM planet_osm_polygon WHERE osm_id = -39 and "landuse" = \'forest\'', 10378),
     ( 117, 'Multipolygon tags on both outer and relation (absence of outer way)',
       'SELECT count(*) FROM planet_osm_polygon WHERE osm_id = 138', 0),
     ( 118, 'Multipolygon tags on both outer and relation with additional tags on relation (presence of relation)',
@@ -336,7 +336,7 @@ class BaseTestCase(unittest.TestCase):
             self.conn=psycopg2.connect("dbname='osm2pgsql-test'")
             self.conn.autocommit = True
             self.cur = self.conn.cursor()
-        except Exception, e:
+        except Exception as e:
             print "I am unable to connect to the database." + e
 
     def dbClose(self):
@@ -352,7 +352,7 @@ class BaseTestCase(unittest.TestCase):
                 try:
                     self.cur.execute(sql_test_statements[i][2])
                     res = self.cur.fetchall()
-                except Exception, e:
+                except Exception as e:
                     self.assertEqual(0, 1, str(sql_test_statements[i][0]) + ": Failed to execute " + sql_test_statements[i][1] +
                                      " (" + sql_test_statements[i][2] + ") {" + str(self.parameters) +"}")
                 if (res == None):
@@ -507,13 +507,13 @@ def setupDB():
     try:
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database."
         exit(1)
 
     try:
         gen_cur = gen_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         gen_conn.close()
         print "I am unable to connect to the database."
         exit(1)
@@ -521,7 +521,7 @@ def setupDB():
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         gen_cur.execute("""CREATE DATABASE \"osm2pgsql-test\" WITH ENCODING 'UTF8'""")
-    except Exception, e:
+    except Exception as e:
         print "Failed to create osm2pgsql-test db" + e.pgerror
         exit(1);
     finally:
@@ -531,13 +531,13 @@ def setupDB():
     try:
         test_conn=psycopg2.connect("dbname='osm2pgsql-test'")
         test_conn.autocommit = True
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database." + e
         exit(1)
 
     try:
         test_cur = test_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database." + e
         gen_conn.close()
         exit(1)
@@ -558,7 +558,7 @@ def setupDB():
                 print "  sudo /bin/chown postgres.postgres tmp/psql-tablespace"
                 print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
                 exit(77)
-        except Exception, e:
+        except Exception as e:
             print "Failed to create directory for tablespace" + str(e)
 
         # Check for postgis
@@ -578,7 +578,7 @@ def setupDB():
         # Check for hstore support
         try:
             test_cur.execute("""CREATE EXTENSION hstore;""")
-        except Exception, e:
+        except Exception as e:
             hst = findContribSql('hstore.sql')
             pgscript = open(hst).read()
             test_cur.execute(pgscript)
@@ -593,7 +593,7 @@ def tearDownDB():
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
         gen_cur = gen_conn.cursor()
-    except Exception, e:
+    except Exception as e:
         print "I am unable to connect to the database."
         exit(1)
 
@@ -601,7 +601,7 @@ def tearDownDB():
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         if (created_tablespace == 1):
             gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
-    except Exception, e:
+    except Exception as e:
         print "Failed to clean up osm2pgsql-test db" + e.pgerror
         exit(1);
 

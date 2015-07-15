@@ -29,9 +29,10 @@
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include <stdint.h>
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
 #include <unistd.h>
 #include <time.h>
 #include <fcntl.h>
@@ -41,7 +42,9 @@
 #endif
 
 #include "parse-o5m.hpp"
-#include "output.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 #define inline
 
@@ -337,7 +340,7 @@ static byte* read_bufp= NULL;  /* may be incremented by external */
    called again; */
 static byte* read_bufe= NULL;  /* may not be changed from external */
 
-static int read_open(const char* filename) {
+static int read_open(const std::string &filename) {
     /* open an input file;
        filename[]: path and name of input file;
                ==NULL: standard input;
@@ -373,16 +376,15 @@ return 1;
   /* open the file */
   if(loglevel>=2)
     fprintf(stderr,"Read-opening: %s",
-      filename==NULL? "stdin": filename);
-  if(filename==NULL)  /* stdin shall be opened */
+      (filename == "-") ? "stdin": filename.c_str());
+  if(filename=="-")  /* stdin shall be opened */
     read_infop->fd= 0;
-  else if(filename!=NULL) {  /* a real file shall be opened */
-    read_infop->fd= open(filename,O_RDONLY|O_BINARY);
+  else {  /* a real file shall be opened */
+    read_infop->fd= open(filename.c_str(),O_RDONLY|O_BINARY);
     if(read_infop->fd<0) {
       if(loglevel>=2)
         fprintf(stderr," -> failed\n");
-      PERRv("could not open input file: %.80s\n",
-        filename==NULL? "standard input": filename)
+      PERRv("could not open input file: %.80s\n", filename.c_str())
       free(read_infop); read_infop= NULL;
       read_bufp= read_bufe= NULL;
 return 1;
@@ -402,7 +404,7 @@ static void read_close() {
 return;
   fd= read_infop->fd;
   if(loglevel>=1) {  /* verbose */
-      fprintf(stderr,"osm2pgsql: Number of bytes read: %"PRIu64"\n",
+      fprintf(stderr,"osm2pgsql: Number of bytes read: %" PRIu64 "\n",
       read_infop->read__counter);
     }
   if(loglevel>=2) {
@@ -628,29 +630,20 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
   end   Module str_   string read module
   ------------------------------------------------------------ */
 
-parse_o5m_t::parse_o5m_t(const int extra_attributes_, const bool bbox_, const boost::shared_ptr<reprojection>& projection_,
-		const double minlon, const double minlat, const double maxlon, const double maxlat):
-		parse_t(extra_attributes_, bbox_, projection_, minlon, minlat, maxlon, maxlat)
-{
+parse_o5m_t::parse_o5m_t(int extra_attrs, const bbox_t &box, const reprojection *projection)
+: parse_t(extra_attrs, box, projection)
+{}
 
-}
 
-parse_o5m_t::~parse_o5m_t()
-{
-
-}
-
-int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t *osmdata) {
+void parse_o5m_t::stream_file(const std::string &filename, osmdata_t *osmdata) {
     /* open and parse an .o5m file; */
     /* return: ==0: ok; !=0: error; */
     int otype;  /*  type of currently processed object; */
   /* 0: node; 1: way; 2: relation; */
   uint32_t hisver;
   int64_t histime;
-  int64_t hiscset;
   uint32_t hisuid;
   char* hisuser;
-  str_info_t* str;  /* string unit handle (if o5m format) */
   bool endoffile;
   int64_t o5id;  /* for o5m delta coding */
   int32_t o5lon,o5lat;  /* for o5m delta coding */
@@ -660,13 +653,12 @@ int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t 
   byte* bufp;  /* pointer in read buffer */
 #define bufsp ((char*)bufp)  /* for signed char */
   byte* bufe;  /* pointer in read buffer, end of object */
-  char c;  /* latest character which has been read */
   byte b;  /* latest byte which has been read */
   int l;
   byte* bp;
 
   /* procedure initializations */
-  str= str_open();
+  str_open();
   /* call some initialization of string read module */
   str_reset();
   o5id= 0;
@@ -677,27 +669,25 @@ int parse_o5m_t::streamFile(const char *filename, const int sanitize, osmdata_t 
 
   /* open the input file */
   if(read_open(filename)!=0) {
-    fprintf(stderr,"Unable to open %s\n",filename);
-return 1;
+      std::runtime_error("Unable to open file\n");
     }
   endoffile= false;
 
   /* determine file type */ {
-      const char* p = NULL;
-
     read_input();
     if(*read_bufp!=0xff) {  /* cannot be an .o5m file, nor an .o5c file */
-      PERR("File format neither .o5m nor .o5c")
-return 1;
+        std::runtime_error("File format neither .o5m nor .o5c");
       }
-    p= strchr(filename,0)-4;  /* get end of filename */
+    std::string fext;
+    if (filename.length() >= 4)
+        fext = filename.substr(filename.length() - 4, 4);  /* get end of filename */
     if(memcmp(read_bufp,"\xff\xe0\0x04""o5m2",7)==0)
       filetype= FILETYPE_OSM;
     else if(memcmp(read_bufp,"\xff\xe0\0x04""o5c2",7)==0)
       filetype= FILETYPE_OSMCHANGE;
-    else if(p>=filename && strcmp(p,".o5m")==0)
+    else if(fext==".o5m")
       filetype= FILETYPE_OSM;
-    else if(p>=filename && (strcmp(p,".o5c")==0 || strcmp(p,".o5h")==0))
+    else if(fext==".o5c" || fext==".o5h")
       filetype= FILETYPE_OSMCHANGE;
     else {
       WARN("File type not specified. Assuming .o5m")
@@ -715,7 +705,7 @@ return 1;
       /* get next object */
     read_input();
     bufp= read_bufp;
-    b= *bufp; c= (char)b;
+    b= *bufp;
 
     /* care about file end */
     if(read_bufp>=read_bufe)  /* at end of input file; */
@@ -759,11 +749,11 @@ return 1;
     /* object initialization */
     hisver= 0;
     histime= 0;
-    hiscset= 0;
     hisuid= 0;
     hisuser= NULL;
-    nd_count= 0;
-    member_count= 0;
+
+    nds.clear();
+    members.clear();
 
     /* read object id */
     bufp++;
@@ -774,31 +764,13 @@ return 1;
     /* do statistics on object id */
     switch(otype) {
     case 0:  /* node */
-      if(osm_id>max_node)
-        max_node= osm_id;
-      if (count_node == 0) {
-        time(&start_node);
-      }
-      count_node++;
-      if(count_node%10000==0) printStatus();
+      stats.add_node(osm_id);
       break;
     case 1:  /* way */
-      if(osm_id>max_way)
-        max_way= osm_id;
-      if (count_way == 0) {
-        time(&start_way);
-      }
-      count_way++;
-      if(count_way%1000==0) printStatus();
+      stats.add_way(osm_id);
       break;
     case 2:  /* relation */
-      if(osm_id>max_rel)
-        max_rel= osm_id;
-      if (count_rel == 0) {
-        time(&start_rel);
-      }
-      count_rel++;
-      if(count_rel%10==0) printStatus();
+      stats.add_rel(osm_id);
       break;
     default: ;
       }
@@ -809,18 +781,18 @@ return 1;
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      tags.addItem("osm_version",tmpstr,false);
+      tags.push_back(tag("osm_version",tmpstr));
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        tags.addItem("osm_timestamp",tmpstr, false);
+        tags.push_back(tag("osm_timestamp",tmpstr));
         if(histime!=0) {
-            hiscset= o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
+          o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          tags.addItem("osm_uid",tmpstr,false);
-          tags.addItem("osm_user",hisuser,false);
+          tags.push_back(tag("osm_uid",tmpstr));
+          tags.push_back(tag("osm_user",hisuser));
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -841,7 +813,7 @@ return 1;
         break;
       default: ;
         }
-      tags.resetList();
+      tags.clear();
       continue;  /* end processing for this object */
     }  /* end   delete request */
     else {  /* not a delete request */
@@ -857,8 +829,8 @@ return 1;
           /* read node body */
         node_lon= (double)(o5lon+= pbf_sint32(&bufp))/10000000;
         node_lat= (double)(o5lat+= pbf_sint32(&bufp))/10000000;
-        if(!node_wanted(node_lat,node_lon)) {
-          tags.resetList();
+        if(!bbox.inside(node_lat,node_lon)) {
+          tags.clear();
   continue;
           }
         proj->reproject(&(node_lat),&(node_lon));
@@ -870,9 +842,8 @@ return 1;
         bp= bufp+l;
         if(bp>bufe) bp= bufe;  /* (format error) */
         while(bufp<bp) {  /* for all noderefs of this way */
-          nds[nd_count++]= o5rid[0]+= pbf_sint64(&bufp);
-          if(nd_count>=nd_max)
-            realloc_nodes();
+          o5rid[0]+= pbf_sint64(&bufp);
+          nds.push_back(o5rid[0]);
         }  /* end   for all noderefs of this way */
       }  /* end   way */
 
@@ -889,22 +860,20 @@ return 1;
           ri= pbf_sint64(&bufp);
           str_read(&bufp,&rr,NULL);
           rt= (*rr++ -'0')%3;
+          OsmType type = OSMTYPE_NODE;
           switch(rt) {
           case 0:  /* node */
-            members[member_count].type= OSMTYPE_NODE;
+            type= OSMTYPE_NODE;
             break;
           case 1:  /* way */
-            members[member_count].type= OSMTYPE_WAY;
+            type= OSMTYPE_WAY;
             break;
           case 2:  /* relation */
-            members[member_count].type= OSMTYPE_RELATION;
+            type= OSMTYPE_RELATION;
             break;
             }
-          members[member_count].id= o5rid[rt]+= ri;
-          members[member_count].role= rr;
-          member_count++;
-          if(member_count>=member_max)
-            realloc_members();
+          o5rid[rt]+= ri;
+          members.push_back(member(type, o5rid[rt], rr));
         }  /* end   for all references of this relation */
       }  /* end   relation */
 
@@ -913,15 +882,13 @@ return 1;
         char* k,*v,*p;
 
         str_read(&bufp,&k,&v);
-        if(strcmp(k,"created_by") && strcmp(k,"source")) {
-          p= k;
-          while(*p!=0) {
-            if(*p==' ') *p= '_';
-            /* replace all blanks in key by underlines */
-            p++;
-            }
-          tags.addItem(k,v,false);
+        p= k;
+        while(*p!=0) {
+          if(*p==' ') *p= '_';
+          /* replace all blanks in key by underlines */
+          p++;
           }
+        tags.push_back(tag(k,v));
       }  /* end   for all tags of this object */
 
       /* write object into database */
@@ -929,39 +896,38 @@ return 1;
       case 0:  /* node */
         if(action==ACTION_CREATE)
           osmdata->node_add(osm_id,
-            node_lat,node_lon,&(tags));
+            node_lat,node_lon,tags);
         else /* ACTION_MODIFY */
           osmdata->node_modify(osm_id,
-            node_lat,node_lon,&(tags));
+            node_lat,node_lon,tags);
         break;
       case 1:  /* way */
         if(action==ACTION_CREATE)
           osmdata->way_add(osm_id,
-            nds,nd_count,&(tags));
+            nds,tags);
         else /* ACTION_MODIFY */
           osmdata->way_modify(osm_id,
-            nds,nd_count,&(tags));
+            nds,tags);
         break;
       case 2:  /* relation */
         if(action==ACTION_CREATE)
           osmdata->relation_add(osm_id,
-            members,member_count,&(tags));
+            members,tags);
         else /* ACTION_MODIFY */
           osmdata->relation_modify(osm_id,
-            members,member_count,&(tags));
+            members,tags);
         break;
       default: ;
         }
 
       /* reset temporary storage lists */
-      tags.resetList();
+      tags.clear();
 
     }  /* end   not a delete request */
 
   }  /* end   read input file */
 
   /* close the input file */
-  printStatus();
+  stats.print_status();
   read_close();
-  return 0;
 }  /* streamFileO5m() */

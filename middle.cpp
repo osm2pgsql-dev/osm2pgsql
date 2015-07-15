@@ -12,15 +12,3 @@ boost::shared_ptr<middle_t> middle_t::create_middle(const bool slim)
          return boost::make_shared<middle_ram_t>();
 }
 
-
-middle_query_t::~middle_query_t() {
-}
-
-middle_t::~middle_t() {
-}
-
-slim_middle_t::~slim_middle_t() {
-}
-
-middle_t::pending_processor::~pending_processor() {
-}

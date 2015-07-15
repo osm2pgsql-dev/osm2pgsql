@@ -1,43 +1,47 @@
 language: cpp
-compiler:
-  - gcc
-  - clang
-env:
-  - USE_LUA=true  BOOST_PPA=false
-  - USE_LUA=true  BOOST_PPA=1.54
-  - USE_LUA=true  BOOST_PPA=1.55
-# Skip some parts of the matrix for speed
-#  - USE_LUA=false BOOST_PPA=false
-#  - USE_LUA=false BOOST_PPA=1.54
-  - USE_LUA=false BOOST_PPA=1.55
-before_install:
-  - |-
-    if [ "${BOOST_PPA}" != "false" ]; then
-      sudo add-apt-repository -y ppa:boost-latest/ppa
-    fi
-  - sudo apt-get update -qq
+sudo: false
+addons:
+  apt:
+    sources:
+    - boost-latest
+    - ubuntu-toolchain-r-test
+    packages:
+    - g++-4.8
+    - libtool
+    - libexpat1-dev
+    - libprotobuf-dev
+    - protobuf-compiler
+    - libgeos-dev
+    - libgeos++-dev
+    - libpq-dev
+    - libbz2-dev
+    - libproj-dev
+    - lua5.2
+    - liblua5.2-dev
+    - libboost1.55-dev
+    - libboost-system1.55-dev
+    - libboost-filesystem1.55-dev
+    - libboost-thread1.55-dev
+matrix:
+  include:
+    - os: linux
+      compiler: clang
+    - os: linux
+      compiler: gcc
+# update versions
 install:
-  - sudo apt-get install -y -qq autoconf automake libtool make g++ libpq-dev libxml2-dev libbz2-dev libproj0 proj-bin libproj-dev # core deps
-  - |-
-    if [ "${BOOST_PPA}" = "false" ]; then
-      sudo apt-get install -y -qq libboost1.48-all-dev
-    else
-      sudo apt-get install -y -qq boost${BOOST_PPA}
+  - if [[ $CC == 'gcc' ]]; then
+      export CC=gcc-4.8;
     fi
-  - sudo apt-get install -y -qq protobuf-c-compiler libprotobuf-c0-dev
-  - sudo apt-get install -y -qq libgeos-3.3.3 libgeos-dev libgeos++-dev
-  - |-
-    if [ "${USE_LUA}" = "true" ]; then
-      sudo apt-get install -y -qq lua5.2 liblua5.2-dev
+  - if [[ $CXX == 'g++' ]]; then
+      export CXX=g++-4.8;
     fi
 before_script:
+  - $CXX --version
   - xml2-config --version
   - geos-config --version
   - proj | head -n1
-  - |-
-    if [ "${USE_LUA}" = "true" ]; then
-      lua -v
-    fi
+  - lua -v
 script:
   ./autogen.sh && ./configure && make -j2
 after_failure:

@@ -30,7 +30,7 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 Osm2pgsql uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html)
 to configure and build itself and requires 
 
-* [libxml2](http://xmlsoft.org/)
+* [expat](http://www.libexpat.org/)
 * [geos](http://geos.osgeo.org/)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
@@ -42,32 +42,33 @@ to configure and build itself and requires
 It also requires access to a database server running
 [PostgreSQL](http://www.postgresql.org/) and [PostGIS](http://www.postgis.net/).
 
-Make sure you have installed the development packages for the 
-libraries mentioned in the requirements section and a C and C++
-compiler.
+Make sure you have installed the development packages for the libraries
+mentioned in the requirements section and a C++ compiler which supports C++11.
+Both GCC 4.8 and Clang 3.4 meet this requirement.
 
 To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
-sudo apt-get install autoconf automake libtool make g++ libboost-dev \
-  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libxml2-dev \
-  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev
-  protobuf-c-compiler libprotobuf-c0-dev lua5.2 liblua5.2-dev
+sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
+  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
+  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev \
+  protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
 ```
 
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ boost-devel libxml2-devel geos-devel \
-  postgresql-devel bzip2-devel proj-devel protobuf-compiler
+sudo yum install gcc-c++ automake libtool pkgconfig boost-devel \
+  expat-devel bzip2-devel postgresql-devel geos-devel proj-devel \
+  lua-devel protobuf-devel protobuf-lite-devel
 ```
 
 To install on a FreeBSD system, use
 
 ```sh
 pkg install devel/git devel/autoconf devel/automake devel/gmake devel/libtool \
-  textproc/libxml2 graphics/geos graphics/proj databases/postgresql94-client \
-  devel/boost-libs devel/protobuf-c lang/lua52 devel/pkgconf
+  textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client \
+  devel/boost-libs devel/protobuf lang/lua52 devel/pkgconf
 ```
 
 Then you should be able to bootstrap the build system:
@@ -83,11 +84,11 @@ process.
 
 On FreeBSD instead bootstrap and then run
 
-    LUA_LIB=`pkg-config --libs lua-5.2` ./configure --without-lockfree && gmake && gmake install
+    LUA_LIB=`pkg-config --libs lua-5.2` ./configure && gmake && gmake install
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
+Osm2pgsql has one program, the executable itself, which has **42** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
@@ -142,33 +143,12 @@ postgres tables instead of those provided in the pgsql backend.
 Any questions should be directed at the osm dev list
 http://wiki.openstreetmap.org/index.php/Mailing_lists
 
-## Testing ##
-
-The code also comes with a suite of tests which can be run by
-executing ``make check``.
-
-Some of these tests depend on being able to set up a database and run
-osm2pgsql against it. You need to ensure that PostgreSQL is running
-and that your user is a superuser of that system. To do that, run:
-
-```sh
-sudo -u postgres createuser -s $USER
-sudo mkdir -p /tmp/psql-tablespace
-sudo chown postgres.postgres /tmp/psql-tablespace
-psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
-```
-
-Once this is all set up, all the tests should run (no SKIPs), and pass
-(no FAILs). If you encounter a failure, you can find more information
-by looking in the `test-suite.log`. If you find something which seems
-to be a bug, please check to see if it is a known issue at
-https://github.com/openstreetmap/osm2pgsql/issues and, if it's not
-already known, report it there.
-
 ## Contributing ##
 
 We welcome contributions to osm2pgsql. If you would like to report an issue,
 please use the [issue tracker on GitHub](https://github.com/openstreetmap/osm2pgsql/issues).
+
+More information can be found in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 General queries can be sent to the tile-serving@ or dev@
 [mailing lists](http://wiki.openstreetmap.org/wiki/Mailing_lists).

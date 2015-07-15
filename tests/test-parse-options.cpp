@@ -24,7 +24,7 @@ void run_test(const char* test_name, void (*testfunc)())
         fprintf(stderr, "%s\n", test_name);
         testfunc();
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
         fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "FAIL\n");
@@ -40,7 +40,7 @@ void parse_fail(const int argc, const char* argv[], const std::string& fail_mess
         options_t options = options_t::parse(argc, const_cast<char **>(argv));
         throw std::logic_error((boost::format("Expected '%1%'") % fail_message).str());
     }
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         if(!alg::icontains(e.what(), fail_message))
             throw std::logic_error((boost::format("Expected '%1%' but instead got '%2%'") % fail_message % e.what()).str());
@@ -125,7 +125,7 @@ void test_outputs()
         out = outs.front().get();
         throw std::logic_error("Expected 'not recognised'");
     }
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         if(!alg::icontains(e.what(), "not recognised"))
             throw std::logic_error((boost::format("Expected 'not recognised' but instead got '%2%'") % e.what()).str());
@@ -138,7 +138,6 @@ int get_random_proj(std::vector<std::string>& args)
     switch(proj)
     {
     case PROJ_LATLONG:
-    case PROJ_MERC:
     case PROJ_SPHERE_MERC:
         args.push_back(reprojection(proj).project_getprojinfo()->option);
         break;
@@ -229,7 +228,6 @@ void test_random_perms()
         //--hstore-column   Add an additional hstore (key/value) column containing all tags that start with the specified string, eg --hstore-column "name:" will produce an extra hstore column that contains all name:xx tags
 
         add_arg_or_not("--hstore-add-index", args, options.enable_hstore_index);
-        add_arg_or_not("--utf8-sanitize", args, options.sanitize);
 
         //--tablespace-index    The name of the PostgreSQL tablespace where all indexes will be created. The following options allow more fine-grained control:
         //      --tablespace-main-data    tablespace for main tables

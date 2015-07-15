@@ -59,33 +59,33 @@ void place_tag_processor::clear()
 
 struct UnnamedPredicate
 {
-    bool operator()(const keyval *val) const {
-        return val->key == "natural" ||
-               val->key == "railway" ||
-               val->key == "waterway" ||
-               val->key == "boundary" ||
-               (val->key == "highway" &&
-                (val->value == "traffic_signals" ||
-                 val->value == "service" ||
-                 val->value == "cycleway" ||
-                 val->value == "path" ||
-                 val->value == "footway" ||
-                 val->value == "steps" ||
-                 val->value == "bridleway" ||
-                 val->value == "track" ||
-                 val->value == "byway" ||
-                 boost::ends_with(val->value, "_link")));
+    bool operator()(const tag &val) const {
+        return val.key == "natural" ||
+               val.key == "railway" ||
+               val.key == "waterway" ||
+               val.key == "boundary" ||
+               (val.key == "highway" &&
+                (val.value == "traffic_signals" ||
+                 val.value == "service" ||
+                 val.value == "cycleway" ||
+                 val.value == "path" ||
+                 val.value == "footway" ||
+                 val.value == "steps" ||
+                 val.value == "bridleway" ||
+                 val.value == "track" ||
+                 val.value == "byway" ||
+                 boost::ends_with(val.value, "_link")));
     }
 };
 
-void place_tag_processor::process_tags(keyval *tags)
+void place_tag_processor::process_tags(const taglist_t &tags)
 {
     bool placeadmin = false;
     bool placehouse = false;
     bool placebuilding = false;
-    const keyval *place = 0;
-    const keyval *junction = 0;
-    const keyval *landuse = 0;
+    const tag *place = 0;
+    const tag *junction = 0;
+    const tag *landuse = 0;
     bool isnamed = false;
     bool isinterpolation = false;
     const std::string *house_nr = 0;
@@ -93,11 +93,11 @@ void place_tag_processor::process_tags(keyval *tags)
     const std::string *street_nr = 0;
 
     clear();
-    src = tags;
+    src = &tags;
 
-    for (keyval *item = tags->firstItem(); item; item = tags->nextItem(item)) {
+    for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
         if (item->key == "name:prefix") {
-            extratags.push_back(item);
+            extratags.push_back(&*item);
         } else if (item->key == "ref" ||
                    item->key == "int_ref" ||
                    item->key == "nat_ref" ||
@@ -109,7 +109,7 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "operator" ||
                    item->key == "pcode" ||
                    boost::starts_with(item->key, "pcode:")) {
-            names.push_back(item);
+            names.push_back(&*item);
         } else if (item->key == "name" ||
                    boost::starts_with(item->key, "name:") ||
                    item->key == "int_name" ||
@@ -132,54 +132,54 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "short_name" ||
                    boost::starts_with(item->key, "short_name:") ||
                    item->key == "brand") {
-            names.push_back(item);
+            names.push_back(&*item);
             isnamed = true;
         } else if (item->key == "addr:housename") {
-            names.push_back(item);
+            names.push_back(&*item);
             placehouse = true;
         } else if (item->key == "emergency") {
             if (item->value != "fire_hydrant" &&
                 item->value != "yes" &&
                 item->value != "no")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "tourism" ||
                    item->key == "historic" ||
                    item->key == "military") {
             if (item->value != "no" && item->value != "yes")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "natural") {
             if (item->value != "no" &&
                 item->value != "yes" &&
-                item->value != "costaline")
-                places.push_back(item);
+                item->value != "coastline")
+                places.push_back(*item);
         } else if (item->key == "landuse") {
             if (item->value == "cemetry")
-                places.push_back(item);
+                places.push_back(*item);
             else
-                landuse = item;
+                landuse = &*item;
         } else if (item->key == "highway") {
             if (item->value != "no" &&
                 item->value != "turning_circle" &&
                 item->value != "mini_roundabout" &&
                 item->value != "noexit" &&
                 item->value != "crossing")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "railway") {
             if (item->value != "level_crossing" &&
                 item->value != "no")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "man_made") {
             if (item->value != "survey_point" &&
                 item->value != "cutline")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "aerialway") {
             if (item->value != "pylon" &&
                 item->value != "no")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "boundary") {
             if (item->value == "administrative")
                 placeadmin = true;
-            places.push_back(item);
+            places.push_back(*item);
         } else if (item->key == "aeroway" ||
                    item->key == "amenity" ||
                    item->key == "boundary" ||
@@ -192,15 +192,15 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "mountain_pass") {
             if (item->value != "no")
             {
-                places.push_back(item);
+                places.push_back(*item);
             }
         } else if (item->key == "waterway") {
             if (item->value != "riverbank")
-                places.push_back(item);
+                places.push_back(*item);
         } else if (item->key == "place") {
-            place = item;
+            place = &*item;
         } else if (item->key == "junction") {
-            junction = item;
+            junction = &*item;
         } else if (item->key == "addr:interpolation") {
             housenumber.clear();
             escape(item->value, housenumber);
@@ -236,7 +236,7 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "is_in" ||
                    boost::starts_with(item->key, "is_in:") ||
                    item->key == "tiger:county") {
-            address.push_back(item);
+            address.push_back(&*item);
         } else if (item->key == "admin_level") {
             admin_level = atoi(item->value.c_str());
             if (admin_level <= 0 || admin_level > 100)
@@ -311,7 +311,7 @@ void place_tag_processor::process_tags(keyval *tags)
                    item->key == "locality" ||
                    item->key == "wikipedia" ||
                    boost::starts_with(item->key, "wikipedia:")) {
-            extratags.push_back(item);
+            extratags.push_back(&*item);
         } else if (item->key == "building") {
             placebuilding = true;
         }
@@ -325,11 +325,8 @@ void place_tag_processor::process_tags(keyval *tags)
                          places.end());
     }
 
-    if (isinterpolation) {
-        keyval *b = new keyval("place", "houses");
-        src->pushItem(b); // to make sure it gets deleted
-        places.push_back(b);
-    }
+    if (isinterpolation)
+        places.push_back(tag("place", "houses"));
 
     if (place) {
         if (isinterpolation ||
@@ -338,29 +335,23 @@ void place_tag_processor::process_tags(keyval *tags)
               place ->value != "islet"))
             extratags.push_back(place);
         else
-            places.push_back(place);
+            places.push_back(*place);
     }
 
     if (isnamed && places.empty()) {
         if (junction)
-            places.push_back(junction);
+            places.push_back(*junction);
         else if (landuse)
-            places.push_back(landuse);
+            places.push_back(*landuse);
     }
 
     if (places.empty()) {
         if (placebuilding && (!names.empty() || placehouse || postcode)) {
-            keyval *b = new keyval("building", "yes");
-            src->pushItem(b); // to make sure it gets deleted
-            places.push_back(b);
+            places.push_back(tag("building", "yes"));
         } else if (placehouse) {
-            keyval *b = new keyval("place", "house");
-            src->pushItem(b); // to make sure it gets deleted
-            places.push_back(b);
+            places.push_back(tag("place", "house"));
         } else if (postcode) {
-            keyval *b = new keyval("place", "postcode");
-            src->pushItem(b); // to make sure it gets deleted
-            places.push_back(b);
+            places.push_back(tag("place", "postcode"));
         }
     }
 
@@ -389,10 +380,10 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                                    const std::string &wkt,
                                    std::string &buffer)
 {
-    BOOST_FOREACH(const keyval* place, places) {
+    BOOST_FOREACH(const tag &place, places) {
         std::string name;
-        if (place->key == "bridge" || place->key == "tunnel") {
-            name = domain_name(place->key);
+        if (place.key == "bridge" || place.key == "tunnel") {
+            name = domain_name(place.key);
             if (name.empty())
                 continue; // don't include unnamed bridges and tunnels
         }
@@ -403,10 +394,10 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         // osm_id
         buffer += (single_fmt % osm_id).str();
         // class
-        escape(place->key, buffer);
+        escape(place.key, buffer);
         buffer += '\t';
         // type
-        escape(place->value, buffer);
+        escape(place.value, buffer);
         buffer += '\t';
         // names
         if (!name.empty()) {
@@ -416,10 +407,10 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             bool first = true;
             // operator will be ignored on anything but these classes
             // (amenity for restaurant and fuel)
-            bool shop = (place->key == "shop") ||
-                        (place->key == "amenity") ||
-                        (place->key == "tourism");
-            BOOST_FOREACH(const keyval *entry, names) {
+            bool shop = (place.key == "shop") ||
+                        (place.key == "amenity") ||
+                        (place.key == "tourism");
+            BOOST_FOREACH(const tag *entry, names) {
                 if (!shop && (entry->key == "operator"))
                     continue;
 
@@ -448,7 +439,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         copy_opt_string(addr_place, buffer);
         // isin
         if (!address.empty()) {
-            BOOST_FOREACH(const keyval *entry, address) {
+            BOOST_FOREACH(const tag *entry, address) {
                 if (entry->key == "tiger:county") {
                     escape(std::string(entry->value, 0, entry->value.find(",")),
                            buffer);
@@ -470,7 +461,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             buffer += "\\N\t";
         } else {
             bool first = true;
-            BOOST_FOREACH(const keyval *entry, extratags) {
+            BOOST_FOREACH(const tag *entry, extratags) {
                 if (first)
                     first = false;
                 else
@@ -665,7 +656,7 @@ void output_gazetteer_t::stop()
 }
 
 int output_gazetteer_t::process_node(osmid_t id, double lat, double lon,
-                                     struct keyval *tags)
+                                     const taglist_t &tags)
 {
     places.process_tags(tags);
 
@@ -682,8 +673,7 @@ int output_gazetteer_t::process_node(osmid_t id, double lat, double lon,
     return 0;
 }
 
-int output_gazetteer_t::process_way(osmid_t id, osmid_t *ndv, int ndc,
-                                    struct keyval *tags)
+int output_gazetteer_t::process_way(osmid_t id, const idlist_t &nds, const taglist_t &tags)
 {
     places.process_tags(tags);
 
@@ -692,39 +682,31 @@ int output_gazetteer_t::process_way(osmid_t id, osmid_t *ndv, int ndc,
 
     /* Are we interested in this item? */
     if (places.has_data()) {
-        struct osmNode *nodev;
-        int nodec;
-
         /* Fetch the node details */
-        nodev = (struct osmNode *)malloc(ndc * sizeof(struct osmNode));
-        nodec = m_mid->nodes_get_list(nodev, ndv, ndc);
+        nodelist_t nodes;
+        m_mid->nodes_get_list(nodes, nds);
 
         /* Get the geometry of the object */
-        geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodev, nodec, 1);
+        geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, 1);
         if (wkt) {
             places.copy_out('W', id, wkt->geom, buffer);
             flush_place_buffer();
         }
-
-        /* Free the nodes */
-        free(nodev);
     }
 
     return 0;
 }
 
-int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
-        int member_count, struct keyval *tags)
+int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members,
+                                         const taglist_t &tags)
 {
-    int cmp_waterway;
-
-    const std::string *type = tags->getItem("type");
+    const std::string *type = tags.get("type");
     if (!type) {
         delete_unused_full('R', id);
         return 0;
     }
 
-    cmp_waterway = type->compare("waterway");
+    int cmp_waterway = type->compare("waterway");
 
     if (*type == "associatedStreet"
             || !(*type == "boundary" || *type == "multipolygon" || !cmp_waterway)) {
@@ -742,37 +724,27 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
         return 0;
 
     /* get the boundary path (ways) */
-    osmid_t *xid2 = new osmid_t[member_count+1];
-
-    int count = 0;
-    for (int i=0; i<member_count; ++i) {
+    idlist_t xid2;
+    for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it) {
         /* only interested in ways */
-        if (members[i].type != OSMTYPE_WAY)
-            continue;
-        xid2[count] = members[i].id;
-        count++;
+        if (it->type == OSMTYPE_WAY)
+            xid2.push_back(it->id);
     }
 
-    if (count == 0) {
+    if (xid2.empty()) {
         if (m_options.append)
             delete_unused_full('R', id);
-
-        delete [] xid2;
 
         return 0;
     }
 
-    int *xcount = new int[count + 1];
-    keyval *xtags  = new keyval[count+1];
-    struct osmNode **xnodes = new osmNode*[count + 1];
-    osmid_t *xid = new osmid_t[count + 1];
-    count = m_mid->ways_get_list(xid2, count, xid, xtags, xnodes, xcount);
-
-    xnodes[count] = NULL;
-    xcount[count] = 0;
+    multitaglist_t xtags;
+    multinodelist_t xnodes;
+    idlist_t xid;
+    m_mid->ways_get_list(xid2, xid, xtags, xnodes);
 
     if (cmp_waterway) {
-        geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, xcount, 1, 1, 1000000, id);
+        geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, 1, 1, 1000000, id);
         for (geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
             if (boost::starts_with(wkt->geom,  "POLYGON")
                     || boost::starts_with(wkt->geom,  "MULTIPOLYGON")) {
@@ -784,24 +756,12 @@ int output_gazetteer_t::process_relation(osmid_t id, struct member *members,
         }
     } else {
         /* waterways result in multilinestrings */
-        geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, xcount, id);
+        geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, id);
         if ((wkt->geom).length() > 0) {
             places.copy_out('R', id, wkt->geom, buffer);
             flush_place_buffer();
         }
     }
-
-    for (int i=0; i<count; ++i)
-    {
-        xtags[i].resetList();
-        free(xnodes[i]);
-    }
-
-    free(xid);
-    delete [] xid2;
-    delete [] xcount;
-    delete [] xtags;
-    delete [] xnodes;
 
     return 0;
 }

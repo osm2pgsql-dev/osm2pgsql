@@ -4,47 +4,135 @@
 #include <string.h>
 #include <cassert>
 #include <list>
+#include <tuple>
 
 #include "osmtypes.hpp"
-#include "keyvals.hpp"
 #include "tests/middle-tests.hpp"
+
+#define BLOCK_SHIFT 10
+#define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
+
+struct expected_node {
+  osmid_t id;
+  double lon;
+  double lat;
+
+  expected_node() : id(0), lon(NAN), lat(NAN) {}
+
+  expected_node(osmid_t id, double x, double y) : id(id), lon(x), lat(y) {}
+};
+
+typedef std::vector<expected_node> expected_nodelist_t;
+
+#define ALLOWED_ERROR 10e-9
+bool node_okay(osmNode node, expected_node expected) {
+  if ((node.lat > expected.lat + ALLOWED_ERROR) || (node.lat < expected.lat - ALLOWED_ERROR)) {
+    std::cerr << "ERROR: Node should have lat=" << expected.lat << ", but got back "
+              << node.lat << " from middle.\n";
+    return false;
+  }
+  if ((node.lon > expected.lon + ALLOWED_ERROR) || (node.lon < expected.lon - ALLOWED_ERROR)) {
+    std::cerr << "ERROR: Node should have lon=" << expected.lon << ", but got back "
+              << node.lon << " from middle.\n";
+    return false;
+  }
+  return true;
+}
 
 int test_node_set(middle_t *mid)
 {
-  osmid_t id = 1234;
-  double lat = 12.3456789;
-  double lon = 98.7654321;
-  struct keyval tags;
-  struct osmNode node;
-  int status = 0;
+  idlist_t ids;
+  expected_node expected(1234, 12.3456789, 98.7654321);
+  taglist_t tags;
+  nodelist_t nodes;
 
   // set the node
-  status = mid->nodes_set(id, lat, lon, &tags);
-  if (status != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
+  if (mid->nodes_set(expected.id, expected.lat, expected.lon, tags) != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
 
   // get it back
-  int count = mid->nodes_get_list(&node, &id, 1);
-  if (count != 1) { std::cerr << "ERROR: Unable to get node list.\n"; return 1; }
+  ids.push_back(expected.id);
+  if (mid->nodes_get_list(nodes, ids) != ids.size()) { std::cerr << "ERROR: Unable to get node list.\n"; return 1; }
+  if (nodes.size() != ids.size()) { std::cerr << "ERROR: Mismatch in returned node list size.\n"; return 1; }
 
   // check that it's the same
-  if (node.lon != lon) {
-    std::cerr << "ERROR: Node should have lon=" << lon << ", but got back "
-              << node.lon << " from middle.\n";
-    return 1;
-  }
-  if (node.lat != lat) {
-    std::cerr << "ERROR: Node should have lat=" << lat << ", but got back "
-              << node.lat << " from middle.\n";
+  if (!node_okay(nodes[0], expected)) {
     return 1;
   }
 
-  // clean up for next test
-  if (dynamic_cast<slim_middle_t *>(mid)) {
-    dynamic_cast<slim_middle_t *>(mid)->nodes_delete(id);
+  return 0;
+}
+
+inline double test_lat(osmid_t id) {
+  return 1 + 1e-5 * id;
+}
+
+int test_nodes_comprehensive_set(middle_t *mid)
+{
+  taglist_t tags;
+
+  expected_nodelist_t expected_nodes;
+  expected_nodes.reserve(PER_BLOCK*8+1);
+
+  // 2 dense blocks, the second partially filled at the star
+  for (osmid_t id = 0; id < (PER_BLOCK+(PER_BLOCK >> 1) + 1); ++id)
+  {
+    expected_nodes.emplace_back(id, test_lat(id), 0.0);
   }
 
-  tags.resetList();
+  // 1 dense block, 75% filled
+  for (osmid_t id = PER_BLOCK*2; id < PER_BLOCK*3; ++id)
+  {
+    if ((id % 4 == 0) || (id % 4 == 1) || (id % 4 == 2))
+      expected_nodes.emplace_back(id, test_lat(id), 0.0);
+  }
 
+  // 1 dense block, sparsly filled
+  for (osmid_t id = PER_BLOCK*3; id < PER_BLOCK*4; ++id)
+  {
+    if (id % 4 == 0)
+      expected_nodes.emplace_back(id, test_lat(id), 0.0);
+  }
+
+  // A lone sparse node
+  expected_nodes.emplace_back(PER_BLOCK*5, test_lat(PER_BLOCK*5), 0.0);
+
+  // A dense block of alternating positions of zero/non-zero
+  for (osmid_t id = PER_BLOCK*6; id < PER_BLOCK*7; ++id)
+  {
+    if (id % 2 == 0)
+      expected_nodes.emplace_back(id, 0.0, 0.0);
+    else
+      expected_nodes.emplace_back(id, test_lat(id), 0.0);
+  }
+  expected_nodes.emplace_back(PER_BLOCK*8, 0.0, 0.0);
+  expected_nodes.emplace_back(PER_BLOCK*8+1, 0.0, 0.0);
+
+  // Load up the nodes into the middle
+  idlist_t ids;
+  ids.reserve(expected_nodes.size());
+
+  for (expected_nodelist_t::iterator node = expected_nodes.begin(); node != expected_nodes.end(); ++node)
+  {
+    if (mid->nodes_set(node->id, node->lat, node->lon, tags) != 0)
+    {
+      std::cerr << "ERROR: Unable to set node " << node->id << "with lat="
+                << node->lat << " lon=" << node->lon << std::endl;
+      return 1;
+    }
+    ids.push_back(node->id);
+  }
+
+  nodelist_t nodes;
+  if (mid->nodes_get_list(nodes, ids) != ids.size()) { std::cerr << "ERROR: Unable to get node list.\n"; return 1; }
+
+  if (nodes.size() != ids.size()) { std::cerr << "ERROR: Mismatch in returned node list size.\n"; return 1; }
+
+  for (size_t i = 0; i < nodes.size(); ++i)
+  {
+    if (!node_okay(nodes[i], expected_nodes[i])) {
+      return 1;
+    }
+  }
   return 0;
 }
 
@@ -78,49 +166,52 @@ int test_way_set(middle_t *mid)
   osmid_t way_id = 1;
   double lat = 12.3456789;
   double lon = 98.7654321;
-  struct keyval tags;
+  taglist_t tags;
   struct osmNode *node_ptr = NULL;
-  osmid_t way_ids_ptr;
-  int node_count = 0;
   int status = 0;
-  osmid_t nds[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-  const int nd_count = ((sizeof nds) / (sizeof nds[0]));
+  idlist_t nds;
+  for (osmid_t i = 1; i <= 10; ++i)
+      nds.push_back(i);
 
   // set the nodes
-  for (int i = 0; i < nd_count; ++i) {
-    status = mid->nodes_set(nds[i], lat, lon, &tags);
+  for (size_t i = 0; i < nds.size(); ++i) {
+    status = mid->nodes_set(nds[i], lat, lon, tags);
     if (status != 0) { std::cerr << "ERROR: Unable to set node " << nds[i] << ".\n"; return 1; }
   }
 
   // set the way
-  status = mid->ways_set(way_id, nds, nd_count, &tags);
+  status = mid->ways_set(way_id, nds, tags);
   if (status != 0) { std::cerr << "ERROR: Unable to set way.\n"; return 1; }
 
   // commit the setup data
   mid->commit();
 
   // get it back
-  int way_count = mid->ways_get_list(&way_id, 1, &way_ids_ptr, &tags, &node_ptr, &node_count);
+  idlist_t ways, xways;
+  ways.push_back(way_id);
+  std::vector<taglist_t> xtags;
+  multinodelist_t xnodes;
+  int way_count = mid->ways_get_list(ways, xways, xtags, xnodes);
   if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
 
   // check that it's the same
-  if (node_count != nd_count) {
-    std::cerr << "ERROR: Way should have " << nd_count << " nodes, but got back "
-              << node_count << " from middle.\n";
+  if (xnodes[0].size() != nds.size()) {
+    std::cerr << "ERROR: Way should have " << nds.size() << " nodes, but got back "
+              << xnodes[0].size() << " from middle.\n";
     return 1;
   }
-  if (way_ids_ptr != way_id) {
+  if (xways[0] != way_id) {
     std::cerr << "ERROR: Way should have id=" << way_id << ", but got back "
-              << way_ids_ptr << " from middle.\n";
+              << xways[0] << " from middle.\n";
     return 1;
   }
-  for (int i = 0; i < nd_count; ++i) {
-    if (node_ptr[i].lon != lon) {
+  for (size_t i = 0; i < nds.size(); ++i) {
+    if (xnodes[0][i].lon != lon) {
       std::cerr << "ERROR: Way node should have lon=" << lon << ", but got back "
                 << node_ptr[i].lon << " from middle.\n";
       return 1;
     }
-    if (node_ptr[i].lat != lat) {
+    if (xnodes[0][i].lat != lat) {
       std::cerr << "ERROR: Way node should have lat=" << lat << ", but got back "
                 << node_ptr[i].lat << " from middle.\n";
       return 1;
@@ -154,22 +245,6 @@ int test_way_set(middle_t *mid)
           return 1;
       }
   }
-
-  tags.resetList();
-  free(node_ptr);
-
-  // clean up for next test
-  if (dynamic_cast<slim_middle_t *>(mid)) {
-      slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid);
-
-      for (int i = 0; i < nd_count; ++i) {
-          slim->nodes_delete(nds[i]);
-      }
-      slim->ways_delete(way_id);
-  }
-
-  // commit the torn-down data
-  mid->commit();
 
   return 0;
 }

@@ -1,7 +1,6 @@
 #ifndef OPTION_H
 #define OPTION_H
 
-#include "keyvals.hpp"
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
 
@@ -19,7 +18,7 @@
 #define HSTORE_ALL 2
 
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
-static const int DEFAULT_SCALE = 100;
+enum { DEFAULT_SCALE = 100 };
 
 //TODO: GO THROUGH AND UPDATE TO BOOL WHERE MEMBER DENOTES ONLY ON OR OFF OPTION
 struct options_t {
@@ -66,7 +65,6 @@ public:
         tag_transform_rel_mem_func; // output so that a single script file can be used.
 
     int create;
-    int sanitize;
     int long_usage_bool;
     int pass_prompt;
     std::string db;

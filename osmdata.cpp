@@ -1,4 +1,7 @@
 #include "osmdata.hpp"
+#include "output.hpp"
+#include "middle.hpp"
+#include "node-ram-cache.hpp"
 
 #include <boost/foreach.hpp>
 #include <boost/make_shared.hpp>
@@ -10,10 +13,6 @@
 #include <stdexcept>
 #include <utility>
 #include <cstdio>
-
-#ifdef HAVE_LOCKFREE
-#include <boost/atomic.hpp>
-#endif
 
 osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_): mid(mid_)
 {
@@ -33,45 +32,51 @@ osmdata_t::~osmdata_t()
 {
 }
 
-int osmdata_t::node_add(osmid_t id, double lat, double lon, struct keyval *tags) {
+int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
     mid->nodes_set(id, lat, lon, tags);
 
+    // guarantee that we use the same values as in the node cache
+    ramNode n(lon, lat);
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->node_add(id, lat, lon, tags);
+        status |= out->node_add(id, n.lat(), n.lon(), tags);
     }
     return status;
 }
 
-int osmdata_t::way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
-    mid->ways_set(id, nodes, node_count, tags);
+int osmdata_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
+    mid->ways_set(id, nodes, tags);
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->way_add(id, nodes, node_count, tags);
+        status |= out->way_add(id, nodes, tags);
     }
     return status;
 }
 
-int osmdata_t::relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
-    mid->relations_set(id, members, member_count, tags);
+int osmdata_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
+    mid->relations_set(id, members, tags);
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->relation_add(id, members, member_count, tags);
+        status |= out->relation_add(id, members, tags);
     }
     return status;
 }
 
-int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *tags) {
+int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(id);
     slim->nodes_set(id, lat, lon, tags);
 
+    // guarantee that we use the same values as in the node cache
+    ramNode n(lon, lat);
+
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->node_modify(id, lat, lon, tags);
+        status |= out->node_modify(id, n.lat(), n.lon(), tags);
     }
 
     slim->node_changed(id);
@@ -79,15 +84,15 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, struct keyval *ta
     return status;
 }
 
-int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags) {
+int osmdata_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->ways_delete(id);
-    slim->ways_set(id, nodes, node_count, tags);
+    slim->ways_set(id, nodes, tags);
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->way_modify(id, nodes, node_count, tags);
+        status |= out->way_modify(id, nodes, tags);
     }
 
     slim->way_changed(id);
@@ -95,15 +100,15 @@ int osmdata_t::way_modify(osmid_t id, osmid_t *nodes, int node_count, struct key
     return status;
 }
 
-int osmdata_t::relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags) {
+int osmdata_t::relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(id);
-    slim->relations_set(id, members, member_count, tags);
+    slim->relations_set(id, members, tags);
 
     int status = 0;
     BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
-        status |= out->relation_modify(id, members, member_count, tags);
+        status |= out->relation_modify(id, members, tags);
     }
 
     slim->relation_changed(id);
@@ -167,7 +172,6 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
     typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-#ifndef HAVE_LOCKFREE
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
         while (true) {
             //get the job off the queue synchronously
@@ -185,38 +189,22 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
             //process it
             if(ways)
-                outputs.at(job.second)->pending_way(job.first, append);
+                outputs.at(job.output_id)->pending_way(job.osm_id, append);
             else
-                outputs.at(job.second)->pending_relation(job.first, append);
+                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
 
             mutex.lock();
             ++ids_done;
             mutex.unlock();
         }
     }
-#else
-    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, boost::atomic_size_t& ids_done, int append, bool ways) {
-        pending_job_t job;
-        while (queue.pop(job)) {
-            if(ways)
-                outputs.at(job.second)->pending_way(job.first, append);
-            else
-                outputs.at(job.second)->pending_relation(job.first, append);
-            ++ids_done;
-        }
-    }
-#endif
 
     //starts up count threads and works on the queue
     pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
-#ifndef HAVE_LOCKFREE
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
         : outs(outs), ids_queued(0), append(append), queue(), ids_done(0) {
-#else
-        : outs(outs), ids_queued(0), append(append), queue(job_count), ids_done(0) {
-#endif
 
         //clone all the things we need
         clones.reserve(thread_count);
@@ -256,11 +244,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, true));
-#else
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, true));
-#endif
         }
 
         //TODO: print out partial progress
@@ -307,11 +291,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
-#ifndef HAVE_LOCKFREE
             workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, false));
-#else
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), append, false));
-#endif
         }
 
         //TODO: print out partial progress
@@ -353,14 +333,10 @@ private:
     //job queue
     pending_queue_t queue;
 
-#ifndef HAVE_LOCKFREE
     //how many ids within the job have been processed
     size_t ids_done;
     //so the threads can manage some of the shared state
     boost::mutex mutex;
-#else
-    boost::atomic_size_t ids_done;
-#endif
 };
 
 } // anonymous namespace

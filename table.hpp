@@ -1,25 +1,26 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "keyvals.hpp"
 #include "pgsql.hpp"
 #include "osmtypes.hpp"
 
+#include <cstddef>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
+#include <boost/shared_ptr.hpp>
 
 typedef std::vector<std::string> hstores_t;
 typedef std::vector<std::pair<std::string, std::string> > columns_t;
-typedef boost::format fmt;
 
 class table_t
 {
     public:
         table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
-                const int scale, const bool append, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
+                const bool append, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
                 const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
         table_t(const table_t& other);
         ~table_t();
@@ -30,8 +31,8 @@ class table_t
         void begin();
         void commit();
 
-        void write_wkt(const osmid_t id, struct keyval *tags, const char *wkt);
-        void write_node(const osmid_t id, struct keyval *tags, double lat, double lon);
+        void write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt);
+        void write_node(const osmid_t id, const taglist_t &tags, double lat, double lon);
         void delete_row(const osmid_t id);
 
         std::string const& get_name();
@@ -58,12 +59,13 @@ class table_t
         void stop_copy();
         void teardown();
 
-        void write_columns(struct keyval *tags, std::string& values);
-        void write_tags_column(keyval *tags, std::string& values);
-        void write_hstore_columns(keyval *tags, std::string& values);
+        void write_columns(const taglist_t &tags, std::string& values, std::vector<bool> *used);
+        void write_tags_column(const taglist_t &tags, std::string& values,
+                               const std::vector<bool> &used);
+        void write_hstore_columns(const taglist_t &tags, std::string& values);
 
         void escape4hstore(const char *src, std::string& dst);
-        void escape_type(const std::string &value, const char *type, std::string& dst);
+        void escape_type(const std::string &value, const std::string &type, std::string& dst);
 
         std::string conninfo;
         std::string name;
@@ -72,7 +74,6 @@ class table_t
         bool copyMode;
         std::string buffer;
         std::string srid;
-        int scale;
         bool append;
         bool slim;
         bool drop_temp;
@@ -84,7 +85,7 @@ class table_t
         boost::optional<std::string> table_space;
         boost::optional<std::string> table_space_index;
 
-        fmt single_fmt, point_fmt, del_fmt;
+        boost::format single_fmt, point_fmt, del_fmt;
 };
 
 #endif

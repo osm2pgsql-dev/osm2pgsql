@@ -56,6 +56,8 @@ struct tempdb
 
     const std::string &conninfo() const;
 
+    void check_tblspc();
+
 private:
     void setup_extension(conn_ptr db, const std::string &extension, ...);
 

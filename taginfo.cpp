@@ -34,7 +34,7 @@ static const flagsname tagflags[] = {
     flagsname("nocache", FLAG_NOCACHE),
     flagsname("delete",  FLAG_DELETE),
     flagsname("phstore", FLAG_PHSTORE),
-    flagsname("hstore", FLAG_NOCOLUMN)
+    flagsname("nocolumn", FLAG_NOCOLUMN)
 };
 #define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 

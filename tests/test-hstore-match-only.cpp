@@ -15,6 +15,7 @@ The tags of inteest are specified in hstore-match-only.style
 #include <memory>
 
 #include "osmtypes.hpp"
+#include "osmdata.hpp"
 #include "middle.hpp"
 #include "output-pgsql.hpp"
 #include "options.hpp"
@@ -73,21 +74,17 @@ int main(int argc, char *argv[]) {
         options.style="tests/hstore-match-only.style";
         options.hstore_match_only=1;
         options.hstore_mode = HSTORE_NORM;
-        options.tblsslim_index = "tablespacetest";
-        options.tblsslim_data = "tablespacetest";
         options.slim = 1;
 
         boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
 
         osmdata_t osmdata(mid_pgsql, out_test);
 
-        boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+        boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, false));
 
         osmdata.start();
 
-        if (parser->streamFile("libxml2", "tests/hstore-match-only.osm", options.sanitize, &osmdata) != 0) {
-            throw std::runtime_error("Unable to read input file `tests/hstore-match-only.osm'.");
-        }
+        parser->stream_file("libxml2", "tests/hstore-match-only.osm", &osmdata);
 
         parser.reset(NULL);
 

@@ -7,22 +7,28 @@
 #ifndef OUTPUT_MULTI_HPP
 #define OUTPUT_MULTI_HPP
 
+#include "osmtypes.hpp"
 #include "output.hpp"
-#include "tagtransform.hpp"
-#include "table.hpp"
 #include "geometry-processor.hpp"
-#include "id-tracker.hpp"
-#include "expire-tiles.hpp"
 
-#include <vector>
+#include <cstddef>
+#include <string>
 #include <boost/scoped_ptr.hpp>
-#include <boost/variant.hpp>
+#include <boost/shared_ptr.hpp>
+
+class table_t;
+class tagtransform;
+struct expire_tiles;
+struct export_list;
+struct id_tracker;
+struct middle_query_t;
+struct options_t;
 
 class output_multi_t : public output_t {
 public:
     output_multi_t(const std::string &name,
                    boost::shared_ptr<geometry_processor> processor_,
-                   const struct export_list &export_list_,
+                   const export_list &export_list_,
                    const middle_query_t* mid_, const options_t &options_);
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
@@ -39,13 +45,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_add(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_add(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
-    int node_modify(osmid_t id, double lat, double lon, struct keyval *tags);
-    int way_modify(osmid_t id, osmid_t *nodes, int node_count, struct keyval *tags);
-    int relation_modify(osmid_t id, struct member *members, int member_count, struct keyval *tags);
+    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
@@ -61,11 +67,11 @@ public:
 protected:
 
     void delete_from_output(osmid_t id);
-    int process_node(osmid_t id, double lat, double lon, struct keyval *tags);
-    int process_way(osmid_t id, const osmid_t* node_ids, int node_count, struct keyval *tags);
-    int reprocess_way(osmid_t id, const osmNode* nodes, int node_count, struct keyval *tags, bool exists);
-    int process_relation(osmid_t id, const member *members, int member_count, struct keyval *tags, bool exists, bool pending=false);
-    void copy_to_table(osmid_t id, const char *wkt, struct keyval *tags);
+    int process_node(osmid_t id, double lat, double lon, const taglist_t &tags);
+    int process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
+    int reprocess_way(osmid_t id, const nodelist_t &nodes, const taglist_t &tags, bool exists);
+    int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, bool exists, bool pending=false);
+    void copy_to_table(osmid_t id, const char *wkt, const taglist_t &tags);
 
     boost::scoped_ptr<tagtransform> m_tagtransform;
     boost::scoped_ptr<export_list> m_export_list;

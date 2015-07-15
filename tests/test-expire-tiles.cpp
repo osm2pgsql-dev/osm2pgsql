@@ -1,4 +1,5 @@
 #include "expire-tiles.hpp"
+#include "options.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -19,7 +20,7 @@ void run_test(const char* test_name, void (*testfunc)())
         fprintf(stderr, "%s\n", test_name);
         testfunc();
     }
-    catch(std::exception& e)
+    catch(const std::exception& e)
     {
         fprintf(stderr, "%s\n", e.what());
         fprintf(stderr, "FAIL\n");

@@ -24,6 +24,8 @@
 */
 
 #include "config.h"
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 #include "options.hpp"
 #include "parse.hpp"
 #include "middle.hpp"
@@ -31,10 +33,12 @@
 #include "osmdata.hpp"
 #include "util.hpp"
 
-#include <unistd.h>
-#include <assert.h>
 #include <time.h>
 #include <stdexcept>
+#include <string>
+#include <vector>
+#include <cstdio>
+#include <cstdlib>
 
 #include <libpq-fe.h>
 #include <boost/format.hpp>
@@ -71,7 +75,8 @@ int main(int argc, char *argv[])
             return 0;
 
         //setup the front (input)
-        parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection);
+        parse_delegate_t parser(options.extra_attributes, options.bbox,
+                                options.projection, options.append);
 
         //setup the middle
         boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
@@ -99,18 +104,16 @@ int main(int argc, char *argv[])
          * set as pending, to be handled in the next stage.
          */
         //read in the input files one by one
-        for(std::vector<std::string>::const_iterator filename = options.input_files.begin(); filename != options.input_files.end(); ++filename)
-        {
+        for (auto const filename : options.input_files) {
             //read the actual input
-            fprintf(stderr, "\nReading in file: %s\n", filename->c_str());
+            fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
             time_t start = time(NULL);
-            if (parser.streamFile(options.input_reader.c_str(), filename->c_str(), options.sanitize, &osmdata) != 0)
-                util::exit_nicely();
+            parser.stream_file(options.input_reader, filename, &osmdata);
             fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
         }
 
         //show stats
-        parser.printSummary();
+        parser.print_summary();
 
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
@@ -119,7 +122,7 @@ int main(int argc, char *argv[])
 
         return 0;
     }//something went wrong along the way
-    catch(std::runtime_error& e)
+    catch(const std::runtime_error& e)
     {
         fprintf(stderr, "Osm2pgsql failed due to ERROR: %s\n", e.what());
         exit(EXIT_FAILURE);

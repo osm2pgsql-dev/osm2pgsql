@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
+#include "osmdata.hpp"
 #include "output-multi.hpp"
 #include "options.hpp"
 #include "middle-pgsql.hpp"
@@ -67,8 +67,6 @@ int main(int argc, char *argv[]) {
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
-        options.tblsslim_index = "tablespacetest";
-        options.tblsslim_data = "tablespacetest";
         options.slim = 1;
 
         export_list columns;
@@ -90,13 +88,11 @@ int main(int argc, char *argv[]) {
 
         osmdata_t osmdata(mid_pgsql, outputs);
 
-        boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection));
+        boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
         osmdata.start();
 
-        if (parser->streamFile("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", options.sanitize, &osmdata) != 0) {
-            throw std::runtime_error("Unable to read input file `tests/liechtenstein-2013-08-03.osm.pbf'.");
-        }
+        parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
         parser.reset(NULL);
 
