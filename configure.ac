@@ -10,11 +10,7 @@ dnl Allow maintainer mode to be disabled (debian build scripts do this)
 AM_MAINTAINER_MODE([enable])
 
 dnl use automake to generate standard Makefiles
-AM_INIT_AUTOMAKE([1.9.6 dist-bzip2 std-options check-news])
-
-dnl use 'silent' make rules by default (disabled for now)
-dnl AM_INIT_AUTOMAKE([1.11 dist-bzip2 silent-rules])
-dnl AM_SILENT_RULES([yes])
+AM_INIT_AUTOMAKE([1.9.6 foreign dist-bzip2 std-options])
 
 dnl Additional macro definitions are in here
 AC_CONFIG_MACRO_DIR([m4])
