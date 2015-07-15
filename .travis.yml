@@ -26,6 +26,7 @@ matrix:
   include:
     - os: linux
       compiler: clang
+      env: CXXFLAGS="-Werror"
     - os: linux
       compiler: gcc
 # update versions
