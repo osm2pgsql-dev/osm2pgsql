@@ -227,7 +227,7 @@ void table_t::stop()
         // Re-add constraints if on 1.x. 2.0 has typemod, and they automatically come with CREATE TABLE AS
         pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT CASE WHEN PostGIS_Lib_Version() LIKE '1.%%' THEN Populate_Geometry_Columns('%1%'::regclass) ELSE 1 END;") % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
-        fprintf(stderr, "Creating geometry index on  %s\n", name.c_str());
+        fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
         // Use fillfactor 100 for un-updatable imports
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %1% USING GIST (way) %2% %3%") % name %
@@ -237,13 +237,13 @@ void table_t::stop()
         /* slim mode needs this to be able to apply diffs */
         if (slim && !drop_temp)
         {
-            fprintf(stderr, "Creating osm_id index on  %s\n", name.c_str());
+            fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
                 (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
-            fprintf(stderr, "Creating hstore indexes on  %s\n", name.c_str());
+            fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
             if (hstore_mode != HSTORE_NONE) {
                 pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %1% USING GIN (tags) %2%") % name %
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
@@ -253,11 +253,11 @@ void table_t::stop()
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             }
         }
-        fprintf(stderr, "Creating indexes on  %s finished\n", name.c_str());
+        fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("GRANT SELECT ON %1% TO PUBLIC") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
         time(&end);
-        fprintf(stderr, "All indexes on  %s created  in %ds\n", name.c_str(), (int)(end - start));
+        fprintf(stderr, "All indexes on %s created in %ds\n", name.c_str(), (int)(end - start));
     }
     teardown();
 
