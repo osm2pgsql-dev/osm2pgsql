@@ -71,7 +71,7 @@ private:
     std::vector<std::vector<ramWay> > ways;
     std::vector<std::vector<ramRel> > rels;
 
-    std::auto_ptr<node_ram_cache> cache;
+    std::unique_ptr<node_ram_cache> cache;
 
     /* the previous behaviour of iterate_ways was to delete all ways as they
      * were being iterated. this doesn't work now that the output handles its
