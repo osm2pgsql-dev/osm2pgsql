@@ -165,9 +165,11 @@ AC_DEFUN([AX_LIB_BZIP2],
 @%:@include <bzlib.h>
                     ]],
                     [[
-    const char *version;
+    const char * version;
     
     version = BZ2_bzlibVersion();
+    if (version == 0)
+      ; // fixes error with -Werror=unused-but-set-variable on g++
                     ]]
                 )],
                 [
