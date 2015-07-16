@@ -185,7 +185,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 const Coordinate this_pt = coords->getAt(i);
                 const Coordinate prev_pt = coords->getAt(i-1);
                 const double delta = this_pt.distance(prev_pt);
-                assert(!isnan(delta));
+                assert(!std::isnan(delta));
                 // figure out if the addition of this point would take the total
                 // length of the line in `segment` over the `split_at` distance.
 
