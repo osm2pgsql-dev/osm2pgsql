@@ -376,10 +376,11 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
     if (block_id < 0)
         block_id = load_block(block_offset);
 
-    if (isnan(lat) && isnan(lon))
+    if (std::isnan(lat) && std::isnan(lon)) {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode();
-    else
+    } else {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode(lon, lat);
+    }
     readNodeBlockCache[block_id].inc_used();
     readNodeBlockCache[block_id].set_dirty();
 
@@ -438,7 +439,7 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); i++) {
-        if (isnan(out[i].lat) && isnan(out[i].lon)) {
+        if (std::isnan(out[i].lat) && std::isnan(out[i].lon)) {
             if (get(&(out[wrtidx]), nds[i]) == 0)
                 wrtidx++;
         } else {
