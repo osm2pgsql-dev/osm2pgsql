@@ -47,7 +47,7 @@ int test_node_set(middle_t *mid)
   nodelist_t nodes;
 
   // set the node
-  if (mid->nodes_set(expected.id, expected.lat, expected.lon, tags) != 0) { std::cerr << "ERROR: Unable to set node.\n"; return 1; }
+  mid->nodes_set(expected.id, expected.lat, expected.lon, tags);
 
   // get it back
   ids.push_back(expected.id);
@@ -113,12 +113,7 @@ int test_nodes_comprehensive_set(middle_t *mid)
 
   for (expected_nodelist_t::iterator node = expected_nodes.begin(); node != expected_nodes.end(); ++node)
   {
-    if (mid->nodes_set(node->id, node->lat, node->lon, tags) != 0)
-    {
-      std::cerr << "ERROR: Unable to set node " << node->id << "with lat="
-                << node->lat << " lon=" << node->lon << std::endl;
-      return 1;
-    }
+    mid->nodes_set(node->id, node->lat, node->lon, tags);
     ids.push_back(node->id);
   }
 
@@ -175,13 +170,11 @@ int test_way_set(middle_t *mid)
 
   // set the nodes
   for (size_t i = 0; i < nds.size(); ++i) {
-    status = mid->nodes_set(nds[i], lat, lon, tags);
-    if (status != 0) { std::cerr << "ERROR: Unable to set node " << nds[i] << ".\n"; return 1; }
+    mid->nodes_set(nds[i], lat, lon, tags);
   }
 
   // set the way
-  status = mid->ways_set(way_id, nds, tags);
-  if (status != 0) { std::cerr << "ERROR: Unable to set way.\n"; return 1; }
+  mid->ways_set(way_id, nds, tags);
 
   // commit the setup data
   mid->commit();

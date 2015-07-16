@@ -32,23 +32,21 @@
  */
 
 
-int middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    return cache->set(id, lat, lon, tags);
+void middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
+    cache->set(id, lat, lon, tags);
 }
 
-int middle_ram_t::ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+void middle_ram_t::ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags)
 {
     ways.set(id, new ramWay(tags, nds));
-    return 0;
 }
 
-int middle_ram_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+void middle_ram_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
     rels.set(id, new ramRel(tags, members));
-    return 0;
 }
 
-int middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
 {
     for (idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it) {
         osmNode n;
@@ -96,28 +94,31 @@ void middle_ram_t::release_ways()
     ways.clear();
 }
 
-int middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
+bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
 {
-    if (simulate_ways_deleted)
-        return 1;
+    if (simulate_ways_deleted) {
+        return false;
+    }
 
     auto const *ele = ways.get(id);
 
     if (!ele) {
-        return 1;
+        return false;
     }
 
     tags = ele->tags;
     nodes_get_list(nodes, ele->ndids);
 
-    return 0;
+    return true;
 }
 
-int middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+size_t middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                                 multitaglist_t &tags, multinodelist_t &nodes) const
 {
     if (ids.empty())
+    {
         return 0;
+    }
 
     assert(way_ids.empty());
     tags.assign(ids.size(), taglist_t());
@@ -125,7 +126,7 @@ int middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 
     size_t count = 0;
     for (idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
-        if (ways_get(*it, tags[count], nodes[count]) == 0) {
+        if (ways_get(*it, tags[count], nodes[count])) {
             way_ids.push_back(*it);
             count++;
         } else {
@@ -142,18 +143,18 @@ int middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     return int(count);
 }
 
-int middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
 {
     auto const *ele = rels.get(id);
 
     if (!ele) {
-        return 1;
+        return false;
     }
 
     tags = ele->tags;
     members = ele->members;
 
-    return 0;
+    return true;
 }
 
 void middle_ram_t::analyze(void)
@@ -166,7 +167,7 @@ void middle_ram_t::end(void)
     /* No need */
 }
 
-int middle_ram_t::start(const options_t *out_options_)
+void middle_ram_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
     /* latlong has a range of +-180, mercator +-20000
@@ -175,8 +176,6 @@ int middle_ram_t::start(const options_t *out_options_)
     cache.reset(new node_ram_cache(out_options->alloc_chunkwise, out_options->cache, out_options->scale));
 
     fprintf( stderr, "Mid: Ram, scale=%d\n", out_options->scale );
-
-    return 0;
 }
 
 void middle_ram_t::stop(void)

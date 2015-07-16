@@ -107,14 +107,14 @@ struct node_ram_cache : public boost::noncopyable
     node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
     ~node_ram_cache();
 
-    int set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void set(osmid_t id, double lat, double lon, const taglist_t &tags);
     int get(osmNode *out, osmid_t id);
 
 private:
     void percolate_up( int pos );
     ramNode *next_chunk();
-    int set_sparse(osmid_t id, const ramNode &coord);
-    int set_dense(osmid_t id, const ramNode& coord);
+    void set_sparse(osmid_t id, const ramNode &coord);
+    void set_dense(osmid_t id, const ramNode& coord);
     int get_sparse(osmNode *out, osmid_t id);
     int get_dense(osmNode *out, osmid_t id);
 

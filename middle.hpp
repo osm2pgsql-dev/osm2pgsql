@@ -17,15 +17,17 @@ struct options_t;
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
-    virtual int nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
+    virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
 
-    virtual int ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
+    // returns true if it got the relation
+    virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
 
-    virtual int ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+    virtual size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                               multitaglist_t &tags,
                               multinodelist_t &nodes) const = 0;
 
-    virtual int relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
+    // returns true if it got the relation
+    virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
 
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 
@@ -37,15 +39,15 @@ struct middle_t : public middle_query_t {
 
     virtual ~middle_t() {}
 
-    virtual int start(const options_t *out_options_) = 0;
+    virtual void start(const options_t *out_options_) = 0;
     virtual void stop(void) = 0;
     virtual void analyze(void) = 0;
     virtual void end(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual int nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual int ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) = 0;
-    virtual int relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
+    virtual void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) = 0;
+    virtual void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
 
     struct pending_processor {
         virtual ~pending_processor() {}
@@ -66,7 +68,7 @@ struct middle_t : public middle_query_t {
 struct slim_middle_t : public middle_t {
     virtual ~slim_middle_t() {}
 
-    virtual int nodes_delete(osmid_t id) = 0;
+    virtual void nodes_delete(osmid_t id) = 0;
     virtual int node_changed(osmid_t id) = 0;
 
     virtual int ways_delete(osmid_t id) = 0;
