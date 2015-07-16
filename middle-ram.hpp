@@ -13,9 +13,72 @@
 
 #include "middle.hpp"
 #include <vector>
+#include <array>
 
 struct node_ram_cache;
 struct options_t;
+
+template <typename T, size_t N>
+class cache_block_t
+{
+    std::array<std::unique_ptr<T>, N> arr;
+public:
+    void set(size_t idx, T *ele) { arr[idx].reset(ele); }
+
+    T const *get(size_t idx) const { return arr[idx].get(); }
+};
+
+template <typename T, size_t BLOCK_SHIFT>
+class elem_cache_t
+{
+    constexpr static size_t per_block() { return 1 << BLOCK_SHIFT; }
+    constexpr static size_t num_blocks() { return 1 << (32 - BLOCK_SHIFT); }
+
+    constexpr static size_t id2block(osmid_t id)
+    {
+        /* + NUM_BLOCKS/2 allows for negative IDs */
+        return (id >> BLOCK_SHIFT) + num_blocks()/2;
+    }
+
+    constexpr static size_t id2offset(osmid_t id)
+    {
+        return id & (per_block()-1);
+    }
+
+    typedef cache_block_t<T, per_block()> element_t;
+    std::vector<std::unique_ptr<element_t>> arr;
+public:
+    elem_cache_t() : arr(num_blocks()) {}
+
+    void set(osmid_t id, T *ele)
+    {
+        const size_t block = id2block(id);
+
+        if (!arr[block]) {
+            arr[block].reset(new element_t());
+        }
+
+        arr[block]->set(id2offset(id), ele);
+    }
+
+    T const *get(osmid_t id) const
+    {
+        const size_t block = id2block(id);
+
+        if (!arr[block]) {
+            return 0;
+        }
+
+        return arr[block]->get(id2offset(id));
+    }
+
+    void clear()
+    {
+        for (auto &ele : arr) {
+            ele.release();
+        }
+    }
+};
 
 struct middle_ram_t : public middle_t {
     middle_ram_t();
@@ -61,15 +124,19 @@ private:
     struct ramWay {
         taglist_t tags;
         idlist_t ndids;
+
+        ramWay(const taglist_t &t, const idlist_t &n) : tags(t), ndids(n) {}
     };
 
     struct ramRel {
         taglist_t tags;
         memberlist_t members;
+
+        ramRel(const taglist_t &t, const memberlist_t &m) : tags(t), members(m) {}
     };
 
-    std::vector<std::vector<ramWay> > ways;
-    std::vector<std::vector<ramRel> > rels;
+    elem_cache_t<ramWay, 10> ways;
+    elem_cache_t<ramRel, 10> rels;
 
     std::unique_ptr<node_ram_cache> cache;
 
@@ -80,7 +147,5 @@ private:
      * iterate_ways is complete, so this flag emulates that. */
     bool simulate_ways_deleted;
 };
-
-extern middle_ram_t mid_ram;
 
 #endif
