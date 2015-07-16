@@ -405,13 +405,13 @@ void node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) 
      * get pushed to the sparse cache if a block is sparse and ALLOC_SPARSE is set
      */
     if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
-        return set_dense(id, ramNode(lon, lat));
+        set_dense(id, ramNode(lon, lat));
+    } else if ( (allocStrategy & ALLOC_SPARSE) > 0 ) {
+        set_sparse(id, ramNode(lon, lat));
+    } else {
+        // Command line options always have ALLOC_DENSE | ALLOC_SPARSE
+        throw std::logic_error((boost::format("Unexpected cache strategy in node_ram_cache::set with allocStrategy %1%") % allocStrategy).str());
     }
-    if ( (allocStrategy & ALLOC_SPARSE) > 0 ) {
-        return set_sparse(id, ramNode(lon, lat));
-    }
-    // can this fall through to the end?
-    throw std::logic_error((boost::format("Fell through in node_ram_cache::set with allocStrategy %1%") % allocStrategy).str());
 }
 
 int node_ram_cache::get(osmNode *out, osmid_t id) {
