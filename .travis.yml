@@ -26,7 +26,6 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: CXXFLAGS="-Werror"
     - os: linux
       compiler: gcc
 # update versions
@@ -38,6 +37,7 @@ install:
       export CXX=g++-4.8;
     fi
 before_script:
+  - export CXXFLAGS="-Werror"
   - $CXX --version
   - xml2-config --version
   - geos-config --version
