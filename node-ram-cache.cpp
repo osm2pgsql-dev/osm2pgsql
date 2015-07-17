@@ -113,9 +113,11 @@ void node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
     // Sparse cache depends on ordered nodes, reject out-of-order ids.
     // Also check that there is still space.
     if ((maxSparseId && id < maxSparseId)
-        || (sizeSparseTuples > maxSparseTuples)
-        || ( cacheUsed > cacheSize)) {
-        if (!((allocStrategy & ALLOC_LOSSY) > 0)) {
+         || (sizeSparseTuples > maxSparseTuples)
+         || ( cacheUsed > cacheSize)) {
+        if (allocStrategy & ALLOC_LOSSY) {
+            return;
+        } else {
             fprintf(stderr, "\nNode cache size is too small to fit all nodes. Please increase cache size\n");
             util::exit_nicely();
         }
