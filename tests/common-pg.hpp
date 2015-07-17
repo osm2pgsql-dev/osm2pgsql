@@ -59,7 +59,8 @@ struct tempdb
     void check_tblspc();
 
 private:
-    void setup_extension(conn_ptr db, const std::string &extension, ...);
+    // Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling back to trying to find extension_files
+    void setup_extension(conn_ptr db, const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
 
     conn_ptr m_conn;
     std::string m_db_name;

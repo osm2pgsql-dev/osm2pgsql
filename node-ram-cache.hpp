@@ -68,7 +68,7 @@ public:
     ramNode() : _lat(NAN), _lon(NAN) {}
     ramNode(double _lon, double _lat) : _lon(lon), _lat(lat) {}
 
-    bool is_valid() const ( return !isnan(_lon); }
+    bool is_valid() const ( return !std::isnan(_lon); }
     double lon() const { return _lon; }
     double lat() const { return _lat; }
 private:
@@ -107,14 +107,14 @@ struct node_ram_cache : public boost::noncopyable
     node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
     ~node_ram_cache();
 
-    int set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void set(osmid_t id, double lat, double lon, const taglist_t &tags);
     int get(osmNode *out, osmid_t id);
 
 private:
     void percolate_up( int pos );
     ramNode *next_chunk();
-    int set_sparse(osmid_t id, const ramNode &coord);
-    int set_dense(osmid_t id, const ramNode& coord);
+    void set_sparse(osmid_t id, const ramNode &coord);
+    void set_dense(osmid_t id, const ramNode& coord);
     int get_sparse(osmNode *out, osmid_t id);
     int get_dense(osmNode *out, osmid_t id);
 

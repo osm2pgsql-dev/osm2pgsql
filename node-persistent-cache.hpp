@@ -55,17 +55,17 @@ struct node_persistent_cache : public boost::noncopyable
                           bool ro, boost::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 
-    int set(osmid_t id, double lat, double lon);
+    void set(osmid_t id, double lat, double lon);
     int get(osmNode *out, osmid_t id);
-    int get_list(nodelist_t &out, const idlist_t nds);
+    size_t get_list(nodelist_t &out, const idlist_t nds);
 
 private:
 
-    int set_append(osmid_t id, double lat, double lon);
-    int set_create(osmid_t id, double lat, double lon);
+    void set_append(osmid_t id, double lat, double lon);
+    void set_create(osmid_t id, double lat, double lon);
 
     void writeout_dirty_nodes();
-    int replace_block();
+    size_t replace_block();
     int find_block(osmid_t block_offset);
     void expand_cache(osmid_t block_offset);
     void nodes_prefetch_async(osmid_t id);

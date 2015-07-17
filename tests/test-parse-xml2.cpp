@@ -21,24 +21,24 @@ void exit_nicely()
 struct test_middle_t : public middle_t {
     virtual ~test_middle_t() {}
 
-    int start(const options_t *out_options_) { return 0; }
+    void start(const options_t *out_options_) { }
     void stop(void) { }
     void cleanup(void) { }
     void analyze(void) { }
     void end(void) { }
     void commit(void) { }
 
-    int nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) { return 0; }
-    int nodes_get_list(nodelist_t &out, const idlist_t nds) const { return 0; }
+    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) { }
+    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const { return 0; }
 
-    int ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) { return 0; }
-    int ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const { return 0; }
-    int ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) { }
+    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const { return true; }
+    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                               std::vector<taglist_t> &tags,
                               std::vector<nodelist_t> &nodes) const { return 0; }
 
-    int relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) { return 0; }
-    int relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const { return 0; }
+    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) { }
+    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const { return 0; }
 
     void iterate_ways(pending_processor& pf) { }
     void iterate_relations(pending_processor& pf) { }

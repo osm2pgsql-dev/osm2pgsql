@@ -312,7 +312,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
     int ret = 0;
 
     // Try to fetch the way from the DB
-    if (!m_mid->ways_get(id, tags_int, nodes_int)) {
+    if (m_mid->ways_get(id, tags_int, nodes_int)) {
         // Output the way
         //ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
         ret = pgsql_out_way(id, tags_int, nodes_int, exists);
@@ -356,7 +356,7 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     int ret = 0;
 
     // Try to fetch the relation from the DB
-    if (!m_mid->relations_get(id, members_int, tags_int)) {
+    if (m_mid->relations_get(id, members_int, tags_int)) {
         ret = pgsql_process_relation(id, members_int, tags_int, exists, true);
     }
 

@@ -84,27 +84,27 @@ struct middle_ram_t : public middle_t {
     middle_ram_t();
     virtual ~middle_ram_t();
 
-    int start(const options_t *out_options_);
+    void start(const options_t *out_options_);
     void stop(void);
     void analyze(void);
     void end(void);
     void commit(void);
 
-    int nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int nodes_get_list(nodelist_t &out, const idlist_t nds) const;
+    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    int ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
-    int ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
-    int ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
+    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
+    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                       multitaglist_t &tags, multinodelist_t &nodes) const;
 
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
-    int relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
-    int relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
+    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 

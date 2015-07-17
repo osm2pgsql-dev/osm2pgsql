@@ -164,9 +164,11 @@ AC_DEFUN([AX_LIB_ZLIB],
 @%:@include <zlib.h>
                     ]],
                     [[
-    const char *version;
+    const char * version;
     
     version = zlibVersion();
+    if (version == 0)
+      ; // fixes error with -Werror=unused-but-set-variable on g++
                     ]]
                 )],
                 [

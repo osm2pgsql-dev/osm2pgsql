@@ -313,7 +313,7 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
 }
 } // anonymous namespace
 
-int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
+void middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
                                     const double& lon, const taglist_t &tags)
 {
     if( node_table->copyMode )
@@ -323,41 +323,41 @@ int middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
       char *buffer = (char *)alloca( length );
 #ifdef FIXED_POINT
       ramNode n(lon, lat);
-      if( snprintf(buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n",
-                   id, n.int_lat(), n.int_lon(), tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
+      if (snprintf(buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n",
+                   id, n.int_lat(), n.int_lon(), tag_buf ) > (length-10)) {
+         throw std::runtime_error((boost::format("Buffer overflow node id %1%") % id).str());
+      }
 #else
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow node id %" PRIdOSMID "\n", id); return 1; }
+      if (snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10)) {
+        throw std::runtime_error((boost::format("Buffer overflow node id %1%") % id).str());
+      }
 #endif
       pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
-      return 0;
-    }
-
-    // Four params: id, lat, lon, tags */
-    const char *paramValues[4];
-    char *buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
-    paramValues[1] = ptr;
+    } else {
+        // Four params: id, lat, lon, tags */
+        const char *paramValues[4];
+        char *buffer = (char *)alloca(64);
+        char *ptr = buffer;
+        paramValues[0] = ptr;
+        ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
+        paramValues[1] = ptr;
 #ifdef FIXED_POINT
-    ramNode n(lon, lat);
-    ptr += sprintf(ptr, "%d", n.int_lat()) + 1;
-    paramValues[2] = ptr;
-    sprintf(ptr, "%d", n.int_lon());
+        ramNode n(lon, lat);
+        ptr += sprintf(ptr, "%d", n.int_lat()) + 1;
+        paramValues[2] = ptr;
+        sprintf(ptr, "%d", n.int_lon());
 #else
-    ptr += sprintf( ptr, "%.10f", lat ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%.10f", lon );
+        ptr += sprintf( ptr, "%.10f", lat ) + 1;
+        paramValues[2] = ptr;
+        sprintf( ptr, "%.10f", lon );
 #endif
-    paramValues[3] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
-    return 0;
+        paramValues[3] = pgsql_store_tags(tags,0);
+        pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
+    }
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) const
 {
     assert(out.empty());
 
@@ -425,8 +425,8 @@ int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) co
 
     // If some of the nodes in the way don't exist, the returning list has holes.
     // Merge the two lists removing any holes.
-    unsigned wrtidx = 0;
-    for (unsigned i = 0; i < nds.size(); ++i) {
+    size_t wrtidx = 0;
+    for (size_t i = 0; i < nds.size(); ++i) {
         if (std::isnan(out[i].lat)) {
             boost::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i]);
             if(found != pg_nodes.end()) {
@@ -445,22 +445,24 @@ int middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) co
 }
 
 
-int middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
+void middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
     cache->set( id, lat, lon, tags );
 
-    return (out_options->flat_node_cache_enabled)
-             ? persistent_cache->set(id, lat, lon)
-             : local_nodes_set(id, lat, lon, tags);
+    if (out_options->flat_node_cache_enabled) {
+        persistent_cache->set(id, lat, lon);
+    } else {
+        local_nodes_set(id, lat, lon, tags);
+    }
 }
 
-int middle_pgsql_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
 {
     return (out_options->flat_node_cache_enabled)
              ? persistent_cache->get_list(out, nds)
              : local_nodes_get_list(out, nds);
 }
 
-int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
+void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -470,18 +472,22 @@ int middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(node_table->sql_conn, "delete_node", 1, paramValues, PGRES_COMMAND_OK );
-    return 0;
 }
 
-int middle_pgsql_t::nodes_delete(osmid_t osm_id)
+void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
-    return ((out_options->flat_node_cache_enabled) ? persistent_cache->set(osm_id, NAN, NAN) : local_nodes_delete(osm_id));
+    if (out_options->flat_node_cache_enabled) {
+        persistent_cache->set(osm_id, NAN, NAN);
+    } else {
+        local_nodes_delete(osm_id);
+    }
 }
 
-int middle_pgsql_t::node_changed(osmid_t osm_id)
+void middle_pgsql_t::node_changed(osmid_t osm_id)
 {
-    if (!mark_pending)
-        return 0;
+    if (!mark_pending) {
+        return;
+    }
 
     char const *paramValues[1];
     char buffer[64];
@@ -512,39 +518,36 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-
-    return 0;
 }
 
-int middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist_t &tags)
+void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist_t &tags)
 {
     // Three params: id, nodes, tags */
     const char *paramValues[4];
     char *buffer;
 
-    if( way_table->copyMode )
-    {
+    if (way_table->copyMode) {
       const char *tag_buf = pgsql_store_tags(tags,1);
       char *node_buf = pgsql_store_nodes(nds);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
-              way_id, node_buf, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow way id %" PRIdOSMID "\n", way_id); return 1; }
+      if (snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
+              way_id, node_buf, tag_buf ) > (length-10)) {
+          throw std::runtime_error((boost::format("Buffer overflow way id %1%") % way_id).str());
+      }
       pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
-      return 0;
+    } else {
+        buffer = (char *)alloca(64);
+        char *ptr = buffer;
+        paramValues[0] = ptr;
+        sprintf(ptr, "%" PRIdOSMID, way_id);
+        paramValues[1] = pgsql_store_nodes(nds);
+        paramValues[2] = pgsql_store_tags(tags,0);
+        pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, (const char * const *)paramValues, PGRES_COMMAND_OK);
     }
-    buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    sprintf(ptr, "%" PRIdOSMID, way_id);
-    paramValues[1] = pgsql_store_nodes(nds);
-    paramValues[2] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, (const char * const *)paramValues, PGRES_COMMAND_OK);
-    return 0;
 }
 
-int middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
+bool middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
 {
     char const *paramValues[1];
     PGconn *sql_conn = way_table->sql_conn;
@@ -560,7 +563,7 @@ int middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) con
 
     if (PQntuples(res) != 1) {
         PQclear(res);
-        return 1;
+        return false;
     }
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
@@ -576,10 +579,10 @@ int middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) con
     PQclear(res);
 
     nodes_get_list(nodes, list);
-    return 0;
+    return true;
 }
 
-int middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
+size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                                   multitaglist_t &tags, multinodelist_t &nodes) const {
     if (ids.empty())
         return 0;
@@ -649,7 +652,7 @@ int middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 }
 
 
-int middle_pgsql_t::ways_delete(osmid_t osm_id)
+void middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -659,7 +662,6 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "delete_way", 1, paramValues, PGRES_COMMAND_OK );
-    return 0;
 }
 
 void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
@@ -681,7 +683,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     pf.process_ways();
 }
 
-int middle_pgsql_t::way_changed(osmid_t osm_id)
+void middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -701,11 +703,9 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-
-    return 0;
 }
 
-int middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
     // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6];
@@ -738,41 +738,43 @@ int middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const
     all_parts.insert(all_parts.end(), way_parts.begin(), way_parts.end());
     all_parts.insert(all_parts.end(), rel_parts.begin(), rel_parts.end());
 
-    if( rel_table->copyMode )
+    if (rel_table->copyMode)
     {
       char *tag_buf = strdup(pgsql_store_tags(tags,1));
       const char *member_buf = pgsql_store_tags(member_list,1);
       char *parts_buf = pgsql_store_nodes(all_parts);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
       buffer = (char *)alloca(length);
-      if( snprintf( buffer, length, "%" PRIdOSMID "\t%zu\t%zu\t%s\t%s\t%s\n",
+      if (snprintf( buffer, length, "%" PRIdOSMID "\t%zu\t%zu\t%s\t%s\t%s\n",
                     id, node_parts.size(), node_parts.size() + way_parts.size(),
-                    parts_buf, member_buf, tag_buf ) > (length-10) )
-      { fprintf( stderr, "buffer overflow relation id %" PRIdOSMID "\n", id); return 1; }
+                    parts_buf, member_buf, tag_buf ) > (length-10)) {
+          throw std::runtime_error((boost::format("Buffer overflow relation id %1%") % id).str());
+      }
       free(tag_buf);
       pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
-      return 0;
+    } else {
+        buffer = (char *)alloca(64);
+        char *ptr = buffer;
+        paramValues[0] = ptr;
+        ptr += sprintf(ptr, "%" PRIdOSMID, id ) + 1;
+        paramValues[1] = ptr;
+        ptr += sprintf(ptr, "%zu", node_parts.size() ) + 1;
+        paramValues[2] = ptr;
+        sprintf( ptr, "%zu", node_parts.size() + way_parts.size() );
+        paramValues[3] = pgsql_store_nodes(all_parts);
+        paramValues[4] = pgsql_store_tags(member_list,0);
+        if (paramValues[4]) {
+            paramValues[4] = strdup(paramValues[4]);
+        }
+        paramValues[5] = pgsql_store_tags(tags,0);
+        pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
+        if (paramValues[4]) {
+            free((void *)paramValues[4]);
+        }
     }
-    buffer = (char *)alloca(64);
-    char *ptr = buffer;
-    paramValues[0] = ptr;
-    ptr += sprintf(ptr, "%" PRIdOSMID, id ) + 1;
-    paramValues[1] = ptr;
-    ptr += sprintf(ptr, "%zu", node_parts.size() ) + 1;
-    paramValues[2] = ptr;
-    sprintf( ptr, "%zu", node_parts.size() + way_parts.size() );
-    paramValues[3] = pgsql_store_nodes(all_parts);
-    paramValues[4] = pgsql_store_tags(member_list,0);
-    if( paramValues[4] )
-        paramValues[4] = strdup(paramValues[4]);
-    paramValues[5] = pgsql_store_tags(tags,0);
-    pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
-    if( paramValues[4] )
-        free((void *)paramValues[4]);
-    return 0;
 }
 
-int middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
 {
     char tmp[16];
     char const *paramValues[1];
@@ -790,7 +792,7 @@ int middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &
 
     if (PQntuples(res) != 1) {
         PQclear(res);
-        return 1;
+        return false;
     }
 
     pgsql_parse_tags(PQgetvalue(res, 0, 1), tags);
@@ -810,10 +812,10 @@ int middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &
                                  strtoosmid(it->key.c_str()+1, NULL, 10 ),
                                  it->value));
     }
-    return 0;
+    return true;
 }
 
-int middle_pgsql_t::relations_delete(osmid_t osm_id)
+void middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -835,7 +837,6 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
         ways_pending_tracker->mark(marked);
     }
     PQclear(res);
-    return 0;
 }
 
 void middle_pgsql_t::iterate_relations(pending_processor& pf)
@@ -856,7 +857,7 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
     pf.process_relations();
 }
 
-int middle_pgsql_t::relation_changed(osmid_t osm_id)
+void middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -877,7 +878,6 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-    return 0;
 }
 
 idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
@@ -1038,7 +1038,7 @@ int middle_pgsql_t::connect(table_desc& table) {
     return 0;
 }
 
-int middle_pgsql_t::start(const options_t *out_options_)
+void middle_pgsql_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
     PGresult   *res;
@@ -1177,8 +1177,6 @@ int middle_pgsql_t::start(const options_t *out_options_)
             tables[i].copyMode = 1;
         }
     }
-
-    return 0;
 }
 
 void middle_pgsql_t::commit(void) {

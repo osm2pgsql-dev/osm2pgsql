@@ -9,6 +9,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <boost/format.hpp>
+
 #include "osmtypes.hpp"
 #include "node-ram-cache.hpp"
 #include "util.hpp"
@@ -107,15 +109,15 @@ ramNode *node_ram_cache::next_chunk() {
 }
 
 
-int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
+void node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
     // Sparse cache depends on ordered nodes, reject out-of-order ids.
     // Also check that there is still space.
     if ((maxSparseId && id < maxSparseId)
-        || (sizeSparseTuples > maxSparseTuples)
-        || ( cacheUsed > cacheSize)) {
-        if ((allocStrategy & ALLOC_LOSSY) > 0)
-            return 1;
-        else {
+         || (sizeSparseTuples > maxSparseTuples)
+         || ( cacheUsed > cacheSize)) {
+        if (allocStrategy & ALLOC_LOSSY) {
+            return;
+        } else {
             fprintf(stderr, "\nNode cache size is too small to fit all nodes. Please increase cache size\n");
             util::exit_nicely();
         }
@@ -127,14 +129,15 @@ int node_ram_cache::set_sparse(osmid_t id, const ramNode &coord) {
     sizeSparseTuples++;
     cacheUsed += sizeof(ramNodeID);
     storedNodes++;
-    return 0;
 }
 
-int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
+void node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
     int32_t const block  = id2block(id);
     int const offset = id2offset(id);
 
-    if (maxBlocks == 0) return 1;
+    if (maxBlocks == 0) {
+      return;
+    }
 
     if (!blocks[block].nodes) {
         if (((allocStrategy & ALLOC_SPARSE) > 0) && ( usedBlocks < maxBlocks) && ( cacheUsed > cacheSize)) {
@@ -242,14 +245,13 @@ int node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
                 fprintf( stderr, "WARNING: Found Out of order node %" PRIdOSMID " (%d,%d) - this will impact the cache efficiency\n", id, block, offset );
                 warn_node_order++;
             }
-            return 1;
+            return;
         }
     }
 
     blocks[block].nodes[offset] = coord;
     blocks[block].inc_used();
     storedNodes++;
-    return 0;
 }
 
 
@@ -393,7 +395,7 @@ node_ram_cache::~node_ram_cache() {
   }
 }
 
-int node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
+void node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) || (id < 0 && ~id >> BLOCK_SHIFT >> 32 )) {
         fprintf(stderr, "\nAbsolute node IDs must not be larger than %lld (got %lld)\n",
                 1ULL << 42, (long long) id);
@@ -405,11 +407,13 @@ int node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
      * get pushed to the sparse cache if a block is sparse and ALLOC_SPARSE is set
      */
     if ( (allocStrategy & ALLOC_DENSE) > 0 ) {
-        return set_dense(id, ramNode(lon, lat));
+        set_dense(id, ramNode(lon, lat));
+    } else if ( (allocStrategy & ALLOC_SPARSE) > 0 ) {
+        set_sparse(id, ramNode(lon, lat));
+    } else {
+        // Command line options always have ALLOC_DENSE | ALLOC_SPARSE
+        throw std::logic_error((boost::format("Unexpected cache strategy in node_ram_cache::set with allocStrategy %1%") % allocStrategy).str());
     }
-    if ( (allocStrategy & ALLOC_SPARSE) > 0 )
-        return set_sparse(id, ramNode(lon, lat));
-    return 1;
 }
 
 int node_ram_cache::get(osmNode *out, osmid_t id) {

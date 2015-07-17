@@ -78,7 +78,7 @@ void node_persistent_cache::writeout_dirty_nodes()
 /**
  * Find the cache block with the lowest usage count for replacement
  */
-int node_persistent_cache::replace_block()
+size_t node_persistent_cache::replace_block()
 {
     int min_used = INT_MAX;
     int block_id = -1;
@@ -323,7 +323,7 @@ void node_persistent_cache::nodes_set_create_writeout_block()
 #endif
 }
 
-int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
+void node_persistent_cache::set_create(osmid_t id, double lat, double lon)
 {
     assert(!append_mode);
     assert(!read_mode);
@@ -361,11 +361,9 @@ int node_persistent_cache::set_create(osmid_t id, double lat, double lon)
 
     writeNodeBlock.nodes[id & WRITE_NODE_BLOCK_MASK] = ramNode(lon, lat);
     writeNodeBlock.set_dirty();
-
-    return 0;
 }
 
-int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
+void node_persistent_cache::set_append(osmid_t id, double lat, double lon)
 {
     assert(!read_mode);
 
@@ -376,21 +374,22 @@ int node_persistent_cache::set_append(osmid_t id, double lat, double lon)
     if (block_id < 0)
         block_id = load_block(block_offset);
 
-    if (isnan(lat) && isnan(lon))
+    if (std::isnan(lat) && std::isnan(lon)) {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode();
-    else
+    } else {
         readNodeBlockCache[block_id].nodes[id & READ_NODE_BLOCK_MASK] = ramNode(lon, lat);
+    }
     readNodeBlockCache[block_id].inc_used();
     readNodeBlockCache[block_id].set_dirty();
-
-    return 1;
 }
 
-int node_persistent_cache::set(osmid_t id, double lat, double lon)
+void node_persistent_cache::set(osmid_t id, double lat, double lon)
 {
-    return append_mode ?
-        set_append(id, lat, lon) :
+    if (append_mode) {
+        set_append(id, lat, lon);
+    } else {
         set_create(id, lat, lon);
+    }
 }
 
 int node_persistent_cache::get(osmNode *out, osmid_t id)
@@ -417,7 +416,7 @@ int node_persistent_cache::get(osmNode *out, osmid_t id)
     return 0;
 }
 
-int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
+size_t node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 {
     set_read_mode();
 
@@ -438,7 +437,7 @@ int node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
 
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); i++) {
-        if (isnan(out[i].lat) && isnan(out[i].lon)) {
+        if (std::isnan(out[i].lat) && std::isnan(out[i].lon)) {
             if (get(&(out[wrtidx]), nds[i]) == 0)
                 wrtidx++;
         } else {

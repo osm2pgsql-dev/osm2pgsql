@@ -29,7 +29,7 @@
 namespace {
 
 struct skip_test : public std::exception {
-    const char *what() { return "Test skipped."; }
+    const char *what() const noexcept { return "Test skipped."; }
 };
 
 void run_test(const char* test_name, void (*testfunc)()) {
@@ -89,27 +89,6 @@ void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
         throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
                                                 "query: %3%.")
                                   % expected % count % query).str());
-    }
-}
-
-void check_number(pg::conn_ptr &conn, double expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query, "
-                                                " but got %1%. Query was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    double num = boost::lexical_cast<double>(numstr);
-
-    // floating point isn't exact, so allow a 0.01% difference
-    if ((num > 1.0001*expected) || (num < 0.9999*expected)) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % num % query).str());
     }
 }
 
