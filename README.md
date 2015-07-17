@@ -51,7 +51,7 @@ To install on a Debian or Ubuntu system, first install the prerequisites:
 ```sh
 sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
   libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
-  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev \
+  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev zlib1g-dev \
   protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
 ```
 
