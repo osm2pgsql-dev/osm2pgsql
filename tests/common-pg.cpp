@@ -152,7 +152,7 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension,
         // only works on Debian-based distributions at the moment.
         fs::path contribdir = fs::path("/usr/share/postgresql/") / pg_version / fs::path("contrib");
 
-        for (auto filename : extension_files) {
+        for (const auto& filename : extension_files) {
             fs::path sql_file = contribdir / fs::path(filename);
             // Should this throw an error if the file can't be found?
             if (fs::exists(sql_file) && fs::is_regular_file(sql_file)) {
