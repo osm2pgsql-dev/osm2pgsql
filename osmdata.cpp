@@ -239,7 +239,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         fprintf(stderr, "\nGoing over pending ways...\n");
         fprintf(stderr, "\t%zu ways are pending\n", ids_queued);
         fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
-        time_t start = time(NULL);
+        time_t start = time(nullptr);
 
 
         //make the threads and start them
@@ -252,7 +252,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         //wait for them to really be done
         workers.join_all();
 
-        time_t finish = time(NULL);
+        time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu ways in %i sec\n\n", ids_queued, (int)(finish - start));
         if (finish - start > 0)
             fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
@@ -287,7 +287,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         fprintf(stderr, "\nGoing over pending relations...\n");
         fprintf(stderr, "\t%zu relations are pending\n", ids_queued);
         fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
-        time_t start = time(NULL);
+        time_t start = time(nullptr);
 
         //make the threads and start them
         for (size_t i = 0; i < clones.size(); ++i) {
@@ -299,7 +299,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         //wait for them to really be done
         workers.join_all();
 
-        time_t finish = time(NULL);
+        time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu relations in %i sec\n\n", ids_queued, (int)(finish - start));
         if (finish - start > 0)
             fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),

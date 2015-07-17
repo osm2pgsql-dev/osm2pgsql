@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
                 options.projection->project_getprojinfo()->descr );
 
         //start it up
-        time_t overall_start = time(NULL);
+        time_t overall_start = time(nullptr);
         osmdata.start();
 
         /* Processing
@@ -107,9 +107,9 @@ int main(int argc, char *argv[])
         for (auto const filename : options.input_files) {
             //read the actual input
             fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
-            time_t start = time(NULL);
+            time_t start = time(nullptr);
             parser.stream_file(options.input_reader, filename, &osmdata);
-            fprintf(stderr, "  parse time: %ds\n", (int)(time(NULL) - start));
+            fprintf(stderr, "  parse time: %ds\n", (int)(time(nullptr) - start));
         }
 
         //show stats
@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
 
-        fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(NULL) - overall_start));
+        fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(nullptr) - overall_start));
 
         return 0;
     }//something went wrong along the way

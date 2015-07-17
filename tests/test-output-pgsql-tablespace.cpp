@@ -94,7 +94,7 @@ void test_regression_simple() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
@@ -117,7 +117,7 @@ void test_regression_simple() {
 
     parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 

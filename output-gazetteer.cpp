@@ -43,7 +43,7 @@ enum { BUFFER_SIZE = 4092 };
 void place_tag_processor::clear()
 {
     // set members to sane defaults
-    src = NULL;
+    src = nullptr;
     admin_level = ADMINLEVEL_NONE;
     countrycode = 0;
     housenumber.assign("\\N");
@@ -495,7 +495,7 @@ void output_gazetteer_t::stop_copy(void)
     }
 
     /* Terminate the copy */
-    if (PQputCopyEnd(Connection, NULL) != 1)
+    if (PQputCopyEnd(Connection, nullptr) != 1)
     {
         std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
         util::exit_nicely();

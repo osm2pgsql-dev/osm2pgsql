@@ -81,7 +81,7 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
       array_indexes(array_indexes_),
       copyMode(0),
       transactionMode(0),
-      sql_conn(NULL)
+      sql_conn(nullptr)
 {}
 
 #define HELPER_STATE_UNINITIALIZED -1
@@ -169,7 +169,7 @@ inline char *escape_tag( char *ptr, const std::string &in, bool escape )
   return ptr;
 }
 
-// escape means we return '\N' for copy mode, otherwise we return just NULL */
+// escape means we return '\N' for copy mode, otherwise we return just nullptr */
 const char *pgsql_store_tags(const taglist_t &tags, bool escape)
 {
   static char *buffer;
@@ -181,7 +181,7 @@ const char *pgsql_store_tags(const taglist_t &tags, bool escape)
     if( escape )
       return "\\N";
     else
-      return NULL;
+      return nullptr;
   }
 
   if( buflen <= countlist * 24 ) // LE so 0 always matches */
@@ -294,7 +294,7 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
     // Terminate any pending COPY */
     if (table->copyMode) {
         PGconn *sql_conn = table->sql_conn;
-        int stop = PQputCopyEnd(sql_conn, NULL);
+        int stop = PQputCopyEnd(sql_conn, nullptr);
         if (stop != 1) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
             util::exit_nicely();
@@ -364,7 +364,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     char tmp[16];
 
     char *tmp2 = (char *)malloc(sizeof(char) * nds.size() * 16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
+    if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
 
 
     // create a list of ids in tmp2 to query the database  */
@@ -405,17 +405,17 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     boost::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
     for (int i = 0; i < countPG; i++) {
-        osmid_t id = strtoosmid(PQgetvalue(res, i, 0), NULL, 10);
+        osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
         osmNode node;
 #ifdef FIXED_POINT
-        ramNode n((int) strtol(PQgetvalue(res, i, 2), NULL, 10),
-                  (int) strtol(PQgetvalue(res, i, 1), NULL, 10));
+        ramNode n((int) strtol(PQgetvalue(res, i, 2), nullptr, 10),
+                  (int) strtol(PQgetvalue(res, i, 1), nullptr, 10));
 
         node.lat = n.lat();
         node.lon = n.lon();
 #else
-        node.lat = strtod(PQgetvalue(res, i, 1), NULL);
-        node.lon = strtod(PQgetvalue(res, i, 2), NULL);
+        node.lat = strtod(PQgetvalue(res, i, 1), nullptr);
+        node.lon = strtod(PQgetvalue(res, i, 2), nullptr);
 #endif
         pg_nodes.emplace(id, node);
     }
@@ -568,7 +568,7 @@ bool middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) co
 
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
 
-    size_t num_nodes = strtoul(PQgetvalue(res, 0, 2), NULL, 10);
+    size_t num_nodes = strtoul(PQgetvalue(res, 0, 2), nullptr, 10);
     idlist_t list;
     pgsql_parse_nodes( PQgetvalue(res, 0, 0), list);
     if (num_nodes != list.size()) {
@@ -592,7 +592,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     char const *paramValues[1];
 
     tmp2 = (char *)malloc(sizeof(char)*ids.size()*16);
-    if (tmp2 == NULL) return 0; //failed to allocate memory, return */
+    if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
 
     // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
@@ -613,7 +613,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     idlist_t wayidspg;
 
     for (int i = 0; i < countPG; i++) {
-        wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), NULL, 10));
+        wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
     }
 
 
@@ -626,7 +626,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                 tags.push_back(taglist_t());
                 pgsql_parse_tags(PQgetvalue(res, j, 2), tags.back());
 
-                size_t num_nodes = strtoul(PQgetvalue(res, j, 3), NULL, 10);
+                size_t num_nodes = strtoul(PQgetvalue(res, j, 3), nullptr, 10);
                 idlist_t list;
                 pgsql_parse_nodes( PQgetvalue(res, j, 1), list);
                 if (num_nodes != list.size()) {
@@ -798,7 +798,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
     pgsql_parse_tags(PQgetvalue(res, 0, 1), tags);
     pgsql_parse_tags(PQgetvalue(res, 0, 0), member_temp);
 
-    if (member_temp.size() != strtoul(PQgetvalue(res, 0, 2), NULL, 10)) {
+    if (member_temp.size() != strtoul(PQgetvalue(res, 0, 2), nullptr, 10)) {
         fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
         util::exit_nicely();
     }
@@ -809,7 +809,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
         char tag = it->key[0];
         OsmType type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
         members.push_back(member(type,
-                                 strtoosmid(it->key.c_str()+1, NULL, 10 ),
+                                 strtoosmid(it->key.c_str()+1, nullptr, 10 ),
                                  it->value));
     }
     return true;
@@ -895,7 +895,7 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     const int ntuples = PQntuples(result);
     idlist_t rel_ids(ntuples);
     for (int i = 0; i < ntuples; ++i) {
-        rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), NULL, 10);
+        rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), nullptr, 10);
     }
     PQclear(result);
 
@@ -954,10 +954,12 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
     char buffer[1024];
     const char *source;
     char *dest;
-    char *openbrace = NULL;
+    char *openbrace = nullptr;
     int copied = 0;
 
-    if (*string == NULL) return;
+    if (*string == nullptr) {
+        return;
+    }
     source = *string;
     dest = buffer;
 
@@ -1056,7 +1058,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
     // and pass that via the constructor to middle_t, so that middle_t
     // itself doesn't need to know about details of the output.
     if (out_options->output_backend == "gazetteer") {
-        way_table->array_indexes = NULL;
+        way_table->array_indexes = nullptr;
         mark_pending = false;
     }
 
@@ -1123,7 +1125,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
                 snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
                 res = PQexec(sql_conn, sql );
                 free(sql);
-                sql = NULL;
+                sql = nullptr;
                 if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
                 {
                     int size = PQfsize(res, 0);
@@ -1215,10 +1217,10 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     }
 
     PQfinish(sql_conn);
-    table->sql_conn = NULL;
+    table->sql_conn = nullptr;
     time(&end);
     fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
-    return NULL;
+    return nullptr;
 }
 
 namespace {
@@ -1253,7 +1255,7 @@ void middle_pgsql_t::stop(void)
     }
 
     for (i=0; i<num_tables; i++) {
-        int ret = pthread_create(&threads[i], NULL, pthread_middle_pgsql_stop_one, &thunks[i]);
+        int ret = pthread_create(&threads[i], nullptr, pthread_middle_pgsql_stop_one, &thunks[i]);
         if (ret) {
             fprintf(stderr, "pthread_create() returned an error (%d)", ret);
             util::exit_nicely();
@@ -1261,7 +1263,7 @@ void middle_pgsql_t::stop(void)
     }
 
     for (i=0; i<num_tables; i++) {
-        int ret = pthread_join(threads[i], NULL);
+        int ret = pthread_join(threads[i], nullptr);
         if (ret) {
             fprintf(stderr, "pthread_join() returned an error (%d)", ret);
             util::exit_nicely();
@@ -1274,7 +1276,7 @@ void middle_pgsql_t::stop(void)
 }
 
 middle_pgsql_t::middle_pgsql_t()
-    : tables(), num_tables(0), node_table(NULL), way_table(NULL), rel_table(NULL),
+    : tables(), num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
       append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
 {
     /*table = t_node,*/
@@ -1283,17 +1285,17 @@ middle_pgsql_t::middle_pgsql_t()
            /*start*/ "BEGIN;\n",
 #ifdef FIXED_POINT
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #else
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
 #endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
-/*prepare_intarray*/ NULL,
+/*prepare_intarray*/ nullptr,
             /*copy*/ "COPY %p_nodes FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_nodes;\n",
             /*stop*/ "COMMIT;\n"
@@ -1303,7 +1305,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_ways",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
@@ -1322,7 +1324,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*name*/ "%p_rels",
            /*start*/ "BEGIN;\n",
           /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ NULL,
+    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",

@@ -18,7 +18,7 @@ typedef boost::format fmt;
 table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(NULL), copyMode(false), srid((fmt("%1%") % srid).str()),
+    conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
     append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
@@ -36,7 +36,7 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 }
 
 table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(NULL), copyMode(false), buffer(), srid(other.srid),
+    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
     table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
@@ -66,10 +66,10 @@ std::string const& table_t::get_name() {
 
 void table_t::teardown()
 {
-    if(sql_conn != NULL)
+    if(sql_conn != nullptr)
     {
         PQfinish(sql_conn);
-        sql_conn = NULL;
+        sql_conn = nullptr;
     }
 }
 
@@ -280,7 +280,7 @@ void table_t::stop_copy()
     };
 
     //stop the copy
-    stop = PQputCopyEnd(sql_conn, NULL);
+    stop = PQputCopyEnd(sql_conn, nullptr);
     if (stop != 1)
        throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
 
@@ -319,7 +319,7 @@ void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt
         used.assign(tags.size(), false);
 
     //get the regular columns' values
-    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:NULL);
+    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:nullptr);
 
     //get the hstore columns' values
     write_hstore_columns(tags, buffer);
@@ -428,7 +428,7 @@ void table_t::write_hstore_columns(const taglist_t &tags, std::string& values)
             }
         }
 
-        //if you found not matching tags write a NULL
+        //if you found not matching tags write a NUL
         if(!added)
             values.append("\\N");
 
@@ -544,9 +544,10 @@ table_t::wkt_reader::~wkt_reader()
 
 const char* table_t::wkt_reader::get_next()
 {
-    if(current < count)
+    if (current < count) {
         return PQgetvalue(result, current++, 0);
-    return NULL;
+    }
+    return nullptr;
 }
 
 size_t table_t::wkt_reader::get_count() const

@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
 
         parser->stream_file("libxml2", "tests/hstore-match-only.osm", &osmdata);
 
-        parser.reset(NULL);
+        parser.reset(nullptr);
 
         osmdata.stop();
 

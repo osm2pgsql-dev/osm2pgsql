@@ -162,7 +162,7 @@ int test_way_set(middle_t *mid)
   double lat = 12.3456789;
   double lon = 98.7654321;
   taglist_t tags;
-  struct osmNode *node_ptr = NULL;
+  struct osmNode *node_ptr = nullptr;
   idlist_t nds;
   for (osmid_t i = 1; i <= 10; ++i)
       nds.push_back(i);

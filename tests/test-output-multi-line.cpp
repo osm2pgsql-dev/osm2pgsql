@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
 
         parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
-        parser.reset(NULL);
+        parser.reset(nullptr);
 
         osmdata.stop();
 

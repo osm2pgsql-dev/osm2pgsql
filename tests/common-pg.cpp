@@ -38,9 +38,9 @@ result_ptr conn::exec(const boost::format &fmt) {
 PGconn *conn::get() { return m_conn; }
 
 conn::~conn() {
-    if (m_conn != NULL) {
+    if (m_conn != nullptr) {
         PQfinish(m_conn);
-        m_conn = NULL;
+        m_conn = nullptr;
     }
 }
 
@@ -51,14 +51,14 @@ conn::conn(const std::string &conninfo)
         out << "Could not connect to database \"" << conninfo
             << "\" because: " << PQerrorMessage(m_conn);
         PQfinish(m_conn);
-        m_conn = NULL;
+        m_conn = nullptr;
         throw std::runtime_error(out.str());
     }
 }
 
 result::result(conn_ptr conn, const std::string &query)
     : m_conn(conn), m_result(PQexec(conn->get(), query.c_str())) {
-    if (m_result == NULL) {
+    if (m_result == nullptr) {
         throw std::runtime_error((boost::format("Unable to run query \"%1%\": NULL result")
                                   % query).str());
     }
@@ -67,16 +67,16 @@ result::result(conn_ptr conn, const std::string &query)
 PGresult *result::get() { return m_result; }
 
 result::~result() {
-    if (m_result != NULL) {
+    if (m_result != nullptr) {
         PQclear(m_result);
-        m_result = NULL;
+        m_result = nullptr;
     }
 }
 
 tempdb::tempdb()
     : m_conn(conn::connect("dbname=postgres")) {
-    result_ptr res = NULL;
-    m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(NULL)).str();
+    result_ptr res = nullptr;
+    m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
     m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
     //tests can be run concurrently which means that this query can collide with other similar ones
     //so we implement a simple retry here to get around the case that they do collide if we dont

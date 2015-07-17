@@ -287,7 +287,7 @@ options_t options_t::parse(int argc, char *argv[])
     // errors - setting it to zero seems to work, though. see
     // http://stackoverflow.com/questions/15179963/is-it-possible-to-repeat-getopt#15179990
     optind = 0;
-    while(-1 != (c = getopt_long(argc, argv, short_options, long_options, NULL))) {
+    while(-1 != (c = getopt_long(argc, argv, short_options, long_options, nullptr))) {
 
         //handle the current arg
         switch (c) {
@@ -513,14 +513,14 @@ options_t options_t::parse(int argc, char *argv[])
 
     if (options.pass_prompt) {
         char *prompt = simple_prompt("Password:", 100, 0);
-        if (prompt == NULL) {
+        if (prompt == nullptr) {
             options.password = boost::none;
         } else {
             options.password = std::string(prompt);
         }
     } else {
         char *pgpass = getenv("PGPASS");
-        if (pgpass == NULL) {
+        if (pgpass == nullptr) {
             options.password = boost::none;
         } else {
             options.password = std::string(pgpass);

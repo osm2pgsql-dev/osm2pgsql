@@ -114,7 +114,7 @@ void test_regression_simple() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
@@ -134,7 +134,7 @@ void test_regression_simple() {
 
     parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 
@@ -174,7 +174,7 @@ void test_latlong() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
@@ -197,7 +197,7 @@ void test_latlong() {
 
     parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 
@@ -238,7 +238,7 @@ void test_area_way_simple() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
@@ -260,7 +260,7 @@ void test_area_way_simple() {
 
     parser->stream_file("libxml2", "tests/test_output_pgsql_way_area.osm", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 
@@ -289,7 +289,7 @@ void test_route_rel() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_ram_t> mid_ram(new middle_ram_t());
     options_t options = options_t::parse(2, argv);
@@ -309,7 +309,7 @@ void test_route_rel() {
 
     parser->stream_file("libxml2", "tests/test_output_pgsql_route_rel.osm", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 
@@ -340,7 +340,7 @@ void test_clone() {
     }
 
     std::string proc_name("test-output-pgsql"), input_file("-");
-    char *argv[] = { &proc_name[0], &input_file[0], NULL };
+    char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
@@ -364,7 +364,7 @@ void test_clone() {
 
     parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
 
-    parser.reset(NULL);
+    parser.reset(nullptr);
 
     osmdata.stop();
 

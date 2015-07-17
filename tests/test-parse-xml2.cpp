@@ -54,7 +54,7 @@ struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
 
     explicit test_output_t(const options_t &options_)
-        : output_t(NULL, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+        : output_t(nullptr, options_), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
 
@@ -131,7 +131,7 @@ void assert_equal(uint64_t actual, uint64_t expected) {
 int main(int argc, char *argv[]) {
   char *srcdir = getenv("srcdir");
 
-  if (srcdir == NULL) {
+  if (srcdir == nullptr) {
     std::cerr << "$srcdir not set!\n";
     return 1;
   }
