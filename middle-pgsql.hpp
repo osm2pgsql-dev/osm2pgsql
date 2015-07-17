@@ -30,20 +30,20 @@ struct middle_pgsql_t : public slim_middle_t {
     void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
     size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     void nodes_delete(osmid_t id);
-    int node_changed(osmid_t id);
+    void node_changed(osmid_t id);
 
     void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
     bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
     size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                       multitaglist_t &tags, multinodelist_t &nodes) const;
 
-    int ways_delete(osmid_t id);
-    int way_changed(osmid_t id);
+    void ways_delete(osmid_t id);
+    void way_changed(osmid_t id);
 
     bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
     void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
-    int relations_delete(osmid_t id);
-    int relation_changed(osmid_t id);
+    void relations_delete(osmid_t id);
+    void relation_changed(osmid_t id);
 
     void iterate_ways(middle_t::pending_processor& pf);
     void iterate_relations(pending_processor& pf);

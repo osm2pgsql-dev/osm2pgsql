@@ -163,7 +163,6 @@ int test_way_set(middle_t *mid)
   double lon = 98.7654321;
   taglist_t tags;
   struct osmNode *node_ptr = NULL;
-  int status = 0;
   idlist_t nds;
   for (osmid_t i = 1; i <= 10; ++i)
       nds.push_back(i);
@@ -229,8 +228,7 @@ int test_way_set(middle_t *mid)
       // finally, try touching a node on a non-pending way. that should
       // make it become pending. we just checked that the way is not
       // pending, so any change must be due to the node changing.
-      status = slim->node_changed(nds[0]);
-      if (status != 0) { std::cerr << "ERROR: Unable to reset node.\n"; return 1; }
+      slim->node_changed(nds[0]);
       slim->iterate_ways(tpp);
       if (slim->pending_count() != 1) {
           std::cerr << "ERROR: Was expecting a single pending way from node update, but got "

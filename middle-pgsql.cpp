@@ -483,10 +483,11 @@ void middle_pgsql_t::nodes_delete(osmid_t osm_id)
     }
 }
 
-int middle_pgsql_t::node_changed(osmid_t osm_id)
+void middle_pgsql_t::node_changed(osmid_t osm_id)
 {
-    if (!mark_pending)
-        return 0;
+    if (!mark_pending) {
+        return;
+    }
 
     char const *paramValues[1];
     char buffer[64];
@@ -517,8 +518,6 @@ int middle_pgsql_t::node_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-
-    return 0;
 }
 
 void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist_t &tags)
@@ -653,7 +652,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 }
 
 
-int middle_pgsql_t::ways_delete(osmid_t osm_id)
+void middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -663,7 +662,6 @@ int middle_pgsql_t::ways_delete(osmid_t osm_id)
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
     pgsql_execPrepared(way_table->sql_conn, "delete_way", 1, paramValues, PGRES_COMMAND_OK );
-    return 0;
 }
 
 void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
@@ -685,7 +683,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
     pf.process_ways();
 }
 
-int middle_pgsql_t::way_changed(osmid_t osm_id)
+void middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -705,8 +703,6 @@ int middle_pgsql_t::way_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-
-    return 0;
 }
 
 void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
@@ -819,7 +815,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
     return true;
 }
 
-int middle_pgsql_t::relations_delete(osmid_t osm_id)
+void middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -841,7 +837,6 @@ int middle_pgsql_t::relations_delete(osmid_t osm_id)
         ways_pending_tracker->mark(marked);
     }
     PQclear(res);
-    return 0;
 }
 
 void middle_pgsql_t::iterate_relations(pending_processor& pf)
@@ -862,7 +857,7 @@ void middle_pgsql_t::iterate_relations(pending_processor& pf)
     pf.process_relations();
 }
 
-int middle_pgsql_t::relation_changed(osmid_t osm_id)
+void middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
     char const *paramValues[1];
     char buffer[64];
@@ -883,7 +878,6 @@ int middle_pgsql_t::relation_changed(osmid_t osm_id)
         rels_pending_tracker->mark(marked);
     }
     PQclear(res);
-    return 0;
 }
 
 idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const

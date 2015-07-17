@@ -69,13 +69,13 @@ struct slim_middle_t : public middle_t {
     virtual ~slim_middle_t() {}
 
     virtual void nodes_delete(osmid_t id) = 0;
-    virtual int node_changed(osmid_t id) = 0;
+    virtual void node_changed(osmid_t id) = 0;
 
-    virtual int ways_delete(osmid_t id) = 0;
-    virtual int way_changed(osmid_t id) = 0;
+    virtual void ways_delete(osmid_t id) = 0;
+    virtual void way_changed(osmid_t id) = 0;
 
-    virtual int relations_delete(osmid_t id) = 0;
-    virtual int relation_changed(osmid_t id) = 0;
+    virtual void relations_delete(osmid_t id) = 0;
+    virtual void relation_changed(osmid_t id) = 0;
 };
 
 #endif
