@@ -67,10 +67,10 @@ int output_null_t::relation_modify(osmid_t, const memberlist_t &, const taglist_
   return 0;
 }
 
-boost::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) const {
+std::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) const {
     output_null_t *clone = new output_null_t(*this);
     clone->m_mid = cloned_middle;
-    return boost::shared_ptr<output_t>(clone);
+    return std::shared_ptr<output_t>(clone);
 }
 
 output_null_t::output_null_t(const middle_query_t* mid_, const options_t &options_): output_t(mid_, options_) {

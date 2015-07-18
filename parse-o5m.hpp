@@ -26,7 +26,6 @@
 #define PARSE_O5M_H
 
 #include "parse.hpp"
-#include <boost/shared_ptr.hpp>
 
 struct reprojection;
 

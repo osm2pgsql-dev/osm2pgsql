@@ -7,13 +7,13 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
-#include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #include <string>
 #include <iostream>
+#include <memory>
 
 /**
  * A private class to convert tags.
@@ -155,11 +155,11 @@ public:
 
     virtual ~output_gazetteer_t() {}
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const
+    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const
     {
         output_gazetteer_t *clone = new output_gazetteer_t(*this);
         clone->m_mid = cloned_middle;
-        return boost::shared_ptr<output_t>(clone);
+        return std::shared_ptr<output_t>(clone);
     }
 
     int start();
@@ -262,7 +262,7 @@ private:
 
     geometry_builder builder;
 
-    boost::shared_ptr<reprojection> reproj;
+    std::shared_ptr<reprojection> reproj;
 
     // string formatters
     // Need to be part of the class, so we have one per thread.

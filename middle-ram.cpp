@@ -218,7 +218,7 @@ void no_delete(const middle_ram_t * middle) {
 
 }
 
-boost::shared_ptr<const middle_query_t> middle_ram_t::get_instance() const {
+std::shared_ptr<const middle_query_t> middle_ram_t::get_instance() const {
     //shallow copy here because readonly access is thread safe
-    return boost::shared_ptr<const middle_query_t>(this, no_delete);
+    return std::shared_ptr<const middle_query_t>(this, no_delete);
 }

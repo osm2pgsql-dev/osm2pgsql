@@ -32,12 +32,12 @@ typedef std::stack<pending_job_t> pending_queue_t;
 
 class output_t : public boost::noncopyable {
 public:
-    static std::vector<boost::shared_ptr<output_t> > create_outputs(const middle_query_t *mid, const options_t &options);
+    static std::vector<std::shared_ptr<output_t> > create_outputs(const middle_query_t *mid, const options_t &options);
 
     output_t(const middle_query_t *mid, const options_t &options_);
     virtual ~output_t();
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const = 0;
+    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const = 0;
 
     virtual int start() = 0;
     virtual void stop() = 0;
@@ -65,10 +65,10 @@ public:
 
     const options_t *get_options() const;
 
-    virtual void merge_pending_relations(boost::shared_ptr<output_t> other);
-    virtual void merge_expire_trees(boost::shared_ptr<output_t> other);
-    virtual boost::shared_ptr<id_tracker> get_pending_relations();
-    virtual boost::shared_ptr<expire_tiles> get_expire_tree();
+    virtual void merge_pending_relations(std::shared_ptr<output_t> other);
+    virtual void merge_expire_trees(std::shared_ptr<output_t> other);
+    virtual std::shared_ptr<id_tracker> get_pending_relations();
+    virtual std::shared_ptr<expire_tiles> get_expire_tree();
 
 protected:
 

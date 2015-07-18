@@ -12,7 +12,7 @@
 #include <vector>
 
 output_multi_t::output_multi_t(const std::string &name,
-                               boost::shared_ptr<geometry_processor> processor_,
+                               std::shared_ptr<geometry_processor> processor_,
                                const struct export_list &export_list_,
                                const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_),
@@ -42,13 +42,13 @@ output_multi_t::output_multi_t(const output_multi_t& other):
 output_multi_t::~output_multi_t() {
 }
 
-boost::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const{
+std::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const{
     output_multi_t *clone = new output_multi_t(*this);
     clone->m_mid = cloned_middle;
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     clone->ways_done_tracker = ways_done_tracker;
-    return boost::shared_ptr<output_t>(clone);
+    return std::shared_ptr<output_t>(clone);
 }
 
 int output_multi_t::start() {
@@ -414,22 +414,22 @@ void output_multi_t::delete_from_output(osmid_t id) {
         m_table->delete_row(id);
 }
 
-void output_multi_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
-    boost::shared_ptr<id_tracker> tracker = other.get()->get_pending_relations();
+void output_multi_t::merge_pending_relations(std::shared_ptr<output_t> other) {
+    std::shared_ptr<id_tracker> tracker = other.get()->get_pending_relations();
     osmid_t id;
     while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
         rels_pending_tracker->mark(id);
     }
 }
 
-void output_multi_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+void output_multi_t::merge_expire_trees(std::shared_ptr<output_t> other) {
     if(other->get_expire_tree().get())
         m_expire->merge_and_destroy(*other.get()->get_expire_tree());
 }
 
-boost::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {
+std::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {
     return rels_pending_tracker;
 }
-boost::shared_ptr<expire_tiles> output_multi_t::get_expire_tree() {
+std::shared_ptr<expire_tiles> output_multi_t::get_expire_tree() {
     return m_expire;
 }

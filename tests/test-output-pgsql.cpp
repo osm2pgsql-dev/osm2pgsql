@@ -116,7 +116,7 @@ void test_regression_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -124,7 +124,7 @@ void test_regression_simple() {
     options.slim = true;
     options.style = "default.style";
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
@@ -176,7 +176,7 @@ void test_latlong() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -187,7 +187,7 @@ void test_latlong() {
     options.projection.reset(new reprojection(PROJ_LATLONG));
     options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
@@ -240,7 +240,7 @@ void test_area_way_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -250,7 +250,7 @@ void test_area_way_simple() {
     options.flat_node_cache_enabled = true;
     options.flat_node_file = boost::optional<std::string>("tests/test_output_pgsql_area_way.flat.nodes.bin");
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
@@ -291,7 +291,7 @@ void test_route_rel() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_ram_t> mid_ram(new middle_ram_t());
+    std::shared_ptr<middle_ram_t> mid_ram(new middle_ram_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -299,7 +299,7 @@ void test_route_rel() {
     options.slim = false;
     options.style = "default.style";
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_ram.get(), options));
+    auto out_test = std::make_shared<output_pgsql_t>(mid_ram.get(), options);
 
     osmdata_t osmdata(mid_ram, out_test);
 
@@ -342,7 +342,7 @@ void test_clone() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
@@ -353,8 +353,8 @@ void test_clone() {
     output_pgsql_t out_test(mid_pgsql.get(), options);
 
     //TODO: make the middle testable too
-    //boost::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
-    boost::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get());
+    //std::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
+    std::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get());
 
     osmdata_t osmdata(mid_pgsql, out_clone);
 

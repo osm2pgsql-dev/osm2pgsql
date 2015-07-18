@@ -8,10 +8,10 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <memory>
 
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
-#include <boost/shared_ptr.hpp>
 
 typedef std::vector<std::string> hstores_t;
 typedef std::vector<std::pair<std::string, std::string> > columns_t;
@@ -52,7 +52,7 @@ class table_t
                 size_t count;
                 size_t current;
         };
-        boost::shared_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
+        std::shared_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
 
     protected:
         void connect();

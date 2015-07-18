@@ -6,24 +6,24 @@
 #include "options.hpp"
 #include "reprojection.hpp"
 
-#include <boost/make_shared.hpp>
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
 #include <stdexcept>
+#include <memory>
 
-boost::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,
+std::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,
                                                                  const options_t *options) {
-    boost::shared_ptr<geometry_processor> ptr;
+    std::shared_ptr<geometry_processor> ptr;
     int srid = options->projection->project_getprojinfo()->srs;
 
     if (type == "point") {
-        ptr = boost::make_shared<processor_point>(srid);
+        ptr = std::make_shared<processor_point>(srid);
     }
     else if (type == "line") {
-        ptr = boost::make_shared<processor_line>(srid);
+        ptr = std::make_shared<processor_line>(srid);
     }
     else if (type == "polygon") {
-        ptr = boost::make_shared<processor_polygon>(srid, options->enable_multi);
+        ptr = std::make_shared<processor_polygon>(srid, options->enable_multi);
     }
     else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "

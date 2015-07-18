@@ -115,7 +115,7 @@ struct middle_ram_t : public middle_t {
 
     size_t pending_count() const;
 
-    virtual boost::shared_ptr<const middle_query_t> get_instance() const;
+    virtual std::shared_ptr<const middle_query_t> get_instance() const;
 private:
 
     void release_ways();

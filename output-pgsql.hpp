@@ -15,7 +15,7 @@
 #include "table.hpp"
 
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 class output_pgsql_t : public output_t {
 public:
@@ -27,7 +27,7 @@ public:
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
+    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
     void stop();
@@ -53,10 +53,10 @@ public:
 
     size_t pending_count() const;
 
-    void merge_pending_relations(boost::shared_ptr<output_t> other);
-    void merge_expire_trees(boost::shared_ptr<output_t> other);
-    virtual boost::shared_ptr<id_tracker> get_pending_relations();
-    virtual boost::shared_ptr<expire_tiles> get_expire_tree();
+    void merge_pending_relations(std::shared_ptr<output_t> other);
+    void merge_expire_trees(std::shared_ptr<output_t> other);
+    virtual std::shared_ptr<id_tracker> get_pending_relations();
+    virtual std::shared_ptr<expire_tiles> get_expire_tree();
 
 protected:
 
@@ -75,16 +75,16 @@ protected:
     //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;
 
-    std::vector<boost::shared_ptr<table_t> > m_tables;
+    std::vector<std::shared_ptr<table_t> > m_tables;
 
     boost::scoped_ptr<export_list> m_export_list;
 
     geometry_builder builder;
 
-    boost::shared_ptr<reprojection> reproj;
-    boost::shared_ptr<expire_tiles> expire;
+    std::shared_ptr<reprojection> reproj;
+    std::shared_ptr<expire_tiles> expire;
 
-    boost::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+    std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
 
     const static std::string NAME;
 };

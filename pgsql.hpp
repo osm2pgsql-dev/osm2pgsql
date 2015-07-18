@@ -9,12 +9,12 @@
 #include <string>
 #include <cstring>
 #include <libpq-fe.h>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int nParams, const char *const * paramValues, const ExecStatusType expect);
 void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql, int len);
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql);
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql);
+std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql);
+std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql);
 int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)
 #ifndef _MSC_VER
  __attribute__ ((format (printf, 3, 4)))

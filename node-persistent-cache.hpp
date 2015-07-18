@@ -3,7 +3,7 @@
 
 #include "osmtypes.hpp"
 #include "node-ram-cache.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include <vector>
 
@@ -52,7 +52,7 @@ inline bool operator<(osmid_t a, cache_index_entry const &b)
 struct node_persistent_cache : public boost::noncopyable
 {
     node_persistent_cache(const struct options_t *options, bool append,
-                          bool ro, boost::shared_ptr<node_ram_cache> ptr);
+                          bool ro, std::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 
     void set(osmid_t id, double lat, double lon);
@@ -89,7 +89,7 @@ private:
 
     bool read_mode;
 
-    boost::shared_ptr<node_ram_cache> ram_cache;
+    std::shared_ptr<node_ram_cache> ram_cache;
 };
 
 #endif

@@ -15,7 +15,6 @@
 #include "id-tracker.hpp"
 #include <memory>
 #include <vector>
-#include <boost/shared_ptr.hpp>
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
@@ -82,7 +81,7 @@ struct middle_pgsql_t : public slim_middle_t {
         struct pg_conn *sql_conn;
     };
 
-    virtual boost::shared_ptr<const middle_query_t> get_instance() const;
+    virtual std::shared_ptr<const middle_query_t> get_instance() const;
 private:
 
     int connect(table_desc& table);
@@ -97,10 +96,10 @@ private:
     bool append;
     bool mark_pending;
 
-    boost::shared_ptr<node_ram_cache> cache;
-    boost::shared_ptr<node_persistent_cache> persistent_cache;
+    std::shared_ptr<node_ram_cache> cache;
+    std::shared_ptr<node_persistent_cache> persistent_cache;
 
-    boost::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
+    std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     int build_indexes;
 };

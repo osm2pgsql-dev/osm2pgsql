@@ -6,7 +6,7 @@
 
 #include <vector>
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/optional.hpp>
 
 /* Variants for generation of hstore column */
@@ -31,7 +31,7 @@ public:
     std::string conninfo; /* Connection info string */
     std::string prefix; /* prefix for table names */
     int scale; /* scale for converting coordinates to fixed point */
-    boost::shared_ptr<reprojection> projection; /* SRS of projection */
+    std::shared_ptr<reprojection> projection; /* SRS of projection */
     bool append; /* Append to existing data */
     bool slim; /* In slim mode */
     int cache; /* Memory usable for cache in MB */

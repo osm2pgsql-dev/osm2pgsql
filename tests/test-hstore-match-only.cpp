@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+        std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
         options.hstore_mode = HSTORE_NORM;
         options.slim = 1;
 
-        boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+        auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
         osmdata_t osmdata(mid_pgsql, out_test);
 

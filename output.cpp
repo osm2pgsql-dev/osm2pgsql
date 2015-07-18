@@ -8,7 +8,6 @@
 #include <string.h>
 #include <stdexcept>
 
-#include <boost/make_shared.hpp>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 #include <boost/functional/hash.hpp>
@@ -27,7 +26,7 @@ void override_if(T &t, const std::string &key, const pt::ptree &conf) {
     }
 }
 
-boost::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
+std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
                              const middle_query_t *mid,
                              const options_t &options) {
     options_t new_opts = options;
@@ -58,7 +57,7 @@ boost::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
     }
     new_opts.hstore_columns = hstore_columns;
 
-    boost::shared_ptr<geometry_processor> processor =
+    std::shared_ptr<geometry_processor> processor =
         geometry_processor::create(proc_type, &new_opts);
 
     // TODO: we're faking this up, but there has to be a better way?
@@ -80,11 +79,11 @@ boost::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
         columns.add(osm_type, info);
     }
 
-    return boost::make_shared<output_multi_t>(name, processor, columns, mid, new_opts);
+    return std::make_shared<output_multi_t>(name, processor, columns, mid, new_opts);
 }
 
-std::vector<boost::shared_ptr<output_t> > parse_multi_config(const middle_query_t *mid, const options_t &options) {
-    std::vector<boost::shared_ptr<output_t> > outputs;
+std::vector<std::shared_ptr<output_t> > parse_multi_config(const middle_query_t *mid, const options_t &options) {
+    std::vector<std::shared_ptr<output_t> > outputs;
 
     if (!options.style.empty()) {
         const std::string file_name(options.style);
@@ -110,17 +109,17 @@ std::vector<boost::shared_ptr<output_t> > parse_multi_config(const middle_query_
 
 } // anonymous namespace
 
-std::vector<boost::shared_ptr<output_t> > output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
-    std::vector<boost::shared_ptr<output_t> > outputs;
+std::vector<std::shared_ptr<output_t> > output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
+    std::vector<std::shared_ptr<output_t> > outputs;
 
     if (options.output_backend == "pgsql") {
-        outputs.push_back(boost::make_shared<output_pgsql_t>(mid, options));
+        outputs.push_back(std::make_shared<output_pgsql_t>(mid, options));
 
     } else if (options.output_backend == "gazetteer") {
-        outputs.push_back(boost::make_shared<output_gazetteer_t>(mid, options));
+        outputs.push_back(std::make_shared<output_gazetteer_t>(mid, options));
 
     } else if (options.output_backend == "null") {
-        outputs.push_back(boost::make_shared<output_null_t>(mid, options));
+        outputs.push_back(std::make_shared<output_null_t>(mid, options));
 
     } else if (options.output_backend == "multi") {
         outputs = parse_multi_config(mid, options);
@@ -148,14 +147,14 @@ const options_t *output_t::get_options()const {
 	return &m_options;
 }
 
-void output_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
+void output_t::merge_pending_relations(std::shared_ptr<output_t> other) {
 }
-void output_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+void output_t::merge_expire_trees(std::shared_ptr<output_t> other) {
 }
 
-boost::shared_ptr<id_tracker> output_t::get_pending_relations() {
-    return boost::shared_ptr<id_tracker>();
+std::shared_ptr<id_tracker> output_t::get_pending_relations() {
+    return std::shared_ptr<id_tracker>();
 }
-boost::shared_ptr<expire_tiles> output_t::get_expire_tree() {
-    return boost::shared_ptr<expire_tiles>();
+std::shared_ptr<expire_tiles> output_t::get_expire_tree() {
+    return std::shared_ptr<expire_tiles>();
 }

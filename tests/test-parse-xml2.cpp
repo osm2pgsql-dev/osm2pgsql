@@ -3,8 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <cassert>
-
-#include <boost/make_shared.hpp>
+#include <memory>
 
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
@@ -47,7 +46,7 @@ struct test_middle_t : public middle_t {
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const { return std::vector<osmid_t>(); }
 
-    virtual boost::shared_ptr<const middle_query_t> get_instance() const {return boost::shared_ptr<const middle_query_t>();}
+    virtual std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
 };
 
 struct test_output_t : public output_t {
@@ -66,10 +65,10 @@ struct test_output_t : public output_t {
     virtual ~test_output_t() {
     }
 
-    boost::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) const{
+    std::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) const{
         test_output_t *clone = new test_output_t(*this);
         clone->m_mid = cloned_middle;
-        return boost::shared_ptr<output_t>(clone);
+        return std::shared_ptr<output_t>(clone);
     }
 
     int node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
@@ -139,11 +138,11 @@ int main(int argc, char *argv[]) {
   std::string inputfile = std::string(srcdir) + std::string("/tests/test_multipolygon.osm");
 
   options_t options;
-  boost::shared_ptr<reprojection> projection(new reprojection(PROJ_SPHERE_MERC));
+  auto projection = std::make_shared<reprojection>(PROJ_SPHERE_MERC);
   options.projection = projection;
 
-  boost::shared_ptr<test_output_t> out_test(new test_output_t(options));
-  osmdata_t osmdata(boost::make_shared<test_middle_t>(), out_test);
+  auto out_test = std::make_shared<test_output_t>(options);
+  osmdata_t osmdata(std::make_shared<test_middle_t>(), out_test);
 
   boost::optional<std::string> bbox;
   parse_osmium_t parser("", false, bbox, projection.get(), false);

@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
+#include <memory>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
 
@@ -25,12 +26,12 @@ void escape(const std::string &src, std::string &dst)
 }
 
 
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql)
+std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql)
 {
     return pgsql_exec_simple(sql_conn, expect, sql.c_str());
 }
 
-boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql)
+std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql)
 {
     PGresult* res;
 #ifdef DEBUG_PGSQL
@@ -41,7 +42,7 @@ boost::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatus
         PQclear(res);
         throw std::runtime_error((boost::format("%1% failed: %2%\n") % sql % PQerrorMessage(sql_conn)).str());
     }
-    return boost::shared_ptr<PGresult>(res, &PQclear);
+    return std::shared_ptr<PGresult>(res, &PQclear);
 }
 
 int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)

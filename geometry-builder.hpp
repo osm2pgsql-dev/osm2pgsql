@@ -27,8 +27,8 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
 
 struct geometry_builder : public boost::noncopyable
 {
@@ -41,8 +41,8 @@ struct geometry_builder : public boost::noncopyable
     };
 
     // type to represent an optional return of WKT-encoded geometry
-    typedef boost::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
-    typedef boost::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
+    typedef std::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
+    typedef std::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
     typedef std::vector<geometry_builder::wkt_t>::const_iterator wkt_itr;
 
     geometry_builder();

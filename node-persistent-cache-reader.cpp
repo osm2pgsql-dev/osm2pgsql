@@ -4,14 +4,14 @@
 #include <cstring>
 #include <sys/wait.h>
 #include <sys/time.h>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "osmtypes.hpp"
 #include "options.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
 
-void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
+void test_get_node_list(std::shared_ptr<node_persistent_cache> cache,
                         int itterations, int max_size, int process_number) {
     int i, j, node_cnt, node_cnt_total;
     nodelist_t nodes;
@@ -43,18 +43,18 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
 }
 
 int main(int argc, char *argv[]) {
-	int i,p;
-	options_t options;
-	osmNode node;
-	nodelist_t nodes;
-	struct timeval start;
-	idlist_t osmids;
-	int node_cnt;
-	options.append = true;
-	options.flat_node_cache_enabled = true;
-	options.flat_node_file = argv[1];
-        boost::shared_ptr<node_ram_cache> ram_cache(new node_ram_cache(0, 10, options.scale));
-        boost::shared_ptr<node_persistent_cache> cache;
+    int i,p;
+    options_t options;
+    osmNode node;
+    nodelist_t nodes;
+    struct timeval start;
+    idlist_t osmids;
+    int node_cnt;
+    options.append = true;
+    options.flat_node_cache_enabled = true;
+    options.flat_node_file = argv[1];
+    auto ram_cache = std::make_shared<node_ram_cache>(0, 10, options.scale);
+    std::shared_ptr<node_persistent_cache> cache;
 
 
 	if (argc > 3) {

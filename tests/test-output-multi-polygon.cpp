@@ -57,19 +57,19 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+        std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.conninfo = db->conninfo().c_str();
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
         options.slim = true;
 
-        boost::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
+        std::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
 
         export_list columns;
         { taginfo info; info.name = "building"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
 
-        boost::shared_ptr<output_multi_t> out_test(new output_multi_t("foobar_buildings", processor, columns, mid_pgsql.get(), options));
+        auto out_test = std::make_shared<output_multi_t>("foobar_buildings", processor, columns, mid_pgsql.get(), options);
 
         osmdata_t osmdata(mid_pgsql, out_test);
 
