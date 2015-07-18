@@ -380,7 +380,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                                    const std::string &wkt,
                                    std::string &buffer)
 {
-    BOOST_FOREACH(const tag &place, places) {
+    for (const tag &place: places) {
         std::string name;
         if (place.key == "bridge" || place.key == "tunnel") {
             name = domain_name(place.key);
@@ -410,7 +410,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             bool shop = (place.key == "shop") ||
                         (place.key == "amenity") ||
                         (place.key == "tourism");
-            BOOST_FOREACH(const tag *entry, names) {
+            for (const tag *entry: names) {
                 if (!shop && (entry->key == "operator"))
                     continue;
 
@@ -439,7 +439,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         copy_opt_string(addr_place, buffer);
         // isin
         if (!address.empty()) {
-            BOOST_FOREACH(const tag *entry, address) {
+            for (const tag *entry: address) {
                 if (entry->key == "tiger:county") {
                     escape(std::string(entry->value, 0, entry->value.find(",")),
                            buffer);
@@ -461,7 +461,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             buffer += "\\N\t";
         } else {
             bool first = true;
-            BOOST_FOREACH(const tag *entry, extratags) {
+            for (const tag *entry: extratags) {
                 if (first)
                     first = false;
                 else

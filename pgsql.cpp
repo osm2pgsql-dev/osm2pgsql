@@ -6,12 +6,10 @@
 #include <cstdarg>
 #include <memory>
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 
 void escape(const std::string &src, std::string &dst)
 {
-    BOOST_FOREACH(const char c, src)
-    {
+    for (const char c: src) {
         switch(c) {
             case '\\':  dst.append("\\\\"); break;
             //case 8:   dst.append("\\\b"); break;

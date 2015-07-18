@@ -3,7 +3,6 @@
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
@@ -38,7 +37,7 @@ int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tag
     ramNode n(lon, lat);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->node_add(id, n.lat(), n.lon(), tags);
     }
     return status;
@@ -48,7 +47,7 @@ int osmdata_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
     mid->ways_set(id, nodes, tags);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->way_add(id, nodes, tags);
     }
     return status;
@@ -58,7 +57,7 @@ int osmdata_t::relation_add(osmid_t id, const memberlist_t &members, const tagli
     mid->relations_set(id, members, tags);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->relation_add(id, members, tags);
     }
     return status;
@@ -74,7 +73,7 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &
     ramNode n(lon, lat);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->node_modify(id, n.lat(), n.lon(), tags);
     }
 
@@ -90,7 +89,7 @@ int osmdata_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &ta
     slim->ways_set(id, nodes, tags);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->way_modify(id, nodes, tags);
     }
 
@@ -106,7 +105,7 @@ int osmdata_t::relation_modify(osmid_t id, const memberlist_t &members, const ta
     slim->relations_set(id, members, tags);
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->relation_modify(id, members, tags);
     }
 
@@ -119,7 +118,7 @@ int osmdata_t::node_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->node_delete(id);
     }
 
@@ -132,7 +131,7 @@ int osmdata_t::way_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->way_delete(id);
     }
 
@@ -145,7 +144,7 @@ int osmdata_t::relation_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         status |= out->relation_delete(id);
     }
 
@@ -155,7 +154,7 @@ int osmdata_t::relation_delete(osmid_t id) {
 }
 
 void osmdata_t::start() {
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         out->start();
     }
     mid->start(outs[0]->get_options());
@@ -213,7 +212,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
             //clone the outs
             output_vec_t out_clones;
-            BOOST_FOREACH(const std::shared_ptr<output_t>& out, outs) {
+            for (const auto& out: outs) {
                 out_clones.push_back(out->clone(mid_clone.get()));
             }
 
@@ -261,7 +260,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //collect all the new rels that became pending from each
         //output in each thread back to their respective main outputs
-        BOOST_FOREACH(const clone_t& clone, clones) {
+        for (const auto& clone: clones) {
             //for each clone/original output
             for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
                 original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
@@ -307,7 +306,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         ids_done = 0;
 
         //collect all expiry tree informations together into one
-        BOOST_FOREACH(const clone_t& clone, clones) {
+        for (const auto& clone: clones) {
             //for each clone/original output
             for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
                 original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
@@ -347,7 +346,7 @@ void osmdata_t::stop() {
      */
     size_t pending_count = mid->pending_count();
     mid->commit();
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
         pending_count += out->pending_count();
@@ -374,7 +373,7 @@ void osmdata_t::stop() {
 	//Clustering, index creation, and cleanup.
 	//All the intensive parts of this are long-running PostgreSQL commands
     boost::thread_group threads;
-    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
+    for (auto& out: outs) {
         threads.add_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
     }
     threads.add_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));
