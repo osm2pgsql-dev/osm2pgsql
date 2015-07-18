@@ -7,7 +7,6 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
-#include <boost/foreach.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -37,7 +36,7 @@ public:
 
     bool has_place(const std::string &cls)
     {
-        BOOST_FOREACH(const tag &item, places) {
+        for (const tag &item: places) {
             if (cls == item.key)
                 return true;
         }
@@ -91,7 +90,7 @@ private:
 
     void escape_array_record(const std::string &in, std::string &out)
     {
-        BOOST_FOREACH(const char c, in) {
+        for (const char c: in) {
             switch(c) {
                 case '\\': out += "\\\\\\\\\\\\\\\\"; break;
                 case '\n':

@@ -36,7 +36,6 @@
 
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/exception_ptr.hpp>
 #include <iostream>

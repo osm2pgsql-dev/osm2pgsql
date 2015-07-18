@@ -9,7 +9,6 @@
 #include <stdexcept>
 
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 #include <boost/functional/hash.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -51,7 +50,7 @@ std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
     hstores_t hstore_columns;
     boost::optional<const pt::ptree &> hstores = conf.get_child_optional("hstores");
     if (hstores) {
-        BOOST_FOREACH(const pt::ptree::value_type &val, *hstores) {
+        for (const pt::ptree::value_type &val: *hstores) {
             hstore_columns.push_back(val.second.get_value<std::string>());
         }
     }
@@ -66,7 +65,7 @@ std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
 
     export_list columns;
     const pt::ptree &tags = conf.get_child("tags");
-    BOOST_FOREACH(const pt::ptree::value_type &val, tags) {
+    for (const pt::ptree::value_type &val: tags) {
         const pt::ptree &tag = val.second;
         taginfo info;
         info.name = tag.get<std::string>("name");
@@ -92,7 +91,7 @@ std::vector<std::shared_ptr<output_t> > parse_multi_config(const middle_query_t 
             pt::ptree conf;
             pt::read_json(file_name, conf);
 
-            BOOST_FOREACH(const pt::ptree::value_type &val, conf) {
+            for (const pt::ptree::value_type &val: conf) {
                 outputs.push_back(parse_multi_single(val.second, mid, options));
             }
 

@@ -52,7 +52,6 @@ using namespace std;
 #include <cstring>
 #include <ctime>
 #include <boost/format.hpp>
-#include <boost/foreach.hpp>
 #include <boost/unordered_map.hpp>
 
 enum table_id {
@@ -131,7 +130,7 @@ _restart:
 // Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
 inline char *escape_tag( char *ptr, const std::string &in, bool escape )
 {
-  BOOST_FOREACH(const char c, in)
+  for (const char c: in)
   {
     switch(c)
     {
