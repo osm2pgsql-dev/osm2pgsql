@@ -23,16 +23,9 @@ AC_USE_SYSTEM_EXTENSIONS
 AC_HEADER_SYS_WAIT
 AC_FUNC_MMAP
 
-dnl Find C compiler
-dnl AC_PROG_CC_C99
-
 dnl Find C++ compiler
 AC_PROG_CXX
-AC_CHECK_PROG(HAVE_CXX, $CXX, yes, no)
-if test "$HAVE_CXX" = "no" 
-then
-  AC_MSG_ERROR([Could not find a c++ compiler]);
-fi
+AX_CXX_COMPILE_STDCXX_11([noext],[mandatory])
 
 AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
@@ -109,8 +102,6 @@ if test "x$BOOST_SYSTEM_LIB" = "x" -o "x$BOOST_FILESYSTEM_LIB" = "x" -o "x$BOOST
 then
     AC_MSG_ERROR([One or more of the mandatory Boost libraries not found.])
 fi
-
-AX_CXX_COMPILE_STDCXX_11()
 
 dnl Check for Lua libraries and headers
 AX_PROG_LUA([5.0],[],[
