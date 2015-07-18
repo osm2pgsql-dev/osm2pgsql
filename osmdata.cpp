@@ -4,7 +4,6 @@
 #include "node-ram-cache.hpp"
 
 #include <boost/thread/thread.hpp>
-#include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
 #include <boost/version.hpp>
 

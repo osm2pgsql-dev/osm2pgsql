@@ -51,8 +51,8 @@ using namespace std;
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <unordered_map>
 #include <boost/format.hpp>
-#include <boost/unordered_map.hpp>
 
 enum table_id {
     t_node, t_way, t_rel
@@ -401,7 +401,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     int countPG = PQntuples(res);
 
     //store the pg results in a hashmap and telling it how many we expect
-    boost::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
+    std::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
     for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
@@ -427,7 +427,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); ++i) {
         if (std::isnan(out[i].lat)) {
-            boost::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i]);
+            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i]);
             if(found != pg_nodes.end()) {
                 out[wrtidx] = found->second;
                 ++wrtidx;
