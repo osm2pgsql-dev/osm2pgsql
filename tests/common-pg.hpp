@@ -5,8 +5,6 @@
 #include <memory>
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
-#include <memory>
-
 #include <libpq-fe.h>
 
 /* Some RAII objects to make writing stuff that needs a temporary database

@@ -4,7 +4,6 @@
 #include <cstdarg>
 #include <unistd.h>
 #include <memory>
-#include <memory>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
