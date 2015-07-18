@@ -1,5 +1,4 @@
 #include <libpq-fe.h>
-#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 
@@ -12,6 +11,7 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <memory>
 
 #define SRID (reproj->project_getprojinfo()->srs)
 

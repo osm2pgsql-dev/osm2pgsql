@@ -2,11 +2,9 @@
 #define COMMON_PG_HPP
 
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/format.hpp>
 #include <boost/noncopyable.hpp>
-#include <boost/enable_shared_from_this.hpp>
-
 #include <libpq-fe.h>
 
 /* Some RAII objects to make writing stuff that needs a temporary database
@@ -17,12 +15,12 @@ namespace pg {
 struct conn;
 struct result;
 
-typedef boost::shared_ptr<conn> conn_ptr;
-typedef boost::shared_ptr<result> result_ptr;
+typedef std::shared_ptr<conn> conn_ptr;
+typedef std::shared_ptr<result> result_ptr;
 
 struct conn
     : public boost::noncopyable,
-      public boost::enable_shared_from_this<conn> {
+      public std::enable_shared_from_this<conn> {
 
     static conn_ptr connect(const std::string &conninfo);
     result_ptr exec(const std::string &query);

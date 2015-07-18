@@ -116,14 +116,14 @@ void test_z_order() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    boost::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
+    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t::parse(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
 
-    boost::shared_ptr<output_pgsql_t> out_test(new output_pgsql_t(mid_pgsql.get(), options));
+    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
     osmdata_t osmdata(mid_pgsql, out_test);
 

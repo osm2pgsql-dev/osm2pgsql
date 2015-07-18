@@ -10,7 +10,7 @@
 #include "osmtypes.hpp"
 
 #include <cstddef>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 struct options_t;
 
@@ -31,11 +31,11 @@ struct middle_query_t {
 
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 
-    virtual boost::shared_ptr<const middle_query_t> get_instance() const = 0;
+    virtual std::shared_ptr<const middle_query_t> get_instance() const = 0;
 };
 
 struct middle_t : public middle_query_t {
-    static boost::shared_ptr<middle_t> create_middle(bool slim);
+    static std::shared_ptr<middle_t> create_middle(bool slim);
 
     virtual ~middle_t() {}
 

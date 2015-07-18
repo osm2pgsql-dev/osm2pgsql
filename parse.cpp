@@ -92,7 +92,7 @@ void parse_stats_t::print_status() const
 
 parse_delegate_t::parse_delegate_t(int extra_attributes,
                                    const boost::optional<std::string> &bbox,
-                                   boost::shared_ptr<reprojection> projection,
+                                   std::shared_ptr<reprojection> projection,
                                    bool append)
 : m_extra_attributes(extra_attributes), m_proj(projection), m_bbox(bbox),
   m_append(append)

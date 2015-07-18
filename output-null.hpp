@@ -12,7 +12,7 @@ public:
     output_null_t(const output_null_t& other);
     virtual ~output_null_t();
 
-    virtual boost::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
+    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
 
     int start();
     void stop();

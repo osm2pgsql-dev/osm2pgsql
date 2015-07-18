@@ -4,7 +4,6 @@
 #include "node-ram-cache.hpp"
 
 #include <boost/foreach.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/thread.hpp>
@@ -14,12 +13,12 @@
 #include <utility>
 #include <cstdio>
 
-osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_): mid(mid_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_): mid(mid_)
 {
     outs.push_back(out_);
 }
 
-osmdata_t::osmdata_t(boost::shared_ptr<middle_t> mid_, const std::vector<boost::shared_ptr<output_t> > &outs_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::vector<std::shared_ptr<output_t> > &outs_)
     : mid(mid_), outs(outs_)
 {
     if (outs.empty()) {
@@ -39,7 +38,7 @@ int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tag
     ramNode n(lon, lat);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->node_add(id, n.lat(), n.lon(), tags);
     }
     return status;
@@ -49,7 +48,7 @@ int osmdata_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
     mid->ways_set(id, nodes, tags);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->way_add(id, nodes, tags);
     }
     return status;
@@ -59,7 +58,7 @@ int osmdata_t::relation_add(osmid_t id, const memberlist_t &members, const tagli
     mid->relations_set(id, members, tags);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->relation_add(id, members, tags);
     }
     return status;
@@ -75,7 +74,7 @@ int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &
     ramNode n(lon, lat);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->node_modify(id, n.lat(), n.lon(), tags);
     }
 
@@ -91,7 +90,7 @@ int osmdata_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &ta
     slim->ways_set(id, nodes, tags);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->way_modify(id, nodes, tags);
     }
 
@@ -107,7 +106,7 @@ int osmdata_t::relation_modify(osmid_t id, const memberlist_t &members, const ta
     slim->relations_set(id, members, tags);
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->relation_modify(id, members, tags);
     }
 
@@ -120,7 +119,7 @@ int osmdata_t::node_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->node_delete(id);
     }
 
@@ -133,7 +132,7 @@ int osmdata_t::way_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->way_delete(id);
     }
 
@@ -146,7 +145,7 @@ int osmdata_t::relation_delete(osmid_t id) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         status |= out->relation_delete(id);
     }
 
@@ -156,7 +155,7 @@ int osmdata_t::relation_delete(osmid_t id) {
 }
 
 void osmdata_t::start() {
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         out->start();
     }
     mid->start(outs[0]->get_options());
@@ -169,8 +168,8 @@ namespace {
 //since the fetching from middle should be faster than the processing in each backend.
 
 struct pending_threaded_processor : public middle_t::pending_processor {
-    typedef std::vector<boost::shared_ptr<output_t> > output_vec_t;
-    typedef std::pair<boost::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
+    typedef std::vector<std::shared_ptr<output_t>> output_vec_t;
+    typedef std::pair<std::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
         while (true) {
@@ -200,7 +199,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(boost::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
+    pending_threaded_processor(std::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
@@ -210,11 +209,11 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         clones.reserve(thread_count);
         for (size_t i = 0; i < thread_count; ++i) {
             //clone the middle
-            boost::shared_ptr<const middle_query_t> mid_clone = mid->get_instance();
+            std::shared_ptr<const middle_query_t> mid_clone = mid->get_instance();
 
             //clone the outs
             output_vec_t out_clones;
-            BOOST_FOREACH(const boost::shared_ptr<output_t>& out, outs) {
+            BOOST_FOREACH(const std::shared_ptr<output_t>& out, outs) {
                 out_clones.push_back(out->clone(mid_clone.get()));
             }
 
@@ -348,7 +347,7 @@ void osmdata_t::stop() {
      */
     size_t pending_count = mid->pending_count();
     mid->commit();
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
         pending_count += out->pending_count();
@@ -375,7 +374,7 @@ void osmdata_t::stop() {
 	//Clustering, index creation, and cleanup.
 	//All the intensive parts of this are long-running PostgreSQL commands
     boost::thread_group threads;
-    BOOST_FOREACH(boost::shared_ptr<output_t>& out, outs) {
+    BOOST_FOREACH(std::shared_ptr<output_t>& out, outs) {
         threads.add_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
     }
     threads.add_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));

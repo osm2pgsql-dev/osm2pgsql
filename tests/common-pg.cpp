@@ -3,13 +3,11 @@
 #include <sstream>
 #include <cstdarg>
 #include <unistd.h>
+#include <memory>
 
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/format.hpp>
-#include <boost/enable_shared_from_this.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
 #ifdef _MSC_VER
@@ -24,11 +22,11 @@ namespace fs = boost::filesystem;
 namespace pg {
 
 conn_ptr conn::connect(const std::string &conninfo) {
-    return boost::shared_ptr<conn>(new conn(conninfo));
+    return std::shared_ptr<conn>(new conn(conninfo));
 }
 
 result_ptr conn::exec(const std::string &query) {
-    return boost::make_shared<result>(shared_from_this(), query);
+    return std::make_shared<result>(shared_from_this(), query);
 }
 
 result_ptr conn::exec(const boost::format &fmt) {

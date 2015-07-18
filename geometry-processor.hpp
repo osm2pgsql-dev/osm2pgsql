@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <string>
 #include <vector>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include "geometry-builder.hpp"
 #include "osmtypes.hpp"
 
@@ -14,7 +14,7 @@ struct options_t;
 
 struct geometry_processor {
     // factory method for creating various types of geometry processors either by name or by geometry column type
-    static boost::shared_ptr<geometry_processor> create(const std::string &type,
+    static std::shared_ptr<geometry_processor> create(const std::string &type,
                                                         const options_t *options);
 
     virtual ~geometry_processor();

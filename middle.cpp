@@ -2,13 +2,13 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 
-#include <boost/make_shared.hpp>
+#include <memory>
 
-boost::shared_ptr<middle_t> middle_t::create_middle(const bool slim)
+std::shared_ptr<middle_t> middle_t::create_middle(const bool slim)
 {
      if(slim)
-         return boost::make_shared<middle_pgsql_t>();
+         return std::make_shared<middle_pgsql_t>();
      else
-         return boost::make_shared<middle_ram_t>();
+         return std::make_shared<middle_ram_t>();
 }
 

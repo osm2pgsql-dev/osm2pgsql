@@ -37,12 +37,12 @@
 #include <boost/bind.hpp>
 #include <boost/format.hpp>
 #include <boost/foreach.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/exception_ptr.hpp>
 #include <iostream>
 #include <limits>
 #include <stdexcept>
+#include <memory>
 
 /* make the diagnostic information work with older versions of
  * boost - the function signature changed at version 1.54.
@@ -639,7 +639,7 @@ int output_pgsql_t::relation_modify(osmid_t osm_id, const memberlist_t &members,
 
 int output_pgsql_t::start()
 {
-    for(std::vector<boost::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
+    for(std::vector<std::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
     {
         //setup the table in postgres
         table->get()->start();
@@ -648,13 +648,13 @@ int output_pgsql_t::start()
     return 0;
 }
 
-boost::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const {
+std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const {
     output_pgsql_t *clone = new output_pgsql_t(*this);
     clone->m_mid = cloned_middle;
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     clone->ways_done_tracker = ways_done_tracker;
-    return boost::shared_ptr<output_t>(clone);
+    return std::shared_ptr<output_t>(clone);
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
@@ -717,7 +717,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
         //options object because we want to make use of the table_t in output_mutli_t which could
         //have a different tablespace/hstores/etc per table
-        m_tables.push_back(boost::shared_ptr<table_t>(
+        m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
                 m_options.conninfo, name, type, columns, m_options.hstore_columns, SRID,
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
@@ -734,9 +734,9 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
-    for(std::vector<boost::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
+    for(std::vector<std::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
         //copy constructor will just connect to the already there table
-        m_tables.push_back(boost::shared_ptr<table_t>(new table_t(**t)));
+        m_tables.push_back(std::shared_ptr<table_t>(new table_t(**t)));
     }
 }
 
@@ -747,21 +747,21 @@ size_t output_pgsql_t::pending_count() const {
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }
 
-void output_pgsql_t::merge_pending_relations(boost::shared_ptr<output_t> other) {
-    boost::shared_ptr<id_tracker> tracker = other->get_pending_relations();
+void output_pgsql_t::merge_pending_relations(std::shared_ptr<output_t> other) {
+    std::shared_ptr<id_tracker> tracker = other->get_pending_relations();
     osmid_t id;
     while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
         rels_pending_tracker->mark(id);
     }
 }
-void output_pgsql_t::merge_expire_trees(boost::shared_ptr<output_t> other) {
+void output_pgsql_t::merge_expire_trees(std::shared_ptr<output_t> other) {
     if(other->get_expire_tree().get())
         expire->merge_and_destroy(*other->get_expire_tree());
 }
 
-boost::shared_ptr<id_tracker> output_pgsql_t::get_pending_relations() {
+std::shared_ptr<id_tracker> output_pgsql_t::get_pending_relations() {
     return rels_pending_tracker;
 }
-boost::shared_ptr<expire_tiles> output_pgsql_t::get_expire_tree() {
+std::shared_ptr<expire_tiles> output_pgsql_t::get_expire_tree() {
     return expire;
 }

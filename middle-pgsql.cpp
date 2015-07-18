@@ -1358,7 +1358,7 @@ middle_pgsql_t::~middle_pgsql_t() {
 
 }
 
-boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
+std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     middle_pgsql_t* mid = new middle_pgsql_t();
     mid->out_options = out_options;
     mid->append = out_options->append;
@@ -1388,7 +1388,7 @@ boost::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
         }
     }
 
-    return boost::shared_ptr<const middle_query_t>(mid);
+    return std::shared_ptr<const middle_query_t>(mid);
 }
 
 size_t middle_pgsql_t::pending_count() const {

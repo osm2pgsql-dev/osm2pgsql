@@ -5,7 +5,7 @@
 
 #include <time.h>
 #include <string>
-#include <boost/shared_ptr.hpp>
+#include <memory>
 #include <boost/optional.hpp>
 
 typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
@@ -89,7 +89,7 @@ private:
 class parse_delegate_t
 {
 public:
-     parse_delegate_t(int extra_attributes, const boost::optional<std::string> &bbox, boost::shared_ptr<reprojection> projection, bool append);
+     parse_delegate_t(int extra_attributes, const boost::optional<std::string> &bbox, std::shared_ptr<reprojection> projection, bool append);
      ~parse_delegate_t();
 
     void stream_file(const std::string &input_reader, const std::string &filename,
@@ -102,7 +102,7 @@ private:
                                               const std::string &filename);
 
     int m_extra_attributes;
-    boost::shared_ptr<reprojection> m_proj;
+    std::shared_ptr<reprojection> m_proj;
     bbox_t m_bbox;
     bool m_append;
     parse_stats_t m_stats;

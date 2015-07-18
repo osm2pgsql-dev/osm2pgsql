@@ -51,10 +51,10 @@ void run_osm2pgsql(options_t &options) {
   parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection, options.append);
 
   //setup the middle
-  boost::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
+  std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
 
   //setup the backend (output)
-  std::vector<boost::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
+  std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
   //let osmdata orchestrate between the middle and the outs
   osmdata_t osmdata(middle, outputs);

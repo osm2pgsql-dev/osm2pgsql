@@ -483,7 +483,7 @@ void node_persistent_cache::set_read_mode()
 }
 
 node_persistent_cache::node_persistent_cache(const options_t *options, bool append,
-                                             bool ro, boost::shared_ptr<node_ram_cache> ptr)
+                                             bool ro, std::shared_ptr<node_ram_cache> ptr)
     : node_cache_fd(0), node_cache_fname(nullptr), append_mode(append), cacheHeader(),
       writeNodeBlock(), readNodeBlockCache(nullptr), read_mode(ro), ram_cache(ptr)
 {

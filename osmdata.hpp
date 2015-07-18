@@ -5,8 +5,8 @@
 // to get the print format specifiers in the inttypes.h header.
 #include "config.h"
 
-#include <boost/shared_ptr.hpp>
 #include <vector>
+#include <memory>
 
 #include "osmtypes.hpp"
 
@@ -15,8 +15,8 @@ struct middle_t;
 
 class osmdata_t {
 public:
-    osmdata_t(boost::shared_ptr<middle_t> mid_, const boost::shared_ptr<output_t>& out_);
-    osmdata_t(boost::shared_ptr<middle_t> mid_, const std::vector<boost::shared_ptr<output_t> > &outs_);
+    osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_);
+    osmdata_t(std::shared_ptr<middle_t> mid_, const std::vector<std::shared_ptr<output_t> > &outs_);
     ~osmdata_t();
 
     void start();
@@ -35,8 +35,8 @@ public:
     int relation_delete(osmid_t id);
 
 private:
-    boost::shared_ptr<middle_t> mid;
-    std::vector<boost::shared_ptr<output_t> > outs;
+    std::shared_ptr<middle_t> mid;
+    std::vector<std::shared_ptr<output_t> > outs;
 };
 
 #endif

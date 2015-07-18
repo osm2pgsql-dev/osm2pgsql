@@ -163,7 +163,7 @@ void table_t::start()
     }//appending
     else {
         //check the columns against those in the existing table
-        boost::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
+        std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
         for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
         {
             if(PQfnumber(res.get(), ('"' + column->first + '"').c_str()) < 0)
@@ -516,7 +516,7 @@ void table_t::escape_type(const string &value, const string &type, string& dst) 
         escape(value, dst);
 }
 
-boost::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
+std::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
 {
     //cant get wkt using the prepared statement without stopping the copy first
     stop_copy();
@@ -529,7 +529,7 @@ boost::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
     //the prepared statement get_wkt will behave differently depending on the sql_conn
     //each table has its own sql_connection with the get_way referring to the appropriate table
     PGresult* res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    return boost::shared_ptr<wkt_reader>(new wkt_reader(res));
+    return std::shared_ptr<wkt_reader>(new wkt_reader(res));
 }
 
 table_t::wkt_reader::wkt_reader(PGresult* result):result(result), current(0)
