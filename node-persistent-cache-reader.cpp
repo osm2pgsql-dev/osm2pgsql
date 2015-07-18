@@ -20,7 +20,7 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
     idlist_t osmids;
 
     node_cnt_total = 0;
-    gettimeofday(&start_overall, NULL);
+    gettimeofday(&start_overall, nullptr);
     for (i = 0; i < itterations; i++) {
         node_cnt = random() % max_size;
         node_cnt_total += node_cnt;
@@ -29,15 +29,15 @@ void test_get_node_list(boost::shared_ptr<node_persistent_cache> cache,
         for (j = 0; j < node_cnt; j++) {
             osmids.push_back(random() % (1 << 31));
         }
-        gettimeofday(&start, NULL);
+        gettimeofday(&start, nullptr);
         cache->get_list(nodes,osmids);
-        gettimeofday(&stop, NULL);
+        gettimeofday(&stop, nullptr);
         double duration = ((stop.tv_sec - start.tv_sec)*1000000.0 + (stop.tv_usec - start.tv_usec))/1000000.0;
         printf("Process %i: Got nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt / duration);
         nodes.clear();
         osmids.clear();
     }
-    gettimeofday(&stop_overall, NULL);
+    gettimeofday(&stop_overall, nullptr);
     double duration = ((stop_overall.tv_sec - start_overall.tv_sec)*1000000.0 + (stop_overall.tv_usec - start_overall.tv_usec))/1000000.0;
     printf("Process %i: Got a total of nodes in %f at a rate of %f/s\n", process_number, duration, node_cnt_total / duration);
 }
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 		cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
 		node_cnt = argc - 2;
 		for (i = 0; i < node_cnt; i++) {
-			osmids.push_back(strtoosmid(argv[2 + i], NULL, 10));
+			osmids.push_back(strtoosmid(argv[2 + i], nullptr, 10));
 		}
 		cache->get_list(nodes, osmids);
 		for (i = 0; i < node_cnt; i++) {
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 		}
 	} else if (argc == 2) {
             char * state = (char *)malloc(sizeof(char)* 128);
-        gettimeofday(&start, NULL);
+        gettimeofday(&start, nullptr);
         initstate(start.tv_usec, state, 8);
         setstate(state);
 
@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
 	            exit(1);
 	        }
 	    }
-	    gettimeofday(&start, NULL);
+	    gettimeofday(&start, nullptr);
 	    initstate(start.tv_usec, state, 8);
 	    setstate(state);
 	    cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
@@ -102,28 +102,28 @@ int main(int argc, char *argv[]) {
 	        fprintf(stderr,"Exiting process %i\n", p);
 	        exit(0);
 	    } else {
-	        for (p = 0; p < noProcs; p++) wait(NULL);
+	        for (p = 0; p < noProcs; p++) wait(nullptr);
 	    }
         free(state);
 	    fprintf(stderr, "\nAll child processes exited\n");
 #endif
 	} else {
 		cache.reset(new node_persistent_cache(&options, 1, true, ram_cache));
-		if (strstr(argv[2],",") == NULL) {
-			cache->get(&node, strtoosmid(argv[2], NULL, 10));
+		if (strstr(argv[2],",") == nullptr) {
+			cache->get(&node, strtoosmid(argv[2], nullptr, 10));
 			printf("lat: %f / lon: %f\n", node.lat, node.lon);
 		} else {
                     char * node_list = (char *)malloc(sizeof(char) * (strlen(argv[2]) + 1));
 			strcpy(node_list,argv[2]);
 			node_cnt = 1;
 			strtok(node_list,",");
-			while (strtok(NULL,",") != NULL) node_cnt++;
+			while (strtok(nullptr,",") != nullptr) node_cnt++;
 			printf("Processing %i nodes\n", node_cnt);
 			strcpy(node_list,argv[2]);
-			osmids.push_back(strtoosmid(strtok(node_list,","), NULL, 10));
+			osmids.push_back(strtoosmid(strtok(node_list,","), nullptr, 10));
 			for (i = 1; i < node_cnt; i++) {
-				char * tmp = strtok(NULL,",");
-				osmids.push_back(strtoosmid(tmp, NULL, 10));
+				char * tmp = strtok(nullptr,",");
+				osmids.push_back(strtoosmid(tmp, nullptr, 10));
 			}
 			cache->get_list(nodes,osmids);
 			for (i = 0; i < node_cnt; i++) {

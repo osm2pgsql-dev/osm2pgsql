@@ -83,7 +83,7 @@ int _mark_tile(struct expire_tiles::tile ** tree, int x, int y, int zoom, int th
 				(*tree)->complete[rel_x][rel_y] = 1;
 				/* We can destroy the subtree to save memory now all the children are dirty */
 				destroy_tree((*tree)->subtiles[rel_x][rel_y]);
-				(*tree)->subtiles[rel_x][rel_y] = NULL;
+				(*tree)->subtiles[rel_x][rel_y] = nullptr;
 			}
 		}
 	}
@@ -129,7 +129,7 @@ struct tile_output_file : public expire_tiles::tile_output {
   tile_output_file(const std::string &expire_tiles_filename)
     : outcount(0)
     , outfile(fopen(expire_tiles_filename.c_str(), "a")) {
-    if (outfile == NULL) {
+    if (outfile == nullptr) {
       fprintf(stderr, "Failed to open expired tiles file (%s).  Tile expiry list will not be written!\n", strerror(errno));
     }
   }
@@ -159,28 +159,28 @@ void _output_and_destroy_tree(expire_tiles::tile_output *output, struct expire_t
 	out = output;
 	if ((tree->complete[0][0]) && output) {
 		output->output_dirty_tile(sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
-		out = NULL;
+		out = nullptr;
 	}
 	if (tree->subtiles[0][0]) _output_and_destroy_tree(out, tree->subtiles[0][0], sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
 
 	out = output;
 	if ((tree->complete[0][1]) && output) {
 		output->output_dirty_tile(sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
-		out = NULL;
+		out = nullptr;
 	}
 	if (tree->subtiles[0][1]) _output_and_destroy_tree(out, tree->subtiles[0][1], sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
 
 	out = output;
 	if ((tree->complete[1][0]) && output) {
 		output->output_dirty_tile(sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
-		out = NULL;
+		out = nullptr;
 	}
 	if (tree->subtiles[1][0]) _output_and_destroy_tree(out, tree->subtiles[1][0], sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
 
 	out = output;
 	if ((tree->complete[1][1]) && output) {
 		output->output_dirty_tile(sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
-		out = NULL;
+		out = nullptr;
 	}
 	if (tree->subtiles[1][1]) _output_and_destroy_tree(out, tree->subtiles[1][1], sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
 
@@ -191,11 +191,11 @@ void _output_and_destroy_tree(expire_tiles::tile_output *output, struct expire_t
 // number of completed subtrees.
 int _tree_merge(struct expire_tiles::tile **a,
                 struct expire_tiles::tile **b) {
-  if (*a == NULL) {
+  if (*a == nullptr) {
     *a = *b;
-    *b = NULL;
+    *b = nullptr;
 
-  } else if (*b != NULL) {
+  } else if (*b != nullptr) {
     for (int x = 0; x < 2; ++x) {
       for (int y = 0; y < 2; ++y) {
         // if b is complete on a subtree, then the merged tree must
@@ -203,7 +203,7 @@ int _tree_merge(struct expire_tiles::tile **a,
         if ((*b)->complete[x][y]) {
           (*a)->complete[x][y] = (*b)->complete[x][y];
           destroy_tree((*a)->subtiles[x][y]);
-          (*a)->subtiles[x][y] = NULL;
+          (*a)->subtiles[x][y] = nullptr;
 
           // but if a is already complete, don't bother moving across
           // anything
@@ -213,12 +213,12 @@ int _tree_merge(struct expire_tiles::tile **a,
           if (complete >= 4) {
             (*a)->complete[x][y] = 1;
             destroy_tree((*a)->subtiles[x][y]);
-            (*a)->subtiles[x][y] = NULL;
+            (*a)->subtiles[x][y] = nullptr;
           }
         }
 
         destroy_tree((*b)->subtiles[x][y]);
-        (*b)->subtiles[x][y] = NULL;
+        (*b)->subtiles[x][y] = nullptr;
       }
     }
   }
@@ -227,7 +227,7 @@ int _tree_merge(struct expire_tiles::tile **a,
   int a_complete = 0;
   for (int x = 0; x < 2; ++x) {
     for (int y = 0; y < 2; ++y) {
-      if ((*a != NULL) && ((*a)->complete[x][y])) {
+      if ((*a != nullptr) && ((*a)->complete[x][y])) {
         ++a_complete;
       }
     }
@@ -240,7 +240,7 @@ int _tree_merge(struct expire_tiles::tile **a,
 
 void expire_tiles::output_and_destroy(tile_output *output) {
     _output_and_destroy_tree(output, dirty, 0, 0, 0, Options->expire_tiles_zoom_min);
-    dirty = NULL;
+    dirty = nullptr;
 }
 
 void expire_tiles::output_and_destroy() {
@@ -252,15 +252,15 @@ void expire_tiles::output_and_destroy() {
 }
 
 expire_tiles::~expire_tiles() {
-  if (dirty != NULL) {
+  if (dirty != nullptr) {
     destroy_tree(dirty);
-    dirty = NULL;
+    dirty = nullptr;
   }
 }
 
 expire_tiles::expire_tiles(const struct options_t *options)
     : map_width(0), tile_width(0), Options(options),
-      dirty(NULL)
+      dirty(nullptr)
 {
 	if (Options->expire_tiles_zoom < 0) return;
 	map_width = 1 << Options->expire_tiles_zoom;
@@ -499,7 +499,7 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     boost::shared_ptr<table_t::wkt_reader> wkts = table->get_wkt_reader(osm_id);
 
     //dirty the stuff
-    const char* wkt = NULL;
+    const char* wkt = nullptr;
     while((wkt = wkts->get_next()))
         from_wkt(wkt, osm_id);
 
@@ -523,5 +523,5 @@ void expire_tiles::merge_and_destroy(expire_tiles &other) {
   _tree_merge(&dirty, &other.dirty);
 
   destroy_tree(other.dirty);
-  other.dirty = NULL;
+  other.dirty = nullptr;
 }

@@ -46,8 +46,8 @@ const struct Projection_Info Projection_Infos[] = {
 /* Positive numbers refer the to the table above, negative numbers are
    assumed to refer to EPSG codes and it uses the proj4 to find those. */
 reprojection::reprojection(int proj)
-    : Proj(proj), pj_source(NULL), pj_target(NULL), pj_tile(NULL),
-      custom_projection(NULL)
+    : Proj(proj), pj_source(nullptr), pj_target(nullptr), pj_tile(nullptr),
+      custom_projection(nullptr)
 {
     char buffer[32];
 
@@ -104,13 +104,13 @@ reprojection::reprojection(int proj)
 reprojection::~reprojection()
 {
     pj_free(pj_source);
-    pj_source = NULL;
+    pj_source = nullptr;
     pj_free(pj_target);
-    pj_target = NULL;
+    pj_target = nullptr;
     pj_free(pj_tile);
-    pj_tile = NULL;
+    pj_tile = nullptr;
 
-    if (custom_projection != NULL) {
+    if (custom_projection != nullptr) {
         delete custom_projection;
     }
 }

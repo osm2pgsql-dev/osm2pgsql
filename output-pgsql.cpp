@@ -271,7 +271,7 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
     thunk->error = boost::current_exception();
   }
 
-  return NULL;
+  return nullptr;
 }
 } // anonymous namespace
 
@@ -386,7 +386,7 @@ void output_pgsql_t::stop()
       }
 
       for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_create(&threads[i], NULL, pthread_output_pgsql_stop_one, &thunks[i]);
+          int ret = pthread_create(&threads[i], nullptr, pthread_output_pgsql_stop_one, &thunks[i]);
           if (ret) {
               fprintf(stderr, "pthread_create() returned an error (%d)\n", ret);
               util::exit_nicely();
@@ -397,7 +397,7 @@ void output_pgsql_t::stop()
       // threads and check them all for errors before shutting down the process.
       bool thread_had_error = false;
       for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_join(threads[i], NULL);
+          int ret = pthread_join(threads[i], nullptr);
           if (ret) {
               fprintf(stderr, "pthread_join() returned an error (%d)\n", ret);
               thread_had_error = true;

@@ -55,7 +55,7 @@ void parse_stats_t::update(const parse_stats_t &other)
 
 void parse_stats_t::print_summary() const
 {
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     time_t end_nodes = start_way > 0 ? start_way : now;
     time_t end_way = start_rel > 0 ? start_rel : now;
     time_t end_rel = now;
@@ -76,7 +76,7 @@ void parse_stats_t::print_summary() const
 
 void parse_stats_t::print_status() const
 {
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     time_t end_nodes = start_way > 0 ? start_way : now;
     time_t end_way = start_rel > 0 ? start_rel : now;
     time_t end_rel = now;

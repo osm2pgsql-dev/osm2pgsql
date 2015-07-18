@@ -180,7 +180,7 @@ void middle_ram_t::start(const options_t *out_options_)
 
 void middle_ram_t::stop(void)
 {
-    cache.reset(NULL);
+    cache.reset(nullptr);
 
     release_ways();
     release_relations();

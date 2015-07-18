@@ -70,7 +70,7 @@ void test_middles()
     const char* a1[] = {"osm2pgsql", "--slim", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
     boost::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_pgsql_t *>(mid.get()) == NULL)
+    if(dynamic_cast<middle_pgsql_t *>(mid.get()) == nullptr)
     {
         throw std::logic_error("Using slim mode we expected a pgsql middle");
     }
@@ -78,7 +78,7 @@ void test_middles()
     const char* a2[] = {"osm2pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t::parse(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_ram_t *>(mid.get()) == NULL)
+    if(dynamic_cast<middle_ram_t *>(mid.get()) == nullptr)
     {
         throw std::logic_error("Using without slim mode we expected a ram middle");
     }
@@ -91,7 +91,7 @@ void test_outputs()
     boost::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
     std::vector<boost::shared_ptr<output_t> > outs = output_t::create_outputs(mid.get(), options);
     output_t* out = outs.front().get();
-    if(dynamic_cast<output_pgsql_t *>(out) == NULL)
+    if(dynamic_cast<output_pgsql_t *>(out) == nullptr)
     {
         throw std::logic_error("Expected a pgsql output");
     }
@@ -101,7 +101,7 @@ void test_outputs()
     mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
-    if(dynamic_cast<output_gazetteer_t *>(out) == NULL)
+    if(dynamic_cast<output_gazetteer_t *>(out) == nullptr)
     {
         throw std::logic_error("Expected a gazetteer output");
     }
@@ -111,7 +111,7 @@ void test_outputs()
     mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
-    if(dynamic_cast<output_null_t *>(out) == NULL)
+    if(dynamic_cast<output_null_t *>(out) == nullptr)
     {
         throw std::logic_error("Expected a null output");
     }
@@ -271,7 +271,7 @@ void test_random_perms()
         args.push_back("tests/liechtenstein-2013-08-03.osm.pbf");
 
         const char** argv = new const char*[args.size() + 1];
-        argv[args.size()] = NULL;
+        argv[args.size()] = nullptr;
         for(std::vector<std::string>::const_iterator arg = args.begin(); arg != args.end(); ++arg)
             argv[arg - args.begin()] = arg->c_str();
         options_t::parse(args.size(), const_cast<char **>(argv));

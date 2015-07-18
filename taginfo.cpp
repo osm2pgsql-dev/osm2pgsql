@@ -93,7 +93,7 @@ columns_t export_list::normal_columns(enum OsmType id) const {
 
 int parse_tag_flags(const char *flags_, int lineno) {
     int temp_flags = 0;
-    char *str = NULL, *saveptr = NULL;
+    char *str = nullptr, *saveptr = nullptr;
     int i = 0;
 
     // yuck! but strtok requires a non-const char * pointer, and i'm fairly sure it
@@ -101,7 +101,7 @@ int parse_tag_flags(const char *flags_, int lineno) {
     char *flags = const_cast<char *>(flags_);
 
     //split the flags column on commas and keep track of which flags you've seen in a bit mask
-    for(str = strtok_r(flags, ",\r\n", &saveptr); str != NULL; str = strtok_r(NULL, ",\r\n", &saveptr))
+    for(str = strtok_r(flags, ",\r\n", &saveptr); str != nullptr; str = strtok_r(nullptr, ",\r\n", &saveptr))
     {
       for( i=0; i<NUM_FLAGS; i++ )
       {
@@ -141,7 +141,7 @@ int read_style_file( const std::string &filename, export_list *exlist )
   }
 
   //for each line of the style file
-  while( fgets( buffer, sizeof(buffer), in) != NULL )
+  while( fgets( buffer, sizeof(buffer), in) != nullptr )
   {
     lineno++;
 

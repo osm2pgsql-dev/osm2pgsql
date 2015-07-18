@@ -54,7 +54,7 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
     /* Based on vprintf manual page */
     /* Guess we need no more than 100 bytes. */
 
-    if ((sql = (char *)malloc(size)) == NULL)
+    if ((sql = (char *)malloc(size)) == nullptr)
         throw std::runtime_error("Memory allocation failed in pgsql_exec");
 
     while (1) {
@@ -70,7 +70,7 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
             size = n+1; /* precisely what is needed */
         else           /* glibc 2.0 */
             size *= 2;  /* twice the old size */
-        if ((nsql = (char *)realloc (sql, size)) == NULL) {
+        if ((nsql = (char *)realloc (sql, size)) == nullptr) {
             free(sql);
             throw std::runtime_error("Memory re-allocation failed in pgsql_exec");
         } else {
@@ -119,7 +119,7 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int 
     fprintf( stderr, "ExecPrepared: %s\n", stmtName );
 #endif
     //run the prepared statement
-    PGresult *res = PQexecPrepared(sql_conn, stmtName, nParams, paramValues, NULL, NULL, 0);
+    PGresult *res = PQexecPrepared(sql_conn, stmtName, nParams, paramValues, nullptr, nullptr, 0);
     if(PQresultStatus(res) != expect)
     {
         std::string message = (boost::format("%1% failed: %2%(%3%)\n") % stmtName % PQerrorMessage(sql_conn) % PQresultStatus(res)).str();
@@ -141,7 +141,7 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int 
     if( expect != PGRES_TUPLES_OK )
     {
         PQclear(res);
-        res = NULL;
+        res = nullptr;
     }
     return res;
 }

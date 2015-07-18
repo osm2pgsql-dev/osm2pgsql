@@ -85,7 +85,7 @@ struct ramNodeID {
 
 class ramNodeBlock {
 public:
-    ramNodeBlock() : nodes(NULL), block_offset(-1), _used(0) {}
+    ramNodeBlock() : nodes(nullptr), block_offset(-1), _used(0) {}
 
     void set_dirty() { _used |= 1; }
     bool dirty() const { return _used & 1; }

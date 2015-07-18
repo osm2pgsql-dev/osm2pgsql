@@ -169,7 +169,7 @@ void node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
                     /* reuse previous block, as its content is now in the sparse representation */
                     storedNodes -= queue[usedBlocks - 1]->used();
                     blocks[block].nodes = queue[usedBlocks - 1]->nodes;
-                    blocks[queue[usedBlocks - 1]->block_offset].nodes = NULL;
+                    blocks[queue[usedBlocks - 1]->block_offset].nodes = nullptr;
                     usedBlocks--;
                     cacheUsed -= PER_BLOCK * sizeof(ramNode);
                 }
@@ -225,7 +225,7 @@ void node_ram_cache::set_dense(osmid_t id, const ramNode &coord) {
 
             /* Clear old head block and point to new block */
             storedNodes -= queue[0]->used();
-            queue[0]->nodes = NULL;
+            queue[0]->nodes = nullptr;
             queue[0]->reset_used();
             queue[0] = &blocks[block];
         }
@@ -298,8 +298,8 @@ int node_ram_cache::get_dense(osmNode *out, osmid_t id) {
 
 
 node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale )
-    : allocStrategy(ALLOC_DENSE), blocks(NULL), usedBlocks(0),
-      maxBlocks(0), blockCache(NULL), queue(NULL), sparseBlock(NULL),
+    : allocStrategy(ALLOC_DENSE), blocks(nullptr), usedBlocks(0),
+      maxBlocks(0), blockCache(nullptr), queue(nullptr), sparseBlock(nullptr),
       maxSparseTuples(0), sizeSparseTuples(0), maxSparseId(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
@@ -381,7 +381,7 @@ node_ram_cache::~node_ram_cache() {
       if ( (allocStrategy & ALLOC_DENSE_CHUNK) > 0 ) {
           for(int i = 0; i < usedBlocks; ++i) {
               delete[] queue[i]->nodes;
-              queue[i]->nodes = NULL;
+              queue[i]->nodes = nullptr;
           }
       } else {
           free(blockCache);
