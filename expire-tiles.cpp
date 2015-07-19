@@ -496,7 +496,7 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
         return -1;
 
     //grab the geom for this id
-    std::shared_ptr<table_t::wkt_reader> wkts = table->get_wkt_reader(osm_id);
+    std::unique_ptr<table_t::wkt_reader> wkts = table->get_wkt_reader(osm_id);
 
     //dirty the stuff
     const char* wkt = nullptr;

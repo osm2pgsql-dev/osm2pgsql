@@ -20,7 +20,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "tests/middle-tests.hpp"
@@ -104,7 +103,7 @@ void assert_has_table(pg::conn_ptr &test_conn, const std::string &table_name) {
 // the python script. this is just to check everything is
 // working as expected before we start the complex stuff.
 void test_regression_simple() {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
@@ -128,7 +127,7 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -164,7 +163,7 @@ void test_regression_simple() {
 }
 
 void test_latlong() {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
@@ -191,7 +190,7 @@ void test_latlong() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -228,7 +227,7 @@ void test_latlong() {
 
 
 void test_area_way_simple() {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
@@ -254,7 +253,7 @@ void test_area_way_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -279,7 +278,7 @@ void test_area_way_simple() {
 }
 
 void test_route_rel() {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
@@ -303,7 +302,7 @@ void test_route_rel() {
 
     osmdata_t osmdata(mid_ram, out_test);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 
@@ -330,7 +329,7 @@ void test_route_rel() {
 // test the same, but clone the output. it should
 // behave the same as the original.
 void test_clone() {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
@@ -358,7 +357,7 @@ void test_clone() {
 
     osmdata_t osmdata(mid_pgsql, out_clone);
 
-    boost::scoped_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
 
     osmdata.start();
 

@@ -14,7 +14,6 @@
 #include <cstddef>
 #include <string>
 #include <memory>
-#include <boost/scoped_ptr.hpp>
 
 class table_t;
 class tagtransform;
@@ -73,11 +72,11 @@ protected:
     int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, bool exists, bool pending=false);
     void copy_to_table(osmid_t id, const char *wkt, const taglist_t &tags);
 
-    boost::scoped_ptr<tagtransform> m_tagtransform;
-    boost::scoped_ptr<export_list> m_export_list;
+    std::unique_ptr<tagtransform> m_tagtransform;
+    std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
     const OsmType m_osm_type;
-    boost::scoped_ptr<table_t> m_table;
+    std::unique_ptr<table_t> m_table;
     std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
     std::shared_ptr<expire_tiles> m_expire;
     way_helper m_way_helper;

@@ -516,7 +516,7 @@ void table_t::escape_type(const string &value, const string &type, string& dst) 
         escape(value, dst);
 }
 
-std::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
+std::unique_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
 {
     //cant get wkt using the prepared statement without stopping the copy first
     stop_copy();
@@ -529,7 +529,7 @@ std::shared_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
     //the prepared statement get_wkt will behave differently depending on the sql_conn
     //each table has its own sql_connection with the get_way referring to the appropriate table
     PGresult* res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    return std::shared_ptr<wkt_reader>(new wkt_reader(res));
+    return std::unique_ptr<wkt_reader>(new wkt_reader(res));
 }
 
 table_t::wkt_reader::wkt_reader(PGresult* result):result(result), current(0)

@@ -70,14 +70,14 @@ protected:
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 
-    boost::scoped_ptr<tagtransform> m_tagtransform;
+    std::unique_ptr<tagtransform> m_tagtransform;
 
     //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;
 
     std::vector<std::shared_ptr<table_t> > m_tables;
 
-    boost::scoped_ptr<export_list> m_export_list;
+    std::unique_ptr<export_list> m_export_list;
 
     geometry_builder builder;
 
