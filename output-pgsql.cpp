@@ -125,25 +125,25 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodel
 
     tag *areatag = 0;
     geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, polygon, split_at);
-    for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt) {
+    for (const auto& wkt: *wkts) {
         /* FIXME: there should be a better way to detect polygons */
-        if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+        if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
             expire->from_nodes_poly(nodes, id);
-            if ((wkt->area > 0.0) && m_enable_way_area) {
+            if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
                 if (!areatag) {
                     outtags.push_dedupe(tag("way_area", tmp));
                     areatag = outtags.find("way_area");
                 } else
                     areatag->value = tmp;
             }
-            m_tables[t_poly]->write_wkt(id, outtags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(id, outtags, wkt.geom.c_str());
         } else {
             expire->from_nodes_line(nodes);
-            m_tables[t_line]->write_wkt(id, outtags, wkt->geom.c_str());
+            m_tables[t_line]->write_wkt(id, outtags, wkt.geom.c_str());
             if (roads)
-                m_tables[t_roads]->write_wkt(id, outtags, wkt->geom.c_str());
+                m_tables[t_roads]->write_wkt(id, outtags, wkt.geom.c_str());
         }
     }
 
@@ -188,25 +188,24 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     }
 
     tag *areatag = 0;
-    for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
-    {
-        expire->from_wkt(wkt->geom.c_str(), -id);
+    for (const auto& wkt: *wkts) {
+        expire->from_wkt(wkt.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
-        if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
-            if ((wkt->area > 0.0) && m_enable_way_area) {
+        if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
+            if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
                 if (!areatag) {
                     outtags.push_dedupe(tag("way_area", tmp));
                     areatag = outtags.find("way_area");
                 } else
                     areatag->value = tmp;
             }
-            m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(-id, outtags, wkt.geom.c_str());
         } else {
-            m_tables[t_line]->write_wkt(-id, outtags, wkt->geom.c_str());
+            m_tables[t_line]->write_wkt(-id, outtags, wkt.geom.c_str());
             if (roads)
-                m_tables[t_roads]->write_wkt(-id, outtags, wkt->geom.c_str());
+                m_tables[t_roads]->write_wkt(-id, outtags, wkt.geom.c_str());
         }
     }
 
@@ -231,19 +230,18 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     if (make_boundary) {
         tag *areatag = 0;
         wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
-        for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
-        {
-            expire->from_wkt(wkt->geom.c_str(), -id);
-            if ((wkt->area > 0.0) && m_enable_way_area) {
+        for (const auto& wkt: *wkts) {
+            expire->from_wkt(wkt.geom.c_str(), -id);
+            if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt->area);
+                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
                 if (!areatag) {
                     outtags.push_dedupe(tag("way_area", tmp));
                     areatag = outtags.find("way_area");
                 } else
                     areatag->value = tmp;
             }
-            m_tables[t_poly]->write_wkt(-id, outtags, wkt->geom.c_str());
+            m_tables[t_poly]->write_wkt(-id, outtags, wkt.geom.c_str());
         }
     }
 
