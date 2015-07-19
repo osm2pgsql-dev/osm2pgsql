@@ -3,7 +3,7 @@
 
 #include "osmtypes.hpp"
 #include <boost/noncopyable.hpp>
-#include <boost/scoped_ptr.hpp>
+#include <memory>
 
 struct id_tracker : public boost::noncopyable {
     id_tracker();
@@ -20,7 +20,7 @@ struct id_tracker : public boost::noncopyable {
 
 private:
     struct pimpl;
-    boost::scoped_ptr<pimpl> impl;
+    std::unique_ptr<pimpl> impl;
 };
 
 #endif /* ID_TRACKER_HPP */

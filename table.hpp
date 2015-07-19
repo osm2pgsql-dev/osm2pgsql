@@ -52,7 +52,7 @@ class table_t
                 size_t count;
                 size_t current;
         };
-        std::shared_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
+        std::unique_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
 
     protected:
         void connect();
