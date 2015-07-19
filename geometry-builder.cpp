@@ -95,8 +95,8 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
 
     try
     {
-        for (nodelist_t::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
-            coords->add(Coordinate(it->lon, it->lat), 0);
+        for (const auto& nd: nodes) {
+            coords->add(Coordinate(nd.lon, nd.lat), 0);
         }
 
         maybe_wkt_t wkt(new geometry_builder::wkt_t());
@@ -150,8 +150,8 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 
     try
     {
-        for (nodelist_t::const_iterator it = nodes.begin(); it != nodes.end(); ++it) {
-            coords->add(Coordinate(it->lon, it->lat), 0);
+        for (const auto& nd: nodes) {
+            coords->add(Coordinate(nd.lon, nd.lat), 0);
         }
 
         geom_ptr geom;
@@ -321,12 +321,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
 
     try
     {
-        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
+        for (const auto& nodes: xnodes) {
             std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
+            for (const auto& node: nodes) {
                 Coordinate c;
-                c.x = node->lon;
-                c.y = node->lat;
+                c.x = node.lon;
+                c.y = node.lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
@@ -341,7 +341,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
         LineMerger merger;
         //merger.add(noded.get());
         merger.add(mline.get());
-        std::unique_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
+        std::unique_ptr<std::vector<LineString *>> merged(merger.getMergedLineStrings());
         WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
@@ -395,23 +395,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                                 istoplevelafterall = 1;
                                 break;
                             }
-#if 0
-                            else if (polys[k].polygon->intersects(polys[j].polygon) || polys[k].polygon->touches(polys[j].polygon))
-                            {
-                                // FIXME: This code does not work as intended
-                                // It should be setting the polys[k].ring in order to update this object
-                                // but the value of polys[k].polygon calculated is normally NULL
-
-                                // Add polygon this polygon (j) to k since they intersect
-                                // Mark ourselfs to be dropped (2), delete the original k
-                                Geometry* polyunion = polys[k].polygon->Union(polys[j].polygon);
-                                delete(polys[k].polygon);
-                                polys[k].polygon = dynamic_cast<Polygon*>(polyunion);
-                                polys[j].iscontained = 2; // Drop
-                                istoplevelafterall = 2;
-                                break;
-                            }
-#endif
                         }
                         if (istoplevelafterall == 0)
                         {
@@ -425,7 +408,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             // polys now is a list of polygons tagged with which ones are inside each other
 
             // List of polygons for multipolygon
-            std::unique_ptr<std::vector<Geometry*> > polygons(new std::vector<Geometry*>);
+            std::unique_ptr<std::vector<Geometry*>> polygons(new std::vector<Geometry*>);
 
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
@@ -514,12 +497,12 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
 
     try
     {
-        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
+        for (const auto& nodes: xnodes) {
             std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
+            for (const auto& node: nodes) {
                 Coordinate c;
-                c.x = node->lon;
-                c.y = node->lat;
+                c.x = node.lon;
+                c.y = node.lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
@@ -560,12 +543,12 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
 
     try
     {
-        for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it) {
+      for (const auto& nodes: xnodes) {
             std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (nodelist_t::const_iterator node = it->begin(); node != it->end(); ++node) {
+            for (const auto& node: nodes) {
                 Coordinate c;
-                c.x = node->lon;
-                c.y = node->lat;
+                c.x = node.lon;
+                c.y = node.lat;
                 coords->add(c, 0);
             }
             if (coords->getSize() > 1) {
