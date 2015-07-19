@@ -16,8 +16,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <boost/scoped_ptr.hpp>
-
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 
@@ -73,7 +71,7 @@ void run_tests(options_t options, const std::string cache_type) {
   }*/
 }
 int main(int argc, char *argv[]) {
-  boost::scoped_ptr<pg::tempdb> db;
+  std::unique_ptr<pg::tempdb> db;
 
   try {
     db.reset(new pg::tempdb);

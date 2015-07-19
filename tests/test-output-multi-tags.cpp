@@ -19,7 +19,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <boost/scoped_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "tests/middle-tests.hpp"
@@ -47,7 +46,7 @@ void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
 }
 
 int main(int argc, char *argv[]) {
-    boost::scoped_ptr<pg::tempdb> db;
+    std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
