@@ -36,7 +36,7 @@ public:
 
     bool has_place(const std::string &cls)
     {
-        for (const tag &item: places) {
+        for (const auto& item: places) {
             if (cls == item.key)
                 return true;
         }
@@ -105,10 +105,10 @@ private:
     }
 
 
-    std::vector<tag> places;
-    std::vector<const tag *> names;
-    std::vector<const tag *> extratags;
-    std::vector<const tag *> address;
+    std::vector<tag_t> places;
+    std::vector<const tag_t *> names;
+    std::vector<const tag_t *> extratags;
+    std::vector<const tag_t *> address;
     const taglist_t *src;
     int admin_level;
     const std::string *countrycode;

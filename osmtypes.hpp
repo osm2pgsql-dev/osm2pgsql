@@ -42,22 +42,22 @@ struct member {
 
 typedef std::vector<member> memberlist_t;
 
-struct tag {
+struct tag_t {
   std::string key;
   std::string value;
 
-  tag(const std::string &k, const std::string &v) : key(k), value(v) {}
+  tag_t(const std::string &k, const std::string &v) : key(k), value(v) {}
 };
 
 
-class taglist_t : public std::vector<tag> {
+class taglist_t : public std::vector<tag_t> {
 
-  typedef std::vector<tag> base_t;
+  typedef std::vector<tag_t> base_t;
 
 public:
-  const tag *find(const std::string &key) const { return _find(key); }
+  const tag_t *find(const std::string &key) const { return _find(key); }
 
-  tag *find(const std::string &key) {  return const_cast<tag *>(_find(key)); }
+  tag_t *find(const std::string &key) {  return const_cast<tag_t *>(_find(key)); }
 
   int indexof(const std::string &key) const
   {
@@ -93,7 +93,7 @@ public:
     return defval;
   }
 
-  void push_dedupe(const tag& t)
+  void push_dedupe(const tag_t& t)
   {
       if (find(t.key) == 0)
           push_back(t);
@@ -102,7 +102,7 @@ public:
   bool contains(const std::string &key) const { return _find(key) != 0; }
 
 private:
-  const tag *_find(const std::string &key) const
+  const tag_t *_find(const std::string &key) const
   {
     for (base_t::const_iterator it = begin() ; it != end(); ++it)
       if (it->key == key)

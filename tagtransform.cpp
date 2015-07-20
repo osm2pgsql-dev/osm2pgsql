@@ -98,7 +98,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
     char z[13];
     snprintf(z, sizeof(z), "%d", z_order);
-    tags.push_back(tag("z_order", z));
+    tags.push_back(tag_t("z_order", z));
 }
 
 unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
@@ -128,7 +128,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
     for (const auto& rel_tag: rel_tags) {
         //copy the name tag as "route_name"
         if (is_route && (rel_tag.key == "name"))
-            out_tags.push_dedupe(tag("route_name", rel_tag.value));
+            out_tags.push_dedupe(tag_t("route_name", rel_tag.value));
         //copy all other tags except for "type"
         if (rel_tag.key != "type")
             out_tags.push_dedupe(rel_tag);
@@ -149,22 +149,22 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             }
             if (*netw == "lcn") {
                 networknr = 10;
-                out_tags.push_dedupe(tag("lcn", statetype));
+                out_tags.push_dedupe(tag_t("lcn", statetype));
             } else if (*netw == "rcn") {
                 networknr = 11;
-                out_tags.push_dedupe(tag("rcn", statetype));
+                out_tags.push_dedupe(tag_t("rcn", statetype));
             } else if (*netw == "ncn") {
                 networknr = 12;
-                out_tags.push_dedupe(tag("ncn", statetype));
+                out_tags.push_dedupe(tag_t("ncn", statetype));
             } else if (*netw == "lwn") {
                 networknr = 20;
-                out_tags.push_dedupe(tag("lwn", statetype));
+                out_tags.push_dedupe(tag_t("lwn", statetype));
             } else if (*netw == "rwn") {
                 networknr = 21;
-                out_tags.push_dedupe(tag("rwn", statetype));
+                out_tags.push_dedupe(tag_t("rwn", statetype));
             } else if (*netw == "nwn") {
                 networknr = 22;
-                out_tags.push_dedupe(tag("nwn", statetype));
+                out_tags.push_dedupe(tag_t("nwn", statetype));
             }
         }
 
@@ -173,28 +173,28 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             if ((*prefcol)[0] == '0' || (*prefcol)[0] == '1'
                     || (*prefcol)[0] == '2' || (*prefcol)[0] == '3'
                     || (*prefcol)[0] == '4') {
-                out_tags.push_dedupe(tag("route_pref_color", *prefcol));
+                out_tags.push_dedupe(tag_t("route_pref_color", *prefcol));
             } else {
-                out_tags.push_dedupe(tag("route_pref_color", "0"));
+                out_tags.push_dedupe(tag_t("route_pref_color", "0"));
             }
         } else {
-            out_tags.push_dedupe(tag("route_pref_color", "0"));
+            out_tags.push_dedupe(tag_t("route_pref_color", "0"));
         }
 
         const std::string *relref = rel_tags.get("ref");
         if (relref != NULL ) {
             if (networknr == 10) {
-                out_tags.push_dedupe(tag("lcn_ref", *relref));
+                out_tags.push_dedupe(tag_t("lcn_ref", *relref));
             } else if (networknr == 11) {
-                out_tags.push_dedupe(tag("rcn_ref", *relref));
+                out_tags.push_dedupe(tag_t("rcn_ref", *relref));
             } else if (networknr == 12) {
-                out_tags.push_dedupe(tag("ncn_ref", *relref));
+                out_tags.push_dedupe(tag_t("ncn_ref", *relref));
             } else if (networknr == 20) {
-                out_tags.push_dedupe(tag("lwn_ref", *relref));
+                out_tags.push_dedupe(tag_t("lwn_ref", *relref));
             } else if (networknr == 21) {
-                out_tags.push_dedupe(tag("rwn_ref", *relref));
+                out_tags.push_dedupe(tag_t("rwn_ref", *relref));
             } else if (networknr == 22) {
-                out_tags.push_dedupe(tag("nwn_ref", *relref));
+                out_tags.push_dedupe(tag_t("nwn_ref", *relref));
             }
         }
     } else if (is_boundary) {
@@ -388,7 +388,7 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
     while (lua_next(L,-2) != 0) {
         const char *key = lua_tostring(L,-2);
         const char *value = lua_tostring(L,-1);
-        out_tags.push_back(tag(key, value));
+        out_tags.push_back(tag_t(key, value));
         lua_pop(L,1);
     }
     lua_pop(L,1);
@@ -545,7 +545,7 @@ unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags
     while (lua_next(L,-2) != 0) {
         const char *key = lua_tostring(L,-2);
         const char *value = lua_tostring(L,-1);
-        out_tags.push_back(tag(key, value));
+        out_tags.push_back(tag_t(key, value));
         lua_pop(L,1);
     }
 
@@ -658,7 +658,7 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
     if (polygon) {
         if (add_area_tag) {
             /* If we need to force this as a polygon, append an area tag */
-            out_tags.push_dedupe(tag("area", "yes"));
+            out_tags.push_dedupe(tag_t("area", "yes"));
             *polygon = 1;
         } else {
             *polygon = tags.get_bool("area", flags & FLAG_POLYGON);

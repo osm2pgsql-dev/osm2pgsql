@@ -59,7 +59,7 @@ void place_tag_processor::clear()
 
 struct UnnamedPredicate
 {
-    bool operator()(const tag &val) const {
+    bool operator()(const tag_t &val) const {
         return val.key == "natural" ||
                val.key == "railway" ||
                val.key == "waterway" ||
@@ -83,9 +83,9 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     bool placeadmin = false;
     bool placehouse = false;
     bool placebuilding = false;
-    const tag *place = 0;
-    const tag *junction = 0;
-    const tag *landuse = 0;
+    const tag_t *place = 0;
+    const tag_t *junction = 0;
+    const tag_t *landuse = 0;
     bool isnamed = false;
     bool isinterpolation = false;
     const std::string *house_nr = 0;
@@ -326,7 +326,7 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     }
 
     if (isinterpolation)
-        places.push_back(tag("place", "houses"));
+        places.push_back(tag_t("place", "houses"));
 
     if (place) {
         if (isinterpolation ||
@@ -347,11 +347,11 @@ void place_tag_processor::process_tags(const taglist_t &tags)
 
     if (places.empty()) {
         if (placebuilding && (!names.empty() || placehouse || postcode)) {
-            places.push_back(tag("building", "yes"));
+            places.push_back(tag_t("building", "yes"));
         } else if (placehouse) {
-            places.push_back(tag("place", "house"));
+            places.push_back(tag_t("place", "house"));
         } else if (postcode) {
-            places.push_back(tag("place", "postcode"));
+            places.push_back(tag_t("place", "postcode"));
         }
     }
 
@@ -380,7 +380,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                                    const std::string &wkt,
                                    std::string &buffer)
 {
-    for (const tag &place: places) {
+    for (const tag_t &place: places) {
         std::string name;
         if (place.key == "bridge" || place.key == "tunnel") {
             name = domain_name(place.key);
@@ -410,7 +410,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             bool shop = (place.key == "shop") ||
                         (place.key == "amenity") ||
                         (place.key == "tourism");
-            for (const tag *entry: names) {
+            for (const tag_t *entry: names) {
                 if (!shop && (entry->key == "operator"))
                     continue;
 
@@ -439,7 +439,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         copy_opt_string(addr_place, buffer);
         // isin
         if (!address.empty()) {
-            for (const tag *entry: address) {
+            for (const tag_t *entry: address) {
                 if (entry->key == "tiger:county") {
                     escape(std::string(entry->value, 0, entry->value.find(",")),
                            buffer);
@@ -461,7 +461,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             buffer += "\\N\t";
         } else {
             bool first = true;
-            for (const tag *entry: extratags) {
+            for (const tag_t *entry: extratags) {
                 if (first)
                     first = false;
                 else

@@ -781,18 +781,18 @@ void parse_o5m_t::stream_file(const std::string &filename, osmdata_t *osmdata) {
 
       hisver= pbf_uint32(&bufp);
       uint32toa(hisver,tmpstr);
-      tags.push_back(tag("osm_version",tmpstr));
+      tags.push_back(tag_t("osm_version",tmpstr));
       if(hisver!=0) {  /* history information available */
         histime= o5histime+= pbf_sint64(&bufp);
         createtimestamp(histime,tmpstr);
-        tags.push_back(tag("osm_timestamp",tmpstr));
+        tags.push_back(tag_t("osm_timestamp",tmpstr));
         if(histime!=0) {
           o5hiscset+= pbf_sint32(&bufp);  /* (not used) */
           str_read(&bufp,&sp,&hisuser);
           hisuid= pbf_uint64((byte**)&sp);
           uint32toa(hisuid,tmpstr);
-          tags.push_back(tag("osm_uid",tmpstr));
-          tags.push_back(tag("osm_user",hisuser));
+          tags.push_back(tag_t("osm_uid",tmpstr));
+          tags.push_back(tag_t("osm_user",hisuser));
           }
       }  /* end   history information available */
     }  /* end   read history */
@@ -888,7 +888,7 @@ void parse_o5m_t::stream_file(const std::string &filename, osmdata_t *osmdata) {
           /* replace all blanks in key by underlines */
           p++;
           }
-        tags.push_back(tag(k,v));
+        tags.push_back(tag_t(k,v));
       }  /* end   for all tags of this object */
 
       /* write object into database */
