@@ -1240,14 +1240,16 @@ void middle_pgsql_t::stop(void)
 {
     int i;
 #ifdef HAVE_PTHREAD
-    pthread_t threads[num_tables];
+    std::vector<pthread_t> threads;
+    threads.reserve(num_tables);
 #endif
 
     cache.reset();
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
 #ifdef HAVE_PTHREAD
-    pthread_thunk thunks[num_tables];
+    std::vector<pthread_thunk> thunks;
+    thunks.reserve(num_tables);
     for (i=0; i<num_tables; i++) {
         thunks[i].obj = this;
         thunks[i].ptr = &tables[i];
