@@ -41,7 +41,7 @@ private:
                                  int *roads, const export_list &exlist,
                                  taglist_t &out_tags, bool strict);
     unsigned int lua_filter_rel_member_tags(const taglist_t &rel_tags,
-        const multitaglist_t &member_tags, const rolelist_t &member_roles,
+        const multitaglist_t &members_tags, const rolelist_t &member_roles,
         int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
         taglist_t &out_tags);
     void check_lua_function_exists(const std::string &func_name);

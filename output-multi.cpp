@@ -376,13 +376,12 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
         {
             geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(m_relation_helper.nodes);
             if (wkts) {
-                for(geometry_builder::wkt_itr wkt = wkts->begin(); wkt != wkts->end(); ++wkt)
-                {
+                for (const auto& wkt: *wkts) {
                     //TODO: we actually have the nodes in the m_relation_helper and could use them
                     //instead of having to reparse the wkt in the expiry code
-                    m_expire->from_wkt(wkt->geom.c_str(), -id);
+                    m_expire->from_wkt(wkt.geom.c_str(), -id);
                     //what part of the code relies on relation members getting negative ids?
-                    copy_to_table(-id, wkt->geom.c_str(), outtags);
+                    copy_to_table(-id, wkt.geom.c_str(), outtags);
                 }
             }
 

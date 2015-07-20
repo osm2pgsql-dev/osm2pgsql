@@ -125,20 +125,20 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
     }
 
     /* Clone tags from relation */
-    for (taglist_t::const_iterator it = rel_tags.begin(); it != rel_tags.end(); ++it) {
+    for (const auto& rel_tag: rel_tags) {
         //copy the name tag as "route_name"
-        if (is_route && (it->key == "name"))
-            out_tags.push_dedupe(tag("route_name", it->value));
+        if (is_route && (rel_tag.key == "name"))
+            out_tags.push_dedupe(tag("route_name", rel_tag.value));
         //copy all other tags except for "type"
-        if (it->key != "type")
-            out_tags.push_dedupe(*it);
+        if (rel_tag.key != "type")
+            out_tags.push_dedupe(rel_tag);
     }
 
     if (is_route) {
         const std::string *netw = rel_tags.get("network");
         int networknr = -1;
 
-        if (netw != NULL) {
+        if (netw != nullptr) {
             const std::string *state = rel_tags.get("state");
             std::string statetype("yes");
             if (state) {
@@ -212,16 +212,15 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         /* Collect a list of polygon-like tags, these are used later to
          identify if an inner rings looks like it should be rendered separately */
         taglist_t poly_tags;
-        for (taglist_t::const_iterator it = out_tags.begin(); it != out_tags.end(); ++it) {
-            if (it->key == "area") {
-                poly_tags.push_back(*it);
+        for (const auto& out_tag: out_tags) {
+            if (out_tag.key == "area") {
+                poly_tags.push_back(out_tag);
             } else {
                 const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
-                for (std::vector<taginfo>::const_iterator info = infos.begin();
-                     info != infos.end(); ++info) {
-                    if (info->name == it->key) {
-                        if (info->flags & FLAG_POLYGON) {
-                            poly_tags.push_back(*it);
+                for (const auto& info: infos) {
+                    if (info.name == out_tag.key) {
+                        if (info.flags & FLAG_POLYGON) {
+                            poly_tags.push_back(out_tag);
                         }
                         break;
                     }
@@ -258,8 +257,9 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
                 first_outerway = 0;
             }
             /* Copy the list identified outer way tags over to the relation */
-            for (taglist_t::const_iterator it = poly_tags.begin(); it != poly_tags.end(); ++it)
-                out_tags.push_dedupe(*it);
+            for (const auto& poly_tag: poly_tags) {
+                out_tags.push_dedupe(poly_tag);
+            }
 
             /* We need to re-check and only keep polygon tags in the list of polytags */
             // TODO what is that for? The list is cleared just below.
@@ -299,14 +299,13 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
     if (make_polygon) {
         for (size_t i = 0; i < member_tags.size(); i++) {
             member_superseeded[i] = 1;
-            for (taglist_t::const_iterator p = member_tags[i].begin();
-                 p != member_tags[i].end(); ++p) {
-                const std::string *v = out_tags.get(p->key);
-                if (!v || *v != p->value) {
+            for (const auto& member_tag: member_tags[i]) {
+                const std::string *v = out_tags.get(member_tag.key);
+                if (!v || *v != member_tag.value) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
-                    if ((p->key != "z_order") && (p->key != "osm_user") &&
-                        (p->key != "osm_version") && (p->key != "osm_uid") &&
-                        (p->key != "osm_changeset") && (p->key != "osm_timestamp")) {
+                    if ((member_tag.key != "z_order") && (member_tag.key != "osm_user") &&
+                        (member_tag.key != "osm_version") && (member_tag.key != "osm_uid") &&
+                        (member_tag.key != "osm_changeset") && (member_tag.key != "osm_timestamp")) {
                         member_superseeded[i] = 0;
                         break;
                     }
@@ -323,7 +322,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
 
 #ifdef HAVE_LUA
 unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
-        const multitaglist_t &member_tags, const rolelist_t &member_roles,
+        const multitaglist_t &members_tags, const rolelist_t &member_roles,
         int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
         taglist_t &out_tags)
 {
@@ -331,22 +330,21 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
 
     lua_newtable(L);    /* relations key value table */
 
-    for (taglist_t::const_iterator it = rel_tags.begin(); it != rel_tags.end(); ++it) {
-        lua_pushstring(L, it->key.c_str());
-        lua_pushstring(L, it->value.c_str());
+    for (const auto& rel_tag: rel_tags) {
+        lua_pushstring(L, rel_tag.key.c_str());
+        lua_pushstring(L, rel_tag.value.c_str());
         lua_rawset(L, -3);
     }
 
     lua_newtable(L);    /* member tags table */
 
     int idx = 1;
-    for (multitaglist_t::const_iterator list = member_tags.begin();
-         list != member_tags.end(); ++list) {
+    for (const auto& member_tags: members_tags) {
         lua_pushnumber(L, idx++);
         lua_newtable(L);    /* member key value table */
-        for (taglist_t::const_iterator it = list->begin(); it != list->end(); ++it) {
-            lua_pushstring(L, it->key.c_str());
-            lua_pushstring(L, it->value.c_str());
+        for (const auto& member_tag: member_tags) {
+            lua_pushstring(L, member_tag.key.c_str());
+            lua_pushstring(L, member_tag.value.c_str());
             lua_rawset(L, -3);
         }
         lua_rawset(L, -3);
@@ -376,7 +374,7 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
     lua_pop(L,1);
 
     lua_pushnil(L);
-    for (size_t i = 0; i < member_tags.size(); i++) {
+    for (size_t i = 0; i < members_tags.size(); i++) {
         if (lua_next(L,-2)) {
             member_superseeded[i] = lua_tointeger(L,-1);
             lua_pop(L,1);
@@ -423,29 +421,30 @@ tagtransform::tagtransform(const options_t *options_)
     , m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or("filter_tags_relation_member"))
 #endif /* HAVE_LUA */
 {
-	if (transform_method) {
-                fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script->c_str());
+    if (transform_method) {
+        fprintf(stderr, "Using lua based tag processing pipeline with script %s\n", options->tag_transform_script->c_str());
 #ifdef HAVE_LUA
-		L = luaL_newstate();
-		luaL_openlibs(L);
-		luaL_dofile(L, options->tag_transform_script->c_str());
+        L = luaL_newstate();
+        luaL_openlibs(L);
+        luaL_dofile(L, options->tag_transform_script->c_str());
 
         check_lua_function_exists(m_node_func);
         check_lua_function_exists(m_way_func);
         check_lua_function_exists(m_rel_func);
         check_lua_function_exists(m_rel_mem_func);
 #else
-		throw std::runtime_error("Error: Could not init lua tag transform, as lua support was not compiled into this version");
+        throw std::runtime_error("Error: Could not init lua tag transform, as lua support was not compiled into this version");
 #endif
-	} else {
-		fprintf(stderr, "Using built-in tag processing pipeline\n");
-	}
+    } else {
+        fprintf(stderr, "Using built-in tag processing pipeline\n");
+    }
 }
 
 tagtransform::~tagtransform() {
 #ifdef HAVE_LUA
-	if (transform_method)
-    lua_close(L);
+    if (transform_method) {
+        lua_close(L);
+    }
 #endif
 }
 
