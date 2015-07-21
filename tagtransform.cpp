@@ -212,15 +212,15 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         /* Collect a list of polygon-like tags, these are used later to
          identify if an inner rings looks like it should be rendered separately */
         taglist_t poly_tags;
-        for (const auto& out_tag: out_tags) {
-            if (out_tag.key == "area") {
-                poly_tags.push_back(out_tag);
+        for (const auto& tag: out_tags) {
+            if (tag.key == "area") {
+                poly_tags.push_back(tag);
             } else {
                 const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
                 for (const auto& info: infos) {
-                    if (info.name == out_tag.key) {
+                    if (info.name == tag.key) {
                         if (info.flags & FLAG_POLYGON) {
-                            poly_tags.push_back(out_tag);
+                            poly_tags.push_back(tag);
                         }
                         break;
                     }
@@ -238,9 +238,9 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
 
                 /* insert all tags of the first outerway to the potential list of copied tags. */
                 if (first_outerway) {
-                    for (taglist_t::const_iterator it = member_tags[i].begin();
-                         it != member_tags[i].end(); ++it)
-                        poly_tags.push_back(*it);
+                    for (const auto& tag: member_tags[i]) {
+                        poly_tags.push_back(tag);
+                    }
                 } else {
                     /* Check if all of the tags in the list of potential tags are present on this way,
                        otherwise remove from the list of potential tags. Tags need to be present on
