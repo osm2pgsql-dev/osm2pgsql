@@ -15,7 +15,7 @@
 struct options_t;
 
 /**
- * @brief object which stores OSM node/ways/relations from the input file
+ * object which stores OSM node/ways/relations from the input file
  */
 struct middle_query_t {
     virtual ~middle_query_t() {}
@@ -23,7 +23,8 @@ struct middle_query_t {
     virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
 
     /**
-     * Retrives a single way from the ways storage. Returns true if the way was retrieved
+     * Retrives a single way from the ways storage.
+     * \return true if the way was retrieved
      * \param id id of the way to retrive
      */
     virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
@@ -33,8 +34,9 @@ struct middle_query_t {
                               multinodelist_t &nodes) const = 0;
 
     /**
-     * Retrives a single way from the ways storage. Returns true if the way was retrieved
-     * \param id id of the way to retrive
+     * Retrives a single relation from the relation storage.
+     * \return true if the relation was retrieved
+     * \param id id of the relation to retrive
      */
     virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
 
