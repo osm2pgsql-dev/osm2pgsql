@@ -1,6 +1,6 @@
-/* Common middle layer interface */
-
-/* Each middle layer data store must provide methods for
+/**
+ * Common middle layer interface
+ * Each middle layer data store must provide methods for
  * storing and retrieving node and way data.
  */
 
@@ -14,26 +14,42 @@
 
 struct options_t;
 
+/**
+ * @brief object which stores OSM node/ways/relations from the input file
+ */
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
     virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
 
-    // returns true if it got the relation
+    /**
+     * Retrives a single way from the ways storage. Returns true if the way was retrieved
+     * \param id id of the way to retrive
+     */
     virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
 
     virtual size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                               multitaglist_t &tags,
                               multinodelist_t &nodes) const = 0;
 
-    // returns true if it got the relation
+    /**
+     * Retrives a single way from the ways storage. Returns true if the way was retrieved
+     * \param id id of the way to retrive
+     */
     virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
 
+    /*
+     * Retrieve a list of relations with a particular way as a member
+     * \param way_id ID of the way to check
+     */
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 
     virtual std::shared_ptr<const middle_query_t> get_instance() const = 0;
 };
 
+/**
+ * A specialized middle backend which is persistent, and supports updates
+ */
 struct middle_t : public middle_query_t {
     static std::shared_ptr<middle_t> create_middle(bool slim);
 

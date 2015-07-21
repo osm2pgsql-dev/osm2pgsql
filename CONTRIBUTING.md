@@ -60,6 +60,15 @@ int main(int argc, char *argv[])
 
 Names should use underscores, not camel case, with class/struct names ending in `_t`.
 
+## Documentation
+
+User documentation is stored in `docs/`. Pages on the OpenStreetMap wiki are
+known to be unreliable and outdated.
+
+There is some documentation in Doxygen-formatted comments. The documentation can
+be generated with ``doxygen docs/Doxyfile``. It is not yet hooked into the build
+scripts as most functions are not yet documented.
+
 ## Platforms targeted
 
 Ideally osm2pgsql should compile on Linux, OS X, FreeBSD and Windows. It is
