@@ -266,7 +266,7 @@ void pgsql_parse_tags(const char *string, taglist_t &tags)
     string++;
     string = decode_upto( string, val );
     // String points to the comma or closing '}' */
-    tags.push_back(tag(key, val));
+    tags.push_back(tag_t(key, val));
     if( *string == ',' )
       string++;
   }
@@ -730,7 +730,7 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
                 util::exit_nicely();
         }
         sprintf( buf, "%c%" PRIdOSMID, type, it->id );
-        member_list.push_back(tag(buf, it->role));
+        member_list.push_back(tag_t(buf, it->role));
     }
 
     all_parts.insert(all_parts.end(), node_parts.begin(), node_parts.end());

@@ -378,7 +378,7 @@ void table_t::write_tags_column(const taglist_t &tags, std::string& values,
     bool added = false;
     for (size_t i = 0; i < tags.size(); ++i)
     {
-        const tag& xtag = tags[i];
+        const tag_t& xtag = tags[i];
         //skip z_order tag and keys which have their own column
         if (used[i] || ("z_order" == xtag.key))
             continue;
