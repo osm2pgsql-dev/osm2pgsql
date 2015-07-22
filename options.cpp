@@ -183,7 +183,7 @@ namespace
                         multi - Multiple Custom Table Output to a PostGIS \n\
                             database (requires style file for configuration)\n\
                         gazetteer - Output to a PostGIS database for Nominatim\n\
-                        null - No output. Useful for testing\n");
+                        null - No output. Useful for testing. Still creates tables if --slim is specified.\n");
     #ifdef HAVE_LUA
         printf("\
           --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\

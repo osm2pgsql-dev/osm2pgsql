@@ -155,7 +155,8 @@ Specifies the output back\-end or database schema to use. Currently
 osm2pgsql supports \fBpgsql\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
 the default output back\-end / schema and is optimized for rendering with Mapnik.
 \fBgazetteer\fR is a db schema optimized for geocoding and is used by Nominatim.
-\fBnull\fR does not write any output and is only useful for testing.
+\fBnull\fR does not write any output and is only useful for testing or with
+\-\-slim for creating slim tables.
 .TP
 \fB\-x\fR|\-\-extra\-attributes
 Include attributes for each object in the database.
