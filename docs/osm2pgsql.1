@@ -88,7 +88,7 @@ Prefix for table names (default: planet_osm).
 Select format of the input file. Available choices are \fBauto\fR 
 (default) for autodetecting the format,
 \fBxml\fR for OSM XML format files, \fBo5m\fR for o5m formatted files
-and \fBpbf\fR for OSM PBF binary format (may not be available on all platforms).
+and \fBpbf\fR for OSM PBF binary format.
 .TP
 \fB\-s\fR|\-\-slim
 Store temporary data in the database. Without this mode, all temporary data is stored in
@@ -114,7 +114,7 @@ imported into database columns and which tags get dropped. Defaults to /usr/shar
 Only for slim mode: Use up to num many MB of RAM for caching nodes. Giving osm2pgsql sufficient cache
 to store all imported nodes typically greatly increases the speed of the import. Each cached node
 requires 8 bytes of cache, plus about 10% \- 30% overhead. For a current OSM full planet import with
-its ~ 1.9 billion nodes, a good value would be 17000 if you have enough RAM. If you don't have enough
+its ~ 3 billion nodes, a good value would be 27000 if you have enough RAM. If you don't have enough
 RAM, it is likely beneficial to give osm2pgsql close to the full available amount of RAM. Defaults to 800. 
 .TP
 \fB\  \fR\-\-cache\-strategy strategy
@@ -155,7 +155,8 @@ Specifies the output back\-end or database schema to use. Currently
 osm2pgsql supports \fBpgsql\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
 the default output back\-end / schema and is optimized for rendering with Mapnik.
 \fBgazetteer\fR is a db schema optimized for geocoding and is used by Nominatim.
-\fBnull\fR does not write any output and is only useful for testing.
+\fBnull\fR does not write any output and is only useful for testing or with
+\-\-slim for creating slim tables.
 .TP
 \fB\-x\fR|\-\-extra\-attributes
 Include attributes for each object in the database.
