@@ -22,7 +22,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 
 namespace {
@@ -49,27 +48,6 @@ void run_test(const char* test_name, void (*testfunc)()) {
 }
 #define RUN_TEST(x) run_test(#x, &(x))
 
-void check_string(pg::conn_ptr &conn, std::string expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check a string, but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string actual = PQgetvalue(res->get(), 0, 0);
-
-    if (actual != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % actual % query).str());
-    }
-}
-
-
 void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
     pg::result_ptr res = conn->exec(query);
 
@@ -93,16 +71,13 @@ void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
 
 void assert_has_table(pg::conn_ptr &test_conn, const std::string &table_name) {
     std::string query = (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where relname = '%1%'")
+                                       "where oid = '%1%'::regclass")
                          % table_name).str();
 
     check_count(test_conn, 1, query);
 }
 
-// "simple" test modeled on the basic regression test from
-// the python script. this is just to check everything is
-// working as expected before we start the complex stuff.
-void test_z_order() {
+void test_other_output_schema() {
     std::unique_ptr<pg::tempdb> db;
 
     try {
@@ -112,12 +87,20 @@ void test_z_order() {
         throw skip_test();
     }
 
-    std::string proc_name("test-output-pgsql-z_order"), input_file("-");
+    pg::conn_ptr schema_conn = pg::conn::connect(db->conninfo());
+
+    schema_conn->exec("CREATE SCHEMA myschema;"
+                      "CREATE TABLE myschema.osm2pgsql_test_point (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_line (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_polygon (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_roads (id bigint)");
+
+    std::string proc_name("test-output-pgsql-schema"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
-    options_t options = options_t(2, argv);
-    options.database_options = db->database_options;
+    options_t options = options_t::parse(2, argv);
+    options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
@@ -137,26 +120,31 @@ void test_z_order() {
     osmdata.stop();
 
     // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
+    assert_has_table(test_conn, "public.osm2pgsql_test_point");
+    assert_has_table(test_conn, "public.osm2pgsql_test_line");
+    assert_has_table(test_conn, "public.osm2pgsql_test_polygon");
+    assert_has_table(test_conn, "public.osm2pgsql_test_roads");
+    assert_has_table(test_conn, "public.osm2pgsql_test_point");
+    assert_has_table(test_conn, "public.osm2pgsql_test_line");
+    assert_has_table(test_conn, "public.osm2pgsql_test_polygon");
+    assert_has_table(test_conn, "public.osm2pgsql_test_roads");
 
-    check_string(test_conn, "motorway", "SELECT highway FROM osm2pgsql_test_line WHERE layer IS NULL ORDER BY z_order DESC LIMIT 1 OFFSET 0");
-    check_string(test_conn, "trunk", "SELECT highway FROM osm2pgsql_test_line WHERE layer IS NULL ORDER BY z_order DESC LIMIT 1 OFFSET 1");
-    check_string(test_conn, "primary", "SELECT highway FROM osm2pgsql_test_line WHERE layer IS NULL ORDER BY z_order DESC LIMIT 1 OFFSET 2");
-    check_string(test_conn, "secondary", "SELECT highway FROM osm2pgsql_test_line WHERE layer IS NULL ORDER BY z_order DESC LIMIT 1 OFFSET 3");
-    check_string(test_conn, "tertiary", "SELECT highway FROM osm2pgsql_test_line WHERE layer IS NULL ORDER BY z_order DESC LIMIT 1 OFFSET 4");
-
-    check_string(test_conn, "residential", "SELECT highway FROM osm2pgsql_test_line ORDER BY z_order DESC LIMIT 1 OFFSET 0");
+    check_count(test_conn, 2, "SELECT COUNT(*) FROM public.osm2pgsql_test_point");
+    check_count(test_conn, 11, "SELECT COUNT(*) FROM public.osm2pgsql_test_line");
+    check_count(test_conn, 1, "SELECT COUNT(*) FROM public.osm2pgsql_test_polygon");
+    check_count(test_conn, 8, "SELECT COUNT(*) FROM public.osm2pgsql_test_roads");
+    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_point");
+    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_line");
+    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_polygon");
+    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_roads");
 }
 
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
-    RUN_TEST(test_z_order);
+    RUN_TEST(test_other_output_schema);
 
     return 0;
 }
