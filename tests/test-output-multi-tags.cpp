@@ -15,7 +15,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,27 +22,6 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -84,35 +62,32 @@ int main(int argc, char *argv[]) {
 
         osmdata.stop();
 
-        // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
         // Check we got the right tables
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_1'");
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_2'");
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_line_1'");
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_polygon_1'");
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_polygon_2'");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_1'");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_2'");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_line_1'");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_polygon_1'");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_polygon_2'");
 
         // Check we didn't get any extra in the tables
-        check_count(test_conn, 2, "select count(*) from test_points_1");
-        check_count(test_conn, 2, "select count(*) from test_points_2");
-        check_count(test_conn, 1, "select count(*) from test_line_1");
-        check_count(test_conn, 1, "select count(*) from test_line_2");
-        check_count(test_conn, 1, "select count(*) from test_polygon_1");
-        check_count(test_conn, 1, "select count(*) from test_polygon_2");
+        db->check_count(2, "select count(*) from test_points_1");
+        db->check_count(2, "select count(*) from test_points_2");
+        db->check_count(1, "select count(*) from test_line_1");
+        db->check_count(1, "select count(*) from test_line_2");
+        db->check_count(1, "select count(*) from test_polygon_1");
+        db->check_count(1, "select count(*) from test_polygon_2");
 
         // Check that the first table for each type got the right transform
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_points_1 WHERE foo IS NULL and bar = 'n1' AND baz IS NULL");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_points_1 WHERE foo IS NULL and bar = 'n2' AND baz IS NULL");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_line_1 WHERE foo IS NULL and bar = 'w1' AND baz IS NULL");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_polygon_1 WHERE foo IS NULL and bar = 'w2' AND baz IS NULL");
+        db->check_count(1, "SELECT COUNT(*) FROM test_points_1 WHERE foo IS NULL and bar = 'n1' AND baz IS NULL");
+        db->check_count(1, "SELECT COUNT(*) FROM test_points_1 WHERE foo IS NULL and bar = 'n2' AND baz IS NULL");
+        db->check_count(1, "SELECT COUNT(*) FROM test_line_1 WHERE foo IS NULL and bar = 'w1' AND baz IS NULL");
+        db->check_count(1, "SELECT COUNT(*) FROM test_polygon_1 WHERE foo IS NULL and bar = 'w2' AND baz IS NULL");
 
         // Check that the second table also got the right transform
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_points_2 WHERE foo IS NULL and bar IS NULL AND baz = 'n1'");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_points_2 WHERE foo IS NULL and bar IS NULL AND baz = 'n2'");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_line_2 WHERE foo IS NULL and bar IS NULL AND baz = 'w1'");
-        check_count(test_conn, 1, "SELECT COUNT(*) FROM test_polygon_2 WHERE foo IS NULL and bar IS NULL AND baz = 'w2'");
+        db->check_count(1, "SELECT COUNT(*) FROM test_points_2 WHERE foo IS NULL and bar IS NULL AND baz = 'n1'");
+        db->check_count(1, "SELECT COUNT(*) FROM test_points_2 WHERE foo IS NULL and bar IS NULL AND baz = 'n2'");
+        db->check_count(1, "SELECT COUNT(*) FROM test_line_2 WHERE foo IS NULL and bar IS NULL AND baz = 'w1'");
+        db->check_count(1, "SELECT COUNT(*) FROM test_polygon_2 WHERE foo IS NULL and bar IS NULL AND baz = 'w2'");
 
         return 0;
 

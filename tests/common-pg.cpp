@@ -9,6 +9,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/lexical_cast.hpp>
 
 #ifdef _MSC_VER
 #include <windows.h>
@@ -76,10 +77,11 @@ result::~result() {
 }
 
 tempdb::tempdb()
-    : m_conn(conn::connect("dbname=postgres")) {
+    : m_postgres_conn(conn::connect("dbname=postgres"))
+{
     result_ptr res = nullptr;
     database_options.db = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
-    m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
+    m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
     //tests can be run concurrently which means that this query can collide with other similar ones
     //so we implement a simple retry here to get around the case that they do collide if we dont
     //we often fail due to both trying to access template1 at the same time
@@ -88,7 +90,7 @@ tempdb::tempdb()
     while(status != PGRES_COMMAND_OK && retries++ < 20)
     {
         sleep(1);
-        res = m_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % database_options.db);
+        res = m_postgres_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % database_options.db);
         status = PQresultStatus(res->get());
     }
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
@@ -96,10 +98,10 @@ tempdb::tempdb()
                                   % PQresultErrorMessage(res->get())).str());
     }
 
-    conn_ptr db = conn::connect(database_options.conninfo());
+    m_conn = conn::connect(database_options);
 
-    setup_extension(db, "postgis", {"postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql"});
-    setup_extension(db, "hstore");
+    setup_extension("postgis", {"postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql"});
+    setup_extension("hstore");
 }
 
 void tempdb::check_tblspc() {
@@ -120,23 +122,98 @@ void tempdb::check_tblspc() {
 
 }
 
-tempdb::~tempdb() {
-    if (m_conn) {
-        m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
+void tempdb::check_count(int expected, const std::string &query) {
+    pg::result_ptr res = m_conn->exec(query);
+    if (PQresultStatus(res->get()) != PGRES_TUPLES_OK) {
+        throw std::runtime_error((boost::format("Expected PGRES_TUPLES_OK but "
+                                                "got %1%. %2% Query was %3%.")
+                                  % PQresStatus(PQresultStatus(res->get()))
+                                  % PQresultErrorMessage(res->get())
+                                  % query).str());
+    }
+    int ntuples = PQntuples(res->get());
+    if (ntuples != 1) {
+        throw std::runtime_error((boost::format("Expected one tuple from a query to check "
+                                                "COUNT(*), but got %1%. Query was: %2%.")
+                                  % ntuples % query).str());
+    }
+
+    std::string numstr = PQgetvalue(res->get(), 0, 0);
+    int count = boost::lexical_cast<int>(numstr);
+
+    if (count != expected) {
+        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
+                                                "query: %3%.")
+                                  % expected % numstr % query).str());
     }
 }
 
-void tempdb::setup_extension(conn_ptr db, const std::string &extension, 
+void tempdb::check_number(double expected, const std::string &query) {
+    pg::result_ptr res = m_conn->exec(query);
+
+    int ntuples = PQntuples(res->get());
+    if (ntuples != 1) {
+        throw std::runtime_error((boost::format("Expected only one tuple from a query, "
+                                                " but got %1%. Query was: %2%.")
+                                  % ntuples % query).str());
+    }
+
+    std::string numstr = PQgetvalue(res->get(), 0, 0);
+    double num = boost::lexical_cast<double>(numstr);
+
+    // floating point isn't exact, so allow a 0.01% difference
+    if ((num > 1.0001*expected) || (num < 0.9999*expected)) {
+        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
+                                                "query: %3%.")
+                                  % expected % num % query).str());
+    }
+}
+
+void tempdb::check_string(const std::string &expected, const std::string &query) {
+    pg::result_ptr res = m_conn->exec(query);
+
+    int ntuples = PQntuples(res->get());
+    if (ntuples != 1) {
+        throw std::runtime_error((boost::format("Expected only one tuple from a query, "
+                                                " but got %1%. Query was: %2%.")
+                                  % ntuples % query).str());
+    }
+
+    std::string actual = PQgetvalue(res->get(), 0, 0);
+
+    if (actual != expected) {
+        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
+                                                "query: %3%.")
+                                  % expected % actual % query).str());
+    }
+}
+
+void tempdb::assert_has_table(const std::string &table_name) {
+    std::string query = (boost::format("select count(*) from pg_catalog.pg_class "
+                                     "where oid = '%1%'::regclass")
+                       % table_name).str();
+
+    check_count(1, query);
+}
+
+tempdb::~tempdb() {
+    m_conn.reset(); // close the connection to the db
+    if (m_postgres_conn) {
+        m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
+    }
+}
+
+void tempdb::setup_extension(const std::string &extension,
                              const std::vector<std::string> &extension_files) {
     // first, try the new way of setting up extensions
-    result_ptr res = db->exec(boost::format("CREATE EXTENSION %1%") % extension);
+    result_ptr res = m_conn->exec(boost::format("CREATE EXTENSION %1%") % extension);
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
         if (extension_files.size() == 0) {
             throw std::runtime_error((boost::format("Unable to load extension %1% and no files specified") % extension).str());
         }
         // if that fails, then fall back to trying to find the files on
         // the filesystem to load to create the extension.
-        res = db->exec("select regexp_replace(split_part(version(),' ',2),'\\.[0-9]*$','');");
+        res = m_conn->exec("select regexp_replace(split_part(version(),' ',2),'\\.[0-9]*$','');");
 
         if ((PQresultStatus(res->get()) != PGRES_TUPLES_OK) ||
             (PQntuples(res->get()) != 1)) {
@@ -162,7 +239,7 @@ void tempdb::setup_extension(conn_ptr db, const std::string &extension,
                                                             "load extension \"%2%\".")
                                               % sql_file % extension).str());
                 }
-                res = db->exec(sql);
+                res = m_conn->exec(sql);
                 if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
                     throw std::runtime_error((boost::format("Could not load extension \"%1%\": %2%")
                                               % extension

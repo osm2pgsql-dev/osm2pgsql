@@ -59,12 +59,19 @@ struct tempdb
     database_options_t database_options;
 
     void check_tblspc();
+    void check_count(int expected, const std::string &query);
+    void check_number(double expected, const std::string &query);
+    void check_string(const std::string &expected, const std::string &query);
+    void assert_has_table(const std::string &table_name);
 
 private:
-    // Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling back to trying to find extension_files
-    void setup_extension(conn_ptr db, const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
+    /**
+     * Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling back to trying to find extension_files
+     */
+    void setup_extension(const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
 
     conn_ptr m_conn;
+    conn_ptr m_postgres_conn; /// Connection to the "postgres" db. used to create and drop test DBs
 };
 
 } // namespace pg

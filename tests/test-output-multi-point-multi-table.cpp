@@ -15,7 +15,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,32 +22,6 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    if (PQresultStatus(res->get()) != PGRES_TUPLES_OK) {
-        throw std::runtime_error((boost::format("Query ERROR running %1%: %2%")
-                                  % query % PQresultErrorMessage(res->get())).str());
-    }
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -97,32 +70,29 @@ int main(int argc, char *argv[]) {
 
         osmdata.stop();
 
-        // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
         for (int i = 0; i < 10; ++i) {
             std::string name = (boost::format("foobar_%d") % i).str();
 
-            check_count(test_conn, 1,
+            db->check_count(1,
                         (boost::format("select count(*) from pg_catalog.pg_class "
                                        "where relname = 'foobar_%d'")
                          % i).str());
 
-            check_count(test_conn, 244,
+            db->check_count(244,
                         (boost::format("select count(*) from foobar_%d")
                          % i).str());
 
-            check_count(test_conn, 36,
+            db->check_count(36,
                         (boost::format("select count(*) from foobar_%d "
                                        "where amenity='parking'")
                          % i).str());
 
-            check_count(test_conn, 34,
+            db->check_count(34,
                         (boost::format("select count(*) from foobar_%d "
                                        "where amenity='bench'")
                          % i).str());
 
-            check_count(test_conn, 1,
+            db->check_count(1,
                         (boost::format("select count(*) from foobar_%d "
                                        "where amenity='vending_machine'")
                          % i).str());

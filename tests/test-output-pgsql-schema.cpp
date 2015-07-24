@@ -16,7 +16,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -48,35 +47,6 @@ void run_test(const char* test_name, void (*testfunc)()) {
 }
 #define RUN_TEST(x) run_test(#x, &(x))
 
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
-
-void assert_has_table(pg::conn_ptr &test_conn, const std::string &table_name) {
-    std::string query = (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where oid = '%1%'::regclass")
-                         % table_name).str();
-
-    check_count(test_conn, 1, query);
-}
-
 void test_other_output_schema() {
     std::unique_ptr<pg::tempdb> db;
 
@@ -87,7 +57,7 @@ void test_other_output_schema() {
         throw skip_test();
     }
 
-    pg::conn_ptr schema_conn = pg::conn::connect(db->conninfo());
+    pg::conn_ptr schema_conn = pg::conn::connect(db->database_options);
 
     schema_conn->exec("CREATE SCHEMA myschema;"
                       "CREATE TABLE myschema.osm2pgsql_test_point (id bigint);"
@@ -99,8 +69,8 @@ void test_other_output_schema() {
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
-    options_t options = options_t::parse(2, argv);
-    options.conninfo = db->conninfo().c_str();
+    options_t options = options_t(2, argv);
+    options.database_options = db->database_options;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
@@ -119,26 +89,24 @@ void test_other_output_schema() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
 
-    assert_has_table(test_conn, "public.osm2pgsql_test_point");
-    assert_has_table(test_conn, "public.osm2pgsql_test_line");
-    assert_has_table(test_conn, "public.osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "public.osm2pgsql_test_roads");
-    assert_has_table(test_conn, "public.osm2pgsql_test_point");
-    assert_has_table(test_conn, "public.osm2pgsql_test_line");
-    assert_has_table(test_conn, "public.osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "public.osm2pgsql_test_roads");
+    db->assert_has_table("public.osm2pgsql_test_point");
+    db->assert_has_table("public.osm2pgsql_test_line");
+    db->assert_has_table("public.osm2pgsql_test_polygon");
+    db->assert_has_table("public.osm2pgsql_test_roads");
+    db->assert_has_table("public.osm2pgsql_test_point");
+    db->assert_has_table("public.osm2pgsql_test_line");
+    db->assert_has_table("public.osm2pgsql_test_polygon");
+    db->assert_has_table("public.osm2pgsql_test_roads");
 
-    check_count(test_conn, 2, "SELECT COUNT(*) FROM public.osm2pgsql_test_point");
-    check_count(test_conn, 11, "SELECT COUNT(*) FROM public.osm2pgsql_test_line");
-    check_count(test_conn, 1, "SELECT COUNT(*) FROM public.osm2pgsql_test_polygon");
-    check_count(test_conn, 8, "SELECT COUNT(*) FROM public.osm2pgsql_test_roads");
-    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_point");
-    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_line");
-    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_polygon");
-    check_count(test_conn, 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_roads");
+    db->check_count( 2, "SELECT COUNT(*) FROM osm2pgsql_test_point");
+    db->check_count( 11, "SELECT COUNT(*) FROM osm2pgsql_test_line");
+    db->check_count( 1, "SELECT COUNT(*) FROM osm2pgsql_test_polygon");
+    db->check_count( 8, "SELECT COUNT(*) FROM osm2pgsql_test_roads");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_point");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_line");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_polygon");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_roads");
 }
 
 } // anonymous namespace

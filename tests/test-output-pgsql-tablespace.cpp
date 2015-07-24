@@ -16,7 +16,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -48,35 +47,6 @@ void run_test(const char* test_name, void (*testfunc)()) {
     fprintf(stderr, "PASS\n");
 }
 #define RUN_TEST(x) run_test(#x, &(x))
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
-
-void assert_has_table(pg::conn_ptr &test_conn, const std::string &table_name) {
-    std::string query = (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where relname = '%1%'")
-                         % table_name).str();
-
-    check_count(test_conn, 1, query);
-}
 
 // "simple" test modeled on the basic regression test from
 // the python script. this is just to check everything is
@@ -120,18 +90,15 @@ void test_regression_simple() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 3300, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn,  375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 } // anonymous namespace
