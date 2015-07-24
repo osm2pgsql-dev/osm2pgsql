@@ -20,48 +20,60 @@
 /* Scale is chosen such that 40,000 * SCALE < 2^32          */
 enum { DEFAULT_SCALE = 100 };
 
+/**
+ * Structure for storing command-line and other options
+ */
 struct options_t {
 public:
     /* construct with sensible defaults */
     options_t();
     virtual ~options_t();
 
+    /**
+     * Parse the options from the command line
+     */
     static options_t parse(int argc, char *argv[]);
 
-    std::string conninfo; /* Connection info string */
-    std::string prefix; /* prefix for table names */
-    int scale; /* scale for converting coordinates to fixed point */
-    std::shared_ptr<reprojection> projection; /* SRS of projection */
-    bool append; /* Append to existing data */
-    bool slim; /* In slim mode */
-    int cache; /* Memory usable for cache in MB */
-    boost::optional<std::string> tblsmain_index; /* Pg Tablespace to store indexes on main tables (no default TABLESPACE)*/
-    boost::optional<std::string> tblsslim_index; /* Pg Tablespace to store indexes on slim tables (no default TABLESPACE)*/
-    boost::optional<std::string> tblsmain_data; /* Pg Tablespace to store main tables (no default TABLESPACE)*/
-    boost::optional<std::string> tblsslim_data; /* Pg Tablespace to store slim tables (no default TABLESPACE)*/
-    std::string style; /* style file to use */
-    int expire_tiles_zoom; /* Zoom level for tile expiry list */
-    int expire_tiles_zoom_min; /* Minimum zoom level for tile expiry list */
-    std::string expire_tiles_filename; /* File name to output expired tiles list to */
-    int hstore_mode; /* add an additional hstore column with objects key/value pairs, and what type of hstore column */
-    bool enable_hstore_index; /* add an index on the hstore column */
-    bool enable_multi; /* Output multi-geometries intead of several simple geometries */
-    std::vector<std::string> hstore_columns; /* list of columns that should be written into their own hstore column */
+    std::string conninfo; ///< Connection info string
+    std::string prefix; ///< prefix for table names
+    int scale; ///< scale for converting coordinates to fixed point
+    std::shared_ptr<reprojection> projection; ///< SRS of projection
+    bool append; ///< Append to existing data
+    bool slim; ///< In slim mode
+    int cache; ///< Memory usable for cache in MB
+    boost::optional<std::string> tblsmain_index; ///< Pg Tablespace to store indexes on main tables (no default TABLESPACE)
+    boost::optional<std::string> tblsslim_index; ///< Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
+    boost::optional<std::string> tblsmain_data; ///< Pg Tablespace to store main tables (no default TABLESPACE)
+    boost::optional<std::string> tblsslim_data; ///< Pg Tablespace to store slim tables (no default TABLESPACE)
+    std::string style; ///< style file to use
+    int expire_tiles_zoom; ///< Zoom level for tile expiry list
+    int expire_tiles_zoom_min; ///< Minimum zoom level for tile expiry list
+    std::string expire_tiles_filename; ///< File name to output expired tiles list to
+    int hstore_mode; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column
+    bool enable_hstore_index; ///< add an index on the hstore column
+    bool enable_multi; ///< Output multi-geometries intead of several simple geometries
+    std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column
     bool keep_coastlines;
     bool parallel_indexing;
     int alloc_chunkwise;
     int num_procs;
-    bool droptemp; /* drop slim mode temp tables after act */
-    bool unlogged; /* use unlogged tables where possible */
-    bool hstore_match_only; /* only copy rows that match an explicitly listed key */
+    bool droptemp; ///< drop slim mode temp tables after act
+    bool unlogged; ///< use unlogged tables where possible
+    bool hstore_match_only; ///< only copy rows that match an explicitly listed key
     bool flat_node_cache_enabled;
     bool excludepoly;
     boost::optional<std::string> flat_node_file;
+    /**
+     * these options allow you to control the name of the
+     * Lua functions which get called in the tag transform
+     * script. this is mostly useful in with the "multi"
+     * output so that a single script file can be used.
+     */
     boost::optional<std::string> tag_transform_script,
-        tag_transform_node_func,    // these options allow you to control the name of the
-        tag_transform_way_func,     // Lua functions which get called in the tag transform
-        tag_transform_rel_func,     // script. this is mostly useful in with the "multi"
-        tag_transform_rel_mem_func; // output so that a single script file can be used.
+        tag_transform_node_func,
+        tag_transform_way_func,
+        tag_transform_rel_func,
+        tag_transform_rel_mem_func;
 
     bool create;
     bool long_usage_bool;
