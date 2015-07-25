@@ -276,9 +276,8 @@ options_t::~options_t()
 {
 }
 
-options_t options_t::parse(int argc, char *argv[])
+options_t::options_t(int argc, char *argv[]): options_t()
 {
-    options_t options;
     const char *temparg;
     int c;
 
@@ -292,158 +291,158 @@ options_t options_t::parse(int argc, char *argv[])
         //handle the current arg
         switch (c) {
         case 'a':
-            options.append = true;
+            append = true;
             break;
         case 'b':
-            options.bbox = optarg;
+            bbox = optarg;
             break;
         case 'c':
-            options.create = true;
+            create = true;
             break;
         case 'v':
-            options.verbose = true;
+            verbose = true;
             break;
         case 's':
-            options.slim = true;
+            slim = true;
             break;
         case 'K':
-            options.keep_coastlines = true;
+            keep_coastlines = true;
             break;
         case 'l':
-            options.projection.reset(new reprojection(PROJ_LATLONG));
+            projection.reset(new reprojection(PROJ_LATLONG));
             break;
         case 'm':
-            options.projection.reset(new reprojection(PROJ_SPHERE_MERC));
+            projection.reset(new reprojection(PROJ_SPHERE_MERC));
             break;
         case 'E':
-            options.projection.reset(new reprojection(-atoi(optarg)));
+            projection.reset(new reprojection(-atoi(optarg)));
             break;
         case 'p':
-            options.prefix = optarg;
+            prefix = optarg;
             break;
         case 'd':
-            options.db = optarg;
+            db = optarg;
             break;
         case 'C':
-            options.cache = atoi(optarg);
+            cache = atoi(optarg);
             break;
         case 'U':
-            options.username = optarg;
+            username = optarg;
             break;
         case 'W':
-            options.pass_prompt = true;
+            pass_prompt = true;
             break;
         case 'H':
-            options.host = optarg;
+            host = optarg;
             break;
         case 'P':
-            options.port = optarg;
+            port = optarg;
             break;
         case 'S':
-            options.style = optarg;
+            style = optarg;
             break;
         case 'i':
-            options.tblsmain_index = options.tblsslim_index = optarg;
+            tblsmain_index = tblsslim_index = optarg;
             break;
         case 200:
-            options.tblsslim_data = optarg;
+            tblsslim_data = optarg;
             break;
         case 201:
-            options.tblsslim_index = optarg;
+            tblsslim_index = optarg;
             break;
         case 202:
-            options.tblsmain_data = optarg;
+            tblsmain_data = optarg;
             break;
         case 203:
-            options.tblsmain_index = optarg;
+            tblsmain_index = optarg;
             break;
         case 'e':
-            options.expire_tiles_zoom_min = atoi(optarg);
+            expire_tiles_zoom_min = atoi(optarg);
             temparg = strchr(optarg, '-');
             if (temparg)
-                options.expire_tiles_zoom = atoi(temparg + 1);
-            if (options.expire_tiles_zoom < options.expire_tiles_zoom_min)
-                options.expire_tiles_zoom = options.expire_tiles_zoom_min;
+                expire_tiles_zoom = atoi(temparg + 1);
+            if (expire_tiles_zoom < expire_tiles_zoom_min)
+                expire_tiles_zoom = expire_tiles_zoom_min;
             break;
         case 'o':
-            options.expire_tiles_filename = optarg;
+            expire_tiles_filename = optarg;
             break;
         case 'O':
-            options.output_backend = optarg;
+            output_backend = optarg;
             break;
         case 'x':
-            options.extra_attributes = true;
+            extra_attributes = true;
             break;
         case 'k':
-            if (options.hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            options.hstore_mode = HSTORE_NORM;
+            hstore_mode = HSTORE_NORM;
             break;
         case 208:
-            options.hstore_match_only = true;
+            hstore_match_only = true;
             break;
         case 'j':
-            if (options.hstore_mode != HSTORE_NONE) {
+            if (hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            options.hstore_mode = HSTORE_ALL;
+            hstore_mode = HSTORE_ALL;
             break;
         case 'z':
-            options.hstore_columns.push_back(optarg);
+            hstore_columns.push_back(optarg);
             break;
         case 'G':
-            options.enable_multi = true;
+            enable_multi = true;
             break;
         case 'r':
-            options.input_reader = optarg;
+            input_reader = optarg;
             break;
         case 'h':
-            options.long_usage_bool = true;
+            long_usage_bool = true;
             break;
         case 'I':
 #ifdef HAVE_PTHREAD
-            options.parallel_indexing = false;
+            parallel_indexing = false;
 #endif
             break;
         case 204:
             if (strcmp(optarg, "dense") == 0)
-                options.alloc_chunkwise = ALLOC_DENSE;
+                alloc_chunkwise = ALLOC_DENSE;
             else if (strcmp(optarg, "chunk") == 0)
-                options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
+                alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
             else if (strcmp(optarg, "sparse") == 0)
-                options.alloc_chunkwise = ALLOC_SPARSE;
+                alloc_chunkwise = ALLOC_SPARSE;
             else if (strcmp(optarg, "optimized") == 0)
-                options.alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
+                alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
             else {
                 throw std::runtime_error((boost::format("Unrecognized cache strategy %1%.\n") % optarg).str());
             }
             break;
         case 205:
 #ifdef HAVE_FORK
-            options.num_procs = atoi(optarg);
+            num_procs = atoi(optarg);
 #else
             fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
 #endif
             break;
         case 206:
-            options.droptemp = true;
+            droptemp = true;
             break;
         case 207:
-            options.unlogged = true;
+            unlogged = true;
             break;
         case 209:
-            options.flat_node_cache_enabled = true;
-            options.flat_node_file = optarg;
+            flat_node_cache_enabled = true;
+            flat_node_file = optarg;
             break;
         case 210:
-            options.excludepoly = true;
+            excludepoly = true;
             break;
         case 211:
-            options.enable_hstore_index = true;
+            enable_hstore_index = true;
             break;
         case 212:
-            options.tag_transform_script = optarg;
+            tag_transform_script = optarg;
             break;
         case 'V':
             exit (EXIT_SUCCESS);
@@ -456,8 +455,8 @@ options_t options_t::parse(int argc, char *argv[])
     } //end while
 
     //they were looking for usage info
-    if (options.long_usage_bool) {
-        long_usage(argv[0], options.verbose);
+    if (long_usage_bool) {
+        long_usage(argv[0], verbose);
     }
 
     //we require some input files!
@@ -467,73 +466,71 @@ options_t options_t::parse(int argc, char *argv[])
 
     //get the input files
     while (optind < argc) {
-        options.input_files.push_back(std::string(argv[optind]));
+        input_files.push_back(std::string(argv[optind]));
         optind++;
     }
 
-    if (options.append && options.create) {
+    if (append && create) {
         throw std::runtime_error("--append and --create options can not be used at the same time!\n");
     }
 
-    if (options.append && !options.slim) {
+    if (append && !slim) {
         throw std::runtime_error("--append can only be used with slim mode!\n");
     }
 
-    if (options.droptemp && !options.slim) {
+    if (droptemp && !slim) {
         throw std::runtime_error("--drop only makes sense with --slim.\n");
     }
 
-    if (options.unlogged && !options.create) {
+    if (unlogged && !create) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
-        options.unlogged = false;
+        unlogged = false;
     }
 
-    if (options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0 && options.hstore_match_only) {
+    if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
-        options.hstore_match_only = false;
+        hstore_match_only = false;
     }
 
-    if (options.enable_hstore_index && options.hstore_mode == HSTORE_NONE && options.hstore_columns.size() == 0) {
+    if (enable_hstore_index && hstore_mode == HSTORE_NONE && hstore_columns.size() == 0) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
-        options.enable_hstore_index = false;
+        enable_hstore_index = false;
     }
 
-    if (options.cache < 0)
-        options.cache = 0;
+    if (cache < 0)
+        cache = 0;
 
-    if (options.cache == 0) {
+    if (cache == 0) {
         fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
     }
-    if (sizeof(int*) == 4 && !options.slim) {
+    if (sizeof(int*) == 4 && !slim) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
         fprintf(stderr, "!! mode using parameter -s.\n");
     }
 
-    if (options.pass_prompt) {
+    if (pass_prompt) {
         char *prompt = simple_prompt("Password:", 100, 0);
         if (prompt == nullptr) {
-            options.password = boost::none;
+            password = boost::none;
         } else {
-            options.password = std::string(prompt);
+            password = std::string(prompt);
         }
     } else {
         char *pgpass = getenv("PGPASS");
         if (pgpass == nullptr) {
-            options.password = boost::none;
+            password = boost::none;
         } else {
-            options.password = std::string(pgpass);
+            password = std::string(pgpass);
         }
     }
 
-    if (options.num_procs < 1)
-        options.num_procs = 1;
+    if (num_procs < 1)
+        num_procs = 1;
 
     //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
     //you could get overflow when working with larger coordinates (mercator) and larger scales
-    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
-    options.conninfo = build_conninfo(options.db, options.username, options.password, options.host, options.port);
-
-    return options;
+    scale = (projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+    conninfo = build_conninfo(db, username, password, host, port);
 }

@@ -25,14 +25,13 @@ enum { DEFAULT_SCALE = 100 };
  */
 struct options_t {
 public:
-    /* construct with sensible defaults */
+  // fixme: bring back old comment
     options_t();
-    virtual ~options_t();
-
     /**
      * Parse the options from the command line
      */
-    static options_t parse(int argc, char *argv[]);
+    options_t(int argc, char *argv[]);
+    virtual ~options_t();
 
     std::string conninfo; ///< Connection info string
     std::string prefix; ///< prefix for table names

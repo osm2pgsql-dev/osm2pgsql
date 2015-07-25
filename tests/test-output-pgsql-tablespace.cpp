@@ -96,7 +96,7 @@ void test_regression_simple() {
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
-    options_t options = options_t::parse(2, argv);
+    options_t options = options_t(2, argv);
     options.conninfo = db->conninfo().c_str();
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";

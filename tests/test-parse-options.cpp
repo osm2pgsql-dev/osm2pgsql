@@ -37,7 +37,7 @@ void parse_fail(const int argc, const char* argv[], const std::string& fail_mess
 {
     try
     {
-        options_t options = options_t::parse(argc, const_cast<char **>(argv));
+        options_t options = options_t(argc, const_cast<char **>(argv));
         throw std::logic_error((boost::format("Expected '%1%'") % fail_message).str());
     }
     catch(const std::runtime_error& e)
@@ -68,7 +68,7 @@ void test_incompatible_args()
 void test_middles()
 {
     const char* a1[] = {"osm2pgsql", "--slim", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
+    options_t options = options_t(len(a1), const_cast<char **>(a1));
     std::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
     if(dynamic_cast<middle_pgsql_t *>(mid.get()) == nullptr)
     {
@@ -76,7 +76,7 @@ void test_middles()
     }
 
     const char* a2[] = {"osm2pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options = options_t::parse(len(a2), const_cast<char **>(a2));
+    options = options_t(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
     if(dynamic_cast<middle_ram_t *>(mid.get()) == nullptr)
     {
@@ -87,7 +87,7 @@ void test_middles()
 void test_outputs()
 {
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options_t options = options_t::parse(len(a1), const_cast<char **>(a1));
+    options_t options = options_t(len(a1), const_cast<char **>(a1));
     std::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
     std::vector<std::shared_ptr<output_t> > outs = output_t::create_outputs(mid.get(), options);
     output_t* out = outs.front().get();
@@ -97,7 +97,7 @@ void test_outputs()
     }
 
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options = options_t::parse(len(a2), const_cast<char **>(a2));
+    options = options_t(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
@@ -107,7 +107,7 @@ void test_outputs()
     }
 
     const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options = options_t::parse(len(a3), const_cast<char **>(a3));
+    options = options_t(len(a3), const_cast<char **>(a3));
     mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
@@ -117,7 +117,7 @@ void test_outputs()
     }
 
     const char* a4[] = {"osm2pgsql", "-O", "keine_richtige_ausgabe", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    options = options_t::parse(len(a4), const_cast<char **>(a4));
+    options = options_t(len(a4), const_cast<char **>(a4));
     mid = middle_t::create_middle(options.slim);
     try
     {
@@ -274,7 +274,7 @@ void test_random_perms()
         argv[args.size()] = nullptr;
         for(std::vector<std::string>::const_iterator arg = args.begin(); arg != args.end(); ++arg)
             argv[arg - args.begin()] = arg->c_str();
-        options_t::parse(args.size(), const_cast<char **>(argv));
+        options_t(args.size(), const_cast<char **>(argv));
         delete[] argv;
     }
 }
