@@ -1013,7 +1013,7 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
     *string = strdup(buffer);
 }
 
-int middle_pgsql_t::connect(table_desc& table) {
+void middle_pgsql_t::connect(table_desc& table) {
     PGconn *sql_conn;
 
     set_prefix_and_tbls(out_options, &(table.name));
@@ -1030,13 +1030,12 @@ int middle_pgsql_t::connect(table_desc& table) {
     fprintf(stderr, "Setting up table: %s\n", table.name);
     sql_conn = PQconnectdb(out_options->conninfo.c_str());
 
-    // Check to see that the backend connection was successfully made */
+    // Check to see that the backend connection was successfully made, and if not, exit */
     if (PQstatus(sql_conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-        return 1;
+        util::exit_nicely();
     }
     table.sql_conn = sql_conn;
-    return 0;
 }
 
 void middle_pgsql_t::start(const options_t *out_options_)
@@ -1071,9 +1070,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
 
     // We use a connection per table to enable the use of COPY */
     for (i=0; i<num_tables; i++) {
-        //bomb if you cant connect
-        if(connect(tables[i]))
-            util::exit_nicely();
+        connect(tables[i]);
         PGconn* sql_conn = tables[i].sql_conn;
 
         /*
@@ -1329,9 +1326,7 @@ std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
-        //bomb if you cant connect
-        if(mid->connect(mid->tables[i]))
-            util::exit_nicely();
+        mid->connect(mid->tables[i]);
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
         if (tables[i].prepare) {
