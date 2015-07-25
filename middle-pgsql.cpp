@@ -1042,7 +1042,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
     int i;
-    bool dropcreate = !out_options->append;
+    bool dropcreate = !out_options->append; ///< If tables need to be dropped and created anew
 
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
@@ -1061,7 +1061,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
     append = out_options->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
-    build_indexes = 0;
+    build_indexes = !append && !out_options->droptemp;
 
     cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
@@ -1088,15 +1088,6 @@ void middle_pgsql_t::start(const options_t *out_options_)
          * This parameter does not effect safety from data corruption on the back-end.
          */
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-
-        /* Not really the right place for this test, but we need a live
-         * connection that not used for anything else yet, and we'd like to
-         * warn users *before* we start doing mountains of work */
-        if (i == t_node)
-        {
-            if(!out_options->append)
-                build_indexes = 1;
-        }
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
@@ -1229,7 +1220,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
-      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
+      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(true)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(

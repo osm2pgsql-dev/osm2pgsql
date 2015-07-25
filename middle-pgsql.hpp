@@ -104,7 +104,7 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    int build_indexes;
+    bool build_indexes;
 };
 
 #endif
