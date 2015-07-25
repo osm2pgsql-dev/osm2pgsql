@@ -1099,25 +1099,6 @@ void middle_pgsql_t::start(const options_t *out_options_)
          * warn users *before* we start doing mountains of work */
         if (i == t_node)
         {
-            res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
-            if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
-            {
-                /* intarray is problematic now; causes at least postgres 8.4
-                 * to not use the index on nodes[]/parts[] which slows diff
-                 * updates to a crawl!
-                 * If someone find a way to fix this rather than bow out here,
-                 * please do.*/
-
-                fprintf(stderr,
-                    "\n"
-                    "The target database has the intarray contrib module loaded.\n"
-                    "While required for earlier versions of osm2pgsql, intarray \n"
-                    "is now unnecessary and will interfere with osm2pgsql's array\n"
-                    "handling. Please use a database without intarray.\n\n");
-                util::exit_nicely();
-            }
-            PQclear(res);
-
             if (out_options->append)
             {
                 sql = (char *)malloc (2048);
