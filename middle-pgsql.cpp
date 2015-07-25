@@ -903,24 +903,24 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
 
 void middle_pgsql_t::analyze(void)
 {
-    for (int i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
 
-        if (tables[i].analyze) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
+        if (table.analyze) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.analyze);
         }
     }
 }
 
 void middle_pgsql_t::end(void)
 {
-    for (int i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
 
         // Commit transaction */
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
-            tables[i].transactionMode = 0;
+        if (table.stop && table.transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
+            table.transactionMode = 0;
         }
 
     }
@@ -1041,7 +1041,6 @@ void middle_pgsql_t::connect(table_desc& table) {
 void middle_pgsql_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
-    int i;
     bool dropcreate = !out_options->append; ///< If tables need to be dropped and created anew
 
     ways_pending_tracker.reset(new id_tracker());
@@ -1069,9 +1068,9 @@ void middle_pgsql_t::start(const options_t *out_options_)
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
 
     // We use a connection per table to enable the use of COPY */
-    for (i=0; i<num_tables; i++) {
-        connect(tables[i]);
-        PGconn* sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        connect(table);
+        PGconn* sql_conn = table.sql_conn;
 
         /*
          * To allow for parallelisation, the second phase (iterate_ways), cannot be run
@@ -1091,45 +1090,44 @@ void middle_pgsql_t::start(const options_t *out_options_)
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", table.name);
         }
 
-        if (tables[i].start) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start);
-            tables[i].transactionMode = 1;
+        if (table.start) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.start);
+            table.transactionMode = 1;
         }
 
-        if (dropcreate && tables[i].create) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
-            if (tables[i].create_index) {
-              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+        if (dropcreate && table.create) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create);
+            if (table.create_index) {
+              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create_index);
             }
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (table.prepare) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.prepare);
         }
 
-        if (append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (append && table.prepare_intarray) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.prepare_intarray);
         }
 
-        if (tables[i].copy) {
-            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
-            tables[i].copyMode = 1;
+        if (table.copy) {
+            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", table.copy);
+            table.copyMode = 1;
         }
     }
 }
 
 void middle_pgsql_t::commit(void) {
-    int i;
-    for (i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
-        pgsql_endCopy(&tables[i]);
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
-            tables[i].transactionMode = 0;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
+        pgsql_endCopy(&table);
+        if (table.stop && table.transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
+            table.transactionMode = 0;
         }
     }
     // Make sure the flat nodes are committed to disk or there will be
@@ -1293,9 +1291,9 @@ middle_pgsql_t::middle_pgsql_t()
 }
 
 middle_pgsql_t::~middle_pgsql_t() {
-    for (int i=0; i < num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
+    for (auto& table: tables) {
+        if (table.sql_conn) {
+            PQfinish(table.sql_conn);
         }
     }
 
