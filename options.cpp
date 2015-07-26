@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdexcept>
 #include <sstream>
+#include <thread> // for number of threads
 #include <boost/format.hpp>
 
 namespace
@@ -267,13 +268,22 @@ options_t::options_t():
     #else
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
-    num_procs(1), droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
+    droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
     create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none), 
     extra_attributes(false), verbose(false)
 {
-
+#ifdef HAVE_FORK
+    num_procs = std::thread::hardware_concurrency();
+    if (num_procs < 1) {
+        fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");
+        num_procs = 1;
+    }
+#else
+    num_procs = 1;
+    fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
+#endif
 }
 
 options_t::~options_t()
@@ -425,8 +435,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 205:
 #ifdef HAVE_FORK
             num_procs = atoi(optarg);
-#else
-            fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
 #endif
             break;
         case 206:
