@@ -101,7 +101,10 @@ public:
 
     std::vector<std::string> input_files;
 private:
-
+    /**
+     * Check input options for sanity
+     */
+    void check_options();
 };
 
 #endif

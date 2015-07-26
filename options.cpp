@@ -461,6 +461,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
     //they were looking for usage info
     if (long_usage_bool) {
         long_usage(argv[0], verbose);
+        return;
     }
 
     //we require some input files!
@@ -474,6 +475,25 @@ options_t::options_t(int argc, char *argv[]): options_t()
         optind++;
     }
 
+    check_options();
+
+    if (pass_prompt) {
+        char *prompt = simple_prompt("Password:", 100, 0);
+        if (prompt == nullptr) {
+            database_options.password = boost::none;
+        } else {
+            database_options.password = std::string(prompt);
+        }
+    }
+
+
+    //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
+    //you could get overflow when working with larger coordinates (mercator) and larger scales
+    scale = (projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+}
+
+void options_t::check_options()
+{
     if (append && create) {
         throw std::runtime_error("--append and --create options can not be used at the same time!\n");
     }
@@ -501,32 +521,24 @@ options_t::options_t(int argc, char *argv[]): options_t()
         enable_hstore_index = false;
     }
 
-    if (cache < 0)
+    if (cache < 0) {
         cache = 0;
+        fprintf(stderr, "WARNING: ram cache cannot be negative. Using 0 instead.\n\n");
+    }
 
     if (cache == 0) {
         fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
     }
+
+    if (num_procs < 1) {
+        num_procs = 1;
+        fprintf(stderr, "WARNING: Must use at least 1 process.\n\n");
+    }
+
     if (sizeof(int*) == 4 && !slim) {
         fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
         fprintf(stderr, "!! mode using parameter -s.\n");
     }
-
-    if (pass_prompt) {
-        char *prompt = simple_prompt("Password:", 100, 0);
-        if (prompt == nullptr) {
-            database_options.password = boost::none;
-        } else {
-            database_options.password = std::string(prompt);
-        }
-    }
-
-    if (num_procs < 1)
-        num_procs = 1;
-
-    //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
-    //you could get overflow when working with larger coordinates (mercator) and larger scales
-    scale = (projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
 }
