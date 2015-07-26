@@ -230,7 +230,7 @@ namespace
 
 database_options_t::database_options_t():
     db("gis"), username(boost::none), host(boost::none),
-    password(boost::none), port("5432")
+    password(boost::none), port(boost::none)
 {
 
 }
@@ -250,7 +250,9 @@ std::string database_options_t::conninfo() const
     if (host) {
         out << " host='" << *host << "'";
     }
-    out << " port='" << port << "'";
+    if (port) {
+        out << " port='" << port << "'";
+    }
 
     return out.str();
 }
@@ -518,13 +520,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
             database_options.password = boost::none;
         } else {
             database_options.password = std::string(prompt);
-        }
-    } else {
-        char *pgpass = getenv("PGPASS");
-        if (pgpass == nullptr) {
-            database_options.password = boost::none;
-        } else {
-            database_options.password = std::string(pgpass);
         }
     }
 

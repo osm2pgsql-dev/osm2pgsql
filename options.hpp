@@ -30,7 +30,7 @@ public:
     boost::optional<std::string> username;
     boost::optional<std::string> host;
     boost::optional<std::string> password;
-    std::string port;
+    boost::optional<std::string> port;
 
     std::string conninfo() const;
 };
