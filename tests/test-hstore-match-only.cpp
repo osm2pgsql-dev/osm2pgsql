@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     try {
         std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
-        options.conninfo = db->conninfo().c_str();
+        options.database_options = db->database_options;
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
         options.style="tests/hstore-match-only.style";
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
         osmdata.stop();
 
         // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
+        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
 
         // tables should not contain any tag columns
         check_count(test_conn, 4, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_point'");

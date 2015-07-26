@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
         osmdata_t osmdata(middle, outputs);
 
         //check the database
-        check_db(options.conninfo.c_str(), options.unlogged);
+        check_db(options.database_options.conninfo().c_str(), options.unlogged);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->project_getprojinfo()->srs,

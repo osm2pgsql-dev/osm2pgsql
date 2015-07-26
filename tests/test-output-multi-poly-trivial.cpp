@@ -65,9 +65,9 @@ void run_osm2pgsql(options_t &options) {
   osmdata.stop();
 }
 
-void check_output_poly_trivial(bool enable_multi, std::string conninfo) {
+void check_output_poly_trivial(bool enable_multi, database_options_t &database_options) {
   options_t options;
-  options.conninfo = conninfo.c_str();
+  options.database_options = database_options;
   options.num_procs = 1;
   options.slim = 1;
   options.enable_multi = enable_multi;
@@ -80,7 +80,7 @@ void check_output_poly_trivial(bool enable_multi, std::string conninfo) {
   run_osm2pgsql(options);
 
   // start a new connection to run tests on
-  pg::conn_ptr test_conn = pg::conn::connect(conninfo);
+  pg::conn_ptr test_conn = pg::conn::connect(database_options);
 
   // expect that the table exists
   check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_poly'");
@@ -119,8 +119,8 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        check_output_poly_trivial(0, db->conninfo());
-        check_output_poly_trivial(1, db->conninfo());
+        check_output_poly_trivial(0, db->database_options);
+        check_output_poly_trivial(1, db->database_options);
         return 0;
 
     } catch (const std::exception &e) {

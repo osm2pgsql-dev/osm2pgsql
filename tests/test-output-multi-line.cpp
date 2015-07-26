@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     try {
         std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
-        options.conninfo = db->conninfo().c_str();
+        options.database_options = db->database_options;
         options.num_procs = 1;
         options.slim = true;
 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
         osmdata.stop();
 
         // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
+        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
 
         check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");
         check_count(test_conn, 2753, "select count(*) from foobar_highways");

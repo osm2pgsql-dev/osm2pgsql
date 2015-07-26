@@ -226,11 +226,16 @@ namespace
 
     }
 
-std::string build_conninfo(const std::string &db,
-                           const boost::optional<std::string> &username,
-                           const boost::optional<std::string> &password,
-                           const boost::optional<std::string> &host,
-                           const std::string &port)
+} // anonymous namespace
+
+database_options_t::database_options_t():
+    db("gis"), username(boost::none), host(boost::none),
+    password(boost::none), port("5432")
+{
+
+}
+
+std::string database_options_t::conninfo() const
 {
     std::ostringstream out;
 
@@ -249,11 +254,9 @@ std::string build_conninfo(const std::string &db,
 
     return out.str();
 }
-} // anonymous namespace
-
 
 options_t::options_t():
-    conninfo(""), prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(false), slim(false),
+    prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(false), slim(false),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
     expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(false),
     enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
@@ -265,8 +268,7 @@ options_t::options_t():
     num_procs(1), droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-    create(false), long_usage_bool(false), pass_prompt(false), db("gis"), username(boost::none), host(boost::none),
-    password(boost::none), port("5432"), output_backend("pgsql"), input_reader("auto"), bbox(boost::none), 
+    create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none), 
     extra_attributes(false), verbose(false)
 {
 
@@ -321,22 +323,22 @@ options_t::options_t(int argc, char *argv[]): options_t()
             prefix = optarg;
             break;
         case 'd':
-            db = optarg;
+            database_options.db = optarg;
             break;
         case 'C':
             cache = atoi(optarg);
             break;
         case 'U':
-            username = optarg;
+            database_options.username = optarg;
             break;
         case 'W':
             pass_prompt = true;
             break;
         case 'H':
-            host = optarg;
+            database_options.host = optarg;
             break;
         case 'P':
-            port = optarg;
+            database_options.port = optarg;
             break;
         case 'S':
             style = optarg;
@@ -513,16 +515,16 @@ options_t::options_t(int argc, char *argv[]): options_t()
     if (pass_prompt) {
         char *prompt = simple_prompt("Password:", 100, 0);
         if (prompt == nullptr) {
-            password = boost::none;
+            database_options.password = boost::none;
         } else {
-            password = std::string(prompt);
+            database_options.password = std::string(prompt);
         }
     } else {
         char *pgpass = getenv("PGPASS");
         if (pgpass == nullptr) {
-            password = boost::none;
+            database_options.password = boost::none;
         } else {
-            password = std::string(pgpass);
+            database_options.password = std::string(pgpass);
         }
     }
 
@@ -532,5 +534,4 @@ options_t::options_t(int argc, char *argv[]): options_t()
     //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
     //you could get overflow when working with larger coordinates (mercator) and larger scales
     scale = (projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
-    conninfo = build_conninfo(db, username, password, host, port);
 }

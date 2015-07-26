@@ -1028,7 +1028,7 @@ int middle_pgsql_t::connect(table_desc& table) {
     set_prefix_and_tbls(out_options, &(table.array_indexes));
 
     fprintf(stderr, "Setting up table: %s\n", table.name);
-    sql_conn = PQconnectdb(out_options->conninfo.c_str());
+    sql_conn = PQconnectdb(out_options->database_options.conninfo().c_str());
 
     // Check to see that the backend connection was successfully made */
     if (PQstatus(sql_conn) != CONNECTION_OK) {

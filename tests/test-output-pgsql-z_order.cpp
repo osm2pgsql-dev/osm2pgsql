@@ -117,7 +117,7 @@ void test_z_order() {
 
     std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
-    options.conninfo = db->conninfo().c_str();
+    options.database_options = db->database_options;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
@@ -137,7 +137,7 @@ void test_z_order() {
     osmdata.stop();
 
     // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
+    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
 
     assert_has_table(test_conn, "osm2pgsql_test_point");
     assert_has_table(test_conn, "osm2pgsql_test_line");

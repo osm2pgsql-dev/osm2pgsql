@@ -576,7 +576,7 @@ void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
 
 int output_gazetteer_t::connect() {
     /* Connection to the database */
-    Connection = PQconnectdb(m_options.conninfo.c_str());
+    Connection = PQconnectdb(m_options.database_options.conninfo().c_str());
 
     /* Check to see that the backend connection was successfully made */
     if (PQstatus(Connection) != CONNECTION_OK) {
@@ -585,7 +585,7 @@ int output_gazetteer_t::connect() {
     }
 
     if (m_options.append) {
-        ConnectionDelete = PQconnectdb(m_options.conninfo.c_str());
+        ConnectionDelete = PQconnectdb(m_options.database_options.conninfo().c_str());
         if (PQstatus(ConnectionDelete) != CONNECTION_OK)
         {
             std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";

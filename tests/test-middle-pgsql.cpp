@@ -73,7 +73,7 @@ int main(int argc, char *argv[]) {
 
   try {
     options_t options;
-    options.conninfo = db->conninfo().c_str();
+    options.database_options = db->database_options;
     options.scale = 10000000;
     options.cache = 1;
     options.num_procs = 1;
