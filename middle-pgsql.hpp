@@ -84,7 +84,10 @@ struct middle_pgsql_t : public slim_middle_t {
     virtual std::shared_ptr<const middle_query_t> get_instance() const;
 private:
 
-    int connect(table_desc& table);
+    /**
+     * Sets up sql_conn for the table
+     */
+    void connect(table_desc& table);
     void local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const taglist_t &tags);
     size_t local_nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     void local_nodes_delete(osmid_t osm_id);
@@ -101,7 +104,7 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    int build_indexes;
+    bool build_indexes;
 };
 
 #endif

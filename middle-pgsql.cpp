@@ -903,24 +903,24 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
 
 void middle_pgsql_t::analyze(void)
 {
-    for (int i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
 
-        if (tables[i].analyze) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].analyze);
+        if (table.analyze) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.analyze);
         }
     }
 }
 
 void middle_pgsql_t::end(void)
 {
-    for (int i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
 
         // Commit transaction */
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
-            tables[i].transactionMode = 0;
+        if (table.stop && table.transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
+            table.transactionMode = 0;
         }
 
     }
@@ -1013,7 +1013,7 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
     *string = strdup(buffer);
 }
 
-int middle_pgsql_t::connect(table_desc& table) {
+void middle_pgsql_t::connect(table_desc& table) {
     PGconn *sql_conn;
 
     set_prefix_and_tbls(out_options, &(table.name));
@@ -1030,22 +1030,18 @@ int middle_pgsql_t::connect(table_desc& table) {
     fprintf(stderr, "Setting up table: %s\n", table.name);
     sql_conn = PQconnectdb(out_options->conninfo.c_str());
 
-    // Check to see that the backend connection was successfully made */
+    // Check to see that the backend connection was successfully made, and if not, exit */
     if (PQstatus(sql_conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-        return 1;
+        util::exit_nicely();
     }
     table.sql_conn = sql_conn;
-    return 0;
 }
 
 void middle_pgsql_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
-    PGresult   *res;
-    int i;
-    bool dropcreate = !out_options->append;
-    char * sql;
+    bool dropcreate = !out_options->append; ///< If tables need to be dropped and created anew
 
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
@@ -1064,7 +1060,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
     append = out_options->append;
     // reset this on every start to avoid options from last run
     // staying set for the second.
-    build_indexes = 0;
+    build_indexes = !append && !out_options->droptemp;
 
     cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
@@ -1072,11 +1068,9 @@ void middle_pgsql_t::start(const options_t *out_options_)
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
 
     // We use a connection per table to enable the use of COPY */
-    for (i=0; i<num_tables; i++) {
-        //bomb if you cant connect
-        if(connect(tables[i]))
-            util::exit_nicely();
-        PGconn* sql_conn = tables[i].sql_conn;
+    for (auto& table: tables) {
+        connect(table);
+        PGconn* sql_conn = table.sql_conn;
 
         /*
          * To allow for parallelisation, the second phase (iterate_ways), cannot be run
@@ -1094,100 +1088,46 @@ void middle_pgsql_t::start(const options_t *out_options_)
          */
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 
-        /* Not really the right place for this test, but we need a live
-         * connection that not used for anything else yet, and we'd like to
-         * warn users *before* we start doing mountains of work */
-        if (i == t_node)
-        {
-            res = PQexec(sql_conn, "select 1 from pg_opclass where opcname='gist__intbig_ops'" );
-            if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
-            {
-                /* intarray is problematic now; causes at least postgres 8.4
-                 * to not use the index on nodes[]/parts[] which slows diff
-                 * updates to a crawl!
-                 * If someone find a way to fix this rather than bow out here,
-                 * please do.*/
-
-                fprintf(stderr,
-                    "\n"
-                    "The target database has the intarray contrib module loaded.\n"
-                    "While required for earlier versions of osm2pgsql, intarray \n"
-                    "is now unnecessary and will interfere with osm2pgsql's array\n"
-                    "handling. Please use a database without intarray.\n\n");
-                util::exit_nicely();
-            }
-            PQclear(res);
-
-            if (out_options->append)
-            {
-                sql = (char *)malloc (2048);
-                snprintf(sql, 2047, "SELECT id FROM %s LIMIT 1", tables[t_node].name);
-                res = PQexec(sql_conn, sql );
-                free(sql);
-                sql = nullptr;
-                if(PQresultStatus(res) == PGRES_TUPLES_OK && PQntuples(res) == 1)
-                {
-                    int size = PQfsize(res, 0);
-                    if (size != sizeof(osmid_t))
-                    {
-                        fprintf(stderr,
-                            "\n"
-                            "The target database has been created with %dbit ID fields,\n"
-                            "but this version of osm2pgsql has been compiled to use %ldbit IDs.\n"
-                            "You cannot append data to this database with this program.\n"
-                            "Either re-create the database or use a matching osm2pgsql.\n\n",
-                            size * 8, sizeof(osmid_t) * 8);
-                        util::exit_nicely();
-                    }
-                }
-                PQclear(res);
-            }
-
-            if(!out_options->append)
-                build_indexes = 1;
-        }
-
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", tables[i].name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", table.name);
         }
 
-        if (tables[i].start) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].start);
-            tables[i].transactionMode = 1;
+        if (table.start) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.start);
+            table.transactionMode = 1;
         }
 
-        if (dropcreate && tables[i].create) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create);
-            if (tables[i].create_index) {
-              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].create_index);
+        if (dropcreate && table.create) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create);
+            if (table.create_index) {
+              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create_index);
             }
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (table.prepare) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.prepare);
         }
 
-        if (append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (append && table.prepare_intarray) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.prepare_intarray);
         }
 
-        if (tables[i].copy) {
-            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", tables[i].copy);
-            tables[i].copyMode = 1;
+        if (table.copy) {
+            pgsql_exec(sql_conn, PGRES_COPY_IN, "%s", table.copy);
+            table.copyMode = 1;
         }
     }
 }
 
 void middle_pgsql_t::commit(void) {
-    int i;
-    for (i=0; i<num_tables; i++) {
-        PGconn *sql_conn = tables[i].sql_conn;
-        pgsql_endCopy(&tables[i]);
-        if (tables[i].stop && tables[i].transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].stop);
-            tables[i].transactionMode = 0;
+    for (auto& table: tables) {
+        PGconn *sql_conn = table.sql_conn;
+        pgsql_endCopy(&table);
+        if (table.stop && table.transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
+            table.transactionMode = 0;
         }
     }
     // Make sure the flat nodes are committed to disk or there will be
@@ -1278,7 +1218,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
-      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(0)
+      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(true)
 {
     /*table = t_node,*/
     tables.push_back(table_desc(
@@ -1351,9 +1291,9 @@ middle_pgsql_t::middle_pgsql_t()
 }
 
 middle_pgsql_t::~middle_pgsql_t() {
-    for (int i=0; i < num_tables; i++) {
-        if (tables[i].sql_conn) {
-            PQfinish(tables[i].sql_conn);
+    for (auto& table: tables) {
+        if (table.sql_conn) {
+            PQfinish(table.sql_conn);
         }
     }
 
@@ -1375,9 +1315,7 @@ std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
-        //bomb if you cant connect
-        if(mid->connect(mid->tables[i]))
-            util::exit_nicely();
+        mid->connect(mid->tables[i]);
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
         if (tables[i].prepare) {
