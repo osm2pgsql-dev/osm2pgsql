@@ -21,20 +21,33 @@
 enum { DEFAULT_SCALE = 100 };
 
 /**
+ * Database options, not specific to a table
+ */
+class database_options_t {
+public:
+    database_options_t();
+    std::string db;
+    boost::optional<std::string> username;
+    boost::optional<std::string> host;
+    boost::optional<std::string> password;
+    boost::optional<std::string> port;
+
+    std::string conninfo() const;
+};
+
+/**
  * Structure for storing command-line and other options
  */
 struct options_t {
 public:
-    /* construct with sensible defaults */
+  // fixme: bring back old comment
     options_t();
-    virtual ~options_t();
-
     /**
      * Parse the options from the command line
      */
-    static options_t parse(int argc, char *argv[]);
+    options_t(int argc, char *argv[]);
+    virtual ~options_t();
 
-    std::string conninfo; ///< Connection info string
     std::string prefix; ///< prefix for table names
     int scale; ///< scale for converting coordinates to fixed point
     std::shared_ptr<reprojection> projection; ///< SRS of projection
@@ -79,11 +92,7 @@ public:
     bool long_usage_bool;
     bool pass_prompt;
 
-    std::string db;
-    boost::optional<std::string> username;
-    boost::optional<std::string> host;
-    boost::optional<std::string> password;
-    std::string port;
+    database_options_t database_options;
     std::string output_backend;
     std::string input_reader;
     boost::optional<std::string> bbox;
@@ -92,7 +101,10 @@ public:
 
     std::vector<std::string> input_files;
 private:
-
+    /**
+     * Check input options for sanity
+     */
+    void check_options();
 };
 
 #endif

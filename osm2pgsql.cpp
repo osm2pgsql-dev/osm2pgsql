@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
     try
     {
         //parse the args into the different options members
-        options_t options = options_t::parse(argc, argv);
+        options_t options = options_t(argc, argv);
         if(options.long_usage_bool)
             return 0;
 
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
         osmdata_t osmdata(middle, outputs);
 
         //check the database
-        check_db(options.conninfo.c_str(), options.unlogged);
+        check_db(options.database_options.conninfo().c_str(), options.unlogged);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->project_getprojinfo()->srs,

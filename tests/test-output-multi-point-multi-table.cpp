@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     try {
         std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
-        options.conninfo = db->conninfo().c_str();
+        options.database_options = db->database_options;
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
         options.slim = true;
@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
         osmdata.stop();
 
         // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->conninfo());
+        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
 
         for (int i = 0; i < 10; ++i) {
             std::string name = (boost::format("foobar_%d") % i).str();

@@ -25,6 +25,10 @@ conn_ptr conn::connect(const std::string &conninfo) {
     return std::shared_ptr<conn>(new conn(conninfo));
 }
 
+conn_ptr conn::connect(const database_options_t &database_options) {
+    return std::shared_ptr<conn>(new conn(database_options.conninfo()));
+}
+
 result_ptr conn::exec(const std::string &query) {
     return std::make_shared<result>(shared_from_this(), query);
 }
@@ -74,8 +78,8 @@ result::~result() {
 tempdb::tempdb()
     : m_conn(conn::connect("dbname=postgres")) {
     result_ptr res = nullptr;
-    m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
-    m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
+    database_options.db = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
+    m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
     //tests can be run concurrently which means that this query can collide with other similar ones
     //so we implement a simple retry here to get around the case that they do collide if we dont
     //we often fail due to both trying to access template1 at the same time
@@ -84,7 +88,7 @@ tempdb::tempdb()
     while(status != PGRES_COMMAND_OK && retries++ < 20)
     {
         sleep(1);
-        res = m_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % m_db_name);
+        res = m_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % database_options.db);
         status = PQresultStatus(res->get());
     }
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
@@ -92,8 +96,7 @@ tempdb::tempdb()
                                   % PQresultErrorMessage(res->get())).str());
     }
 
-    m_conninfo = (boost::format("dbname=%1%") % m_db_name).str();
-    conn_ptr db = conn::connect(m_conninfo);
+    conn_ptr db = conn::connect(database_options.conninfo());
 
     setup_extension(db, "postgis", {"postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql"});
     setup_extension(db, "hstore");
@@ -119,12 +122,8 @@ void tempdb::check_tblspc() {
 
 tempdb::~tempdb() {
     if (m_conn) {
-        m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
+        m_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
     }
-}
-
-const std::string &tempdb::conninfo() const {
-    return m_conninfo;
 }
 
 void tempdb::setup_extension(conn_ptr db, const std::string &extension, 

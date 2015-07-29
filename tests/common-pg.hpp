@@ -7,6 +7,9 @@
 #include <boost/noncopyable.hpp>
 #include <libpq-fe.h>
 
+// reuse the database_options_t class
+#include "options.hpp"
+
 /* Some RAII objects to make writing stuff that needs a temporary database
  * easier, and to keep track of and free connections and results objects.
  */
@@ -23,6 +26,7 @@ struct conn
       public std::enable_shared_from_this<conn> {
 
     static conn_ptr connect(const std::string &conninfo);
+    static conn_ptr connect(const database_options_t &database_options);
     result_ptr exec(const std::string &query);
     result_ptr exec(const boost::format &fmt);
     PGconn *get();
@@ -52,7 +56,7 @@ struct tempdb
     tempdb();
     ~tempdb();
 
-    const std::string &conninfo() const;
+    database_options_t database_options;
 
     void check_tblspc();
 
@@ -61,8 +65,6 @@ private:
     void setup_extension(conn_ptr db, const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
 
     conn_ptr m_conn;
-    std::string m_db_name;
-    std::string m_conninfo;
 };
 
 } // namespace pg
