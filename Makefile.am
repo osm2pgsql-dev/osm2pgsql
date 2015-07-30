@@ -57,6 +57,7 @@ check_PROGRAMS = \
 	tests/test-output-multi-poly-trivial \
 	tests/test-output-pgsql \
 	tests/test-output-pgsql-z_order \
+	tests/test-output-pgsql-tablespace \
 	tests/test-output-pgsql-schema \
 	tests/test-pgsql-escape \
 	tests/test-parse-options \
