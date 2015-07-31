@@ -59,12 +59,50 @@ struct tempdb
     database_options_t database_options;
 
     void check_tblspc();
+    /**
+     * Checks the result of a query with COUNT(*).
+     * It will work with any integer-returning query.
+     * \param[in] expected expected result
+     * \param[in] query SQL query to run. Must return one tuple.
+     * \throws std::runtime_error if query result is not expected
+     */
+    void check_count(int expected, const std::string &query);
+
+    /**
+     * Checks a floating point number.
+     * It allows a small variance around the expected result to allow for
+     * floating point differences.
+     * The query must only return one tuple
+     * \param[in] expected expected result
+     * \param[in] query SQL query to run. Must return one tuple.
+     * \throws std::runtime_error if query result is not expected
+     */
+    void check_number(double expected, const std::string &query);
+
+    /**
+     * Check the string a query returns.
+     * \param[in] expected expected result
+     * \param[in] query SQL query to run. Must return one tuple.
+     * \throws std::runtime_error if query result is not expected
+     */
+    void check_string(const std::string &expected, const std::string &query);
+    /**
+     * Assert that the database has a certain table_name
+     * \param[in] table_name Name of the table to check, optionally schema-qualified
+     * \throws std::runtime_error if missing the table
+     */
+    void assert_has_table(const std::string &table_name);
 
 private:
-    // Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling back to trying to find extension_files
-    void setup_extension(conn_ptr db, const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
+    /**
+     * Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling
+     * back to trying to find extension_files. The fallback is not likely to
+     * work on systems not based on Debian.
+     */
+    void setup_extension(const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
 
-    conn_ptr m_conn;
+    conn_ptr m_conn; ///< connection to the test DB
+    conn_ptr m_postgres_conn; ///< Connection to the "postgres" db, used to create and drop test DBs
 };
 
 } // namespace pg

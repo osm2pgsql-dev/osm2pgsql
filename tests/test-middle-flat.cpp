@@ -12,7 +12,6 @@
 #include "options.hpp"
 #include "middle-pgsql.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 

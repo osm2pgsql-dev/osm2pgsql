@@ -57,6 +57,7 @@ tests/test-output-multi-poly-trivial
 tests/test-output-pgsql
 tests/test-output-pgsql-tablespace
 tests/test-output-pgsql-z_order
+tests/test-output-pgsql-schema
 tests/test-expire-tiles
 tests/test-hstore-match-only
 tests/*.log

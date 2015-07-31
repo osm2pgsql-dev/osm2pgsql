@@ -15,7 +15,7 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,27 +23,6 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -83,29 +62,27 @@ int main(int argc, char *argv[]) {
         osmdata.stop();
 
         // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");
-        check_count(test_conn, 2753, "select count(*) from foobar_highways");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");
+        db->check_count(2753, "select count(*) from foobar_highways");
 
         //check that we have the right spread
-        check_count(test_conn, 13, "select count(*) from foobar_highways where highway='bridleway'");
-        check_count(test_conn, 3, "select count(*) from foobar_highways where highway='construction'");
-        check_count(test_conn, 96, "select count(*) from foobar_highways where highway='cycleway'");
-        check_count(test_conn, 249, "select count(*) from foobar_highways where highway='footway'");
-        check_count(test_conn, 18, "select count(*) from foobar_highways where highway='living_street'");
-        check_count(test_conn, 171, "select count(*) from foobar_highways where highway='path'");
-        check_count(test_conn, 6, "select count(*) from foobar_highways where highway='pedestrian'");
-        check_count(test_conn, 81, "select count(*) from foobar_highways where highway='primary'");
-        check_count(test_conn, 842, "select count(*) from foobar_highways where highway='residential'");
-        check_count(test_conn, 3, "select count(*) from foobar_highways where highway='road'");
-        check_count(test_conn, 90, "select count(*) from foobar_highways where highway='secondary'");
-        check_count(test_conn, 1, "select count(*) from foobar_highways where highway='secondary_link'");
-        check_count(test_conn, 352, "select count(*) from foobar_highways where highway='service'");
-        check_count(test_conn, 34, "select count(*) from foobar_highways where highway='steps'");
-        check_count(test_conn, 33, "select count(*) from foobar_highways where highway='tertiary'");
-        check_count(test_conn, 597, "select count(*) from foobar_highways where highway='track'");
-        check_count(test_conn, 164, "select count(*) from foobar_highways where highway='unclassified'");
+        db->check_count(13, "select count(*) from foobar_highways where highway='bridleway'");
+        db->check_count(3, "select count(*) from foobar_highways where highway='construction'");
+        db->check_count(96, "select count(*) from foobar_highways where highway='cycleway'");
+        db->check_count(249, "select count(*) from foobar_highways where highway='footway'");
+        db->check_count(18, "select count(*) from foobar_highways where highway='living_street'");
+        db->check_count(171, "select count(*) from foobar_highways where highway='path'");
+        db->check_count(6, "select count(*) from foobar_highways where highway='pedestrian'");
+        db->check_count(81, "select count(*) from foobar_highways where highway='primary'");
+        db->check_count(842, "select count(*) from foobar_highways where highway='residential'");
+        db->check_count(3, "select count(*) from foobar_highways where highway='road'");
+        db->check_count(90, "select count(*) from foobar_highways where highway='secondary'");
+        db->check_count(1, "select count(*) from foobar_highways where highway='secondary_link'");
+        db->check_count(352, "select count(*) from foobar_highways where highway='service'");
+        db->check_count(34, "select count(*) from foobar_highways where highway='steps'");
+        db->check_count(33, "select count(*) from foobar_highways where highway='tertiary'");
+        db->check_count(597, "select count(*) from foobar_highways where highway='track'");
+        db->check_count(164, "select count(*) from foobar_highways where highway='unclassified'");
         return 0;
 
     } catch (const std::exception &e) {

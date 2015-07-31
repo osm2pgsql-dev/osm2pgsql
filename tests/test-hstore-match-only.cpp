@@ -24,35 +24,12 @@ The tags of inteest are specified in hstore-match-only.style
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <boost/lexical_cast.hpp>
 
 #include "tests/common-pg.hpp"
-
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -89,14 +66,11 @@ int main(int argc, char *argv[]) {
 
         osmdata.stop();
 
-        // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
         // tables should not contain any tag columns
-        check_count(test_conn, 4, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_point'");
-        check_count(test_conn, 5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_polygon'");
-        check_count(test_conn, 5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_line'");
-        check_count(test_conn, 5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_roads'");
+        db->check_count(4, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_point'");
+        db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_polygon'");
+        db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_line'");
+        db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_roads'");
         
         // the testfile contains 19 tagged ways and 7 tagged nodes
         // out of them 18 ways and 6 nodes are interesting as specified by hstore-match-only.style
@@ -106,10 +80,10 @@ int main(int argc, char *argv[]) {
         // 12 objects in osm2pgsql_test_line
         // 3 objects in osm2pgsql_test_roads
         
-        check_count(test_conn, 6, "select count(*) from osm2pgsql_test_point");
-        check_count(test_conn, 7, "select count(*) from osm2pgsql_test_polygon");
-        check_count(test_conn, 12, "select count(*) from osm2pgsql_test_line");
-        check_count(test_conn, 3, "select count(*) from osm2pgsql_test_roads");
+        db->check_count(6, "select count(*) from osm2pgsql_test_point");
+        db->check_count(7, "select count(*) from osm2pgsql_test_polygon");
+        db->check_count(12, "select count(*) from osm2pgsql_test_line");
+        db->check_count(3, "select count(*) from osm2pgsql_test_roads");
         
         return 0;
 

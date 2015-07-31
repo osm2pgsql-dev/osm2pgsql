@@ -16,7 +16,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -48,56 +47,6 @@ void run_test(const char* test_name, void (*testfunc)()) {
     fprintf(stderr, "PASS\n");
 }
 #define RUN_TEST(x) run_test(#x, &(x))
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
-
-void check_number(pg::conn_ptr &conn, double expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query, "
-                                                " but got %1%. Query was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    double num = boost::lexical_cast<double>(numstr);
-
-    // floating point isn't exact, so allow a 0.01% difference
-    if ((num > 1.0001*expected) || (num < 0.9999*expected)) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % num % query).str());
-    }
-}
-
-void assert_has_table(pg::conn_ptr &test_conn, const std::string &table_name) {
-    std::string query = (boost::format("select count(*) from pg_catalog.pg_class "
-                                       "where relname = '%1%'")
-                         % table_name).str();
-
-    check_count(test_conn, 1, query);
-}
 
 // "simple" test modeled on the basic regression test from
 // the python script. this is just to check everything is
@@ -137,29 +86,26 @@ void test_regression_simple() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 3300, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn,  375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    check_number(test_conn, 1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    check_number(test_conn, 1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
 
-    check_number(test_conn, 311.21, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    check_number(test_conn, 311.21, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    check_number(test_conn, 143.81, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.21, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.21, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(143.81, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
 
     // Check a point's location
-    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=900913;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
+    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=900913;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
 }
 
 void test_latlong() {
@@ -200,29 +146,26 @@ void test_latlong() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 3298, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn, 374, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(3298, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(374, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    check_number(test_conn, 0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    check_number(test_conn, 1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
 
-    check_number(test_conn, 1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    check_number(test_conn, 1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    check_number(test_conn, 143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
 
     // Check a point's location
-    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=4326;POINT(9.5459035 47.1866494)'::geometry, 0.00001)");
+    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=4326;POINT(9.5459035 47.1866494)'::geometry, 0.00001)");
 }
 
 
@@ -263,18 +206,15 @@ void test_area_way_simple() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(0, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(0, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(0, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 void test_route_rel() {
@@ -312,18 +252,15 @@ void test_route_rel() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 2, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn, 1, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 0, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(0, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(2, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(0, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 // test the same, but clone the output. it should
@@ -367,18 +304,15 @@ void test_clone() {
 
     osmdata.stop();
 
-    // start a new connection to run tests on
-    pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
+    db->assert_has_table("osm2pgsql_test_point");
+    db->assert_has_table("osm2pgsql_test_line");
+    db->assert_has_table("osm2pgsql_test_polygon");
+    db->assert_has_table("osm2pgsql_test_roads");
 
-    assert_has_table(test_conn, "osm2pgsql_test_point");
-    assert_has_table(test_conn, "osm2pgsql_test_line");
-    assert_has_table(test_conn, "osm2pgsql_test_polygon");
-    assert_has_table(test_conn, "osm2pgsql_test_roads");
-
-    check_count(test_conn, 1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    check_count(test_conn, 3300, "SELECT count(*) FROM osm2pgsql_test_line");
-    check_count(test_conn,  375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    check_count(test_conn, 4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
+    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
+    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 } // anonymous namespace

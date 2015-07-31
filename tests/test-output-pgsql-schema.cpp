@@ -21,7 +21,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 
 namespace {
@@ -48,21 +47,25 @@ void run_test(const char* test_name, void (*testfunc)()) {
 }
 #define RUN_TEST(x) run_test(#x, &(x))
 
-// "simple" test modeled on the basic regression test from
-// the python script. this is just to check everything is
-// working as expected before we start the complex stuff.
-void test_regression_simple() {
+void test_other_output_schema() {
     std::unique_ptr<pg::tempdb> db;
 
     try {
         db.reset(new pg::tempdb);
-        db->check_tblspc(); // Unlike others, these tests require a test tablespace
     } catch (const std::exception &e) {
         std::cerr << "Unable to setup database: " << e.what() << "\n";
         throw skip_test();
     }
 
-    std::string proc_name("test-output-pgsql"), input_file("-");
+    pg::conn_ptr schema_conn = pg::conn::connect(db->database_options);
+
+    schema_conn->exec("CREATE SCHEMA myschema;"
+                      "CREATE TABLE myschema.osm2pgsql_test_point (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_line (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_polygon (id bigint);"
+                      "CREATE TABLE myschema.osm2pgsql_test_roads (id bigint)");
+
+    std::string proc_name("test-output-pgsql-schema"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
     std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
@@ -70,41 +73,46 @@ void test_regression_simple() {
     options.database_options = db->database_options;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
-    options.slim = true;
     options.style = "default.style";
-
-    options.tblsslim_index = "tablespacetest";
-    options.tblsslim_data = "tablespacetest";
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
+    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, false));
 
     osmdata.start();
 
-    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
+    parser->stream_file("libxml2", "tests/test_output_pgsql_z_order.osm", &osmdata);
 
     parser.reset(nullptr);
 
     osmdata.stop();
 
-    db->assert_has_table("osm2pgsql_test_point");
-    db->assert_has_table("osm2pgsql_test_line");
-    db->assert_has_table("osm2pgsql_test_polygon");
-    db->assert_has_table("osm2pgsql_test_roads");
 
-    db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
-    db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->assert_has_table("public.osm2pgsql_test_point");
+    db->assert_has_table("public.osm2pgsql_test_line");
+    db->assert_has_table("public.osm2pgsql_test_polygon");
+    db->assert_has_table("public.osm2pgsql_test_roads");
+    db->assert_has_table("public.osm2pgsql_test_point");
+    db->assert_has_table("public.osm2pgsql_test_line");
+    db->assert_has_table("public.osm2pgsql_test_polygon");
+    db->assert_has_table("public.osm2pgsql_test_roads");
+
+    db->check_count( 2, "SELECT COUNT(*) FROM osm2pgsql_test_point");
+    db->check_count( 11, "SELECT COUNT(*) FROM osm2pgsql_test_line");
+    db->check_count( 1, "SELECT COUNT(*) FROM osm2pgsql_test_polygon");
+    db->check_count( 8, "SELECT COUNT(*) FROM osm2pgsql_test_roads");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_point");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_line");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_polygon");
+    db->check_count( 0, "SELECT COUNT(*) FROM myschema.osm2pgsql_test_roads");
 }
 
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
-    RUN_TEST(test_regression_simple);
+    RUN_TEST(test_other_output_schema);
 
     return 0;
 }

@@ -15,7 +15,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,27 +22,6 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -84,18 +62,15 @@ int main(int argc, char *argv[]) {
 
         osmdata.stop();
 
-        // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'test_line'");
-        check_count(test_conn, 3, "select count(*) from test_line");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_line'");
+        db->check_count(3, "select count(*) from test_line");
 
         //check that we have the number of vertexes in each linestring
-        check_count(test_conn, 3, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 1");
-        check_count(test_conn, 2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 2");
-        check_count(test_conn, 2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 3");
+        db->check_count(3, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 1");
+        db->check_count(2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 2");
+        db->check_count(2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 3");
 
-        check_count(test_conn, 3, "SELECT COUNT(*) FROM test_line WHERE foo = 'bar'");
+        db->check_count(3, "SELECT COUNT(*) FROM test_line WHERE foo = 'bar'");
         return 0;
 
     } catch (const std::exception &e) {

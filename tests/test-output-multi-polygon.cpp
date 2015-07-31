@@ -15,7 +15,6 @@
 #include "taginfo_impl.hpp"
 #include "parse.hpp"
 
-#include <libpq-fe.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -23,27 +22,6 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
-
-void check_count(pg::conn_ptr &conn, int expected, const std::string &query) {
-    pg::result_ptr res = conn->exec(query);
-
-    int ntuples = PQntuples(res->get());
-    if (ntuples != 1) {
-        throw std::runtime_error((boost::format("Expected only one tuple from a query "
-                                                "to check COUNT(*), but got %1%. Query "
-                                                "was: %2%.")
-                                  % ntuples % query).str());
-    }
-
-    std::string numstr = PQgetvalue(res->get(), 0, 0);
-    int count = boost::lexical_cast<int>(numstr);
-
-    if (count != expected) {
-        throw std::runtime_error((boost::format("Expected %1%, but got %2%, when running "
-                                                "query: %3%.")
-                                  % expected % count % query).str());
-    }
-}
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -82,31 +60,28 @@ int main(int argc, char *argv[]) {
 
         osmdata.stop();
 
-        // start a new connection to run tests on
-        pg::conn_ptr test_conn = pg::conn::connect(db->database_options);
-
-        check_count(test_conn, 1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_buildings'");
-        check_count(test_conn, 0, "select count(*) from foobar_buildings where building is null");
-        check_count(test_conn, 3723, "select count(*) from foobar_buildings");
+        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_buildings'");
+        db->check_count(0, "select count(*) from foobar_buildings where building is null");
+        db->check_count(3723, "select count(*) from foobar_buildings");
 
         //check that we have the right spread
-        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='barn'");
-        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='chapel'");
-        check_count(test_conn, 5, "select count(*) from foobar_buildings where building='church'");
-        check_count(test_conn, 3, "select count(*) from foobar_buildings where building='commercial'");
-        check_count(test_conn, 6, "select count(*) from foobar_buildings where building='farm'");
-        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='garage'");
-        check_count(test_conn, 2, "select count(*) from foobar_buildings where building='glasshouse'");
-        check_count(test_conn, 1, "select count(*) from foobar_buildings where building='greenhouse'");
-        check_count(test_conn, 153, "select count(*) from foobar_buildings where building='house'");
-        check_count(test_conn, 4, "select count(*) from foobar_buildings where building='hut'");
-        check_count(test_conn, 8, "select count(*) from foobar_buildings where building='industrial'");
-        check_count(test_conn, 200, "select count(*) from foobar_buildings where building='residential'");
-        check_count(test_conn, 6, "select count(*) from foobar_buildings where building='roof'");
-        check_count(test_conn, 4, "select count(*) from foobar_buildings where building='school'");
-        check_count(test_conn, 2, "select count(*) from foobar_buildings where building='station'");
-        check_count(test_conn, 3, "select count(*) from foobar_buildings where building='warehouse'");
-        check_count(test_conn, 3323, "select count(*) from foobar_buildings where building='yes'");
+        db->check_count(1, "select count(*) from foobar_buildings where building='barn'");
+        db->check_count(1, "select count(*) from foobar_buildings where building='chapel'");
+        db->check_count(5, "select count(*) from foobar_buildings where building='church'");
+        db->check_count(3, "select count(*) from foobar_buildings where building='commercial'");
+        db->check_count(6, "select count(*) from foobar_buildings where building='farm'");
+        db->check_count(1, "select count(*) from foobar_buildings where building='garage'");
+        db->check_count(2, "select count(*) from foobar_buildings where building='glasshouse'");
+        db->check_count(1, "select count(*) from foobar_buildings where building='greenhouse'");
+        db->check_count(153, "select count(*) from foobar_buildings where building='house'");
+        db->check_count(4, "select count(*) from foobar_buildings where building='hut'");
+        db->check_count(8, "select count(*) from foobar_buildings where building='industrial'");
+        db->check_count(200, "select count(*) from foobar_buildings where building='residential'");
+        db->check_count(6, "select count(*) from foobar_buildings where building='roof'");
+        db->check_count(4, "select count(*) from foobar_buildings where building='school'");
+        db->check_count(2, "select count(*) from foobar_buildings where building='station'");
+        db->check_count(3, "select count(*) from foobar_buildings where building='warehouse'");
+        db->check_count(3323, "select count(*) from foobar_buildings where building='yes'");
         return 0;
 
     } catch (const std::exception &e) {
