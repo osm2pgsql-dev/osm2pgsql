@@ -171,6 +171,8 @@ osmid_t id_tracker::pop_mark() {
 
 size_t id_tracker::size() { return impl->count; }
 
+osmid_t id_tracker::last_returned() const { return impl->old_id; }
+
 bool id_tracker::is_valid(osmid_t id) { return id != max(); }
 osmid_t id_tracker::max() { return std::numeric_limits<osmid_t>::max(); }
 osmid_t id_tracker::min() { return std::numeric_limits<osmid_t>::min(); }

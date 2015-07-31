@@ -273,6 +273,15 @@ extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
 } // anonymous namespace
 
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+    osmid_t const prev = ways_pending_tracker->last_returned();
+    if (id_tracker::is_valid(prev) && prev >= id) {
+        if (prev > id) {
+            job_queue.push(pending_job_t(id, output_id));
+        }
+        // already done the job
+        return;
+    }
+
     //make sure we get the one passed in
     if(!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
@@ -294,12 +303,11 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //make sure to get this one as well and move to the next
-    if(popped == id) {
-        popped = ways_pending_tracker->pop_mark();
-    }
-    if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
-        job_queue.push(pending_job_t(popped, output_id));
-        added++;
+    if(popped > id) {
+        if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
+            job_queue.push(pending_job_t(popped, output_id));
+            added++;
+        }
     }
 }
 
@@ -319,6 +327,15 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
 }
 
 void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+    osmid_t const prev = rels_pending_tracker->last_returned();
+    if (id_tracker::is_valid(prev) && prev >= id) {
+        if (prev > id) {
+            job_queue.push(pending_job_t(id, output_id));
+        }
+        // already done the job
+        return;
+    }
+
     //make sure we get the one passed in
     if(id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
@@ -338,12 +355,11 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //make sure to get this one as well and move to the next
-    if(popped == id) {
-        popped = rels_pending_tracker->pop_mark();
-    }
-    if(id_tracker::is_valid(popped)) {
-        job_queue.push(pending_job_t(popped, output_id));
-        added++;
+    if(popped > id) {
+        if(id_tracker::is_valid(popped)) {
+            job_queue.push(pending_job_t(popped, output_id));
+            added++;
+        }
     }
 }
 
