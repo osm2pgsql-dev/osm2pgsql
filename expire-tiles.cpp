@@ -65,13 +65,12 @@ void destroy_tree(struct expire_tiles::tile * tree) {
  * Returns the number of subtiles which have all their children marked as dirty.
  */
 int _mark_tile(struct expire_tiles::tile ** tree, int x, int y, int zoom, int this_zoom) {
-	int	zoom_diff = zoom - this_zoom;
+	int	zoom_diff = zoom - this_zoom - 1;
 	int	rel_x;
 	int	rel_y;
 	int	complete;
 
 	if (! *tree) *tree = (struct expire_tiles::tile *)calloc(1, sizeof(**tree));
-	zoom_diff = (zoom - this_zoom) - 1;
 	rel_x = (x >> zoom_diff) & 1;
 	rel_y = (y >> zoom_diff) & 1;
 	if (! (*tree)->complete[rel_x][rel_y]) {
