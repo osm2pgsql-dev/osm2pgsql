@@ -61,6 +61,7 @@ check_PROGRAMS = \
 	tests/test-output-pgsql-schema \
 	tests/test-pgsql-escape \
 	tests/test-options-parse \
+	tests/test-options-database \
 	tests/test-expire-tiles \
 	tests/test-hstore-match-only
 
@@ -100,6 +101,8 @@ tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_options_parse_SOURCES = tests/test-options-parse.cpp
 tests_test_options_parse_LDADD = libosm2pgsql.la
+tests_test_options_database_SOURCES = tests/test-options-database.cpp
+tests_test_options_database_LDADD = libosm2pgsql.la
 tests_test_expire_tiles_SOURCES = tests/test-expire-tiles.cpp
 tests_test_expire_tiles_LDADD = libosm2pgsql.la
 
@@ -158,6 +161,7 @@ tests_test_output_pgsql_z_order_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_schema_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_options_parse_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_options_database_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_expire_tiles_LDADD += $(GLOBAL_LDFLAGS)
 nodecachefilereader_LDADD += $(GLOBAL_LDFLAGS)
 
