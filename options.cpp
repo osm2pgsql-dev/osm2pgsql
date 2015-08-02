@@ -252,7 +252,7 @@ std::string database_options_t::conninfo() const
         out << " host='" << *host << "'";
     }
     if (port) {
-        out << " port='" << port << "'";
+        out << " port='" << *port << "'";
     }
 
     return out.str();
