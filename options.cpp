@@ -201,7 +201,7 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
-          --exclude-invalid-polygon   do not import polygons with invalid geometries.\n\
+          --exclude-invalid-polygon   do not attempt to recover invalid geometries.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
         }
