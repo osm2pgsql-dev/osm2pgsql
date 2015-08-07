@@ -34,7 +34,7 @@
 #   and this notice are preserved. This file is offered as-is, without any
 #   warranty.
 
-#serial 11
+#serial 11.1
 
 m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
   template <typename T>
@@ -84,6 +84,9 @@ m4_define([_AX_CXX_COMPILE_STDCXX_11_testbody], [[
             func<foo>(0);
         }
     }
+
+    // Test that attributes are supported
+    void noret [[noreturn]] () { throw 0;}
 ]])
 
 AC_DEFUN([AX_CXX_COMPILE_STDCXX_11], [dnl
