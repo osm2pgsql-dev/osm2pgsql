@@ -747,9 +747,6 @@ void parse_o5m_t::stream_file(const std::string &filename, osmdata_t *osmdata) {
     otype= b&3;
 
     /* object initialization */
-    hisver= 0;
-    histime= 0;
-    hisuid= 0;
     hisuser= NULL;
 
     nds.clear();
