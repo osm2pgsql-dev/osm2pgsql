@@ -125,12 +125,14 @@ void table_t::start()
         string sql = (fmt("CREATE TABLE %1% (osm_id %2%,") % name % POSTGRES_OSMID_TYPE).str();
 
         //first with the regular columns
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-            sql += (fmt("\"%1%\" %2%,") % column->first % column->second).str();
+        for (const auto& column: columns) {
+            sql += (fmt("\"%1%\" %2%,") % column.first % column.second).str();
+        }
 
         //then with the hstore columns
-        for(hstores_t::const_iterator hcolumn = table_options.hstore_columns.begin(); hcolumn != table_options.hstore_columns.end(); ++hcolumn)
-            sql += (fmt("\"%1%\" hstore,") % (*hcolumn)).str();
+        for (const auto& hstore_column: table_options.hstore_columns) {
+            sql += (fmt("\"%1%\" hstore,") % (hstore_column)).str();
+        }
 
         //add tags column
         if (table_options.hstore_mode != HSTORE_NONE)
@@ -166,15 +168,14 @@ void table_t::start()
     else {
         //check the columns against those in the existing table
         std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        {
-            if(PQfnumber(res.get(), ('"' + column->first + '"').c_str()) < 0)
+        for (const auto& column: columns) {
+            if(PQfnumber(res.get(), ('"' + column.first + '"').c_str()) < 0)
             {
 #if 0
                 throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%1%\"\n") % info.name).str());
 #else
-                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column->first % name).str().c_str());
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column->first % column->second).str());
+                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column.first % name).str().c_str());
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column.first % column.second).str());
 #endif
             }
             //Note: we do not verify the type or delete unused columns
@@ -191,12 +192,14 @@ void table_t::start()
     //generate column list for COPY
     string cols = "osm_id,";
     //first with the regular columns
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        cols += (fmt("\"%1%\",") % column->first).str();
+    for (const auto& column: columns) {
+        cols += (fmt("\"%1%\",") % column.first).str();
+    }
 
     //then with the hstore columns
-    for(hstores_t::const_iterator hcolumn = table_options.hstore_columns.begin(); hcolumn != table_options.hstore_columns.end(); ++hcolumn)
-        cols += (fmt("\"%1%\",") % (*hcolumn)).str();
+    for (const auto& hstore_column: table_options.hstore_columns) {
+        cols += (fmt("\"%1%\",") % (hstore_column)).str();
+    }
 
     //add tags column and geom column
     if (table_options.hstore_mode != HSTORE_NONE)
@@ -250,8 +253,8 @@ void table_t::stop()
                 pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %1% USING GIN (tags) %2%") % name %
                     (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
             }
-            for(size_t i = 0; i < table_options.hstore_columns.size(); ++i) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %1% USING GIN (\"%3%\") %4%") % name % i % table_options.hstore_columns[i] %
+            for (const auto& hstore_column: table_options.hstore_columns) {
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX \"%1%_hstore_%2%_index\" ON %1% USING GIN (\"%2%\") %3%") % name % hstore_column %
                     (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
             }
         }
@@ -357,12 +360,11 @@ void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt
 void table_t::write_columns(const taglist_t &tags, string& values, std::vector<bool> *used)
 {
     //for each column
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-    {
+    for (const auto& column: columns) {
         int idx;
-        if ((idx = tags.indexof(column->first)) >= 0)
+        if ((idx = tags.indexof(column.first)) >= 0)
         {
-            escape_type(tags[idx].value, column->second, values);
+            escape_type(tags[idx].value, column.second, values);
             //remember we already used this one so we cant use again later in the hstore column
             if (used)
                 (*used)[idx] = true;
@@ -404,18 +406,17 @@ void table_t::write_tags_column(const taglist_t &tags, std::string& values,
 void table_t::write_hstore_columns(const taglist_t &tags, std::string& values)
 {
     //iterate over all configured hstore columns in the options
-    for(hstores_t::const_iterator hstore_column = table_options.hstore_columns.begin(); hstore_column != table_options.hstore_columns.end(); ++hstore_column)
-    {
+    for (const auto& hstore_column: table_options.hstore_columns) {
         bool added = false;
 
         //iterate through the list of tags, first one is always null
         for (taglist_t::const_iterator xtags = tags.begin(); xtags != tags.end(); ++xtags)
         {
             //check if the tag's key starts with the name of the hstore column
-            if(xtags->key.compare(0, hstore_column->size(), *hstore_column) == 0)
+            if(xtags->key.compare(0, hstore_column.size(), hstore_column) == 0)
             {
                 //generate the short key name, somehow pointer arithmetic works against the key string...
-                const char* shortkey = xtags->key.c_str() + hstore_column->size();
+                const char* shortkey = xtags->key.c_str() + hstore_column.size();
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "key"=>"value"
