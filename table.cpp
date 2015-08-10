@@ -15,12 +15,12 @@ typedef boost::format fmt;
 #define BUFFER_SEND_SIZE 1024
 
 
-table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
-    const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
-    append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
-    columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
+table_t::table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns,
+        const table_options_t& table_options,
+        const int srid, const bool append, const bool slim, const bool droptemp):
+    conninfo(conninfo), name(name), type(type), table_options(table_options),
+    sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
+    append(append), slim(slim), drop_temp(droptemp), columns(columns)
 {
     //if we dont have any columns
     if(columns.size() == 0)
@@ -36,10 +36,12 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 }
 
 table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
-    append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
-    columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
-    table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
+    conninfo(other.conninfo), name(other.name), type(other.type),
+    table_options(other.table_options), sql_conn(nullptr), copyMode(false),
+    buffer(), srid(other.srid), append(other.append), slim(other.slim),
+    drop_temp(other.drop_temp), columns(other.columns), copystr(other.copystr),
+    single_fmt(other.single_fmt), point_fmt(other.point_fmt),
+    del_fmt(other.del_fmt)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -127,11 +129,11 @@ void table_t::start()
             sql += (fmt("\"%1%\" %2%,") % column->first % column->second).str();
 
         //then with the hstore columns
-        for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
+        for(hstores_t::const_iterator hcolumn = table_options.hstore_columns.begin(); hcolumn != table_options.hstore_columns.end(); ++hcolumn)
             sql += (fmt("\"%1%\" hstore,") % (*hcolumn)).str();
 
         //add tags column
-        if (hstore_mode != HSTORE_NONE)
+        if (table_options.hstore_mode != HSTORE_NONE)
             sql += "\"tags\" hstore)";
         //or remove the last ", " from the end
         else
@@ -142,8 +144,8 @@ void table_t::start()
         // doesn't need to be RESET on these tables
         sql += " WITH ( autovacuum_enabled = FALSE )";
         //add the main table space
-        if (table_space)
-            sql += " TABLESPACE " + table_space.get();
+        if (table_options.tblsmain_data)
+            sql += " TABLESPACE " + table_options.tblsmain_data.get();
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
@@ -155,8 +157,8 @@ void table_t::start()
         //slim mode needs this to be able to apply diffs
         if (slim && !drop_temp) {
             sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
-            if (table_space_index)
-                sql += " TABLESPACE " + table_space_index.get();
+            if (table_options.tblsmain_index)
+                sql += " TABLESPACE " + table_options.tblsmain_index.get();
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
         }
 
@@ -193,11 +195,11 @@ void table_t::start()
         cols += (fmt("\"%1%\",") % column->first).str();
 
     //then with the hstore columns
-    for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
+    for(hstores_t::const_iterator hcolumn = table_options.hstore_columns.begin(); hcolumn != table_options.hstore_columns.end(); ++hcolumn)
         cols += (fmt("\"%1%\",") % (*hcolumn)).str();
 
     //add tags column and geom column
-    if (hstore_mode != HSTORE_NONE)
+    if (table_options.hstore_mode != HSTORE_NONE)
         cols += "tags,way";
     //or just the geom column
     else
@@ -221,7 +223,7 @@ void table_t::stop()
 
         // Special handling for empty geometries because geohash chokes on
         // empty geometries on postgis 1.5.
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END") % name % (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
         // Re-add constraints if on 1.x. 2.0 has typemod, and they automatically come with CREATE TABLE AS
@@ -232,25 +234,25 @@ void table_t::stop()
         // Use fillfactor 100 for un-updatable imports
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %1% USING GIST (way) %2% %3%") % name %
             (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
-            (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
 
         /* slim mode needs this to be able to apply diffs */
         if (slim && !drop_temp)
         {
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
-                (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+                (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
         }
         /* Create hstore index if selected */
-        if (enable_hstore_index) {
+        if (table_options.enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
-            if (hstore_mode != HSTORE_NONE) {
+            if (table_options.hstore_mode != HSTORE_NONE) {
                 pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %1% USING GIN (tags) %2%") % name %
-                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+                    (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
             }
-            for(size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %1% USING GIN (\"%3%\") %4%") % name % i % hstore_columns[i] %
-                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            for(size_t i = 0; i < table_options.hstore_columns.size(); ++i) {
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %1% USING GIN (\"%3%\") %4%") % name % i % table_options.hstore_columns[i] %
+                    (table_options.tblsmain_index ? "TABLESPACE " + table_options.tblsmain_index.get() : "")).str());
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
@@ -315,17 +317,17 @@ void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt
     // used to remember which columns have been written out already.
     std::vector<bool> used;
 
-    if (hstore_mode != HSTORE_NONE)
+    if (table_options.hstore_mode != HSTORE_NONE)
         used.assign(tags.size(), false);
 
     //get the regular columns' values
-    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:nullptr);
+    write_columns(tags, buffer, table_options.hstore_mode == HSTORE_NORM?&used:nullptr);
 
     //get the hstore columns' values
     write_hstore_columns(tags, buffer);
 
     //get the key value pairs for the tags column
-    if (hstore_mode != HSTORE_NONE)
+    if (table_options.hstore_mode != HSTORE_NONE)
         write_tags_column(tags, buffer, used);
 
     //give the wkt an srid
@@ -402,7 +404,7 @@ void table_t::write_tags_column(const taglist_t &tags, std::string& values,
 void table_t::write_hstore_columns(const taglist_t &tags, std::string& values)
 {
     //iterate over all configured hstore columns in the options
-    for(hstores_t::const_iterator hstore_column = hstore_columns.begin(); hstore_column != hstore_columns.end(); ++hstore_column)
+    for(hstores_t::const_iterator hstore_column = table_options.hstore_columns.begin(); hstore_column != table_options.hstore_columns.end(); ++hstore_column)
     {
         bool added = false;
 

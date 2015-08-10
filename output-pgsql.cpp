@@ -732,9 +732,9 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
-                m_options.database_options.conninfo(), name, type, columns, m_options.global_table_options.hstore_columns, SRID,
-                m_options.append, m_options.slim, m_options.droptemp, m_options.global_table_options.hstore_mode,
-                m_options.global_table_options.enable_hstore_index, m_options.global_table_options.tblsmain_data, m_options.global_table_options.tblsmain_index
+                m_options.database_options.conninfo(), name, type, columns,
+                m_options.global_table_options, SRID, m_options.append, m_options.slim,
+                m_options.droptemp
             )
         ));
     }
