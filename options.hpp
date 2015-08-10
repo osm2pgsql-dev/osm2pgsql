@@ -40,7 +40,9 @@ public:
  */
 struct options_t {
 public:
-  // fixme: bring back old comment
+    /**
+     * construct with sensible defaults
+     */
     options_t();
     /**
      * Parse the options from the command line
