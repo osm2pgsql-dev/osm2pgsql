@@ -48,8 +48,8 @@ int main(int argc, char *argv[]) {
         options.num_procs = 1;
         options.prefix = "osm2pgsql_test";
         options.style="tests/hstore-match-only.style";
-        options.hstore_match_only=1;
-        options.hstore_mode = HSTORE_NORM;
+        options.global_table_options.hstore_match_only=1;
+        options.global_table_options.hstore_mode = HSTORE_NORM;
         options.slim = 1;
 
         auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);

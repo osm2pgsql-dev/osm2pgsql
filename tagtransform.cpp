@@ -621,27 +621,27 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
         // if we didn't find any tags that we wanted to export
         // and we aren't strictly adhering to the list
         if (i == infos.size() && !strict) {
-            if (options->hstore_mode != HSTORE_NONE) {
+            if (options->global_table_options.hstore_mode != HSTORE_NONE) {
                 /* with hstore, copy all tags... */
                 out_tags.push_back(*item);
                 /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
-                if (!options->hstore_match_only && "osm_uid" != item->key
+                if (!options->global_table_options.hstore_match_only && "osm_uid" != item->key
                         && "osm_user" != item->key
                         && "osm_timestamp" != item->key
                         && "osm_version" != item->key
                         && "osm_changeset" != item->key)
                     filter = 0;
-            } else if (options->hstore_columns.size() > 0) {
+            } else if (options->global_table_options.hstore_columns.size() > 0) {
                 /* does this column match any of the hstore column prefixes? */
                 size_t j = 0;
-                for(; j < options->hstore_columns.size(); ++j) {
-                    size_t pos = item->key.find(options->hstore_columns[j]);
+                for(; j < options->global_table_options.hstore_columns.size(); ++j) {
+                    size_t pos = item->key.find(options->global_table_options.hstore_columns[j]);
                     if (pos == 0) {
                         out_tags.push_back(*item);
                         /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
-                        if (!options->hstore_match_only
+                        if (!options->global_table_options.hstore_match_only
                                 && "osm_uid" != item->key
                                 && "osm_user" != item->key
                                 && "osm_timestamp" != item->key
