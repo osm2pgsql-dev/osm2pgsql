@@ -724,9 +724,6 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
                 util::exit_nicely();
         }
 
-        //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
-        //options object because we want to make use of the table_t in output_mutli_t which could
-        //have a different tablespace/hstores/etc per table
         m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
                 m_options.database_options.conninfo(), name, type, columns,
