@@ -81,7 +81,6 @@ protected:
 
     geometry_builder builder;
 
-    std::shared_ptr<reprojection> reproj;
     std::shared_ptr<expire_tiles> expire;
 
     std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;

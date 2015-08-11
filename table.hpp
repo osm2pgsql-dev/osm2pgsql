@@ -20,10 +20,14 @@ typedef std::vector<std::pair<std::string, std::string> > columns_t;
 class table_t
 {
     public:
+        /**
+         * Sets up a new table, creating it if in --create.
+         * It takes in both options and table_options because in the multi
+         * backend there can be differences
+         */
         table_t(const std::string& conninfo, const std::string& name,
                 const std::string& type, const columns_t& columns,
-                const table_options_t& table_options,
-                const int srid, const bool append, const bool slim, const bool droptemp);
+                const table_options_t& table_options, const options_t& options);
         table_t(const table_t& other);
         ~table_t();
 

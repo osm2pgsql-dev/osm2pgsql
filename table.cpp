@@ -16,11 +16,10 @@ typedef boost::format fmt;
 
 
 table_t::table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns,
-        const table_options_t& table_options,
-        const int srid, const bool append, const bool slim, const bool droptemp):
+        const table_options_t& table_options, const options_t& options):
     conninfo(conninfo), name(name), type(type), table_options(table_options),
-    sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
-    append(append), slim(slim), drop_temp(droptemp), columns(columns)
+    sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % options.projection->project_getprojinfo()->srs).str()),
+    append(options.append), slim(options.slim), drop_temp(options.droptemp), columns(columns)
 {
     //if we dont have any columns
     if(columns.size() == 0)

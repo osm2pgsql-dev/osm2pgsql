@@ -23,8 +23,7 @@ output_multi_t::output_multi_t(const std::string &name,
       m_osm_type(m_processor->interests(geometry_processor::interest_node) ? OSMTYPE_NODE : OSMTYPE_WAY),
       m_table(new table_t(m_options.database_options.conninfo(), name,
                           m_processor->column_type(), m_export_list->normal_columns(m_osm_type),
-                          m_options.global_table_options, m_processor->srid(),
-                          m_options.append, m_options.slim, m_options.droptemp)),
+                          m_options.global_table_options, m_options)),
       ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
       m_expire(new expire_tiles(&m_options)) {
 }
