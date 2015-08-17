@@ -45,7 +45,7 @@ class elem_cache_t
         return id & (per_block()-1);
     }
 
-    typedef cache_block_t<T, per_block()> element_t;
+    typedef cache_block_t<T, 1 << BLOCK_SHIFT> element_t;
     std::vector<std::unique_ptr<element_t>> arr;
 public:
     elem_cache_t() : arr(num_blocks()) {}
