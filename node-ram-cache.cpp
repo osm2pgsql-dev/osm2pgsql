@@ -54,7 +54,7 @@
 
 
 
-#define BLOCK_SHIFT 10
+#define BLOCK_SHIFT 13
 #define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
 #define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
