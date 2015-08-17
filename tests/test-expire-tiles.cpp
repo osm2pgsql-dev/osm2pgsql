@@ -1,6 +1,7 @@
 #include "expire-tiles.hpp"
 #include "options.hpp"
 
+#include <iterator>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
