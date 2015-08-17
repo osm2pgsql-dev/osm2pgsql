@@ -96,7 +96,11 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     src = &tags;
 
     for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
-        if (item->key == "name:prefix") {
+        if (boost::ends_with(item->key, "source")) {
+            // ignore
+        } else if (item->key == "name:prefix" ||
+                   item->key == "name:botanical" ||
+                   boost::ends_with(item->key, "wikidata")) {
             extratags.push_back(&*item);
         } else if (item->key == "ref" ||
                    item->key == "int_ref" ||
@@ -158,7 +162,11 @@ void place_tag_processor::process_tags(const taglist_t &tags)
             else
                 landuse = &*item;
         } else if (item->key == "highway") {
-            if (item->value != "no" &&
+            if (item->value == "footway") {
+                auto *footway = tags.get("footway");
+                if (footway == nullptr || *footway != "sidewalk")
+                    places.push_back(*item);
+            } else if (item->value != "no" &&
                 item->value != "turning_circle" &&
                 item->value != "mini_roundabout" &&
                 item->value != "noexit" &&
