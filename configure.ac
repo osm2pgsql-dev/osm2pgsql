@@ -70,14 +70,6 @@ then
   AC_MSG_ERROR([required library not found]);
 fi
 
-dnl Check for protobuf library and protoc binary
-PKG_CHECK_MODULES(PROTOBUF, protobuf-lite >= 2.4.0,
-   [ AC_CHECK_PROG([PROTOC], [protoc], [protoc])
-     AS_IF([test "x${PROTOC}" == "x"],
-           [AC_MSG_ERROR([protoc compiler not found.])])
-   ], [AC_MSG_ERROR([protobuf development libraries not found.])]
-)
-
 dnl Check for PostgresSQL client library
 AX_LIB_POSTGRESQL
 if test "x$POSTGRESQL_VERSION" = "x"

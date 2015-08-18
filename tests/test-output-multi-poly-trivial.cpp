@@ -38,7 +38,7 @@ void run_osm2pgsql(options_t &options) {
 
   osmdata.start();
 
-  parser.stream_file("libxml2", "tests/test_output_multi_poly_trivial.osm", &osmdata);
+  parser.stream_file("xml", "tests/test_output_multi_poly_trivial.osm", &osmdata);
 
   osmdata.stop();
 }

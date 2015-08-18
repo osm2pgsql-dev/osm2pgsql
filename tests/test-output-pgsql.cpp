@@ -200,7 +200,7 @@ void test_area_way_simple() {
 
     osmdata.start();
 
-    parser->stream_file("libxml2", "tests/test_output_pgsql_way_area.osm", &osmdata);
+    parser->stream_file("xml", "tests/test_output_pgsql_way_area.osm", &osmdata);
 
     parser.reset(nullptr);
 
@@ -246,7 +246,7 @@ void test_route_rel() {
 
     osmdata.start();
 
-    parser->stream_file("libxml2", "tests/test_output_pgsql_route_rel.osm", &osmdata);
+    parser->stream_file("xml", "tests/test_output_pgsql_route_rel.osm", &osmdata);
 
     parser.reset(nullptr);
 

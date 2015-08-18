@@ -33,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <functional>
 #include <limits>
 
 namespace osmium {
@@ -115,8 +114,6 @@ namespace osmium {
         }
 
     };
-
-
 
 } // namespace osmium
 

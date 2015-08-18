@@ -39,10 +39,9 @@ DEALINGS IN THE SOFTWARE.
 #include <limits>
 #include <stdexcept>
 #include <string>
-#include <time.h>
 
 #include <osmium/util/compatibility.hpp>
-#include <osmium/util/minmax.hpp>
+#include <osmium/util/minmax.hpp> // IWYU pragma: keep
 
 namespace osmium {
 

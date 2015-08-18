@@ -33,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <cstdint>
 #include <cstring>
 
 #include <osmium/memory/collection.hpp>

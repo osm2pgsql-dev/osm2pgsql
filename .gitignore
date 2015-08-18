@@ -20,13 +20,6 @@ missing
 nodecachefilereader
 osm2pgsql
 
-contrib/protobuf/osmpbf/fileformat.pb.h
-contrib/protobuf/osmpbf/osmformat.pb.h
-fileformat.pb.cc
-fileformat.pb.h
-osmformat.pb.cc
-osmformat.pb.h
-
 Makefile
 config.h
 config.log

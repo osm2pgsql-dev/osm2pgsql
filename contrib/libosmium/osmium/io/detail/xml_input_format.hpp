@@ -192,6 +192,8 @@ namespace osmium {
 
                 std::atomic<bool>& m_done;
 
+                bool m_header_is_done;
+
                 /**
                  * A C++ wrapper for the Expat parser that makes sure no memory is leaked.
                  */
@@ -247,16 +249,25 @@ namespace osmium {
 
                     T& m_data;
                     std::promise<T>& m_promise;
+                    bool m_done;
 
                 public:
 
                     PromiseKeeper(T& data, std::promise<T>& promise) :
                         m_data(data),
-                        m_promise(promise) {
+                        m_promise(promise),
+                        m_done(false) {
+                    }
+
+                    void fullfill_promise() {
+                        if (!m_done) {
+                            m_promise.set_value(m_data);
+                            m_done = true;
+                        }
                     }
 
                     ~PromiseKeeper() {
-                        m_promise.set_value(m_data);
+                        fullfill_promise();
                     }
 
                 }; // class PromiseKeeper
@@ -280,7 +291,8 @@ namespace osmium {
                     m_queue(queue),
                     m_header_promise(header_promise),
                     m_read_types(read_types),
-                    m_done(done) {
+                    m_done(done),
+                    m_header_is_done(false) {
                 }
 
                 /**
@@ -306,7 +318,8 @@ namespace osmium {
                     m_queue(other.m_queue),
                     m_header_promise(other.m_header_promise),
                     m_read_types(other.m_read_types),
-                    m_done(other.m_done) {
+                    m_done(other.m_done),
+                    m_header_is_done(other.m_header_is_done) {
                 }
 
                 XMLParser(XMLParser&&) = default;
@@ -327,6 +340,9 @@ namespace osmium {
                         last = data.empty();
                         try {
                             parser(data, last);
+                            if (m_header_is_done) {
+                                promise_keeper.fullfill_promise();
+                            }
                         } catch (ParserIsDone&) {
                             return true;
                         } catch (...) {
@@ -420,6 +436,7 @@ namespace osmium {
                 }
 
                 void header_is_done() {
+                    m_header_is_done = true;
                     if (m_read_types == osmium::osm_entity_bits::nothing) {
                         throw ParserIsDone();
                     }
@@ -721,10 +738,15 @@ namespace osmium {
 
             namespace {
 
+// we want the register_input_format() function to run, setting the variable
+// is only a side-effect, it will never be used
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
                 const bool registered_xml_input = osmium::io::detail::InputFormatFactory::instance().register_input_format(osmium::io::file_format::xml,
                     [](const osmium::io::File& file, osmium::osm_entity_bits::type read_which_entities, osmium::thread::Queue<std::string>& input_queue) {
                         return new osmium::io::detail::XMLInputFormat(file, read_which_entities, input_queue);
                 });
+#pragma GCC diagnostic pop
 
             } // anonymous namespace
 

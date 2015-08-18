@@ -9,8 +9,6 @@ addons:
     - g++-4.8
     - libtool
     - libexpat1-dev
-    - libprotobuf-dev
-    - protobuf-compiler
     - libgeos-dev
     - libgeos++-dev
     - libpq-dev
@@ -35,7 +33,7 @@ matrix:
       env: BUILDCXXFLAGS='-pedantic -Wall -std=c++11'
 before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-      brew install protobuf lua;
+      brew install lua;
     fi
 # update versions
 install:

@@ -34,6 +34,7 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <cerrno>
+#include <cstddef>
 #include <cstdio>
 #include <system_error>
 #include <sys/stat.h>

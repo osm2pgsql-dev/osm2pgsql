@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 
         osmdata.start();
 
-        parser.stream_file("libxml2", "tests/test_output_multi_tags.osm", &osmdata);
+        parser.stream_file("xml", "tests/test_output_multi_tags.osm", &osmdata);
 
         osmdata.stop();
 
