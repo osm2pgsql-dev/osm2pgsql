@@ -26,8 +26,17 @@ matrix:
   include:
     - os: linux
       compiler: clang
+      env: BUILDCXXFLAGS='-Werror -pedantic -Wall -std=c++11'
     - os: linux
       compiler: gcc
+      env: BUILDCXXFLAGS='-Werror -pedantic -Wall -std=c++11'
+    - os: osx
+      compiler: clang
+      env: BUILDCXXFLAGS='-pedantic -Wall -std=c++11'
+before_install:
+  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
+      brew install protobuf lua;
+    fi
 # update versions
 install:
   - if [[ $CC == 'gcc' ]]; then
@@ -44,8 +53,10 @@ before_script:
   - proj | head -n1
   - lua -v
 script:
-  ./autogen.sh && ./configure && make -j2 check TESTS='' CXXFLAGS="-Werror -pedantic -Wall -std=c++11"
+  - ./autogen.sh
+  - ./configure
+  - make -j2 check TESTS='' CXXFLAGS="$BUILDCXXFLAGS"
 after_failure:
   - cat config.log
   # rerun make, but verbosely
-  - make check TESTS='' V=1 CXXFLAGS="-Werror -pedantic -Wall -std=c++11"
+  - make check TESTS='' V=1 CXXFLAGS="$BUILDCXXFLAGS"
