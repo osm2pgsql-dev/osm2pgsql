@@ -537,11 +537,10 @@ node_persistent_cache::node_persistent_cache(const options_t *options, bool appe
 
         if (!read_mode)
         {
-            int err;
             #ifdef HAVE_POSIX_FALLOCATE
+            int err;
             if ((err = posix_fallocate(node_cache_fd, 0,
-                    sizeof(ramNode) * MAXIMUM_INITIAL_ID)) != 0)
-            {
+                    sizeof(ramNode) * MAXIMUM_INITIAL_ID)) != 0) {
                 if (err == ENOSPC) {
                     fprintf(stderr, "Failed to allocate space for node cache file: No space on disk\n");
                 } else if (err == EFBIG) {
@@ -555,6 +554,7 @@ node_persistent_cache::node_persistent_cache(const options_t *options, bool appe
             }
             fprintf(stderr, "Allocated space for persistent node cache file\n");
             #endif
+
             writeNodeBlock.nodes = new ramNode[WRITE_NODE_BLOCK_SIZE];
             if (!writeNodeBlock.nodes) {
                 fprintf(stderr, "Out of memory: Failed to allocate node writeout buffer\n");
