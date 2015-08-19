@@ -42,6 +42,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/location.hpp>
+#include <osmium/osm/node_ref.hpp>
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/tag.hpp>
 #include <osmium/osm/way.hpp>

@@ -83,7 +83,7 @@ void test_other_output_schema() {
 
     osmdata.start();
 
-    parser->stream_file("libxml2", "tests/test_output_pgsql_z_order.osm", &osmdata);
+    parser->stream_file("xml", "tests/test_output_pgsql_z_order.osm", &osmdata);
 
     parser.reset(nullptr);
 

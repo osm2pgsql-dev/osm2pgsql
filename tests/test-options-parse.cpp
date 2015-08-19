@@ -257,7 +257,7 @@ void test_random_perms()
 
         add_arg_and_val_or_not("--prefix", args, options.prefix.c_str(), get_random_string(15));
 
-        //--input-reader    Input frontend. libxml2   - Parse XML using libxml2. (default) primitive - Primitive XML parsing. pbf       - OSM binary format.
+        //--input-reader    Input frontend. auto, o5m, xml, pbf
 
         if (options.tag_transform_script) {
             add_arg_and_val_or_not("--tag-transform-script", args, options.tag_transform_script->c_str(), get_random_string(15));

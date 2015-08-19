@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_DETAIL_PBF_HPP
-#define OSMIUM_IO_DETAIL_PBF_HPP
+#ifndef OSMIUM_UTIL_ENDIAN_HPP
+#define OSMIUM_UTIL_ENDIAN_HPP
 
 /*
 
@@ -33,56 +33,13 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <string>
-
-// needed for htonl and ntohl
-#ifndef _WIN32
-# include <netinet/in.h>
+// Windows is only available for little endian architectures
+// http://stackoverflow.com/questions/6449468/can-i-safely-assume-that-windows-installations-will-always-be-little-endian
+#if !defined(_WIN32) && !defined(__APPLE__)
+# include <endian.h>
 #else
-# include <winsock2.h>
+# define __LITTLE_ENDIAN 1234
+# define __BYTE_ORDER __LITTLE_ENDIAN
 #endif
 
-#include <osmium/io/error.hpp>
-#include <osmium/osm/location.hpp>
-
-namespace osmium {
-
-    /**
-     * Exception thrown when there was a problem with parsing the PBF format of
-     * a file.
-     */
-    struct pbf_error : public io_error {
-
-        pbf_error(const std::string& what) :
-            io_error(std::string("PBF error: ") + what) {
-        }
-
-        pbf_error(const char* what) :
-            io_error(std::string("PBF error: ") + what) {
-        }
-
-    }; // struct pbf_error
-
-    namespace io {
-
-        namespace detail {
-
-            // the maximum size of a blob header in bytes
-            const int max_blob_header_size = 64 * 1024; // 64 kB
-
-            // the maximum size of an uncompressed blob in bytes
-            const uint64_t max_uncompressed_blob_size = 32 * 1024 * 1024; // 32 MB
-
-            // resolution for longitude/latitude used for conversion
-            // between representation as double and as int
-            const int64_t lonlat_resolution = 1000 * 1000 * 1000;
-
-            const int64_t resolution_convert = lonlat_resolution / osmium::Location::coordinate_precision;
-
-        }
-
-    }
-
-} // namespace osmium
-
-#endif // OSMIUM_IO_DETAIL_PBF_HPP
+#endif // OSMIUM_UTIL_ENDIAN_HPP

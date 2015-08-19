@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <iterator>
+#include <type_traits>
 #include <utility>
 
 namespace osmium {
@@ -49,8 +51,8 @@ namespace osmium {
 
         public:
 
-            DeltaEncode() :
-                m_value(0) {
+            DeltaEncode(T value = 0) :
+                m_value(value) {
             }
 
             void clear() {
@@ -89,6 +91,54 @@ namespace osmium {
             }
 
         }; // class DeltaDecode
+
+        template <typename TBaseIterator, typename TTransform, typename TValue>
+        class DeltaEncodeIterator : public std::iterator<std::input_iterator_tag, TValue> {
+
+            typedef TValue value_type;
+
+            TBaseIterator m_it;
+            TBaseIterator m_end;
+            value_type m_delta;
+            DeltaEncode<value_type> m_value;
+            TTransform m_trans;
+
+        public:
+
+            DeltaEncodeIterator(TBaseIterator first, TBaseIterator last, TTransform& trans) :
+                m_it(first),
+                m_end(last),
+                m_delta(m_trans(m_it)),
+                m_value(m_delta),
+                m_trans(trans) {
+            }
+
+            DeltaEncodeIterator& operator++() {
+                if (m_it != m_end) {
+                    m_delta = m_value.update(m_trans(++m_it));
+                }
+                return *this;
+            }
+
+            DeltaEncodeIterator operator++(int) {
+                DeltaEncodeIterator tmp(*this);
+                operator++();
+                return tmp;
+            }
+
+            value_type operator*() {
+                return m_delta;
+            }
+
+            bool operator==(const DeltaEncodeIterator& rhs) const {
+                return m_it == rhs.m_it && m_end == rhs.m_end;
+            }
+
+            bool operator!=(const DeltaEncodeIterator& rhs) const {
+                return !(*this == rhs);
+            }
+
+        }; // class DeltaEncodeIterator
 
     } // namespace util
 

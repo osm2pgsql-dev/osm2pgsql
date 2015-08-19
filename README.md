@@ -35,7 +35,6 @@ to configure and build itself and requires
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
-* [Protocol Buffers](https://developers.google.com/protocol-buffers/)
 * [PostgreSQL](http://www.postgresql.org/) client libraries
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
 
@@ -52,7 +51,7 @@ To install on a Debian or Ubuntu system, first install the prerequisites:
 sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
   libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
   libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev zlib1g-dev \
-  protobuf-compiler libprotobuf-dev lua5.2 liblua5.2-dev
+  lua5.2 liblua5.2-dev
 ```
 
 To install on a Fedora system, use
@@ -60,7 +59,7 @@ To install on a Fedora system, use
 ```sh
 sudo yum install gcc-c++ automake libtool pkgconfig boost-devel \
   expat-devel bzip2-devel postgresql-devel geos-devel proj-devel \
-  lua-devel protobuf-devel protobuf-lite-devel
+  lua-devel
 ```
 
 To install on a FreeBSD system, use
@@ -68,7 +67,7 @@ To install on a FreeBSD system, use
 ```sh
 pkg install devel/git devel/autoconf devel/automake devel/gmake devel/libtool \
   textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client \
-  devel/boost-libs devel/protobuf lang/lua52 devel/pkgconf
+  devel/boost-libs lang/lua52 devel/pkgconf
 ```
 
 Then you should be able to bootstrap the build system:

@@ -37,7 +37,6 @@ DEALINGS IN THE SOFTWARE.
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <exception>
 #include <functional>
 #include <iterator>
 #include <stdexcept>

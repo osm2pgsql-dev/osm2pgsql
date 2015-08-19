@@ -41,9 +41,7 @@ DEALINGS IN THE SOFTWARE.
 #include <queue>
 #include <string>
 #include <thread>
-#include <utility>
-
-#include <osmium/util/compatibility.hpp>
+#include <utility> // IWYU pragma: keep (for std::move)
 
 namespace osmium {
 

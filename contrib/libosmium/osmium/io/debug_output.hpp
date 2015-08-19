@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_DETAIL_PBF_TYPE_CONV_HPP
-#define OSMIUM_IO_DETAIL_PBF_TYPE_CONV_HPP
+#ifndef OSMIUM_IO_DEBUG_OUTPUT_HPP
+#define OSMIUM_IO_DEBUG_OUTPUT_HPP
 
 /*
 
@@ -33,41 +33,7 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmpbf/osmpbf.h>
+#include <osmium/io/writer.hpp> // IWYU pragma: export
+#include <osmium/io/detail/debug_output_format.hpp> // IWYU pragma: export
 
-#include <osmium/osm/item_type.hpp>
-
-namespace osmium {
-
-// avoid g++ false positive
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
-    inline item_type osmpbf_membertype_to_item_type(const OSMPBF::Relation::MemberType mt) {
-        switch (mt) {
-            case OSMPBF::Relation::NODE:
-                return item_type::node;
-            case OSMPBF::Relation::WAY:
-                return item_type::way;
-            case OSMPBF::Relation::RELATION:
-                return item_type::relation;
-        }
-    }
-#pragma GCC diagnostic pop
-
-    inline OSMPBF::Relation::MemberType item_type_to_osmpbf_membertype(const item_type type) {
-        switch (type) {
-            case item_type::node:
-                return OSMPBF::Relation::NODE;
-            case item_type::way:
-                return OSMPBF::Relation::WAY;
-            case item_type::relation:
-                return OSMPBF::Relation::RELATION;
-            default:
-                throw std::runtime_error("Unknown relation member type");
-        }
-    }
-
-
-} // namespace osmium
-
-#endif // OSMIUM_IO_DETAIL_PBF_TYPE_CONV_HPP
+#endif // OSMIUM_IO_DEBUG_OUTPUT_HPP
