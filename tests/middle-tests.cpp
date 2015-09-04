@@ -9,7 +9,7 @@
 #include "osmtypes.hpp"
 #include "tests/middle-tests.hpp"
 
-#define BLOCK_SHIFT 10
+#define BLOCK_SHIFT 13
 #define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
 
 struct expected_node {
