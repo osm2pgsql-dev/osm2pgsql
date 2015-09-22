@@ -90,6 +90,7 @@ void test_z_order() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(0, "SELECT COUNT(*) FROM osm2pgsql_test_polygon WHERE NOT ST_IsValid(way)");
+    db->check_count(0, "SELECT COUNT(*) FROM osm2pgsql_test_polygon WHERE ST_IsEmpty(way)");
 }
 
 } // anonymous namespace

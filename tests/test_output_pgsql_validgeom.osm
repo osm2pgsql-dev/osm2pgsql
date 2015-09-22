@@ -1,5 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="CGImap 0.4.0 (1701 thorn-02.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id="2659775198" visible="true" lat="51.7084540" lon="-113.2670930"/>
+ <node id="2659775222" visible="true" lat="51.7080945" lon="-113.2671020"/>
+ <node id="2659775225" visible="true" lat="51.7080114" lon="-113.2672826"/>
+ <node id="2659775227" visible="true" lat="51.7080129" lon="-113.2669508"/>
+ <node id="2659775229" visible="true" lat="51.7078990" lon="-113.2669494"/>
+ <node id="2659775231" visible="true" lat="51.7078968" lon="-113.2674229"/>
+ <node id="2659775233" visible="true" lat="51.7080869" lon="-113.2674252"/>
+ <node id="2659775240" visible="true" lat="51.7079749" lon="-113.2677588"/>
+ <node id="2659775242" visible="true" lat="51.7079746" lon="-113.2676063"/>
+ <node id="2659775244" visible="true" lat="51.7076598" lon="-113.2676078"/>
+ <node id="2659775411" visible="true" lat="51.7080661" lon="-113.2672880"/>
+ <node id="2659775461" visible="true" lat="51.7080689" lon="-113.2671023"/>
+ <node id="2659775462" visible="true" lat="51.7079742" lon="-113.2678325"/>
+ <node id="2659775464" visible="true" lat="51.7076402" lon="-113.2667319"/>
+ <node id="2659775466" visible="true" lat="51.7080125" lon="-113.2667340"/>
+ <node id="2659775468" visible="true" lat="51.7080125" lon="-113.2665246"/>
+ <node id="2659775472" visible="true" lat="51.7084410" lon="-113.2661419"/>
+ <node id="2659775475" visible="true" lat="51.7084010" lon="-113.2664730"/>
+ <node id="2659775477" visible="true" lat="51.7083981" lon="-113.2670147"/>
+ <node id="2659775479" visible="true" lat="51.7084326" lon="-113.2671126"/>
+ <node id="2659775481" visible="true" lat="51.7084401" lon="-113.2664240"/>
+ <node id="2659775470" visible="true" lat="51.7080721" lon="-113.2664637"/>
+ <node id="2659775474" visible="true" lat="51.7080732" lon="-113.2661178"/>
+ <node id="2659775413" visible="true" lat="51.7080712" lon="-113.2676946"/>
+ <node id="2659775440" visible="true" lat="51.7080743" lon="-113.2678341"/>
  <node id="3357025788" visible="true" lat="54.1141803" lon="-3.2313862"/>
  <node id="3357025789" visible="true" lat="54.1140676" lon="-3.2312034"/>
  <node id="3357025790" visible="true" lat="54.1139595" lon="-3.2313974"/>
@@ -43,6 +68,36 @@
  <node id="3357025928" visible="true" lat="54.1139153" lon="-3.2313655"/>
  <node id="3357025929" visible="true" lat="54.1139183" lon="-3.2314504"/>
  <node id="3357025930" visible="true" lat="54.1139960" lon="-3.2315802"/>
+ <way id="260490104" visible="true" uid="1820014">
+  <nd ref="2659775198"/>
+  <nd ref="2659775479"/>
+  <nd ref="2659775222"/>
+  <nd ref="2659775461"/>
+  <nd ref="2659775411"/>
+  <nd ref="2659775225"/>
+  <nd ref="2659775227"/>
+  <nd ref="2659775229"/>
+  <nd ref="2659775231"/>
+  <nd ref="2659775233"/>
+  <nd ref="2659775413"/>
+  <nd ref="2659775440"/>
+  <nd ref="2659775462"/>
+  <nd ref="2659775240"/>
+  <nd ref="2659775242"/>
+  <nd ref="2659775244"/>
+  <nd ref="2659775464"/>
+  <nd ref="2659775466"/>
+  <nd ref="2659775468"/>
+  <nd ref="2659775470"/>
+  <nd ref="2659775474"/>
+  <nd ref="2659775472"/>
+  <nd ref="2659775481"/>
+  <nd ref="2659775475"/>
+  <nd ref="2659775477"/>
+  <nd ref="2659775479"/>
+  <nd ref="2659775198"/>
+  <tag k="landuse" v="grass"/>
+ </way>
  <way id="328880342" visible="true" version="1" changeset="28922079" >
   <nd ref="3357025791"/>
   <nd ref="3357025788"/>
