@@ -678,6 +678,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
+    if (m_options.reproject_area) builder.set_reprojection(reproj.get());
 
     m_export_list.reset(new export_list());
 
@@ -747,6 +748,7 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
+    if (m_options.reproject_area) builder.set_reprojection(reproj.get());
     for(std::vector<std::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
         //copy constructor will just connect to the already there table
         m_tables.push_back(std::shared_ptr<table_t>(new table_t(**t)));

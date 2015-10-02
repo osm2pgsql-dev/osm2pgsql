@@ -38,7 +38,6 @@
 #include <geos/geom/Coordinate.h>
 #include <geos/geom/CoordinateSequence.h>
 #include <geos/geom/CoordinateSequenceFactory.h>
-#include <geos/geom/Geometry.h>
 #include <geos/geom/GeometryCollection.h>
 #include <geos/geom/LineString.h>
 #include <geos/geom/LinearRing.h>
@@ -112,7 +111,7 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
                 }
             }
             geom->normalize(); // Fix direction of ring
-            wkt->area = geom->getArea();
+            wkt->area = getArea(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
@@ -171,7 +170,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
             wkts->push_back(geometry_builder::wkt_t());
             //then we set on the one we already have
             wkts->back().geom = writer.write(geom.get());
-            wkts->back().area = geom->getArea();
+            wkts->back().area = getArea(geom.get());
 
         } else {
             if (coords->getSize() < 2)
@@ -355,7 +354,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             {
                 polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
                 polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
+                polys[totalpolys].area = getArea(polys[totalpolys].polygon);
                 polys[totalpolys].iscontained = 0;
                 polys[totalpolys].containedbyid = 0;
                 if (polys[totalpolys].area > 0.0)
@@ -445,7 +444,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                     wkts->push_back(geometry_builder::wkt_t());
                     //then we set on the one we already have
                     wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                    wkts->back().area = getArea(multipoly.get());
                 }
             }
             else
@@ -463,7 +462,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         wkts->push_back(geometry_builder::wkt_t());
                         //then we set on the one we already have
                         wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                        wkts->back().area = getArea(poly);
                     }
                     delete(poly);
                 }
@@ -577,7 +576,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             {
                 polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
                 polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
+                polys[totalpolys].area = getArea(polys[totalpolys].polygon);
                 polys[totalpolys].iscontained = 0;
                 polys[totalpolys].containedbyid = 0;
                 if (polys[totalpolys].area > 0.0)
@@ -713,7 +712,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                     wkts->push_back(geometry_builder::wkt_t());
                     //then we set on the one we already have
                     wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                    wkts->back().area = getArea(multipoly.get());
                 }
             }
             else
@@ -731,7 +730,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         wkts->push_back(geometry_builder::wkt_t());
                         //then we set on the one we already have
                         wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                        wkts->back().area = getArea(poly);
                     }
                     delete(poly);
                 }
@@ -760,8 +759,75 @@ void geometry_builder::set_exclude_broken_polygon(int exclude)
     excludepoly = exclude;
 }
 
+void geometry_builder::set_reprojection(struct reprojection *r)
+{
+    reprojection = r;
+}
+
+/** 
+ * Computes area of given polygonal geometry.
+ * Returns 
+ * - the standard GEOS getArea result if area reprojection has not been enabled
+ * - the GEOS getArea resolt of this geometry projected to EPSG:3857 if reprojection has been enabled
+ */
+double geometry_builder::getArea(const geos::geom::Geometry *geom) const
+{
+    // reprojection is not necessary, or has not been asked for.
+    if (!reprojection)
+    {
+        return geom->getArea();
+    }
+
+    // MultiPolygon - return sum of individual areas
+    if (const geos::geom::MultiPolygon* multi = dynamic_cast<const geos::geom::MultiPolygon *>(geom))
+    {
+        double area = 0.0;
+        for (std::size_t i=0; i<multi->getNumGeometries(); i++)
+        {
+            area += getArea(multi->getGeometryN(i));
+        }
+        return area;
+    }
+
+    const geos::geom::Polygon *poly = dynamic_cast<const geos::geom::Polygon *>(geom);
+    if (!poly) return 0.0;
+
+    // standard polygon - reproject, then compute area of outer - areas of holes
+
+    const geos::geom::LineString* ext = poly->getExteriorRing();
+    geos::geom::LinearRing* projectedExt = reproject_linearring(ext);
+    std::size_t nholes = poly->getNumInteriorRing();
+    std::vector<geos::geom::Geometry *> *projectedHoles = new std::vector<geos::geom::Geometry *>(nholes);
+    for (std::size_t i=0; i< poly->getNumInteriorRing(); i++)
+    {
+        const geos::geom::LineString* hole = poly->getInteriorRingN(i);
+        (*projectedHoles)[i] = reproject_linearring(hole);
+    }
+    const geos::geom::Polygon *projectedPoly = poly->getFactory()->createPolygon(projectedExt, projectedHoles);
+    
+    double area = projectedPoly->getArea();
+    delete projectedPoly; 
+    return area;
+}
+
+/**
+ * Reprojects given Linear Ring from target projection to spherical mercator.
+ * Caller takes ownership of return value.
+ */
+geos::geom::LinearRing* geometry_builder::reproject_linearring(const geos::geom::LineString *ls) const
+{
+    std::vector<geos::geom::Coordinate> *projectedCoords = new std::vector<geos::geom::Coordinate>();
+    for(auto i: *(ls->getCoordinatesRO()->toVector()))
+    {
+        Coordinate c(i.x, i.y);
+        reprojection->target_to_tile(&c.y, &c.x);
+        projectedCoords->push_back(c);
+    }
+    return ls->getFactory()->createLinearRing(ls->getFactory()->getCoordinateSequenceFactory()->create(projectedCoords));
+}
+
 geometry_builder::geometry_builder()
-    : excludepoly(false) {
+    : excludepoly(false), reprojection(nullptr) {
 }
 
 geometry_builder::~geometry_builder() {

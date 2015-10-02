@@ -24,11 +24,14 @@
 #define GEOMETRY_BUILDER_H
 
 #include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 #include <vector>
 #include <string>
 #include <memory>
 #include <boost/noncopyable.hpp>
+#include <geos/geom/Geometry.h>
+#include <geos/geom/LinearRing.h>
 
 struct geometry_builder : public boost::noncopyable
 {
@@ -57,9 +60,14 @@ struct geometry_builder : public boost::noncopyable
     maybe_wkt_t build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const;
 
     void set_exclude_broken_polygon(int exclude);
+    void set_reprojection(struct reprojection *r);
+    double getArea(const geos::geom::Geometry *geom) const;
 
 private:
     bool excludepoly;
+    struct reprojection *reprojection;
+    geos::geom::LinearRing* reproject_linearring(const geos::geom::LineString *ls) const;
+
 };
 
 #endif

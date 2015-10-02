@@ -75,6 +75,7 @@ public:
     bool hstore_match_only; ///< only copy rows that match an explicitly listed key
     bool flat_node_cache_enabled;
     bool excludepoly;
+    bool reproject_area;
     boost::optional<std::string> flat_node_file;
     /**
      * these options allow you to control the name of the
