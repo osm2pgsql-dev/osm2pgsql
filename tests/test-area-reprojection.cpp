@@ -68,8 +68,12 @@ void test_area_base(bool latlon, bool reproj, double expect_area) {
     options.num_procs = 1;
     options.style = "default.style";
     options.prefix = "osm2pgsql_test";
-    if (latlon) options.projection.reset(new reprojection(PROJ_LATLONG));
-    if (reproj) options.reproject_area = true;
+    if (latlon) {
+        options.projection.reset(new reprojection(PROJ_LATLONG));
+    }
+    if (reproj) {
+        options.reproject_area = true;
+    }
     options.scale = latlon ? 10000000 : 100;
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
@@ -111,4 +115,3 @@ int main(int argc, char *argv[]) {
     RUN_TEST(test_area_latlon_with_reprojection);
     return 0;
 }
-

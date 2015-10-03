@@ -1,16 +1,16 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <osm version="0.6" generator="Osmosis 0.43.1">
-  <node id="1" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="83.6397141" lon="0"/>
-  <node id="2" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="83.107486" lon="-0.1729314"/>
-  <node id="3" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="83.107486" lon="-0.7325491"/>
-  <node id="4" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="82.778551" lon="-0.2798088"/>
-  <node id="5" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="82.2463229" lon="-0.4527402"/>
-  <node id="6" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="82.575258" lon="0"/>
-  <node id="7" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="82.2463229" lon="0.4527402"/>
-  <node id="8" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="82.778551" lon="0.2798089"/>
-  <node id="9" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="83.107486" lon="0.7325491"/>
-  <node id="10" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1" lat="83.107486" lon="0.1729314"/>
-  <way id="1" version="1" timestamp="1980-01-01T00:00:00Z" uid="1" user="user" changeset="1">
+  <node id="1" version="1" lat="83.6397141" lon="0"/>
+  <node id="2" version="1" lat="83.107486" lon="-0.1729314"/>
+  <node id="3" version="1" lat="83.107486" lon="-0.7325491"/>
+  <node id="4" version="1" lat="82.778551" lon="-0.2798088"/>
+  <node id="5" version="1" lat="82.2463229" lon="-0.4527402"/>
+  <node id="6" version="1" lat="82.575258" lon="0"/>
+  <node id="7" version="1" lat="82.2463229" lon="0.4527402"/>
+  <node id="8" version="1" lat="82.778551" lon="0.2798089"/>
+  <node id="9" version="1" lat="83.107486" lon="0.7325491"/>
+  <node id="10" version="1" lat="83.107486" lon="0.1729314"/>
+  <way id="1" version="1">
     <nd ref="1"/>
     <nd ref="2"/>
     <nd ref="3"/>

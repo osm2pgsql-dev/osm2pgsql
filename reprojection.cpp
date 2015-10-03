@@ -9,8 +9,6 @@
 
 #include <cstdlib>
 #include <cstdio>
-#include <assert.h>
-#include <iostream>
 #include <cstring>
 #include <proj_api.h>
 #include <cmath>
@@ -164,6 +162,12 @@ void reprojection::reproject(double *lat, double *lon) const
     *lon = x[0];
 }
 
+/**
+ * Converts from (target) coordinates to coordinates in the tile projection (EPSG:3857)
+ *
+ * Do not confuse with coords_to_tile which does *not* calculate coordinates in the
+ * tile projection, but tile coordinates.
+ */
 void reprojection::target_to_tile(double *lat, double *lon) const
 {
     double x[1], y[1], z[1];
@@ -178,10 +182,8 @@ void reprojection::target_to_tile(double *lat, double *lon) const
         if (*lat < -85.07)
             *lat = -85.07;
 
-    //std::cout << "builtin=" << Proj << ": " << *lon ;
         *lon = (*lon) * EARTH_CIRCUMFERENCE / 360.0;
         *lat = log(tan(M_PI/4.0 + (*lat) * DEG_TO_RAD / 2.0)) * EARTH_CIRCUMFERENCE/(M_PI*2);
-    //std::cout << " => " << *lon << std::endl;
         return;
     }
 

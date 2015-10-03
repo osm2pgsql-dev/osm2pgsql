@@ -790,9 +790,12 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
     }
 
     const geos::geom::Polygon *poly = dynamic_cast<const geos::geom::Polygon *>(geom);
-    if (!poly) return 0.0;
+    if (!poly) {
+        return 0.0;
+    }
 
-    // standard polygon - reproject, then compute area of outer - areas of holes
+    // standard polygon - reproject rings individually, then assemble polygon and
+    // compute area.
 
     const geos::geom::LineString* ext = poly->getExteriorRing();
     geos::geom::LinearRing* projectedExt = reproject_linearring(ext);
