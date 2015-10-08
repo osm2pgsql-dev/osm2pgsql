@@ -764,11 +764,9 @@ void geometry_builder::set_reprojection(struct reprojection *r)
     reprojection = r;
 }
 
-/** 
+/**
  * Computes area of given polygonal geometry.
- * Returns 
- * - the standard GEOS getArea result if area reprojection has not been enabled
- * - the GEOS getArea resolt of this geometry projected to EPSG:3857 if reprojection has been enabled
+ * \return the area in projected units, or in EPSG 3857 if area reprojection is enabled
  */
 double geometry_builder::getArea(const geos::geom::Geometry *geom) const
 {
@@ -807,9 +805,9 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
         (*projectedHoles)[i] = reproject_linearring(hole);
     }
     const geos::geom::Polygon *projectedPoly = poly->getFactory()->createPolygon(projectedExt, projectedHoles);
-    
+
     double area = projectedPoly->getArea();
-    delete projectedPoly; 
+    delete projectedPoly;
     return area;
 }
 
