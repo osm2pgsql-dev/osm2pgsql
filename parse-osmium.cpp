@@ -61,6 +61,11 @@ parse_osmium_t::stream_file(const std::string &filename, osmdata_t *osmdata)
 
 void parse_osmium_t::node(osmium::Node& node)
 {
+    // if the node is not valid, then node.location.lat/lon() can throw.
+    // we probably ought to treat invalid locations as if they were
+    // deleted and ignore them.
+    if (!node.location().valid()) { return; }
+
     double lat = node.location().lat();
     double lon = node.location().lon();
     if (bbox.inside(lat, lon)) {
