@@ -195,11 +195,8 @@ void reprojection::target_to_tile(double *lat, double *lon) const
 
     pj_transform(pj_target, pj_tile, 1, 1, x, y, z);
 
-    //std::cout << "proj=" << Proj << ": " << *lon << " => " << x[0] << std::endl;
-
     *lat = y[0];
     *lon = x[0];
-
 }
 
 /**
