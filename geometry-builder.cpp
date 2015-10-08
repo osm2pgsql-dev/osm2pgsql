@@ -771,17 +771,14 @@ void geometry_builder::set_reprojection(struct reprojection *r)
 double geometry_builder::getArea(const geos::geom::Geometry *geom) const
 {
     // reprojection is not necessary, or has not been asked for.
-    if (!reprojection)
-    {
+    if (!reprojection) {
         return geom->getArea();
     }
 
     // MultiPolygon - return sum of individual areas
-    if (const geos::geom::MultiPolygon* multi = dynamic_cast<const geos::geom::MultiPolygon *>(geom))
-    {
+    if (const geos::geom::MultiPolygon* multi = dynamic_cast<const geos::geom::MultiPolygon *>(geom)) {
         double area = 0.0;
-        for (std::size_t i=0; i<multi->getNumGeometries(); i++)
-        {
+        for (std::size_t i=0; i<multi->getNumGeometries(); i++) {
             area += getArea(multi->getGeometryN(i));
         }
         return area;
@@ -799,8 +796,7 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
     geos::geom::LinearRing* projectedExt = reproject_linearring(ext);
     std::size_t nholes = poly->getNumInteriorRing();
     std::vector<geos::geom::Geometry *> *projectedHoles = new std::vector<geos::geom::Geometry *>(nholes);
-    for (std::size_t i=0; i< poly->getNumInteriorRing(); i++)
-    {
+    for (std::size_t i=0; i< poly->getNumInteriorRing(); i++) {
         const geos::geom::LineString* hole = poly->getInteriorRingN(i);
         (*projectedHoles)[i] = reproject_linearring(hole);
     }
@@ -818,8 +814,7 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
 geos::geom::LinearRing* geometry_builder::reproject_linearring(const geos::geom::LineString *ls) const
 {
     std::vector<geos::geom::Coordinate> *projectedCoords = new std::vector<geos::geom::Coordinate>();
-    for(auto i: *(ls->getCoordinatesRO()->toVector()))
-    {
+    for (auto i: *(ls->getCoordinatesRO()->toVector())) {
         Coordinate c(i.x, i.y);
         reprojection->target_to_tile(&c.y, &c.x);
         projectedCoords->push_back(c);
