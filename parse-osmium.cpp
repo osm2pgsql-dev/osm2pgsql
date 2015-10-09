@@ -66,8 +66,8 @@ void parse_osmium_t::node(osmium::Node& node)
     // deleted and ignore them.
     if (!node.location().valid()) { return; }
 
-    double lat = node.location().lat();
-    double lon = node.location().lon();
+    double lat = node.location().lat_without_check();
+    double lon = node.location().lon_without_check();
     if (bbox.inside(lat, lon)) {
         proj->reproject(&lat, &lon);
 
