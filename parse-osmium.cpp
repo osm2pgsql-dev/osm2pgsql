@@ -64,7 +64,14 @@ void parse_osmium_t::node(osmium::Node& node)
     // if the node is not valid, then node.location.lat/lon() can throw.
     // we probably ought to treat invalid locations as if they were
     // deleted and ignore them.
-    if (!node.location().valid()) { return; }
+    if (!node.location().valid()) {
+      fprintf(stderr, "WARNING: Node %" PRIdOSMID " (version %ud) has an invalid "
+              "location and has been ignored. This is not expected to happen with "
+              "recent planet files, so please check that your input is correct.",
+              node.id(), node.version());
+
+      return;
+    }
 
     double lat = node.location().lat_without_check();
     double lon = node.location().lon_without_check();
