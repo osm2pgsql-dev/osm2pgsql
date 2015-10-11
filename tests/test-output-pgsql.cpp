@@ -20,10 +20,10 @@
 #include <unistd.h>
 
 #include <boost/lexical_cast.hpp>
-#include <boost/filesystem.hpp>
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-cleanup.hpp"
 
 #define FLAT_NODES_FILE_NAME "tests/test_output_pgsql_area_way.flat.nodes.bin"
 
@@ -321,15 +321,15 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    // remove flat nodes file  on exit - it's 20GB and bad manners to
+    // leave that lying around on the filesystem.
+    cleanup::file flat_nodes_file(FLAT_NODES_FILE_NAME);
+
     RUN_TEST(test_regression_simple);
     RUN_TEST(test_latlong);
     RUN_TEST(test_clone);
     RUN_TEST(test_area_way_simple);
     RUN_TEST(test_route_rel);
-
-    // remove flat nodes file - it's 20GB and bad manners to leave that
-    // lying around on the filesystem.
-    boost::filesystem::remove(FLAT_NODES_FILE_NAME);
 
     return 0;
 }
