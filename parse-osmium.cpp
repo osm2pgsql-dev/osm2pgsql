@@ -67,7 +67,7 @@ void parse_osmium_t::node(osmium::Node& node)
     if (!node.location().valid()) {
       fprintf(stderr, "WARNING: Node %" PRIdOSMID " (version %ud) has an invalid "
               "location and has been ignored. This is not expected to happen with "
-              "recent planet files, so please check that your input is correct.",
+              "recent planet files, so please check that your input is correct.\n",
               node.id(), node.version());
 
       return;
