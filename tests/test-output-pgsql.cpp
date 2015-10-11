@@ -20,9 +20,12 @@
 #include <unistd.h>
 
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+
+#define FLAT_NODES_FILE_NAME "tests/test_output_pgsql_area_way.flat.nodes.bin"
 
 namespace {
 
@@ -190,7 +193,7 @@ void test_area_way_simple() {
     options.slim = true;
     options.style = "default.style";
     options.flat_node_cache_enabled = true;
-    options.flat_node_file = boost::optional<std::string>("tests/test_output_pgsql_area_way.flat.nodes.bin");
+    options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
@@ -323,6 +326,10 @@ int main(int argc, char *argv[]) {
     RUN_TEST(test_clone);
     RUN_TEST(test_area_way_simple);
     RUN_TEST(test_route_rel);
+
+    // remove flat nodes file - it's 20GB and bad manners to leave that
+    // lying around on the filesystem.
+    boost::filesystem::remove(FLAT_NODES_FILE_NAME);
 
     return 0;
 }
