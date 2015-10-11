@@ -61,8 +61,20 @@ parse_osmium_t::stream_file(const std::string &filename, osmdata_t *osmdata)
 
 void parse_osmium_t::node(osmium::Node& node)
 {
-    double lat = node.location().lat();
-    double lon = node.location().lon();
+    // if the node is not valid, then node.location.lat/lon() can throw.
+    // we probably ought to treat invalid locations as if they were
+    // deleted and ignore them.
+    if (!node.location().valid()) {
+      fprintf(stderr, "WARNING: Node %" PRIdOSMID " (version %ud) has an invalid "
+              "location and has been ignored. This is not expected to happen with "
+              "recent planet files, so please check that your input is correct.\n",
+              node.id(), node.version());
+
+      return;
+    }
+
+    double lat = node.location().lat_without_check();
+    double lon = node.location().lon_without_check();
     if (bbox.inside(lat, lon)) {
         proj->reproject(&lat, &lon);
 
