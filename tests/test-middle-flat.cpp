@@ -17,6 +17,9 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-cleanup.hpp"
+
+#define FLAT_NODES_FILE_NAME "tests/test_middle_flat.flat.nodes.bin"
 
 /* This is basically the same as test-middle-pgsql, but with flat nodes. */
 
@@ -25,7 +28,7 @@ void run_tests(options_t options, const std::string cache_type) {
   options.create = true;
   options.flat_node_cache_enabled = true;
   // flat nodes truncates the file each time it's started, so we can reuse the same file
-  options.flat_node_file = boost::optional<std::string>("tests/test_middle_flat.flat.nodes.bin");
+  options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
   {
     middle_pgsql_t mid_pgsql;
@@ -88,6 +91,10 @@ int main(int argc, char *argv[]) {
     options.prefix = "osm2pgsql_test";
     options.slim = true;
 
+    // remove flat nodes file  on exit - it's 20GB and bad manners to
+    // leave that lying around on the filesystem.
+    cleanup::file flat_nodes_file(FLAT_NODES_FILE_NAME);
+
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
     run_tests(options, "optimized");
     options.alloc_chunkwise = ALLOC_SPARSE;
@@ -98,6 +105,7 @@ int main(int argc, char *argv[]) {
 
     options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK; // what you get with chunk
     run_tests(options, "chunk");
+
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;

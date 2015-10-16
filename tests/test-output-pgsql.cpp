@@ -23,6 +23,9 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-cleanup.hpp"
+
+#define FLAT_NODES_FILE_NAME "tests/test_output_pgsql_area_way.flat.nodes.bin"
 
 namespace {
 
@@ -190,7 +193,7 @@ void test_area_way_simple() {
     options.slim = true;
     options.style = "default.style";
     options.flat_node_cache_enabled = true;
-    options.flat_node_file = boost::optional<std::string>("tests/test_output_pgsql_area_way.flat.nodes.bin");
+    options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
@@ -318,6 +321,10 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    // remove flat nodes file  on exit - it's 20GB and bad manners to
+    // leave that lying around on the filesystem.
+    cleanup::file flat_nodes_file(FLAT_NODES_FILE_NAME);
+
     RUN_TEST(test_regression_simple);
     RUN_TEST(test_latlong);
     RUN_TEST(test_clone);
