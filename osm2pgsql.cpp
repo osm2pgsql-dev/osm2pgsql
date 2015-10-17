@@ -43,27 +43,6 @@
 #include <libpq-fe.h>
 #include <boost/format.hpp>
 
-void check_db(const char* conninfo, const int unlogged)
-{
-    PGconn *sql_conn = PQconnectdb(conninfo);
-
-    //make sure you can connect
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        throw std::runtime_error((boost::format("Error: Connection to database failed: %1%\n") % PQerrorMessage(sql_conn)).str());
-    }
-
-    //make sure unlogged it is supported by your database if you want it
-    if (unlogged && PQserverVersion(sql_conn) < 90100) {
-        throw std::runtime_error((
-            boost::format("Error: --unlogged works only with PostgreSQL 9.1 and above, but\n you are using PostgreSQL %1%.%2%.%3%.\n")
-            % (PQserverVersion(sql_conn) / 10000)
-            % ((PQserverVersion(sql_conn) / 100) % 100)
-            % (PQserverVersion(sql_conn) % 100)).str());
-    }
-
-    PQfinish(sql_conn);
-}
-
 int main(int argc, char *argv[])
 {
     fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
@@ -86,9 +65,6 @@ int main(int argc, char *argv[])
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
-
-        //check the database
-        check_db(options.database_options.conninfo().c_str(), options.unlogged);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->project_getprojinfo()->srs,
