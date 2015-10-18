@@ -67,19 +67,19 @@ private:
 
         std::string prefix(cls + ":name");
 
-        for (taglist_t::const_iterator item = src->begin(); item != src->end(); ++item) {
-            if (boost::starts_with(item->key, prefix) &&
-                (item->key.length() == prefix.length()
-                 || item->key[prefix.length()] == ':')) {
+        for (const auto& item: *src) {
+            if (boost::starts_with(item.key, prefix) &&
+                (item.key.length() == prefix.length()
+                 || item.key[prefix.length()] == ':')) {
                 if (!hasname) {
-                    ret.reserve(item->key.length() + item->value.length() + 10);
+                    ret.reserve(item.key.length() + item.value.length() + 10);
                     hasname = true;
                 } else
                     ret += ",";
                 ret += "\"";
-                escape_array_record(std::string(item->key, cls.length() + 1), ret);
+                escape_array_record(std::string(item.key, cls.length() + 1), ret);
                 ret += "\"=>\"";
-                escape_array_record(item->value, ret);
+                escape_array_record(item.value, ret);
                 ret += "\"";
             }
         }
