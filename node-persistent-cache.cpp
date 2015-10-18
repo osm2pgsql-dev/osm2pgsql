@@ -2,16 +2,16 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
 #include <string.h>
-#include <errno.h>
-#include <limits.h>
+#include <cerrno>
+#include <climits>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <math.h>
+#include <cmath>
 
 #include "osmtypes.hpp"
 #include "output.hpp"

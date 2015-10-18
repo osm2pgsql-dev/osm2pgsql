@@ -5,7 +5,6 @@
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread.hpp>
-#include <boost/version.hpp>
 
 #include <stdexcept>
 #include <utility>

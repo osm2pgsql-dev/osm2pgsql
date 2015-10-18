@@ -13,7 +13,7 @@
 
 #include <cstddef>
 #include <climits>
-#include <stdint.h>
+#include <cstdint>
 #include <boost/noncopyable.hpp>
 
 #define ALLOC_SPARSE 1

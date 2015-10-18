@@ -9,7 +9,6 @@
 
 #include <stdexcept>
 #include <cstdio>
-#include <cstring>
 #include <cassert>
 
 #include "middle-ram.hpp"

@@ -45,7 +45,6 @@ using namespace std;
 #include "util.hpp"
 
 #include <stdexcept>
-#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

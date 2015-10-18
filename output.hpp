@@ -11,14 +11,13 @@
 #define OUTPUT_H
 
 #include "options.hpp"
-#include "middle.hpp"
-#include "id-tracker.hpp"
-#include "expire-tiles.hpp"
 
 #include <boost/noncopyable.hpp>
-#include <boost/version.hpp>
-#include <utility>
 #include <stack>
+
+struct id_tracker;
+struct expire_tiles;
+struct middle_query_t;
 
 struct pending_job_t {
     osmid_t osm_id;
