@@ -95,232 +95,232 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     clear();
     src = &tags;
 
-    for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
-        if (boost::ends_with(item->key, "source")) {
+    for (const auto& item: tags) {
+        if (boost::ends_with(item.key, "source")) {
             // ignore
-        } else if (item->key == "name:prefix" ||
-                   item->key == "name:botanical" ||
-                   boost::ends_with(item->key, "wikidata")) {
-            extratags.push_back(&*item);
-        } else if (item->key == "ref" ||
-                   item->key == "int_ref" ||
-                   item->key == "nat_ref" ||
-                   item->key == "reg_ref" ||
-                   item->key == "loc_ref" ||
-                   item->key == "old_ref" ||
-                   item->key == "iata" ||
-                   item->key == "icao" ||
-                   item->key == "operator" ||
-                   item->key == "pcode" ||
-                   boost::starts_with(item->key, "pcode:")) {
-            names.push_back(&*item);
-        } else if (item->key == "name" ||
-                   boost::starts_with(item->key, "name:") ||
-                   item->key == "int_name" ||
-                   boost::starts_with(item->key, "int_name:") ||
-                   item->key == "nat_name" ||
-                   boost::starts_with(item->key, "nat_name:") ||
-                   item->key == "reg_name" ||
-                   boost::starts_with(item->key, "reg_name:") ||
-                   item->key == "loc_name" ||
-                   boost::starts_with(item->key, "loc_name:") ||
-                   item->key == "old_name" ||
-                   boost::starts_with(item->key, "old_name:") ||
-                   item->key == "alt_name" ||
-                   boost::starts_with(item->key, "alt_name:") ||
-                   boost::starts_with(item->key, "alt_name_") ||
-                   item->key == "official_name" ||
-                   boost::starts_with(item->key, "official_name:") ||
-                   item->key == "place_name" ||
-                   boost::starts_with(item->key, "place_name:") ||
-                   item->key == "short_name" ||
-                   boost::starts_with(item->key, "short_name:") ||
-                   item->key == "brand") {
-            names.push_back(&*item);
+        } else if (item.key == "name:prefix" ||
+                   item.key == "name:botanical" ||
+                   boost::ends_with(item.key, "wikidata")) {
+            extratags.push_back(&item);
+        } else if (item.key == "ref" ||
+                   item.key == "int_ref" ||
+                   item.key == "nat_ref" ||
+                   item.key == "reg_ref" ||
+                   item.key == "loc_ref" ||
+                   item.key == "old_ref" ||
+                   item.key == "iata" ||
+                   item.key == "icao" ||
+                   item.key == "operator" ||
+                   item.key == "pcode" ||
+                   boost::starts_with(item.key, "pcode:")) {
+            names.push_back(&item);
+        } else if (item.key == "name" ||
+                   boost::starts_with(item.key, "name:") ||
+                   item.key == "int_name" ||
+                   boost::starts_with(item.key, "int_name:") ||
+                   item.key == "nat_name" ||
+                   boost::starts_with(item.key, "nat_name:") ||
+                   item.key == "reg_name" ||
+                   boost::starts_with(item.key, "reg_name:") ||
+                   item.key == "loc_name" ||
+                   boost::starts_with(item.key, "loc_name:") ||
+                   item.key == "old_name" ||
+                   boost::starts_with(item.key, "old_name:") ||
+                   item.key == "alt_name" ||
+                   boost::starts_with(item.key, "alt_name:") ||
+                   boost::starts_with(item.key, "alt_name_") ||
+                   item.key == "official_name" ||
+                   boost::starts_with(item.key, "official_name:") ||
+                   item.key == "place_name" ||
+                   boost::starts_with(item.key, "place_name:") ||
+                   item.key == "short_name" ||
+                   boost::starts_with(item.key, "short_name:") ||
+                   item.key == "brand") {
+            names.push_back(&item);
             isnamed = true;
-        } else if (item->key == "addr:housename") {
-            names.push_back(&*item);
+        } else if (item.key == "addr:housename") {
+            names.push_back(&item);
             placehouse = true;
-        } else if (item->key == "emergency") {
-            if (item->value != "fire_hydrant" &&
-                item->value != "yes" &&
-                item->value != "no")
-                places.push_back(*item);
-        } else if (item->key == "tourism" ||
-                   item->key == "historic" ||
-                   item->key == "military") {
-            if (item->value != "no" && item->value != "yes")
-                places.push_back(*item);
-        } else if (item->key == "natural") {
-            if (item->value != "no" &&
-                item->value != "yes" &&
-                item->value != "coastline")
-                places.push_back(*item);
-        } else if (item->key == "landuse") {
-            if (item->value == "cemetry")
-                places.push_back(*item);
+        } else if (item.key == "emergency") {
+            if (item.value != "fire_hydrant" &&
+                item.value != "yes" &&
+                item.value != "no")
+                places.push_back(item);
+        } else if (item.key == "tourism" ||
+                   item.key == "historic" ||
+                   item.key == "military") {
+            if (item.value != "no" && item.value != "yes")
+                places.push_back(item);
+        } else if (item.key == "natural") {
+            if (item.value != "no" &&
+                item.value != "yes" &&
+                item.value != "coastline")
+                places.push_back(item);
+        } else if (item.key == "landuse") {
+            if (item.value == "cemetry")
+                places.push_back(item);
             else
-                landuse = &*item;
-        } else if (item->key == "highway") {
-            if (item->value == "footway") {
+                landuse = &item;
+        } else if (item.key == "highway") {
+            if (item.value == "footway") {
                 auto *footway = tags.get("footway");
                 if (footway == nullptr || *footway != "sidewalk")
-                    places.push_back(*item);
-            } else if (item->value != "no" &&
-                item->value != "turning_circle" &&
-                item->value != "mini_roundabout" &&
-                item->value != "noexit" &&
-                item->value != "crossing")
-                places.push_back(*item);
-        } else if (item->key == "railway") {
-            if (item->value != "level_crossing" &&
-                item->value != "no")
-                places.push_back(*item);
-        } else if (item->key == "man_made") {
-            if (item->value != "survey_point" &&
-                item->value != "cutline")
-                places.push_back(*item);
-        } else if (item->key == "aerialway") {
-            if (item->value != "pylon" &&
-                item->value != "no")
-                places.push_back(*item);
-        } else if (item->key == "boundary") {
-            if (item->value == "administrative")
+                    places.push_back(item);
+            } else if (item.value != "no" &&
+                item.value != "turning_circle" &&
+                item.value != "mini_roundabout" &&
+                item.value != "noexit" &&
+                item.value != "crossing")
+                places.push_back(item);
+        } else if (item.key == "railway") {
+            if (item.value != "level_crossing" &&
+                item.value != "no")
+                places.push_back(item);
+        } else if (item.key == "man_made") {
+            if (item.value != "survey_point" &&
+                item.value != "cutline")
+                places.push_back(item);
+        } else if (item.key == "aerialway") {
+            if (item.value != "pylon" &&
+                item.value != "no")
+                places.push_back(item);
+        } else if (item.key == "boundary") {
+            if (item.value == "administrative")
                 placeadmin = true;
-            places.push_back(*item);
-        } else if (item->key == "aeroway" ||
-                   item->key == "amenity" ||
-                   item->key == "boundary" ||
-                   item->key == "bridge" ||
-                   item->key == "craft" ||
-                   item->key == "leisure" ||
-                   item->key == "office" ||
-                   item->key == "shop" ||
-                   item->key == "tunnel" ||
-                   item->key == "mountain_pass") {
-            if (item->value != "no")
+            places.push_back(item);
+        } else if (item.key == "aeroway" ||
+                   item.key == "amenity" ||
+                   item.key == "boundary" ||
+                   item.key == "bridge" ||
+                   item.key == "craft" ||
+                   item.key == "leisure" ||
+                   item.key == "office" ||
+                   item.key == "shop" ||
+                   item.key == "tunnel" ||
+                   item.key == "mountain_pass") {
+            if (item.value != "no")
             {
-                places.push_back(*item);
+                places.push_back(item);
             }
-        } else if (item->key == "waterway") {
-            if (item->value != "riverbank")
-                places.push_back(*item);
-        } else if (item->key == "place") {
-            place = &*item;
-        } else if (item->key == "junction") {
-            junction = &*item;
-        } else if (item->key == "addr:interpolation") {
+        } else if (item.key == "waterway") {
+            if (item.value != "riverbank")
+                places.push_back(item);
+        } else if (item.key == "place") {
+            place = &item;
+        } else if (item.key == "junction") {
+            junction = &item;
+        } else if (item.key == "addr:interpolation") {
             housenumber.clear();
-            escape(item->value, housenumber);
+            escape(item.value, housenumber);
             isinterpolation = true;
-        } else if (item->key == "addr:housenumber") {
-            house_nr = &item->value;
+        } else if (item.key == "addr:housenumber") {
+            house_nr = &item.value;
             placehouse = true;
-        } else if (item->key == "addr:conscriptionnumber") {
-            conscr_nr = &item->value;
+        } else if (item.key == "addr:conscriptionnumber") {
+            conscr_nr = &item.value;
             placehouse = true;
-        } else if (item->key == "addr:streetnumber") {
-            street_nr = &item->value;
+        } else if (item.key == "addr:streetnumber") {
+            street_nr = &item.value;
             placehouse = true;
-        } else if (item->key == "addr:street") {
-            street = &item->value;
-        } else if (item->key == "addr:place") {
-            addr_place = &item->value;
-        } else if (item->key == "postal_code" ||
-                   item->key == "postcode" ||
-                   item->key == "addr:postcode" ||
-                   item->key == "tiger:zip_left" ||
-                   item->key == "tiger:zip_right") {
+        } else if (item.key == "addr:street") {
+            street = &item.value;
+        } else if (item.key == "addr:place") {
+            addr_place = &item.value;
+        } else if (item.key == "postal_code" ||
+                   item.key == "postcode" ||
+                   item.key == "addr:postcode" ||
+                   item.key == "tiger:zip_left" ||
+                   item.key == "tiger:zip_right") {
             if (!postcode)
-                postcode = &item->value;
-        } else if (item->key == "country_code" ||
-                   item->key == "ISO3166-1" ||
-                   item->key == "is_in:country_code" ||
-                   item->key == "addr:country" ||
-                   item->key == "addr:country_code") {
-            if (item->value.length() == 2)
-                countrycode = &item->value;
-        } else if (boost::starts_with(item->key, "addr:") ||
-                   item->key == "is_in" ||
-                   boost::starts_with(item->key, "is_in:") ||
-                   item->key == "tiger:county") {
-            address.push_back(&*item);
-        } else if (item->key == "admin_level") {
-            admin_level = atoi(item->value.c_str());
+                postcode = &item.value;
+        } else if (item.key == "country_code" ||
+                   item.key == "ISO3166-1" ||
+                   item.key == "is_in:country_code" ||
+                   item.key == "addr:country" ||
+                   item.key == "addr:country_code") {
+            if (item.value.length() == 2)
+                countrycode = &item.value;
+        } else if (boost::starts_with(item.key, "addr:") ||
+                   item.key == "is_in" ||
+                   boost::starts_with(item.key, "is_in:") ||
+                   item.key == "tiger:county") {
+            address.push_back(&item);
+        } else if (item.key == "admin_level") {
+            admin_level = atoi(item.value.c_str());
             if (admin_level <= 0 || admin_level > 100)
                 admin_level = 100;
-        } else if (item->key == "tracktype" ||
-                   item->key == "traffic_calming" ||
-                   item->key == "service" ||
-                   item->key == "cuisine" ||
-                   item->key == "capital" ||
-                   item->key == "dispensing" ||
-                   item->key == "religion" ||
-                   item->key == "denomination" ||
-                   item->key == "sport" ||
-                   item->key == "internet_access" ||
-                   item->key == "lanes" ||
-                   item->key == "surface" ||
-                   item->key == "smoothness" ||
-                   item->key == "width" ||
-                   item->key == "est_width" ||
-                   item->key == "incline" ||
-                   item->key == "opening_hours" ||
-                   item->key == "collection_times" ||
-                   item->key == "service_times" ||
-                   item->key == "disused" ||
-                   item->key == "wheelchair" ||
-                   item->key == "sac_scale" ||
-                   item->key == "trail_visibility" ||
-                   item->key == "mtb:scale" ||
-                   item->key == "mtb:description" ||
-                   item->key == "wood" ||
-                   item->key == "drive_through" ||
-                   item->key == "drive_in" ||
-                   item->key == "access" ||
-                   item->key == "vehicle" ||
-                   item->key == "bicyle" ||
-                   item->key == "foot" ||
-                   item->key == "goods" ||
-                   item->key == "hgv" ||
-                   item->key == "motor_vehicle" ||
-                   item->key == "motor_car" ||
-                   boost::starts_with(item->key, "access:") ||
-                   boost::starts_with(item->key, "contact:") ||
-                   boost::starts_with(item->key, "drink:") ||
-                   item->key == "oneway" ||
-                   item->key == "date_on" ||
-                   item->key == "date_off" ||
-                   item->key == "day_on" ||
-                   item->key == "day_off" ||
-                   item->key == "hour_on" ||
-                   item->key == "hour_off" ||
-                   item->key == "maxweight" ||
-                   item->key == "maxheight" ||
-                   item->key == "maxspeed" ||
-                   item->key == "fee" ||
-                   item->key == "toll" ||
-                   boost::starts_with(item->key, "toll:") ||
-                   item->key == "charge" ||
-                   item->key == "population" ||
-                   item->key == "description" ||
-                   item->key == "image" ||
-                   item->key == "attribution" ||
-                   item->key == "fax" ||
-                   item->key == "email" ||
-                   item->key == "url" ||
-                   item->key == "website" ||
-                   item->key == "phone" ||
-                   item->key == "real_ale" ||
-                   item->key == "smoking" ||
-                   item->key == "food" ||
-                   item->key == "camera" ||
-                   item->key == "brewery" ||
-                   item->key == "locality" ||
-                   item->key == "wikipedia" ||
-                   boost::starts_with(item->key, "wikipedia:")) {
-            extratags.push_back(&*item);
-        } else if (item->key == "building") {
+        } else if (item.key == "tracktype" ||
+                   item.key == "traffic_calming" ||
+                   item.key == "service" ||
+                   item.key == "cuisine" ||
+                   item.key == "capital" ||
+                   item.key == "dispensing" ||
+                   item.key == "religion" ||
+                   item.key == "denomination" ||
+                   item.key == "sport" ||
+                   item.key == "internet_access" ||
+                   item.key == "lanes" ||
+                   item.key == "surface" ||
+                   item.key == "smoothness" ||
+                   item.key == "width" ||
+                   item.key == "est_width" ||
+                   item.key == "incline" ||
+                   item.key == "opening_hours" ||
+                   item.key == "collection_times" ||
+                   item.key == "service_times" ||
+                   item.key == "disused" ||
+                   item.key == "wheelchair" ||
+                   item.key == "sac_scale" ||
+                   item.key == "trail_visibility" ||
+                   item.key == "mtb:scale" ||
+                   item.key == "mtb:description" ||
+                   item.key == "wood" ||
+                   item.key == "drive_through" ||
+                   item.key == "drive_in" ||
+                   item.key == "access" ||
+                   item.key == "vehicle" ||
+                   item.key == "bicyle" ||
+                   item.key == "foot" ||
+                   item.key == "goods" ||
+                   item.key == "hgv" ||
+                   item.key == "motor_vehicle" ||
+                   item.key == "motor_car" ||
+                   boost::starts_with(item.key, "access:") ||
+                   boost::starts_with(item.key, "contact:") ||
+                   boost::starts_with(item.key, "drink:") ||
+                   item.key == "oneway" ||
+                   item.key == "date_on" ||
+                   item.key == "date_off" ||
+                   item.key == "day_on" ||
+                   item.key == "day_off" ||
+                   item.key == "hour_on" ||
+                   item.key == "hour_off" ||
+                   item.key == "maxweight" ||
+                   item.key == "maxheight" ||
+                   item.key == "maxspeed" ||
+                   item.key == "fee" ||
+                   item.key == "toll" ||
+                   boost::starts_with(item.key, "toll:") ||
+                   item.key == "charge" ||
+                   item.key == "population" ||
+                   item.key == "description" ||
+                   item.key == "image" ||
+                   item.key == "attribution" ||
+                   item.key == "fax" ||
+                   item.key == "email" ||
+                   item.key == "url" ||
+                   item.key == "website" ||
+                   item.key == "phone" ||
+                   item.key == "real_ale" ||
+                   item.key == "smoking" ||
+                   item.key == "food" ||
+                   item.key == "camera" ||
+                   item.key == "brewery" ||
+                   item.key == "locality" ||
+                   item.key == "wikipedia" ||
+                   boost::starts_with(item.key, "wikipedia:")) {
+            extratags.push_back(&item);
+        } else if (item.key == "building") {
             placebuilding = true;
         }
     }
@@ -388,7 +388,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                                    const std::string &wkt,
                                    std::string &buffer)
 {
-    for (const tag_t &place: places) {
+    for (const auto& place: places) {
         std::string name;
         if (place.key == "bridge" || place.key == "tunnel") {
             name = domain_name(place.key);
@@ -418,7 +418,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             bool shop = (place.key == "shop") ||
                         (place.key == "amenity") ||
                         (place.key == "tourism");
-            for (const tag_t *entry: names) {
+            for (const auto entry: names) {
                 if (!shop && (entry->key == "operator"))
                     continue;
 
@@ -447,7 +447,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         copy_opt_string(addr_place, buffer);
         // isin
         if (!address.empty()) {
-            for (const tag_t *entry: address) {
+            for (const auto entry: address) {
                 if (entry->key == "tiger:county") {
                     escape(std::string(entry->value, 0, entry->value.find(",")),
                            buffer);
@@ -469,7 +469,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             buffer += "\\N\t";
         } else {
             bool first = true;
-            for (const tag_t *entry: extratags) {
+            for (const auto entry: extratags) {
                 if (first)
                     first = false;
                 else
@@ -733,10 +733,10 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
 
     /* get the boundary path (ways) */
     idlist_t xid2;
-    for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it) {
+    for (const auto& member: members) {
         /* only interested in ways */
-        if (it->type == OSMTYPE_WAY)
-            xid2.push_back(it->id);
+        if (member.type == OSMTYPE_WAY)
+            xid2.push_back(member.id);
     }
 
     if (xid2.empty()) {
