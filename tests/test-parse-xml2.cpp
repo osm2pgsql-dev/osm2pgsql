@@ -1,10 +1,12 @@
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cassert>
 #include <memory>
 
+#include <cstdlib>
+#include <cstdio>
+#include <string.h>
+#include <cassert>
+
+#include "middle.hpp"
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
 #include "parse-osmium.hpp"

@@ -5,6 +5,9 @@
 
 #include "config.h"
 
+#include <new>
+#include <stdexcept>
+
 #include <cstdio>
 #include <cstdlib>
 

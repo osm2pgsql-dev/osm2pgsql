@@ -3,9 +3,11 @@
 
 #include "osmtypes.hpp"
 
-#include <time.h>
-#include <string>
+#include <iosfwd> // for string
 #include <memory>
+
+#include <ctime>
+
 #include <boost/optional.hpp>
 
 typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;

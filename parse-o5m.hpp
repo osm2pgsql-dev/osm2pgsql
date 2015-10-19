@@ -25,9 +25,12 @@
 #ifndef PARSE_O5M_H
 #define PARSE_O5M_H
 
+#include <iosfwd>
+
 #include "parse.hpp"
 
 struct reprojection;
+class osmdata_t;
 
 class parse_o5m_t: public parse_t
 {
