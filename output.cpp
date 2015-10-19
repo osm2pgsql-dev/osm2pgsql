@@ -40,21 +40,21 @@ std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
     new_opts.tag_transform_rel_func = conf.get_optional<std::string>("tagtransform-relation-function");
     new_opts.tag_transform_rel_mem_func = conf.get_optional<std::string>("tagtransform-relation-member-function");
 
-    new_opts.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
-    new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
-    override_if<int>(new_opts.hstore_mode, "enable-hstore", conf);
-    override_if<bool>(new_opts.enable_hstore_index, "enable-hstore-index", conf);
+    new_opts.global_table_options.tblsmain_index = conf.get_optional<std::string>("tablespace-index");
+    new_opts.global_table_options.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
+    override_if<int>(new_opts.global_table_options.hstore_mode, "enable-hstore", conf);
+    override_if<bool>(new_opts.global_table_options.enable_hstore_index, "enable-hstore-index", conf);
     override_if<bool>(new_opts.enable_multi, "enable-multi", conf);
-    override_if<bool>(new_opts.hstore_match_only, "hstore-match-only", conf);
+    override_if<bool>(new_opts.global_table_options.hstore_match_only, "hstore-match-only", conf);
 
     hstores_t hstore_columns;
     boost::optional<const pt::ptree &> hstores = conf.get_child_optional("hstores");
     if (hstores) {
         for (const pt::ptree::value_type &val: *hstores) {
-            hstore_columns.push_back(val.second.get_value<std::string>());
+            hstore_columns.emplace_back(val.second.get_value<std::string>());
         }
     }
-    new_opts.hstore_columns = hstore_columns;
+    new_opts.global_table_options.hstore_columns = hstore_columns;
 
     std::shared_ptr<geometry_processor> processor =
         geometry_processor::create(proc_type, &new_opts);

@@ -52,8 +52,6 @@
 #define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e))
 #endif
 
-#define SRID (reproj->project_getprojinfo()->srs)
-
 /* FIXME: Shouldn't malloc this all to begin with but call realloc()
    as required. The program will most likely segfault if it reads a
    style file with more styles than this */
@@ -676,7 +674,6 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
       ways_done_tracker(new id_tracker()),
       rels_pending_tracker(new id_tracker()) {
 
-    reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
 
     m_export_list.reset(new export_list());
@@ -727,24 +724,19 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
                 util::exit_nicely();
         }
 
-        //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
-        //options object because we want to make use of the table_t in output_mutli_t which could
-        //have a different tablespace/hstores/etc per table
         m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
-                m_options.database_options.conninfo(), name, type, columns, m_options.hstore_columns, SRID,
-                m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
-                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
-            )
+                m_options.database_options.conninfo(), name, type, columns,
+                m_options.global_table_options, m_options)
         ));
     }
 }
 
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
-    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
-    m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
-    expire(new expire_tiles(&m_options)),
-    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
+    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)),
+    m_enable_way_area(other.m_enable_way_area), m_export_list(new export_list(*other.m_export_list)),
+    expire(new expire_tiles(&m_options)), ways_pending_tracker(new id_tracker()),
+    ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     for(std::vector<std::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {

@@ -3,6 +3,7 @@
 
 #include "pgsql.hpp"
 #include "osmtypes.hpp"
+#include "options.hpp"
 
 #include <cstddef>
 #include <string>
@@ -19,9 +20,14 @@ typedef std::vector<std::pair<std::string, std::string> > columns_t;
 class table_t
 {
     public:
-        table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
-                const bool append, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
-                const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
+        /**
+         * Sets up a new table, creating it if in --create.
+         * It takes in both options and table_options because in the multi
+         * backend there can be differences
+         */
+        table_t(const std::string& conninfo, const std::string& name,
+                const std::string& type, const columns_t& columns,
+                const table_options_t& table_options, const options_t& options);
         table_t(const table_t& other);
         ~table_t();
 
@@ -70,6 +76,7 @@ class table_t
         std::string conninfo;
         std::string name;
         std::string type;
+        table_options_t table_options;
         pg_conn *sql_conn;
         bool copyMode;
         std::string buffer;
@@ -77,13 +84,8 @@ class table_t
         bool append;
         bool slim;
         bool drop_temp;
-        int hstore_mode;
-        bool enable_hstore_index;
         columns_t columns;
-        hstores_t hstore_columns;
         std::string copystr;
-        boost::optional<std::string> table_space;
-        boost::optional<std::string> table_space_index;
 
         boost::format single_fmt, point_fmt, del_fmt;
 };

@@ -35,12 +35,24 @@ public:
     std::string conninfo() const;
 };
 
+class table_options_t {
+public:
+    table_options_t();
+    int hstore_mode; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column
+    bool hstore_match_only; ///< only copy rows that match an explicitly listed key
+    std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column
+    bool enable_hstore_index; ///< add an index on the hstore column
+    boost::optional<std::string> tblsmain_index; ///< Pg Tablespace to store indexes on main tables (no default TABLESPACE)
+    boost::optional<std::string> tblsmain_data; ///< Pg Tablespace to store main tables (no default TABLESPACE)
+};
 /**
  * Structure for storing command-line and other options
  */
 struct options_t {
 public:
-  // fixme: bring back old comment
+    /**
+     * construct with sensible defaults
+     */
     options_t();
     /**
      * Parse the options from the command line
@@ -54,25 +66,19 @@ public:
     bool append; ///< Append to existing data
     bool slim; ///< In slim mode
     int cache; ///< Memory usable for cache in MB
-    boost::optional<std::string> tblsmain_index; ///< Pg Tablespace to store indexes on main tables (no default TABLESPACE)
     boost::optional<std::string> tblsslim_index; ///< Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
-    boost::optional<std::string> tblsmain_data; ///< Pg Tablespace to store main tables (no default TABLESPACE)
     boost::optional<std::string> tblsslim_data; ///< Pg Tablespace to store slim tables (no default TABLESPACE)
     std::string style; ///< style file to use
     int expire_tiles_zoom; ///< Zoom level for tile expiry list
     int expire_tiles_zoom_min; ///< Minimum zoom level for tile expiry list
     std::string expire_tiles_filename; ///< File name to output expired tiles list to
-    int hstore_mode; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column
-    bool enable_hstore_index; ///< add an index on the hstore column
     bool enable_multi; ///< Output multi-geometries intead of several simple geometries
-    std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column
     bool keep_coastlines;
     bool parallel_indexing;
     int alloc_chunkwise;
     int num_procs;
     bool droptemp; ///< drop slim mode temp tables after act
     bool unlogged; ///< use unlogged tables where possible
-    bool hstore_match_only; ///< only copy rows that match an explicitly listed key
     bool flat_node_cache_enabled;
     bool excludepoly;
     boost::optional<std::string> flat_node_file;
@@ -93,6 +99,11 @@ public:
     bool pass_prompt;
 
     database_options_t database_options;
+    /**
+     * With the multi backend, each table can have different options. These are
+     * the global defaults passed in on the command line.
+     */
+    table_options_t global_table_options;
     std::string output_backend;
     std::string input_reader;
     boost::optional<std::string> bbox;

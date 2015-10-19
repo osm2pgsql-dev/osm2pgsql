@@ -624,15 +624,15 @@ int output_gazetteer_t::start()
       pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
 
       /* Create the new table */
-      if (m_options.tblsmain_data) {
+      if (m_options.global_table_options.tblsmain_data) {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                     CREATE_PLACE_TABLE, "TABLESPACE", m_options.tblsmain_data->c_str());
+                     CREATE_PLACE_TABLE, "TABLESPACE", m_options.global_table_options.tblsmain_data->c_str());
       } else {
           pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_TABLE, "", "");
       }
-      if (m_options.tblsmain_index) {
+      if (m_options.global_table_options.tblsmain_index) {
           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                     CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options.tblsmain_index->c_str());
+                     CREATE_PLACE_ID_INDEX, "TABLESPACE", m_options.global_table_options.tblsmain_index->c_str());
       } else {
           pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, "", "");
       }

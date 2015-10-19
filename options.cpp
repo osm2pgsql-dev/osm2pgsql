@@ -236,6 +236,13 @@ database_options_t::database_options_t():
 
 }
 
+table_options_t::table_options_t():
+    hstore_mode(HSTORE_NONE), hstore_match_only(false), hstore_columns(),
+    enable_hstore_index(false), tblsmain_index(boost::none),
+    tblsmain_data(boost::none)
+{
+
+}
 std::string database_options_t::conninfo() const
 {
     std::ostringstream out;
@@ -260,15 +267,15 @@ std::string database_options_t::conninfo() const
 
 options_t::options_t():
     prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(false), slim(false),
-    cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(false),
-    enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+    cache(800), tblsslim_index(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
+    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"),
+    enable_multi(false), keep_coastlines(false), parallel_indexing(true),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
     #else
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
-    droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
+    droptemp(false), unlogged(false), flat_node_cache_enabled(false), excludepoly(false), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
     create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none), 
@@ -356,7 +363,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             style = optarg;
             break;
         case 'i':
-            tblsmain_index = tblsslim_index = optarg;
+            global_table_options.tblsmain_index = tblsslim_index = optarg;
             break;
         case 200:
             tblsslim_data = optarg;
@@ -365,10 +372,10 @@ options_t::options_t(int argc, char *argv[]): options_t()
             tblsslim_index = optarg;
             break;
         case 202:
-            tblsmain_data = optarg;
+            global_table_options.tblsmain_data = optarg;
             break;
         case 203:
-            tblsmain_index = optarg;
+            global_table_options.tblsmain_index = optarg;
             break;
         case 'e':
             expire_tiles_zoom_min = atoi(optarg);
@@ -388,22 +395,22 @@ options_t::options_t(int argc, char *argv[]): options_t()
             extra_attributes = true;
             break;
         case 'k':
-            if (hstore_mode != HSTORE_NONE) {
+            if (global_table_options.hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            hstore_mode = HSTORE_NORM;
+            global_table_options.hstore_mode = HSTORE_NORM;
             break;
         case 208:
-            hstore_match_only = true;
+            global_table_options.hstore_match_only = true;
             break;
         case 'j':
-            if (hstore_mode != HSTORE_NONE) {
+            if (global_table_options.hstore_mode != HSTORE_NONE) {
                 throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
             }
-            hstore_mode = HSTORE_ALL;
+            global_table_options.hstore_mode = HSTORE_ALL;
             break;
         case 'z':
-            hstore_columns.push_back(optarg);
+            global_table_options.hstore_columns.emplace_back(optarg);
             break;
         case 'G':
             enable_multi = true;
@@ -451,7 +458,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             excludepoly = true;
             break;
         case 211:
-            enable_hstore_index = true;
+            global_table_options.enable_hstore_index = true;
             break;
         case 212:
             tag_transform_script = optarg;
@@ -519,14 +526,14 @@ void options_t::check_options()
         unlogged = false;
     }
 
-    if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {
+    if (global_table_options.hstore_mode == HSTORE_NONE && global_table_options.hstore_columns.size() == 0 && global_table_options.hstore_match_only) {
         fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
-        hstore_match_only = false;
+        global_table_options.hstore_match_only = false;
     }
 
-    if (enable_hstore_index && hstore_mode == HSTORE_NONE && hstore_columns.size() == 0) {
+    if (global_table_options.enable_hstore_index && global_table_options.hstore_mode == HSTORE_NONE && global_table_options.hstore_columns.size() == 0) {
         fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
-        enable_hstore_index = false;
+        global_table_options.enable_hstore_index = false;
     }
 
     if (cache < 0) {
