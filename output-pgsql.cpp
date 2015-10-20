@@ -53,11 +53,6 @@
 
 #define SRID (reproj->project_getprojinfo()->srs)
 
-/* FIXME: Shouldn't malloc this all to begin with but call realloc()
-   as required. The program will most likely segfault if it reads a
-   style file with more styles than this */
-#define MAX_STYLES 1000
-
 #define NUM_TABLES (output_pgsql_t::t_MAX)
 
 /* example from: pg_dump -F p -t planet_osm gis
