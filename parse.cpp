@@ -6,11 +6,9 @@
 
 #include <cstdio>
 
-#include "parse.hpp"
 #include "parse-o5m.hpp"
 #include "parse-osmium.hpp"
-
-
+#include "parse.hpp"
 
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096

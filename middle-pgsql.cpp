@@ -33,25 +33,27 @@ using namespace std;
 #define alloca _alloca
 #endif
 
-#include <libpq-fe.h>
-
-#include "osmtypes.hpp"
-#include "middle-pgsql.hpp"
-#include "output-pgsql.hpp"
-#include "options.hpp"
-#include "node-ram-cache.hpp"
-#include "node-persistent-cache.hpp"
-#include "pgsql.hpp"
-#include "util.hpp"
-
 #include <stdexcept>
+#include <unordered_map>
+
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <unordered_map>
+
 #include <boost/format.hpp>
+
+#include <libpq-fe.h>
+
+#include "middle-pgsql.hpp"
+#include "node-persistent-cache.hpp"
+#include "node-ram-cache.hpp"
+#include "options.hpp"
+#include "osmtypes.hpp"
+#include "output-pgsql.hpp"
+#include "pgsql.hpp"
+#include "util.hpp"
 
 enum table_id {
     t_node, t_way, t_rel

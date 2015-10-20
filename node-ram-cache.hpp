@@ -10,8 +10,8 @@
 
 #include "config.h"
 
-#include <cstddef>
 #include <climits>
+#include <cstddef>
 #include <cstdint>
 
 #include <boost/noncopyable.hpp>

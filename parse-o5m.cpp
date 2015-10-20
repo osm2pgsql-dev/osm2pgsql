@@ -29,8 +29,6 @@
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
 
-#include "parse-o5m.hpp"
-
 #include <stdexcept>
 #include <string>
 
@@ -39,9 +37,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <unistd.h>
-#include <time.h>
+#include <ctime>
 #include <fcntl.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 #include <io.h>
@@ -49,6 +47,7 @@
 
 #include "osmdata.hpp"
 #include "osmtypes.hpp"
+#include "parse-o5m.hpp"
 #include "reprojection.hpp"
 
 #define inline

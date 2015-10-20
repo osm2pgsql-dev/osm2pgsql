@@ -8,39 +8,40 @@
 
 #include "config.h"
 
-#include <stdio.h>
+#include <iostream>
+#include <limits>
+#include <memory>
+#include <stdexcept>
+
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-#include <errno.h>
-#include <time.h>
 
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
 #endif
 
-#include "osmtypes.hpp"
-#include "reprojection.hpp"
-#include "output-pgsql.hpp"
-#include "options.hpp"
-#include "middle.hpp"
-#include "pgsql.hpp"
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/bind.hpp>
+#include <boost/exception_ptr.hpp>
+#include <boost/format.hpp>
+
 #include "expire-tiles.hpp"
-#include "wildcmp.hpp"
+#include "middle.hpp"
 #include "node-ram-cache.hpp"
+#include "options.hpp"
+#include "osmtypes.hpp"
+#include "output-pgsql.hpp"
+#include "pgsql.hpp"
+#include "reprojection.hpp"
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
 #include "util.hpp"
-
-#include <boost/bind.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/exception_ptr.hpp>
-#include <iostream>
-#include <limits>
-#include <stdexcept>
-#include <memory>
+#include "wildcmp.hpp"
 
 /* make the diagnostic information work with older versions of
  * boost - the function signature changed at version 1.54.

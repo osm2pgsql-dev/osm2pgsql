@@ -5,17 +5,16 @@
  * so Mapnik doesn't have to).
  */
 
-#include "reprojection.hpp"
-
 #include "config.h"
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 #include <proj_api.h>
 
+#include "reprojection.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

@@ -1,14 +1,14 @@
-#include "osmdata.hpp"
-#include "output.hpp"
-#include "middle.hpp"
-#include "node-ram-cache.hpp"
-
-#include <boost/thread/thread.hpp>
-#include <boost/thread.hpp>
-
 #include <stdexcept>
 #include <utility>
+
 #include <cstdio>
+
+#include <boost/thread.hpp>
+
+#include "middle.hpp"
+#include "node-ram-cache.hpp"
+#include "osmdata.hpp"
+#include "output.hpp"
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_): mid(mid_)
 {

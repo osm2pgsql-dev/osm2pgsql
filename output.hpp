@@ -10,13 +10,14 @@
 #ifndef OUTPUT_H
 #define OUTPUT_H
 
-#include "options.hpp"
-
-#include <boost/noncopyable.hpp>
 #include <stack>
 
-struct id_tracker;
+#include <boost/noncopyable.hpp>
+
+#include "options.hpp"
+
 struct expire_tiles;
+struct id_tracker;
 struct middle_query_t;
 
 struct pending_job_t {
