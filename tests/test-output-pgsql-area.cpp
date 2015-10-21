@@ -50,7 +50,7 @@ void run_test(const char* test_name, void (*testfunc)()) {
 #define RUN_TEST(x) run_test(#x, &(x))
 
 
-void test_area_base(bool latlon, bool reproj, double expect_area) {
+void test_area_base(bool latlon, bool reproj, double expect_area_poly, double expect_area_multi) {
     std::unique_ptr<pg::tempdb> db;
 
     try {
@@ -88,23 +88,23 @@ void test_area_base(bool latlon, bool reproj, double expect_area) {
 
     osmdata.stop();
 
-    // tables should not contain any tag columns
-    db->check_count(1, "select count(*) from osm2pgsql_test_polygon");
-    db->check_number(expect_area, "SELECT way_area FROM osm2pgsql_test_polygon");
+    db->check_count(2, "SELECT COUNT(*) FROM osm2pgsql_test_polygon");
+    db->check_number(expect_area_poly, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    db->check_number(expect_area_multi, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 
     return;
 }
 
 void test_area_classic() {
-    test_area_base(false, false, 6.66e+10);
+    test_area_base(false, false, 1.23927e+10, 9.91828e+10);
 }
 
 void test_area_latlon() {
-    test_area_base(true, false, 6.66e-1);
+    test_area_base(true, false, 1, 8);
 }
 
 void test_area_latlon_with_reprojection() {
-    test_area_base(true, true, 6.66e+10);
+    test_area_base(true, true, 1.23927e+10, 9.91828e+10);
 }
 
 int main(int argc, char *argv[]) {
