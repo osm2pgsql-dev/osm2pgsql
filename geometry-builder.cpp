@@ -27,6 +27,7 @@
 #include <stdexcept>
 #include <memory>
 #include <new>
+#include <numeric>
 
 #if defined(__CYGWIN__)
 #define GEOS_INLINE
@@ -776,15 +777,12 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
     }
 
     // MultiPolygon - return sum of individual areas
-    if (const geos::geom::MultiPolygon* multi = dynamic_cast<const geos::geom::MultiPolygon *>(geom)) {
-        double area = 0.0;
-        for (std::size_t i=0; i<multi->getNumGeometries(); i++) {
-            area += getArea(multi->getGeometryN(i));
-        }
-        return area;
+    if (const auto *multi = dynamic_cast<const geos::geom::MultiPolygon *>(geom)) {
+        return std::accumulate(multi->begin(), multi->end(), 0.0,
+                               [=](double a, const geos::geom::Geometry *geom) { return a + getArea(geom); });
     }
 
-    const geos::geom::Polygon *poly = dynamic_cast<const geos::geom::Polygon *>(geom);
+    const auto *poly = dynamic_cast<const geos::geom::Polygon *>(geom);
     if (!poly) {
         return 0.0;
     }
@@ -792,17 +790,17 @@ double geometry_builder::getArea(const geos::geom::Geometry *geom) const
     // standard polygon - reproject rings individually, then assemble polygon and
     // compute area.
 
-    const geos::geom::LineString* ext = poly->getExteriorRing();
-    geos::geom::LinearRing* projectedExt = reproject_linearring(ext);
-    std::size_t nholes = poly->getNumInteriorRing();
+    const auto *ext = poly->getExteriorRing();
+    auto *projectedExt = reproject_linearring(ext);
+    auto nholes = poly->getNumInteriorRing();
     std::vector<geos::geom::Geometry *> *projectedHoles = new std::vector<geos::geom::Geometry *>(nholes);
-    for (std::size_t i=0; i< poly->getNumInteriorRing(); i++) {
+    for (std::size_t i=0; i < poly->getNumInteriorRing(); i++) {
         const geos::geom::LineString* hole = poly->getInteriorRingN(i);
         (*projectedHoles)[i] = reproject_linearring(hole);
     }
-    const geos::geom::Polygon *projectedPoly = poly->getFactory()->createPolygon(projectedExt, projectedHoles);
+    const auto *projectedPoly = poly->getFactory()->createPolygon(projectedExt, projectedHoles);
 
-    double area = projectedPoly->getArea();
+    auto area = projectedPoly->getArea();
     delete projectedPoly;
     return area;
 }
