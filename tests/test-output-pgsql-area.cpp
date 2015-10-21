@@ -1,4 +1,4 @@
-/*
+/**
 
 Test the area reprojection functionality of osm2pgsql 
 
@@ -6,8 +6,6 @@ The idea behind that functionality is to populate the way_area
 column with the area that a polygoun would have in EPSG:3857, 
 rather than the area it actually has in the coordinate system
 used for importing.
-
-This goes with a test data file named area-reprojection.osm
 
 */
 #include <iostream>
@@ -84,7 +82,7 @@ void test_area_base(bool latlon, bool reproj, double expect_area) {
 
     osmdata.start();
 
-    parser->stream_file("libxml2", "tests/area-reprojection.osm", &osmdata);
+    parser->stream_file("libxml2", "tests/test_output_pgsql_area.osm", &osmdata);
 
     parser.reset(nullptr);
 
