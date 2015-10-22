@@ -7,7 +7,6 @@ addons:
     - ubuntu-toolchain-r-test
     packages:
     - g++-4.8
-    - libtool
     - libexpat1-dev
     - libgeos-dev
     - libgeos++-dev
@@ -24,13 +23,13 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: BUILDCXXFLAGS='-Werror -pedantic -Wall -std=c++11'
+      env: CXXFLAGS="-pedantic -Werror"
     - os: linux
       compiler: gcc
-      env: BUILDCXXFLAGS='-Werror -pedantic -Wall -std=c++11'
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"
     - os: osx
       compiler: clang
-      env: BUILDCXXFLAGS='-pedantic -Wall -std=c++11'
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic"
 before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
       brew install lua;
@@ -44,17 +43,17 @@ install:
       export CXX=g++-4.8;
     fi
 before_script:
-  - export CXXFLAGS="-Werror"
   - $CXX --version
   - xml2-config --version
   - geos-config --version
   - proj | head -n1
   - lua -v
 script:
-  - ./autogen.sh
-  - ./configure
-  - make -j2 check TESTS='' CXXFLAGS="$BUILDCXXFLAGS"
+  - mkdir build && cd build
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug $CMAKEOPTS
+  - make -j2
+  - echo "Running tests that does not require PostgreSQL server"
+  - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
 after_failure:
-  - cat config.log
-  # rerun make, but verbosely
-  - make check TESTS='' V=1 CXXFLAGS="$BUILDCXXFLAGS"
+  - # rerun make, but verbosely
+    make VERBOSE=1

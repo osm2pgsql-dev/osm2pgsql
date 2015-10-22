@@ -48,42 +48,67 @@ Both GCC 4.8 and Clang 3.4 meet this requirement.
 To install on a Debian or Ubuntu system, first install the prerequisites:
 
 ```sh
-sudo apt-get install autoconf automake libtool make g++ pkg-config libboost-dev \
+sudo apt-get install make cmake g++ libboost-dev lua5.2 liblua5.2-dev \
   libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
-  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev zlib1g-dev \
-  lua5.2 liblua5.2-dev
+  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev zlib1g-dev
 ```
 
 To install on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ automake libtool pkgconfig boost-devel \
-  expat-devel bzip2-devel postgresql-devel geos-devel proj-devel \
-  lua-devel
+sudo yum install gcc-c++ cmake boost-devel lua-devel expat-devel \
+  bzip2-devel postgresql-devel geos-devel proj-devel zlib-devel proj-epsg
+```
+
+On RedHat / CentOS some packages are places in EPEL repositories:
+
+```sh
+sudo yum install epel-release
+sudo yum install geos-devel proj-devel proj-epsg
+```
+
+If the default version of PostgreSQL is too old, the official RPM repository
+can be used (see http://yum.postgresql.org), here is an example for CentOS 7:
+
+```sh
+sudo yum remove postgresql-devel postgresql-client
+sudo yum localinstall http://yum.postgresql.org/9.4/redhat/rhel-7-x86_64/pgdg-centos94-9.4-2.noarch.rpm
+sudo yum install postgresql94-devel postgresql94-contrib postgis2_94
 ```
 
 To install on a FreeBSD system, use
 
 ```sh
-pkg install devel/git devel/autoconf devel/automake devel/gmake devel/libtool \
-  textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client \
-  devel/boost-libs lang/lua52 devel/pkgconf
+pkg install devel/git devel/cmake devel/boost-libs lang/lua52 \
+  textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client
 ```
 
-Then you should be able to bootstrap the build system:
+CMake is needed to build osm2pgsql. First generate the makefiles in separate folder:
 
-    ./autogen.sh
+    mkdir build && cd build
+    cmake ..
 
-And then run the standard GNU build install:
+If some packages are installed but not found, more cmake options may be needed
+(see the error messages for help).
 
-    ./configure && make && make install
+When cmake sucessfully finishes, compile the sources:
 
-Please see `./configure --help` for more options on how to control the build
-process.
+    make
 
-On FreeBSD instead bootstrap and then run
+Then install them to standard location if needed:
 
-    LUA_LIB=`pkg-config --libs lua-5.2` ./configure && gmake && gmake install
+    sudo make install
+
+To change the default installation location (usually /usr/local) use
+
+    cmake .. -DCMAKE_INSTALL_PREFIX=/path/to/install
+
+By default, the Release build with debug info is created and no tests are compiled.
+You can change that behavior by using additional options like following:
+
+    cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+
+For highly customized builds CMakeLists.txt build scripts can be editied.
 
 ## Usage ##
 

@@ -1,0 +1,72 @@
+environment:
+  global:
+    PGUSER: postgres
+    PGPASSWORD: Password12!
+    BOOST_ROOT: c:\libs\boost
+    PREFIX: c:\libs
+    PSQL_ROOT: C:\Program Files\PostgreSQL\9.4
+    CMAKE_PREFIX_PATH: c:\libs;C:\Program Files\PostgreSQL\9.4
+    PYTHONPATH: c:\libs
+  matrix:
+  - configuration: Release
+
+# Operating system (build VM template)
+
+os: Visual Studio 2015
+
+services:
+#  - postgresql # enable when Postgis will be available
+
+# scripts that are called at very beginning, before repo cloning
+init:
+  - git config --global core.autocrlf input
+
+# clone directory
+clone_folder: c:\osm2pgsql
+
+clone_depth: 1
+
+platform: x64
+
+install:
+  # by default, all script lines are interpreted as batch
+  - cd c:\
+  - mkdir libs
+  - curl -O https://dl.dropboxusercontent.com/u/63393258/libs_osm2pgsql_%Configuration%.7z
+  - 7z x libs_osm2pgsql_%Configuration%.7z | find ":"
+
+build_script:
+  - mkdir c:\osm2pgsql\build
+  - cd c:\osm2pgsql\build
+  - echo Running cmake...
+  - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
+  - cmake .. -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON -DBoost_ADDITIONAL_VERSIONS=1.57;1.58;1.59
+  - nmake
+  - mkdir osm2pgsql-bin
+  - copy /y *.exe osm2pgsql-bin
+  - copy /y ..\*.style osm2pgsql-bin
+  - copy /y ..\*.lua osm2pgsql-bin
+  - copy /y %PREFIX%\bin\lua.dll osm2pgsql-bin
+  - copy /y %PREFIX%\bin\geos.dll osm2pgsql-bin
+  - copy /y "%PSQL_ROOT%\bin\libpq.dll" osm2pgsql-bin
+  - copy /y "%PSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin
+  - copy /y "%PSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin
+  - copy /y "%PSQL_ROOT%\bin\ssleay32.dll" osm2pgsql-bin
+
+after_build:
+  - 7z a c:\build\osm2pgsql_%Configuration%.zip osm2pgsql-bin -tzip
+
+test_script:
+  - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
+  - cd c:\osm2pgsql\build
+  - ctest -VV -L NoDB
+#  - ctest -VV -LE FlatNodes # enable when Postgis will be available
+
+#deploy_script:
+#  - cd c:\build
+#  - curl -T osm2pgsql_%Configuration%.zip --user %ACCOUNT% https://webdav.yandex.ru/libs/osm2pgsql_%Configuration%.zip
+
+artifacts:
+  - path: osm2pgsql_Release.zip
+    name: osm2pgsql_Release.zip
+

@@ -130,14 +130,8 @@ void assert_equal(uint64_t actual, uint64_t expected) {
 }
 
 int main(int argc, char *argv[]) {
-  char *srcdir = getenv("srcdir");
 
-  if (srcdir == nullptr) {
-    std::cerr << "$srcdir not set!\n";
-    return 1;
-  }
-
-  std::string inputfile = std::string(srcdir) + std::string("/tests/test_multipolygon.osm");
+  std::string inputfile = "tests/test_multipolygon.osm";
 
   options_t options;
   auto projection = std::make_shared<reprojection>(PROJ_SPHERE_MERC);
