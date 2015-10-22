@@ -11,6 +11,7 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 
 #define SRID (reproj->project_getprojinfo()->srs)
