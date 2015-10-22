@@ -1,18 +1,17 @@
 #ifndef OUTPUT_GAZETTEER_H
 #define OUTPUT_GAZETTEER_H
 
+#include <memory>
+#include <string>
+
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
+
+#include "geometry-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "geometry-builder.hpp"
 #include "pgsql.hpp"
 #include "util.hpp"
-
-#include <boost/format.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-
-#include <string>
-#include <iostream>
-#include <memory>
 
 /**
  * A private class to convert tags.

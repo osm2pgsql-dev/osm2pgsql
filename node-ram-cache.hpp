@@ -9,12 +9,14 @@
 #define NODE_RAM_CACHE_H
 
 #include "config.h"
-#include "osmtypes.hpp"
 
-#include <cstddef>
 #include <climits>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
+
 #include <boost/noncopyable.hpp>
+
+#include "osmtypes.hpp"
 
 #define ALLOC_SPARSE 1
 #define ALLOC_DENSE 2

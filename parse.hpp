@@ -3,16 +3,18 @@
 
 #include "osmtypes.hpp"
 
-#include <time.h>
-#include <string>
 #include <memory>
+#include <string>
+
+#include <ctime>
+
 #include <boost/optional.hpp>
 
 typedef enum { FILETYPE_NONE, FILETYPE_OSM, FILETYPE_OSMCHANGE, FILETYPE_PLANETDIFF } filetypes_t;
 typedef enum { ACTION_NONE, ACTION_CREATE, ACTION_MODIFY, ACTION_DELETE } actions_t;
 
-class parse_t;
 class osmdata_t;
+class parse_t;
 struct reprojection;
 
 class bbox_t

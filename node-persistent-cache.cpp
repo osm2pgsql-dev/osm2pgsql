@@ -2,25 +2,26 @@
 
 #include "config.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <math.h>
+#include <algorithm>
+#include <stdexcept>
 
+#include <cerrno>
+#include <climits>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+
+#include <fcntl.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "node-persistent-cache.hpp"
+#include "options.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "options.hpp"
-#include "node-persistent-cache.hpp"
 #include "util.hpp"
-
-#include <stdexcept>
-#include <algorithm>
 
 #ifdef _WIN32
  #include "win_fsync.h"

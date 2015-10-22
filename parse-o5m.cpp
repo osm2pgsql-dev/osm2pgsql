@@ -28,22 +28,26 @@
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include <stdint.h>
+
+#include <stdexcept>
+#include <string>
+
+#include <cinttypes>
+#include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
-#include <unistd.h>
-#include <time.h>
+#include <ctime>
 #include <fcntl.h>
+#include <unistd.h>
 
 #ifdef _WIN32
 #include <io.h>
 #endif
 
-#include "parse-o5m.hpp"
 #include "osmdata.hpp"
 #include "osmtypes.hpp"
+#include "parse-o5m.hpp"
 #include "reprojection.hpp"
 
 #define inline

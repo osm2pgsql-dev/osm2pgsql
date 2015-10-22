@@ -1,14 +1,14 @@
 #include "config.h"
-#include "parse.hpp"
+
+#include <algorithm>
+#include <stdexcept>
+#include <string>
+
+#include <cstdio>
+
 #include "parse-o5m.hpp"
 #include "parse-osmium.hpp"
-
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <stdexcept>
-#include <algorithm>
-
+#include "parse.hpp"
 
 #define INIT_MAX_MEMBERS 64
 #define INIT_MAX_NODES  4096

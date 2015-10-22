@@ -8,14 +8,14 @@
 */
 
 #include <stdexcept>
-#include <cstdio>
-#include <cstring>
-#include <cassert>
 
+#include <cassert>
+#include <cstdio>
+
+#include "id-tracker.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
 #include "options.hpp"
-#include "id-tracker.hpp"
 
 /* Object storage now uses 2 levels of storage arrays.
  *

@@ -7,11 +7,12 @@
 
 #include "config.h"
 
-#include <cstdlib>
-#include <cstdio>
-#include <cstring>
-#include <proj_api.h>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include <proj_api.h>
 
 #include "reprojection.hpp"
 

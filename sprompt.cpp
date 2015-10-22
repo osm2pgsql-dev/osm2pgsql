@@ -54,13 +54,10 @@
 
 #define DEVTTY "/dev/tty"
 
-#include <stdio.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
-#include <libpq-fe.h>
 
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>

@@ -5,14 +5,16 @@
 
 #include "config.h"
 
+#include <new>
+#include <stdexcept>
+
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 
 #include <boost/format.hpp>
 
-#include "osmtypes.hpp"
 #include "node-ram-cache.hpp"
+#include "osmtypes.hpp"
 #include "util.hpp"
 
 /* Here we use a similar storage structure as middle-ram, except we allow

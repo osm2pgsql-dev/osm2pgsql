@@ -1,15 +1,17 @@
 #include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cassert>
 #include <memory>
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "parse-osmium.hpp"
-#include "output.hpp"
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+#include "middle.hpp"
 #include "options.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output.hpp"
+#include "parse-osmium.hpp"
 
 void exit_nicely()
 {

@@ -60,6 +60,9 @@ int main(int argc, char *argv[])
 
 Names should use underscores, not camel case, with class/struct names ending in `_t`.
 
+Headers should be included in the order `config.h`, C++ standard library headers,
+C library headers, Boost headers, and last osm2pgsql files.
+
 ## Documentation
 
 User documentation is stored in `docs/`. Pages on the OpenStreetMap wiki are
