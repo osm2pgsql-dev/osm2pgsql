@@ -164,6 +164,43 @@ void reprojection::reproject(double *lat, double *lon) const
 }
 
 /**
+ * Converts from (target) coordinates to coordinates in the tile projection (EPSG:3857)
+ *
+ * Do not confuse with coords_to_tile which does *not* calculate coordinates in the
+ * tile projection, but tile coordinates.
+ */
+void reprojection::target_to_tile(double *lat, double *lon) const
+{
+    double x[1], y[1], z[1];
+
+    if (Proj == PROJ_SPHERE_MERC)
+        return;
+
+    if (Proj == PROJ_LATLONG)
+    {
+        if (*lat > 85.07)
+            *lat = 85.07;
+        if (*lat < -85.07)
+            *lat = -85.07;
+
+        *lon = (*lon) * EARTH_CIRCUMFERENCE / 360.0;
+        *lat = log(tan(M_PI/4.0 + (*lat) * DEG_TO_RAD / 2.0)) * EARTH_CIRCUMFERENCE/(M_PI*2);
+        return;
+    }
+
+    x[0] = *lon;
+    y[0] = *lat;
+    z[0] = 0;
+
+    /** end of "caution" section. */
+
+    pj_transform(pj_target, pj_tile, 1, 1, x, y, z);
+
+    *lat = y[0];
+    *lon = x[0];
+}
+
+/**
  * Converts from (target) coordinates to tile coordinates.
  *
  * The zoom level for the coordinates is explicitly given in the
