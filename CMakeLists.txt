@@ -105,6 +105,10 @@ if (MSVC)
   set(BOOST_EXTRA date_time chrono)
 endif()
 
+if (NOT Boost_ADDITIONAL_VERSIONS)
+  set(Boost_ADDITIONAL_VERSIONS "1.55;1.56;1.57;1.58;1.59;1.60;1.61")
+endif()
+
 # first try to find the version
 find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem thread ${BOOST_EXTRA})
 include_directories(${Boost_INCLUDE_DIR})
@@ -138,6 +142,15 @@ if (WIN32)
 endif()
 
 message("Libraries used to build: " ${LIBS})
+
+list(APPEND LIBS ${CMAKE_DL_LIBS})
+
+if (CMAKE_SYSTEM_NAME STREQUAL Linux)
+  check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME_IN_RT)
+  if (HAVE_CLOCK_GETTIME_IN_RT)
+    list(APPEND LIBS rt)
+  endif()
+endif ()
 
 message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
 

@@ -99,7 +99,7 @@ Then install them to standard location if needed:
 
     sudo make install
 
-To change the default installation location (usually /usr/local) use
+To change the default installation location (usually ``/usr/local``) use
 
     cmake .. -DCMAKE_INSTALL_PREFIX=/path/to/install
 
@@ -107,6 +107,22 @@ By default, the Release build with debug info is created and no tests are compil
 You can change that behavior by using additional options like following:
 
     cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+
+If you use custom libraries in non-standard locations, there are following options:
+
+  - Keep the libraries together in ``CMAKE_INSTALL_PREFIX`` path
+  - Specify ``CMAKE_PREFIX_PATH`` variable to help cmake find libraries:
+```sh
+export CMAKE_PREFIX_PATH=/home/user/postgresql945:/home/user/lua:/home/user/geos
+cmake .. -DBOOST_ROOT=/home/user/boost
+```
+  - Pass each library and include directory to CMake directly:
+```sh
+cmake .. -DLUA_LIBRARY=/home/user/lua/liblua.a -DLUA_INCLUDE_DIR=/home/user/lua/include
+```
+  - Edit paths to libraries and headers in the file ``CMakeCache.txt`` after trying to run cmake
+and run ``cmake ..`` again.
+
 
 For highly customized builds CMakeLists.txt build scripts can be editied.
 

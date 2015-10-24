@@ -52,9 +52,7 @@ build_script:
   - copy /y "%PSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\ssleay32.dll" osm2pgsql-bin
-
-after_build:
-  - 7z a c:\build\osm2pgsql_%Configuration%.zip osm2pgsql-bin -tzip
+  - 7z a c:\osm2pgsql\osm2pgsql_%Configuration%.zip osm2pgsql-bin -tzip
 
 test_script:
   - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
