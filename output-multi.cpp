@@ -297,14 +297,21 @@ int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const tag
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes);
         if (wkt) {
-            //TODO: need to know if we care about polygons or lines for this output
-            //the difference only being that if its a really large bbox for the poly
-            //it downgrades to just invalidating the line/perimeter anyway
-            if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
-                m_expire->from_nodes_poly(nodes, id);
-            else
-                m_expire->from_nodes_line(nodes);
-            copy_to_table(id, wkt->geom.c_str(), outtags);
+            if (polygon) {
+                // The way is required to be a polygon
+                if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+                    m_expire->from_nodes_poly(nodes, id);
+                    copy_to_table(id, wkt->geom.c_str(), outtags);
+                }
+            } else {
+                // The way is not required to be a polygon
+                copy_to_table(id, wkt->geom.c_str(), outtags);
+                if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+                    m_expire->from_nodes_poly(nodes, id);
+                } else {
+                    m_expire->from_nodes_line(nodes);
+                }
+            }
         }
     }
     return 0;
@@ -330,14 +337,21 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
                 ways_pending_tracker->mark(id);
             }//we aren't interested in relations so if it comes in on a relation later we wont keep it
             else {
-                //TODO: need to know if we care about polygons or lines for this output
-                //the difference only being that if its a really large bbox for the poly
-                //it downgrades to just invalidating the line/perimeter anyway
-                if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
-                    m_expire->from_nodes_poly(m_way_helper.node_cache, id);
-                else
-                    m_expire->from_nodes_line(m_way_helper.node_cache);
-                copy_to_table(id, wkt->geom.c_str(), outtags);
+                if (polygon) {
+                    // The way is required to be a polygon
+                    if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+                        m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+                        copy_to_table(id, wkt->geom.c_str(), outtags);
+                    }
+                } else {
+                    // The way is not required to be a polygon
+                    copy_to_table(id, wkt->geom.c_str(), outtags);
+                    if (boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON")) {
+                        m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+                    } else {
+                        m_expire->from_nodes_line(m_way_helper.node_cache);
+                    }
+                }
             }
         }
     }
