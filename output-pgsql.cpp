@@ -12,6 +12,7 @@
 #include <limits>
 #include <memory>
 #include <stdexcept>
+#include <string>
 
 #include <cassert>
 #include <cerrno>
@@ -118,20 +119,13 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodel
     else
         split_at = 100 * 1000;
 
-    tag_t *areatag = 0;
     geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, polygon, split_at);
     for (const auto& wkt: *wkts) {
         /* FIXME: there should be a better way to detect polygons */
         if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
             expire->from_nodes_poly(nodes, id);
             if ((wkt.area > 0.0) && m_enable_way_area) {
-                char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
-                if (!areatag) {
-                    outtags.push_dedupe(tag_t("way_area", tmp));
-                    areatag = outtags.find("way_area");
-                } else
-                    areatag->value = tmp;
+                outtags.push_override(tag_t("way_area", std::to_string(wkt.area)));
             }
             m_tables[t_poly]->write_wkt(id, outtags, wkt.geom.c_str());
         } else {
@@ -182,19 +176,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         return 0;
     }
 
-    tag_t *areatag = 0;
     for (const auto& wkt: *wkts) {
         expire->from_wkt(wkt.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
         if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
             if ((wkt.area > 0.0) && m_enable_way_area) {
-                char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
-                if (!areatag) {
-                    outtags.push_dedupe(tag_t("way_area", tmp));
-                    areatag = outtags.find("way_area");
-                } else
-                    areatag->value = tmp;
+                outtags.push_override(tag_t("way_area", std::to_string(wkt.area)));
             }
             m_tables[t_poly]->write_wkt(-id, outtags, wkt.geom.c_str());
         } else {
@@ -223,18 +210,11 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     // If we are making a boundary then also try adding any relations which form complete rings
     // The linear variants will have already been processed above
     if (make_boundary) {
-        tag_t *areatag = 0;
         wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for (const auto& wkt: *wkts) {
             expire->from_wkt(wkt.geom.c_str(), -id);
             if ((wkt.area > 0.0) && m_enable_way_area) {
-                char tmp[32];
-                snprintf(tmp, sizeof(tmp), "%g", wkt.area);
-                if (!areatag) {
-                    outtags.push_dedupe(tag_t("way_area", tmp));
-                    areatag = outtags.find("way_area");
-                } else
-                    areatag->value = tmp;
+                outtags.push_override(tag_t("way_area", std::to_string(wkt.area)));
             }
             m_tables[t_poly]->write_wkt(-id, outtags, wkt.geom.c_str());
         }
