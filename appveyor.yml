@@ -67,4 +67,3 @@ test_script:
 artifacts:
   - path: osm2pgsql_Release.zip
     name: osm2pgsql_Release.zip
-
