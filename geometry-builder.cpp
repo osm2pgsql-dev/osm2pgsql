@@ -104,11 +104,14 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
+            if (geom->isEmpty() || !geom->isValid()) {
                 if (excludepoly) {
                     throw std::runtime_error("Excluding broken polygon.");
                 } else {
                     geom = geom_ptr(geom->buffer(0));
+                    if (geom->isEmpty() || !geom->isValid()) {
+                        throw std::runtime_error("Excluding unrecoverable broken polygon.");
+                    }
                 }
             }
             geom->normalize(); // Fix direction of ring
@@ -158,11 +161,14 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
             geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
+            if (geom->isEmpty() || !geom->isValid()) {
                 if (excludepoly) {
                     throw std::runtime_error("Excluding broken polygon.");
                 } else {
                     geom = geom_ptr(geom->buffer(0));
+                    if (geom->isEmpty() || !geom->isValid()) {
+                        throw std::runtime_error("Excluding unrecoverable broken polygon.");
+                    }
                 }
             }
             geom->normalize(); // Fix direction of ring
@@ -439,8 +445,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
+                if (!multipoly->isEmpty() && multipoly->isValid()) {
                     //copy of an empty one should be cheapest
                     wkts->push_back(geometry_builder::wkt_t());
                     //then we set on the one we already have
@@ -453,11 +458,11 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 for(unsigned i=0; i<toplevelpolygons; i++)
                 {
                     Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
-                    if (!poly->isValid() && !excludepoly) {
+                    if ((poly->isEmpty() || !poly->isValid()) && !excludepoly) {
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
-                    if ((excludepoly == 0) || (poly->isValid()))
+                    if (!poly->isEmpty() && poly->isValid())
                     {
                         //copy of an empty one should be cheapest
                         wkts->push_back(geometry_builder::wkt_t());
@@ -707,8 +712,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
+                if (!multipoly->isEmpty() && multipoly->isValid()) {
                     //copy of an empty one should be cheapest
                     wkts->push_back(geometry_builder::wkt_t());
                     //then we set on the one we already have
@@ -725,7 +729,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
-                    if (!excludepoly || (poly->isValid()))
+                    if (!poly->isEmpty() && poly->isValid())
                     {
                         //copy of an empty one should be cheapest
                         wkts->push_back(geometry_builder::wkt_t());

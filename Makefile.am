@@ -59,6 +59,7 @@ check_PROGRAMS = \
 	tests/test-output-pgsql-z_order \
 	tests/test-output-pgsql-tablespace \
 	tests/test-output-pgsql-schema \
+	tests/test-output-pgsql-validgeom \
 	tests/test-pgsql-escape \
 	tests/test-options-parse \
 	tests/test-options-database \
@@ -97,6 +98,8 @@ tests_test_output_pgsql_z_order_SOURCES = tests/test-output-pgsql-z_order.cpp te
 tests_test_output_pgsql_z_order_LDADD = libosm2pgsql.la
 tests_test_output_pgsql_schema_SOURCES = tests/test-output-pgsql-schema.cpp tests/common-pg.cpp
 tests_test_output_pgsql_schema_LDADD = libosm2pgsql.la
+tests_test_output_pgsql_validgeom_LDADD = libosm2pgsql.la
+tests_test_output_pgsql_validgeom_SOURCES = tests/test-output-pgsql-validgeom.cpp tests/common-pg.cpp
 tests_test_pgsql_escape_SOURCES = tests/test-pgsql-escape.cpp
 tests_test_pgsql_escape_LDADD = libosm2pgsql.la
 tests_test_options_parse_SOURCES = tests/test-options-parse.cpp
@@ -135,6 +138,7 @@ tests_test_output_pgsql_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_tablespace_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_z_order_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_output_pgsql_schema_LDADD += $(GLOBAL_LDFLAGS)
+tests_test_output_pgsql_validgeom_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_pgsql_escape_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_options_parse_LDADD += $(GLOBAL_LDFLAGS)
 tests_test_options_database_LDADD += $(GLOBAL_LDFLAGS)
