@@ -251,11 +251,15 @@ add_custom_command(TARGET osm2pgsql POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy 
 # Build tests
 #############################################################
 
+enable_testing()
+include(CTest)
+
 if (BUILD_TESTS)
-  enable_testing()
-  include(CTest)
   add_subdirectory(tests)
+else()
+  add_subdirectory(tests EXCLUDE_FROM_ALL)
 endif()
+
 
 #############################################################
 # Install
