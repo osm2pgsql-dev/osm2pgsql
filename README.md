@@ -45,86 +45,61 @@ Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
 Both GCC 4.8 and Clang 3.4 meet this requirement.
 
-To install on a Debian or Ubuntu system, first install the prerequisites:
+First install the dependencies.
+
+On a Debian or Ubuntu system, this can be done with:
 
 ```sh
-sudo apt-get install make cmake g++ libboost-dev lua5.2 liblua5.2-dev \
-  libboost-system-dev libboost-filesystem-dev libboost-thread-dev libexpat1-dev \
-  libgeos-dev libgeos++-dev libpq-dev libbz2-dev libproj-dev zlib1g-dev
+sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
+  libboost-filesystem-dev libboost-thread-dev libexpat1-dev zlib1g-dev \
+  libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev lua5.2 \
+  liblua5.2-dev
 ```
 
-To install on a Fedora system, use
+To on a Fedora system, use
 
 ```sh
-sudo yum install gcc-c++ cmake boost-devel lua-devel expat-devel \
-  bzip2-devel postgresql-devel geos-devel proj-devel zlib-devel proj-epsg
+sudo yum install cmake gcc-c++ boost-devel expat-devel zlib-devel bzip2-devel \
+  postgresql-devel geos-devel proj-devel proj-epsg lua-devel
 ```
 
-On RedHat / CentOS some packages are places in EPEL repositories:
+On RedHat / CentOS first run `sudo yum install epel-release` then install
+dependencies like on Fedora.
+
+On a FreeBSD system, use
 
 ```sh
-sudo yum install epel-release
-sudo yum install geos-devel proj-devel proj-epsg
+pkg install devel/cmake devel/boost-libs textproc/expat2 \
+  databases/postgresql94-client graphics/geos graphics/proj lang/lua52
 ```
 
-If the default version of PostgreSQL is too old, the official RPM repository
-can be used (see http://yum.postgresql.org), here is an example for CentOS 7:
+Once dependencies are installed, use CMake to build the Makefiles in a separate folder
 
 ```sh
-sudo yum remove postgresql-devel postgresql-client
-sudo yum localinstall http://yum.postgresql.org/9.4/redhat/rhel-7-x86_64/pgdg-centos94-9.4-2.noarch.rpm
-sudo yum install postgresql94-devel postgresql94-contrib postgis2_94
+mkdir build && cd build
+cmake ..
 ```
 
-To install on a FreeBSD system, use
+If some installed dependencies are not found by CMake, more options may need
+to be set. Typically, setting `CMAKE_PREFIX_PATH` to a list of appropriate
+paths is sufficient.
+
+When the Makefiles have been successfully built, compile with
 
 ```sh
-pkg install devel/git devel/cmake devel/boost-libs lang/lua52 \
-  textproc/expat2 graphics/geos graphics/proj databases/postgresql94-client
+make
 ```
 
-CMake is needed to build osm2pgsql. First generate the makefiles in separate folder:
+The compiled files can be installed with
 
-    mkdir build && cd build
-    cmake ..
-
-If some packages are installed but not found, more cmake options may be needed
-(see the error messages for help).
-
-When cmake sucessfully finishes, compile the sources:
-
-    make
-
-Then install them to standard location if needed:
-
-    sudo make install
-
-To change the default installation location (usually ``/usr/local``) use
-
-    cmake .. -DCMAKE_INSTALL_PREFIX=/path/to/install
+```sh
+sudo make install
+```
 
 By default, the Release build with debug info is created and no tests are compiled.
 You can change that behavior by using additional options like following:
 
     cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
-
-If you use custom libraries in non-standard locations, there are following options:
-
-  - Keep the libraries together in ``CMAKE_INSTALL_PREFIX`` path
-  - Specify ``CMAKE_PREFIX_PATH`` variable to help cmake find libraries:
-```sh
-export CMAKE_PREFIX_PATH=/home/user/postgresql945:/home/user/lua:/home/user/geos
-cmake .. -DBOOST_ROOT=/home/user/boost
-```
-  - Pass each library and include directory to CMake directly:
-```sh
-cmake .. -DLUA_LIBRARY=/home/user/lua/liblua.a -DLUA_INCLUDE_DIR=/home/user/lua/include
-```
-  - Edit paths to libraries and headers in the file ``CMakeCache.txt`` after trying to run cmake
-and run ``cmake ..`` again.
-
-
-For highly customized builds CMakeLists.txt build scripts can be editied.
 
 ## Usage ##
 
