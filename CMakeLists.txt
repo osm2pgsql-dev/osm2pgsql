@@ -10,7 +10,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 SET(DATA_DIR \".\")
 
-OPTION(BUILD_TESTS "Build test suite" OFF)
+OPTION(BUILD_TESTS "Build test suite" ON)
 
 if (NOT TESTING_TIMEOUT)
   set(TESTING_TIMEOUT 1200)
@@ -251,11 +251,15 @@ add_custom_command(TARGET osm2pgsql POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy 
 # Build tests
 #############################################################
 
+enable_testing()
+include(CTest)
+
 if (BUILD_TESTS)
-  enable_testing()
-  include(CTest)
   add_subdirectory(tests)
+else()
+  add_subdirectory(tests EXCLUDE_FROM_ALL)
 endif()
+
 
 #############################################################
 # Install
