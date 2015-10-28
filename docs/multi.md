@@ -59,7 +59,7 @@ where if a way is added to the polygon or line table depends on if it is closed,
 not just its tagging. All tables with the multi-backend are independent.
 
 All ways in `line` tables are turned into linestrings and what the tag
-transform sets the polygon flag to does not matter.. In `polygon` tables ways
+transform sets the polygon flag to does not matter. In `polygon` tables ways
 that can be formed into polygons are, and if the polygon flag is not set by the
 tag transform then other ways become linestrings. If the polygon flag is set,
 then linestrings will not be added to the table.
