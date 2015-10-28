@@ -242,11 +242,6 @@ if (HAVE_SYS_TIME_H) # until node-persistent-cache-reader is translated to std::
   target_link_libraries(node-persistent-cache-reader osm2pgsql_lib ${LIBS})
 endif()
 
-set(EXE_LOCATION $<TARGET_FILE:osm2pgsql>)
-
-# Copy executable to source folder for Python testing
-add_custom_command(TARGET osm2pgsql POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${EXE_LOCATION} ${CMAKE_CURRENT_SOURCE_DIR})
-
 #############################################################
 # Build tests
 #############################################################
