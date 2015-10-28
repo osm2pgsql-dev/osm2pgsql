@@ -1,3 +1,6 @@
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${ARGS})
+add_dependencies(check osm2pgsql)
+
 add_library(common-pg STATIC common-pg.cpp common-pg.hpp common-cleanup.cpp common-cleanup.hpp)
 add_library(middle-tests STATIC middle-tests.cpp middle-tests.hpp)
 
@@ -30,6 +33,7 @@ foreach (test ${TESTS})
   target_link_libraries(${test_name} osm2pgsql_lib common-pg middle-tests)
   add_test(NAME ${test_name} COMMAND ${test_name}
     WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
+  add_dependencies(check ${test_name})
   message(STATUS "Added test: ${test_name}...")
   set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
 endforeach(test)
@@ -49,11 +53,6 @@ endforeach()
 
 set_property(TEST test-middle-flat PROPERTY LABELS FlatNodes)
 set_property(TEST test-output-pgsql PROPERTY LABELS FlatNodes)
-
-if (TESTS_VALGRIND)
-  set_property(TEST valgrind-test-middle-flat PROPERTY LABELS FlatNodes)
-  set_property(TEST valgrind-test-output-pgsql PROPERTY LABELS FlatNodes)
-endif()
 
 find_package(PythonInterp)
 
