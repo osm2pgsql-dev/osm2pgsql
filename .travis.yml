@@ -50,7 +50,7 @@ before_script:
   - lua -v
 script:
   - mkdir build && cd build
-  - cmake .. -DCMAKE_BUILD_TYPE=Debug
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
