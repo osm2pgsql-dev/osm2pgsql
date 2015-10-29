@@ -36,7 +36,7 @@ foreach (test ${TESTS})
   add_dependencies(check ${test_name})
   message(STATUS "Added test: ${test_name}...")
   set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
-endforeach(test)
+endforeach()
 
 set(TEST_NODB
  test-expire-tiles
