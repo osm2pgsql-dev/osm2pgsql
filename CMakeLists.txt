@@ -1,16 +1,16 @@
-SET(PACKAGE osm2pgsql)
-SET(PACKAGE_NAME osm2pgsql)
-SET(PACKAGE_VERSION 0.89.0-dev)
+set(PACKAGE osm2pgsql)
+set(PACKAGE_NAME osm2pgsql)
+set(PACKAGE_VERSION 0.89.0-dev)
 
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.7)
+cmake_minimum_required(VERSION 2.8.7)
 
-PROJECT(osm2pgsql)
+project(osm2pgsql)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-SET(DATA_DIR \".\")
+set(DATA_DIR \".\")
 
-OPTION(BUILD_TESTS "Build test suite" OFF)
+option(BUILD_TESTS "Build test suite" OFF)
 
 if (NOT TESTING_TIMEOUT)
   set(TESTING_TIMEOUT 1200)
@@ -55,12 +55,12 @@ option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 # Detect available headers and set global compiler options
 #############################################################
 
-INCLUDE (CheckIncludeFiles)
-INCLUDE (CheckFunctionExists)
-INCLUDE (CheckTypeSize)
+include (CheckIncludeFiles)
+include (CheckFunctionExists)
+include (CheckTypeSize)
 
-ADD_DEFINITIONS( -DOSM2PGSQL_DATADIR=${DATA_DIR} )
-ADD_DEFINITIONS( -DFIXED_POINT )
+add_definitions( -DOSM2PGSQL_DATADIR=${DATA_DIR} )
+add_definitions( -DFIXED_POINT )
 
 CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
 CHECK_INCLUDE_FILES (libgen.h HAVE_LIBGEN_H)
@@ -165,7 +165,7 @@ message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
 #############################################################
 
 set(HAVE_PTHREAD "${CMAKE_USE_PTHREADS_INIT}")
-CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)
    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/unistd.h "// empty header\n")
