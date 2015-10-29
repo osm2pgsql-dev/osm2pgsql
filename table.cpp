@@ -545,7 +545,7 @@ table_t::wkt_reader::~wkt_reader()
 const char* table_t::wkt_reader::get_next()
 {
     if (current < count) {
-        return PQgetvalue(result, current++, 0);
+        return PQgetvalue(result, (int) current++, 0);
     }
     return nullptr;
 }

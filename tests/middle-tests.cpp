@@ -183,7 +183,7 @@ int test_way_set(middle_t *mid)
   ways.push_back(way_id);
   std::vector<taglist_t> xtags;
   multinodelist_t xnodes;
-  int way_count = mid->ways_get_list(ways, xways, xtags, xnodes);
+  size_t way_count = mid->ways_get_list(ways, xways, xtags, xnodes);
   if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
 
   // check that it's the same
