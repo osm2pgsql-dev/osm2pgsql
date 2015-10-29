@@ -366,15 +366,11 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
         }
     }
 
-#ifdef __MINGW_H
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%d, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(ramNode), allocStrategy );
-#else
-    fprintf( stderr, "Node-cache: cache=%ldMB, maxblocks=%d*%zd, allocation method=%i\n", (cacheSize >> 20), maxBlocks, PER_BLOCK*sizeof(ramNode), allocStrategy );
-#endif
+    fprintf( stderr, "Node-cache: cache=%" PRId64 "MB, maxblocks=%d*%" PRId64 ", allocation method=%i\n", (cacheSize >> 20), maxBlocks, (int64_t) PER_BLOCK*sizeof(ramNode), allocStrategy );
 }
 
 node_ram_cache::~node_ram_cache() {
-  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %li), hit rate: %.2f%%\n",
+  fprintf( stderr, "node cache: stored: %" PRIdOSMID "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
            storedNodes, 100.0f*storedNodes/totalNodes, 100.0f*storedNodes*sizeof(ramNode)/cacheUsed,
            usedBlocks, sizeSparseTuples,
            100.0f*nodesCacheHits/nodesCacheLookups );
@@ -399,8 +395,8 @@ node_ram_cache::~node_ram_cache() {
 
 void node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) || (id < 0 && ~id >> BLOCK_SHIFT >> 32 )) {
-        fprintf(stderr, "\nAbsolute node IDs must not be larger than %lld (got %lld)\n",
-                1ULL << 42, (long long) id);
+        fprintf(stderr, "\nAbsolute node IDs must not be larger than %" PRId64 " (got%" PRId64 " )\n",
+                (int64_t) 1 << 42, (int64_t) id);
         util::exit_nicely();
     }
     totalNodes++;
