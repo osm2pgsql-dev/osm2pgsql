@@ -6,6 +6,7 @@ import os
 import fnmatch
 import subprocess
 
+exe_path="./osm2pgsql"
 full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
 multipoly_import_file="tests/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
 diff_import_file="tests/000466354.osc.gz"
@@ -371,31 +372,31 @@ class BaseTestCase(unittest.TestCase):
 class BaseNonSlimTestCase(BaseTestCase):
     
     def setUpGeneric(self, parameters, file):
-        proc = subprocess.Popen(["./osm2pgsql", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
 class BaseSlimTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
-        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        proc = subprocess.Popen(["./osm2pgsql", "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
         
 class BaseGazetteerTestCase(BaseTestCase):    
         
     def setUpGeneric(self, parameters, file):
-        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        proc = subprocess.Popen(["./osm2pgsql", "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
         
@@ -555,7 +556,7 @@ def setupDB():
             else:
                 print "The test needs a temporary tablespace to run in, but it does not exist. Please create the temporary tablespace. On Linux, you can do this by running:"
                 print "  sudo mkdir -p /tmp/psql-tablespace"
-                print "  sudo /bin/chown postgres.postgres tmp/psql-tablespace"
+                print "  sudo /bin/chown postgres.postgres /tmp/psql-tablespace"
                 print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
                 exit(77)
         except Exception as e:
@@ -619,11 +620,15 @@ if __name__ == "__main__":
     parser.add_option("-f", dest="osm_file", action="store", metavar="FILE",
                       default=full_import_file,
                       help="Import a specific osm file [default=%default]")
+    parser.add_option("-x", dest="exe_path", action="store", metavar="FILE",
+                      default=exe_path,
+                      help="Use specified osm2pgsql executuable [default=%default]")
     (options, args) = parser.parse_args()
 
     if options.osm_file:
         full_import_file = options.osm_file
-
+    if options.exe_path:
+        exe_path = options.exe_path
 
 ts2 = CompleteTestSuite()
 success = False
