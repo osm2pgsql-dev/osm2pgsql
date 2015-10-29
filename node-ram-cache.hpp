@@ -63,7 +63,7 @@ private:
     int _lon;
     int _lat;
 
-    int dbl2fix(const double x) const { return x * scale + 0.4; }
+    int dbl2fix(const double x) const { return (int) (x * scale + 0.4); }
     double fix2dbl(const int x) const { return (double)x / scale; }
 #else
 public:
