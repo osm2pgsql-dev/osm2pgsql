@@ -25,10 +25,10 @@ void escape(const std::string &src, std::string& dst);
 
 
 inline void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql) {
-    pgsql_CopyData(context, sql_conn, sql, strlen(sql));
+    pgsql_CopyData(context, sql_conn, sql, (int) strlen(sql));
 }
 
 inline void pgsql_CopyData(const char *context, PGconn *sql_conn, const std::string &sql) {
-    pgsql_CopyData(context, sql_conn, sql.c_str(), sql.length());
+    pgsql_CopyData(context, sql_conn, sql.c_str(), (int) sql.length());
 }
 #endif
