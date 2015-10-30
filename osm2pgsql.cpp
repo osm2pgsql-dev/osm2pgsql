@@ -45,7 +45,7 @@
 
 int main(int argc, char *argv[])
 {
-    fprintf(stderr, "osm2pgsql SVN version %s (%lubit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
+    fprintf(stderr, "osm2pgsql SVN version %s (%zu bit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
     try
     {
         //parse the args into the different options members
