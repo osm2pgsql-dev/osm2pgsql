@@ -576,7 +576,7 @@ static void str_read(byte** pp,char** s1p,char** s2p) {
        return:
        *s1p,*s2p: pointers to the strings which have been read; */
   char* p;
-  int len1,len2;
+  size_t len1,len2;
   int ref;
 
   p= (char*)*pp;

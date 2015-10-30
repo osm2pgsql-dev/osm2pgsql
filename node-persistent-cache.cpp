@@ -213,7 +213,7 @@ void node_persistent_cache::nodes_prefetch_async(osmid_t id)
  */
 int node_persistent_cache::load_block(osmid_t block_offset)
 {
-    const int block_id = replace_block();
+    const size_t block_id = replace_block();
 
     if (readNodeBlockCache[block_id].dirty())
     {
