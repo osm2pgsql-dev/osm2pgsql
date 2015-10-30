@@ -59,6 +59,8 @@
 #include <cstring>
 #include <unistd.h>
 
+#include "config.h"
+
 #ifdef HAVE_TERMIOS_H
 #include <termios.h>
 #endif
