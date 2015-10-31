@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
         db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_polygon'");
         db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_line'");
         db->check_count(5, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_roads'");
-        
+
         // the testfile contains 19 tagged ways and 7 tagged nodes
         // out of them 18 ways and 6 nodes are interesting as specified by hstore-match-only.style
         // as there is also one relation we should end up getting a database which contains:
@@ -79,12 +79,12 @@ int main(int argc, char *argv[]) {
         // 7 objects in osm2pgsql_test_polygon
         // 12 objects in osm2pgsql_test_line
         // 3 objects in osm2pgsql_test_roads
-        
+
         db->check_count(6, "select count(*) from osm2pgsql_test_point");
         db->check_count(7, "select count(*) from osm2pgsql_test_polygon");
         db->check_count(12, "select count(*) from osm2pgsql_test_line");
         db->check_count(3, "select count(*) from osm2pgsql_test_roads");
-        
+
         return 0;
 
     } catch (const std::exception &e) {

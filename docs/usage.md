@@ -30,7 +30,7 @@ that only impact performance.
   store information about ways and relations too. The maximum RAM it is useful
   to set this to in slim mode is 8 bytes * number of nodes / efficiency, where
   efficiency ranges from 50% on small extracts to 80% for a planet.
-  
+
 * ``--number-processes`` sets the number of processes to use. This should
   typically be set to the number of CPU threads, but gains in speed are minimal
   past 8 threads.
@@ -41,7 +41,7 @@ that only impact performance.
 
 * ``--cache-strategy`` sets the cache strategy to use. The defaults are fine
   here, and optimizied uses less RAM than the other options.
-  
+
 ## Database options ##
 
 osm2pgsql supports standard options for how to connect to PostgreSQL. If left
@@ -69,7 +69,7 @@ database if the database server ever crashes, but are faster to import.
 * ``--slim`` causes the middle layer to store node and way information in
   database rather than in memory. It is required for updates and for large
   extracts or the entire planet which will not fit in RAM.
-  
+
 * ``--drop`` discards the slim tables when they are no longer needed in the
   import, significantly reducing disk requirements and saving the time of
   building slim table indexes. A ``--slim --drop`` import is generally the
@@ -102,21 +102,21 @@ osm2pgsql has five hstore options
   a hstore column. With the standard stylesheet this would result in tags like
   highway appearing in a conventional column while tags not in the style like
   ``name:en`` or ``lanes:forward`` would appear only in the hstore column.
-  
+
 * ``--hstore-all`` or ``-j`` adds all tags to a hstore column, even if they're
   already stored in a conventional column. With the standard stylesheet this
   would result in tags like highway appearing in conventional column and the
   hstore column while tags not in the style like ``name:en`` or
   ``lanes:forward`` would appear only in the hstore column.
-  
+
 * ``--hstore-column`` or ``-z``, which adds an additional column for tags
   starting with a specified string, e.g. ``--hstore-column 'name:'`` produces
   a hstore column that contains all ``name:xx`` tags
-  
+
 * ``--hstore-match-only`` modifies the above options and prevents objects from
   being added if they only have tags in the hstore column and no conventional
   tags.
-  
+
 * ``--hstore-add-index`` adds a GIN index to the hstore columns. This can
   speed up arbitrary queries, but for most purposes partial indexes will be
   faster.
@@ -141,7 +141,7 @@ reimporting the database, at the cost of a
   MULTIPOLYGONs are split into multiple POLYGONs. ``--multi-geometry`` can be
   used to [avoid some labeling issues at the cost of speed](http://paulnorman.ca/blog/2014/03/osm2pgsql-multipolygons/).
   It is also typically required for [analysis](analysis.md).
-  
+
 * ``--keep-coastlines`` disables a hard-coded rule that would otherwise
   discard ``natural=coastline`` ways.
 

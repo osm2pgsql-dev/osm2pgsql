@@ -37,7 +37,7 @@ instead stored in a binary file.
 
 3. If there are tags on a way in the style file as linear but without polygon
    tags, they are written into the lines and, depending on tags, roads tables.
-   
+
    They are also stored by the middle layer.
 
 4. Ways without tags or with polygon tags are stored as "pending" in the

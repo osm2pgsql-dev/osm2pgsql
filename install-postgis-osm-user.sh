@@ -15,7 +15,7 @@ if [ -n "$GRANT_USER" ] ; then
     if [ "$GRANT_USER" = "*" ] ; then
 	echo "GRANT Rights to every USER"
 	GRANT_USER=''
-	for user in `users` ; do 
+	for user in `users` ; do
 	    GRANT_USER="$GRANT_USER $user"
 	done
     fi

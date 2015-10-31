@@ -1,5 +1,5 @@
 # This osm2pgsql style file is one that will generate no columns from tags
-# It is designed as a starting point for you to develop your own, or for 
+# It is designed as a starting point for you to develop your own, or for
 # use where all OSM tags are in hstore.
 
 # See default.style for documentation on all the flags

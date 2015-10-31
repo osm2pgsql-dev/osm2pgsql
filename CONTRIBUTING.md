@@ -13,9 +13,9 @@ Your pull requests will then be reviewed and discussed.
 ## History
 
 To understand the osm2pgsql code, it helps to know some history on it. Osm2pgsql
-was written in C in 2007 as a port of an older Python utility. In 2014 it was 
+was written in C in 2007 as a port of an older Python utility. In 2014 it was
 ported to C++ by MapQuest and the last C version was released as 0.86.0. In it's
-time, it has had varying contribution activity, including times with no 
+time, it has had varying contribution activity, including times with no
 maintainer or active developers.
 
 Parts of the codebase still clearly show their C origin and could use rewriting
@@ -24,7 +24,7 @@ in modern C++, making use of data structures in the standard library.
 ## Versioning
 
 Osm2pgsql uses a X.Y.Z version number, where Y tells you if you are on a stable
-or development series. Like the Linux Kernel, even numbers are stable and 
+or development series. Like the Linux Kernel, even numbers are stable and
 development versions are odd.
 
 Bugs and known issues are fixed on the main branch only. Exceptions may be made
@@ -32,7 +32,7 @@ for easy bug fixes, or if a patch backporting a fix is provided.
 
 ## Code style
 
-The current codebase is a mix of styles, but new code should be written in the 
+The current codebase is a mix of styles, but new code should be written in the
 [K&R 1TBS style](https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS) with
 4 spaces indentation. Tabs should never be used in the C++ code.
 
@@ -111,5 +111,5 @@ needs testing in a pull request.
 ## Maintainers
 
 The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)
-and [Paul Norman](https://github.com/pnorman/). Sarah has more experience with 
+and [Paul Norman](https://github.com/pnorman/). Sarah has more experience with
 the gazetteer backend and Paul with the pgsql and multi backends.

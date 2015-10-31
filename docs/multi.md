@@ -5,7 +5,7 @@ to the standard [pgsql](pgsql.md) backend tables. It is intended to allow
 the configuration of a custom set of tables with hopefully fewer rows and fewer
 columns. This can be beneficial to queries in which some context (eg. zoom level)
 could limit the number of tables that need to be queried. Addtionaly it would
-allow more tables to be queried in parallel. 
+allow more tables to be queried in parallel.
 
 ## Database Layout ##
 It connects to a PostgreSQL database and stores the data in one or more tables.
@@ -40,7 +40,7 @@ Note that each table has a `name` and can target a single type of geometry
 by setting the `type` to one of `point`, `line` or `polygon`. `tagtransform`
 is used to set the name of the lua script to be used for custom tag processing.
 Within the lua script you may define several methods that will be called
-when processing various tags, these can be named via 
+when processing various tags, these can be named via
 `tagtransform-node-function`, `tagtransform-way-function`,
 `tagtransform-relation-function`, and `tagtransform-relation-member-function`.
 As with the normal top level options within osm2pgsql you can specify any of the

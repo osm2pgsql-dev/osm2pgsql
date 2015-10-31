@@ -29,9 +29,9 @@ The second return value is `tags`, a transformed (or unchanged) set of tags.
 
 `filter_tags_way` returns two additional flags. `poly` should be `1` if the way should be treated as a polygon, `0` as a line. `roads` should be `1` if the way should be added to the planet_osm_roads table, `0` otherwise.
 
-    function filter_tags_relation_member(tags, member_tags, 
+    function filter_tags_relation_member(tags, member_tags,
         roles, num_members)
-    return filter, tags, member_superseded, boundary, 
+    return filter, tags, member_superseded, boundary,
         polygon, roads
 
 The function filter_tags_relation_member is more complex and can handle more advanced relation tagging, such as multipolygons that take their tags from the member ways.

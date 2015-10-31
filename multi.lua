@@ -119,7 +119,7 @@ end
 -- true
 -- > = yesno("foo")
 -- true
--- 
+--
 -- A typical usage would be on a tag like bridge, tunnel, or shelter, but not
 -- a tag like oneway which could be yes, no, reverse, or unset
 function yesno (v)
