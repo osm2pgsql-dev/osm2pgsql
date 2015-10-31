@@ -415,13 +415,16 @@ void output_multi_t::copy_node_to_table(osmid_t id, const char *wkt, const tagli
  * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
  * \param id OSM ID of the object
  * \param wkt WKT string of the object
- * \param tags List of tags
+ * \param tags List of tags. May be modified.
  * \param polygon Polygon flag returned from the tag transform (polygon=1)
- */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, const taglist_t &tags, int polygon) {
+6 */
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, taglist_t &tags, int polygon) {
     if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
         // It's a polygon table (implied by it turning into a poly), and it got formed into a polygon, so expire as a polygon and write the WKT
         m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+        if (wkt.area > 0.0) {
+            tags.push_override(tag_t("way_area", std::to_string(wkt.area)));
+        }
         m_table->write_wkt(id, tags, wkt.geom.c_str());
     } else {
         // Linestring
@@ -440,7 +443,7 @@ void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt
  * \param tags List of tags
  * \param polygon Polygon flag returned from the tag transform (polygon=1)
  */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::maybe_wkt_t &wkt, const taglist_t &tags, int polygon) {
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::maybe_wkt_t &wkt, taglist_t &tags, int polygon) {
     if (wkt) {
         copy_to_table(id, *wkt, tags, polygon);
     }
