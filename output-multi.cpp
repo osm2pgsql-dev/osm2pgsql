@@ -270,7 +270,7 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, const tagli
         geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
         if (wkt) {
             m_expire->from_bbox(lon, lat, lon, lat);
-            copy_to_table(id, wkt->geom.c_str(), outtags);
+            copy_node_to_table(id, wkt->geom.c_str(), outtags);
         }
     }
     return 0;
@@ -297,14 +297,7 @@ int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const tag
         //grab its geom
         geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes);
         if (wkt) {
-            //TODO: need to know if we care about polygons or lines for this output
-            //the difference only being that if its a really large bbox for the poly
-            //it downgrades to just invalidating the line/perimeter anyway
-            if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
-                m_expire->from_nodes_poly(nodes, id);
-            else
-                m_expire->from_nodes_line(nodes);
-            copy_to_table(id, wkt->geom.c_str(), outtags);
+            copy_to_table(id, wkt, outtags, polygon);
         }
     }
     return 0;
@@ -328,16 +321,10 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
                 ways_pending_tracker->mark(id);
-            }//we aren't interested in relations so if it comes in on a relation later we wont keep it
-            else {
-                //TODO: need to know if we care about polygons or lines for this output
-                //the difference only being that if its a really large bbox for the poly
-                //it downgrades to just invalidating the line/perimeter anyway
-                if(boost::starts_with(wkt->geom, "POLYGON") || boost::starts_with(wkt->geom, "MULTIPOLYGON"))
-                    m_expire->from_nodes_poly(m_way_helper.node_cache, id);
-                else
-                    m_expire->from_nodes_line(m_way_helper.node_cache);
-                copy_to_table(id, wkt->geom.c_str(), outtags);
+            } else {
+                // We wouldn't be interested in this as a relation, so no need to mark it pending.
+                // TODO: Does this imply anything for non-multipolygon relations?
+                copy_to_table(id, wkt, outtags, polygon);
             }
         }
     }
@@ -376,11 +363,11 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
         }
 
         //do the members of this relation have anything interesting to us
-        //NOTE: make_polygon is preset here this is to force the tag matching/superseeded stuff
+        //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
         //normally this wouldnt work but we tell the tag transform to allow typeless relations
         //this is needed because the type can get stripped off by the rel_tag filter above
         //if the export list did not include the type tag.
-        //TODO: find a less hacky way to do the matching/superseeded and tag copying stuff without
+        //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
         //all this trickery
         int make_boundary, make_polygon = 1;
         taglist_t outtags;
@@ -392,17 +379,17 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
         {
             geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(m_relation_helper.nodes);
             if (wkts) {
-                for (const auto& wkt: *wkts) {
+                for (const auto wkt: *wkts) {
                     //TODO: we actually have the nodes in the m_relation_helper and could use them
                     //instead of having to reparse the wkt in the expiry code
                     m_expire->from_wkt(wkt.geom.c_str(), -id);
                     //what part of the code relies on relation members getting negative ids?
-                    copy_to_table(-id, wkt.geom.c_str(), outtags);
+                    copy_to_table(-id, wkt, outtags, make_polygon);
                 }
             }
 
             //TODO: should this loop be inside the if above just in case?
-            //take a look at each member to see if its superseeded (tags on it matched the tags on the relation)
+            //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
             for(size_t i = 0; i < m_relation_helper.ways.size(); ++i) {
                 //tags matched so we are keeping this one with this relation
                 if (m_relation_helper.superseeded[i]) {
@@ -420,8 +407,43 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
     return 0;
 }
 
-void output_multi_t::copy_to_table(osmid_t id, const char *wkt, const taglist_t &tags) {
+void output_multi_t::copy_node_to_table(osmid_t id, const char *wkt, const taglist_t &tags) {
     m_table->write_wkt(id, tags, wkt);
+}
+
+/**
+ * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
+ * \param id OSM ID of the object
+ * \param wkt WKT string of the object
+ * \param tags List of tags
+ * \param polygon Polygon flag returned from the tag transform (polygon=1)
+ */
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, const taglist_t &tags, int polygon) {
+    if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
+        // It's a polygon table (implied by it turning into a poly), and it got formed into a polygon, so expire as a polygon and write the WKT
+        m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+        m_table->write_wkt(id, tags, wkt.geom.c_str());
+    } else {
+        // Linestring
+        if (!polygon) {
+            // non-polygons are okay
+            m_expire->from_nodes_line(m_way_helper.node_cache);
+            m_table->write_wkt(id, tags, wkt.geom.c_str());
+        }
+    }
+}
+
+/**
+ * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
+ * \param id OSM ID of the object
+ * \param wkt Maybe-WKT string of the object
+ * \param tags List of tags
+ * \param polygon Polygon flag returned from the tag transform (polygon=1)
+ */
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::maybe_wkt_t &wkt, const taglist_t &tags, int polygon) {
+    if (wkt) {
+        copy_to_table(id, *wkt, tags, polygon);
+    }
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {
