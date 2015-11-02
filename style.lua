@@ -1,7 +1,7 @@
 -- For documentation of Lua tag transformations, see docs/lua.md.
 
 -- Objects with any of the following keys will be treated as polygon
-polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisure', 
+polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisure',
       'man_made', 'military', 'natural', 'office', 'place', 'power',
       'public_transport', 'shop', 'sport', 'tourism', 'waterway',
       'wetland', 'water', 'aeroway' }
@@ -20,9 +20,9 @@ delete_tags = { 'FIXME', 'note', 'source' }
 -- Array used to specify z_order per key/value combination.
 -- Each element has the form {key, value, z_order, is_road}.
 -- If is_road=1, the object will be added to planet_osm_roads.
-zordering_tags = {{ 'railway', nil, 5, 1}, { 'boundary', 'administrative', 0, 1}, 
+zordering_tags = {{ 'railway', nil, 5, 1}, { 'boundary', 'administrative', 0, 1},
    { 'bridge', 'yes', 10, 0 }, { 'bridge', 'true', 10, 0 }, { 'bridge', 1, 10, 0 },
-   { 'tunnel', 'yes', -10, 0}, { 'tunnel', 'true', -10, 0}, { 'tunnel', 1, -10, 0}, 
+   { 'tunnel', 'yes', -10, 0}, { 'tunnel', 'true', -10, 0}, { 'tunnel', 1, -10, 0},
    { 'highway', 'minor', 3, 0}, { 'highway', 'road', 3, 0 }, { 'highway', 'unclassified', 3, 0 },
    { 'highway', 'residential', 3, 0 }, { 'highway', 'tertiary_link', 4, 0}, { 'highway', 'tertiary', 4, 0},
    { 'highway', 'secondary_link', 6, 1}, { 'highway', 'secondary', 6, 1},
@@ -72,7 +72,7 @@ function filter_tags_generic(keyvalues, numberofkeys)
    for i,k in ipairs(delete_tags) do
       keyvalues[k] = nil
    end
-   
+
    -- Filter out objects that do not have any of the keys in generic_keys
    tagcount = 0
    for k,v in pairs(keyvalues) do
@@ -126,7 +126,7 @@ function filter_tags_way (keyvalues, numberofkeys)
          break
       end
    end
-   
+
    -- Treat objects tagged as area=yes, area=1, or area=true as polygon,
    -- and treat objects tagged as area=no, area=0, or area=false not as polygon
    if ((keyvalues["area"] == "yes") or (keyvalues["area"] == "1") or (keyvalues["area"] == "true")) then
@@ -155,7 +155,7 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
 
    -- Remove type key
    keyvalues["type"] = nil
-  
+
    -- Relations with type=boundary are treated as linestring
    if (type == "boundary") then
       linestring = 1

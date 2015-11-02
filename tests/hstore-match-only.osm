@@ -10,16 +10,16 @@ hstore-match-only commandline option we end up with a database containing
 6 points, 7 polygons and 12 lines:
 
 gis=> select count(*) from planet_osm_point;
- count 
+ count
      6
 (1 row)
 gis=> select count(*) from planet_osm_polygon;
- count 
+ count
      7
 (1 row)
 
 gis=> select count(*) from planet_osm_line;
- count 
+ count
     12
 (1 row)
 -->

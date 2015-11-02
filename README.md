@@ -28,7 +28,7 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 ## Building ##
 
 Osm2pgsql uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html)
-to configure and build itself and requires 
+to configure and build itself and requires
 
 * [expat](http://www.libexpat.org/)
 * [geos](http://geos.osgeo.org/)

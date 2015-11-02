@@ -162,7 +162,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     taglist_t outtags;
 
     //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
-    if (m_tagtransform->filter_rel_member_tags(rel_tags, xtags, xrole, 
+    if (m_tagtransform->filter_rel_member_tags(rel_tags, xtags, xrole,
               &(members_superseeded[0]), &make_boundary, &make_polygon, &roads,
               *m_export_list.get(), outtags)) {
         return 0;

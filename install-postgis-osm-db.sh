@@ -30,27 +30,27 @@ fi
         echo "Initializing Spatial Extentions for postgresql 9.1"
         file_postgis=/usr/share/postgresql/9.1/contrib/postgis-1.5/postgis.sql
         file_spatial_ref=/usr/share/postgresql/9.1/contrib/postgis-1.5/spatial_ref_sys.sql
-        
+
         sudo -u postgres psql $DBNAME <$file_postgis >/dev/null 2>&1
         sudo -u postgres psql $DBNAME <$file_spatial_ref >/dev/null 2>&1
         echo "Spatial Extentions initialized"
-        
+
         echo "Initializing hstore"
         echo "CREATE EXTENSION hstore;" | sudo -u postgres psql $DBNAME
     else
         echo "Initializing Spatial Extentions for postgresql 8.4"
         file_postgis=/usr/share/postgresql/8.4/contrib/postgis-1.5/postgis.sql
         file_spatial_ref=/usr/share/postgresql/8.4/contrib/postgis-1.5/spatial_ref_sys.sql
-        
+
         sudo -u postgres psql $DBNAME <$file_postgis >/dev/null 2>&1
         sudo -u postgres psql $DBNAME <$file_spatial_ref >/dev/null 2>&1
         echo "Spatial Extentions initialized"
-        
+
         echo "Initializing hstore"
         file_hstore=/usr/share/postgresql/8.4/contrib/hstore.sql
         sudo -u postgres psql $DBNAME <$file_hstore >/dev/null 2>&1
     fi fi
-    
+
     echo "Setting ownership to user $DBOWNER"
 
     echo 'ALTER TABLE geometry_columns OWNER TO ' $DBOWNER '; ALTER TABLE spatial_ref_sys OWNER TO ' $DBOWNER ';' | sudo -u postgres psql $DBNAME
@@ -62,7 +62,7 @@ if [ -n "$GRANT_USER" ] ; then
     if [ "$GRANT_USER" = "*" ] ; then
 	echo "GRANT Rights to every USER"
 	GRANT_USER=''
-	for user in `users` ; do 
+	for user in `users` ; do
 	    GRANT_USER="$GRANT_USER $user"
 	done
     fi

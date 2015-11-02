@@ -651,7 +651,7 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
                         break;
                     }
                 }
-            } 
+            }
         }
     }
 

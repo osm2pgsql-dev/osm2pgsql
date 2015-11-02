@@ -252,11 +252,11 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         self.addTest(BasicSlimTestCase("Hstore name column", ["-z", "name:"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Hstore", ["-k"], [51,52,53,54],[55,56,57,58]))
         self.addTest(BasicSlimTestCase("Hstore all", ["-j"], [51,52,53,54,93,94,95,96],[55,56,57,58, 97, 98, 99, 100]))
-        self.addTest(BasicSlimTestCase("Hstore index", ["--hstore", "--hstore-add-index"], [51,52,53,54],[55,56,57,58]))        
+        self.addTest(BasicSlimTestCase("Hstore index", ["--hstore", "--hstore-add-index"], [51,52,53,54],[55,56,57,58]))
         #tests dont check for osm_timestamp which is currently missing in the pbf parser
         self.addTest(BasicSlimTestCase("Extra tags hstore match only", ["-x", "-k", "--hstore-match-only"], [0,1,2,3],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("Extra tags hstore all", ["-j", "-x"], [51,52,53,54,59,60,61],[55,56,57,58]))
-        
+
         self.addTest(BasicSlimTestCase("--tablespace-main-data", ["--tablespace-main-data", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-slim-data", ["--tablespace-slim-data", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
@@ -370,14 +370,14 @@ class BaseTestCase(unittest.TestCase):
 #****************************************************************
 
 class BaseNonSlimTestCase(BaseTestCase):
-    
+
     def setUpGeneric(self, parameters, file):
         proc = subprocess.Popen([exe_path, "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [full_import_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
-class BaseSlimTestCase(BaseTestCase):    
-        
+class BaseSlimTestCase(BaseTestCase):
+
     def setUpGeneric(self, parameters, file):
         proc = subprocess.Popen([exe_path, "--slim", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
@@ -387,9 +387,9 @@ class BaseSlimTestCase(BaseTestCase):
         proc = subprocess.Popen([exe_path, "--slim", "--append", "-Sdefault.style", "-dosm2pgsql-test", "-C100"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append with options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
-        
-class BaseGazetteerTestCase(BaseTestCase):    
-        
+
+class BaseGazetteerTestCase(BaseTestCase):
+
     def setUpGeneric(self, parameters, file):
         proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
@@ -399,7 +399,7 @@ class BaseGazetteerTestCase(BaseTestCase):
         proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
-        
+
 
 #****************************************************************
 class BasicNonSlimTestCase(BaseNonSlimTestCase):

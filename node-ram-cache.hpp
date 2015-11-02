@@ -28,7 +28,7 @@
  *
  * If FIXED_POINT is enabled, it uses internally a more efficient
  * representation as integer.
- */ 
+ */
 class ramNode {
 public:
 #ifdef FIXED_POINT

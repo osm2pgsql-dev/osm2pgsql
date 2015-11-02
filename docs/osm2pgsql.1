@@ -32,7 +32,7 @@ http://download.geofabrik.de/osm/.
 When operating in "slim" mode (and on a database created in "slim" mode!),
 .B osm2pgsql
 can also process OSM change files (osc files), thereby bringing an existing
-database up to date. 
+database up to date.
 .PP
 .SH OPTIONS
 These programs follow the usual GNU command line syntax, with long
@@ -85,7 +85,7 @@ Use projection EPSG:num
 Prefix for table names (default: planet_osm).
 .TP
 \fB\-r\fR|\-\-input\-reader format
-Select format of the input file. Available choices are \fBauto\fR 
+Select format of the input file. Available choices are \fBauto\fR
 (default) for autodetecting the format,
 \fBxml\fR for OSM XML format files, \fBo5m\fR for o5m formatted files
 and \fBpbf\fR for OSM PBF binary format.
@@ -115,7 +115,7 @@ Only for slim mode: Use up to num many MB of RAM for caching nodes. Giving osm2p
 to store all imported nodes typically greatly increases the speed of the import. Each cached node
 requires 8 bytes of cache, plus about 10% \- 30% overhead. For a current OSM full planet import with
 its ~ 3 billion nodes, a good value would be 27000 if you have enough RAM. If you don't have enough
-RAM, it is likely beneficial to give osm2pgsql close to the full available amount of RAM. Defaults to 800. 
+RAM, it is likely beneficial to give osm2pgsql close to the full available amount of RAM. Defaults to 800.
 .TP
 \fB\  \fR\-\-cache\-strategy strategy
 There are a number of different modes in which osm2pgsql can organize its
