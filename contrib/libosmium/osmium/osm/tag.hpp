@@ -53,7 +53,7 @@ namespace osmium {
         Tag& operator=(const Tag&) = delete;
         Tag& operator=(Tag&&) = delete;
 
-        template <class TMember>
+        template <typename TMember>
         friend class osmium::memory::CollectionIterator;
 
         static unsigned char* after_null(unsigned char* ptr) {

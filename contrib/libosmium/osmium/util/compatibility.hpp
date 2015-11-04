@@ -44,4 +44,13 @@ DEALINGS IN THE SOFTWARE.
 # define OSMIUM_NORETURN [[noreturn]]
 #endif
 
+// [[deprecated]] is only available in C++14, use this for the time being
+#ifdef __GNUC__
+# define OSMIUM_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+# define OSMIUM_DEPRECATED __declspec(deprecated)
+#else
+# define OSMIUM_DEPRECATED
+#endif
+
 #endif // OSMIUM_UTIL_COMPATIBILITY_HPP

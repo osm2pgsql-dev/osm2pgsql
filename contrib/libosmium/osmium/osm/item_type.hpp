@@ -53,7 +53,8 @@ namespace osmium {
         relation_member_list                   = 0x13,
         relation_member_list_with_full_members = 0x23,
         outer_ring                             = 0x40,
-        inner_ring                             = 0x41
+        inner_ring                             = 0x41,
+        changeset_discussion                   = 0x80
 
     }; // enum class item_type
 
@@ -102,6 +103,8 @@ namespace osmium {
                 return item_type::outer_ring;
             case 'I':
                 return item_type::inner_ring;
+            case 'D':
+                return item_type::changeset_discussion;
             default:
                 return item_type::undefined;
         }
@@ -136,6 +139,8 @@ namespace osmium {
                 return 'O';
             case item_type::inner_ring:
                 return 'I';
+            case item_type::changeset_discussion:
+                return 'D';
         }
     }
 
@@ -165,6 +170,8 @@ namespace osmium {
                 return "outer_ring";
             case item_type::inner_ring:
                 return "inner_ring";
+            case item_type::changeset_discussion:
+                return "changeset_discussion";
         }
     }
 #pragma GCC diagnostic pop

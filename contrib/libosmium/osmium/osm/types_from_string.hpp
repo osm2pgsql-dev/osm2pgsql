@@ -43,6 +43,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <osmium/osm/entity_bits.hpp>
 #include <osmium/osm/types.hpp>
+#include <osmium/util/cast.hpp>
 
 namespace osmium {
 
@@ -75,7 +76,7 @@ namespace osmium {
 
     namespace detail {
 
-        inline long string_to_ulong(const char* input, const char *name) {
+        inline unsigned long string_to_ulong(const char* input, const char *name) {
             if (*input != '\0' && *input != '-' && !std::isspace(*input)) {
                 char* end;
                 auto value = std::strtoul(input, &end, 10);
@@ -90,12 +91,12 @@ namespace osmium {
 
     inline object_version_type string_to_object_version(const char* input) {
         assert(input);
-        return static_cast<object_version_type>(detail::string_to_ulong(input, "version"));
+        return static_cast_with_assert<object_version_type>(detail::string_to_ulong(input, "version"));
     }
 
     inline changeset_id_type string_to_changeset_id(const char* input) {
         assert(input);
-        return static_cast<changeset_id_type>(detail::string_to_ulong(input, "changeset"));
+        return static_cast_with_assert<changeset_id_type>(detail::string_to_ulong(input, "changeset"));
     }
 
     inline signed_user_id_type string_to_user_id(const char* input) {
@@ -103,12 +104,17 @@ namespace osmium {
         if (input[0] == '-' && input[1] == '1' && input[2] == '\0') {
             return -1;
         }
-        return static_cast<signed_user_id_type>(detail::string_to_ulong(input, "user id"));
+        return static_cast_with_assert<signed_user_id_type>(detail::string_to_ulong(input, "user id"));
     }
 
     inline num_changes_type string_to_num_changes(const char* input) {
         assert(input);
-        return static_cast<num_changes_type>(detail::string_to_ulong(input, "value for num changes"));
+        return static_cast_with_assert<num_changes_type>(detail::string_to_ulong(input, "value for num changes"));
+    }
+
+    inline num_comments_type string_to_num_comments(const char* input) {
+        assert(input);
+        return static_cast_with_assert<num_comments_type>(detail::string_to_ulong(input, "value for num comments"));
     }
 
 } // namespace osmium

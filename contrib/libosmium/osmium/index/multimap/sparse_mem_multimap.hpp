@@ -132,10 +132,10 @@ namespace osmium {
 
                 void dump_as_list(const int fd) override final {
                     std::vector<element_type> v;
+                    v.reserve(m_elements.size());
                     for (const auto& element : m_elements) {
                         v.emplace_back(element.first, element.second);
                     }
-//                    std::copy(m_elements.cbegin(), m_elements.cend(), std::back_inserter(v));
                     std::sort(v.begin(), v.end());
                     osmium::io::detail::reliable_write(fd, reinterpret_cast<const char*>(v.data()), sizeof(element_type) * v.size());
                 }

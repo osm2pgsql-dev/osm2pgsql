@@ -78,6 +78,14 @@ namespace osmium {
         }
 
         /**
+         * Returns true if this timestamp is valid (ie set to something other
+         * than 0).
+         */
+        bool valid() const noexcept {
+            return m_timestamp != 0;
+        }
+
+        /**
          * Construct timestamp from ISO date/time string.
          * Throws std::invalid_argument, if the timestamp can not be parsed.
          */

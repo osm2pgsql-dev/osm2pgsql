@@ -48,7 +48,7 @@ namespace osmium {
 
         namespace map {
 
-            template <class TVector, typename TId, typename TValue>
+            template <typename TVector, typename TId, typename TValue>
             class VectorBasedDenseMap : public Map<TId, TValue> {
 
                 TVector m_vector;
@@ -68,7 +68,7 @@ namespace osmium {
                     m_vector(fd) {
                 }
 
-                ~VectorBasedDenseMap() = default;
+                ~VectorBasedDenseMap() noexcept = default;
 
                 void reserve(const size_t size) override final {
                     m_vector.reserve(size);

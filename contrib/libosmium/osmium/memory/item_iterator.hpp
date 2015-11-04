@@ -60,7 +60,7 @@ namespace osmium {
 
         namespace detail {
 
-            template <class T>
+            template <typename T>
             inline bool type_is_compatible(osmium::item_type) noexcept {
                 return true;
             }
@@ -127,7 +127,7 @@ namespace osmium {
 
         } // namespace detail
 
-        template <class TMember>
+        template <typename TMember>
         class ItemIterator : public std::iterator<std::forward_iterator_tag, TMember> {
 
             static_assert(std::is_base_of<osmium::memory::Item, TMember>::value, "TMember must derive from osmium::memory::Item");
@@ -160,7 +160,7 @@ namespace osmium {
                 advance_to_next_item_of_right_type();
             }
 
-            template <class T>
+            template <typename T>
             ItemIterator<T> cast() const {
                 return ItemIterator<T>(m_data, m_end);
             }

@@ -47,7 +47,7 @@ DEALINGS IN THE SOFTWARE.
 namespace osmium {
 
     namespace builder {
-        template <class> class ObjectBuilder;
+        template <typename> class ObjectBuilder;
         class RelationMemberListBuilder;
     }
 
@@ -74,7 +74,7 @@ namespace osmium {
             return data() + osmium::memory::padded_length(sizeof(RelationMember) + m_role_size);
         }
 
-        template <class TMember>
+        template <typename TMember>
         friend class osmium::memory::CollectionIterator;
 
         unsigned char* next() {

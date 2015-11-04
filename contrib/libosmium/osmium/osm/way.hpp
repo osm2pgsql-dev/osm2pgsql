@@ -43,7 +43,7 @@ DEALINGS IN THE SOFTWARE.
 namespace osmium {
 
     namespace builder {
-        template <class T> class ObjectBuilder;
+        template <typename T> class ObjectBuilder;
     }
 
     /**

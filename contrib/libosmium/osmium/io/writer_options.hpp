@@ -1,5 +1,5 @@
-#ifndef OSMIUM_INDEX_BOOL_VECTOR_HPP
-#define OSMIUM_INDEX_BOOL_VECTOR_HPP
+#ifndef OSMIUM_IO_WRITER_OPTIONS_HPP
+#define OSMIUM_IO_WRITER_OPTIONS_HPP
 
 /*
 
@@ -33,53 +33,28 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <type_traits>
-#include <vector>
-
 namespace osmium {
 
-    namespace index {
+    namespace io {
 
         /**
-         * Index storing one bit for each Id. The index automatically scales
-         * with the Ids stored. Default value is 'false'. Storage uses
-         * std::vector<bool> and needs a minimum of memory if the Ids are
-         * dense.
+         * Allow overwriting of existing file?
          */
-        template <typename T>
-        class BoolVector {
+        enum class overwrite : bool {
+            no    = false,
+            allow = true
+        };
 
-            static_assert(std::is_unsigned<T>::value, "Needs unsigned type");
+        /**
+         * Should writer do an fsync before closing the file?
+         */
+        enum class fsync : bool {
+            no  = false,
+            yes = true
+        };
 
-            std::vector<bool> m_bits;
-
-        public:
-
-            BoolVector() = default;
-
-            BoolVector(const BoolVector&) = default;
-            BoolVector(BoolVector&&) = default;
-            BoolVector& operator=(const BoolVector&) = default;
-            BoolVector& operator=(BoolVector&&) = default;
-
-            ~BoolVector() noexcept = default;
-
-            void set(T id, bool value = true) {
-                if (m_bits.size() <= id) {
-                    m_bits.resize(id + 1024 * 1024);
-                }
-
-                m_bits[id] = value;
-            }
-
-            bool get(T id) const {
-                return id < m_bits.size() && m_bits[id];
-            }
-
-        }; // class BoolVector
-
-    } // namespace index
+    } // namespace io
 
 } // namespace osmium
 
-#endif // OSMIUM_INDEX_BOOL_VECTOR_HPP
+#endif // OSMIUM_IO_WRITER_OPTIONS_HPP
