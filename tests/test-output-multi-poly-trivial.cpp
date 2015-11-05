@@ -22,6 +22,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
 
 void run_osm2pgsql(options_t &options) {
   //setup the front (input)
@@ -84,6 +85,7 @@ void check_output_poly_trivial(bool enable_multi, std::shared_ptr<pg::tempdb> db
 }
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     std::shared_ptr<pg::tempdb> db;
 
     try {

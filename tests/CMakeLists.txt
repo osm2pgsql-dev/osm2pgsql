@@ -1,7 +1,7 @@
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${ARGS})
 add_dependencies(check osm2pgsql)
 
-add_library(common-pg STATIC common-pg.cpp common-pg.hpp common-cleanup.cpp common-cleanup.hpp)
+add_library(common-pg STATIC common-pg.cpp common-pg.hpp common-cleanup.cpp common-cleanup.hpp common-chdir.hpp)
 add_library(middle-tests STATIC middle-tests.cpp middle-tests.hpp)
 
 set(TESTS

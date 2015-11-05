@@ -23,6 +23,8 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
+
 
 namespace {
 
@@ -102,6 +104,7 @@ void test_z_order() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     RUN_TEST(test_z_order);
 
     return 0;
