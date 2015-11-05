@@ -33,6 +33,7 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <cstdint>
 #include <string>
 
 // needed for htonl and ntohl

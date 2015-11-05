@@ -35,6 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <cerrno>
 #include <cstddef>
+#include <errno.h>
 #include <fcntl.h>
 #include <string>
 #include <system_error>
@@ -45,7 +46,7 @@ DEALINGS IN THE SOFTWARE.
 # include <io.h>
 #endif
 
-#include <osmium/io/overwrite.hpp>
+#include <osmium/io/writer_options.hpp>
 
 namespace osmium {
 
@@ -68,6 +69,9 @@ namespace osmium {
              */
             inline int open_for_writing(const std::string& filename, osmium::io::overwrite allow_overwrite = osmium::io::overwrite::no) {
                 if (filename == "" || filename == "-") {
+#ifdef _WIN32
+                    _setmode(1, _O_BINARY);
+#endif
                     return 1; // stdout
                 } else {
                     int flags = O_WRONLY | O_CREAT;
@@ -149,6 +153,22 @@ namespace osmium {
              */
             inline void reliable_write(const int fd, const char* output_buffer, const size_t size) {
                 reliable_write(fd, reinterpret_cast<const unsigned char*>(output_buffer), size);
+            }
+
+            inline void reliable_fsync(const int fd) {
+#ifdef _WIN32
+                if (_commit(fd) != 0) {
+#else
+                if (::fsync(fd) != 0) {
+#endif
+                    throw std::system_error(errno, std::system_category(), "Fsync failed");
+                }
+            }
+
+            inline void reliable_close(const int fd) {
+                if (::close(fd) != 0) {
+                    throw std::system_error(errno, std::system_category(), "Close failed");
+                }
             }
 
         } // namespace detail

@@ -117,7 +117,7 @@ namespace osmium {
             /**
              * The constructor without any parameters creates a non-initialized
              * buffer, ie an empty hull of a buffer that has no actual memory
-             * associated with it. It can be used to signify end-of-input.
+             * associated with it. It can be used to signify end-of-data.
              */
             Buffer() noexcept :
                 m_memory(),
@@ -201,11 +201,13 @@ namespace osmium {
              * Return a pointer to data inside the buffer.
              */
             unsigned char* data() const noexcept {
+                assert(m_data);
                 return m_data;
             }
 
             /**
              * Returns the capacity of the buffer, ie how many bytes it can contain.
+             * Always returns 0 on invalid buffers.
              */
             size_t capacity() const noexcept {
                 return m_capacity;
@@ -213,6 +215,7 @@ namespace osmium {
 
             /**
              * Returns the number of bytes already filled in this buffer.
+             * Always returns 0 on invalid buffers.
              */
             size_t committed() const noexcept {
                 return m_committed;
@@ -221,6 +224,7 @@ namespace osmium {
             /**
              * Returns the number of bytes currently filled in this buffer that
              * are not yet committed.
+             * Always returns 0 on invalid buffers.
              */
             size_t written() const noexcept {
                 return m_written;
@@ -229,16 +233,24 @@ namespace osmium {
             /**
              * This tests if the current state of the buffer is aligned
              * properly. Can be used for asserts.
+             *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
              */
             bool is_aligned() const noexcept {
+                assert(m_data);
                 return (m_written % align_bytes == 0) && (m_committed % align_bytes == 0);
             }
 
             /**
              * Set functor to be called whenever the buffer is full
              * instead of throwing buffer_is_full.
+             *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
              */
             void set_full_callback(std::function<void(Buffer&)> full) {
+                assert(m_data);
                 m_full = full;
             }
 
@@ -248,9 +260,13 @@ namespace osmium {
              * If the given size is not larger than the current capacity, nothing is done.
              * Already written but not committed data is discarded.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * @param size New capacity.
              */
             void grow(size_t size) {
+                assert(m_data);
                 if (m_memory.empty()) {
                     throw std::logic_error("Can't grow Buffer if it doesn't use internal memory management.");
                 }
@@ -267,9 +283,13 @@ namespace osmium {
             /**
              * Mark currently written bytes in the buffer as committed.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * @returns Last number of committed bytes before this commit.
              */
             size_t commit() {
+                assert(m_data);
                 assert(is_aligned());
 
                 const size_t offset = m_committed;
@@ -279,13 +299,19 @@ namespace osmium {
 
             /**
              * Roll back changes in buffer to last committed state.
+             *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
              */
             void rollback() {
+                assert(m_data);
                 m_written = m_committed;
             }
 
             /**
              * Clear the buffer.
+             *
+             * No-op on an invalid buffer.
              *
              * @returns Number of bytes in the buffer before it was cleared.
              */
@@ -299,11 +325,15 @@ namespace osmium {
             /**
              * Get the data in the buffer at the given offset.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * @tparam T Type we want to the data to be interpreted as.
              * @returns Reference of given type pointing to the data in the buffer.
              */
-            template <class T>
+            template <typename T>
             T& get(const size_t offset) const {
+                assert(m_data);
                 return *reinterpret_cast<T*>(&m_data[offset]);
             }
 
@@ -326,6 +356,9 @@ namespace osmium {
              *   the new data will fit.
              * * Else the buffer_is_full exception is thrown.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * @param size Number of bytes to reserve.
              * @returns Pointer to reserved space. Note that this pointer is
              *         only guaranteed to be valid until the next call to
@@ -333,6 +366,7 @@ namespace osmium {
              * @throws osmium::buffer_is_full Might be thrown if the buffer is full.
              */
             unsigned char* reserve_space(const size_t size) {
+                assert(m_data);
                 if (m_written + size > m_capacity) {
                     if (m_full) {
                         m_full(*this);
@@ -359,12 +393,16 @@ namespace osmium {
              * Note that you have to eventually call commit() to actually
              * commit this data.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * @tparam T Class of the item to be copied.
              * @param item Reference to the item to be copied.
              * @returns Reference to newly copied data in the buffer.
              */
-            template <class T>
+            template <typename T>
             T& add_item(const T& item) {
+                assert(m_data);
                 unsigned char* target = reserve_space(item.padded_size());
                 std::copy_n(reinterpret_cast<const unsigned char*>(&item), item.padded_size(), target);
                 return *reinterpret_cast<T*>(target);
@@ -373,10 +411,14 @@ namespace osmium {
             /**
              * Add committed contents of the given buffer to this buffer.
              *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
+             *
              * Note that you have to eventually call commit() to actually
              * commit this data.
              */
             void add_buffer(const Buffer& buffer) {
+                assert(m_data);
                 unsigned char* target = reserve_space(buffer.committed());
                 std::copy_n(reinterpret_cast<const unsigned char*>(buffer.data()), buffer.committed(), target);
             }
@@ -384,8 +426,12 @@ namespace osmium {
             /**
              * Add an item to the buffer. This function is provided so that
              * you can use std::back_inserter.
+             *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
              */
             void push_back(const osmium::memory::Item& item) {
+                assert(m_data);
                 add_item(item);
                 commit();
             }
@@ -394,70 +440,82 @@ namespace osmium {
              * These iterators can be used to iterate over all items in
              * a buffer.
              */
-            template <class T>
+            template <typename T>
             using t_iterator = osmium::memory::ItemIterator<T>;
 
-            template <class T>
+            template <typename T>
             using t_const_iterator = osmium::memory::ItemIterator<const T>;
 
             typedef t_iterator<osmium::OSMEntity> iterator;
             typedef t_const_iterator<osmium::OSMEntity> const_iterator;
 
-            template <class T>
+            template <typename T>
             t_iterator<T> begin() {
+                assert(m_data);
                 return t_iterator<T>(m_data, m_data + m_committed);
             }
 
             iterator begin() {
+                assert(m_data);
                 return iterator(m_data, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_iterator<T> get_iterator(size_t offset) {
+                assert(m_data);
                 return t_iterator<T>(m_data + offset, m_data + m_committed);
             }
 
             iterator get_iterator(size_t offset) {
+                assert(m_data);
                 return iterator(m_data + offset, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_iterator<T> end() {
+                assert(m_data);
                 return t_iterator<T>(m_data + m_committed, m_data + m_committed);
             }
 
             iterator end() {
+                assert(m_data);
                 return iterator(m_data + m_committed, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_const_iterator<T> cbegin() const {
+                assert(m_data);
                 return t_const_iterator<T>(m_data, m_data + m_committed);
             }
 
             const_iterator cbegin() const {
+                assert(m_data);
                 return const_iterator(m_data, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_const_iterator<T> get_iterator(size_t offset) const {
+                assert(m_data);
                 return t_const_iterator<T>(m_data + offset, m_data + m_committed);
             }
 
             const_iterator get_iterator(size_t offset) const {
+                assert(m_data);
                 return const_iterator(m_data + offset, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_const_iterator<T> cend() const {
+                assert(m_data);
                 return t_const_iterator<T>(m_data + m_committed, m_data + m_committed);
             }
 
             const_iterator cend() const {
+                assert(m_data);
                 return const_iterator(m_data + m_committed, m_data + m_committed);
             }
 
-            template <class T>
+            template <typename T>
             t_const_iterator<T> begin() const {
                 return cbegin<T>();
             }
@@ -466,7 +524,7 @@ namespace osmium {
                 return cbegin();
             }
 
-            template <class T>
+            template <typename T>
             t_const_iterator<T> end() const {
                 return cend<T>();
             }
@@ -505,9 +563,13 @@ namespace osmium {
              * the old and new offsets in the buffer where the object used to
              * be and is now, respectively. This call can be used to update any
              * indexes.
+             *
+             * The behaviour is undefined if you call this on an invalid
+             * buffer.
              */
-            template <class TCallbackClass>
+            template <typename TCallbackClass>
             void purge_removed(TCallbackClass* callback) {
+                assert(m_data);
                 if (begin() == end()) {
                     return;
                 }
@@ -538,6 +600,9 @@ namespace osmium {
         }; // class Buffer
 
         inline bool operator==(const Buffer& lhs, const Buffer& rhs) noexcept {
+            if (!lhs || !rhs) {
+                return !lhs && !rhs;
+            }
             return lhs.data() == rhs.data() && lhs.capacity() == rhs.capacity() && lhs.committed() == rhs.committed();
         }
 

@@ -71,25 +71,25 @@ namespace osmium {
 
                 SparseMemMap() = default;
 
-                ~SparseMemMap() override final = default;
+                ~SparseMemMap() noexcept override final = default;
 
                 void set(const TId id, const TValue value) override final {
                     m_elements[id] = value;
                 }
 
                 const TValue get(const TId id) const override final {
-                    try {
-                        return m_elements.at(id);
-                    } catch (std::out_of_range&) {
+                    auto it = m_elements.find(id);
+                    if (it == m_elements.end()) {
                         not_found_error(id);
                     }
+                    return it->second;
                 }
 
-                size_t size() const override final {
+                size_t size() const noexcept override final {
                     return m_elements.size();
                 }
 
-                size_t used_memory() const override final {
+                size_t used_memory() const noexcept override final {
                     return element_size * m_elements.size();
                 }
 
@@ -100,7 +100,8 @@ namespace osmium {
                 void dump_as_list(const int fd) override final {
                     typedef typename std::map<TId, TValue>::value_type t;
                     std::vector<t> v;
-                    std::copy(m_elements.begin(), m_elements.end(), std::back_inserter(v));
+                    v.reserve(m_elements.size());
+                    std::copy(m_elements.cbegin(), m_elements.cend(), std::back_inserter(v));
                     osmium::io::detail::reliable_write(fd, reinterpret_cast<const char*>(v.data()), sizeof(t) * v.size());
                 }
 

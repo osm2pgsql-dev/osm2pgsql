@@ -229,7 +229,9 @@ public:
      */
     inline void add_bool(pbf_tag_type tag, bool value) {
         add_field(tag, pbf_wire_type::varint);
-        add_fixed<char>(value);
+        protozero_assert(m_pos == 0 && "you can't add fields to a parent pbf_writer if there is an existing pbf_writer for a submessage");
+        protozero_assert(m_data);
+        m_data->append(1, value);
     }
 
     /**

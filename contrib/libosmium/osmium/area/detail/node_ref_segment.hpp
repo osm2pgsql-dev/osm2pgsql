@@ -113,7 +113,7 @@ namespace osmium {
                     return m_second;
                 }
 
-                bool to_left_of(const osmium::Location location) const {
+                bool to_left_of(const osmium::Location& location) const {
     //                std::cerr << "segment " << first() << "--" << second() << " to_left_of(" << location << "\n";
 
                     if (first().location() == location || second().location() == location) {
@@ -195,8 +195,8 @@ namespace osmium {
             }
 
             inline bool y_range_overlap(const NodeRefSegment& s1, const NodeRefSegment& s2) {
-                auto m1 = std::minmax(s1.first().location().y(), s1.second().location().y());
-                auto m2 = std::minmax(s2.first().location().y(), s2.second().location().y());
+                const std::pair<int32_t, int32_t> m1 = std::minmax(s1.first().location().y(), s1.second().location().y());
+                const std::pair<int32_t, int32_t> m2 = std::minmax(s2.first().location().y(), s2.second().location().y());
                 if (m1.first > m2.second || m2.first > m1.second) {
                     return false;
                 }

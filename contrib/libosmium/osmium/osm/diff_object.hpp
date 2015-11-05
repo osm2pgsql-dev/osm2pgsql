@@ -33,16 +33,13 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/fwd.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/object.hpp>
 #include <osmium/osm/timestamp.hpp>
 #include <osmium/osm/types.hpp>
 
 namespace osmium {
-
-    class Node;
-    class Way;
-    class Relation;
 
     class DiffObject {
 
@@ -145,7 +142,7 @@ namespace osmium {
 
     }; // class DiffObject
 
-    template <class T>
+    template <typename T>
     class DiffObjectDerived : public DiffObject {
 
     public:

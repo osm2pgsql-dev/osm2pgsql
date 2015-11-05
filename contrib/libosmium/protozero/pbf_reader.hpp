@@ -866,8 +866,16 @@ bool pbf_reader::next() {
     protozero_assert(((m_tag > 0 && m_tag < 19000) || (m_tag > 19999 && m_tag <= ((1 << 29) - 1))) && "tag out of range");
 
     m_wire_type = pbf_wire_type(value & 0x07);
-// XXX do we want this check? or should it throw an exception?
-//        protozero_assert((m_wire_type <=2 || m_wire_type == 5) && "illegal wire type");
+    switch (m_wire_type) {
+        case pbf_wire_type::varint:
+        case pbf_wire_type::fixed64:
+        case pbf_wire_type::length_delimited:
+        case pbf_wire_type::fixed32:
+            break;
+        default:
+            throw unknown_pbf_wire_type_exception();
+    }
+
     return true;
 }
 

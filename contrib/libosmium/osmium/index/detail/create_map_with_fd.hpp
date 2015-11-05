@@ -47,7 +47,7 @@ namespace osmium {
 
         namespace detail {
 
-            template <class T>
+            template <typename T>
             inline T* create_map_with_fd(const std::vector<std::string>& config) {
                 if (config.size() == 1) {
                     return new T();

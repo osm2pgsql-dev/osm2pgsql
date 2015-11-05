@@ -53,6 +53,18 @@ namespace osmium {
 
     }; // struct io_error
 
+    struct unsupported_file_format_error : public io_error {
+
+        unsupported_file_format_error(const std::string& what) :
+            io_error(what) {
+        }
+
+        unsupported_file_format_error(const char* what) :
+            io_error(what) {
+        }
+
+    }; // struct unsupported_file_format_error
+
 } // namespace osmium
 
 #endif // OSMIUM_IO_ERROR_HPP

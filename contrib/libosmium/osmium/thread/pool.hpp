@@ -83,7 +83,6 @@ namespace osmium {
 
             }; // class thread_joiner
 
-            std::atomic<bool> m_done;
             osmium::thread::Queue<function_wrapper> m_work_queue;
             std::vector<std::thread> m_threads;
             thread_joiner m_joiner;
@@ -91,11 +90,15 @@ namespace osmium {
 
             void worker_thread() {
                 osmium::thread::set_thread_name("_osmium_worker");
-                while (!m_done) {
+                while (true) {
                     function_wrapper task;
                     m_work_queue.wait_and_pop_with_timeout(task);
                     if (task) {
-                        task();
+                        if (task()) {
+                            // The called tasks returns true only when the
+                            // worker thread should shut down.
+                            return;
+                        }
                     }
                 }
             }
@@ -113,7 +116,6 @@ namespace osmium {
              * In all cases the minimum number of threads in the pool is 1.
              */
             explicit Pool(int num_threads, size_t max_queue_size) :
-                m_done(false),
                 m_work_queue(max_queue_size, "work"),
                 m_threads(),
                 m_joiner(m_threads),
@@ -132,7 +134,7 @@ namespace osmium {
                         m_threads.push_back(std::thread(&Pool::worker_thread, this));
                     }
                 } catch (...) {
-                    m_done = true;
+                    shutdown_all_workers();
                     throw;
                 }
             }
@@ -147,8 +149,15 @@ namespace osmium {
                 return pool;
             }
 
+            void shutdown_all_workers() {
+                for (int i = 0; i < m_num_threads; ++i) {
+                    // The special function wrapper makes a worker shut down.
+                    m_work_queue.push(function_wrapper{0});
+                }
+            }
+
             ~Pool() {
-                m_done = true;
+                shutdown_all_workers();
                 m_work_queue.shutdown();
             }
 

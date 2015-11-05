@@ -88,7 +88,7 @@ namespace osmium {
                     m_elements(grow_size) {
                 }
 
-                ~SparseMemTable() override final = default;
+                ~SparseMemTable() noexcept override final = default;
 
                 void set(const TId id, const TValue value) override final {
                     if (id >= m_elements.size()) {
@@ -123,6 +123,7 @@ namespace osmium {
 
                 void dump_as_list(const int fd) override final {
                     std::vector<std::pair<TId, TValue>> v;
+                    v.reserve(m_elements.size());
                     int n = 0;
                     for (const TValue value : m_elements) {
                         if (value != osmium::index::empty_value<TValue>()) {

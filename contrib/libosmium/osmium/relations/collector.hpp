@@ -39,9 +39,10 @@ DEALINGS IN THE SOFTWARE.
 #include <cstdint>
 #include <functional>
 #include <iomanip>
-#include <iostream>
+//#include <iostream>
 #include <vector>
 
+#include <osmium/fwd.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/object.hpp>
 #include <osmium/osm/relation.hpp> // IWYU pragma: keep
@@ -54,9 +55,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/relations/detail/member_meta.hpp>
 
 namespace osmium {
-
-    class Node;
-    class Way;
 
     /**
      * @brief Code related to the assembly of OSM relations
@@ -91,7 +89,7 @@ namespace osmium {
          *
          * @tparam TRelations Are we interested in member relations?
          */
-        template <class TCollector, bool TNodes, bool TWays, bool TRelations>
+        template <typename TCollector, bool TNodes, bool TWays, bool TRelations>
         class Collector {
 
             /**
@@ -474,14 +472,14 @@ namespace osmium {
                 return range.first->buffer_offset();
             }
 
-            template <class TIter>
+            template <typename TIter>
             void read_relations(TIter begin, TIter end) {
                 HandlerPass1 handler(*static_cast<TCollector*>(this));
                 osmium::apply(begin, end, handler);
                 sort_member_meta();
             }
 
-            template <class TSource>
+            template <typename TSource>
             void read_relations(TSource& source) {
                 read_relations(std::begin(source), std::end(source));
                 source.close();
@@ -506,13 +504,15 @@ namespace osmium {
             void possibly_purge_removed_members() {
                 ++m_count_complete;
                 if (m_count_complete > 10000) { // XXX
-                    const size_t size_before = m_members_buffer.committed();
+//                    const size_t size_before = m_members_buffer.committed();
                     m_members_buffer.purge_removed(this);
+/*
                     const size_t size_after = m_members_buffer.committed();
                     double percent = static_cast<double>(size_before - size_after);
                     percent /= size_before;
                     percent *= 100;
-//                    std::cerr << "PURGE (size before=" << size_before << " after=" << size_after << " purged=" << (size_before - size_after) << " / " << static_cast<int>(percent) << "%)\n";
+                    std::cerr << "PURGE (size before=" << size_before << " after=" << size_after << " purged=" << (size_before - size_after) << " / " << static_cast<int>(percent) << "%)\n";
+*/
                     m_count_complete = 0;
                 }
             }

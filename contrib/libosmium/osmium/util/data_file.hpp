@@ -137,7 +137,7 @@ namespace osmium {
                 try {
                     close();
                 } catch (std::system_error&) {
-                    // ignore
+                    // Ignore any exceptions because destructor must not throw.
                 }
             }
 

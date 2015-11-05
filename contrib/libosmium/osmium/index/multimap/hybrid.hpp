@@ -62,15 +62,17 @@ namespace osmium {
 
             public:
 
-                explicit HybridIterator(typename main_map_type::iterator begin_main,
-                               typename main_map_type::iterator end_main,
-                               typename extra_map_type::iterator begin_extra,
-                               typename extra_map_type::iterator end_extra) :
+                 HybridIterator(typename main_map_type::iterator begin_main,
+                                typename main_map_type::iterator end_main,
+                                typename extra_map_type::iterator begin_extra,
+                                typename extra_map_type::iterator end_extra) :
                     m_begin_main(begin_main),
                     m_end_main(end_main),
                     m_begin_extra(begin_extra),
                     m_end_extra(end_extra) {
                 }
+
+                ~HybridIterator() noexcept = default;
 
                 HybridIterator& operator++() {
                     if (m_begin_main == m_end_main) {
@@ -133,6 +135,8 @@ namespace osmium {
                     m_main(),
                     m_extra() {
                 }
+
+                ~Hybrid() noexcept = default;
 
                 size_t size() const override final {
                     return m_main.size() + m_extra.size();

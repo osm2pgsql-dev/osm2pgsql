@@ -66,7 +66,7 @@ namespace osmium {
          * Returns the number of nodes in the list.
          */
         size_t size() const noexcept {
-            auto size_node_refs = osmium::memory::Item::byte_size() - sizeof(NodeRefList);
+            auto size_node_refs = byte_size() - sizeof(NodeRefList);
             assert(size_node_refs % sizeof(NodeRef) == 0);
             return size_node_refs / sizeof(NodeRef);
         }

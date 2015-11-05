@@ -43,7 +43,7 @@ namespace osmium {
 
     class OSMObject;
 
-    template <class TBasicIterator>
+    template <typename TBasicIterator>
     class DiffIterator : public std::iterator<std::input_iterator_tag, const osmium::DiffObject> {
 
         static_assert(std::is_base_of<osmium::OSMObject, typename TBasicIterator::value_type>::value, "TBasicIterator::value_type must derive from osmium::OSMObject");
