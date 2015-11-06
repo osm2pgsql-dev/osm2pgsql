@@ -13,8 +13,6 @@
 #include "options.hpp"
 #include "middle-pgsql.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
-
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,6 +21,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common.hpp"
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -51,15 +50,8 @@ int main(int argc, char *argv[]) {
 
         osmdata_t osmdata(mid_pgsql, out_test);
 
-        std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-        osmdata.start();
-
-        parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-        parser.reset(nullptr);
-
-        osmdata.stop();
+        testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                       options, &osmdata);
 
         // start a new connection to run tests on
         db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");

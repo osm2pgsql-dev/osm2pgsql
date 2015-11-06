@@ -188,9 +188,7 @@ set(osm2pgsql_lib_SOURCES
   output-null.cpp
   output-pgsql.cpp
   output.cpp
-  parse-o5m.cpp
   parse-osmium.cpp
-  parse.cpp
   pgsql.cpp
   processor-line.cpp
   processor-point.cpp
@@ -219,9 +217,7 @@ set(osm2pgsql_lib_SOURCES
   output-null.hpp
   output-pgsql.hpp
   output.hpp
-  parse-o5m.hpp
   parse-osmium.hpp
-  parse.hpp
   pgsql.hpp
   processor-line.hpp
   processor-point.hpp

@@ -141,9 +141,9 @@ int main(int argc, char *argv[]) {
   osmdata_t osmdata(std::make_shared<test_middle_t>(), out_test);
 
   boost::optional<std::string> bbox;
-  parse_osmium_t parser("", false, bbox, projection.get(), false);
+  parse_osmium_t parser(false, bbox, projection.get(), false, &osmdata);
 
-  parser.stream_file(inputfile, &osmdata);
+  parser.stream_file(inputfile, "");
 
   assert_equal(out_test->sum_ids,       73514L);
   assert_equal(out_test->num_nodes,       353L);

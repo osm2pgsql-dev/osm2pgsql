@@ -1,6 +1,5 @@
 #include "options.hpp"
 #include "sprompt.hpp"
-#include "parse.hpp"
 
 #include <getopt.h>
 #ifdef HAVE_LIBGEN_H

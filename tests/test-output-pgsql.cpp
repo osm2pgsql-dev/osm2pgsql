@@ -14,7 +14,6 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,6 +23,7 @@
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 #include "tests/common-cleanup.hpp"
+#include "tests/common.hpp"
 
 #define FLAT_NODES_FILE_NAME "tests/test_output_pgsql_area_way.flat.nodes.bin"
 
@@ -79,15 +79,8 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -139,15 +132,8 @@ void test_latlong() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -199,15 +185,8 @@ void test_area_way_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("xml", "tests/test_output_pgsql_way_area.osm", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/test_output_pgsql_way_area.osm", "xml",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -245,15 +224,8 @@ void test_route_rel() {
 
     osmdata_t osmdata(mid_ram, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("xml", "tests/test_output_pgsql_route_rel.osm", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/test_output_pgsql_route_rel.osm", "xml",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -297,15 +269,8 @@ void test_clone() {
 
     osmdata_t osmdata(mid_pgsql, out_clone);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

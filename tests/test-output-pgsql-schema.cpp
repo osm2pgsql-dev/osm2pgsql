@@ -14,7 +14,6 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -22,6 +21,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "tests/common-pg.hpp"
+#include "tests/common.hpp"
 
 namespace {
 
@@ -79,16 +79,8 @@ void test_other_output_schema() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, false));
-
-    osmdata.start();
-
-    parser->stream_file("xml", "tests/test_output_pgsql_z_order.osm", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
-
+    testing::parse("tests/test_output_pgsql_z_order.osm", "xml",
+                   options, &osmdata);
 
     db->assert_has_table("public.osm2pgsql_test_point");
     db->assert_has_table("public.osm2pgsql_test_line");

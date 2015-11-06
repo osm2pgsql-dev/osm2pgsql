@@ -13,7 +13,6 @@
 #include "options.hpp"
 #include "middle-pgsql.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -22,6 +21,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common.hpp"
 
 int main(int argc, char *argv[]) {
     std::unique_ptr<pg::tempdb> db;
@@ -60,15 +60,8 @@ int main(int argc, char *argv[]) {
 
         osmdata_t osmdata(mid_pgsql, outputs);
 
-        std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-        osmdata.start();
-
-        parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-        parser.reset(nullptr);
-
-        osmdata.stop();
+        testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                       options, &osmdata);
 
         for (int i = 0; i < 10; ++i) {
             std::string name = (boost::format("foobar_%d") % i).str();

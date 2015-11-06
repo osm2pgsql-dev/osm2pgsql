@@ -27,7 +27,7 @@
 #include "osmtypes.hpp"
 #include "reprojection.hpp"
 #include "options.hpp"
-#include "parse.hpp"
+#include "parse-osmium.hpp"
 #include "middle.hpp"
 #include "output.hpp"
 #include "osmdata.hpp"
@@ -53,10 +53,6 @@ int main(int argc, char *argv[])
         if(options.long_usage_bool)
             return 0;
 
-        //setup the front (input)
-        parse_delegate_t parser(options.extra_attributes, options.bbox,
-                                options.projection, options.append);
-
         //setup the middle
         std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
 
@@ -79,17 +75,25 @@ int main(int argc, char *argv[])
          * tables. Not all ways can be handled before relations are processed, so they're
          * set as pending, to be handled in the next stage.
          */
+        parse_stats_t stats;
         //read in the input files one by one
         for (auto const filename : options.input_files) {
             //read the actual input
             fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
             time_t start = time(nullptr);
-            parser.stream_file(options.input_reader, filename, &osmdata);
+
+            parse_osmium_t parser(options.extra_attributes,
+                                  options.bbox, options.projection.get(),
+                                  options.append, &osmdata);
+            parser.stream_file(filename, options.input_reader);
+
+            stats.update(parser.stats());
+
             fprintf(stderr, "  parse time: %ds\n", (int)(time(nullptr) - start));
         }
 
         //show stats
-        parser.print_summary();
+        stats.print_summary();
 
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();

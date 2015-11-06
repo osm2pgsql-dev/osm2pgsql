@@ -13,7 +13,6 @@
 #include "output-multi.hpp"
 #include "options.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -22,11 +21,9 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common.hpp"
 
 void run_osm2pgsql(options_t &options) {
-  //setup the front (input)
-  parse_delegate_t parser(options.extra_attributes, options.bbox, options.projection, options.append);
-
   //setup the middle
   std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
 
@@ -36,11 +33,8 @@ void run_osm2pgsql(options_t &options) {
   //let osmdata orchestrate between the middle and the outs
   osmdata_t osmdata(middle, outputs);
 
-  osmdata.start();
-
-  parser.stream_file("xml", "tests/test_output_multi_poly_trivial.osm", &osmdata);
-
-  osmdata.stop();
+  testing::parse("tests/test_output_multi_poly_trivial.osm", "xml",
+                 options, &osmdata);
 }
 
 void check_output_poly_trivial(bool enable_multi, std::shared_ptr<pg::tempdb> db) {
