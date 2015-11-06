@@ -5,6 +5,8 @@
 #include "output-gazetteer.hpp"
 #include "output-null.hpp"
 
+#include "tests/common-chdir.hpp"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -281,6 +283,7 @@ void test_random_perms()
 
 int main(int argc, char *argv[])
 {
+    auto_chdir();
     srand(0);
 
     //try each test if any fail we will exit

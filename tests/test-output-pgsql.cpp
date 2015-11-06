@@ -24,6 +24,7 @@
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 #include "tests/common-cleanup.hpp"
+#include "tests/common-chdir.hpp"
 
 #define FLAT_NODES_FILE_NAME "tests/test_output_pgsql_area_way.flat.nodes.bin"
 
@@ -323,6 +324,7 @@ void test_clone() {
 int main(int argc, char *argv[]) {
     // remove flat nodes file  on exit - it's 20GB and bad manners to
     // leave that lying around on the filesystem.
+    auto_chdir();
     cleanup::file flat_nodes_file(FLAT_NODES_FILE_NAME);
 
     RUN_TEST(test_regression_simple);

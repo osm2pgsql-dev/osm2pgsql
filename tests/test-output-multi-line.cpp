@@ -23,8 +23,10 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     std::unique_ptr<pg::tempdb> db;
 
     try {

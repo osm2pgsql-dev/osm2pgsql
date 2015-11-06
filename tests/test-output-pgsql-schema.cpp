@@ -22,6 +22,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
 
 namespace {
 
@@ -112,6 +113,7 @@ void test_other_output_schema() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     RUN_TEST(test_other_output_schema);
 
     return 0;

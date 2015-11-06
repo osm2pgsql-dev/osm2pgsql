@@ -17,6 +17,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
 
 void run_tests(options_t options, const std::string cache_type) {
   options.append = false;
@@ -61,6 +62,7 @@ void run_tests(options_t options, const std::string cache_type) {
   }
 }
 int main(int argc, char *argv[]) {
+  auto_chdir();
   std::unique_ptr<pg::tempdb> db;
 
   try {

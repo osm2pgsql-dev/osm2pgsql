@@ -23,6 +23,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common-chdir.hpp"
 
 namespace {
 
@@ -104,6 +105,7 @@ void test_regression_simple() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     RUN_TEST(test_regression_simple);
 
     return 0;

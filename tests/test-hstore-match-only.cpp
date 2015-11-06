@@ -14,6 +14,7 @@ The tags of inteest are specified in hstore-match-only.style
 #include <stdexcept>
 #include <memory>
 
+#include "common-chdir.hpp"
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
 #include "middle.hpp"
@@ -32,6 +33,7 @@ The tags of inteest are specified in hstore-match-only.style
 #include "tests/common-pg.hpp"
 
 int main(int argc, char *argv[]) {
+    auto_chdir();
     std::unique_ptr<pg::tempdb> db;
 
     try {

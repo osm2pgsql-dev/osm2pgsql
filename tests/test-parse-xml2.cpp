@@ -13,6 +13,9 @@
 #include "output.hpp"
 #include "parse-osmium.hpp"
 
+#include "tests/common-chdir.hpp"
+
+
 void exit_nicely()
 {
     fprintf(stderr, "Error occurred, cleaning up\n");
@@ -130,6 +133,7 @@ void assert_equal(uint64_t actual, uint64_t expected) {
 }
 
 int main(int argc, char *argv[]) {
+  auto_chdir();
 
   std::string inputfile = "tests/test_multipolygon.osm";
 
