@@ -14,7 +14,6 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
@@ -23,6 +22,7 @@
 
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
+#include "tests/common.hpp"
 
 namespace {
 
@@ -80,15 +80,8 @@ void test_regression_simple() {
 
     osmdata_t osmdata(mid_pgsql, out_test);
 
-    std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, options.append));
-
-    osmdata.start();
-
-    parser->stream_file("pbf", "tests/liechtenstein-2013-08-03.osm.pbf", &osmdata);
-
-    parser.reset(nullptr);
-
-    osmdata.stop();
+    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
+                   options, &osmdata);
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

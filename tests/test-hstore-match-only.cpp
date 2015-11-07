@@ -22,13 +22,13 @@ The tags of inteest are specified in hstore-match-only.style
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "taginfo_impl.hpp"
-#include "parse.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>
 
 #include <boost/lexical_cast.hpp>
 
+#include "tests/common.hpp"
 #include "tests/common-pg.hpp"
 
 int main(int argc, char *argv[]) {
@@ -51,20 +51,14 @@ int main(int argc, char *argv[]) {
         options.hstore_match_only=1;
         options.hstore_mode = HSTORE_NORM;
         options.slim = 1;
+        options.append = false;
 
         auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
         osmdata_t osmdata(mid_pgsql, out_test);
 
-        std::unique_ptr<parse_delegate_t> parser(new parse_delegate_t(options.extra_attributes, options.bbox, options.projection, false));
-
-        osmdata.start();
-
-        parser->stream_file("xml", "tests/hstore-match-only.osm", &osmdata);
-
-        parser.reset(nullptr);
-
-        osmdata.stop();
+        testing::parse("tests/hstore-match-only.osm", "xml",
+                       options, &osmdata);
 
         // tables should not contain any tag columns
         db->check_count(4, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_point'");

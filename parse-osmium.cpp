@@ -31,32 +31,97 @@
 #include <osmium/visitor.hpp>
 #include <osmium/osm.hpp>
 
-
-parse_osmium_t::parse_osmium_t(const std::string &fmt, int extra_attrs,
-                               const bbox_t &bbox, const reprojection *proj,
-                               bool do_append)
-: parse_t(extra_attrs, bbox, proj), data(nullptr),
-  format(fmt == "auto"?"":fmt), append(do_append)
-{}
-
-void
-parse_osmium_t::stream_file(const std::string &filename, osmdata_t *osmdata)
+void parse_stats_t::update(const parse_stats_t &other)
 {
-    data = osmdata;
-    osmium::io::File infile(filename, format);
+    node += other.node;
+    way += other.way;
+    rel += other.rel;
+}
+
+
+void parse_stats_t::print_summary() const
+{
+    time_t now = time(nullptr);
+    time_t end_nodes = way.start > 0 ? way.start : now;
+    time_t end_way = rel.start > 0 ? rel.start : now;
+    time_t end_rel = now;
+
+    fprintf(stderr,
+            "Node stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n",
+            node.count, node.max,
+            node.count > 0 ? (int) (end_nodes - node.start) : 0);
+    fprintf(stderr,
+            "Way stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n",
+            way.count, way.max,
+            way.count > 0 ? (int) (end_way - way.start) : 0);
+    fprintf(stderr,
+            "Relation stats: total(%" PRIdOSMID "), max(%" PRIdOSMID ") in %is\n",
+            rel.count, rel.max,
+            rel.count > 0 ? (int) (end_rel - rel.start) : 0);
+}
+
+void parse_stats_t::print_status() const
+{
+    time_t now = time(nullptr);
+    time_t end_nodes = way.start > 0 ? way.start : now;
+    time_t end_way = rel.start > 0 ? rel.start : now;
+    time_t end_rel = now;
+    fprintf(stderr,
+            "\rProcessing: Node(%" PRIdOSMID "k %.1fk/s) Way(%" PRIdOSMID "k %.2fk/s) Relation(%" PRIdOSMID " %.2f/s)",
+            node.count / 1000,
+            (double) node.count / 1000.0 / ((int) (end_nodes - node.start) > 0 ? (double) (end_nodes - node.start) : 1.0),
+            way.count / 1000,
+            way.count > 0 ? (double) way.count / 1000.0 / ((double) (end_way - way.start) > 0.0 ? (double) (end_way - way.start) : 1.0) : 0.0, rel.count,
+            rel.count > 0 ? (double) rel.count / ((double) (end_rel - rel.start) > 0.0 ? (double) (end_rel - rel.start) : 1.0) : 0.0);
+}
+
+
+parse_osmium_t::parse_osmium_t(bool extra_attrs,
+                               const boost::optional<std::string> &bbox,
+                               const reprojection *proj, bool do_append,
+                               osmdata_t *osmdata)
+: m_data(osmdata), m_append(do_append), m_attributes(extra_attrs), m_proj(proj)
+{
+    if (bbox) {
+        m_bbox = parse_bbox(bbox);
+    }
+}
+
+osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
+{
+    double minx, maxx, miny, maxy;
+    int n = sscanf(bbox->c_str(), "%lf,%lf,%lf,%lf",
+                   &minx, &miny, &maxx, &maxy);
+    if (n != 4)
+        throw std::runtime_error("Bounding box must be specified like: minlon,minlat,maxlon,maxlat\n");
+
+    if (maxx <= minx)
+        throw std::runtime_error("Bounding box failed due to maxlon <= minlon\n");
+
+    if (maxy <= miny)
+        throw std::runtime_error("Bounding box failed due to maxlat <= minlat\n");
+
+    fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", minx, miny, maxx, maxy);
+
+    return osmium::Box(minx, miny, maxx, maxy);
+}
+
+void parse_osmium_t::stream_file(const std::string &filename, const std::string &fmt)
+{
+    const char* osmium_format = fmt == "auto" ? "" : fmt.c_str();
+    osmium::io::File infile(filename, osmium_format);
 
     if (infile.format() == osmium::io::file_format::unknown)
-        throw std::runtime_error(format.empty()
+        throw std::runtime_error(fmt.empty()
                                    ?"Cannot detect file format. Try using -r."
                                    : ((boost::format("Unknown file format '%1%'.")
-                                                    % format).str()));
+                                                    % fmt).str()));
 
     fprintf(stderr, "Using %s parser.\n", osmium::io::as_string(infile.format()));
 
     osmium::io::Reader reader(infile);
     osmium::apply(reader, *this);
     reader.close();
-    data = nullptr;
 }
 
 void parse_osmium_t::node(osmium::Node& node)
@@ -73,56 +138,56 @@ void parse_osmium_t::node(osmium::Node& node)
       return;
     }
 
-    double lat = node.location().lat_without_check();
-    double lon = node.location().lon_without_check();
-    if (bbox.inside(lat, lon)) {
-        proj->reproject(&lat, &lon);
+    if (!m_bbox || m_bbox->contains(node.location())) {
+        double lat = node.location().lat_without_check();
+        double lon = node.location().lon_without_check();
+
+        m_proj->reproject(&lat, &lon);
 
         if (node.deleted()) {
-            data->node_delete(node.id());
+            m_data->node_delete(node.id());
         } else {
             convert_tags(node);
-            if (append) {
-                data->node_modify(node.id(), lat, lon, tags);
+            if (m_append) {
+                m_data->node_modify(node.id(), lat, lon, tags);
             } else {
-                data->node_add(node.id(), lat, lon, tags);
+                m_data->node_add(node.id(), lat, lon, tags);
             }
         }
-
-        stats.add_node(node.id());
+        m_stats.add_node(node.id());
     }
 }
 
 void parse_osmium_t::way(osmium::Way& way)
 {
     if (way.deleted()) {
-        data->way_delete(way.id());
+        m_data->way_delete(way.id());
     } else {
         convert_tags(way);
         convert_nodes(way.nodes());
-        if (append) {
-            data->way_modify(way.id(), nds, tags);
+        if (m_append) {
+            m_data->way_modify(way.id(), nds, tags);
         } else {
-            data->way_add(way.id(), nds, tags);
+            m_data->way_add(way.id(), nds, tags);
         }
     }
-    stats.add_way(way.id());
+    m_stats.add_way(way.id());
 }
 
 void parse_osmium_t::relation(osmium::Relation& rel)
 {
     if (rel.deleted()) {
-        data->relation_delete(rel.id());
+        m_data->relation_delete(rel.id());
     } else {
         convert_tags(rel);
         convert_members(rel.members());
-        if (append) {
-            data->relation_modify(rel.id(), members, tags);
+        if (m_append) {
+            m_data->relation_modify(rel.id(), members, tags);
         } else {
-            data->relation_add(rel.id(), members, tags);
+            m_data->relation_add(rel.id(), members, tags);
         }
     }
-    stats.add_rel(rel.id());
+    m_stats.add_rel(rel.id());
 }
 
 void parse_osmium_t::convert_tags(const osmium::OSMObject &obj)
@@ -131,7 +196,7 @@ void parse_osmium_t::convert_tags(const osmium::OSMObject &obj)
     for (auto const &t : obj.tags()) {
         tags.emplace_back(t.key(), t.value());
     }
-    if (extra_attributes) {
+    if (m_attributes) {
         tags.emplace_back("osm_user", obj.user());
         tags.emplace_back("osm_uid", std::to_string(obj.uid()));
         tags.emplace_back("osm_version", std::to_string(obj.version()));
