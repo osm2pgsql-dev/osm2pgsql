@@ -116,7 +116,7 @@ if (NOT Boost_ADDITIONAL_VERSIONS)
 endif()
 
 # first try to find the version
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem thread ${BOOST_EXTRA})
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem ${BOOST_EXTRA})
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
