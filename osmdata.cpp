@@ -1,9 +1,10 @@
+#include <cstdio>
+#include <functional>
+#include <future>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
-
-#include <cstdio>
-
-#include <boost/thread.hpp>
+#include <vector>
 
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
@@ -168,7 +169,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<std::shared_ptr<output_t>> output_vec_t;
     typedef std::pair<std::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
-    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, boost::mutex& mutex, int append, bool ways) {
+    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
         while (true) {
             //get the job off the queue synchronously
             pending_job_t job;
@@ -239,14 +240,29 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
 
         //make the threads and start them
+        std::vector<std::future<void>> workers;
         for (size_t i = 0; i < clones.size(); ++i) {
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, true));
+            workers.push_back(std::async(std::launch::async,
+                                         do_jobs, std::cref(clones[i].second),
+                                         std::ref(queue), std::ref(ids_done),
+                                         std::ref(mutex), append, true));
         }
 
         //TODO: print out partial progress
 
-        //wait for them to really be done
-        workers.join_all();
+        for (auto& w: workers) {
+            try {
+                w.get();
+            } catch (...) {
+                // drain the queue, so that the other workers finish
+                mutex.lock();
+                while (!queue.empty()) {
+                    queue.pop();
+                }
+                mutex.unlock();
+                throw;
+            }
+        }
 
         time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu ways in %i sec\n\n", ids_queued, (int)(finish - start));
@@ -286,14 +302,27 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         time_t start = time(nullptr);
 
         //make the threads and start them
+        std::vector<std::future<void>> workers;
         for (size_t i = 0; i < clones.size(); ++i) {
-            workers.create_thread(boost::bind(do_jobs, boost::cref(clones[i].second), boost::ref(queue), boost::ref(ids_done), boost::ref(mutex), append, false));
+            workers.push_back(std::async(std::launch::async,
+                                         do_jobs, std::cref(clones[i].second),
+                                         std::ref(queue), std::ref(ids_done),
+                                         std::ref(mutex), append, false));
         }
 
-        //TODO: print out partial progress
-
-        //wait for them to really be done
-        workers.join_all();
+        for (auto& w: workers) {
+            try {
+                w.get();
+            } catch (...) {
+                // drain the queue, so the other worker finish immediately
+                mutex.lock();
+                while (!queue.empty()) {
+                    queue.pop();
+                }
+                mutex.unlock();
+                throw;
+            }
+        }
 
         time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu relations in %i sec\n\n", ids_queued, (int)(finish - start));
@@ -320,8 +349,6 @@ private:
     //middle and output copies
     std::vector<clone_t> clones;
     output_vec_t outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
-    //actual threads
-    boost::thread_group workers;
     //how many jobs do we have in the queue to start with
     size_t ids_queued;
     //appending to output that is already there (diff processing)
@@ -332,7 +359,7 @@ private:
     //how many ids within the job have been processed
     size_t ids_done;
     //so the threads can manage some of the shared state
-    boost::mutex mutex;
+    std::mutex mutex;
 };
 
 } // anonymous namespace
@@ -368,12 +395,19 @@ void osmdata_t::stop() {
         mid->iterate_relations( ptp );
     }
 
-	//Clustering, index creation, and cleanup.
-	//All the intensive parts of this are long-running PostgreSQL commands
-    boost::thread_group threads;
+    // Clustering, index creation, and cleanup.
+    // All the intensive parts of this are long-running PostgreSQL commands
+
+    std::vector<std::future<void>> futures;
+
+    // XXX we might get too many parallel processes here
+    //     use osmium worker pool instead
     for (auto& out: outs) {
-        threads.add_thread(new boost::thread(boost::bind( &output_t::stop, out.get() )));
+        futures.push_back(std::async(&output_t::stop, out.get()));
     }
-    threads.add_thread(new boost::thread(boost::bind( &middle_t::stop, mid.get() )));
-    threads.join_all();
+    futures.push_back(std::async(&middle_t::stop, mid.get()));
+
+    for (auto& f: futures) {
+      f.get();
+    }
 }
