@@ -8,6 +8,7 @@
 
 #include "config.h"
 
+#include <future>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -20,10 +21,6 @@
 #include <cstring>
 #include <ctime>
 #include <unistd.h>
-
-#ifdef HAVE_PTHREAD
-#include <pthread.h>
-#endif
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/bind.hpp>
@@ -53,8 +50,6 @@
 #endif
 
 #define SRID (reproj->project_getprojinfo()->srs)
-
-#define NUM_TABLES (output_pgsql_t::t_MAX)
 
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
@@ -244,29 +239,6 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
 }
 
 
-
-namespace {
-/* Using pthreads requires us to shoe-horn everything into various void*
- * pointers. Improvement for the future: just use boost::thread. */
-struct pthread_thunk {
-  table_t *ptr;
-  boost::exception_ptr error;
-};
-
-extern "C" void *pthread_output_pgsql_stop_one(void *arg) {
-  pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
-
-  try {
-    thunk->ptr->stop();
-
-  } catch (...) {
-    thunk->error = boost::current_exception();
-  }
-
-  return nullptr;
-}
-} // anonymous namespace
-
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
     osmid_t const prev = ways_pending_tracker->last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
@@ -373,63 +345,33 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
 
 void output_pgsql_t::commit()
 {
-    for (int i=0; i<NUM_TABLES; i++) {
-        m_tables[i]->commit();
+    for (const auto &t : m_tables) {
+        t->commit();
     }
 }
 
 void output_pgsql_t::stop()
 {
-    int i;
-#ifdef HAVE_PTHREAD
-    pthread_t threads[NUM_TABLES];
-#endif
-
-#ifdef HAVE_PTHREAD
     if (m_options.parallel_indexing) {
-      pthread_thunk thunks[NUM_TABLES];
-      for (i=0; i<NUM_TABLES; i++) {
-          thunks[i].ptr = m_tables[i].get();
-          thunks[i].error = boost::exception_ptr();
+      std::vector<std::future<void>> outs;
+      outs.reserve(m_tables.size());
+
+      for (auto &t : m_tables) {
+          outs.push_back(std::async(std::launch::async, &table_t::stop, t));
       }
 
-      for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_create(&threads[i], nullptr, pthread_output_pgsql_stop_one, &thunks[i]);
-          if (ret) {
-              fprintf(stderr, "pthread_create() returned an error (%d)\n", ret);
-              util::exit_nicely();
-          }
+      // XXX If one of the stop functions throws an error, this collects all
+      //     the other threads first before exiting. That might take a very
+      //     long time if large indexes are created.
+      for (auto &f : outs) {
+        f.get();
       }
 
-      // set a flag if there are any errors - this allows us to collect all the
-      // threads and check them all for errors before shutting down the process.
-      bool thread_had_error = false;
-      for (i=0; i<NUM_TABLES; i++) {
-          int ret = pthread_join(threads[i], nullptr);
-          if (ret) {
-              fprintf(stderr, "pthread_join() returned an error (%d)\n", ret);
-              thread_had_error = true;
-          }
-          if (thunks[i].error) {
-            std::string error_message = BOOST_DIAGNOSTIC_INFO(thunks[i].error);
-            fprintf(stderr, "pthread_join() returned exception: %s\n", error_message.c_str());
-            thread_had_error = true;
-          }
-      }
-      if (thread_had_error) {
-        util::exit_nicely();
-      }
     } else {
-#endif
-
-    /* No longer need to access middle layer -- release memory */
-    //TODO: just let the destructor do this
-    for (i=0; i<NUM_TABLES; i++)
-        m_tables[i]->stop();
-
-#ifdef HAVE_PTHREAD
+      for (const auto &t : m_tables) {
+        t->stop();
+      }
     }
-#endif
 
     expire->output_and_destroy();
     expire.reset();
@@ -690,8 +632,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
     expire.reset(new expire_tiles(&m_options));
 
     //for each table
-    m_tables.reserve(NUM_TABLES);
-    for (int i=0; i<NUM_TABLES; i++) {
+    m_tables.reserve(t_MAX);
+    for (int i = 0; i < t_MAX; i++) {
 
         //figure out the columns this table needs
         columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
