@@ -6,8 +6,6 @@
  * emit the final geometry-enabled output formats
 */
 
-#include "config.h"
-
 #include <future>
 #include <iostream>
 #include <limits>

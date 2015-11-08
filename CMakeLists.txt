@@ -164,7 +164,6 @@ message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
 # Build the library and executable file
 #############################################################
 
-set(HAVE_PTHREAD "${CMAKE_USE_PTHREADS_INIT}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)
