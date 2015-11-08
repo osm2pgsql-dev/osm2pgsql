@@ -51,8 +51,6 @@ struct middle_pgsql_t : public slim_middle_t {
 
     std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
 
-    void *pgsql_stop_one(void *arg);
-
     struct table_desc {
         table_desc(const char *name_ = NULL,
                    const char *start_ = NULL,
@@ -83,6 +81,7 @@ struct middle_pgsql_t : public slim_middle_t {
 
     virtual std::shared_ptr<const middle_query_t> get_instance() const;
 private:
+    void pgsql_stop_one(table_desc *table);
 
     /**
      * Sets up sql_conn for the table
