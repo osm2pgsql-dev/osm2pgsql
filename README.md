@@ -56,7 +56,7 @@ sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   liblua5.2-dev
 ```
 
-To on a Fedora system, use
+On a Fedora system, use
 
 ```sh
 sudo yum install cmake gcc-c++ boost-devel expat-devel zlib-devel bzip2-devel \
@@ -107,7 +107,7 @@ Osm2pgsql has one program, the executable itself, which has **42** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
-and optionally hstore extensions must be loaded. A full guide to PostgreSQL
+and optional hstore extensions must be loaded. A full guide to PostgreSQL
 setup is beyond the scope of this readme, but with reasonably recent versions
 of PostgreSQL and PostGIS this can be done with
 
@@ -152,11 +152,8 @@ In addition to the standard [pgsql](docs/pgsql.md) backend designed for
 rendering there is also the [gazetteer](docs/gazetteer.md) database for
 geocoding, principally with [Nominatim](http://www.nominatim.org/), and the
 null backend for testing. For flexibility a new [multi](docs/multi.md)
-backend is also avialable which allows the configuration of custom
-postgres tables instead of those provided in the pgsql backend.
-
-Any questions should be directed at the osm dev list
-http://wiki.openstreetmap.org/index.php/Mailing_lists
+backend is also available which allows the configuration of custom
+PostgreSQL tables instead of those provided in the pgsql backend.
 
 ## Contributing ##
 
