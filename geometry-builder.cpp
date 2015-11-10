@@ -154,10 +154,9 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
             coords->add(Coordinate(nd.lon, nd.lat), 0);
         }
 
-        geom_ptr geom;
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
+            geom_ptr geom(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
             if (!geom->isValid()) {
                 if (excludepoly) {
                     throw std::runtime_error("Excluding broken polygon.");
@@ -198,7 +197,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                         const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
                                                       frac * (this_pt.y - prev_pt.y) + prev_pt.y);
                         segment->add(interpolated);
-                        geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+                        geom_ptr geom(gf.createLineString(segment.release()));
 
                         //copy of an empty one should be cheapest
                         wkts->push_back(geometry_builder::wkt_t());
@@ -224,7 +223,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 
                 // on the last iteration, close out the line.
                 if (i == coords->getSize()-1) {
-                    geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
+                    geom_ptr geom(gf.createLineString(segment.release()));
 
                     //copy of an empty one should be cheapest
                     wkts->push_back(geometry_builder::wkt_t());
