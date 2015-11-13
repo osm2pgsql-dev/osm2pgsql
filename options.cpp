@@ -273,16 +273,11 @@ options_t::options_t():
     create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
     extra_attributes(false), verbose(false)
 {
-#ifdef HAVE_FORK
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
         fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");
         num_procs = 1;
     }
-#else
-    num_procs = 1;
-    fprintf(stderr, "WARNING: osm2pgsql was compiled without fork, only using one process!\n");
-#endif
 }
 
 options_t::~options_t()
@@ -414,9 +409,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             long_usage_bool = true;
             break;
         case 'I':
-#ifdef HAVE_PTHREAD
             parallel_indexing = false;
-#endif
             break;
         case 204:
             if (strcmp(optarg, "dense") == 0)
@@ -432,9 +425,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             }
             break;
         case 205:
-#ifdef HAVE_FORK
             num_procs = atoi(optarg);
-#endif
             break;
         case 206:
             droptemp = true;

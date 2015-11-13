@@ -51,7 +51,7 @@ On a Debian or Ubuntu system, this can be done with:
 
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
-  libboost-filesystem-dev libboost-thread-dev libexpat1-dev zlib1g-dev \
+  libboost-filesystem-dev libexpat1-dev zlib1g-dev \
   libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev lua5.2 \
   liblua5.2-dev
 ```

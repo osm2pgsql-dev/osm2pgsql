@@ -3,7 +3,6 @@
 #cmakedefine HAVE_LUA 1
 #cmakedefine HAVE_POSIX_FADVISE 1
 #cmakedefine HAVE_POSIX_FALLOCATE 1
-#cmakedefine HAVE_PTHREAD 1
 #cmakedefine HAVE_SYNC_FILE_RANGE 1
 #cmakedefine HAVE_TERMIOS_H 1
 #cmakedefine HAVE_LIBGEN_H 1
@@ -23,10 +22,6 @@ typedef SSIZE_T ssize_t;
 /* Enable GNU extensions on systems that have them.  */
 #ifndef _GNU_SOURCE
 # define _GNU_SOURCE 1
-#endif
-/* Enable threading extensions on Solaris.  */
-#ifndef _POSIX_PTHREAD_SEMANTICS
-# define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 /* Enable extensions on HP NonStop.  */
 #ifndef _TANDEM_SOURCE

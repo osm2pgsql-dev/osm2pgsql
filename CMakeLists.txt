@@ -116,7 +116,7 @@ if (NOT Boost_ADDITIONAL_VERSIONS)
 endif()
 
 # first try to find the version
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem thread ${BOOST_EXTRA})
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem ${BOOST_EXTRA})
 include_directories(${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
@@ -164,7 +164,6 @@ message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
 # Build the library and executable file
 #############################################################
 
-set(HAVE_PTHREAD "${CMAKE_USE_PTHREADS_INIT}")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
 
 if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)

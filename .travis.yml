@@ -18,7 +18,6 @@ addons:
     - libboost1.55-dev
     - libboost-system1.55-dev
     - libboost-filesystem1.55-dev
-    - libboost-thread1.55-dev
 matrix:
   include:
     - os: linux

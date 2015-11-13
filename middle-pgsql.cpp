@@ -8,10 +8,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_PTHREAD
-#include <pthread.h>
-#endif
-
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
@@ -41,6 +37,7 @@ using namespace std;
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <future>
 
 #include <boost/format.hpp>
 
@@ -1136,11 +1133,10 @@ void middle_pgsql_t::commit(void) {
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 }
 
-void *middle_pgsql_t::pgsql_stop_one(void *arg)
+void middle_pgsql_t::pgsql_stop_one(table_desc *table)
 {
     time_t start, end;
 
-    struct table_desc *table = (struct table_desc *)arg;
     PGconn *sql_conn = table->sql_conn;
 
     fprintf(stderr, "Stopping table: %s\n", table->name);
@@ -1160,61 +1156,24 @@ void *middle_pgsql_t::pgsql_stop_one(void *arg)
     table->sql_conn = nullptr;
     time(&end);
     fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
-    return nullptr;
 }
 
-namespace {
-/* Using pthreads requires us to shoe-horn everything into various void*
- * pointers. Improvement for the future: just use boost::thread. */
-struct pthread_thunk {
-    middle_pgsql_t *obj;
-    void *ptr;
-};
-
-extern "C" void *pthread_middle_pgsql_stop_one(void *arg) {
-    pthread_thunk *thunk = static_cast<pthread_thunk *>(arg);
-    return thunk->obj->pgsql_stop_one(thunk->ptr);
-}
-} // anonymous namespace
 
 void middle_pgsql_t::stop(void)
 {
-    int i;
-#ifdef HAVE_PTHREAD
-    std::vector<pthread_t> threads;
-    threads.reserve(num_tables);
-#endif
-
     cache.reset();
     if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 
-#ifdef HAVE_PTHREAD
-    std::vector<pthread_thunk> thunks;
-    thunks.reserve(num_tables);
-    for (i=0; i<num_tables; i++) {
-        thunks[i].obj = this;
-        thunks[i].ptr = &tables[i];
+    std::vector<std::future<void>> futures;
+    futures.reserve(num_tables);
+
+    for (int i = 0; i < num_tables; ++i) {
+        futures.push_back(std::async(&middle_pgsql_t::pgsql_stop_one, this, &tables[i]));
     }
 
-    for (i=0; i<num_tables; i++) {
-        int ret = pthread_create(&threads[i], nullptr, pthread_middle_pgsql_stop_one, &thunks[i]);
-        if (ret) {
-            fprintf(stderr, "pthread_create() returned an error (%d)", ret);
-            util::exit_nicely();
-        }
+    for (auto &f : futures) {
+        f.get();
     }
-
-    for (i=0; i<num_tables; i++) {
-        int ret = pthread_join(threads[i], nullptr);
-        if (ret) {
-            fprintf(stderr, "pthread_join() returned an error (%d)", ret);
-            util::exit_nicely();
-        }
-    }
-#else
-    for (i=0; i<num_tables; i++)
-        pgsql_stop_one(&tables[i]);
-#endif
 }
 
 middle_pgsql_t::middle_pgsql_t()
