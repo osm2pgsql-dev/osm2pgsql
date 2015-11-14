@@ -31,6 +31,8 @@
 
 namespace geos { namespace geom {
 class Geometry;
+class GeometryFactory;
+class CoordinateSequence;
 }}
 
 class geometry_builder
@@ -68,6 +70,9 @@ public:
     }
 
 private:
+    std::unique_ptr<geos::geom::Geometry>
+    create_simple_poly(geos::geom::GeometryFactory &gf,
+                       std::unique_ptr<geos::geom::CoordinateSequence> coords) const;
     bool excludepoly = false;
 };
 

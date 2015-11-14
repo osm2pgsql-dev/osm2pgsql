@@ -56,6 +56,7 @@ using namespace geos::operation::linemerge;
 #include "geometry-builder.hpp"
 
 typedef std::unique_ptr<Geometry> geom_ptr;
+typedef std::unique_ptr<CoordinateSequence> coord_ptr;
 
 namespace {
 
@@ -69,6 +70,40 @@ void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
         nodes.push_back(osmNode(coord.x, coord.y));
     }
 }
+
+coord_ptr nodes2coords(GeometryFactory &gf, const nodelist_t &nodes)
+{
+    coord_ptr coords(gf.getCoordinateSequenceFactory()->create(size_t(0), size_t(2)));
+
+    for (const auto& nd: nodes) {
+        coords->add(Coordinate(nd.lon, nd.lat), 0);
+    }
+
+    return coords;
+}
+
+geom_ptr create_multi_line(GeometryFactory &gf, const multinodelist_t &xnodes)
+{
+    // XXX leaks memory if an exception is thrown
+    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
+    lines->reserve(xnodes.size());
+
+    for (const auto& nodes: xnodes) {
+        auto coords = nodes2coords(gf, nodes);
+        if (coords->getSize() > 1) {
+            lines->push_back(gf.createLineString(coords.release()));
+        }
+    }
+
+    return geom_ptr(gf.createMultiLineString(lines.release()));
+}
+
+bool is_polygon_line(CoordinateSequence * coords)
+{
+    return (coords->getSize() >= 4)
+           && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)));
+}
+
 
 struct polygondata
 {
@@ -96,35 +131,40 @@ geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, double a)
 : geom(geos::io::WKTWriter().write(g)), area(a)
 {}
 
+geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
+                                              std::unique_ptr<CoordinateSequence> coords) const
+{
+    std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+    std::unique_ptr<std::vector<Geometry *> > empty(new std::vector<Geometry *>);
+    geom_ptr geom(gf.createPolygon(shell.release(), empty.release()));
+
+    if (!geom->isValid()) {
+        if (excludepoly) {
+            throw std::runtime_error("Excluding broken polygon.");
+        } else {
+            geom = geom_ptr(geom->buffer(0));
+        }
+    }
+    geom->normalize(); // Fix direction of ring
+
+    return geom;
+}
+
 geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t &nodes, int polygon) const
 {
     GeometryFactory gf;
-    std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
     maybe_wkt_t wkt;
 
     try
     {
-        for (const auto& nd: nodes) {
-            coords->add(Coordinate(nd.lon, nd.lat), 0);
-        }
-
-        geom_ptr geom;
-        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-            std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
-                if (excludepoly) {
-                    throw std::runtime_error("Excluding broken polygon.");
-                } else {
-                    geom = geom_ptr(geom->buffer(0));
-                }
-            }
-            geom->normalize(); // Fix direction of ring
+        auto coords = nodes2coords(gf, nodes);
+        if (polygon && is_polygon_line(coords.get())) {
+            auto geom = create_simple_poly(gf, std::move(coords));
             wkt = std::make_shared<wkt_t>(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
-            geom = geom_ptr(gf.createLineString(coords.release()));
+            geom_ptr geom(gf.createLineString(coords.release()));
             wkt = std::make_shared<wkt_t>(geom.get(), 0);
         }
     }
@@ -148,28 +188,15 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
 geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const
 {
     GeometryFactory gf;
-    std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
     //TODO: use count to get some kind of hint of how much we should reserve?
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
     try
     {
-        for (const auto& nd: nodes) {
-            coords->add(Coordinate(nd.lon, nd.lat), 0);
-        }
+        auto coords = nodes2coords(gf, nodes);
 
-        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-            std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom_ptr geom(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
-                if (excludepoly) {
-                    throw std::runtime_error("Excluding broken polygon.");
-                } else {
-                    geom = geom_ptr(geom->buffer(0));
-                }
-            }
-            geom->normalize(); // Fix direction of ring
-
+        if (polygon && is_polygon_line(coords.get())) {
+            auto geom = create_simple_poly(gf, std::move(coords));
             wkts->emplace_back(geom.get());
         } else {
             if (coords->getSize() < 2)
@@ -302,7 +329,6 @@ int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, int *p
 geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodelist_t &xnodes,
                                                                 bool enable_multi, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
     geos::geom::prep::PreparedGeometryFactory pgf;
@@ -311,22 +337,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
 
     try
     {
-        for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
+        geom_ptr mline = create_multi_line(gf, xnodes);
 
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
         //merger.add(noded.get());
@@ -468,7 +480,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
 
 geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
 
@@ -476,22 +487,7 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
 
     try
     {
-        for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
-
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
+        geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
 
         wkt = std::make_shared<wkt_t>(mline.get(), 0);
@@ -511,7 +507,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                                                             int make_polygon, int enable_multi,
                                                             double split_at, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
     GeometryFactory gf;
     geom_ptr geom;
     geos::geom::prep::PreparedGeometryFactory pgf;
@@ -520,22 +515,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
 
     try
     {
-      for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
-
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
+        geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
         //merger.add(noded.get());
