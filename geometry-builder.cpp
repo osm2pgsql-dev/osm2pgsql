@@ -107,11 +107,16 @@ bool is_polygon_line(CoordinateSequence * coords)
 
 struct polygondata
 {
-    Polygon*        polygon;
-    LinearRing*     ring;
+    std::unique_ptr<Polygon>    polygon;
+    std::unique_ptr<LinearRing> ring;
     double          area;
-    int             iscontained;
+    bool            iscontained;
     unsigned        containedbyid;
+
+    polygondata(std::unique_ptr<Polygon> p, LinearRing* r, double a)
+    : polygon(std::move(p)), ring(r), area(a),
+      iscontained(false), containedbyid(0)
+    {}
 };
 
 struct polygondata_comparearea {
@@ -346,52 +351,48 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
         std::unique_ptr<std::vector<LineString *>> merged(merger.getMergedLineStrings());
 
         // Procces ways into lines or simple polygon list
-        std::vector<polygondata> polys(merged->size());
+        std::vector<polygondata> polys;
+        polys.reserve(merged->size());
 
-        unsigned totalpolys = 0;
-        for (unsigned i=0 ;i < merged->size(); ++i)
-        {
+        for (unsigned i=0 ;i < merged->size(); ++i) {
             std::unique_ptr<LineString> pline ((*merged ) [i]);
-            if (pline->getNumPoints() > 3 && pline->isClosed())
-            {
-                polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
-                polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
-                polys[totalpolys].iscontained = 0;
-                polys[totalpolys].containedbyid = 0;
-                if (polys[totalpolys].area > 0.0)
-                    totalpolys++;
-                else {
-                    delete(polys[totalpolys].polygon);
-                    delete(polys[totalpolys].ring);
+            if (pline->getNumPoints() > 3 && pline->isClosed()) {
+                std::unique_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
+                double area = poly->getArea();
+                if (area > 0.0)
+                {
+                    polys.emplace_back(std::move(poly),
+                                       gf.createLinearRing(pline->getCoordinates()),
+                                       area);
                 }
             }
         }
 
-        if (totalpolys)
+        if (!polys.empty())
         {
-            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
+            std::sort(polys.begin(), polys.end(), polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
+            size_t totalpolys = polys.size();
 
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
                 toplevelpolygons++;
-                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
+                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon.get());
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
+                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon.get()))
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
                         istoplevelafterall = 0;
                         for (unsigned k=i+1; k < j; ++k)
                         {
-                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon))
+                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon.get()))
                             {
                                 istoplevelafterall = 1;
                                 break;
@@ -399,7 +400,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         }
                         if (istoplevelafterall == 0)
                         {
-                            polys[j].iscontained = 1;
+                            polys[j].iscontained = true;
                             polys[j].containedbyid = i;
                         }
                     }
@@ -414,19 +415,19 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
 
                 // List of holes for this top level polygon
                 std::unique_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-                   if (polys[j].iscontained == 1 && polys[j].containedbyid == i)
+                   if (polys[j].iscontained && polys[j].containedbyid == i)
                    {
-                       interior->push_back(polys[j].ring);
+                       interior->push_back(polys[j].ring.release());
                    }
                 }
 
-                Polygon* poly(gf.createPolygon(polys[i].ring, interior.release()));
+                Polygon* poly(gf.createPolygon(polys[i].ring.release(), interior.release()));
                 poly->normalize();
                 polygons->push_back(poly);
             }
@@ -446,24 +447,17 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             }
             else
             {
-                for(unsigned i=0; i<toplevelpolygons; i++)
-                {
-                    Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
+                for(unsigned i=0; i<toplevelpolygons; i++) {
+                    geom_ptr poly(polygons->at(i));
                     if (!poly->isValid() && !excludepoly) {
-                        poly = dynamic_cast<Geometry*>(poly->buffer(0));
+                        poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
                     if ((excludepoly == 0) || (poly->isValid())) {
-                        wkts->emplace_back(poly);
+                        wkts->emplace_back(poly.get());
                     }
-                    delete(poly);
                 }
             }
-        }
-
-        for (unsigned i=0; i < totalpolys; ++i)
-        {
-            delete(polys[i].polygon);
         }
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
@@ -523,24 +517,20 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
         std::unique_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
 
         // Procces ways into lines or simple polygon list
-        std::vector<polygondata> polys(merged->size());
+        std::vector<polygondata> polys;
+        polys.reserve(merged->size());
 
-        unsigned totalpolys = 0;
         for (unsigned i=0 ;i < merged->size(); ++i)
         {
             std::unique_ptr<LineString> pline ((*merged ) [i]);
             if (make_polygon && pline->getNumPoints() > 3 && pline->isClosed())
             {
-                polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
-                polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
-                polys[totalpolys].iscontained = 0;
-                polys[totalpolys].containedbyid = 0;
-                if (polys[totalpolys].area > 0.0)
-                    totalpolys++;
-                else {
-                    delete(polys[totalpolys].polygon);
-                    delete(polys[totalpolys].ring);
+                std::unique_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
+                double area = poly->getArea();
+                if (area > 0.0) {
+                    polys.emplace_back(std::move(poly),
+                                       gf.createLinearRing(pline->getCoordinates()),
+                                       area);
                 }
             }
             else
@@ -570,30 +560,31 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             }
         }
 
-        if (totalpolys)
+        if (!polys.empty())
         {
-            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
+            std::sort(polys.begin(), polys.end(), polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
+            size_t totalpolys = polys.size();
 
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
                 toplevelpolygons++;
-                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
+                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon.get());
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
+                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon.get()))
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
                         istoplevelafterall = 0;
                         for (unsigned k=i+1; k < j; ++k)
                         {
-                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon))
+                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon.get()))
                             {
                                 istoplevelafterall = 1;
                                 break;
@@ -618,7 +609,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         }
                         if (istoplevelafterall == 0)
                         {
-                            polys[j].iscontained = 1;
+                            polys[j].iscontained = true;
                             polys[j].containedbyid = i;
                         }
                     }
@@ -633,19 +624,19 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
 
                 // List of holes for this top level polygon
                 std::unique_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-                   if (polys[j].iscontained == 1 && polys[j].containedbyid == i)
+                   if (polys[j].iscontained && polys[j].containedbyid == i)
                    {
-                       interior->push_back(polys[j].ring);
+                       interior->push_back(polys[j].ring.release());
                    }
                 }
 
-                Polygon* poly(gf.createPolygon(polys[i].ring, interior.release()));
+                Polygon* poly(gf.createPolygon(polys[i].ring.release(), interior.release()));
                 poly->normalize();
                 polygons->push_back(poly);
             }
@@ -667,22 +658,16 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             {
                 for(unsigned i=0; i<toplevelpolygons; i++)
                 {
-                    Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
+                    geom_ptr poly(polygons->at(i));
                     if (!poly->isValid() && !excludepoly) {
-                        poly = dynamic_cast<Geometry*>(poly->buffer(0));
+                        poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
                     if (!excludepoly || (poly->isValid())) {
-                        wkts->emplace_back(poly);
+                        wkts->emplace_back(poly.get());
                     }
-                    delete(poly);
                 }
             }
-        }
-
-        for (unsigned i=0; i < totalpolys; ++i)
-        {
-            delete(polys[i].polygon);
         }
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
