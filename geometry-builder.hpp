@@ -55,7 +55,7 @@ public:
     typedef std::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
     typedef std::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
 
-    static int parse_wkt(const char *wkt, multinodelist_t &nodes, int *polygon);
+    static int parse_wkt(const char *wkt, multinodelist_t &nodes, bool *polygon);
     maybe_wkt_t get_wkt_simple(const nodelist_t &nodes, int polygon) const;
     maybe_wkts_t get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const;
     maybe_wkts_t build_both(const multinodelist_t &xnodes, int make_polygon,
