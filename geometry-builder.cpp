@@ -753,15 +753,3 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
 
     return wkts;
 }
-
-void geometry_builder::set_exclude_broken_polygon(int exclude)
-{
-    excludepoly = exclude;
-}
-
-geometry_builder::geometry_builder()
-    : excludepoly(false) {
-}
-
-geometry_builder::~geometry_builder() {
-}

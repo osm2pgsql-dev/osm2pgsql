@@ -28,10 +28,10 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <boost/noncopyable.hpp>
 
-struct geometry_builder : public boost::noncopyable
+class geometry_builder
 {
+public:
     struct wkt_t
     {
         wkt_t(const std::string& geom, const double& area):geom(geom),area(area){}
@@ -44,9 +44,6 @@ struct geometry_builder : public boost::noncopyable
     typedef std::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
     typedef std::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
 
-    geometry_builder();
-    ~geometry_builder();
-
     static int parse_wkt(const char *wkt, multinodelist_t &nodes, int *polygon);
     maybe_wkt_t get_wkt_simple(const nodelist_t &nodes, int polygon) const;
     maybe_wkts_t get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const;
@@ -56,10 +53,13 @@ struct geometry_builder : public boost::noncopyable
     // Used by gazetteer. Outputting a multiline, it only ever returns one WKT
     maybe_wkt_t build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const;
 
-    void set_exclude_broken_polygon(int exclude);
+    void set_exclude_broken_polygon(bool exclude)
+    {
+        excludepoly = exclude;
+    }
 
 private:
-    bool excludepoly;
+    bool excludepoly = false;
 };
 
 #endif
