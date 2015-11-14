@@ -50,7 +50,6 @@
 #include <geos/util/GEOSException.h>
 #include <geos/opLinemerge.h>
 using namespace geos::geom;
-using namespace geos::io;
 using namespace geos::util;
 using namespace geos::operation::linemerge;
 
@@ -88,10 +87,20 @@ struct polygondata_comparearea {
 
 } // anonymous namespace
 
+
+geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g)
+: wkt_t(g, g->getArea())
+{}
+
+geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, double a)
+: geom(geos::io::WKTWriter().write(g)), area(a)
+{}
+
 geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t &nodes, int polygon) const
 {
     GeometryFactory gf;
     std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+    maybe_wkt_t wkt;
 
     try
     {
@@ -99,7 +108,6 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
             coords->add(Coordinate(nd.lon, nd.lat), 0);
         }
 
-        maybe_wkt_t wkt(new geometry_builder::wkt_t());
         geom_ptr geom;
         if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
             std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
@@ -112,16 +120,13 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
                 }
             }
             geom->normalize(); // Fix direction of ring
-            wkt->area = geom->getArea();
+            wkt = std::make_shared<wkt_t>(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
             geom = geom_ptr(gf.createLineString(coords.release()));
-            wkt->area = 0;
+            wkt = std::make_shared<wkt_t>(geom.get(), 0);
         }
-
-        wkt->geom = WKTWriter().write(geom.get());
-        return wkt;
     }
     catch (const std::bad_alloc&)
     {
@@ -137,14 +142,13 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
     }
 
-    return maybe_wkt_t();
+    return wkt;
 }
 
 geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const
 {
     GeometryFactory gf;
     std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-    WKTWriter writer;
     //TODO: use count to get some kind of hint of how much we should reserve?
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
@@ -166,12 +170,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
             }
             geom->normalize(); // Fix direction of ring
 
-            //copy of an empty one should be cheapest
-            wkts->push_back(geometry_builder::wkt_t());
-            //then we set on the one we already have
-            wkts->back().geom = writer.write(geom.get());
-            wkts->back().area = geom->getArea();
-
+            wkts->emplace_back(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
@@ -199,11 +198,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                         segment->add(interpolated);
                         geom_ptr geom(gf.createLineString(segment.release()));
 
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(geom.get());
-                        wkts->back().area = 0;
+                        wkts->emplace_back(geom.get(), 0);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         segment->add(interpolated);
@@ -225,11 +220,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 if (i == coords->getSize()-1) {
                     geom_ptr geom(gf.createLineString(segment.release()));
 
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(geom.get());
-                    wkts->back().area = 0;
+                    wkts->emplace_back(geom.get(), 0);
 
                     segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                 }
@@ -254,7 +245,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 
 int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, int *polygon) {
     GeometryFactory gf;
-    WKTReader reader(&gf);
+    geos::io::WKTReader reader(&gf);
     std::string wkt_string(wkt);
     GeometryCollection * gc;
     CoordinateSequence * coords;
@@ -341,7 +332,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
         //merger.add(noded.get());
         merger.add(mline.get());
         std::unique_ptr<std::vector<LineString *>> merged(merger.getMergedLineStrings());
-        WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
         std::vector<polygondata> polys(merged->size());
@@ -438,13 +428,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                if ((excludepoly == 0) || (multipoly->isValid())) {
+                    wkts->emplace_back(multipoly.get());
                 }
             }
             else
@@ -456,13 +441,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
-                    if ((excludepoly == 0) || (poly->isValid()))
-                    {
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                    if ((excludepoly == 0) || (poly->isValid())) {
+                        wkts->emplace_back(poly);
                     }
                     delete(poly);
                 }
@@ -492,7 +472,7 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
     GeometryFactory gf;
     geom_ptr geom;
 
-    maybe_wkt_t wkt(new geometry_builder::wkt_t());
+    maybe_wkt_t wkt;
 
     try
     {
@@ -514,9 +494,7 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
         geom_ptr mline (gf.createMultiLineString(lines.release()));
         //geom_ptr noded (segment->Union(mline.get()));
 
-        WKTWriter writer;
-        wkt->geom = writer.write(mline.get());
-        wkt->area = 0;
+        wkt = std::make_shared<wkt_t>(mline.get(), 0);
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
@@ -563,7 +541,6 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
         //merger.add(noded.get());
         merger.add(mline.get());
         std::unique_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
-        WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
         std::vector<polygondata> polys(merged->size());
@@ -599,11 +576,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                     if ((distance >= split_at) || (i == pline->getNumPoints()-1)) {
                         geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
 
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(geom.get());
-                        wkts->back().area = 0;
+                        wkts->emplace_back(geom.get(), 0);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         distance=0;
@@ -706,13 +679,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                if ((excludepoly == 0) || (multipoly->isValid())) {
+                    wkts->emplace_back(multipoly.get());
                 }
             }
             else
@@ -724,13 +692,8 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         poly = dynamic_cast<Geometry*>(poly->buffer(0));
                         poly->normalize();
                     }
-                    if (!excludepoly || (poly->isValid()))
-                    {
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                    if (!excludepoly || (poly->isValid())) {
+                        wkts->emplace_back(poly);
                     }
                     delete(poly);
                 }

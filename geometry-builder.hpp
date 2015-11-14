@@ -29,13 +29,22 @@
 #include <string>
 #include <memory>
 
+namespace geos { namespace geom {
+class Geometry;
+}}
+
 class geometry_builder
 {
 public:
     struct wkt_t
     {
-        wkt_t(const std::string& geom, const double& area):geom(geom),area(area){}
-        wkt_t():geom(""),area(0){}
+        wkt_t(const geos::geom::Geometry *geom, double area);
+        wkt_t(const geos::geom::Geometry *geom);
+
+        wkt_t(const std::string &geom_str, double geom_area = 0)
+        : geom(geom_str), area(geom_area)
+        {}
+
         std::string geom;
         double area;
     };
