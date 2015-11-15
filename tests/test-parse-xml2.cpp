@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "middle.hpp"
+#include "tests/mockups.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
 #include "osmtypes.hpp"
@@ -18,38 +19,6 @@ void exit_nicely()
     fprintf(stderr, "Error occurred, cleaning up\n");
     exit(1);
 }
-
-struct test_middle_t : public middle_t {
-    virtual ~test_middle_t() {}
-
-    void start(const options_t *out_options_) { }
-    void stop(void) { }
-    void cleanup(void) { }
-    void analyze(void) { }
-    void end(void) { }
-    void commit(void) { }
-
-    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) { }
-    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const { return 0; }
-
-    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) { }
-    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const { return true; }
-    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                              std::vector<taglist_t> &tags,
-                              std::vector<nodelist_t> &nodes) const { return 0; }
-
-    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) { }
-    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const { return 0; }
-
-    void iterate_ways(pending_processor& pf) { }
-    void iterate_relations(pending_processor& pf) { }
-
-    virtual size_t pending_count() const { return 0; }
-
-    std::vector<osmid_t> relations_using_way(osmid_t way_id) const { return std::vector<osmid_t>(); }
-
-    virtual std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
-};
 
 struct test_output_t : public output_t {
     uint64_t sum_ids, num_nodes, num_ways, num_relations, num_nds, num_members;
@@ -138,7 +107,7 @@ int main(int argc, char *argv[]) {
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<test_middle_t>(), out_test);
+  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test);
 
   boost::optional<std::string> bbox;
   parse_osmium_t parser(false, bbox, projection.get(), false, &osmdata);
