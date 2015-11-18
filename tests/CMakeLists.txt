@@ -19,6 +19,7 @@ set(TESTS
   test-output-multi-poly-trivial.cpp
   test-output-multi-polygon.cpp
   test-output-multi-tags.cpp
+  test-output-pgsql-area.cpp
   test-output-pgsql-schema.cpp
   test-output-pgsql-tablespace.cpp
   test-output-pgsql-z_order.cpp

@@ -200,6 +200,34 @@ void reprojection::coords_to_tile(double *tilex, double *tiley, double lon, doub
     *tiley = map_width * (0.5 - y[0] / EARTH_CIRCUMFERENCE);
 }
 
+
+/**
+ * Converts from (target) coordinates to coordinates in the tile projection (EPSG:3857)
+ *
+ * Do not confuse with coords_to_tile which does *not* calculate coordinates in the
+ * tile projection, but tile coordinates.
+ */
+void reprojection::target_to_tile(double *lat, double *lon) const
+{
+    if (Proj == PROJ_SPHERE_MERC)
+        return;
+
+    if (Proj == PROJ_LATLONG)
+    {
+        if (*lat > 85.07)
+            *lat = 85.07;
+        if (*lat < -85.07)
+            *lat = -85.07;
+
+        *lon = (*lon) * EARTH_CIRCUMFERENCE / 360.0;
+        *lat = log(tan(M_PI/4.0 + (*lat) * DEG_TO_RAD / 2.0)) * EARTH_CIRCUMFERENCE/(M_PI*2);
+        return;
+    }
+
+    double z = 0;
+    pj_transform(pj_target, pj_tile, 1, 1, lon, lat, &z);
+}
+
 int reprojection::get_proj_id() const
 {
 	return Proj;
