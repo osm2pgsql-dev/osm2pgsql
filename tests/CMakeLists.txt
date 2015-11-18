@@ -23,6 +23,7 @@ set(TESTS
   test-output-pgsql-tablespace.cpp
   test-output-pgsql-z_order.cpp
   test-output-pgsql.cpp
+  test-parse-diff.cpp
   test-parse-xml2.cpp
   test-pgsql-escape.cpp
 )
@@ -43,6 +44,7 @@ set(TEST_NODB
  test-middle-ram
  test-options-database
  test-options-parse
+ test-parse-diff
  test-parse-xml2
  test-pgsql-escape
 )

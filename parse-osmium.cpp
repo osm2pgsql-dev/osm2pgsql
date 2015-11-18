@@ -126,35 +126,35 @@ void parse_osmium_t::stream_file(const std::string &filename, const std::string 
 
 void parse_osmium_t::node(osmium::Node& node)
 {
-    // if the node is not valid, then node.location.lat/lon() can throw.
-    // we probably ought to treat invalid locations as if they were
-    // deleted and ignore them.
-    if (!node.location().valid()) {
-      fprintf(stderr, "WARNING: Node %" PRIdOSMID " (version %ud) has an invalid "
-              "location and has been ignored. This is not expected to happen with "
-              "recent planet files, so please check that your input is correct.\n",
-              node.id(), node.version());
+    if (node.deleted()) {
+        m_data->node_delete(node.id());
+    } else {
+        // if the node is not valid, then node.location.lat/lon() can throw.
+        // we probably ought to treat invalid locations as if they were
+        // deleted and ignore them.
+        if (!node.location().valid()) {
+          fprintf(stderr, "WARNING: Node %" PRIdOSMID " (version %ud) has an invalid "
+                  "location and has been ignored. This is not expected to happen with "
+                  "recent planet files, so please check that your input is correct.\n",
+                  node.id(), node.version());
 
-      return;
-    }
+          return;
+        }
 
-    if (!m_bbox || m_bbox->contains(node.location())) {
-        double lat = node.location().lat_without_check();
-        double lon = node.location().lon_without_check();
+        if (!m_bbox || m_bbox->contains(node.location())) {
+            double lat = node.location().lat_without_check();
+            double lon = node.location().lon_without_check();
 
-        m_proj->reproject(&lat, &lon);
+            m_proj->reproject(&lat, &lon);
 
-        if (node.deleted()) {
-            m_data->node_delete(node.id());
-        } else {
             convert_tags(node);
             if (m_append) {
                 m_data->node_modify(node.id(), lat, lon, tags);
             } else {
                 m_data->node_add(node.id(), lat, lon, tags);
             }
+            m_stats.add_node(node.id());
         }
-        m_stats.add_node(node.id());
     }
 }
 
