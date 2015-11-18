@@ -469,7 +469,7 @@ void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id)
     if (Options->expire_tiles_zoom < 0) return;
 
     multinodelist_t xnodes;
-    int polygon;
+    bool polygon;
 
     if (!geometry_builder::parse_wkt(wkt, xnodes, &polygon)) {
         if (polygon)

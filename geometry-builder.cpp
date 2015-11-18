@@ -50,13 +50,13 @@
 #include <geos/util/GEOSException.h>
 #include <geos/opLinemerge.h>
 using namespace geos::geom;
-using namespace geos::io;
 using namespace geos::util;
 using namespace geos::operation::linemerge;
 
 #include "geometry-builder.hpp"
 
 typedef std::unique_ptr<Geometry> geom_ptr;
+typedef std::unique_ptr<CoordinateSequence> coord_ptr;
 
 namespace {
 
@@ -71,13 +71,52 @@ void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
     }
 }
 
+coord_ptr nodes2coords(GeometryFactory &gf, const nodelist_t &nodes)
+{
+    coord_ptr coords(gf.getCoordinateSequenceFactory()->create(size_t(0), size_t(2)));
+
+    for (const auto& nd: nodes) {
+        coords->add(Coordinate(nd.lon, nd.lat), 0);
+    }
+
+    return coords;
+}
+
+geom_ptr create_multi_line(GeometryFactory &gf, const multinodelist_t &xnodes)
+{
+    // XXX leaks memory if an exception is thrown
+    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
+    lines->reserve(xnodes.size());
+
+    for (const auto& nodes: xnodes) {
+        auto coords = nodes2coords(gf, nodes);
+        if (coords->getSize() > 1) {
+            lines->push_back(gf.createLineString(coords.release()));
+        }
+    }
+
+    return geom_ptr(gf.createMultiLineString(lines.release()));
+}
+
+bool is_polygon_line(CoordinateSequence * coords)
+{
+    return (coords->getSize() >= 4)
+           && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)));
+}
+
+
 struct polygondata
 {
-    Polygon*        polygon;
-    LinearRing*     ring;
+    std::unique_ptr<Polygon>    polygon;
+    std::unique_ptr<LinearRing> ring;
     double          area;
-    int             iscontained;
+    bool            iscontained;
     unsigned        containedbyid;
+
+    polygondata(std::unique_ptr<Polygon> p, LinearRing* r, double a)
+    : polygon(std::move(p)), ring(r), area(a),
+      iscontained(false), containedbyid(0)
+    {}
 };
 
 struct polygondata_comparearea {
@@ -88,40 +127,51 @@ struct polygondata_comparearea {
 
 } // anonymous namespace
 
+
+geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g)
+: wkt_t(g, g->getArea())
+{}
+
+geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, double a)
+: geom(geos::io::WKTWriter().write(g)), area(a)
+{}
+
+geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
+                                              std::unique_ptr<CoordinateSequence> coords) const
+{
+    std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
+    std::unique_ptr<std::vector<Geometry *> > empty(new std::vector<Geometry *>);
+    geom_ptr geom(gf.createPolygon(shell.release(), empty.release()));
+
+    if (!geom->isValid()) {
+        if (excludepoly) {
+            throw std::runtime_error("Excluding broken polygon.");
+        } else {
+            geom = geom_ptr(geom->buffer(0));
+        }
+    }
+    geom->normalize(); // Fix direction of ring
+
+    return geom;
+}
+
 geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t &nodes, int polygon) const
 {
-    GeometryFactory gf;
-    std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+    maybe_wkt_t wkt;
 
     try
     {
-        for (const auto& nd: nodes) {
-            coords->add(Coordinate(nd.lon, nd.lat), 0);
-        }
-
-        maybe_wkt_t wkt(new geometry_builder::wkt_t());
-        geom_ptr geom;
-        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-            std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom = geom_ptr(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
-                if (excludepoly) {
-                    throw std::runtime_error("Excluding broken polygon.");
-                } else {
-                    geom = geom_ptr(geom->buffer(0));
-                }
-            }
-            geom->normalize(); // Fix direction of ring
-            wkt->area = geom->getArea();
+        GeometryFactory gf;
+        auto coords = nodes2coords(gf, nodes);
+        if (polygon && is_polygon_line(coords.get())) {
+            auto geom = create_simple_poly(gf, std::move(coords));
+            wkt = std::make_shared<wkt_t>(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
-            geom = geom_ptr(gf.createLineString(coords.release()));
-            wkt->area = 0;
+            geom_ptr geom(gf.createLineString(coords.release()));
+            wkt = std::make_shared<wkt_t>(geom.get(), 0);
         }
-
-        wkt->geom = WKTWriter().write(geom.get());
-        return wkt;
     }
     catch (const std::bad_alloc&)
     {
@@ -137,41 +187,22 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
     }
 
-    return maybe_wkt_t();
+    return wkt;
 }
 
 geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const
 {
-    GeometryFactory gf;
-    std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-    WKTWriter writer;
     //TODO: use count to get some kind of hint of how much we should reserve?
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
     try
     {
-        for (const auto& nd: nodes) {
-            coords->add(Coordinate(nd.lon, nd.lat), 0);
-        }
+        GeometryFactory gf;
+        auto coords = nodes2coords(gf, nodes);
 
-        if (polygon && (coords->getSize() >= 4) && (coords->getAt(coords->getSize() - 1).equals2D(coords->getAt(0)))) {
-            std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
-            geom_ptr geom(gf.createPolygon(shell.release(), new std::vector<Geometry *>));
-            if (!geom->isValid()) {
-                if (excludepoly) {
-                    throw std::runtime_error("Excluding broken polygon.");
-                } else {
-                    geom = geom_ptr(geom->buffer(0));
-                }
-            }
-            geom->normalize(); // Fix direction of ring
-
-            //copy of an empty one should be cheapest
-            wkts->push_back(geometry_builder::wkt_t());
-            //then we set on the one we already have
-            wkts->back().geom = writer.write(geom.get());
-            wkts->back().area = geom->getArea();
-
+        if (polygon && is_polygon_line(coords.get())) {
+            auto geom = create_simple_poly(gf, std::move(coords));
+            wkts->emplace_back(geom.get());
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
@@ -179,7 +210,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
             double distance = 0;
             std::unique_ptr<CoordinateSequence> segment(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
             segment->add(coords->getAt(0));
-            for(unsigned i=1; i<coords->getSize(); i++) {
+            for(size_t i=1; i<coords->getSize(); i++) {
                 const Coordinate this_pt = coords->getAt(i);
                 const Coordinate prev_pt = coords->getAt(i-1);
                 const double delta = this_pt.distance(prev_pt);
@@ -192,18 +223,14 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                     // use the splitting distance to split the current segment up
                     // into as many parts as necessary to keep each part below
                     // the `split_at` distance.
-                    for (size_t i = 0; i < splits; ++i) {
-                        double frac = (double(i + 1) * split_at - distance) / delta;
+                    for (size_t j = 0; j < splits; ++j) {
+                        double frac = (double(j + 1) * split_at - distance) / delta;
                         const Coordinate interpolated(frac * (this_pt.x - prev_pt.x) + prev_pt.x,
                                                       frac * (this_pt.y - prev_pt.y) + prev_pt.y);
                         segment->add(interpolated);
                         geom_ptr geom(gf.createLineString(segment.release()));
 
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(geom.get());
-                        wkts->back().area = 0;
+                        wkts->emplace_back(geom.get(), 0);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         segment->add(interpolated);
@@ -225,13 +252,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 if (i == coords->getSize()-1) {
                     geom_ptr geom(gf.createLineString(segment.release()));
 
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(geom.get());
-                    wkts->back().area = 0;
-
-                    segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
+                    wkts->emplace_back(geom.get(), 0);
                 }
             }
         }
@@ -252,144 +273,114 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
     return wkts;
 }
 
-int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, int *polygon) {
+int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, bool *polygon) {
     GeometryFactory gf;
-    WKTReader reader(&gf);
-    std::string wkt_string(wkt);
-    GeometryCollection * gc;
-    CoordinateSequence * coords;
-    size_t num_geometries;
+    geos::io::WKTReader reader(&gf);
 
-    *polygon = 0;
-    try {
-        Geometry * geometry = reader.read(wkt_string);
-        switch (geometry->getGeometryTypeId()) {
-            // Single geometries
-            case GEOS_POLYGON:
-                // Drop through
-            case GEOS_LINEARRING:
-                *polygon = 1;
-                // Drop through
-            case GEOS_POINT:
-                // Drop through
-            case GEOS_LINESTRING:
-                nodes.push_back(nodelist_t());
-                coords = geometry->getCoordinates();
-                coords2nodes(coords, nodes.back());
-                delete coords;
-                break;
-            // Geometry collections
-            case GEOS_MULTIPOLYGON:
-                *polygon = 1;
-                // Drop through
-            case GEOS_MULTIPOINT:
-                // Drop through
-            case GEOS_MULTILINESTRING:
-                gc = dynamic_cast<GeometryCollection *>(geometry);
-                num_geometries = gc->getNumGeometries();
-                nodes.assign(num_geometries, nodelist_t());
-                for (size_t i = 0; i < num_geometries; i++) {
-                    const Geometry *subgeometry = gc->getGeometryN(i);
-                    coords = subgeometry->getCoordinates();
-                    coords2nodes(coords, nodes[i]);
-                    delete coords;
-                }
-                break;
-            default:
-                std::cerr << std::endl << "unexpected object type while processing PostGIS data" << std::endl;
-                delete geometry;
-                return -1;
+    *polygon = false;
+    geom_ptr geometry(reader.read(wkt));
+    switch (geometry->getGeometryTypeId()) {
+        // Single geometries
+        case GEOS_POLYGON:
+            // Drop through
+        case GEOS_LINEARRING:
+            *polygon = true;
+            // Drop through
+        case GEOS_POINT:
+            // Drop through
+        case GEOS_LINESTRING:
+        {
+            nodes.push_back(nodelist_t());
+            coord_ptr coords(geometry->getCoordinates());
+            coords2nodes(coords.get(), nodes.back());
+            break;
         }
-        delete geometry;
-    } catch (...) {
-        std::cerr << std::endl << "Exception caught parsing PostGIS data" << std::endl;
-        return -1;
+        // Geometry collections
+        case GEOS_MULTIPOLYGON:
+            *polygon = true;
+            // Drop through
+        case GEOS_MULTIPOINT:
+            // Drop through
+        case GEOS_MULTILINESTRING:
+        {
+            auto gc = dynamic_cast<GeometryCollection *>(geometry.get());
+            size_t num_geometries = gc->getNumGeometries();
+            nodes.assign(num_geometries, nodelist_t());
+            for (size_t i = 0; i < num_geometries; i++) {
+                const Geometry *subgeometry = gc->getGeometryN(i);
+                coord_ptr coords(subgeometry->getCoordinates());
+                coords2nodes(coords.get(), nodes[i]);
+            }
+            break;
+        }
+        default:
+            std::cerr << std::endl << "unexpected object type while processing PostGIS data" << std::endl;
+            return -1;
     }
+
     return 0;
 }
 
 geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodelist_t &xnodes,
                                                                 bool enable_multi, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
-    GeometryFactory gf;
-    geom_ptr geom;
-    geos::geom::prep::PreparedGeometryFactory pgf;
-
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
 
     try
     {
-        for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
+        GeometryFactory gf;
+        geom_ptr mline = create_multi_line(gf, xnodes);
 
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
         //merger.add(noded.get());
         merger.add(mline.get());
         std::unique_ptr<std::vector<LineString *>> merged(merger.getMergedLineStrings());
-        WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
-        std::vector<polygondata> polys(merged->size());
+        std::vector<polygondata> polys;
+        polys.reserve(merged->size());
 
-        unsigned totalpolys = 0;
-        for (unsigned i=0 ;i < merged->size(); ++i)
-        {
-            std::unique_ptr<LineString> pline ((*merged ) [i]);
-            if (pline->getNumPoints() > 3 && pline->isClosed())
-            {
-                polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
-                polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
-                polys[totalpolys].iscontained = 0;
-                polys[totalpolys].containedbyid = 0;
-                if (polys[totalpolys].area > 0.0)
-                    totalpolys++;
-                else {
-                    delete(polys[totalpolys].polygon);
-                    delete(polys[totalpolys].ring);
+        for (auto *line: *merged) {
+            // stuff into unique pointer for auto-destruct
+            std::unique_ptr<LineString> pline(line);
+            if (pline->getNumPoints() > 3 && pline->isClosed()) {
+                std::unique_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
+                double area = poly->getArea();
+                if (area > 0.0) {
+                    polys.emplace_back(std::move(poly),
+                                       gf.createLinearRing(pline->getCoordinates()),
+                                       area);
                 }
             }
         }
 
-        if (totalpolys)
+        if (!polys.empty())
         {
-            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
+            std::sort(polys.begin(), polys.end(), polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
+            size_t totalpolys = polys.size();
 
+            geos::geom::prep::PreparedGeometryFactory pgf;
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
                 toplevelpolygons++;
-                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
+                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon.get());
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
+                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon.get()))
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
                         istoplevelafterall = 0;
                         for (unsigned k=i+1; k < j; ++k)
                         {
-                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon))
+                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon.get()))
                             {
                                 istoplevelafterall = 1;
                                 break;
@@ -397,7 +388,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         }
                         if (istoplevelafterall == 0)
                         {
-                            polys[j].iscontained = 1;
+                            polys[j].iscontained = true;
                             polys[j].containedbyid = i;
                         }
                     }
@@ -412,19 +403,19 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
 
                 // List of holes for this top level polygon
                 std::unique_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-                   if (polys[j].iscontained == 1 && polys[j].containedbyid == i)
+                   if (polys[j].iscontained && polys[j].containedbyid == i)
                    {
-                       interior->push_back(polys[j].ring);
+                       interior->push_back(polys[j].ring.release());
                    }
                 }
 
-                Polygon* poly(gf.createPolygon(polys[i].ring, interior.release()));
+                Polygon* poly(gf.createPolygon(polys[i].ring.release(), interior.release()));
                 poly->normalize();
                 polygons->push_back(poly);
             }
@@ -438,40 +429,23 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                if ((excludepoly == 0) || (multipoly->isValid())) {
+                    wkts->emplace_back(multipoly.get());
                 }
             }
             else
             {
-                for(unsigned i=0; i<toplevelpolygons; i++)
-                {
-                    Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
+                for(unsigned i=0; i<toplevelpolygons; i++) {
+                    geom_ptr poly(polygons->at(i));
                     if (!poly->isValid() && !excludepoly) {
-                        poly = dynamic_cast<Geometry*>(poly->buffer(0));
+                        poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
-                    if ((excludepoly == 0) || (poly->isValid()))
-                    {
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                    if ((excludepoly == 0) || (poly->isValid())) {
+                        wkts->emplace_back(poly.get());
                     }
-                    delete(poly);
                 }
             }
-        }
-
-        for (unsigned i=0; i < totalpolys; ++i)
-        {
-            delete(polys[i].polygon);
         }
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
@@ -488,35 +462,15 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
 
 geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
-    GeometryFactory gf;
-    geom_ptr geom;
-
-    maybe_wkt_t wkt(new geometry_builder::wkt_t());
+    maybe_wkt_t wkt;
 
     try
     {
-        for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
-
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
+        GeometryFactory gf;
+        geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
 
-        WKTWriter writer;
-        wkt->geom = writer.write(mline.get());
-        wkt->area = 0;
+        wkt = std::make_shared<wkt_t>(mline.get(), 0);
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
@@ -533,114 +487,80 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                                                             int make_polygon, int enable_multi,
                                                             double split_at, osmid_t osm_id) const
 {
-    std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
-    GeometryFactory gf;
-    geom_ptr geom;
-    geos::geom::prep::PreparedGeometryFactory pgf;
     maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
-
 
     try
     {
-      for (const auto& nodes: xnodes) {
-            std::unique_ptr<CoordinateSequence> coords(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
-            for (const auto& node: nodes) {
-                Coordinate c;
-                c.x = node.lon;
-                c.y = node.lat;
-                coords->add(c, 0);
-            }
-            if (coords->getSize() > 1) {
-                geom = geom_ptr(gf.createLineString(coords.release()));
-                lines->push_back(geom.release());
-            }
-        }
-
-        //geom_ptr segment(0);
-        geom_ptr mline (gf.createMultiLineString(lines.release()));
+        GeometryFactory gf;
+        geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
         //merger.add(noded.get());
         merger.add(mline.get());
         std::unique_ptr<std::vector<LineString *> > merged(merger.getMergedLineStrings());
-        WKTWriter writer;
 
         // Procces ways into lines or simple polygon list
-        std::vector<polygondata> polys(merged->size());
+        std::vector<polygondata> polys;
+        polys.reserve(merged->size());
 
-        unsigned totalpolys = 0;
-        for (unsigned i=0 ;i < merged->size(); ++i)
-        {
-            std::unique_ptr<LineString> pline ((*merged ) [i]);
-            if (make_polygon && pline->getNumPoints() > 3 && pline->isClosed())
-            {
-                polys[totalpolys].polygon = gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0);
-                polys[totalpolys].ring = gf.createLinearRing(pline->getCoordinates());
-                polys[totalpolys].area = polys[totalpolys].polygon->getArea();
-                polys[totalpolys].iscontained = 0;
-                polys[totalpolys].containedbyid = 0;
-                if (polys[totalpolys].area > 0.0)
-                    totalpolys++;
-                else {
-                    delete(polys[totalpolys].polygon);
-                    delete(polys[totalpolys].ring);
+        for (auto *line: *merged) {
+            // stuff into unique pointer to ensure auto-destruct
+            std::unique_ptr<LineString> pline(line);
+            if (make_polygon && pline->getNumPoints() > 3 && pline->isClosed()) {
+                std::unique_ptr<Polygon> poly(gf.createPolygon(gf.createLinearRing(pline->getCoordinates()),0));
+                double area = poly->getArea();
+                if (area > 0.0) {
+                    polys.emplace_back(std::move(poly),
+                                       gf.createLinearRing(pline->getCoordinates()),
+                                       area);
                 }
-            }
-            else
-            {
-                //std::cerr << "polygon(" << osm_id << ") is no good: points(" << pline->getNumPoints() << "), closed(" << pline->isClosed() << "). " << writer.write(pline.get()) << std::endl;
+            } else {
                 double distance = 0;
                 std::unique_ptr<CoordinateSequence> segment;
                 segment = std::unique_ptr<CoordinateSequence>(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                 segment->add(pline->getCoordinateN(0));
-                for(unsigned i=1; i<pline->getNumPoints(); i++) {
-                    segment->add(pline->getCoordinateN(i));
-                    distance += pline->getCoordinateN(i).distance(pline->getCoordinateN(i-1));
-                    if ((distance >= split_at) || (i == pline->getNumPoints()-1)) {
+                for(int j=1; j<(int)pline->getNumPoints(); ++j) {
+                    segment->add(pline->getCoordinateN(j));
+                    distance += pline->getCoordinateN(j).distance(pline->getCoordinateN(j-1));
+                    if ((distance >= split_at) || (j == (int)pline->getNumPoints()-1)) {
                         geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
 
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(geom.get());
-                        wkts->back().area = 0;
+                        wkts->emplace_back(geom.get(), 0);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         distance=0;
-                        segment->add(pline->getCoordinateN(i));
+                        segment->add(pline->getCoordinateN(j));
                     }
                 }
-                //std::string text = writer.write(pline.get());
-                //wkts.push_back(text);
-                //areas.push_back(0.0);
-                //wkt_size++;
             }
         }
 
-        if (totalpolys)
+        if (!polys.empty())
         {
-            std::sort(polys.begin(), polys.begin() + totalpolys, polygondata_comparearea());
+            std::sort(polys.begin(), polys.end(), polygondata_comparearea());
 
             unsigned toplevelpolygons = 0;
             int istoplevelafterall;
+            size_t totalpolys = polys.size();
 
+            geos::geom::prep::PreparedGeometryFactory pgf;
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
                 toplevelpolygons++;
-                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon);
+                const geos::geom::prep::PreparedGeometry* preparedtoplevelpolygon = pgf.create(polys[i].polygon.get());
 
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
                     // Does preparedtoplevelpolygon contain the smaller polygon[j]?
-                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon))
+                    if (polys[j].containedbyid == 0 && preparedtoplevelpolygon->contains(polys[j].polygon.get()))
                     {
                         // are we in a [i] contains [k] contains [j] situation
                         // which would actually make j top level
                         istoplevelafterall = 0;
                         for (unsigned k=i+1; k < j; ++k)
                         {
-                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon))
+                            if (polys[k].iscontained && polys[k].containedbyid == i && polys[k].polygon->contains(polys[j].polygon.get()))
                             {
                                 istoplevelafterall = 1;
                                 break;
@@ -665,7 +585,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         }
                         if (istoplevelafterall == 0)
                         {
-                            polys[j].iscontained = 1;
+                            polys[j].iscontained = true;
                             polys[j].containedbyid = i;
                         }
                     }
@@ -680,19 +600,19 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
             // For each top level polygon create a new polygon including any holes
             for (unsigned i=0 ;i < totalpolys; ++i)
             {
-                if (polys[i].iscontained != 0) continue;
+                if (polys[i].iscontained) continue;
 
                 // List of holes for this top level polygon
                 std::unique_ptr<std::vector<Geometry*> > interior(new std::vector<Geometry*>);
                 for (unsigned j=i+1; j < totalpolys; ++j)
                 {
-                   if (polys[j].iscontained == 1 && polys[j].containedbyid == i)
+                   if (polys[j].iscontained && polys[j].containedbyid == i)
                    {
-                       interior->push_back(polys[j].ring);
+                       interior->push_back(polys[j].ring.release());
                    }
                 }
 
-                Polygon* poly(gf.createPolygon(polys[i].ring, interior.release()));
+                Polygon* poly(gf.createPolygon(polys[i].ring.release(), interior.release()));
                 poly->normalize();
                 polygons->push_back(poly);
             }
@@ -706,40 +626,24 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid()))
-                {
-                    //copy of an empty one should be cheapest
-                    wkts->push_back(geometry_builder::wkt_t());
-                    //then we set on the one we already have
-                    wkts->back().geom = writer.write(multipoly.get());
-                    wkts->back().area = multipoly->getArea();
+                if ((excludepoly == 0) || (multipoly->isValid())) {
+                    wkts->emplace_back(multipoly.get());
                 }
             }
             else
             {
                 for(unsigned i=0; i<toplevelpolygons; i++)
                 {
-                    Geometry* poly = dynamic_cast<Geometry*>(polygons->at(i));
+                    geom_ptr poly(polygons->at(i));
                     if (!poly->isValid() && !excludepoly) {
-                        poly = dynamic_cast<Geometry*>(poly->buffer(0));
+                        poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
-                    if (!excludepoly || (poly->isValid()))
-                    {
-                        //copy of an empty one should be cheapest
-                        wkts->push_back(geometry_builder::wkt_t());
-                        //then we set on the one we already have
-                        wkts->back().geom = writer.write(poly);
-                        wkts->back().area = poly->getArea();
+                    if (!excludepoly || (poly->isValid())) {
+                        wkts->emplace_back(poly.get());
                     }
-                    delete(poly);
                 }
             }
-        }
-
-        for (unsigned i=0; i < totalpolys; ++i)
-        {
-            delete(polys[i].polygon);
         }
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
@@ -752,16 +656,4 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
     }
 
     return wkts;
-}
-
-void geometry_builder::set_exclude_broken_polygon(int exclude)
-{
-    excludepoly = exclude;
-}
-
-geometry_builder::geometry_builder()
-    : excludepoly(false) {
-}
-
-geometry_builder::~geometry_builder() {
 }
