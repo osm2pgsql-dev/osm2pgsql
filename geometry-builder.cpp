@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <sstream>
 #include <stdexcept>
 #include <memory>
 #include <new>
@@ -47,7 +48,7 @@
 #include <geos/geom/Polygon.h>
 #include <geos/geom/MultiPolygon.h>
 #include <geos/io/WKTReader.h>
-#include <geos/io/WKTWriter.h>
+#include <geos/io/WKBWriter.h>
 #include <geos/util/GEOSException.h>
 #include <geos/opLinemerge.h>
 using namespace geos::geom;
@@ -192,8 +193,13 @@ geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, reprojection *p)
 {}
 
 geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, double a)
-: geom(geos::io::WKTWriter().write(g)), area(a)
-{}
+: area(a)
+{
+    geos::io::WKBWriter writer(2, getMachineByteOrder(), true);
+    std::stringstream stream(std::ios_base::out);
+    writer.writeHEX(*g, stream);
+    geom = stream.str();
+}
 
 geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
                                               std::unique_ptr<CoordinateSequence> coords) const

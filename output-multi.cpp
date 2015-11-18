@@ -419,7 +419,7 @@ void output_multi_t::copy_node_to_table(osmid_t id, const char *wkt, const tagli
  * \param polygon Polygon flag returned from the tag transform (polygon=1)
  */
 void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, const taglist_t &tags, int polygon) {
-    if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
+    if (wkt.is_polygon()) {
         // It's a polygon table (implied by it turning into a poly), and it got formed into a polygon, so expire as a polygon and write the WKT
         m_expire->from_nodes_poly(m_way_helper.node_cache, id);
         m_table->write_wkt(id, tags, wkt.geom.c_str());

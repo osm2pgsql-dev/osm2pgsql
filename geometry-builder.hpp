@@ -49,6 +49,9 @@ public:
         : geom(geom_str), area(geom_area)
         {}
 
+        bool is_polygon() const
+        { return area > 0; }
+
         std::string geom;
         double area;
     };
