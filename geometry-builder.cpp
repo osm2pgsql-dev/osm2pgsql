@@ -47,7 +47,7 @@
 #include <geos/geom/MultiLineString.h>
 #include <geos/geom/Polygon.h>
 #include <geos/geom/MultiPolygon.h>
-#include <geos/io/WKTReader.h>
+#include <geos/io/WKBReader.h>
 #include <geos/io/WKBWriter.h>
 #include <geos/util/GEOSException.h>
 #include <geos/opLinemerge.h>
@@ -338,12 +338,13 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
     return wkts;
 }
 
-int geometry_builder::parse_wkt(const char * wkt, multinodelist_t &nodes, bool *polygon) {
+int geometry_builder::parse_wkb(const char* wkb, multinodelist_t &nodes, bool *polygon) {
     GeometryFactory gf;
-    geos::io::WKTReader reader(&gf);
+    geos::io::WKBReader reader(gf);
 
     *polygon = false;
-    geom_ptr geometry(reader.read(wkt));
+    std::stringstream stream(wkb, std::ios_base::in);
+    geom_ptr geometry(reader.readHEX(stream));
     switch (geometry->getGeometryTypeId()) {
         // Single geometries
         case GEOS_POLYGON:

@@ -37,22 +37,45 @@ class table_t
 
         std::string const& get_name();
 
-        //interface from retrieving well known text geometry from the table
-        struct wkt_reader
+        struct pg_result_closer
         {
-            friend class table_t;
-            public:
-                virtual ~wkt_reader();
-                const char* get_next();
-                size_t get_count() const;
-                void reset();
-            private:
-                wkt_reader(PGresult* result);
-                PGresult* result;
-                size_t count;
-                size_t current;
+            void operator() (PGresult* result)
+            {
+                PQclear(result);
+            }
+
         };
-        std::unique_ptr<wkt_reader> get_wkt_reader(const osmid_t id);
+
+        //interface from retrieving well known binary geometry from the table
+        class wkb_reader
+        {
+            friend table_t;
+            public:
+                const char* get_next()
+                {
+                    if (m_current < m_count) {
+                        return PQgetvalue(m_result.get(), m_current++, 0);
+                    }
+                    return nullptr;
+                }
+
+                int get_count() const { return m_count; }
+                void reset()
+                {
+                    //NOTE: PQgetvalue doc doesn't say if you can call it
+                    //      multiple times with the same row col
+                    m_current = 0;
+                }
+            private:
+                wkb_reader(PGresult* result)
+                : m_result(result), m_count(PQntuples(result)), m_current(0)
+                {}
+
+                std::unique_ptr<PGresult, pg_result_closer> m_result;
+                int m_count;
+                int m_current;
+        };
+        wkb_reader get_wkb_reader(const osmid_t id);
 
     protected:
         void connect();

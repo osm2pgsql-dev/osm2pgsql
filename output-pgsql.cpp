@@ -177,7 +177,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
 
     tag_t *areatag = 0;
     for (const auto& wkt: *wkts) {
-        expire->from_wkt(wkt.geom.c_str(), -id);
+        expire->from_wkb(wkt.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
         if (wkt.is_polygon()) {
             if ((wkt.area > 0.0) && m_enable_way_area) {
@@ -219,7 +219,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         tag_t *areatag = 0;
         wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for (const auto& wkt: *wkts) {
-            expire->from_wkt(wkt.geom.c_str(), -id);
+            expire->from_wkb(wkt.geom.c_str(), -id);
             if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt.area);
