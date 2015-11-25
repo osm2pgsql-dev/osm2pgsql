@@ -35,13 +35,15 @@ class GeometryFactory;
 class CoordinateSequence;
 }}
 
+struct reprojection;
+
 class geometry_builder
 {
 public:
     struct wkt_t
     {
         wkt_t(const geos::geom::Geometry *geom, double area);
-        wkt_t(const geos::geom::Geometry *geom);
+        wkt_t(const geos::geom::Geometry *geom, reprojection *p);
 
         wkt_t(const std::string &geom_str, double geom_area = 0)
         : geom(geom_str), area(geom_area)
@@ -69,11 +71,19 @@ public:
         excludepoly = exclude;
     }
 
+    void set_reprojection(reprojection *r)
+    {
+        projection = r;
+    }
+
+
 private:
     std::unique_ptr<geos::geom::Geometry>
     create_simple_poly(geos::geom::GeometryFactory &gf,
                        std::unique_ptr<geos::geom::CoordinateSequence> coords) const;
+
     bool excludepoly = false;
+    reprojection *projection = nullptr;
 };
 
 #endif
