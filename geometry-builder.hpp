@@ -42,18 +42,18 @@ class geometry_builder
 public:
     struct wkt_t
     {
-        wkt_t(const geos::geom::Geometry *geom, double area);
-        wkt_t(const geos::geom::Geometry *geom, reprojection *p);
+        wkt_t(const geos::geom::Geometry *geom, bool poly, reprojection *p = nullptr);
 
-        wkt_t(const std::string &geom_str, double geom_area = 0)
-        : geom(geom_str), area(geom_area)
+        wkt_t(const std::string &geom_str, bool poly, double geom_area = 0)
+        : geom(geom_str), area(geom_area), polygon(poly)
         {}
 
         bool is_polygon() const
-        { return area > 0; }
+        { return polygon; }
 
         std::string geom;
         double area;
+        bool polygon;
     };
 
     // type to represent an optional return of WKT-encoded geometry

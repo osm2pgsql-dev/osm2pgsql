@@ -188,12 +188,9 @@ struct polygondata_comparearea {
 } // anonymous namespace
 
 
-geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, reprojection *p)
-: wkt_t(g, get_area(g, p))
-{}
-
-geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, double a)
-: area(a)
+geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, bool poly,
+                               reprojection *p)
+: area(poly ? get_area(g, p) : 0), polygon(poly)
 {
     geos::io::WKBWriter writer(2, getMachineByteOrder(), true);
     std::stringstream stream(std::ios_base::out);
@@ -230,12 +227,12 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         auto coords = nodes2coords(gf, nodes);
         if (polygon && is_polygon_line(coords.get())) {
             auto geom = create_simple_poly(gf, std::move(coords));
-            wkt = std::make_shared<wkt_t>(geom.get(), projection);
+            wkt = std::make_shared<wkt_t>(geom.get(), true, projection);
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
             geom_ptr geom(gf.createLineString(coords.release()));
-            wkt = std::make_shared<wkt_t>(geom.get(), 0);
+            wkt = std::make_shared<wkt_t>(geom.get(), false);
         }
     }
     catch (const std::bad_alloc&)
@@ -267,7 +264,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 
         if (polygon && is_polygon_line(coords.get())) {
             auto geom = create_simple_poly(gf, std::move(coords));
-            wkts->emplace_back(geom.get(), projection);
+            wkts->emplace_back(geom.get(), true, projection);
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
@@ -295,7 +292,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                         segment->add(interpolated);
                         geom_ptr geom(gf.createLineString(segment.release()));
 
-                        wkts->emplace_back(geom.get(), 0);
+                        wkts->emplace_back(geom.get(), false);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         segment->add(interpolated);
@@ -317,7 +314,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 if (i == coords->getSize()-1) {
                     geom_ptr geom(gf.createLineString(segment.release()));
 
-                    wkts->emplace_back(geom.get(), 0);
+                    wkts->emplace_back(geom.get(), false);
                 }
             }
         }
@@ -496,7 +493,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 multipoly->normalize();
 
                 if ((excludepoly == 0) || (multipoly->isValid())) {
-                    wkts->emplace_back(multipoly.get(), projection);
+                    wkts->emplace_back(multipoly.get(), true, projection);
                 }
             }
             else
@@ -508,7 +505,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         poly->normalize();
                     }
                     if ((excludepoly == 0) || (poly->isValid())) {
-                        wkts->emplace_back(poly.get(), projection);
+                        wkts->emplace_back(poly.get(), true, projection);
                     }
                 }
             }
@@ -536,7 +533,7 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
         geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
 
-        wkt = std::make_shared<wkt_t>(mline.get(), 0);
+        wkt = std::make_shared<wkt_t>(mline.get(), false);
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
@@ -591,7 +588,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                     if ((distance >= split_at) || (j == (int)pline->getNumPoints()-1)) {
                         geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
 
-                        wkts->emplace_back(geom.get(), 0);
+                        wkts->emplace_back(geom.get(), false);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         distance=0;
@@ -693,7 +690,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 multipoly->normalize();
 
                 if ((excludepoly == 0) || (multipoly->isValid())) {
-                    wkts->emplace_back(multipoly.get(), projection);
+                    wkts->emplace_back(multipoly.get(), true, projection);
                 }
             }
             else
@@ -706,7 +703,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         poly->normalize();
                     }
                     if (!excludepoly || (poly->isValid())) {
-                        wkts->emplace_back(poly.get(), projection);
+                        wkts->emplace_back(poly.get(), true, projection);
                     }
                 }
             }
