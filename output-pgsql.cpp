@@ -115,7 +115,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodel
     geometry_builder::maybe_wkts_t wkts = builder.get_wkt_split(nodes, polygon, split_at);
     for (const auto& wkt: *wkts) {
         /* FIXME: there should be a better way to detect polygons */
-        if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
+        if (wkt.is_polygon()) {
             expire->from_nodes_poly(nodes, id);
             if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
@@ -177,9 +177,9 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
 
     tag_t *areatag = 0;
     for (const auto& wkt: *wkts) {
-        expire->from_wkt(wkt.geom.c_str(), -id);
+        expire->from_wkb(wkt.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
-        if (boost::starts_with(wkt.geom, "POLYGON") || boost::starts_with(wkt.geom, "MULTIPOLYGON")) {
+        if (wkt.is_polygon()) {
             if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt.area);
@@ -219,7 +219,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         tag_t *areatag = 0;
         wkts = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for (const auto& wkt: *wkts) {
-            expire->from_wkt(wkt.geom.c_str(), -id);
+            expire->from_wkb(wkt.geom.c_str(), -id);
             if ((wkt.area > 0.0) && m_enable_way_area) {
                 char tmp[32];
                 snprintf(tmp, sizeof(tmp), "%g", wkt.area);

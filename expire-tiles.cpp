@@ -464,14 +464,14 @@ void expire_tiles::from_xnodes_line(const multinodelist_t &xnodes)
         from_nodes_line(*it);
 }
 
-void expire_tiles::from_wkt(const char * wkt, osmid_t osm_id)
+void expire_tiles::from_wkb(const char* wkb, osmid_t osm_id)
 {
     if (Options->expire_tiles_zoom < 0) return;
 
     multinodelist_t xnodes;
     bool polygon;
 
-    if (!geometry_builder::parse_wkt(wkt, xnodes, &polygon)) {
+    if (geometry_builder::parse_wkb(wkb, xnodes, &polygon) == 0) {
         if (polygon)
             from_xnodes_poly(xnodes, osm_id);
         else
@@ -495,15 +495,15 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
         return -1;
 
     //grab the geom for this id
-    std::unique_ptr<table_t::wkt_reader> wkts = table->get_wkt_reader(osm_id);
+    auto wkbs = table->get_wkb_reader(osm_id);
 
     //dirty the stuff
-    const char* wkt = nullptr;
-    while((wkt = wkts->get_next()))
-        from_wkt(wkt, osm_id);
+    const char* wkb = nullptr;
+    while((wkb = wkbs.get_next()))
+        from_wkb(wkb, osm_id);
 
     //return how many rows were affected
-    return wkts->get_count();
+    return wkbs.get_count();
 }
 
 void expire_tiles::merge_and_destroy(expire_tiles &other) {

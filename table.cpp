@@ -47,7 +47,7 @@ table_t::table_t(const table_t& other):
     if (other.sql_conn) {
         connect();
         //let postgres cache this query as it will presumably happen a lot
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkb (" POSTGRES_OSMID_TYPE ") AS SELECT way FROM %1% WHERE osm_id = $1") % name).str());
         //start the copy
         begin();
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
@@ -184,7 +184,7 @@ void table_t::start()
     }
 
     //let postgres cache this query as it will presumably happen a lot
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkt (" POSTGRES_OSMID_TYPE ") AS SELECT ST_AsText(way) FROM %1% WHERE osm_id = $1") % name).str());
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("PREPARE get_wkb (" POSTGRES_OSMID_TYPE ") AS SELECT way FROM %1% WHERE osm_id = $1") % name).str());
 
     //generate column list for COPY
     string cols = "osm_id,";
@@ -516,9 +516,9 @@ void table_t::escape_type(const string &value, const string &type, string& dst) 
         escape(value, dst);
 }
 
-std::unique_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
+table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 {
-    //cant get wkt using the prepared statement without stopping the copy first
+    //cant get wkb using the prepared statement without stopping the copy first
     stop_copy();
 
     char const *paramValues[1];
@@ -526,37 +526,8 @@ std::unique_ptr<table_t::wkt_reader> table_t::get_wkt_reader(const osmid_t id)
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
 
-    //the prepared statement get_wkt will behave differently depending on the sql_conn
+    //the prepared statement get_wkb will behave differently depending on the sql_conn
     //each table has its own sql_connection with the get_way referring to the appropriate table
-    PGresult* res = pgsql_execPrepared(sql_conn, "get_wkt", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    return std::unique_ptr<wkt_reader>(new wkt_reader(res));
-}
-
-table_t::wkt_reader::wkt_reader(PGresult* result):result(result), current(0)
-{
-    count = PQntuples(result);
-}
-
-table_t::wkt_reader::~wkt_reader()
-{
-    PQclear(result);
-}
-
-const char* table_t::wkt_reader::get_next()
-{
-    if (current < count) {
-        return PQgetvalue(result, (int) current++, 0);
-    }
-    return nullptr;
-}
-
-size_t table_t::wkt_reader::get_count() const
-{
-    return count;
-}
-
-void table_t::wkt_reader::reset()
-{
-    //NOTE: PQgetvalue doc doesn't say if you can call it multiple times with the same row col
-    current = 0;
+    PGresult* res = pgsql_execPrepared(sql_conn, "get_wkb", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
+    return wkb_reader(res);
 }

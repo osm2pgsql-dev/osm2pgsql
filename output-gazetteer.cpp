@@ -755,8 +755,7 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
     if (cmp_waterway) {
         geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, 1, 1, 1000000, id);
         for (const auto& wkt: *wkts) {
-            if (boost::starts_with(wkt.geom,  "POLYGON")
-                    || boost::starts_with(wkt.geom,  "MULTIPOLYGON")) {
+            if (wkt.is_polygon()) {
                 places.copy_out('R', id, wkt.geom, buffer);
                 flush_place_buffer();
             } else {
