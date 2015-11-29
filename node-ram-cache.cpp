@@ -62,7 +62,9 @@
 
 #define SAFETY_MARGIN 1024*PER_BLOCK*sizeof(ramNode)
 
+#ifdef FIXED_POINT
 int ramNode::scale;
+#endif
 
 static int32_t id2block(osmid_t id)
 {
@@ -305,8 +307,9 @@ node_ram_cache::node_ram_cache( int strategy, int cacheSizeMB, int fixpointscale
       maxSparseTuples(0), sizeSparseTuples(0), maxSparseId(0), cacheUsed(0),
       cacheSize(0), storedNodes(0), totalNodes(0), nodesCacheHits(0),
       nodesCacheLookups(0), warn_node_order(0) {
-
+#ifdef FIXED_POINT
     ramNode::scale = fixpointscale;
+#endif
     blockCache = 0;
     blockCachePos = 0;
     cacheUsed = 0;
