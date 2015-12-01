@@ -40,34 +40,56 @@ struct reprojection;
 class geometry_builder
 {
 public:
-    struct wkt_t
+    struct pg_geom_t
     {
-        wkt_t(const geos::geom::Geometry *geom, bool poly, reprojection *p = nullptr);
-
-        wkt_t(const std::string &geom_str, bool poly, double geom_area = 0)
+        pg_geom_t(const std::string &geom_str, bool poly, double geom_area = 0)
         : geom(geom_str), area(geom_area), polygon(poly)
         {}
 
+        /// Create an invalid geometry.
+        pg_geom_t()
+        : area(0), polygon(false)
+        {}
+
+        pg_geom_t(const geos::geom::Geometry *g, bool poly, reprojection *p = nullptr)
+        {
+            set(g, poly, p);
+        }
+
+        /**
+         * Set geometry from a Geos geometry.
+         */
+        void set(const geos::geom::Geometry *geom, bool poly, reprojection *p = nullptr);
+
+
         bool is_polygon() const
-        { return polygon; }
+        {
+            return polygon;
+        }
+
+        bool valid() const
+        {
+            return !geom.empty();
+        }
 
         std::string geom;
         double area;
         bool polygon;
     };
 
-    // type to represent an optional return of WKT-encoded geometry
-    typedef std::shared_ptr<geometry_builder::wkt_t> maybe_wkt_t;
-    typedef std::shared_ptr<std::vector<geometry_builder::wkt_t> > maybe_wkts_t;
+    typedef std::vector<geometry_builder::pg_geom_t> pg_geoms_t;
 
     static int parse_wkb(const char *wkb, multinodelist_t &nodes, bool *polygon);
-    maybe_wkt_t get_wkt_simple(const nodelist_t &nodes, int polygon) const;
-    maybe_wkts_t get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const;
-    maybe_wkts_t build_both(const multinodelist_t &xnodes, int make_polygon,
+    pg_geom_t get_wkb_simple(const nodelist_t &nodes, int polygon) const;
+    pg_geoms_t get_wkb_split(const nodelist_t &nodes, int polygon, double split_at) const;
+    pg_geoms_t build_both(const multinodelist_t &xnodes, int make_polygon,
                             int enable_multi, double split_at, osmid_t osm_id = -1) const;
-    maybe_wkts_t build_polygons(const multinodelist_t &xnodes, bool enable_multi, osmid_t osm_id = -1) const;
-    // Used by gazetteer. Outputting a multiline, it only ever returns one WKT
-    maybe_wkt_t build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const;
+    pg_geoms_t build_polygons(const multinodelist_t &xnodes, bool enable_multi, osmid_t osm_id = -1) const;
+    /** Output relation as a multiline.
+     *
+     *  Used by gazetteer only.
+     */
+    pg_geom_t build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const;
 
     void set_exclude_broken_polygon(bool exclude)
     {

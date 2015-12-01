@@ -386,7 +386,7 @@ void place_tag_processor::process_tags(const taglist_t &tags)
 }
 
 void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
-                                   const std::string &wkt,
+                                   const std::string &geom,
                                    std::string &buffer)
 {
     for (const auto& place: places) {
@@ -484,9 +484,9 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
             }
             buffer += "\t";
         }
-        // wkt
+        // geometry
         buffer += srid_str;
-        buffer += wkt;
+        buffer += geom;
         buffer += '\n';
     }
 }
@@ -696,9 +696,9 @@ int output_gazetteer_t::process_way(osmid_t id, const idlist_t &nds, const tagli
         m_mid->nodes_get_list(nodes, nds);
 
         /* Get the geometry of the object */
-        geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, 1);
-        if (wkt) {
-            places.copy_out('W', id, wkt->geom, buffer);
+        auto geom = builder.get_wkb_simple(nodes, 1);
+        if (geom.valid()) {
+            places.copy_out('W', id, geom.geom, buffer);
             flush_place_buffer();
         }
     }
@@ -753,10 +753,10 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
     m_mid->ways_get_list(xid2, xid, xtags, xnodes);
 
     if (cmp_waterway) {
-        geometry_builder::maybe_wkts_t wkts = builder.build_both(xnodes, 1, 1, 1000000, id);
-        for (const auto& wkt: *wkts) {
-            if (wkt.is_polygon()) {
-                places.copy_out('R', id, wkt.geom, buffer);
+        auto geoms = builder.build_both(xnodes, 1, 1, 1000000, id);
+        for (const auto& geom: geoms) {
+            if (geom.is_polygon()) {
+                places.copy_out('R', id, geom.geom, buffer);
                 flush_place_buffer();
             } else {
                 /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
@@ -764,9 +764,9 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
         }
     } else {
         /* waterways result in multilinestrings */
-        geometry_builder::maybe_wkt_t wkt = builder.build_multilines(xnodes, id);
-        if ((wkt->geom).length() > 0) {
-            places.copy_out('R', id, wkt->geom, buffer);
+        auto geom = builder.build_multilines(xnodes, id);
+        if (geom.valid()) {
+            places.copy_out('R', id, geom.geom, buffer);
             flush_place_buffer();
         }
     }

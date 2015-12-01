@@ -70,9 +70,8 @@ protected:
     int process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
     int reprocess_way(osmid_t id, const nodelist_t &nodes, const taglist_t &tags, bool exists);
     int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, bool exists, bool pending=false);
-    void copy_node_to_table(osmid_t id, const char *wkt, const taglist_t &tags);
-    void copy_to_table(const osmid_t id, const geometry_builder::maybe_wkt_t &wkt, const taglist_t &tags, int polygon);
-    void copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, const taglist_t &tags, int polygon);
+    void copy_node_to_table(osmid_t id, const std::string &geom, const taglist_t &tags);
+    void copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, const taglist_t &tags, int polygon);
 
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;

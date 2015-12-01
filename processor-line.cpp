@@ -8,10 +8,7 @@ processor_line::~processor_line()
 {
 }
 
-geometry_builder::maybe_wkt_t processor_line::process_way(const nodelist_t &nodes)
+geometry_builder::pg_geom_t processor_line::process_way(const nodelist_t &nodes)
 {
-    //have the builder make the wkt
-    geometry_builder::maybe_wkt_t wkt = builder.get_wkt_simple(nodes, false);
-    //hand back the wkt
-    return wkt;
+    return builder.get_wkb_simple(nodes, false);
 }

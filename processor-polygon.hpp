@@ -7,8 +7,8 @@ struct processor_polygon : public geometry_processor {
     processor_polygon(int srid, bool enable_multi);
     virtual ~processor_polygon();
 
-    geometry_builder::maybe_wkt_t process_way(const nodelist_t &nodes);
-    geometry_builder::maybe_wkts_t process_relation(const multinodelist_t &nodes);
+    geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
+    geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
 
 private:
     bool enable_multi;

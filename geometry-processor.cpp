@@ -57,16 +57,16 @@ bool geometry_processor::interests(unsigned int interested) const {
     return (interested & m_interests) == interested;
 }
 
-geometry_builder::maybe_wkt_t geometry_processor::process_node(double lat, double lon) {
-    return geometry_builder::maybe_wkt_t();
+geometry_builder::pg_geom_t geometry_processor::process_node(double, double) {
+    return geometry_builder::pg_geom_t();
 }
 
-geometry_builder::maybe_wkt_t geometry_processor::process_way(const nodelist_t &nodes) {
-    return geometry_builder::maybe_wkt_t();
+geometry_builder::pg_geom_t geometry_processor::process_way(const nodelist_t &) {
+    return geometry_builder::pg_geom_t();
 }
 
-geometry_builder::maybe_wkts_t geometry_processor::process_relation(const multinodelist_t &nodes) {
-    return geometry_builder::maybe_wkts_t();
+geometry_builder::pg_geoms_t geometry_processor::process_relation(const multinodelist_t &) {
+    return geometry_builder::pg_geoms_t();
 }
 
 way_helper::way_helper()
