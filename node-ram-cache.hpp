@@ -68,9 +68,9 @@ private:
 #else
 public:
     ramNode() : _lat(NAN), _lon(NAN) {}
-    ramNode(double _lon, double _lat) : _lon(lon), _lat(lat) {}
+    ramNode(double lon, double lat) : _lon(lon), _lat(lat) {}
 
-    bool is_valid() const ( return !std::isnan(_lon); }
+    bool is_valid() const { return !std::isnan(_lon); }
     double lon() const { return _lon; }
     double lat() const { return _lat; }
 private:
