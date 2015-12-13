@@ -83,29 +83,12 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, const taglist_t &tags, const nodelist_t &nodes, int exists)
+int output_pgsql_t::pgsql_out_way(osmid_t id, taglist_t &outtags,
+                                  const nodelist_t &nodes,
+                                  int polygon, int roads)
 {
-    int polygon = 0, roads = 0;
+     /* Split long ways after around 1 degree or 100km */
     double split_at;
-
-    /* If the flag says this object may exist already, delete it first */
-    if (exists) {
-        pgsql_delete_way_from_output(id);
-        // TODO: this now only has an effect when called from the iterate_ways
-        // call-back, so we need some alternative way to trigger this within
-        // osmdata_t.
-        const idlist_t rel_ids = m_mid->relations_using_way(id);
-        for (idlist_t::const_iterator itr = rel_ids.begin();
-             itr != rel_ids.end(); ++itr) {
-            rels_pending_tracker->mark(*itr);
-        }
-    }
-
-    taglist_t outtags;
-    if (m_tagtransform->filter_way_tags(tags, &polygon, &roads, *m_export_list.get(),
-                                        outtags))
-        return 0;
-    /* Split long ways after around 1 degree or 100km */
     if (m_options.projection->get_proj_id() == PROJ_LATLONG)
         split_at = 1;
     else
@@ -275,16 +258,31 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 int output_pgsql_t::pending_way(osmid_t id, int exists) {
     taglist_t tags_int;
     nodelist_t nodes_int;
-    int ret = 0;
 
     // Try to fetch the way from the DB
     if (m_mid->ways_get(id, tags_int, nodes_int)) {
-        // Output the way
-        //ret = reprocess_way(id, nodes_int, count_int, &tags_int, exists);
-        ret = pgsql_out_way(id, tags_int, nodes_int, exists);
+        /* If the flag says this object may exist already, delete it first */
+        if (exists) {
+            pgsql_delete_way_from_output(id);
+            // TODO: this now only has an effect when called from the iterate_ways
+            // call-back, so we need some alternative way to trigger this within
+            // osmdata_t.
+            const idlist_t rel_ids = m_mid->relations_using_way(id);
+            for (auto &mid: rel_ids) {
+                rels_pending_tracker->mark(mid);
+            }
+        }
+
+        taglist_t outtags;
+        int polygon;
+        int roads;
+        if (!m_tagtransform->filter_way_tags(tags_int, &polygon, &roads,
+                                            *m_export_list.get(), outtags)) {
+            return pgsql_out_way(id, outtags, nodes_int, polygon, roads);
+        }
     }
 
-    return ret;
+    return 0;
 }
 
 void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
@@ -385,7 +383,8 @@ int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &ta
   taglist_t outtags;
 
   /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads, *m_export_list.get(), outtags);
+  auto filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
+                                                *m_export_list.get(), outtags);
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
@@ -396,7 +395,7 @@ int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &ta
     /* Get actual node data and generate output */
     nodelist_t nodes;
     m_mid->nodes_get_list(nodes, nds);
-    pgsql_out_way(id, outtags, nodes, 0);
+    pgsql_out_way(id, outtags, nodes, polygon, roads);
   }
   return 0;
 }

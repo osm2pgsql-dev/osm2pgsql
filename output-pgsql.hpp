@@ -61,7 +61,8 @@ public:
 protected:
 
     int pgsql_out_node(osmid_t id, const taglist_t &tags, double node_lat, double node_lon);
-    int pgsql_out_way(osmid_t id, const taglist_t &tags, const nodelist_t &nodes, int exists);
+    int pgsql_out_way(osmid_t id, taglist_t &tags, const nodelist_t &nodes,
+                      int polygons, int roads);
     int pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
                            const multinodelist_t &xnodes, const multitaglist_t & xtags,
                            const idlist_t &xid, const rolelist_t &xrole,
