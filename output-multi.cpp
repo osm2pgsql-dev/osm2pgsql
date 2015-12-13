@@ -267,10 +267,10 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, const tagli
     unsigned int filter = m_tagtransform->filter_node_tags(tags, *m_export_list.get(), outtags, true);
     if (!filter) {
         //grab its geom
-        geometry_builder::maybe_wkt_t wkt = m_processor->process_node(lat, lon);
-        if (wkt) {
+        auto geom = m_processor->process_node(lat, lon);
+        if (geom.valid()) {
             m_expire->from_bbox(lon, lat, lon, lat);
-            copy_node_to_table(id, wkt->geom.c_str(), outtags);
+            copy_node_to_table(id, geom.geom, outtags);
         }
     }
     return 0;
@@ -295,9 +295,9 @@ int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const tag
                                                           *m_export_list.get(), outtags, true);
     if (!filter) {
         //grab its geom
-        geometry_builder::maybe_wkt_t wkt = m_processor->process_way(nodes);
-        if (wkt) {
-            copy_to_table(id, wkt, outtags, polygon);
+        auto geom = m_processor->process_way(nodes);
+        if (geom.valid()) {
+            copy_to_table(id, geom, outtags, polygon);
         }
     }
     return 0;
@@ -314,9 +314,9 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
         if(m_way_helper.set(nodes, m_mid) < 1)
             return 0;
         //grab its geom
-        geometry_builder::maybe_wkt_t wkt = m_processor->process_way(m_way_helper.node_cache);
+        auto geom = m_processor->process_way(m_way_helper.node_cache);
 
-        if (wkt) {
+        if (geom.valid()) {
             //if we are also interested in relations we need to mark
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
@@ -324,7 +324,7 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
             } else {
                 // We wouldn't be interested in this as a relation, so no need to mark it pending.
                 // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(id, wkt, outtags, polygon);
+                copy_to_table(id, geom, outtags, polygon);
             }
         }
     }
@@ -377,15 +377,13 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
                                                         *m_export_list.get(), outtags, true);
         if (!filter)
         {
-            geometry_builder::maybe_wkts_t wkts = m_processor->process_relation(m_relation_helper.nodes);
-            if (wkts) {
-                for (const auto wkt: *wkts) {
-                    //TODO: we actually have the nodes in the m_relation_helper and could use them
-                    //instead of having to reparse the wkt in the expiry code
-                    m_expire->from_wkb(wkt.geom.c_str(), -id);
-                    //what part of the code relies on relation members getting negative ids?
-                    copy_to_table(-id, wkt, outtags, make_polygon);
-                }
+            auto geoms = m_processor->process_relation(m_relation_helper.nodes);
+            for (const auto geom: geoms) {
+                //TODO: we actually have the nodes in the m_relation_helper and could use them
+                //instead of having to reparse the wkb in the expiry code
+                m_expire->from_wkb(geom.geom.c_str(), -id);
+                //what part of the code relies on relation members getting negative ids?
+                copy_to_table(-id, geom, outtags, make_polygon);
             }
 
             //TODO: should this loop be inside the if above just in case?
@@ -407,42 +405,32 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
     return 0;
 }
 
-void output_multi_t::copy_node_to_table(osmid_t id, const char *wkt, const taglist_t &tags) {
-    m_table->write_wkt(id, tags, wkt);
+void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, const taglist_t &tags) {
+    m_table->write_row(id, tags, geom);
 }
 
 /**
  * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
  * \param id OSM ID of the object
- * \param wkt WKT string of the object
+ * \param geom Geometry string of the object
  * \param tags List of tags
  * \param polygon Polygon flag returned from the tag transform (polygon=1)
+ *
+ * \pre geom must be valid.
  */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::wkt_t &wkt, const taglist_t &tags, int polygon) {
-    if (wkt.is_polygon()) {
-        // It's a polygon table (implied by it turning into a poly), and it got formed into a polygon, so expire as a polygon and write the WKT
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, const taglist_t &tags, int polygon) {
+    if (geom.is_polygon()) {
+        // It's a polygon table (implied by it turning into a poly),
+        // and it got formed into a polygon, so expire as a polygon and write the geom
         m_expire->from_nodes_poly(m_way_helper.node_cache, id);
-        m_table->write_wkt(id, tags, wkt.geom.c_str());
+        m_table->write_row(id, tags, geom.geom);
     } else {
         // Linestring
         if (!polygon) {
             // non-polygons are okay
             m_expire->from_nodes_line(m_way_helper.node_cache);
-            m_table->write_wkt(id, tags, wkt.geom.c_str());
+            m_table->write_row(id, tags, geom.geom);
         }
-    }
-}
-
-/**
- * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
- * \param id OSM ID of the object
- * \param wkt Maybe-WKT string of the object
- * \param tags List of tags
- * \param polygon Polygon flag returned from the tag transform (polygon=1)
- */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::maybe_wkt_t &wkt, const taglist_t &tags, int polygon) {
-    if (wkt) {
-        copy_to_table(id, *wkt, tags, polygon);
     }
 }
 

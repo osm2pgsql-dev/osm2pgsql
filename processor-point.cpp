@@ -12,8 +12,7 @@ processor_point::processor_point(int srid)
 processor_point::~processor_point() {
 }
 
-geometry_builder::maybe_wkt_t processor_point::process_node(double lat, double lon)
+geometry_builder::pg_geom_t processor_point::process_node(double lat, double lon)
 {
-    using wkt_t = geometry_builder::wkt_t;
-    return std::make_shared<wkt_t>((boost::format("POINT(%.15g %.15g)") % lon % lat).str(), false);
+    return geometry_builder::pg_geom_t((boost::format("POINT(%.15g %.15g)") % lon % lat).str(), false);
 }

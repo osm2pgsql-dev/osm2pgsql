@@ -38,19 +38,19 @@ struct geometry_processor {
     // LINESTRING, etc...) that this processor outputs
     const std::string &column_type() const;
 
-    // process a node, optionally returning a WKT string describing
+    // process a node, optionally returning a WKB string describing
     // geometry to be inserted into the table.
-    virtual geometry_builder::maybe_wkt_t process_node(double lat, double lon);
+    virtual geometry_builder::pg_geom_t process_node(double lat, double lon);
 
     // process a way
-    // position data and optionally returning WKT-encoded geometry
+    // position data and optionally returning WKB-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::maybe_wkt_t process_way(const nodelist_t &nodes);
+    virtual geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
 
     // process a way, taking a middle query object to get way and
-    // node position data. optionally returns a WKT-encoded geometry
+    // node position data. optionally returns an array of WKB-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::maybe_wkts_t process_relation(const multinodelist_t &nodes);
+    virtual geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
 
     // returns the SRID of the output geometry.
     int srid() const;

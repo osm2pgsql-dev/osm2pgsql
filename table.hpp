@@ -31,7 +31,7 @@ class table_t
         void begin();
         void commit();
 
-        void write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt);
+        void write_row(const osmid_t id, const taglist_t &tags, const std::string &geom);
         void write_node(const osmid_t id, const taglist_t &tags, double lat, double lon);
         void delete_row(const osmid_t id);
 

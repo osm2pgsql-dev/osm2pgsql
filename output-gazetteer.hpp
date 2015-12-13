@@ -43,7 +43,7 @@ public:
         return false;
     }
 
-    void copy_out(char osm_type, osmid_t osm_id, const std::string &wkt,
+    void copy_out(char osm_type, osmid_t osm_id, const std::string &geom,
                   std::string &buffer);
 
     void clear();

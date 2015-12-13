@@ -297,7 +297,7 @@ void table_t::stop_copy()
 
 void table_t::write_node(const osmid_t id, const taglist_t &tags, double lat, double lon)
 {
-    write_wkt(id, tags, (point_fmt % lon % lat).str().c_str());
+    write_row(id, tags, (point_fmt % lon % lat).str());
 }
 
 void table_t::delete_row(const osmid_t id)
@@ -306,7 +306,7 @@ void table_t::delete_row(const osmid_t id)
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (del_fmt % name % id).str());
 }
 
-void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt)
+void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::string &geom)
 {
     //add the osm id
     buffer.append((single_fmt % id).str());
@@ -328,12 +328,12 @@ void table_t::write_wkt(const osmid_t id, const taglist_t &tags, const char *wkt
     if (hstore_mode != HSTORE_NONE)
         write_tags_column(tags, buffer, used);
 
-    //give the wkt an srid
+    //give the geometry an srid
     buffer.append("SRID=");
     buffer.append(srid);
     buffer.push_back(';');
-    //add the wkt
-    buffer.append(wkt);
+    //add the geometry
+    buffer.append(geom);
     //we need \n because we are copying from stdin
     buffer.push_back('\n');
 

@@ -188,14 +188,18 @@ struct polygondata_comparearea {
 } // anonymous namespace
 
 
-geometry_builder::wkt_t::wkt_t(const geos::geom::Geometry *g, bool poly,
-                               reprojection *p)
-: area(poly ? get_area(g, p) : 0), polygon(poly)
+void geometry_builder::pg_geom_t::set(const geos::geom::Geometry *g, bool poly,
+                                      reprojection *p)
 {
     geos::io::WKBWriter writer(2, getMachineByteOrder(), true);
     std::stringstream stream(std::ios_base::out);
     writer.writeHEX(*g, stream);
     geom = stream.str();
+
+    if (valid()) {
+        area = poly ? get_area(g, p) : 0;
+        polygon = poly;
+    }
 }
 
 geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
@@ -217,9 +221,9 @@ geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
     return geom;
 }
 
-geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t &nodes, int polygon) const
+geometry_builder::pg_geom_t geometry_builder::get_wkb_simple(const nodelist_t &nodes, int polygon) const
 {
-    maybe_wkt_t wkt;
+    pg_geom_t wkb;
 
     try
     {
@@ -227,12 +231,12 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         auto coords = nodes2coords(gf, nodes);
         if (polygon && is_polygon_line(coords.get())) {
             auto geom = create_simple_poly(gf, std::move(coords));
-            wkt = std::make_shared<wkt_t>(geom.get(), true, projection);
+            wkb.set(geom.get(), true, projection);
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
             geom_ptr geom(gf.createLineString(coords.release()));
-            wkt = std::make_shared<wkt_t>(geom.get(), false);
+            wkb.set(geom.get(), false);
         }
     }
     catch (const std::bad_alloc&)
@@ -249,13 +253,13 @@ geometry_builder::maybe_wkt_t geometry_builder::get_wkt_simple(const nodelist_t 
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
     }
 
-    return wkt;
+    return wkb;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t &nodes, int polygon, double split_at) const
+geometry_builder::pg_geoms_t geometry_builder::get_wkb_split(const nodelist_t &nodes, int polygon, double split_at) const
 {
     //TODO: use count to get some kind of hint of how much we should reserve?
-    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
+    pg_geoms_t wkbs;
 
     try
     {
@@ -264,7 +268,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
 
         if (polygon && is_polygon_line(coords.get())) {
             auto geom = create_simple_poly(gf, std::move(coords));
-            wkts->emplace_back(geom.get(), true, projection);
+            wkbs.emplace_back(geom.get(), true, projection);
         } else {
             if (coords->getSize() < 2)
                 throw std::runtime_error("Excluding degenerate line.");
@@ -292,7 +296,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                         segment->add(interpolated);
                         geom_ptr geom(gf.createLineString(segment.release()));
 
-                        wkts->emplace_back(geom.get(), false);
+                        wkbs.emplace_back(geom.get(), false);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         segment->add(interpolated);
@@ -314,7 +318,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
                 if (i == coords->getSize()-1) {
                     geom_ptr geom(gf.createLineString(segment.release()));
 
-                    wkts->emplace_back(geom.get(), false);
+                    wkbs.emplace_back(geom.get(), false);
                 }
             }
         }
@@ -332,7 +336,7 @@ geometry_builder::maybe_wkts_t geometry_builder::get_wkt_split(const nodelist_t 
     {
         std::cerr << std::endl << "Exception caught processing way" << std::endl;
     }
-    return wkts;
+    return wkbs;
 }
 
 int geometry_builder::parse_wkb(const char* wkb, multinodelist_t &nodes, bool *polygon) {
@@ -384,10 +388,10 @@ int geometry_builder::parse_wkb(const char* wkb, multinodelist_t &nodes, bool *p
     return 0;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodelist_t &xnodes,
-                                                                bool enable_multi, osmid_t osm_id) const
+geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelist_t &xnodes,
+                                                              bool enable_multi, osmid_t osm_id) const
 {
-    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
+    pg_geoms_t wkbs;
 
     try
     {
@@ -493,7 +497,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                 multipoly->normalize();
 
                 if ((excludepoly == 0) || (multipoly->isValid())) {
-                    wkts->emplace_back(multipoly.get(), true, projection);
+                    wkbs.emplace_back(multipoly.get(), true, projection);
                 }
             }
             else
@@ -505,7 +509,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
                         poly->normalize();
                     }
                     if ((excludepoly == 0) || (poly->isValid())) {
-                        wkts->emplace_back(poly.get(), true, projection);
+                        wkbs.emplace_back(poly.get(), true, projection);
                     }
                 }
             }
@@ -520,20 +524,19 @@ geometry_builder::maybe_wkts_t geometry_builder::build_polygons(const multinodel
         std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
     }
 
-    return wkts;
+    return wkbs;
 }
 
-geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const
+geometry_builder::pg_geom_t geometry_builder::build_multilines(const multinodelist_t &xnodes, osmid_t osm_id) const
 {
-    maybe_wkt_t wkt;
+    pg_geom_t wkb;
 
     try
     {
         GeometryFactory gf;
         geom_ptr mline = create_multi_line(gf, xnodes);
-        //geom_ptr noded (segment->Union(mline.get()));
 
-        wkt = std::make_shared<wkt_t>(mline.get(), false);
+        wkb.set(mline.get(), false);
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
@@ -543,14 +546,14 @@ geometry_builder::maybe_wkt_t geometry_builder::build_multilines(const multinode
     {
         std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
     }
-    return wkt;
+    return wkb;
 }
 
-geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_t &xnodes,
+geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t &xnodes,
                                                             int make_polygon, int enable_multi,
                                                             double split_at, osmid_t osm_id) const
 {
-    maybe_wkts_t wkts(new std::vector<geometry_builder::wkt_t>);
+    pg_geoms_t wkbs;
 
     try
     {
@@ -588,7 +591,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                     if ((distance >= split_at) || (j == (int)pline->getNumPoints()-1)) {
                         geom_ptr geom = geom_ptr(gf.createLineString(segment.release()));
 
-                        wkts->emplace_back(geom.get(), false);
+                        wkbs.emplace_back(geom.get(), false);
 
                         segment.reset(gf.getCoordinateSequenceFactory()->create((size_t)0, (size_t)2));
                         distance=0;
@@ -690,7 +693,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                 multipoly->normalize();
 
                 if ((excludepoly == 0) || (multipoly->isValid())) {
-                    wkts->emplace_back(multipoly.get(), true, projection);
+                    wkbs.emplace_back(multipoly.get(), true, projection);
                 }
             }
             else
@@ -703,7 +706,7 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
                         poly->normalize();
                     }
                     if (!excludepoly || (poly->isValid())) {
-                        wkts->emplace_back(poly.get(), true, projection);
+                        wkbs.emplace_back(poly.get(), true, projection);
                     }
                 }
             }
@@ -718,5 +721,5 @@ geometry_builder::maybe_wkts_t geometry_builder::build_both(const multinodelist_
         std::cerr << std::endl << "Exception caught processing relation id=" << osm_id << std::endl;
     }
 
-    return wkts;
+    return wkbs;
 }

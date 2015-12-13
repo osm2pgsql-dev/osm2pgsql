@@ -483,7 +483,7 @@ void expire_tiles::from_wkb(const char* wkb, osmid_t osm_id)
  * Expire tiles based on an osm element.
  * What type of element (node, line, polygon) osm_id refers to depends on
  * sql_conn. Each type of table has its own sql_conn and the prepared statement
- * get_wkt refers to the appropriate table.
+ * get_wkb refers to the appropriate table.
  *
  * The function returns -1 if expiry is not enabled. Otherwise it returns the number
  * of elements that refer to the osm_id.
