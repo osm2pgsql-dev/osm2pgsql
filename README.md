@@ -27,14 +27,17 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 
 ## Building ##
 
-Osm2pgsql uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html)
+Osm2pgsql uses the cross-platform [CMake build system](https://cmake.org/)
 to configure and build itself and requires
+
+Required libraries are
 
 * [expat](http://www.libexpat.org/)
 * [geos](http://geos.osgeo.org/)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
+* [Boost libraries](http://www.boost.org/), including system and filesystem
 * [PostgreSQL](http://www.postgresql.org/) client libraries
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
 
@@ -99,11 +102,13 @@ sudo make install
 By default, the Release build with debug info is created and no tests are compiled.
 You can change that behavior by using additional options like following:
 
-    cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+```sh
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+```
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **42** command line
+Osm2pgsql has one program, the executable itself, which has **43** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
@@ -133,8 +138,7 @@ osm2pgsql -c -d gis --slim -C <cache size> \
   --flat-nodes <flat nodes> planet-latest.osm.pbf
 ```
 where
-* ``<cache size>`` is 24000 on machines with 32GiB or more RAM
-  or about 75% of memory in MiB on machines with less
+* ``<cache size>`` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
 * ``<flat nodes>`` is a location where a 24GiB file can be saved.
 
 The databases from either of these commands can be used immediately by
