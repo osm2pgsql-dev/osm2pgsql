@@ -103,7 +103,7 @@ You can change that behavior by using additional options like following:
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **42** command line
+Osm2pgsql has one program, the executable itself, which has **43** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
