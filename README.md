@@ -27,7 +27,7 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 
 ## Building ##
 
-Osm2pgsql uses the [GNU Build System](http://www.gnu.org/software/automake/manual/html_node/GNU-Build-System.html)
+Osm2pgsql uses the cross-platform [CMake build system](https://cmake.org/)
 to configure and build itself and requires
 
 * [expat](http://www.libexpat.org/)
@@ -99,7 +99,9 @@ sudo make install
 By default, the Release build with debug info is created and no tests are compiled.
 You can change that behavior by using additional options like following:
 
-    cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+```sh
+cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+```
 
 ## Usage ##
 
