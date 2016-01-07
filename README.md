@@ -30,11 +30,14 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 Osm2pgsql uses the cross-platform [CMake build system](https://cmake.org/)
 to configure and build itself and requires
 
+Required libraries are
+
 * [expat](http://www.libexpat.org/)
 * [geos](http://geos.osgeo.org/)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
+* [Boost libraries](http://www.boost.org/), including system and filesystem
 * [PostgreSQL](http://www.postgresql.org/) client libraries
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
 
