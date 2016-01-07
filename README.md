@@ -133,8 +133,7 @@ osm2pgsql -c -d gis --slim -C <cache size> \
   --flat-nodes <flat nodes> planet-latest.osm.pbf
 ```
 where
-* ``<cache size>`` is 24000 on machines with 32GiB or more RAM
-  or about 75% of memory in MiB on machines with less
+* ``<cache size>`` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
 * ``<flat nodes>`` is a location where a 24GiB file can be saved.
 
 The databases from either of these commands can be used immediately by
