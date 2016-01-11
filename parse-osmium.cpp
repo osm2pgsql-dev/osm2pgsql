@@ -142,16 +142,13 @@ void parse_osmium_t::node(osmium::Node& node)
         }
 
         if (!m_bbox || m_bbox->contains(node.location())) {
-            double lat = node.location().lat_without_check();
-            double lon = node.location().lon_without_check();
-
-            m_proj->reproject(&lat, &lon);
+            auto c = m_proj->reproject(node.location());
 
             convert_tags(node);
             if (m_append) {
-                m_data->node_modify(node.id(), lat, lon, tags);
+                m_data->node_modify(node.id(), c.y, c.x, tags);
             } else {
-                m_data->node_add(node.id(), lat, lon, tags);
+                m_data->node_add(node.id(), c.y, c.x, tags);
             }
             m_stats.add_node(node.id());
         }

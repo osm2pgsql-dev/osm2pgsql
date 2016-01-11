@@ -35,7 +35,7 @@ class GeometryFactory;
 class CoordinateSequence;
 }}
 
-struct reprojection;
+class reprojection;
 
 class geometry_builder
 {

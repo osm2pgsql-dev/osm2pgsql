@@ -134,21 +134,21 @@ void test_outputs()
 
 int get_random_proj(std::vector<std::string>& args)
 {
-    int proj = rand() % (PROJ_COUNT + 1);
+    int proj = rand() % 3;
     switch(proj)
     {
-    case PROJ_LATLONG:
-    case PROJ_SPHERE_MERC:
-        args.push_back(reprojection(proj).project_getprojinfo()->option);
-        break;
-    default:
-        args.push_back("--proj");
-        //nice contiguous block of valid epsgs here randomly use one of those..
-        proj = (rand() % (2962 - 2308)) + 2308;
-        args.push_back((boost::format("%1%") % proj).str());
-        proj = -proj;
-        break;
+        case 1:
+            args.push_back("-l");
+            return PROJ_LATLONG;
+        case 2:
+            args.push_back("-m");
+            return PROJ_SPHERE_MERC;
     }
+
+    args.push_back("--proj");
+    //nice contiguous block of valid epsgs here randomly use one of those..
+    proj = (rand() % (2962 - 2308)) + 2308;
+    args.push_back((boost::format("%1%") % proj).str());
     return proj;
 }
 
@@ -206,7 +206,7 @@ void test_random_perms()
         args.push_back("osm2pgsql");
 
         //pick a projection
-        options.projection.reset(new reprojection(get_random_proj(args)));
+        options.projection.reset(reprojection::create_projection(get_random_proj(args)));
 
         //pick a style file
         std::string style = get_random_string(15);

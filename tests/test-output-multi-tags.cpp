@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
         options.num_procs = 1;
         options.slim = true;
 
-        options.projection.reset(new reprojection(PROJ_LATLONG));
+        options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
 
         options.output_backend = "multi";
         options.style = "tests/test_output_multi_tags.json";

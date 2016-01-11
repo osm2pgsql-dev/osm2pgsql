@@ -125,8 +125,8 @@ void test_latlong() {
     options.slim = true;
     options.style = "default.style";
 
-    options.projection.reset(new reprojection(PROJ_LATLONG));
-    options.scale = (options.projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+    options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
+    options.scale = (options.projection->target_latlon()) ? 10000000 : 100;
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 

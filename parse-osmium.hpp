@@ -35,7 +35,7 @@
 #include <osmium/handler.hpp>
 
 
-struct reprojection;
+class reprojection;
 class osmdata_t;
 
 class parse_stats_t

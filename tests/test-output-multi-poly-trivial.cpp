@@ -44,7 +44,7 @@ void check_output_poly_trivial(bool enable_multi, std::shared_ptr<pg::tempdb> db
   options.slim = 1;
   options.enable_multi = enable_multi;
 
-  options.projection.reset(new reprojection(PROJ_LATLONG));
+  options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
 
   options.output_backend = "multi";
   options.style = "tests/test_output_multi_poly_trivial.style.json";
