@@ -22,7 +22,7 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 # Just in case user installed RPMs from http://yum.postgresql.org/
-list(APPEND PostgreSQL_ADDITIONAL_SEARCH_PATHS /usr/pgsql-9.3 /usr/pgsql-9.4)
+list(APPEND PostgreSQL_ADDITIONAL_SEARCH_PATHS /usr/pgsql-9.3 /usr/pgsql-9.4 /usr/pgsql-9.5)
 
 if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
