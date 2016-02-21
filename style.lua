@@ -7,14 +7,28 @@ polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisu
       'wetland', 'water', 'aeroway' }
 
 -- Objects with any of the following key/value combinations will be treated as polygon
-polygon_values = {highway='services'}
+polygon_values = {
+      {'highway', 'services'}
+   }
 
 -- Objects with any of the following key/value combinations will be treated as linestring
-linestring_values = {man_made='embankment', man_made='breakwater', man_made='groyne',
-      natural='cliff', natural='tree_row', historic='citywalls',  waterway='derelict_canal',
-      waterway='ditch', waterway='drain', waterway='river', waterway='stream', waterway='wadi',
-      waterway='weir', power='line', power='minor_line'
-      }
+linestring_values = {
+      {'man_made', 'embankment'},
+      {'man_made', 'breakwater'},
+      {'man_made', 'groyne'},
+      {'natural', 'cliff'},
+      {'natural', 'tree_row'},
+      {'historic', 'citywalls'},
+      {'waterway', 'derelict_canal'},
+      {'waterway', 'ditch'},
+      {'waterway', 'drain'},
+      {'waterway', 'river'},
+      {'waterway', 'stream'},
+      {'waterway', 'wadi'},
+      {'waterway', 'weir'},
+      {'power', 'line'},
+      {'power', 'minor_line'}
+   }
 
 -- Objects without any of the following keys will be deleted
 generic_keys = {'access','addr:housename','addr:housenumber','addr:interpolation','admin_level','aerialway','aeroway','amenity','area','barrier',
@@ -129,7 +143,7 @@ function filter_tags_way (keyvalues, numberofkeys)
       return filter, keyvalues, polygon, roads
    end
 
-  -- Treat objects with a key in polygon_keys as polygon
+   -- Treat objects with a key in polygon_keys as polygon
    for i,k in ipairs(polygon_keys) do
       if keyvalues[k] then
          polygon=1
@@ -137,17 +151,17 @@ function filter_tags_way (keyvalues, numberofkeys)
       end
    end
 
-  -- Treat objects with a key/value combination in polygon_values as polygon
-   for k,v in pairs(polygon_values) do
-      if keyvalues[k] == v then
+   -- Treat objects with a key/value combination in polygon_values as polygon
+   for index,tag in pairs(polygon_values) do
+      if keyvalues[tag[1]] == tag[2] then
          polygon=1
          break
       end
    end
 
   -- Treat objects with a key/value combination in linestring_values not as polygon
-   for k,v in pairs(linestring_values) do
-      if keyvalues[k] == v then
+   for index,tag in pairs(linestring_values) do
+      if keyvalues[tag[1]] == tag[2] then
          polygon=0
          break
       end
@@ -202,14 +216,14 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
          end
       end
       -- Then add key/value combinations in polygon_values
-      for k,v in pairs(polygon_values) do
-         if keyvalues[k] == v then
+      for index,tag in pairs(polygon_values) do
+         if keyvalues[tag[1]] == tag[2] then
             polytagcount = polytagcount + 1
          end
       end
       -- Then substract key/value combinations in linestring_values
-      for k,v in pairs(linestring_values) do
-         if keyvalues[k] == v then
+      for index,tag in pairs(linestring_values) do
+         if keyvalues[tag[1]] == tag[2] then
             polytagcount = polytagcount - 1
          end
       end
