@@ -146,8 +146,17 @@ function filter_tags_way (keyvalues, numberofkeys)
    -- Treat objects with a key in polygon_keys as polygon
    for i,k in ipairs(polygon_keys) do
       if keyvalues[k] then
-         polygon=1
-         break
+         polygontag = 1
+         -- However, if the key/value combination occurs in linestring_values, do not treat the object as polygon
+         for index,tag in pairs(linestring_values) do
+            if k == tag[1] and keyvalues[k] == tag[2] then
+               polygontag = 0
+               break
+            end
+         end
+         if polygontag == 1 then
+            polygon = 1
+         end
       end
    end
 
@@ -155,14 +164,6 @@ function filter_tags_way (keyvalues, numberofkeys)
    for index,tag in pairs(polygon_values) do
       if keyvalues[tag[1]] == tag[2] then
          polygon=1
-         break
-      end
-   end
-
-  -- Treat objects with a key/value combination in linestring_values not as polygon
-   for index,tag in pairs(linestring_values) do
-      if keyvalues[tag[1]] == tag[2] then
-         polygon=0
          break
       end
    end
@@ -212,19 +213,25 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
       -- First count keys in polygon_keys
       for i,k in ipairs(polygon_keys) do
          if keyvalues[k] then
-            polytagcount = polytagcount + 1
+            polygontag = 1
+            -- However, if the key/value combination occurs in linestring_values, do not count the object as polygon
+            for index,tag in pairs(linestring_values) do
+               if k == tag[1] and keyvalues[k] == tag[2] then
+                  polygontag = 0
+                  break
+               end
+            end
+            if polygontag == 1 then
+               polytagcount = polytagcount + 1
+            end
          end
       end
-      -- Then add key/value combinations in polygon_values
+
+      -- Treat objects with a key/value combination in polygon_values as polygon
       for index,tag in pairs(polygon_values) do
          if keyvalues[tag[1]] == tag[2] then
             polytagcount = polytagcount + 1
-         end
-      end
-      -- Then substract key/value combinations in linestring_values
-      for index,tag in pairs(linestring_values) do
-         if keyvalues[tag[1]] == tag[2] then
-            polytagcount = polytagcount - 1
+            break
          end
       end
 
