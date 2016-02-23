@@ -8,7 +8,8 @@ polygon_keys = { 'building', 'landuse', 'amenity', 'harbour', 'historic', 'leisu
 
 -- Objects with any of the following key/value combinations will be treated as polygon
 polygon_values = {
-      {'highway', 'services'}
+      {'highway', 'services'},
+      {'junction', 'yes'}
    }
 
 -- Objects with any of the following key/value combinations will be treated as linestring
