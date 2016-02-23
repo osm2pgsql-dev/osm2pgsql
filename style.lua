@@ -212,7 +212,7 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
    elseif (type == "multipolygon") then
       -- Treat as polygon
       polygon = 1
-      polytagcount = 0;
+      haspolygontags = false
       -- Count the number of polygon tags
       -- First count keys in polygon_keys
       for i,k in ipairs(polygon_keys) do
@@ -226,17 +226,17 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
                end
             end
             if polygontag == 1 then
-               polytagcount = polytagcount + 1
+               haspolygontags = true
                break
             end
          end
       end
 
       -- Treat objects with a key/value combination in polygon_values as polygon
-      if polygon == 0 then
+      if not haspolygontags then
          for index,tag in pairs(polygon_values) do
             if keyvalues[tag[1]] == tag[2] then
-               polytagcount = polytagcount + 1
+               haspolygontags = true
                break
             end
          end
@@ -244,7 +244,7 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
 
       -- If the multipolygon has no polygon keys or polygon key/value combinations,
       -- add tags from all outer elements to the multipolygon itself
-      if (polytagcount <= 0) then
+      if not haspolygontags then
          for i = 1,membercount do
             if (roles[i] == "outer") then
                for k,v in pairs(keyvaluemembers[i]) do
