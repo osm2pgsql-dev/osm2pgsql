@@ -157,15 +157,18 @@ function filter_tags_way (keyvalues, numberofkeys)
          end
          if polygontag == 1 then
             polygon = 1
+            break
          end
       end
    end
 
    -- Treat objects with a key/value combination in polygon_values as polygon
-   for index,tag in pairs(polygon_values) do
-      if keyvalues[tag[1]] == tag[2] then
-         polygon=1
-         break
+   if polygon == 0 then
+      for index,tag in pairs(polygon_values) do
+         if keyvalues[tag[1]] == tag[2] then
+            polygon=1
+            break
+         end
       end
    end
    
@@ -224,15 +227,18 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
             end
             if polygontag == 1 then
                polytagcount = polytagcount + 1
+               break
             end
          end
       end
 
       -- Treat objects with a key/value combination in polygon_values as polygon
-      for index,tag in pairs(polygon_values) do
-         if keyvalues[tag[1]] == tag[2] then
-            polytagcount = polytagcount + 1
-            break
+      if polygon == 0 then
+         for index,tag in pairs(polygon_values) do
+            if keyvalues[tag[1]] == tag[2] then
+               polytagcount = polytagcount + 1
+               break
+            end
          end
       end
 
