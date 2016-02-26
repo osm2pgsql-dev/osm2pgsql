@@ -47,8 +47,6 @@
 #define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e))
 #endif
 
-#define SRID (reproj->project_getprojinfo()->srs)
-
 /* example from: pg_dump -F p -t planet_osm gis
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
 17959841        \N      \N      \N      \N      \N      \N      \N      bus_stop        \N      \N      \N      \N      \N      \N    -\N      0101000020E610000030CCA462B6C3D4BF92998C9B38E04940
@@ -89,7 +87,7 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, taglist_t &outtags,
 {
      /* Split long ways after around 1 degree or 100km */
     double split_at;
-    if (m_options.projection->get_proj_id() == PROJ_LATLONG)
+    if (m_options.projection->target_latlon())
         split_at = 1;
     else
         split_at = 100 * 1000;
@@ -145,7 +143,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     }
 
     /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
-    if (m_options.projection->get_proj_id() == PROJ_LATLONG)
+    if (m_options.projection->target_latlon())
         split_at = 1;
     else
         split_at = 100 * 1000;
@@ -663,7 +661,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
-                m_options.database_options.conninfo(), name, type, columns, m_options.hstore_columns, SRID,
+                m_options.database_options.conninfo(), name, type, columns, m_options.hstore_columns,
+                reproj->target_srs(),
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
                 m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
             )

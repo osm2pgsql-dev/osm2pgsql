@@ -101,7 +101,7 @@ int main() {
 
   options_t options;
 
-  auto projection = std::make_shared<reprojection>(PROJ_SPHERE_MERC);
+  std::shared_ptr<reprojection> projection(reprojection::create_projection(PROJ_SPHERE_MERC));
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);

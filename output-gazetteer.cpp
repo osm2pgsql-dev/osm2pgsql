@@ -14,8 +14,6 @@
 #include <iostream>
 #include <memory>
 
-#define SRID (reproj->project_getprojinfo()->srs)
-
 #define CREATE_PLACE_TABLE                      \
    "CREATE TABLE place ("                       \
    "  osm_type CHAR(1) NOT NULL,"               \
@@ -608,10 +606,10 @@ int output_gazetteer_t::connect() {
 
 int output_gazetteer_t::start()
 {
-   reproj = m_options.projection;
+   int srid = m_options.projection->target_srs();
    builder.set_exclude_broken_polygon(m_options.excludepoly);
 
-   places.srid_str = (boost::format("SRID=%1%;") % SRID).str();
+   places.srid_str = (boost::format("SRID=%1%;") % srid).str();
 
    if(connect())
        util::exit_nicely();
@@ -638,7 +636,7 @@ int output_gazetteer_t::start()
           pgsql_exec(Connection, PGRES_COMMAND_OK, CREATE_PLACE_ID_INDEX, "", "");
       }
 
-      pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", SRID);
+      pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", srid);
       pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    }
 

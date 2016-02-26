@@ -67,7 +67,7 @@ void test_area_base(bool latlon, bool reproj, double expect_area_poly, double ex
     options.style = "default.style";
     options.prefix = "osm2pgsql_test";
     if (latlon) {
-        options.projection.reset(new reprojection(PROJ_LATLONG));
+        options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
     }
     if (reproj) {
         options.reproject_area = true;

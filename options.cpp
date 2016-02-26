@@ -260,7 +260,7 @@ std::string database_options_t::conninfo() const
 }
 
 options_t::options_t():
-    prefix("planet_osm"), scale(DEFAULT_SCALE), projection(new reprojection(PROJ_SPHERE_MERC)), append(false), slim(false),
+    prefix("planet_osm"), scale(DEFAULT_SCALE), projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false), slim(false),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
     expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(false),
     enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
@@ -319,13 +319,13 @@ options_t::options_t(int argc, char *argv[]): options_t()
             keep_coastlines = true;
             break;
         case 'l':
-            projection.reset(new reprojection(PROJ_LATLONG));
+            projection.reset(reprojection::create_projection(PROJ_LATLONG));
             break;
         case 'm':
-            projection.reset(new reprojection(PROJ_SPHERE_MERC));
+            projection.reset(reprojection::create_projection(PROJ_SPHERE_MERC));
             break;
         case 'E':
-            projection.reset(new reprojection(-atoi(optarg)));
+            projection.reset(reprojection::create_projection(atoi(optarg)));
             break;
         case 'p':
             prefix = optarg;
@@ -492,7 +492,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
 
     //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
     //you could get overflow when working with larger coordinates (mercator) and larger scales
-    scale = (projection->get_proj_id() == PROJ_LATLONG) ? 10000000 : 100;
+    scale = (projection->target_latlon()) ? 10000000 : 100;
 }
 
 void options_t::check_options()

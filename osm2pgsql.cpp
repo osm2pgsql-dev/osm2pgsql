@@ -63,8 +63,8 @@ int main(int argc, char *argv[])
         osmdata_t osmdata(middle, outputs);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
-                options.projection->project_getprojinfo()->srs,
-                options.projection->project_getprojinfo()->descr );
+                options.projection->target_srs(),
+                options.projection->target_desc());
 
         //start it up
         time_t overall_start = time(nullptr);

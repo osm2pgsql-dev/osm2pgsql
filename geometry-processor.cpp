@@ -14,7 +14,7 @@
 std::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,
                                                                  const options_t *options) {
     std::shared_ptr<geometry_processor> ptr;
-    int srid = options->projection->project_getprojinfo()->srs;
+    int srid = options->projection->target_srs();
 
     if (type == "point") {
         ptr = std::make_shared<processor_point>(srid);
