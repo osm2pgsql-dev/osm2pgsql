@@ -517,11 +517,11 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
-        std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
+        std::cerr << std::endl << "Standard exception processing relation_id="<< osm_id << ": " << e.what()  << std::endl;
     }
     catch (...)
     {
-        std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
+        std::cerr << std::endl << "Exception caught processing relation id=" << osm_id << std::endl;
     }
 
     return wkbs;
@@ -540,11 +540,11 @@ geometry_builder::pg_geom_t geometry_builder::build_multilines(const multinodeli
     }//TODO: don't show in message id when osm_id == -1
     catch (const std::exception& e)
     {
-        std::cerr << std::endl << "Standard exception processing way_id="<< osm_id << ": " << e.what()  << std::endl;
+        std::cerr << std::endl << "Standard exception processing relation_id="<< osm_id << ": " << e.what()  << std::endl;
     }
     catch (...)
     {
-        std::cerr << std::endl << "Exception caught processing way id=" << osm_id << std::endl;
+        std::cerr << std::endl << "Exception caught processing relation id=" << osm_id << std::endl;
     }
     return wkb;
 }
