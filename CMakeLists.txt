@@ -238,11 +238,6 @@ add_executable(osm2pgsql osm2pgsql.cpp)
 target_link_libraries(osm2pgsql_lib ${LIBS})
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
-if (HAVE_SYS_TIME_H) # until node-persistent-cache-reader is translated to std::chrono
-  add_executable(node-persistent-cache-reader node-persistent-cache-reader.cpp)
-  target_link_libraries(node-persistent-cache-reader osm2pgsql_lib ${LIBS})
-endif()
-
 #############################################################
 # Build tests
 #############################################################
