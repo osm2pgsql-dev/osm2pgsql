@@ -269,7 +269,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu ways in %i sec\n\n", ids_queued, (int)(finish - start));
+        fprintf(stderr, "\rFinished processing %zu ways in %i s\n\n", ids_queued, (int)(finish - start));
         if (finish - start > 0)
             fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
@@ -329,7 +329,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu relations in %i sec\n\n", ids_queued, (int)(finish - start));
+        fprintf(stderr, "\rFinished processing %zu relations in %i s\n\n", ids_queued, (int)(finish - start));
         if (finish - start > 0)
             fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
