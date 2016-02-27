@@ -405,7 +405,7 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
     return 0;
 }
 
-void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, const taglist_t &tags) {
+void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags) {
     m_table->write_row(id, tags, geom);
 }
 
@@ -413,16 +413,21 @@ void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, con
  * Copies a 2d object(line or polygon) to the table, adding a way_area tag if appropriate
  * \param id OSM ID of the object
  * \param geom Geometry string of the object
- * \param tags List of tags
+ * \param tags List of tags. May be modified.
  * \param polygon Polygon flag returned from the tag transform (polygon=1)
  *
  * \pre geom must be valid.
  */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, const taglist_t &tags, int polygon) {
+void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon) {
     if (geom.is_polygon()) {
         // It's a polygon table (implied by it turning into a poly),
         // and it got formed into a polygon, so expire as a polygon and write the geom
         m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+        if (geom.area > 0.0) {
+            char tmp[32];
+            snprintf(tmp, sizeof(tmp), "%g", geom.area);
+            tags.push_override(tag_t("way_area", tmp));
+        }
         m_table->write_row(id, tags, geom.geom);
     } else {
         // Linestring
