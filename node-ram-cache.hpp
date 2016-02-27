@@ -138,7 +138,7 @@ private:
 
     int64_t cacheUsed, cacheSize;
     osmid_t storedNodes, totalNodes;
-    int nodesCacheHits, nodesCacheLookups;
+    long nodesCacheHits, nodesCacheLookups;
 
     int warn_node_order;
 };
