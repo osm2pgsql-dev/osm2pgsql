@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -53,6 +53,32 @@ namespace osmium {
      * @brief Threading-related low-level code
      */
     namespace thread {
+
+        namespace detail {
+
+            // Maximum number of allowed pool threads (just to keep the user
+            // from setting something silly).
+            constexpr const int max_pool_threads = 256;
+
+            inline int get_pool_size(int num_threads, int user_setting, unsigned hardware_concurrency) {
+                if (num_threads == 0) {
+                    num_threads = user_setting ? user_setting : -2;
+                }
+
+                if (num_threads < 0) {
+                    num_threads += hardware_concurrency;
+                }
+
+                if (num_threads < 1) {
+                    num_threads = 1;
+                } else if (num_threads > max_pool_threads) {
+                    num_threads = max_pool_threads;
+                }
+
+                return num_threads;
+            }
+
+        } // namespace detail
 
         /**
          *  Thread pool.
@@ -119,15 +145,7 @@ namespace osmium {
                 m_work_queue(max_queue_size, "work"),
                 m_threads(),
                 m_joiner(m_threads),
-                m_num_threads(num_threads) {
-
-                if (m_num_threads == 0) {
-                    m_num_threads = osmium::config::get_pool_threads();
-                }
-
-                if (m_num_threads <= 0) {
-                    m_num_threads = std::max(1, static_cast<int>(std::thread::hardware_concurrency()) + m_num_threads);
-                }
+                m_num_threads(detail::get_pool_size(num_threads, osmium::config::get_pool_threads(), std::thread::hardware_concurrency())) {
 
                 try {
                     for (int i = 0; i < m_num_threads; ++i) {

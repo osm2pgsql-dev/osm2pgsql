@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -71,13 +71,13 @@ namespace osmium {
 
                 SparseMemMap() = default;
 
-                ~SparseMemMap() noexcept override final = default;
+                ~SparseMemMap() noexcept final = default;
 
-                void set(const TId id, const TValue value) override final {
+                void set(const TId id, const TValue value) final {
                     m_elements[id] = value;
                 }
 
-                const TValue get(const TId id) const override final {
+                const TValue get(const TId id) const final {
                     auto it = m_elements.find(id);
                     if (it == m_elements.end()) {
                         not_found_error(id);
@@ -85,19 +85,19 @@ namespace osmium {
                     return it->second;
                 }
 
-                size_t size() const noexcept override final {
+                size_t size() const noexcept final {
                     return m_elements.size();
                 }
 
-                size_t used_memory() const noexcept override final {
+                size_t used_memory() const noexcept final {
                     return element_size * m_elements.size();
                 }
 
-                void clear() override final {
+                void clear() final {
                     m_elements.clear();
                 }
 
-                void dump_as_list(const int fd) override final {
+                void dump_as_list(const int fd) final {
                     typedef typename std::map<TId, TValue>::value_type t;
                     std::vector<t> v;
                     v.reserve(m_elements.size());

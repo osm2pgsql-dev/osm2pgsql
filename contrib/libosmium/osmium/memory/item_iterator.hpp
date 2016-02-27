@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -38,23 +38,11 @@ DEALINGS IN THE SOFTWARE.
 #include <iosfwd>
 #include <type_traits>
 
+#include <osmium/fwd.hpp>
 #include <osmium/memory/item.hpp>
 #include <osmium/osm/item_type.hpp>
 
 namespace osmium {
-
-    class Node;
-    class Way;
-    class Relation;
-    class Area;
-    class Changeset;
-    class OSMObject;
-    class OSMEntity;
-    class TagList;
-    class WayNodeList;
-    class RelationMemberList;
-    class InnerRing;
-    class OuterRing;
 
     namespace memory {
 
@@ -217,15 +205,21 @@ namespace osmium {
             }
 
             explicit operator bool() const {
-                return m_data != nullptr;
+                return (m_data != nullptr) && (m_data != m_end);
             }
 
             template <typename TChar, typename TTraits>
-            friend std::basic_ostream<TChar, TTraits>& operator<<(std::basic_ostream<TChar, TTraits>& out, const ItemIterator<TMember>& iter) {
-                return out << static_cast<void*>(iter.m_data);
+            void print(std::basic_ostream<TChar, TTraits>& out) const {
+                out << static_cast<const void*>(m_data);
             }
 
         }; // class ItemIterator
+
+        template <typename TChar, typename TTraits, typename TMember>
+        inline std::basic_ostream<TChar, TTraits>& operator<<(std::basic_ostream<TChar, TTraits>& out, const ItemIterator<TMember>& iter) {
+            iter.print(out);
+            return out;
+        }
 
     } // namespace memory
 

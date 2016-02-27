@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,8 +34,10 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <cassert>
+#include <cstddef>
 #include <cstring>
 #include <initializer_list>
+#include <limits>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -49,13 +51,12 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/object.hpp>
 #include <osmium/osm/tag.hpp>
 #include <osmium/osm/types.hpp>
-#include <osmium/util/cast.hpp>
 
 namespace osmium {
 
     namespace memory {
         class Buffer;
-    }
+    } // namespace memory
 
     namespace builder {
 
@@ -121,6 +122,42 @@ namespace osmium {
                 }
                 add_size(append(key.data(),   osmium::memory::item_size_type(key.size())   + 1) +
                          append(value.data(), osmium::memory::item_size_type(value.size()) + 1));
+            }
+
+            /**
+             * Add tag to buffer.
+             *
+             * @param tag Tag.
+             */
+            void add_tag(const osmium::Tag& tag) {
+                add_size(append(tag.key()) + append(tag.value()));
+            }
+
+            /**
+             * Add tag to buffer.
+             *
+             * @param tag Pair of key/value 0-terminated strings.
+             */
+            void add_tag(const std::pair<const char* const, const char* const>& tag) {
+                add_tag(tag.first, tag.second);
+            }
+            void add_tag(const std::pair<const char* const, const char*>& tag) {
+                add_tag(tag.first, tag.second);
+            }
+            void add_tag(const std::pair<const char*, const char* const>& tag) {
+                add_tag(tag.first, tag.second);
+            }
+            void add_tag(const std::pair<const char*, const char*>& tag) {
+                add_tag(tag.first, tag.second);
+            }
+
+            /**
+             * Add tag to buffer.
+             *
+             * @param tag Pair of std::string references.
+             */
+            void add_tag(const std::pair<const std::string&, const std::string&>& tag) {
+                add_tag(tag.first, tag.second);
             }
 
         }; // class TagListBuilder

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -62,7 +62,8 @@ namespace osmium {
             }
 
             /**
-             * Warning! Use of buffer size argument on OutputIterator
+             * @deprecated
+             * Use of buffer size argument on OutputIterator
              * constructor is deprecated. Call Writer::set_buffer_size()
              * instead if you want to change the default.
              */
@@ -80,7 +81,8 @@ namespace osmium {
             ~OutputIterator() = default;
 
             /**
-             * Warning! Calling OutputIterator<Writer>::flush() is usually not
+             * @deprecated
+             * Calling OutputIterator<Writer>::flush() is usually not
              * needed any more. Call flush() on the Writer instead if needed.
              */
             OSMIUM_DEPRECATED void flush() {
@@ -116,9 +118,10 @@ namespace osmium {
         }
 
         /**
-         * Warning! Use of buffer size argument on make_output_iterator is
-         * deprecated. Call Writer::set_buffer_size() instead if you want to
-         * change the default.
+         * @deprecated
+         * Use of buffer size argument on make_output_iterator is deprecated.
+         * Call Writer::set_buffer_size() instead if you want to change the
+         * default.
          */
         template <typename TDest>
         OSMIUM_DEPRECATED OutputIterator<TDest> make_output_iterator(TDest& destination, const size_t buffer_size) {

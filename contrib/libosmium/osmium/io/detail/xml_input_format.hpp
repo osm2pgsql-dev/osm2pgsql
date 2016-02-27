@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -194,7 +194,7 @@ namespace osmium {
 
                 public:
 
-                    ExpatXMLParser(T* callback_object) :
+                    explicit ExpatXMLParser(T* callback_object) :
                         m_parser(XML_ParserCreate(nullptr)) {
                         if (!m_parser) {
                             throw osmium::io_error("Internal error: Can not create parser");
@@ -630,9 +630,9 @@ namespace osmium {
                     m_rml_builder() {
                 }
 
-                ~XMLParser() noexcept = default;
+                ~XMLParser() noexcept final = default;
 
-                void run() override final {
+                void run() final {
                     osmium::thread::set_thread_name("_osmium_xml_in");
 
                     ExpatXMLParser<XMLParser> parser(this);

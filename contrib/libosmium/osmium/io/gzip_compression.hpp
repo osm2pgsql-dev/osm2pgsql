@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -109,7 +109,7 @@ namespace osmium {
                 }
             }
 
-            ~GzipCompressor() noexcept override final {
+            ~GzipCompressor() noexcept final {
                 try {
                     close();
                 } catch (...) {
@@ -117,7 +117,7 @@ namespace osmium {
                 }
             }
 
-            void write(const std::string& data) override final {
+            void write(const std::string& data) final {
                 if (!data.empty()) {
                     int nwrite = ::gzwrite(m_gzfile, data.data(), static_cast_with_assert<unsigned int>(data.size()));
                     if (nwrite == 0) {
@@ -126,7 +126,7 @@ namespace osmium {
                 }
             }
 
-            void close() override final {
+            void close() final {
                 if (m_gzfile) {
                     int result = ::gzclose(m_gzfile);
                     m_gzfile = nullptr;
@@ -156,7 +156,7 @@ namespace osmium {
                 }
             }
 
-            ~GzipDecompressor() noexcept override final {
+            ~GzipDecompressor() noexcept final {
                 try {
                     close();
                 } catch (...) {
@@ -164,7 +164,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() override final {
+            std::string read() final {
                 std::string buffer(osmium::io::Decompressor::input_buffer_size, '\0');
                 int nread = ::gzread(m_gzfile, const_cast<char*>(buffer.data()), static_cast_with_assert<unsigned int>(buffer.size()));
                 if (nread < 0) {
@@ -174,7 +174,7 @@ namespace osmium {
                 return buffer;
             }
 
-            void close() override final {
+            void close() final {
                 if (m_gzfile) {
                     int result = ::gzclose(m_gzfile);
                     m_gzfile = nullptr;
@@ -210,7 +210,7 @@ namespace osmium {
                 }
             }
 
-            ~GzipBufferDecompressor() noexcept override final {
+            ~GzipBufferDecompressor() noexcept final {
                 try {
                     close();
                 } catch (...) {
@@ -218,7 +218,7 @@ namespace osmium {
                 }
             }
 
-            std::string read() override final {
+            std::string read() final {
                 std::string output;
 
                 if (m_buffer) {
@@ -247,7 +247,7 @@ namespace osmium {
                 return output;
             }
 
-            void close() override final {
+            void close() final {
                 inflateEnd(&m_zstream);
             }
 

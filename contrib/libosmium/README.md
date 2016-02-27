@@ -27,9 +27,15 @@ you need for your programs.
 For details see the
 [list of dependencies](https://github.com/osmcode/libosmium/wiki/Libosmium-dependencies).
 
-The [protozero](https://github.com/mapbox/protozero) and
-[utf8-cpp](http://utfcpp.sourceforge.net/) header-only libraries are included
-in the libosmium repository.
+The following external (header-only) libraries are included in the libosmium
+repository:
+* [gdalcpp](https://github.com/joto/gdalcpp)
+* [protozero](https://github.com/mapbox/protozero)
+* [utfcpp](http://utfcpp.sourceforge.net/)
+
+If you want (some of) those libraries to be installed along with libosmium
+itself when calling `make install`, you have to use the CMake options
+`INSTALL_GDALCPP`, `INSTALL_PROTOZERO`, and/or `INSTALL_UTFCPP`.
 
 
 ## Directories

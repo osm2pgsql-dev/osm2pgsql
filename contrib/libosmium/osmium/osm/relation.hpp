@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -49,7 +49,7 @@ namespace osmium {
     namespace builder {
         template <typename> class ObjectBuilder;
         class RelationMemberListBuilder;
-    }
+    } // namespace builder
 
     class RelationMember : public osmium::memory::detail::ItemHelper {
 
@@ -80,17 +80,15 @@ namespace osmium {
         unsigned char* next() {
             if (full_member()) {
                 return endpos() + reinterpret_cast<osmium::memory::Item*>(endpos())->byte_size();
-            } else {
-                return endpos();
             }
+            return endpos();
         }
 
         unsigned const char* next() const {
             if (full_member()) {
                 return endpos() + reinterpret_cast<const osmium::memory::Item*>(endpos())->byte_size();
-            } else {
-                return endpos();
             }
+            return endpos();
         }
 
         void set_role_size(string_size_type size) noexcept {

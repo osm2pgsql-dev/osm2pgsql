@@ -1,5 +1,5 @@
-#ifndef OSMIUM_IO_PBF_OUTPUT_HPP
-#define OSMIUM_IO_PBF_OUTPUT_HPP
+#ifndef OSMIUM_UTIL_ITERATOR_HPP
+#define OSMIUM_UTIL_ITERATOR_HPP
 
 /*
 
@@ -33,16 +33,42 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-/**
- * @file
- *
- * Include this file if you want to write OSM PBF files.
- *
- * @attention If you include this file, you'll need to link with
- *            `libz`, and enable multithreading.
- */
+#include <cstddef>
+#include <utility>
 
-#include <osmium/io/writer.hpp> // IWYU pragma: export
-#include <osmium/io/detail/pbf_output_format.hpp> // IWYU pragma: export
+namespace osmium {
 
-#endif // OSMIUM_IO_PBF_OUTPUT_HPP
+    template <typename It, typename P = std::pair<It, It>>
+    struct iterator_range : public P {
+
+        using iterator = It;
+
+        iterator_range(P&& p) :
+            P(std::forward<P>(p)) {
+        }
+
+        It begin() {
+            return this->first;
+        }
+
+        It end() {
+            return this->second;
+        }
+
+        It begin() const {
+            return this->first;
+        }
+
+        It end() const {
+            return this->second;
+        }
+
+        size_t empty() const {
+            return begin() == end();
+        }
+
+    };
+
+} // namespace osmium
+
+#endif // OSMIUM_UTIL_ITERATOR_HPP
