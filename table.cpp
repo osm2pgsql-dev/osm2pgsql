@@ -221,7 +221,7 @@ void table_t::stop()
 
         // Special handling for empty geometries because geohash chokes on
         // empty geometries on postgis 1.5.
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END COLLATE \"C\"") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
         // Re-add constraints if on 1.x. 2.0 has typemod, and they automatically come with CREATE TABLE AS
