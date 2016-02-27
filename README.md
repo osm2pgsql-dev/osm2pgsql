@@ -42,7 +42,7 @@ Required libraries are
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
 
 It also requires access to a database server running
-[PostgreSQL](http://www.postgresql.org/) and [PostGIS](http://www.postgis.net/).
+[PostgreSQL](http://www.postgresql.org/) 9.1+ and [PostGIS](http://www.postgis.net/) 2.0+.
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
