@@ -99,6 +99,17 @@ public:
           push_back(t);
   }
 
+    /** Pushes a tag onto the list, overriding an existing tag if necessary */
+    void push_override(const tag_t& t)
+    {
+        auto *tag_in_list = find(t.key);
+
+        if (tag_in_list == 0) {
+            push_back(t);
+        } else {
+            tag_in_list->value = t.value;
+        }
+    }
   bool contains(const std::string &key) const { return _find(key) != 0; }
 
 private:
