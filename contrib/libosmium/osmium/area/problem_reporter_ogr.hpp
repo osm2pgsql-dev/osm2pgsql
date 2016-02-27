@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -104,7 +104,7 @@ namespace osmium {
                 m_layer_lerror.add_field("problem_type", OFTString, 30);
             }
 
-            virtual ~ProblemReporterOGR() = default;
+            ~ProblemReporterOGR() override = default;
 
             void report_duplicate_node(osmium::object_id_type node_id1, osmium::object_id_type node_id2, osmium::Location location) override {
                 write_point("duplicate_node", node_id1, node_id2, location);

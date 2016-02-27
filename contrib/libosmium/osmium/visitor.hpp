@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -35,6 +35,7 @@ DEALINGS IN THE SOFTWARE.
 
 #include <type_traits>
 
+#include <osmium/fwd.hpp>
 #include <osmium/io/reader_iterator.hpp> // IWYU pragma: keep
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm.hpp>
@@ -43,15 +44,9 @@ DEALINGS IN THE SOFTWARE.
 
 namespace osmium {
 
-    class TagList;
-    class WayNodeList;
-    class RelationMemberList;
-    class OuterRing;
-    class InnerRing;
-
     namespace memory {
         class Item;
-    }
+    } // namespace memory
 
     namespace detail {
 

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -113,27 +113,27 @@ auto _name_##_dispatch(THandler& handler, const osmium::_type_& object, long) ->
                     m_handler(std::forward<TArgs>(args)...) {
                 }
 
-                void node(const osmium::Node& node) override final {
+                void node(const osmium::Node& node) final {
                     node_dispatch(m_handler, node, 0);
                 }
 
-                void way(const osmium::Way& way) override final {
+                void way(const osmium::Way& way) final {
                     way_dispatch(m_handler, way, 0);
                 }
 
-                void relation(const osmium::Relation& relation) override final {
+                void relation(const osmium::Relation& relation) final {
                     relation_dispatch(m_handler, relation, 0);
                 }
 
-                void area(const osmium::Area& area) override final {
+                void area(const osmium::Area& area) final {
                     area_dispatch(m_handler, area, 0);
                 }
 
-                void changeset(const osmium::Changeset& changeset) override final {
+                void changeset(const osmium::Changeset& changeset) final {
                     changeset_dispatch(m_handler, changeset, 0);
                 }
 
-                void flush() override final {
+                void flush() final {
                     flush_dispatch(m_handler, 0);
                 }
 
@@ -183,7 +183,7 @@ auto _name_##_dispatch(THandler& handler, const osmium::_type_& object, long) ->
 
         }; // class DynamicHandler
 
-    } // namspace handler
+    } // namespace handler
 
 } // namespace osmium
 

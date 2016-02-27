@@ -19,6 +19,8 @@ documentation.
 #include <cstdint>
 #include <cassert>
 
+#include <protozero/config.hpp>
+
 namespace protozero {
 
 /**
@@ -35,9 +37,9 @@ inline void byteswap(const char* /*data*/, char* /*result*/) {
  */
 template <>
 inline void byteswap<4>(const char* data, char* result) {
-# if defined(__GNUC__) || defined(__clang__)
+#ifdef PROTOZERO_USE_BUILTIN_BSWAP
     *reinterpret_cast<uint32_t*>(result) = __builtin_bswap32(*reinterpret_cast<const uint32_t*>(data));
-# else
+#else
     result[3] = data[0];
     result[2] = data[1];
     result[1] = data[2];
@@ -50,9 +52,9 @@ inline void byteswap<4>(const char* data, char* result) {
  */
 template <>
 inline void byteswap<8>(const char* data, char* result) {
-# if defined(__GNUC__) || defined(__clang__)
+#ifdef PROTOZERO_USE_BUILTIN_BSWAP
     *reinterpret_cast<uint64_t*>(result) = __builtin_bswap64(*reinterpret_cast<const uint64_t*>(data));
-# else
+#else
     result[7] = data[0];
     result[6] = data[1];
     result[5] = data[2];

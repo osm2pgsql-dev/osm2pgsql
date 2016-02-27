@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -43,10 +43,6 @@ DEALINGS IN THE SOFTWARE.
 #include <string>
 #include <time.h>
 #include <utility>
-
-// needed for older boost libraries
-#define BOOST_RESULT_OF_USE_DECLTYPE
-#include <boost/iterator/transform_iterator.hpp>
 
 #include <protozero/pbf_builder.hpp>
 
@@ -224,7 +220,7 @@ namespace osmium {
 
                 osmium::util::DeltaEncode<object_id_type, int64_t> m_delta_id;
 
-                osmium::util::DeltaEncode<time_t, int64_t> m_delta_timestamp;
+                osmium::util::DeltaEncode<uint32_t, int64_t> m_delta_timestamp;
                 osmium::util::DeltaEncode<changeset_id_type, int64_t> m_delta_changeset;
                 osmium::util::DeltaEncode<user_id_type, int32_t> m_delta_uid;
                 osmium::util::DeltaEncode<uint32_t, int32_t> m_delta_user_sid;
@@ -276,7 +272,7 @@ namespace osmium {
 
                     if (m_options.add_metadata) {
                         m_versions.push_back(static_cast_with_assert<int32_t>(node.version()));
-                        m_timestamps.push_back(m_delta_timestamp.update(node.timestamp()));
+                        m_timestamps.push_back(m_delta_timestamp.update(uint32_t(node.timestamp())));
                         m_changesets.push_back(m_delta_changeset.update(node.changeset()));
                         m_uids.push_back(m_delta_uid.update(node.uid()));
                         m_user_sids.push_back(m_delta_user_sid.update(m_stringtable.add(node.user())));
@@ -335,7 +331,7 @@ namespace osmium {
 
             public:
 
-                PrimitiveBlock(const pbf_output_options& options) :
+                explicit PrimitiveBlock(const pbf_output_options& options) :
                     m_pbf_primitive_group_data(),
                     m_pbf_primitive_group(m_pbf_primitive_group_data),
                     m_stringtable(),
@@ -441,28 +437,25 @@ namespace osmium {
 
                 template <typename T>
                 void add_meta(const osmium::OSMObject& object, T& pbf_object) {
-                    const osmium::TagList& tags = object.tags();
+                    {
+                        protozero::packed_field_uint32 field{pbf_object, protozero::pbf_tag_type(T::enum_type::packed_uint32_keys)};
+                        for (const auto& tag : object.tags()) {
+                            field.add_element(m_primitive_block.store_in_stringtable(tag.key()));
+                        }
+                    }
 
-                    auto map_tag_key = [this](const osmium::Tag& tag) -> uint32_t {
-                        return m_primitive_block.store_in_stringtable(tag.key());
-                    };
-                    auto map_tag_value = [this](const osmium::Tag& tag) -> uint32_t {
-                        return m_primitive_block.store_in_stringtable(tag.value());
-                    };
-
-                    pbf_object.add_packed_uint32(T::enum_type::packed_uint32_keys,
-                        boost::make_transform_iterator(tags.begin(), map_tag_key),
-                        boost::make_transform_iterator(tags.end(), map_tag_key));
-
-                    pbf_object.add_packed_uint32(T::enum_type::packed_uint32_vals,
-                        boost::make_transform_iterator(tags.begin(), map_tag_value),
-                        boost::make_transform_iterator(tags.end(), map_tag_value));
+                    {
+                        protozero::packed_field_uint32 field{pbf_object, protozero::pbf_tag_type(T::enum_type::packed_uint32_vals)};
+                        for (const auto& tag : object.tags()) {
+                            field.add_element(m_primitive_block.store_in_stringtable(tag.value()));
+                        }
+                    }
 
                     if (m_options.add_metadata) {
                         protozero::pbf_builder<OSMFormat::Info> pbf_info(pbf_object, T::enum_type::optional_Info_info);
 
                         pbf_info.add_int32(OSMFormat::Info::optional_int32_version, static_cast_with_assert<int32_t>(object.version()));
-                        pbf_info.add_int64(OSMFormat::Info::optional_int64_timestamp, object.timestamp());
+                        pbf_info.add_int64(OSMFormat::Info::optional_int64_timestamp, uint32_t(object.timestamp()));
                         pbf_info.add_int64(OSMFormat::Info::optional_int64_changeset, object.changeset());
                         pbf_info.add_int32(OSMFormat::Info::optional_int32_uid, static_cast_with_assert<int32_t>(object.uid()));
                         pbf_info.add_uint32(OSMFormat::Info::optional_uint32_user_sid, m_primitive_block.store_in_stringtable(object.user()));
@@ -495,9 +488,9 @@ namespace osmium {
                 PBFOutputFormat(const PBFOutputFormat&) = delete;
                 PBFOutputFormat& operator=(const PBFOutputFormat&) = delete;
 
-                ~PBFOutputFormat() noexcept = default;
+                ~PBFOutputFormat() noexcept final = default;
 
-                void write_header(const osmium::io::Header& header) override final {
+                void write_header(const osmium::io::Header& header) final {
                     std::string data;
                     protozero::pbf_builder<OSMFormat::HeaderBlock> pbf_header_block(data);
 
@@ -526,7 +519,7 @@ namespace osmium {
                     std::string osmosis_replication_timestamp = header.get("osmosis_replication_timestamp");
                     if (!osmosis_replication_timestamp.empty()) {
                         osmium::Timestamp ts(osmosis_replication_timestamp.c_str());
-                        pbf_header_block.add_int64(OSMFormat::HeaderBlock::optional_int64_osmosis_replication_timestamp, ts);
+                        pbf_header_block.add_int64(OSMFormat::HeaderBlock::optional_int64_osmosis_replication_timestamp, uint32_t(ts));
                     }
 
                     std::string osmosis_replication_sequence_number = header.get("osmosis_replication_sequence_number");
@@ -546,11 +539,11 @@ namespace osmium {
                         ));
                 }
 
-                void write_buffer(osmium::memory::Buffer&& buffer) override final {
+                void write_buffer(osmium::memory::Buffer&& buffer) final {
                     osmium::apply(buffer.cbegin(), buffer.cend(), *this);
                 }
 
-                void write_end() override final {
+                void write_end() final {
                     store_primitive_block();
                 }
 
@@ -596,12 +589,12 @@ namespace osmium {
                     pbf_relation.add_int64(OSMFormat::Relation::required_int64_id, relation.id());
                     add_meta(relation, pbf_relation);
 
-                    auto map_member_role = [this](const osmium::RelationMember& member) -> uint32_t {
-                        return m_primitive_block.store_in_stringtable(member.role());
-                    };
-                    pbf_relation.add_packed_int32(OSMFormat::Relation::packed_int32_roles_sid,
-                        boost::make_transform_iterator(relation.members().begin(), map_member_role),
-                        boost::make_transform_iterator(relation.members().end(), map_member_role));
+                    {
+                        protozero::packed_field_int32 field{pbf_relation, protozero::pbf_tag_type(OSMFormat::Relation::packed_int32_roles_sid)};
+                        for (const auto& member : relation.members()) {
+                            field.add_element(m_primitive_block.store_in_stringtable(member.role()));
+                        }
+                    }
 
                     static auto map_member_ref = [](osmium::RelationMemberList::const_iterator member) noexcept -> osmium::object_id_type {
                         return member->ref();
@@ -612,12 +605,12 @@ namespace osmium {
                     it_type last { members.cend(), members.cend(), map_member_ref };
                     pbf_relation.add_packed_sint64(OSMFormat::Relation::packed_sint64_memids, first, last);
 
-                    static auto map_member_type = [](const osmium::RelationMember& member) noexcept -> int32_t {
-                        return int32_t(osmium::item_type_to_nwr_index(member.type()));
-                    };
-                    pbf_relation.add_packed_int32(OSMFormat::Relation::packed_MemberType_types,
-                        boost::make_transform_iterator(relation.members().begin(), map_member_type),
-                        boost::make_transform_iterator(relation.members().end(), map_member_type));
+                    {
+                        protozero::packed_field_int32 field{pbf_relation, protozero::pbf_tag_type(OSMFormat::Relation::packed_MemberType_types)};
+                        for (const auto& member : relation.members()) {
+                            field.add_element(int32_t(osmium::item_type_to_nwr_index(member.type())));
+                        }
+                    }
                 }
 
             }; // class PBFOutputFormat

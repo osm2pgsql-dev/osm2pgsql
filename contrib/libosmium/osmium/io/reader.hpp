@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -206,7 +206,7 @@ namespace osmium {
                 m_decompressor(m_file.buffer() ?
                     osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), m_file.buffer(), m_file.buffer_size()) :
                     osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), open_input_file_or_url(m_file.filename(), &m_childpid))),
-                m_read_thread_manager(*m_decompressor.get(), m_input_queue),
+                m_read_thread_manager(*m_decompressor, m_input_queue),
                 m_osmdata_queue(max_osmdata_queue_size, "parser_results"),
                 m_osmdata_queue_wrapper(m_osmdata_queue),
                 m_header_future(),

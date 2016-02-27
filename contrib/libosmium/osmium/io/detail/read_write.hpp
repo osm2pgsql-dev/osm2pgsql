@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -73,22 +73,22 @@ namespace osmium {
                     _setmode(1, _O_BINARY);
 #endif
                     return 1; // stdout
-                } else {
-                    int flags = O_WRONLY | O_CREAT;
-                    if (allow_overwrite == osmium::io::overwrite::allow) {
-                        flags |= O_TRUNC;
-                    } else {
-                        flags |= O_EXCL;
-                    }
-#ifdef _WIN32
-                    flags |= O_BINARY;
-#endif
-                    int fd = ::open(filename.c_str(), flags, 0666);
-                    if (fd < 0) {
-                        throw std::system_error(errno, std::system_category(), std::string("Open failed for '") + filename + "'");
-                    }
-                    return fd;
                 }
+
+                int flags = O_WRONLY | O_CREAT;
+                if (allow_overwrite == osmium::io::overwrite::allow) {
+                    flags |= O_TRUNC;
+                } else {
+                    flags |= O_EXCL;
+                }
+#ifdef _WIN32
+                flags |= O_BINARY;
+#endif
+                int fd = ::open(filename.c_str(), flags, 0666);
+                if (fd < 0) {
+                    throw std::system_error(errno, std::system_category(), std::string("Open failed for '") + filename + "'");
+                }
+                return fd;
             }
 
             /**
@@ -102,17 +102,17 @@ namespace osmium {
             inline int open_for_reading(const std::string& filename) {
                 if (filename == "" || filename == "-") {
                     return 0; // stdin
-                } else {
-                    int flags = O_RDONLY;
-#ifdef _WIN32
-                    flags |= O_BINARY;
-#endif
-                    int fd = ::open(filename.c_str(), flags);
-                    if (fd < 0) {
-                        throw std::system_error(errno, std::system_category(), std::string("Open failed for '") + filename + "'");
-                    }
-                    return fd;
                 }
+
+                int flags = O_RDONLY;
+#ifdef _WIN32
+                flags |= O_BINARY;
+#endif
+                int fd = ::open(filename.c_str(), flags);
+                if (fd < 0) {
+                    throw std::system_error(errno, std::system_category(), std::string("Open failed for '") + filename + "'");
+                }
+                return fd;
             }
 
             /**

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -59,6 +59,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/location.hpp>
 #include <osmium/osm/object.hpp>
 #include <osmium/osm/types.hpp>
+#include <osmium/thread/util.hpp>
 #include <osmium/util/cast.hpp>
 #include <osmium/util/delta.hpp>
 
@@ -71,7 +72,7 @@ namespace osmium {
      */
     struct o5m_error : public io_error {
 
-        o5m_error(const char* what) :
+        explicit o5m_error(const char* what) :
             io_error(std::string("o5m format error: ") + what) {
         }
 
@@ -599,9 +600,11 @@ namespace osmium {
                     m_end(m_data) {
                 }
 
-                ~O5mParser() noexcept = default;
+                ~O5mParser() noexcept final = default;
 
-                void run() override final {
+                void run() final {
+                    osmium::thread::set_thread_name("_osmium_o5m_in");
+
                     decode_header();
                     decode_data();
                 }

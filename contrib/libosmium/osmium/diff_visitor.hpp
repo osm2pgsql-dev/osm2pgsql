@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -70,7 +70,7 @@ namespace osmium {
 
     template <typename TIterator, typename... THandlers>
     inline void apply_diff(TIterator it, TIterator end, THandlers&... handlers) {
-        typedef osmium::DiffIterator<TIterator> diff_iterator;
+        using diff_iterator = osmium::DiffIterator<TIterator>;
 
         diff_iterator dit(it, end);
         diff_iterator dend(end, end);

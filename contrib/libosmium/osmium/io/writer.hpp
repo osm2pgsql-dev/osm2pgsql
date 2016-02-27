@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -121,6 +121,7 @@ namespace osmium {
             }
 
             void do_flush() {
+                osmium::thread::check_for_exception(m_write_future);
                 if (m_buffer && m_buffer.committed() > 0) {
                     osmium::memory::Buffer buffer{m_buffer_size,
                                                   osmium::memory::Buffer::auto_grow::no};
@@ -138,7 +139,6 @@ namespace osmium {
                 }
 
                 try {
-                    osmium::thread::check_for_exception(m_write_future);
                     func(std::forward<TArgs>(args)...);
                 } catch (...) {
                     m_status = status::error;

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -53,7 +53,7 @@ namespace osmium {
 
     namespace relations {
         class RelationMeta;
-    }
+    } // namespace relations
 
     /**
      * @brief Code related to the building of areas (multipolygons) from relations.
@@ -176,28 +176,6 @@ namespace osmium {
                     possibly_flush_output_buffer();
                 } catch (osmium::invalid_location&) {
                     // XXX ignore
-                }
-
-                // clear member metas
-                for (const auto& member : relation.members()) {
-                    if (member.ref() != 0) {
-                        auto& mmv = this->member_meta(member.type());
-                        auto range = std::equal_range(mmv.begin(), mmv.end(), osmium::relations::MemberMeta(member.ref()));
-                        assert(range.first != range.second);
-
-                        // if this is the last time this object was needed
-                        // then mark it as removed
-                        if (osmium::relations::count_not_removed(range.first, range.second) == 1) {
-                            this->get_member(range.first->buffer_offset()).set_removed(true);
-                        }
-
-                        for (auto it = range.first; it != range.second; ++it) {
-                            if (!it->removed() && relation.id() == this->get_relation(it->relation_pos()).id()) {
-                                it->remove();
-                                break;
-                            }
-                        }
-                    }
                 }
             }
 

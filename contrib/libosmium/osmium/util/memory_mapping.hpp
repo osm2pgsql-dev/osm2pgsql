@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2015 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -38,6 +38,7 @@ DEALINGS IN THE SOFTWARE.
 #include <stdexcept>
 #include <system_error>
 
+#include <osmium/util/compatibility.hpp>
 #include <osmium/util/file.hpp>
 
 #ifndef _WIN32
@@ -173,7 +174,8 @@ private:
              * created, otherwise a mapping based on the file descriptor will
              * be created.
              *
-             * @pre size > 0 or mode == write_shared oder write_private
+             * @pre @code size > 0 @endcode or
+             *      @code mode == write_shared || mode == write_private @endcode
              *
              * @param size Size of the mapping in bytes
              * @param mode Mapping mode: readonly, or writable (shared or private)
@@ -183,8 +185,12 @@ private:
              */
             MemoryMapping(size_t size, mapping_mode mode, int fd=-1, off_t offset=0);
 
-            /// DEPRECATED: For backwards compatibility
-            MemoryMapping(size_t size, bool writable=true, int fd=-1, off_t offset=0) :
+            /**
+             * @deprecated
+             * For backwards compatibility only. Use the constructor taking
+             * a mapping_mode as second argument instead.
+             */
+            OSMIUM_DEPRECATED MemoryMapping(size_t size, bool writable=true, int fd=-1, off_t offset=0) :
                 MemoryMapping(size, writable ? mapping_mode::write_shared : mapping_mode::readonly, fd, offset)  {
             }
 
@@ -232,8 +238,9 @@ private:
              * systems it will unmap and remap the memory. This can only be
              * done for file-based mappings, not anonymous mappings!
              *
-             * @param new_size Number of bytes to resize to
-             * @throws std::system_error if the remapping fails
+             * @param new_size Number of bytes to resize to (must be > 0).
+             *
+             * @throws std::system_error if the remapping fails.
              */
             void resize(size_t new_size);
 
@@ -241,7 +248,7 @@ private:
              * In a boolean context a MemoryMapping is true when it is a valid
              * existing mapping.
              */
-            operator bool() const noexcept {
+            explicit operator bool() const noexcept {
                 return is_valid();
             }
 
@@ -353,8 +360,12 @@ private:
                 m_mapping(sizeof(T) * size, mode, fd, sizeof(T) * offset) {
             }
 
-            /// DEPRECATED: For backwards compatibility
-            TypedMemoryMapping(size_t size, bool writable, int fd, off_t offset = 0) :
+            /**
+             * @deprecated
+             * For backwards compatibility only. Use the constructor taking
+             * a mapping_mode as second argument instead.
+             */
+            OSMIUM_DEPRECATED TypedMemoryMapping(size_t size, bool writable, int fd, off_t offset = 0) :
                 m_mapping(sizeof(T) * size, writable ? MemoryMapping::mapping_mode::write_shared : MemoryMapping::mapping_mode::readonly, fd, sizeof(T) * offset) {
             }
 
@@ -409,7 +420,7 @@ private:
              * In a boolean context a TypedMemoryMapping is true when it is
              * a valid existing mapping.
              */
-            operator bool() const noexcept {
+            explicit operator bool() const noexcept {
                 return !!m_mapping;
             }
 
