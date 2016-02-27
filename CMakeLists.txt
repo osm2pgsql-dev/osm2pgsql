@@ -8,7 +8,7 @@ project(osm2pgsql)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(DATA_DIR \".\")
+set(DATA_DIR \"${CMAKE_INSTALL_PREFIX}/share/osm2pgsql\")
 
 option(BUILD_TESTS "Build test suite" OFF)
 
