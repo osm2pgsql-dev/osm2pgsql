@@ -131,11 +131,11 @@ void table_t::start()
             sql += (fmt("\"%1%\" hstore,") % (*hcolumn)).str();
 
         //add tags column
-        if (hstore_mode != HSTORE_NONE)
-            sql += "\"tags\" hstore)";
-        //or remove the last ", " from the end
-        else
-            sql[sql.length() - 1] = ')';
+        if (hstore_mode != HSTORE_NONE) {
+            sql += "\"tags\" hstore,";
+        }
+
+        sql += (fmt("way geometry(%1%,%2%) )") % type % srid).str();
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't
@@ -149,7 +149,6 @@ void table_t::start()
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
 
         //add some constraints
-        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srid % type).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
 
         //slim mode needs this to be able to apply diffs
