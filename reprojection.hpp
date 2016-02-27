@@ -13,7 +13,7 @@
 #include <osmium/geom/projection.hpp>
 #include <osmium/osm/location.hpp>
 
-enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 900913 };
+enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 3857 };
 
 class reprojection : public boost::noncopyable
 {
