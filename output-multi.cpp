@@ -424,7 +424,9 @@ void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_
         // and it got formed into a polygon, so expire as a polygon and write the geom
         m_expire->from_nodes_poly(m_way_helper.node_cache, id);
         if (geom.area > 0.0) {
-            tags.push_override(tag_t("way_area", std::to_string(geom.area)));
+            char tmp[32];
+            snprintf(tmp, sizeof(tmp), "%g", geom.area);
+            tags.push_override(tag_t("way_area", tmp));
         }
         m_table->write_row(id, tags, geom.geom);
     } else {

@@ -93,13 +93,15 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, taglist_t &outtags,
     else
         split_at = 100 * 1000;
 
+    char tmp[32];
     auto wkbs = builder.get_wkb_split(nodes, polygon, split_at);
     for (const auto& wkb: wkbs) {
         /* FIXME: there should be a better way to detect polygons */
         if (wkb.is_polygon()) {
             expire->from_nodes_poly(nodes, id);
             if ((wkb.area > 0.0) && m_enable_way_area) {
-                outtags.push_override(tag_t("way_area", std::to_string(wkb.area)));
+                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
+                outtags.push_override(tag_t("way_area", tmp));
             }
             m_tables[t_poly]->write_row(id, outtags, wkb.geom);
         } else {
@@ -150,12 +152,14 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         return 0;
     }
 
+    char tmp[32];
     for (const auto& wkb: wkbs) {
         expire->from_wkb(wkb.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
         if (wkb.is_polygon()) {
             if ((wkb.area > 0.0) && m_enable_way_area) {
-                outtags.push_override(tag_t("way_area", std::to_string(wkb.area)));
+                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
+                outtags.push_override(tag_t("way_area", tmp));
             }
             m_tables[t_poly]->write_row(-id, outtags, wkb.geom);
         } else {
@@ -188,7 +192,8 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
         for (const auto& wkb: wkbs) {
             expire->from_wkb(wkb.geom.c_str(), -id);
             if ((wkb.area > 0.0) && m_enable_way_area) {
-                outtags.push_override(tag_t("way_area", std::to_string(wkb.area)));
+                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
+                outtags.push_override(tag_t("way_area", tmp));
             }
             m_tables[t_poly]->write_row(-id, outtags, wkb.geom);
         }
