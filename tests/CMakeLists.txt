@@ -27,6 +27,7 @@ set(TESTS
   test-parse-diff.cpp
   test-parse-xml2.cpp
   test-pgsql-escape.cpp
+  test-wildcard-match.cpp
 )
 
 foreach (test ${TESTS})
@@ -48,6 +49,7 @@ set(TEST_NODB
  test-parse-diff
  test-parse-xml2
  test-pgsql-escape
+ test-wildcard-match
 )
 
 foreach (test ${TEST_NODB})
