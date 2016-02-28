@@ -605,11 +605,11 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
         size_t i = 0;
         for (; i < infos.size(); i++) {
             const taginfo &info = infos[i];
-            if (wildMatch(info.name.c_str(), item->key.c_str())) {
-                if (info.flags & FLAG_DELETE) {
+            if (info.flags & FLAG_DELETE) {
+                if (wildMatch(info.name.c_str(), item->key.c_str())) {
                     break;
                 }
-
+            } else if (info.name == item->key) {
                 filter = 0;
                 flags |= info.flags;
 
