@@ -81,13 +81,6 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
       sql_conn(nullptr)
 {}
 
-#define HELPER_STATE_UNINITIALIZED -1
-#define HELPER_STATE_FORKED -2
-#define HELPER_STATE_RUNNING 0
-#define HELPER_STATE_FINISHED 1
-#define HELPER_STATE_CONNECTED 2
-#define HELPER_STATE_FAILED 3
-
 namespace {
 char *pgsql_store_nodes(const idlist_t &nds) {
   static char *buffer;
