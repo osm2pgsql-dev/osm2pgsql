@@ -4,6 +4,9 @@ Some osm2pgsql changes have slightly changed the database schema it expects. If
 updating an old database, a migration may be needed. The migrations here assume
 the default `planet_osm` prefix.
 
+It is frequently better to reimport as this will also recluster the tables and
+remove table or index bloat.
+
 ## 0.91 default projection ##
 
 The default projection was moved from 900913 to 3857. This does not effect
