@@ -258,4 +258,4 @@ endif()
 
 install(TARGETS osm2pgsql DESTINATION bin)
 install(FILES docs/osm2pgsql.1 DESTINATION share/man/man1)
-install(FILES default.style empty.style 900913.sql DESTINATION share/osm2pgsql)
+install(FILES default.style empty.style DESTINATION share/osm2pgsql)
