@@ -4,6 +4,19 @@ Some osm2pgsql changes have slightly changed the database schema it expects. If
 updating an old database, a migration may be needed. The migrations here assume
 the default `planet_osm` prefix.
 
+## 0.91 default projection ##
+
+The default projection was moved from 900913 to 3857. This does not effect
+users using `-l` or `-E`, but if using no projection options or `-m` a
+migration is needed.
+
+```sql
+ALTER TABLE planet_osm_roads ALTER COLUMN way TYPE geometry(LineString,3857) USING ST_SetSRID(way,3857);
+ALTER TABLE planet_osm_point ALTER COLUMN way TYPE geometry(Point,3857) USING ST_SetSRID(way,3857);
+ALTER TABLE planet_osm_line ALTER COLUMN way TYPE geometry(LineString,3857) USING ST_SetSRID(way,3857);
+ALTER TABLE planet_osm_polygon ALTER COLUMN way TYPE geometry(Geometry,3857) USING ST_SetSRID(way,3857);
+```
+
 ## 0.88.0 z_order changes ##
 
 0.88.0 z_order logic was changed, requuiring an increase in z_order values. To
