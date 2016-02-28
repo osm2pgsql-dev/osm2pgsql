@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <map>
 #include <stdexcept>
 #include <boost/format.hpp>
 #include <errno.h>
@@ -14,29 +15,14 @@
 #endif
 #endif
 
-/* NOTE: section below for flags genuinely is static and
- * constant, so there's no need to hoist this into a per
- * class variable. It doesn't get modified, so it's safe
- * to share across threads and its lifetime is the whole
- * program.
- */
-struct flagsname {
-    flagsname(const char *name_, int flag_)
-        : name(name_), flag(flag_) {
-    }
-    const char *name;
-    int flag;
+static const std::map<std::string, int> tagflags = {
+    {"polygon", FLAG_POLYGON},
+    {"linear",  FLAG_LINEAR},
+    {"nocache", FLAG_NOCACHE},
+    {"delete",  FLAG_DELETE},
+    {"phstore", FLAG_PHSTORE},
+    {"nocolumn", FLAG_NOCOLUMN}
 };
-
-static const flagsname tagflags[] = {
-    flagsname("polygon", FLAG_POLYGON),
-    flagsname("linear",  FLAG_LINEAR),
-    flagsname("nocache", FLAG_NOCACHE),
-    flagsname("delete",  FLAG_DELETE),
-    flagsname("phstore", FLAG_PHSTORE),
-    flagsname("nocolumn", FLAG_NOCOLUMN)
-};
-#define NUM_FLAGS ((signed)(sizeof(tagflags) / sizeof(tagflags[0])))
 
 taginfo::taginfo()
     : name(), type(), flags(0) {
@@ -94,7 +80,6 @@ columns_t export_list::normal_columns(enum OsmType id) const {
 int parse_tag_flags(const char *flags_, int lineno) {
     int temp_flags = 0;
     char *str = nullptr, *saveptr = nullptr;
-    int i = 0;
 
     // yuck! but strtok requires a non-const char * pointer, and i'm fairly sure it
     // doesn't actually modify the string.
@@ -103,16 +88,11 @@ int parse_tag_flags(const char *flags_, int lineno) {
     //split the flags column on commas and keep track of which flags you've seen in a bit mask
     for(str = strtok_r(flags, ",\r\n", &saveptr); str != nullptr; str = strtok_r(nullptr, ",\r\n", &saveptr))
     {
-      for( i=0; i<NUM_FLAGS; i++ )
-      {
-        if( strcmp( tagflags[i].name, str ) == 0 )
-        {
-          temp_flags |= tagflags[i].flag;
-          break;
-        }
-      }
-      if( i == NUM_FLAGS )
+      if (tagflags.count(str)) {
+        temp_flags |= tagflags.at(str);
+      } else {
         fprintf( stderr, "Unknown flag '%s' line %d, ignored\n", str, lineno );
+      }
     }
 
     return temp_flags;
