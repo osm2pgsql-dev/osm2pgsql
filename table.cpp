@@ -131,11 +131,11 @@ void table_t::start()
             sql += (fmt("\"%1%\" hstore,") % (*hcolumn)).str();
 
         //add tags column
-        if (hstore_mode != HSTORE_NONE)
-            sql += "\"tags\" hstore)";
-        //or remove the last ", " from the end
-        else
-            sql[sql.length() - 1] = ')';
+        if (hstore_mode != HSTORE_NONE) {
+            sql += "\"tags\" hstore,";
+        }
+
+        sql += (fmt("way geometry(%1%,%2%) )") % type % srid).str();
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't
@@ -147,21 +147,7 @@ void table_t::start()
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-
-        //add some constraints
-        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT AddGeometryColumn('%1%', 'way', %2%, '%3%', 2 )") % name % srid % type).str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ALTER COLUMN way SET NOT NULL") % name).str());
-
-        //slim mode needs this to be able to apply diffs
-        if (slim && !drop_temp) {
-            sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
-            if (table_space_index)
-                sql += " TABLESPACE " + table_space_index.get();
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-        }
-
-    }//appending
-    else {
+    } else {
         //check the columns against those in the existing table
         std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
         for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
@@ -219,13 +205,9 @@ void table_t::stop()
 
         fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
 
-        // Special handling for empty geometries because geohash chokes on
-        // empty geometries on postgis 1.5.
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY CASE WHEN ST_IsEmpty(way) THEN NULL ELSE ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) END") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
-        // Re-add constraints if on 1.x. 2.0 has typemod, and they automatically come with CREATE TABLE AS
-        pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT CASE WHEN PostGIS_Lib_Version() LIKE '1.%%' THEN Populate_Geometry_Columns('%1%'::regclass) ELSE 1 END;") % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
