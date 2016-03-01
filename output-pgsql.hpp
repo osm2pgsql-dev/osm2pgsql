@@ -86,8 +86,6 @@ protected:
     std::shared_ptr<expire_tiles> expire;
 
     std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
-
-    const static std::string NAME;
 };
 
 #endif

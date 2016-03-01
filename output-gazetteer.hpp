@@ -266,8 +266,6 @@ private:
     // Need to be part of the class, so we have one per thread.
     boost::format single_fmt;
     boost::format point_fmt;
-
-    const static std::string NAME;
 };
 
 extern output_gazetteer_t out_gazetteer;
