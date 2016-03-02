@@ -82,8 +82,6 @@ protected:
     std::shared_ptr<expire_tiles> m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
-
-    const static std::string NAME;
 };
 
 #endif
