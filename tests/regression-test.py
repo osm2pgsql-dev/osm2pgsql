@@ -11,6 +11,7 @@ full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
 multipoly_import_file="tests/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
 diff_import_file="tests/000466354.osc.gz"
 diff_multipoly_import_file="tests/test_multipolygon_diff.osc" #This file contains a number of different multi-polygon diff processing test cases
+lua_test_enabled = os.environ.get("HAVE_LUA", True)
 
 created_tablespace = 0
 
@@ -231,9 +232,10 @@ class NonSlimRenderingTestSuite(unittest.TestSuite):
         self.addTest(BasicNonSlimTestCase("slim --drop case",["--slim","--drop"], [0,1,2,3, 10, 11, 12, 13, 91, 92]))
         self.addTest(BasicNonSlimTestCase("Hstore index drop", ["--slim", "--hstore", "--hstore-add-index", "--drop"], [51,52,53,54]))
         self.addTest(BasicNonSlimTestCase("lat lon projection",["-l"], [0,4,5,3,10, 11, 12]))
-        #Failing test 3,13 due to difference in handling mixture of tags on ways and relations, where the correct behaviour is non obvious
-        #self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3,10,13,91,92]))
-        self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,10,91,92]))
+        if lua_test_enabled:
+            #Failing test 3,13 due to difference in handling mixture of tags on ways and relations, where the correct behaviour is non obvious
+            #self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3,10,13,91,92]))
+            self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,10,91,92]))
 
 
 class SlimRenderingTestSuite(unittest.TestSuite):
@@ -261,9 +263,10 @@ class SlimRenderingTestSuite(unittest.TestSuite):
         self.addTest(BasicSlimTestCase("--tablespace-main-index", ["--tablespace-main-index", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-slim-data", ["--tablespace-slim-data", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
         self.addTest(BasicSlimTestCase("--tablespace-slim-index", ["--tablespace-slim-index", "tablespacetest"], [0,1,2,3,13,91,92],[6,7,8,9]))
-        #Failing test 3,13,9 due to difference in handling mixture of tags on ways and relations, where the correct behaviour is non obvious
-        #self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3,10,13,91,92]))
-        self.addTest(BasicSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,91,92],[6,7,8]))
+        if lua_test_enabled:
+            #Failing test 3,13,9 due to difference in handling mixture of tags on ways and relations, where the correct behaviour is non obvious
+            #self.addTest(BasicNonSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,3,10,13,91,92]))
+            self.addTest(BasicSlimTestCase("--tag-transform-script", ["--tag-transform-script", "style.lua"], [0,1,2,91,92],[6,7,8]))
 
 
 class SlimGazetteerTestSuite(unittest.TestSuite):
@@ -304,10 +307,11 @@ class MultiPolygonSlimRenderingTestSuite(unittest.TestSuite):
                                               [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40,41,42, 43, 44, 47, 48,  62, 63, 64, 65, 68, 69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,
                                                106,107,108,109,110,111,112,113,114,115,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63, 64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
-        self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"],
+        if lua_test_enabled:
+            self.addTest(MultipolygonSlimTestCase("lua tagtransform case", ["--tag-transform-script", "style.lua"],
                                               [26,27,28,29,30,31,32,33,34,35,36,37,38, 39, 40, 41, 42, 43, 44, 47, 48,  62, 64, 65,68,69, 72, 73, 74, 78, 79, 82, 83, 84, 86, 87, 88,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42, 43, 44, 47, 48, 62, 63,64, 65, 66, 67, 70, 71, 75, 76, 79, 80, 81, 83, 84, 85, 87, 89, 90]))
-        self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"],
+            self.addTest(MultipolygonSlimTestCase("lua tagtransform case with hstore", ["--tag-transform-script", "style.lua", "-k"],
                                               [26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,68,69,72,73,74,78,79,82,83,84,86,87,88,116,117,118,119],
                                               [28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,47,48,62,63,64,65,66,67,70,71,75,76,79,80,81,83,84,85,87,89,90]))
 
