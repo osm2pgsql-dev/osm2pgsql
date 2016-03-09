@@ -11,6 +11,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(DATA_DIR \"${CMAKE_INSTALL_PREFIX}/share/osm2pgsql\")
 
 option(BUILD_TESTS "Build test suite" OFF)
+option(WITH_LUA    "Build with lua support" ON)
 
 if (NOT TESTING_TIMEOUT)
   set(TESTING_TIMEOUT 1200)
@@ -98,12 +99,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 find_package(Osmium REQUIRED COMPONENTS io geos proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
 
-find_package(Lua)
-if (LUA_FOUND)
+if (WITH_LUA)
+  find_package(Lua REQUIRED)
   include_directories(${LUA_INCLUDE_DIR})
   set(HAVE_LUA 1)
-else()
-  message(STATUS "lua libraries not found. You will NOT be able to use lua scripts for tag transform.")
 endif()
 
 if (MSVC)
