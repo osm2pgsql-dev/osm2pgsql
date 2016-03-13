@@ -204,7 +204,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
 
 
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    osmid_t const prev = ways_pending_tracker->last_returned();
+    osmid_t const prev = ways_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
             job_queue.push(pending_job_t(id, output_id));
@@ -220,7 +220,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //grab the first one or bail if its not valid
-    osmid_t popped = ways_pending_tracker->pop_mark();
+    osmid_t popped = ways_pending_tracker.pop_mark();
     if(!id_tracker::is_valid(popped))
         return;
 
@@ -230,7 +230,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
-        popped = ways_pending_tracker->pop_mark();
+        popped = ways_pending_tracker.pop_mark();
     }
 
     //make sure to get this one as well and move to the next
@@ -256,7 +256,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
             // osmdata_t.
             const idlist_t rel_ids = m_mid->relations_using_way(id);
             for (auto &mid: rel_ids) {
-                rels_pending_tracker->mark(mid);
+                rels_pending_tracker.mark(mid);
             }
         }
 
@@ -273,7 +273,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
 }
 
 void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    osmid_t const prev = rels_pending_tracker->last_returned();
+    osmid_t const prev = rels_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
             job_queue.push(pending_job_t(id, output_id));
@@ -289,7 +289,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //grab the first one or bail if its not valid
-    osmid_t popped = rels_pending_tracker->pop_mark();
+    osmid_t popped = rels_pending_tracker.pop_mark();
     if(!id_tracker::is_valid(popped))
         return;
 
@@ -297,7 +297,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     while (popped < id) {
         job_queue.push(pending_job_t(popped, output_id));
         added++;
-        popped = rels_pending_tracker->pop_mark();
+        popped = rels_pending_tracker.pop_mark();
     }
 
     //make sure to get this one as well and move to the next
@@ -374,7 +374,7 @@ int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &ta
 
   /* If this isn't a polygon then it can not be part of a multipolygon
      Hence only polygons are "pending" */
-  if (!filter && polygon) { ways_pending_tracker->mark(id); }
+  if (!filter && polygon) { ways_pending_tracker.mark(id); }
 
   if( !polygon && !filter )
   {
@@ -577,22 +577,18 @@ int output_pgsql_t::start()
     return 0;
 }
 
-std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const {
-    output_pgsql_t *clone = new output_pgsql_t(*this);
+std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const
+{
+    auto *clone = new output_pgsql_t(*this);
     clone->m_mid = cloned_middle;
-    //NOTE: we need to know which ways were used by relations so each thread
-    //must have a copy of the original marked done ways, its read only so its ok
-    clone->ways_done_tracker = ways_done_tracker;
     return std::shared_ptr<output_t>(clone);
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_),
       expire(&options_),
-      ways_pending_tracker(new id_tracker()),
-      ways_done_tracker(new id_tracker()),
-      rels_pending_tracker(new id_tracker()) {
-
+      ways_done_tracker(new id_tracker())
+{
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     if (m_options.reproject_area) builder.set_reprojection(reproj.get());
@@ -661,7 +657,9 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
     m_export_list(new export_list(*other.m_export_list)),
     expire(&m_options), reproj(other.reproj),
-    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
+    //NOTE: we need to know which ways were used by relations so each thread
+    //must have a copy of the original marked done ways, its read only so its ok
+    ways_done_tracker(other.ways_done_tracker)
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     if (m_options.reproject_area) builder.set_reprojection(reproj.get());
@@ -675,17 +673,16 @@ output_pgsql_t::~output_pgsql_t() {
 }
 
 size_t output_pgsql_t::pending_count() const {
-    return ways_pending_tracker->size() + rels_pending_tracker->size();
+    return ways_pending_tracker.size() + rels_pending_tracker.size();
 }
 
 void output_pgsql_t::merge_pending_relations(output_t *other)
 {
     auto opgsql = dynamic_cast<output_pgsql_t *>(other);
-    if (opgsql && opgsql->rels_pending_tracker) {
-        auto tracker = opgsql->rels_pending_tracker;
+    if (opgsql) {
         osmid_t id;
-        while (id_tracker::is_valid((id = tracker->pop_mark()))) {
-            rels_pending_tracker->mark(id);
+        while (id_tracker::is_valid((id = opgsql->rels_pending_tracker.pop_mark()))) {
+            rels_pending_tracker.mark(id);
         }
     }
 }

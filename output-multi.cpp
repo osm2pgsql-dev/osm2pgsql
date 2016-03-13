@@ -27,14 +27,16 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.append, m_options.slim, m_options.droptemp,
                           m_options.hstore_mode, m_options.enable_hstore_index,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
-      ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
+      ways_done_tracker(new id_tracker()),
       m_expire(&m_options) {
 }
 
 output_multi_t::output_multi_t(const output_multi_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
     m_processor(other.m_processor), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
-    ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
+    //NOTE: we need to know which ways were used by relations so each thread
+    //must have a copy of the original marked done ways, its read only so its ok
+    ways_done_tracker(other.ways_done_tracker),
     m_expire(&m_options) {
 }
 
@@ -42,13 +44,11 @@ output_multi_t::output_multi_t(const output_multi_t& other):
 output_multi_t::~output_multi_t() {
 }
 
-std::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const{
-    output_multi_t *clone = new output_multi_t(*this);
+std::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const
+{
+    auto clone = std::make_shared<output_multi_t>(*this);
     clone->m_mid = cloned_middle;
-    //NOTE: we need to know which ways were used by relations so each thread
-    //must have a copy of the original marked done ways, its read only so its ok
-    clone->ways_done_tracker = ways_done_tracker;
-    return std::shared_ptr<output_t>(clone);
+    return clone;
 }
 
 int output_multi_t::start() {
@@ -57,11 +57,11 @@ int output_multi_t::start() {
 }
 
 size_t output_multi_t::pending_count() const {
-    return ways_pending_tracker->size() + rels_pending_tracker->size();
+    return ways_pending_tracker.size() + rels_pending_tracker.size();
 }
 
 void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    osmid_t const prev = ways_pending_tracker->last_returned();
+    osmid_t const prev = ways_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
             job_queue.push(pending_job_t(id, output_id));
@@ -77,7 +77,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //grab the first one or bail if its not valid
-    osmid_t popped = ways_pending_tracker->pop_mark();
+    osmid_t popped = ways_pending_tracker.pop_mark();
     if(!id_tracker::is_valid(popped))
         return;
 
@@ -87,7 +87,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
-        popped = ways_pending_tracker->pop_mark();
+        popped = ways_pending_tracker.pop_mark();
     }
 
     //make sure to get this one as well and move to the next
@@ -114,7 +114,7 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
 }
 
 void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
-    osmid_t const prev = rels_pending_tracker->last_returned();
+    osmid_t const prev = rels_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
             job_queue.push(pending_job_t(id, output_id));
@@ -130,7 +130,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //grab the first one or bail if its not valid
-    osmid_t popped = rels_pending_tracker->pop_mark();
+    osmid_t popped = rels_pending_tracker.pop_mark();
     if(!id_tracker::is_valid(popped))
         return;
 
@@ -138,7 +138,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     while (popped < id) {
         job_queue.push(pending_job_t(popped, output_id));
         added++;
-        popped = rels_pending_tracker->pop_mark();
+        popped = rels_pending_tracker.pop_mark();
     }
 
     //make sure to get this one as well and move to the next
@@ -283,7 +283,7 @@ int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const tag
         way_delete(id);
         const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
         for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
-            rels_pending_tracker->mark(*itr);
+            rels_pending_tracker.mark(*itr);
         }
     }
 
@@ -319,7 +319,7 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
             //if we are also interested in relations we need to mark
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
-                ways_pending_tracker->mark(id);
+                ways_pending_tracker.mark(id);
             } else {
                 // We wouldn't be interested in this as a relation, so no need to mark it pending.
                 // TODO: Does this imply anything for non-multipolygon relations?
@@ -447,11 +447,10 @@ void output_multi_t::merge_pending_relations(output_t *other)
 {
     auto *omulti = dynamic_cast<output_multi_t *>(other);
 
-    if (omulti && omulti->rels_pending_tracker) {
-        auto tracker = omulti->rels_pending_tracker;
+    if (omulti) {
         osmid_t id;
-        while (id_tracker::is_valid((id = tracker->pop_mark()))) {
-            rels_pending_tracker->mark(id);
+        while (id_tracker::is_valid((id = omulti->rels_pending_tracker.pop_mark()))) {
+            rels_pending_tracker.mark(id);
         }
     }
 }

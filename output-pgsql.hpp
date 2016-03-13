@@ -83,7 +83,8 @@ protected:
 
     std::shared_ptr<reprojection> reproj;
 
-    std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+    id_tracker ways_pending_tracker, rels_pending_tracker;
+    std::shared_ptr<id_tracker> ways_done_tracker;
 };
 
 #endif
