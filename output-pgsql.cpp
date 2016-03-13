@@ -67,7 +67,7 @@ int output_pgsql_t::pgsql_out_node(osmid_t id, const taglist_t &tags, double nod
     if (m_tagtransform->filter_node_tags(tags, *m_export_list.get(), outtags))
         return 1;
 
-    expire->from_bbox(node_lon, node_lat, node_lon, node_lat);
+    expire.from_bbox(node_lon, node_lat, node_lon, node_lat);
     m_tables[t_point]->write_node(id, outtags, node_lat, node_lon);
 
     return 0;
@@ -98,14 +98,14 @@ int output_pgsql_t::pgsql_out_way(osmid_t id, taglist_t &outtags,
     for (const auto& wkb: wkbs) {
         /* FIXME: there should be a better way to detect polygons */
         if (wkb.is_polygon()) {
-            expire->from_nodes_poly(nodes, id);
+            expire.from_nodes_poly(nodes, id);
             if ((wkb.area > 0.0) && m_enable_way_area) {
                 snprintf(tmp, sizeof(tmp), "%g", wkb.area);
                 outtags.push_override(tag_t("way_area", tmp));
             }
             m_tables[t_poly]->write_row(id, outtags, wkb.geom);
         } else {
-            expire->from_nodes_line(nodes);
+            expire.from_nodes_line(nodes);
             m_tables[t_line]->write_row(id, outtags, wkb.geom);
             if (roads)
                 m_tables[t_roads]->write_row(id, outtags, wkb.geom);
@@ -154,7 +154,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
 
     char tmp[32];
     for (const auto& wkb: wkbs) {
-        expire->from_wkb(wkb.geom.c_str(), -id);
+        expire.from_wkb(wkb.geom.c_str(), -id);
         /* FIXME: there should be a better way to detect polygons */
         if (wkb.is_polygon()) {
             if ((wkb.area > 0.0) && m_enable_way_area) {
@@ -190,7 +190,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     if (make_boundary) {
         wkbs = builder.build_polygons(xnodes, m_options.enable_multi, id);
         for (const auto& wkb: wkbs) {
-            expire->from_wkb(wkb.geom.c_str(), -id);
+            expire.from_wkb(wkb.geom.c_str(), -id);
             if ((wkb.area > 0.0) && m_enable_way_area) {
                 snprintf(tmp, sizeof(tmp), "%g", wkb.area);
                 outtags.push_override(tag_t("way_area", tmp));
@@ -352,8 +352,7 @@ void output_pgsql_t::stop()
       }
     }
 
-    expire->output_and_destroy();
-    expire.reset();
+    expire.output_and_destroy();
 }
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
@@ -470,7 +469,7 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         util::exit_nicely();
     }
 
-    if ( expire->from_db(m_tables[t_point].get(), osm_id) != 0)
+    if ( expire.from_db(m_tables[t_point].get(), osm_id) != 0)
         m_tables[t_point]->delete_row(osm_id);
 
     return 0;
@@ -487,9 +486,9 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
         return 0;
 
     m_tables[t_roads]->delete_row(osm_id);
-    if ( expire->from_db(m_tables[t_line].get(), osm_id) != 0)
+    if ( expire.from_db(m_tables[t_line].get(), osm_id) != 0)
         m_tables[t_line]->delete_row(osm_id);
-    if ( expire->from_db(m_tables[t_poly].get(), osm_id) != 0)
+    if ( expire.from_db(m_tables[t_poly].get(), osm_id) != 0)
         m_tables[t_poly]->delete_row(osm_id);
     return 0;
 }
@@ -509,9 +508,9 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
-    if ( expire->from_db(m_tables[t_line].get(), -osm_id) != 0)
+    if ( expire.from_db(m_tables[t_line].get(), -osm_id) != 0)
         m_tables[t_line]->delete_row(-osm_id);
-    if ( expire->from_db(m_tables[t_poly].get(), -osm_id) != 0)
+    if ( expire.from_db(m_tables[t_poly].get(), -osm_id) != 0)
         m_tables[t_poly]->delete_row(-osm_id);
     return 0;
 }
@@ -589,6 +588,7 @@ std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_mid
 
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
     : output_t(mid_, options_),
+      expire(&options_),
       ways_pending_tracker(new id_tracker()),
       ways_done_tracker(new id_tracker()),
       rels_pending_tracker(new id_tracker()) {
@@ -609,8 +609,6 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
         fprintf(stderr, "Error: Failed to initialise tag processing.\n");
         util::exit_nicely();
     }
-
-    expire.reset(new expire_tiles(&m_options));
 
     //for each table
     m_tables.reserve(t_MAX);
@@ -661,8 +659,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
-    m_export_list(new export_list(*other.m_export_list)), reproj(other.reproj),
-    expire(new expire_tiles(&m_options)),
+    m_export_list(new export_list(*other.m_export_list)),
+    expire(&m_options), reproj(other.reproj),
     ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker())
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
@@ -680,21 +678,21 @@ size_t output_pgsql_t::pending_count() const {
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }
 
-void output_pgsql_t::merge_pending_relations(std::shared_ptr<output_t> other) {
-    std::shared_ptr<id_tracker> tracker = other->get_pending_relations();
-    osmid_t id;
-    while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
-        rels_pending_tracker->mark(id);
+void output_pgsql_t::merge_pending_relations(output_t *other)
+{
+    auto opgsql = dynamic_cast<output_pgsql_t *>(other);
+    if (opgsql && opgsql->rels_pending_tracker) {
+        auto tracker = opgsql->rels_pending_tracker;
+        osmid_t id;
+        while (id_tracker::is_valid((id = tracker->pop_mark()))) {
+            rels_pending_tracker->mark(id);
+        }
     }
 }
-void output_pgsql_t::merge_expire_trees(std::shared_ptr<output_t> other) {
-    if(other->get_expire_tree().get())
-        expire->merge_and_destroy(*other->get_expire_tree());
+void output_pgsql_t::merge_expire_trees(output_t *other)
+{
+    auto *opgsql = dynamic_cast<output_pgsql_t *>(other);
+    if (opgsql)
+        expire.merge_and_destroy(opgsql->expire);
 }
 
-std::shared_ptr<id_tracker> output_pgsql_t::get_pending_relations() {
-    return rels_pending_tracker;
-}
-std::shared_ptr<expire_tiles> output_pgsql_t::get_expire_tree() {
-    return expire;
-}
