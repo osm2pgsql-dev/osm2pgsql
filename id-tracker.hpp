@@ -29,7 +29,7 @@ struct id_tracker : public boost::noncopyable {
      * Finds an osmid_t that is marked
      */
     osmid_t pop_mark();
-    size_t size();
+    size_t size() const;
     osmid_t last_returned() const;
 
     static bool is_valid(osmid_t);

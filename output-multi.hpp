@@ -8,6 +8,7 @@
 #define OUTPUT_MULTI_HPP
 
 #include "expire-tiles.hpp"
+#include "id-tracker.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
 #include "geometry-processor.hpp"
@@ -19,7 +20,6 @@
 class table_t;
 class tagtransform;
 struct export_list;
-struct id_tracker;
 struct middle_query_t;
 struct options_t;
 
@@ -76,7 +76,8 @@ protected:
     std::shared_ptr<geometry_processor> m_processor;
     const OsmType m_osm_type;
     std::unique_ptr<table_t> m_table;
-    std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
+    id_tracker ways_pending_tracker, rels_pending_tracker;
+    std::shared_ptr<id_tracker> ways_done_tracker;
     expire_tiles m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
