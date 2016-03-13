@@ -285,7 +285,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
                 //done copying ways for now
                 clone_output->get()->commit();
                 //merge the pending from this threads copy of output back
-                original_output->get()->merge_pending_relations(*clone_output);
+                original_output->get()->merge_pending_relations(clone_output->get());
             }
         }
     }
@@ -344,7 +344,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
                 //done copying rels for now
                 clone_output->get()->commit();
                 //merge the expire tree from this threads copy of output back
-                original_output->get()->merge_expire_trees(*clone_output);
+                original_output->get()->merge_expire_trees(clone_output->get());
             }
         }
     }

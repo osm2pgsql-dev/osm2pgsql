@@ -28,14 +28,14 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.hstore_mode, m_options.enable_hstore_index,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
       ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
-      m_expire(new expire_tiles(&m_options)) {
+      m_expire(&m_options) {
 }
 
 output_multi_t::output_multi_t(const output_multi_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
     m_processor(other.m_processor), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
     ways_pending_tracker(new id_tracker()), ways_done_tracker(new id_tracker()), rels_pending_tracker(new id_tracker()),
-    m_expire(new expire_tiles(&m_options)) {
+    m_expire(&m_options) {
 }
 
 
@@ -165,8 +165,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
 
 void output_multi_t::stop() {
     m_table->stop();
-    m_expire->output_and_destroy();
-    m_expire.reset();
+    m_expire.output_and_destroy();
 }
 
 void output_multi_t::commit() {
@@ -269,7 +268,7 @@ int output_multi_t::process_node(osmid_t id, double lat, double lon, const tagli
         //grab its geom
         auto geom = m_processor->process_node(lat, lon);
         if (geom.valid()) {
-            m_expire->from_bbox(lon, lat, lon, lat);
+            m_expire.from_bbox(lon, lat, lon, lat);
             copy_node_to_table(id, geom.geom, outtags);
         }
     }
@@ -381,7 +380,7 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
             for (const auto geom: geoms) {
                 //TODO: we actually have the nodes in the m_relation_helper and could use them
                 //instead of having to reparse the wkb in the expiry code
-                m_expire->from_wkb(geom.geom.c_str(), -id);
+                m_expire.from_wkb(geom.geom.c_str(), -id);
                 //what part of the code relies on relation members getting negative ids?
                 copy_to_table(-id, geom, outtags, make_polygon);
             }
@@ -422,7 +421,7 @@ void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_
     if (geom.is_polygon()) {
         // It's a polygon table (implied by it turning into a poly),
         // and it got formed into a polygon, so expire as a polygon and write the geom
-        m_expire->from_nodes_poly(m_way_helper.node_cache, id);
+        m_expire.from_nodes_poly(m_way_helper.node_cache, id);
         if (geom.area > 0.0) {
             char tmp[32];
             snprintf(tmp, sizeof(tmp), "%g", geom.area);
@@ -433,33 +432,35 @@ void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_
         // Linestring
         if (!polygon) {
             // non-polygons are okay
-            m_expire->from_nodes_line(m_way_helper.node_cache);
+            m_expire.from_nodes_line(m_way_helper.node_cache);
             m_table->write_row(id, tags, geom.geom);
         }
     }
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {
-    if(m_expire->from_db(m_table.get(), id))
+    if(m_expire.from_db(m_table.get(), id))
         m_table->delete_row(id);
 }
 
-void output_multi_t::merge_pending_relations(std::shared_ptr<output_t> other) {
-    std::shared_ptr<id_tracker> tracker = other.get()->get_pending_relations();
-    osmid_t id;
-    while(tracker.get() && id_tracker::is_valid((id = tracker->pop_mark()))){
-        rels_pending_tracker->mark(id);
+void output_multi_t::merge_pending_relations(output_t *other)
+{
+    auto *omulti = dynamic_cast<output_multi_t *>(other);
+
+    if (omulti && omulti->rels_pending_tracker) {
+        auto tracker = omulti->rels_pending_tracker;
+        osmid_t id;
+        while (id_tracker::is_valid((id = tracker->pop_mark()))) {
+            rels_pending_tracker->mark(id);
+        }
     }
 }
 
-void output_multi_t::merge_expire_trees(std::shared_ptr<output_t> other) {
-    if(other->get_expire_tree().get())
-        m_expire->merge_and_destroy(*other.get()->get_expire_tree());
-}
+void output_multi_t::merge_expire_trees(output_t *other)
+{
+    auto *omulti = dynamic_cast<output_multi_t *>(other);
 
-std::shared_ptr<id_tracker> output_multi_t::get_pending_relations() {
-    return rels_pending_tracker;
-}
-std::shared_ptr<expire_tiles> output_multi_t::get_expire_tree() {
-    return m_expire;
+    if (omulti) {
+        m_expire.merge_and_destroy(omulti->m_expire);
+    }
 }

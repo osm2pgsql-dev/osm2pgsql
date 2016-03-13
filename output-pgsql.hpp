@@ -53,10 +53,8 @@ public:
 
     size_t pending_count() const;
 
-    void merge_pending_relations(std::shared_ptr<output_t> other);
-    void merge_expire_trees(std::shared_ptr<output_t> other);
-    virtual std::shared_ptr<id_tracker> get_pending_relations();
-    virtual std::shared_ptr<expire_tiles> get_expire_tree();
+    void merge_pending_relations(output_t *other);
+    void merge_expire_trees(output_t *other);
 
 protected:
 
@@ -81,9 +79,9 @@ protected:
     std::unique_ptr<export_list> m_export_list;
 
     geometry_builder builder;
+    expire_tiles expire;
 
     std::shared_ptr<reprojection> reproj;
-    std::shared_ptr<expire_tiles> expire;
 
     std::shared_ptr<id_tracker> ways_pending_tracker, ways_done_tracker, rels_pending_tracker;
 };
