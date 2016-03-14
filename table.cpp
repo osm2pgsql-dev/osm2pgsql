@@ -147,7 +147,17 @@ void table_t::start()
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-    } else {
+
+        //slim mode needs this to be able to delete from tables in pending
+        if (slim && !drop_temp) {
+            sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
+            if (table_space_index)
+                sql += " TABLESPACE " + table_space_index.get();
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+        }
+
+    }//appending
+    else {
         //check the columns against those in the existing table
         std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
         for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
