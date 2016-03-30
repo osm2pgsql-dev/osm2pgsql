@@ -28,8 +28,8 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.hstore_mode, m_options.enable_hstore_index,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
       ways_done_tracker(new id_tracker()),
-      m_expire(&m_options) {
-}
+      m_expire(&m_options)
+{}
 
 output_multi_t::output_multi_t(const output_multi_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
@@ -37,18 +37,17 @@ output_multi_t::output_multi_t(const output_multi_t& other):
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     ways_done_tracker(other.ways_done_tracker),
-    m_expire(&m_options) {
-}
+    m_expire(&m_options)
+{}
 
 
-output_multi_t::~output_multi_t() {
-}
+output_multi_t::~output_multi_t() = default;
 
 std::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const
 {
-    auto clone = std::make_shared<output_multi_t>(*this);
+    auto *clone = new output_multi_t(*this);
     clone->m_mid = cloned_middle;
-    return clone;
+    return std::shared_ptr<output_t>(clone);
 }
 
 int output_multi_t::start() {
