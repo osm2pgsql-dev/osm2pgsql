@@ -127,7 +127,7 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int 
              message += "Arguments were: ";
             for(int i = 0; i < nParams; i++)
             {
-                message += paramValues[i];
+                message += paramValues[i]?paramValues[i]:"<NULL>";
                 message += ", ";
             }
         }
