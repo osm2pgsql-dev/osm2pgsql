@@ -14,6 +14,7 @@ polygon_values = {
 
 -- Objects with any of the following key/value combinations will be treated as linestring
 linestring_values = {
+      {'leisure', 'track'},
       {'man_made', 'embankment'},
       {'man_made', 'breakwater'},
       {'man_made', 'groyne'},
