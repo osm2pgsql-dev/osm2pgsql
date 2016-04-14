@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:B:O:xkjGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -43,6 +43,7 @@ namespace
         {"style",    1, 0, 'S'},
         {"expire-tiles", 1, 0, 'e'},
         {"expire-output", 1, 0, 'o'},
+        {"expire-bbox-size", 1, 0, 'B'},
         {"output",   1, 0, 'O'},
         {"extra-attributes", 0, 0, 'x'},
         {"hstore", 0, 0, 'k'},
@@ -168,6 +169,8 @@ namespace
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
        -o|--expire-output filename  Output filename for expired tiles list.\n\
+       -B|--expire-bbox-size Max size for a polygon to expire the whole polygon,\n\
+                             not just the boundary.\n\
     \n\
     Other options:\n\
        -b|--bbox        Apply a bounding box filter on the imported data\n\
@@ -262,7 +265,8 @@ std::string database_options_t::conninfo() const
 options_t::options_t():
     prefix("planet_osm"), scale(DEFAULT_SCALE), projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false), slim(false),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE), enable_hstore_index(false),
+    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_max_bbox(20000), expire_tiles_filename("dirty_tiles"),
+    hstore_mode(HSTORE_NONE), enable_hstore_index(false),
     enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
     #ifdef __amd64__
     alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
@@ -376,6 +380,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'o':
             expire_tiles_filename = optarg;
+            break;
+        case 'B':
+            expire_tiles_max_bbox = atoi(optarg);
             break;
         case 'O':
             output_backend = optarg;
