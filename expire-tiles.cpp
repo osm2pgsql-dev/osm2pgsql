@@ -23,7 +23,6 @@
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
 #define TILE_EXPIRY_LEEWAY		0.1		/* How many tiles worth of space to leave either side of a changed feature */
-#define EXPIRE_TILES_MAX_BBOX		20000		/* Maximum width or height of a bounding box (metres) */
 
 namespace {
 /*
@@ -388,8 +387,8 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 		return ret;
 	}
 
-	if (width > EXPIRE_TILES_MAX_BBOX) return -1;
-	if (height > EXPIRE_TILES_MAX_BBOX) return -1;
+	if (width > Options->expire_tiles_max_bbox) return -1;
+	if (height > Options->expire_tiles_max_bbox) return -1;
 
 
 	/* Convert the box's Mercator coordinates into tile coordinates */
