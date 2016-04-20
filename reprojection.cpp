@@ -75,7 +75,8 @@ class generic_reprojection_t : public reprojection
 {
 public:
     generic_reprojection_t(int srs)
-    : pj_target(srs), pj_source(PROJ_LATLONG), pj_tile("+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs")
+    : m_target_srs(srs), pj_target(srs), pj_source(PROJ_LATLONG),
+      pj_tile("+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs")
     {}
 
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
@@ -94,10 +95,11 @@ public:
         *lat = c.y;
     }
 
-    int target_srs() const override { return PROJ_SPHERE_MERC; }
-    const char *target_desc() const override { return "Spherical Mercator"; }
+    int target_srs() const override { return m_target_srs; }
+    const char *target_desc() const override { return pj_get_def(pj_target.get(), 0); }
 
 private:
+    int m_target_srs;
     osmium::geom::CRS pj_target;
     /** The projection of the source data. Always lat/lon (EPSG:4326). */
     osmium::geom::CRS pj_source;
