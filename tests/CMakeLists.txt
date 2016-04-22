@@ -12,6 +12,7 @@ set(TESTS
   test-middle-ram.cpp
   test-options-database.cpp
   test-options-parse.cpp
+  test-options-projection.cpp
   test-output-multi-line-storage.cpp
   test-output-multi-line.cpp
   test-output-multi-point-multi-table.cpp
