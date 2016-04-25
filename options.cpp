@@ -43,7 +43,7 @@ namespace
         {"style",    1, 0, 'S'},
         {"expire-tiles", 1, 0, 'e'},
         {"expire-output", 1, 0, 'o'},
-        {"expire-bbox-size", 1, 0, 'B'},
+        {"expire-bbox-size", 1, 0, 214},
         {"output",   1, 0, 'O'},
         {"extra-attributes", 0, 0, 'x'},
         {"hstore", 0, 0, 'k'},
@@ -381,7 +381,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 'o':
             expire_tiles_filename = optarg;
             break;
-        case 'B':
+        case 214:
             expire_tiles_max_bbox = atoi(optarg);
             break;
         case 'O':
