@@ -56,6 +56,8 @@ struct tempdb
     tempdb();
     ~tempdb();
 
+    static std::unique_ptr<pg::tempdb> create_db_or_skip();
+
     database_options_t database_options;
 
     void check_tblspc();

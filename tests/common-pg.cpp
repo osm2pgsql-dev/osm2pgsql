@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
 #include <memory>
 
@@ -102,6 +104,20 @@ tempdb::tempdb()
 
     setup_extension("postgis", {"postgis-1.5/postgis.sql", "postgis-1.5/spatial_ref_sys.sql"});
     setup_extension("hstore");
+}
+
+std::unique_ptr<pg::tempdb> tempdb::create_db_or_skip()
+{
+    std::unique_ptr<pg::tempdb> db;
+
+    try {
+        db.reset(new pg::tempdb);
+    } catch (const std::exception &e) {
+        std::cerr << "Unable to setup database: " << e.what() << "\n";
+        exit(77); // <-- code to skip this test.
+    }
+
+    return db;
 }
 
 void tempdb::check_tblspc() {
