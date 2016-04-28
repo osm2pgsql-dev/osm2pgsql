@@ -595,7 +595,7 @@ int output_gazetteer_t::connect() {
         ConnectionDelete = PQconnectdb(m_options.database_options.conninfo().c_str());
         if (PQstatus(ConnectionDelete) != CONNECTION_OK)
         {
-            std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";
+            std::cerr << "Connection to database failed: " << PQerrorMessage(ConnectionDelete) << "\n";
             return 1;
         }
 
