@@ -1,6 +1,6 @@
 # Command-line usage #
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
+Osm2pgsql has one program, the executable itself, which has **44** command line
 options. A full list of options can be obtained with ``osm2pgsql -h -v``. This
 document provides an overview of options, and more importantly, why you might
 use them.

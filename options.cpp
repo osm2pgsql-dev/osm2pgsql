@@ -169,7 +169,7 @@ namespace
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
        -o|--expire-output filename  Output filename for expired tiles list.\n\
-       -B|--expire-bbox-size Max size for a polygon to expire the whole polygon,\n\
+          --expire-bbox-size Max size for a polygon to expire the whole polygon,\n\
                              not just the boundary.\n\
     \n\
     Other options:\n\
