@@ -100,8 +100,9 @@ void add_z_order(taglist_t &tags, int *roads)
     snprintf(z, sizeof(z), "%d", z_order);
     tags.push_back(tag_t("z_order", z));
 }
+} // anonymous namespace
 
-unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
+unsigned int tagtransform::c_filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
         int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless)
@@ -231,6 +232,10 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         /* Copy the tags from the outer way(s) if the relation is untagged (with
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
         if (poly_tags.empty()) {
+            if (options->ignore_oldstyle_polygons) {
+                // no polygon tags on relation, so not a newstyle multipolygon
+                return 1;
+            }
             int first_outerway = 1;
             for (size_t i = 0; i < member_tags.size(); i++) {
                 if (member_roles[i] && *(member_roles[i]) == "inner")
@@ -318,7 +323,6 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
 
     return 0;
 }
-} // anonymous namespace
 
 #ifdef HAVE_LUA
 unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,

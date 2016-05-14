@@ -64,6 +64,7 @@ namespace
         {"exclude-invalid-polygon",0,0,210},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
+        {"ignore-oldstyle-polygons", 0, 0, 215},
         {0, 0, 0, 0}
     };
 
@@ -206,6 +207,11 @@ namespace
                         because renderers usually have shape files for them.\n\
           --exclude-invalid-polygon   do not import polygons with invalid geometries.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
+          --ignore-oldstyle-polygons\n\
+                        Process all multipolygons as new-style-multipolygons:\n\
+                        tags for multipolygons are only taken from the relation\n\
+                        and way polygons are always processed separately, even\n\
+                        when they are part of a multipolygon with the same tags.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
         }
@@ -273,7 +279,9 @@ options_t::options_t():
     #else
     alloc_chunkwise(ALLOC_SPARSE),
     #endif
-    droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), reproject_area(false), flat_node_file(boost::none),
+    droptemp(false),  unlogged(false), hstore_match_only(false),
+    flat_node_cache_enabled(false), excludepoly(false), reproject_area(false),
+    ignore_oldstyle_polygons(false), flat_node_file(boost::none),
     tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
     tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
     create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
@@ -457,6 +465,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 213:
             reproject_area = true;
+            break;
+        case 215:
+            ignore_oldstyle_polygons = true;
             break;
         case 'V':
             exit (EXIT_SUCCESS);
