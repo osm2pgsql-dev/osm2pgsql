@@ -77,6 +77,7 @@ public:
     bool flat_node_cache_enabled;
     bool excludepoly;
     bool reproject_area;
+    bool ignore_oldstyle_polygons;
     boost::optional<std::string> flat_node_file;
     /**
      * these options allow you to control the name of the

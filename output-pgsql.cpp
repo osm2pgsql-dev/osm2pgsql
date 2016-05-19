@@ -174,7 +174,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
      * Set them in the database as done and delete their entry to not
      * have duplicates */
     //dont do this when working with pending relations as its not needed
-    if (make_polygon) {
+    if (make_polygon && !m_options.ignore_oldstyle_polygons) {
         for (size_t i=0; i < xid.size(); i++) {
             if (members_superseeded[i]) {
                 pgsql_delete_way_from_output(xid[i]);
@@ -373,17 +373,19 @@ int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &ta
   auto filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
                                                 *m_export_list.get(), outtags);
 
-  /* If this isn't a polygon then it can not be part of a multipolygon
-     Hence only polygons are "pending" */
-  if (!filter && polygon) { ways_pending_tracker->mark(id); }
-
-  if( !polygon && !filter )
-  {
-    /* Get actual node data and generate output */
-    nodelist_t nodes;
-    m_mid->nodes_get_list(nodes, nds);
-    pgsql_out_way(id, outtags, nodes, polygon, roads);
+  if (!filter) {
+      if (polygon) {
+          /* If this isn't a polygon then it can not be part of a multipolygon
+             Hence only polygons are "pending" */
+          ways_pending_tracker->mark(id);
+      } else {
+          /* Get actual node data and generate output */
+          nodelist_t nodes;
+          m_mid->nodes_get_list(nodes, nds);
+          pgsql_out_way(id, outtags, nodes, polygon, roads);
+      }
   }
+
   return 0;
 }
 
