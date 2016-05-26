@@ -130,30 +130,23 @@ std::vector<std::shared_ptr<output_t> > output_t::create_outputs(const middle_qu
     return outputs;
 }
 
-output_t::output_t(const middle_query_t *mid_, const options_t &options_): m_mid(mid_), m_options(options_) {
+output_t::output_t(const middle_query_t *mid_, const options_t &options_)
+: m_mid(mid_), m_options(options_)
+{}
 
-}
+output_t::~output_t() = default;
 
-output_t::~output_t() {
-
-}
-
-size_t output_t::pending_count() const{
+size_t output_t::pending_count() const
+{
     return 0;
 }
 
-const options_t *output_t::get_options()const {
-	return &m_options;
+const options_t *output_t::get_options() const
+{
+    return &m_options;
 }
 
-void output_t::merge_pending_relations(std::shared_ptr<output_t> other) {
-}
-void output_t::merge_expire_trees(std::shared_ptr<output_t> other) {
-}
+void output_t::merge_pending_relations(output_t*) {}
 
-std::shared_ptr<id_tracker> output_t::get_pending_relations() {
-    return std::shared_ptr<id_tracker>();
-}
-std::shared_ptr<expire_tiles> output_t::get_expire_tree() {
-    return std::shared_ptr<expire_tiles>();
-}
+void output_t::merge_expire_trees(output_t*) {}
+
