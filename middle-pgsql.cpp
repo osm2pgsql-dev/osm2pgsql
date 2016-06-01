@@ -565,25 +565,24 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
         return 0;
 
     char tmp[16];
-    char *tmp2;
+    std::unique_ptr<char[]> tmp2(new (std::nothrow) char[ids.size() * 16]);
     char const *paramValues[1];
 
-    tmp2 = static_cast<char *>(malloc(sizeof(char) * ids.size() * 16));
     if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
 
     // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2, "{");
+    sprintf(tmp2.get(), "{");
     for(idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", *it);
-        strncat(tmp2,tmp, sizeof(char)*(ids.size()*16 - 2));
+        strncat(tmp2.get(), tmp, sizeof(char)*(ids.size()*16 - 2));
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
+    tmp2[strlen(tmp2.get()) - 1] = '}'; // replace last , with } to complete list of ids*/
 
     pgsql_endCopy(way_table);
 
     PGconn *sql_conn = way_table->sql_conn;
 
-    paramValues[0] = tmp2;
+    paramValues[0] = tmp2.get();
     PGresult *res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
     int countPG = PQntuples(res);
 
@@ -623,7 +622,6 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     assert(way_ids.size() <= ids.size());
 
     PQclear(res);
-    free(tmp2);
 
     return way_ids.size();
 }
