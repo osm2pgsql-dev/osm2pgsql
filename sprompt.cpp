@@ -87,7 +87,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 #endif
 #endif
 
-	destination = (char *) malloc(maxlen + 1);
+	destination = static_cast<char *>(malloc(maxlen + 1));
 	if (!destination)
 		return NULL;
 
@@ -125,7 +125,7 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	if (!echo)
 	{
 		/* get a new handle to turn echo off */
-		t_orig = (LPDWORD) malloc(sizeof(DWORD));
+		t_orig = static_cast<LPDWORD>(malloc(sizeof(DWORD)));
 		t = GetStdHandle(STD_INPUT_HANDLE);
 
 		/* save the old configuration first */
