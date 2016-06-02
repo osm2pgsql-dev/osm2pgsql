@@ -313,7 +313,7 @@ void middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
     } else {
         // Four params: id, lat, lon, tags */
         const char *paramValues[4];
-        char *buffer = static_cast<char *>(alloca(64));
+        char buffer[64];
         char *ptr = buffer;
         paramValues[0] = ptr;
         ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
@@ -501,20 +501,19 @@ void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist
 {
     // Three params: id, nodes, tags */
     const char *paramValues[4];
-    char *buffer;
 
     if (way_table->copyMode) {
       const char *tag_buf = pgsql_store_tags(tags,1);
       char *node_buf = pgsql_store_nodes(nds);
       int length = strlen(tag_buf) + strlen(node_buf) + 64;
-      buffer = static_cast<char *>(alloca(length));
+      char *buffer = static_cast<char *>(alloca(length));
       if (snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
               way_id, node_buf, tag_buf ) > (length-10)) {
           throw std::runtime_error((boost::format("Buffer overflow way id %1%") % way_id).str());
       }
       pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
     } else {
-        buffer = static_cast<char *>(alloca(64));
+        char buffer[64];
         char *ptr = buffer;
         paramValues[0] = ptr;
         sprintf(ptr, "%" PRIdOSMID, way_id);
@@ -684,7 +683,6 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
 {
     // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6];
-    char *buffer;
     taglist_t member_list;
     char buf[64];
 
@@ -719,7 +717,7 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
       const char *member_buf = pgsql_store_tags(member_list,1);
       char *parts_buf = pgsql_store_nodes(all_parts);
       int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
-      buffer = static_cast<char *>(alloca(length));
+      char *buffer = static_cast<char *>(alloca(length));
       if (snprintf( buffer, length, "%" PRIdOSMID "\t%zu\t%zu\t%s\t%s\t%s\n",
                     id, node_parts.size(), node_parts.size() + way_parts.size(),
                     parts_buf, member_buf, tag_buf ) > (length-10)) {
@@ -728,7 +726,7 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
       free(tag_buf);
       pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
     } else {
-        buffer = static_cast<char *>(alloca(64));
+        char buffer[64];
         char *ptr = buffer;
         paramValues[0] = ptr;
         ptr += sprintf(ptr, "%" PRIdOSMID, id ) + 1;
