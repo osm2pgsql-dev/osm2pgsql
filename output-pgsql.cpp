@@ -352,7 +352,10 @@ void output_pgsql_t::stop()
       }
     }
 
-    expire.output_and_destroy();
+    if (m_options.expire_tiles_zoom_min >= 0) {
+        expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
+                                  m_options.expire_tiles_zoom_min);
+    }
 }
 
 int output_pgsql_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
@@ -584,9 +587,9 @@ std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_mid
     return std::shared_ptr<output_t>(clone);
 }
 
-output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &options_)
-    : output_t(mid_, options_),
-      expire(&options_),
+output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
+    : output_t(mid, o),
+      expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
       ways_done_tracker(new id_tracker())
 {
     reproj = m_options.projection;
@@ -656,7 +659,9 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid_, const options_t &opti
 output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
     m_export_list(new export_list(*other.m_export_list)),
-    expire(&m_options), reproj(other.reproj),
+    expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+           m_options.projection),
+    reproj(other.reproj),
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     ways_done_tracker(other.ways_done_tracker)

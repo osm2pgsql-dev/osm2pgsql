@@ -28,7 +28,8 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.hstore_mode, m_options.enable_hstore_index,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
       ways_done_tracker(new id_tracker()),
-      m_expire(&m_options)
+      m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+               m_options.projection)
 {}
 
 output_multi_t::output_multi_t(const output_multi_t& other):
@@ -37,7 +38,8 @@ output_multi_t::output_multi_t(const output_multi_t& other):
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     ways_done_tracker(other.ways_done_tracker),
-    m_expire(&m_options)
+    m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+             m_options.projection)
 {}
 
 
@@ -162,9 +164,13 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     return ret;
 }
 
-void output_multi_t::stop() {
+void output_multi_t::stop()
+{
     m_table->stop();
-    m_expire.output_and_destroy();
+    if (m_options.expire_tiles_zoom_min >= 0) {
+        m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
+                                    m_options.expire_tiles_zoom_min);
+    }
 }
 
 void output_multi_t::commit() {
