@@ -24,7 +24,6 @@
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
 #define TILE_EXPIRY_LEEWAY		0.1		/* How many tiles worth of space to leave either side of a changed feature */
 
-namespace {
 /*
  * We store the dirty tiles in an in-memory tree during runtime
  * and dump them out to a file at the end.  This allows us to easilly drop
@@ -40,233 +39,152 @@ namespace {
  * which are easilly accommodated.
  */
 
-int calc_complete(struct expire_tiles::tile * tile) {
-	int	c;
 
-	c = tile->complete[0][0];
-	c += tile->complete[0][1];
-	c += tile->complete[1][0];
-	c += tile->complete[1][1];
-	return c;
-}
-
-void destroy_tree(struct expire_tiles::tile * tree) {
-	if (! tree) return;
-	if (tree->subtiles[0][0]) destroy_tree(tree->subtiles[0][0]);
-	if (tree->subtiles[0][1]) destroy_tree(tree->subtiles[0][1]);
-	if (tree->subtiles[1][0]) destroy_tree(tree->subtiles[1][0]);
-	if (tree->subtiles[1][1]) destroy_tree(tree->subtiles[1][1]);
-	free(tree);
-}
-
-/*
- * Mark a tile as dirty.
- * Returns the number of subtiles which have all their children marked as dirty.
- */
-int _mark_tile(struct expire_tiles::tile ** tree, int x, int y, int zoom, int this_zoom) {
-	int	zoom_diff = zoom - this_zoom - 1;
-	int	rel_x;
-	int	rel_y;
-	int	complete;
-
-	if (! *tree) *tree = (struct expire_tiles::tile *)calloc(1, sizeof(**tree));
-	rel_x = (x >> zoom_diff) & 1;
-	rel_y = (y >> zoom_diff) & 1;
-	if (! (*tree)->complete[rel_x][rel_y]) {
-		if (zoom_diff <= 0) {
-			(*tree)->complete[rel_x][rel_y] = 1;
-		} else {
-			complete = _mark_tile(&((*tree)->subtiles[rel_x][rel_y]), x, y, zoom, this_zoom + 1);
-			if (complete >= 4) {
-				(*tree)->complete[rel_x][rel_y] = 1;
-				/* We can destroy the subtree to save memory now all the children are dirty */
-				destroy_tree((*tree)->subtiles[rel_x][rel_y]);
-				(*tree)->subtiles[rel_x][rel_y] = nullptr;
-			}
-		}
-	}
-	return calc_complete(*tree);
-}
-
-/*
- * Mark a tile as dirty.
- * Returns the number of subtiles which have all their children marked as dirty.
- */
-int mark_tile(struct expire_tiles::tile ** tree_head, int x, int y, int zoom) {
-	return _mark_tile(tree_head, x, y, zoom, 0);
-}
-
-void output_dirty_tile_impl(FILE * outfile, int x, int y, int zoom, int min_zoom, int &outcount) {
-	int	y_min;
-	int	x_iter;
-	int	y_iter;
-	int	x_max;
-	int	y_max;
-	int	out_zoom;
-	int	zoom_diff;
-
-	if (zoom > min_zoom) out_zoom = zoom;
-	else out_zoom = min_zoom;
-	zoom_diff = out_zoom - zoom;
-	y_min = y << zoom_diff;
-	x_max = (x + 1) << zoom_diff;
-	y_max = (y + 1) << zoom_diff;
-	for (x_iter = x << zoom_diff; x_iter < x_max; x_iter++) {
-		for (y_iter = y_min; y_iter < y_max; y_iter++) {
-			outcount++;
-            if ((outcount <= 1) || ((outcount % 1000) == 0)) {
-                fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
-                fflush(stderr);
-            }
-            fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
-		}
-	}
-}
-
-struct tile_output_file : public expire_tiles::tile_output {
-  tile_output_file(const std::string &expire_tiles_filename)
-    : outcount(0)
-    , outfile(fopen(expire_tiles_filename.c_str(), "a")) {
+struct tile_output_file : public expire_tiles::tile_output
+{
+  tile_output_file(const char *expire_tiles_filename, int zmin)
+  : outcount(0), min_zoom(zmin), outfile(fopen(expire_tiles_filename, "a"))
+  {
     if (outfile == nullptr) {
       fprintf(stderr, "Failed to open expired tiles file (%s).  Tile expiry list will not be written!\n", strerror(errno));
     }
   }
 
-  virtual ~tile_output_file() {
+  ~tile_output_file() {
     if (outfile) {
       fclose(outfile);
     }
   }
 
-  virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) {
-    output_dirty_tile_impl(outfile, x, y, zoom, min_zoom, outcount);
+  void output_dirty_tile(int x, int y, int zoom) override
+  {
+    if (outfile == nullptr) {
+        return;
+    }
+
+    int out_zoom = std::max(zoom, min_zoom);
+    int zoom_diff = out_zoom - zoom;
+    int x_max = (x + 1) << zoom_diff;
+    int y_max = (y + 1) << zoom_diff;
+
+    for (int x_iter = x << zoom_diff; x_iter < x_max; ++x_iter) {
+        for (int y_iter = y << zoom_diff; y_iter < y_max; ++y_iter) {
+            ++outcount;
+            if ((outcount % 1000) == 0) {
+                fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
+            }
+            fprintf(outfile, "%i/%i/%i\n", out_zoom, x_iter, y_iter);
+        }
+    }
   }
 
 private:
   int outcount;
+  int min_zoom;
   FILE *outfile;
 };
 
-void _output_and_destroy_tree(expire_tiles::tile_output *output, struct expire_tiles::tile * tree, int x, int y, int this_zoom, int min_zoom) {
-	int	sub_x = x << 1;
-	int	sub_y = y << 1;
-        expire_tiles::tile_output *out;
 
-	if (! tree) return;
+int tile::mark_tile(int x, int y, int zoom, int this_zoom)
+{
+    int zoom_diff = zoom - this_zoom - 1;
+    int sub = ((x >> zoom_diff) & 1) << 1 | ((y >> zoom_diff) & 1);
 
-	out = output;
-	if ((tree->complete[0][0]) && output) {
-		output->output_dirty_tile(sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
-		out = nullptr;
-	}
-	if (tree->subtiles[0][0]) _output_and_destroy_tree(out, tree->subtiles[0][0], sub_x + 0, sub_y + 0, this_zoom + 1, min_zoom);
-
-	out = output;
-	if ((tree->complete[0][1]) && output) {
-		output->output_dirty_tile(sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
-		out = nullptr;
-	}
-	if (tree->subtiles[0][1]) _output_and_destroy_tree(out, tree->subtiles[0][1], sub_x + 0, sub_y + 1, this_zoom + 1, min_zoom);
-
-	out = output;
-	if ((tree->complete[1][0]) && output) {
-		output->output_dirty_tile(sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
-		out = nullptr;
-	}
-	if (tree->subtiles[1][0]) _output_and_destroy_tree(out, tree->subtiles[1][0], sub_x + 1, sub_y + 0, this_zoom + 1, min_zoom);
-
-	out = output;
-	if ((tree->complete[1][1]) && output) {
-		output->output_dirty_tile(sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
-		out = nullptr;
-	}
-	if (tree->subtiles[1][1]) _output_and_destroy_tree(out, tree->subtiles[1][1], sub_x + 1, sub_y + 1, this_zoom + 1, min_zoom);
-
-	free(tree);
-}
-
-// merge the two trees, destroying b in the process. returns the
-// number of completed subtrees.
-int _tree_merge(struct expire_tiles::tile **a,
-                struct expire_tiles::tile **b) {
-  if (*a == nullptr) {
-    *a = *b;
-    *b = nullptr;
-
-  } else if (*b != nullptr) {
-    for (int x = 0; x < 2; ++x) {
-      for (int y = 0; y < 2; ++y) {
-        // if b is complete on a subtree, then the merged tree must
-        // be complete too.
-        if ((*b)->complete[x][y]) {
-          (*a)->complete[x][y] = (*b)->complete[x][y];
-          destroy_tree((*a)->subtiles[x][y]);
-          (*a)->subtiles[x][y] = nullptr;
-
-          // but if a is already complete, don't bother moving across
-          // anything
-        } else if (!(*a)->complete[x][y]) {
-          int complete = _tree_merge(&((*a)->subtiles[x][y]), &((*b)->subtiles[x][y]));
-
-          if (complete >= 4) {
-            (*a)->complete[x][y] = 1;
-            destroy_tree((*a)->subtiles[x][y]);
-            (*a)->subtiles[x][y] = nullptr;
-          }
+    if (!complete[sub]) {
+        if (zoom_diff <= 0) {
+            complete[sub] = 1;
+            subtiles[sub].reset();
+        } else {
+            if (!subtiles[sub])
+                subtiles[sub].reset(new tile);
+            int done = subtiles[sub]->mark_tile(x, y, zoom, this_zoom + 1);
+            if (done >= 4) {
+                complete[sub] = 1;
+                subtiles[sub].reset();
+            }
         }
-
-        destroy_tree((*b)->subtiles[x][y]);
-        (*b)->subtiles[x][y] = nullptr;
-      }
     }
-  }
 
-  // count the number complete, so we can return it
-  int a_complete = 0;
-  for (int x = 0; x < 2; ++x) {
-    for (int y = 0; y < 2; ++y) {
-      if ((*a != nullptr) && ((*a)->complete[x][y])) {
-        ++a_complete;
-      }
-    }
-  }
-
-  return a_complete;
+    return num_complete();
 }
 
-} // anonymous namespace
+void tile::output_and_destroy(expire_tiles::tile_output *output,
+                        int x, int y, int this_zoom)
+{
+    int sub_x = x << 1;
+    int sub_y = y << 1;
 
-void expire_tiles::output_and_destroy(tile_output *output) {
-    _output_and_destroy_tree(output, dirty, 0, 0, 0, Options->expire_tiles_zoom_min);
-    dirty = nullptr;
+    for (int i = 0; i < 4; ++i) {
+        if (complete[i]) {
+            output->output_dirty_tile(sub_x + sub2x(i), sub_y + sub2y(i),
+                                      this_zoom + 1);
+        }
+        if (subtiles[i]) {
+            subtiles[i]->output_and_destroy(output,
+                                            sub_x + sub2x(i), sub_y + sub2y(i),
+                                            this_zoom + 1);
+            subtiles[i].reset();
+        }
+    }
 }
 
-void expire_tiles::output_and_destroy() {
-  if (Options->expire_tiles_zoom >= 0) {
-    tile_output_file output(Options->expire_tiles_filename);
+int tile::merge(tile *other)
+{
+    for (int i = 0; i < 4; ++i) {
+        // if other is complete, then the merge tree must be complete too
+        if (other->complete[i]) {
+            complete[i] = 1;
+            subtiles[i].reset();
+        // if our subtree is complete don't bother moving anything
+        } else if (!complete[i]) {
+            if (subtiles[i]) {
+                if (other->subtiles[i]) {
+                    int done = subtiles[i]->merge(other->subtiles[i].get());
+                    if (done >= 4) {
+                        complete[i] = 1;
+                        subtiles[i].reset();
+                    }
+                }
+            } else {
+                subtiles[i] = std::move(other->subtiles[i]);
+            }
+        }
+        other->subtiles[i].reset();
+    }
+
+    return num_complete();
+}
+
+void expire_tiles::output_and_destroy(tile_output *output)
+{
+    dirty->output_and_destroy(output, 0, 0, 0);
+    dirty.reset();
+}
+
+void expire_tiles::output_and_destroy(const char *filename, int minzoom)
+{
+  if (maxzoom >= 0) {
+    tile_output_file output(filename, minzoom);
 
     output_and_destroy(&output);
   }
 }
 
-expire_tiles::~expire_tiles() {
-  if (dirty != nullptr) {
-    destroy_tree(dirty);
-    dirty = nullptr;
-  }
-}
-
-expire_tiles::expire_tiles(const struct options_t *options)
-    : map_width(0), tile_width(0), Options(options),
-      dirty(nullptr)
+expire_tiles::expire_tiles(int max, double bbox, const std::shared_ptr<reprojection> &proj)
+: max_bbox(bbox), maxzoom(max), projection(proj)
 {
-	if (Options->expire_tiles_zoom < 0) return;
-	map_width = 1 << Options->expire_tiles_zoom;
-	tile_width = EARTH_CIRCUMFERENCE / map_width;
+    if (maxzoom >= 0) {
+        map_width = 1 << maxzoom;
+        tile_width = EARTH_CIRCUMFERENCE / map_width;
+    }
 }
 
-void expire_tiles::expire_tile(int x, int y) {
-	mark_tile(&dirty, x, y, Options->expire_tiles_zoom);
+void expire_tiles::expire_tile(int x, int y)
+{
+    if (!dirty)
+        dirty.reset(new tile);
+
+    dirty->mark_tile(x, y, maxzoom, 0);
 }
 
 int expire_tiles::normalise_tile_x_coord(int x) {
@@ -299,8 +217,8 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b, double la
 	int	y;
 	int	norm_x;
 
-    Options->projection->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
-    Options->projection->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
+    projection->coords_to_tile(&tile_x_a, &tile_y_a, lon_a, lat_a, map_width);
+    projection->coords_to_tile(&tile_x_b, &tile_y_b, lon_b, lat_b, map_width);
 
 	if (tile_x_a > tile_x_b) {
 		/* We always want the line to go from left to right - swap the ends if it doesn't */
@@ -375,7 +293,7 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
     double  tmp_x;
     double  tmp_y;
 
-	if (Options->expire_tiles_zoom < 0) return 0;
+	if (maxzoom < 0) return 0;
 
 	width = max_lon - min_lon;
 	height = max_lat - min_lat;
@@ -387,15 +305,16 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 		return ret;
 	}
 
-	if (width > Options->expire_tiles_max_bbox) return -1;
-	if (height > Options->expire_tiles_max_bbox) return -1;
+    if (width > max_bbox || height > max_bbox) {
+        return -1;
+    }
 
 
 	/* Convert the box's Mercator coordinates into tile coordinates */
-        Options->projection->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
+        projection->coords_to_tile(&tmp_x, &tmp_y, min_lon, max_lat, map_width);
         min_tile_x = tmp_x - TILE_EXPIRY_LEEWAY;
         min_tile_y = tmp_y - TILE_EXPIRY_LEEWAY;
-        Options->projection->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
+        projection->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
         max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
         max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
 	if (min_tile_x < 0) min_tile_x = 0;
@@ -413,7 +332,7 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 
 void expire_tiles::from_nodes_line(const nodelist_t &nodes)
 {
-    if (Options->expire_tiles_zoom < 0 || nodes.empty())
+    if (maxzoom < 0 || nodes.empty())
         return;
 
     if (nodes.size() == 1) {
@@ -429,7 +348,7 @@ void expire_tiles::from_nodes_line(const nodelist_t &nodes)
  */
 void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
 {
-    if (Options->expire_tiles_zoom < 0 || nodes.empty())
+    if (maxzoom < 0 || nodes.empty())
         return;
 
     double min_lon = nodes[0].lon;
@@ -465,7 +384,7 @@ void expire_tiles::from_xnodes_line(const multinodelist_t &xnodes)
 
 void expire_tiles::from_wkb(const char* wkb, osmid_t osm_id)
 {
-    if (Options->expire_tiles_zoom < 0) return;
+    if (maxzoom < 0) return;
 
     multinodelist_t xnodes;
     bool polygon;
@@ -490,7 +409,7 @@ void expire_tiles::from_wkb(const char* wkb, osmid_t osm_id)
  */
 int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     //bail if we dont care about expiry
-    if (Options->expire_tiles_zoom < 0)
+    if (maxzoom < 0)
         return -1;
 
     //grab the geom for this id
@@ -505,7 +424,12 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     return wkbs.get_count();
 }
 
-void expire_tiles::merge_and_destroy(expire_tiles &other) {
+void expire_tiles::merge_and_destroy(expire_tiles &other)
+{
+  if (!other.dirty) {
+      return;
+  }
+
   if (map_width != other.map_width) {
     throw std::runtime_error((boost::format("Unable to merge tile expiry sets when "
                                             "map_width does not match: %1% != %2%.")
@@ -518,8 +442,12 @@ void expire_tiles::merge_and_destroy(expire_tiles &other) {
                               % tile_width % other.tile_width).str());
   }
 
-  _tree_merge(&dirty, &other.dirty);
 
-  destroy_tree(other.dirty);
-  other.dirty = nullptr;
+  if (!dirty) {
+      dirty = std::move(other.dirty);
+  } else {
+      dirty->merge(other.dirty.get());
+  }
+
+  other.dirty.reset();
 }

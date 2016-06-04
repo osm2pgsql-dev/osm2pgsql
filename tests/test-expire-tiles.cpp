@@ -64,17 +64,21 @@ struct xyz {
   }
 };
 
+static std::shared_ptr<reprojection> defproj(reprojection::create_projection(PROJ_SPHERE_MERC));
+
 std::ostream &operator<<(std::ostream &out, const xyz &tile) {
   out << tile.z << "/" << tile.x << "/" << tile.y;
   return out;
 }
 
-struct tile_output_set : public expire_tiles::tile_output {
-  tile_output_set() {}
+struct tile_output_set : public expire_tiles::tile_output
+{
+  tile_output_set(int min) : min_zoom(min) {}
 
-  virtual ~tile_output_set() {}
+  ~tile_output_set() = default;
 
-  virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) {
+  void output_dirty_tile(int x, int y, int zoom) override
+  {
     int	y_min, x_iter, y_iter, x_max, y_max, out_zoom, zoom_diff;
 
     if (zoom > min_zoom) out_zoom = zoom;
@@ -91,15 +95,12 @@ struct tile_output_set : public expire_tiles::tile_output {
   }
 
   std::set<xyz> m_tiles;
+  int min_zoom;
 };
 
 void test_expire_simple_z1() {
-  options_t opt;
-  opt.expire_tiles_zoom = 1;
-  opt.expire_tiles_zoom_min = 1;
-
-  expire_tiles et(&opt);
-  tile_output_set set;
+  expire_tiles et(1, 20000, defproj);
+  tile_output_set set(1);
 
   // as big a bbox as possible at the origin to dirty all four
   // quadrants of the world.
@@ -115,12 +116,8 @@ void test_expire_simple_z1() {
 }
 
 void test_expire_simple_z3() {
-  options_t opt;
-  opt.expire_tiles_zoom = 3;
-  opt.expire_tiles_zoom_min = 3;
-
-  expire_tiles et(&opt);
-  tile_output_set set;
+  expire_tiles et(3, 20000, defproj);
+  tile_output_set set(3);
 
   // as big a bbox as possible at the origin to dirty all four
   // quadrants of the world.
@@ -136,12 +133,8 @@ void test_expire_simple_z3() {
 }
 
 void test_expire_simple_z18() {
-  options_t opt;
-  opt.expire_tiles_zoom = 18;
-  opt.expire_tiles_zoom_min = 18;
-
-  expire_tiles et(&opt);
-  tile_output_set set;
+  expire_tiles et(18, 20000, defproj);
+  tile_output_set set(18);
 
   // dirty a smaller bbox this time, as at z18 the scale is
   // pretty small.
@@ -198,14 +191,10 @@ void expire_centroids(const std::set<xyz> &check_set,
 // tests that expiring a set of tile centroids means that
 // those tiles get expired.
 void test_expire_set() {
-  options_t opt;
   int zoom = 18;
-  opt.expire_tiles_zoom = zoom;
-  opt.expire_tiles_zoom_min = zoom;
-
   for (int i = 0; i < 100; ++i) {
-    expire_tiles et(&opt);
-    tile_output_set set;
+    expire_tiles et(zoom, 20000, defproj);
+    tile_output_set set(zoom);
 
     std::set<xyz> check_set = generate_random(zoom, 100);
     expire_centroids(check_set, et);
@@ -222,14 +211,13 @@ void test_expire_set() {
 // same as if the union of the sets of tiles had been
 // expired.
 void test_expire_merge() {
-  options_t opt;
   int zoom = 18;
-  opt.expire_tiles_zoom = zoom;
-  opt.expire_tiles_zoom_min = zoom;
 
   for (int i = 0; i < 100; ++i) {
-    expire_tiles et(&opt), et1(&opt), et2(&opt);
-    tile_output_set set;
+    expire_tiles et(zoom, 20000, defproj);
+    expire_tiles et1(zoom, 20000, defproj);
+    expire_tiles et2(zoom, 20000, defproj);
+    tile_output_set set(zoom);
 
     std::set<xyz> check_set1 = generate_random(zoom, 100);
     expire_centroids(check_set1, et1);
@@ -257,14 +245,13 @@ void test_expire_merge() {
 // skipped by the random tile set in the previous
 // test.
 void test_expire_merge_same() {
-  options_t opt;
   int zoom = 18;
-  opt.expire_tiles_zoom = zoom;
-  opt.expire_tiles_zoom_min = zoom;
 
   for (int i = 0; i < 100; ++i) {
-    expire_tiles et(&opt), et1(&opt), et2(&opt);
-    tile_output_set set;
+    expire_tiles et(zoom, 20000, defproj);
+    expire_tiles et1(zoom, 20000, defproj);
+    expire_tiles et2(zoom, 20000, defproj);
+    tile_output_set set(zoom);
 
     std::set<xyz> check_set = generate_random(zoom, 100);
     expire_centroids(check_set, et1);
@@ -282,14 +269,13 @@ void test_expire_merge_same() {
 // makes sure that we're testing the case where some
 // tiles are in both.
 void test_expire_merge_overlap() {
-  options_t opt;
   int zoom = 18;
-  opt.expire_tiles_zoom = zoom;
-  opt.expire_tiles_zoom_min = zoom;
 
   for (int i = 0; i < 100; ++i) {
-    expire_tiles et(&opt), et1(&opt), et2(&opt);
-    tile_output_set set;
+    expire_tiles et(zoom, 20000, defproj);
+    expire_tiles et1(zoom, 20000, defproj);
+    expire_tiles et2(zoom, 20000, defproj);
+    tile_output_set set(zoom);
 
     std::set<xyz> check_set1 = generate_random(zoom, 100);
     expire_centroids(check_set1, et1);
@@ -322,14 +308,15 @@ void test_expire_merge_overlap() {
 // large contiguous areas of tiles (i.e: ensure that we
 // handle the "complete" flag correctly).
 void test_expire_merge_complete() {
-  options_t opt;
   int zoom = 18;
-  opt.expire_tiles_zoom = zoom;
-  opt.expire_tiles_zoom_min = zoom;
 
   for (int i = 0; i < 100; ++i) {
-    expire_tiles et(&opt), et1(&opt), et2(&opt), et0(&opt);
-    tile_output_set set, set0;
+    expire_tiles et(zoom, 20000, defproj);
+    expire_tiles et0(zoom, 20000, defproj);
+    expire_tiles et1(zoom, 20000, defproj);
+    expire_tiles et2(zoom, 20000, defproj);
+    tile_output_set set(zoom);
+    tile_output_set set0(zoom);
 
     // et1&2 are two halves of et0's box
     et0.from_bbox(-10000, -10000, 10000, 10000);
