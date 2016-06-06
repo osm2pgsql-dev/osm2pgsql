@@ -83,11 +83,11 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 #else
 #ifdef _WIN32
 	HANDLE		t = NULL;
-	LPDWORD		t_orig = NULL;
+	DWORD		t_orig;
 #endif
 #endif
 
-	destination = (char *) malloc(maxlen + 1);
+	destination = static_cast<char *>(malloc(maxlen + 1));
 	if (!destination)
 		return NULL;
 
@@ -125,11 +125,10 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	if (!echo)
 	{
 		/* get a new handle to turn echo off */
-		t_orig = (LPDWORD) malloc(sizeof(DWORD));
 		t = GetStdHandle(STD_INPUT_HANDLE);
 
 		/* save the old configuration first */
-		GetConsoleMode(t, t_orig);
+		GetConsoleMode(t, &t_orig);
 
 		/* set to the new mode */
 		SetConsoleMode(t, ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
@@ -177,10 +176,9 @@ simple_prompt(const char *prompt, int maxlen, int echo)
 	if (!echo)
 	{
 		/* reset to the original console mode */
-		SetConsoleMode(t, *t_orig);
+		SetConsoleMode(t, t_orig);
 		fputs("\n", termout);
 		fflush(termout);
-		free(t_orig);
 	}
 #endif
 #endif
