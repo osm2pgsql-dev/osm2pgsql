@@ -38,6 +38,7 @@ DEALINGS IN THE SOFTWARE.
 #include <cstdlib>
 #include <cstring>
 #include <stdexcept>
+#include <tuple>
 
 #include <osmium/memory/collection.hpp>
 #include <osmium/memory/item.hpp>
@@ -49,6 +50,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/timestamp.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/osm/types_from_string.hpp>
+#include <osmium/util/misc.hpp>
 
 namespace osmium {
 
@@ -172,9 +174,9 @@ namespace osmium {
          * @returns Reference to object to make calls chainable.
          */
         OSMObject& set_visible(const char* visible) {
-            if (!strcmp("true", visible)) {
+            if (!std::strcmp("true", visible)) {
                 set_visible(true);
-            } else if (!strcmp("false", visible)) {
+            } else if (!std::strcmp("false", visible)) {
                 set_visible(false);
             } else {
                 throw std::invalid_argument("Unknown value for visible attribute (allowed is 'true' or 'false')");
@@ -313,23 +315,23 @@ namespace osmium {
          * @param value Value of the attribute
          */
         void set_attribute(const char* attr, const char* value) {
-            if (!strcmp(attr, "id")) {
+            if (!std::strcmp(attr, "id")) {
                 set_id(value);
-            } else if (!strcmp(attr, "version")) {
+            } else if (!std::strcmp(attr, "version")) {
                 set_version(value);
-            } else if (!strcmp(attr, "changeset")) {
+            } else if (!std::strcmp(attr, "changeset")) {
                 set_changeset(value);
-            } else if (!strcmp(attr, "timestamp")) {
+            } else if (!std::strcmp(attr, "timestamp")) {
                 set_timestamp(osmium::Timestamp(value));
-            } else if (!strcmp(attr, "uid")) {
+            } else if (!std::strcmp(attr, "uid")) {
                 set_uid(value);
-            } else if (!strcmp(attr, "visible")) {
+            } else if (!std::strcmp(attr, "visible")) {
                 set_visible(value);
             }
         }
 
-        typedef osmium::memory::CollectionIterator<Item> iterator;
-        typedef osmium::memory::CollectionIterator<const Item> const_iterator;
+        using iterator       = osmium::memory::CollectionIterator<Item>;
+        using const_iterator = osmium::memory::CollectionIterator<const Item>;
 
         iterator begin() {
             return iterator(subitems_position());
@@ -353,6 +355,26 @@ namespace osmium {
 
         const_iterator end() const {
             return cend();
+        }
+
+        /**
+         * Get a range of subitems of a specific type.
+         *
+         * @tparam The type (must be derived from osmium::memory::Item.
+         */
+        template <typename T>
+        osmium::memory::ItemIteratorRange<T> subitems() {
+            return osmium::memory::ItemIteratorRange<T>{subitems_position(), next()};
+        }
+
+        /**
+         * Get a range of subitems of a specific type.
+         *
+         * @tparam The type (must be derived from osmium::memory::Item.
+         */
+        template <typename T>
+        osmium::memory::ItemIteratorRange<const T> subitems() const {
+            return osmium::memory::ItemIteratorRange<const T>{subitems_position(), next()};
         }
 
         template <typename T>
@@ -399,8 +421,8 @@ namespace osmium {
      * OSMObjects are equal if their type, id, and version are equal.
      */
     inline bool operator==(const OSMObject& lhs, const OSMObject& rhs) noexcept {
-        return lhs.type() == rhs.type() &&
-               lhs.id() == rhs.id() &&
+        return lhs.type()    == rhs.type() &&
+               lhs.id()      == rhs.id()   &&
                lhs.version() == rhs.version();
     }
 
@@ -409,16 +431,22 @@ namespace osmium {
     }
 
     /**
-     * OSMObjects can be ordered by type, id and version.
-     * Note that we use the absolute value of the id for a
-     * better ordering of objects with negative id.
+     * OSMObjects can be ordered by type, id, version, and timestamp. Usually
+     * ordering by timestamp is not necessary as there shouldn't be two
+     * objects with the same type, id, and version. But this can happen when
+     * creating diff files from extracts, so we take the timestamp into
+     * account  here.
+     *
+     * Note that we use the absolute value of the id for a better ordering
+     * of objects with negative id. If the IDs have the same absolute value,
+     * the positive ID comes first.
+     *
+     * See object_order_type_id_reverse_version if you need a different
+     * ordering.
      */
     inline bool operator<(const OSMObject& lhs, const OSMObject& rhs) noexcept {
-        if (lhs.type() != rhs.type()) {
-            return lhs.type() < rhs.type();
-        }
-        return (lhs.id() == rhs.id() && lhs.version() < rhs.version()) ||
-               lhs.positive_id() < rhs.positive_id();
+        return const_tie(lhs.type(), lhs.positive_id(), lhs.id() < 0, lhs.version(), lhs.timestamp()) <
+               const_tie(rhs.type(), rhs.positive_id(), rhs.id() < 0, rhs.version(), rhs.timestamp());
     }
 
     inline bool operator>(const OSMObject& lhs, const OSMObject& rhs) noexcept {

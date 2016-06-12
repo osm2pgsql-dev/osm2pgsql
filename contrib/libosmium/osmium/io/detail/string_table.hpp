@@ -109,14 +109,21 @@ namespace osmium {
                     return m_chunks.front().c_str() + chunk_len;
                 }
 
-                class const_iterator : public std::iterator<std::forward_iterator_tag, const char*> {
+                class const_iterator {
 
-                    typedef std::list<std::string>::const_iterator it_type;
+                    using it_type = std::list<std::string>::const_iterator;
+
                     it_type m_it;
                     const it_type m_last;
                     const char* m_pos;
 
                 public:
+
+                    using iterator_category = std::forward_iterator_tag;
+                    using value_type        = const char*;
+                    using difference_type   = std::ptrdiff_t;
+                    using pointer           = value_type*;
+                    using reference         = value_type&;
 
                     const_iterator(it_type it, it_type last) :
                         m_it(it),
@@ -192,7 +199,7 @@ namespace osmium {
             struct StrComp {
 
                 bool operator()(const char* lhs, const char* rhs) const {
-                    return strcmp(lhs, rhs) < 0;
+                    return std::strcmp(lhs, rhs) < 0;
                 }
 
             }; // struct StrComp

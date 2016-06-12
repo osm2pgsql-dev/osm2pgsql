@@ -93,11 +93,11 @@ namespace osmium {
 
             public:
 
-                typedef std::unique_ptr<geos::geom::Point>        point_type;
-                typedef std::unique_ptr<geos::geom::LineString>   linestring_type;
-                typedef std::unique_ptr<geos::geom::Polygon>      polygon_type;
-                typedef std::unique_ptr<geos::geom::MultiPolygon> multipolygon_type;
-                typedef std::unique_ptr<geos::geom::LinearRing>   ring_type;
+                using point_type        = std::unique_ptr<geos::geom::Point>;
+                using linestring_type   = std::unique_ptr<geos::geom::LineString>;
+                using polygon_type      = std::unique_ptr<geos::geom::Polygon>;
+                using multipolygon_type = std::unique_ptr<geos::geom::MultiPolygon>;
+                using ring_type         = std::unique_ptr<geos::geom::LinearRing>;
 
                 explicit GEOSFactoryImpl(geos::geom::GeometryFactory& geos_factory) :
                     m_precision_model(nullptr),

@@ -101,6 +101,9 @@ namespace osmium {
                 /// Should the visible flag be added to all OSM objects?
                 bool add_visible_flag;
 
+                /// Should node locations be added to ways?
+                bool locations_on_ways;
+
             };
 
             /**
@@ -483,6 +486,7 @@ namespace osmium {
                     m_options.add_metadata = file.is_not_false("pbf_add_metadata") && file.is_not_false("add_metadata");
                     m_options.add_historical_information_flag = file.has_multiple_object_versions();
                     m_options.add_visible_flag = file.has_multiple_object_versions();
+                    m_options.locations_on_ways = file.is_true("locations_on_ways");
                 }
 
                 PBFOutputFormat(const PBFOutputFormat&) = delete;
@@ -512,6 +516,10 @@ namespace osmium {
 
                     if (m_options.add_historical_information_flag) {
                         pbf_header_block.add_string(OSMFormat::HeaderBlock::repeated_string_required_features, "HistoricalInformation");
+                    }
+
+                    if (m_options.locations_on_ways) {
+                        pbf_header_block.add_string(OSMFormat::HeaderBlock::repeated_string_optional_features, "LocationsOnWays");
                     }
 
                     pbf_header_block.add_string(OSMFormat::HeaderBlock::optional_string_writingprogram, header.get("generator"));
@@ -571,15 +579,34 @@ namespace osmium {
                     pbf_way.add_int64(OSMFormat::Way::required_int64_id, way.id());
                     add_meta(way, pbf_way);
 
+                    const auto& nodes = way.nodes();
+
                     static auto map_node_ref = [](osmium::NodeRefList::const_iterator node_ref) noexcept -> osmium::object_id_type {
                         return node_ref->ref();
                     };
-                    typedef osmium::util::DeltaEncodeIterator<osmium::NodeRefList::const_iterator, decltype(map_node_ref), osmium::object_id_type> it_type;
-
-                    const auto& nodes = way.nodes();
+                    using it_type = osmium::util::DeltaEncodeIterator<osmium::NodeRefList::const_iterator, decltype(map_node_ref), osmium::object_id_type>;
                     it_type first { nodes.cbegin(), nodes.cend(), map_node_ref };
                     it_type last { nodes.cend(), nodes.cend(), map_node_ref };
                     pbf_way.add_packed_sint64(OSMFormat::Way::packed_sint64_refs, first, last);
+
+                    if (m_options.locations_on_ways) {
+                        static auto map_node_x = [](osmium::NodeRefList::const_iterator node_ref) noexcept -> int64_t {
+                            return lonlat2int(node_ref->location().lon_without_check());
+                        };
+                        static auto map_node_y = [](osmium::NodeRefList::const_iterator node_ref) noexcept -> int64_t {
+                            return lonlat2int(node_ref->location().lat_without_check());
+                        };
+                        using it_type_x = osmium::util::DeltaEncodeIterator<osmium::NodeRefList::const_iterator, decltype(map_node_x), int64_t>;
+                        using it_type_y = osmium::util::DeltaEncodeIterator<osmium::NodeRefList::const_iterator, decltype(map_node_y), int64_t>;
+
+                        it_type_x first_x { nodes.cbegin(), nodes.cend(), map_node_x };
+                        it_type_x last_x { nodes.cend(), nodes.cend(), map_node_x };
+                        pbf_way.add_packed_sint64(OSMFormat::Way::packed_sint64_lon, first_x, last_x);
+
+                        it_type_y first_y { nodes.cbegin(), nodes.cend(), map_node_y };
+                        it_type_y last_y { nodes.cend(), nodes.cend(), map_node_y };
+                        pbf_way.add_packed_sint64(OSMFormat::Way::packed_sint64_lat, first_y, last_y);
+                    }
                 }
 
                 void relation(const osmium::Relation& relation) {
@@ -599,7 +626,7 @@ namespace osmium {
                     static auto map_member_ref = [](osmium::RelationMemberList::const_iterator member) noexcept -> osmium::object_id_type {
                         return member->ref();
                     };
-                    typedef osmium::util::DeltaEncodeIterator<osmium::RelationMemberList::const_iterator, decltype(map_member_ref), osmium::object_id_type> it_type;
+                    using it_type = osmium::util::DeltaEncodeIterator<osmium::RelationMemberList::const_iterator, decltype(map_member_ref), osmium::object_id_type>;
                     const auto& members = relation.members();
                     it_type first { members.cbegin(), members.cend(), map_member_ref };
                     it_type last { members.cend(), members.cend(), map_member_ref };

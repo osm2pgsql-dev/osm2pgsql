@@ -151,6 +151,7 @@ namespace osmium {
 
         void update(const NodeRef& node_ref) {
             update_int64(node_ref.ref());
+            update(node_ref.location());
         }
 
         void update(const NodeRefList& node_refs) {
