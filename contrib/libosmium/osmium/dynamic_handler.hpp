@@ -143,7 +143,7 @@ auto _name_##_dispatch(THandler& handler, const osmium::_type_& object, long) ->
 
         class DynamicHandler : public osmium::handler::Handler {
 
-            typedef std::unique_ptr<osmium::handler::detail::HandlerWrapperBase> impl_ptr;
+            using impl_ptr = std::unique_ptr<osmium::handler::detail::HandlerWrapperBase>;
             impl_ptr m_impl;
 
         public:

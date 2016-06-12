@@ -293,6 +293,8 @@ namespace osmium {
                     kv_type keys;
                     kv_type vals;
                     std::pair<protozero::pbf_reader::const_sint64_iterator, protozero::pbf_reader::const_sint64_iterator> refs;
+                    std::pair<protozero::pbf_reader::const_sint64_iterator, protozero::pbf_reader::const_sint64_iterator> lats;
+                    std::pair<protozero::pbf_reader::const_sint64_iterator, protozero::pbf_reader::const_sint64_iterator> lons;
 
                     osm_string_len_type user = { "", 0 };
 
@@ -314,6 +316,12 @@ namespace osmium {
                             case OSMFormat::Way::packed_sint64_refs:
                                 refs = pbf_way.get_packed_sint64();
                                 break;
+                            case OSMFormat::Way::packed_sint64_lat:
+                                lats = pbf_way.get_packed_sint64();
+                                break;
+                            case OSMFormat::Way::packed_sint64_lon:
+                                lons = pbf_way.get_packed_sint64();
+                                break;
                             default:
                                 pbf_way.skip();
                         }
@@ -324,8 +332,20 @@ namespace osmium {
                     if (refs.first != refs.second) {
                         osmium::builder::WayNodeListBuilder wnl_builder(m_buffer, &builder);
                         osmium::util::DeltaDecode<int64_t> ref;
-                        while (refs.first != refs.second) {
-                            wnl_builder.add_node_ref(ref.update(*refs.first++));
+                        if (lats.first == lats.second) {
+                            while (refs.first != refs.second) {
+                                wnl_builder.add_node_ref(ref.update(*refs.first++));
+                            }
+                        } else {
+                            osmium::util::DeltaDecode<int64_t> lon;
+                            osmium::util::DeltaDecode<int64_t> lat;
+                            while (refs.first != refs.second && lons.first != lons.second && lats.first != lats.second) {
+                                wnl_builder.add_node_ref(
+                                    ref.update(*refs.first++),
+                                    osmium::Location{convert_pbf_coordinate(lon.update(*lons.first++)),
+                                                     convert_pbf_coordinate(lat.update(*lats.first++))}
+                                );
+                            }
                         }
                     }
 

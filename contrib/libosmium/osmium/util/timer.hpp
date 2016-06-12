@@ -1,5 +1,5 @@
-#ifndef OSMIUM_UTIL_ITERATOR_HPP
-#define OSMIUM_UTIL_ITERATOR_HPP
+#ifndef OSMIUM_UTIL_TIMER_HPP
+#define OSMIUM_UTIL_TIMER_HPP
 
 /*
 
@@ -33,51 +33,66 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <cstddef>
-#include <utility>
+#include <cstdint>
+
+#ifdef OSMIUM_WITH_TIMER
+
+#include <chrono>
 
 namespace osmium {
 
-    template <typename It, typename P = std::pair<It, It>>
-    struct iterator_range : public P {
+    class Timer {
 
-        using iterator = It;
+        using clock = std::chrono::high_resolution_clock;
+        std::chrono::time_point<clock> m_start;
+        std::chrono::time_point<clock> m_stop;
 
-        iterator_range(P&& p) :
-            P(std::forward<P>(p)) {
-        }
-/*
-        It begin() {
-            return this->first;
-        }
+    public:
 
-        It end() {
-            return this->second;
-        }
-*/
-        It begin() const {
-            return this->first;
+        Timer() :
+            m_start(clock::now()) {
         }
 
-        It end() const {
-            return this->second;
+        void start() {
+            m_start = clock::now();
         }
 
-        size_t empty() const {
-            return begin() == end();
+        void stop() {
+            m_stop = clock::now();
         }
 
-    }; // struct iterator_range
+        int64_t elapsed_microseconds() const {
+            return std::chrono::duration_cast<std::chrono::microseconds>(m_stop - m_start).count();
+        }
 
-    /**
-     * Helper function to create iterator_range from std::pair.
-     */
-    template <typename P, typename It = typename P::first_type>
-    inline iterator_range<It> make_range(P&& p) {
-        static_assert(std::is_same<P, std::pair<It, It>>::value, "make_range needs pair of iterators as argument");
-        return iterator_range<It>(std::forward<P>(p));
-    }
+    };
 
 } // namespace osmium
 
-#endif // OSMIUM_UTIL_ITERATOR_HPP
+#else
+
+namespace osmium {
+
+    class Timer {
+
+    public:
+
+        Timer() = default;
+
+        void start() {
+        }
+
+        void stop() {
+        }
+
+        int64_t elapsed_microseconds() const {
+            return 0;
+        }
+
+    };
+
+} // namespace osmium
+
+#endif
+
+#endif // OSMIUM_UTIL_TIMER_HPP

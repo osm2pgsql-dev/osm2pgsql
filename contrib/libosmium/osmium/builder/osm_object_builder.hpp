@@ -186,9 +186,9 @@ namespace osmium {
 
         }; // class NodeRefListBuilder
 
-        typedef NodeRefListBuilder<WayNodeList> WayNodeListBuilder;
-        typedef NodeRefListBuilder<OuterRing> OuterRingBuilder;
-        typedef NodeRefListBuilder<InnerRing> InnerRingBuilder;
+        using WayNodeListBuilder = NodeRefListBuilder<WayNodeList>;
+        using OuterRingBuilder   = NodeRefListBuilder<OuterRing>;
+        using InnerRingBuilder   = NodeRefListBuilder<InnerRing>;
 
         class RelationMemberListBuilder : public ObjectBuilder<RelationMemberList> {
 
@@ -353,8 +353,8 @@ namespace osmium {
 
         }; // class OSMObjectBuilder
 
-        typedef OSMObjectBuilder<osmium::Node> NodeBuilder;
-        typedef OSMObjectBuilder<osmium::Relation> RelationBuilder;
+        using NodeBuilder     = OSMObjectBuilder<osmium::Node>;
+        using RelationBuilder = OSMObjectBuilder<osmium::Relation>;
 
         class WayBuilder : public OSMObjectBuilder<osmium::Way> {
 
@@ -398,7 +398,7 @@ namespace osmium {
 
         }; // class AreaBuilder
 
-        typedef ObjectBuilder<osmium::Changeset> ChangesetBuilder;
+        using ChangesetBuilder = ObjectBuilder<osmium::Changeset>;
 
     } // namespace builder
 

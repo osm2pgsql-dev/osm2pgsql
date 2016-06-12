@@ -119,7 +119,7 @@ namespace osmium {
         }; // class DeltaDecode
 
         template <typename TBaseIterator, typename TTransform, typename TValue, typename TDelta = int64_t>
-        class DeltaEncodeIterator : public std::iterator<std::input_iterator_tag, TValue> {
+        class DeltaEncodeIterator {
 
             TBaseIterator m_it;
             TBaseIterator m_end;
@@ -129,8 +129,13 @@ namespace osmium {
 
         public:
 
-            using value_type = TValue;
-            using delta_type = TDelta;
+            using iterator_category = std::input_iterator_tag;
+            using value_type        = TValue;
+            using difference_type   = std::ptrdiff_t;
+            using pointer           = value_type*;
+            using reference         = value_type&;
+
+            using delta_type        = TDelta;
 
             DeltaEncodeIterator(TBaseIterator first, TBaseIterator last, TTransform& trans) :
                 m_it(first),

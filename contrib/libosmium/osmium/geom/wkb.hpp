@@ -142,16 +142,17 @@ namespace osmium {
                 }
 
                 void set_size(const size_t offset, const size_t size) {
-                    *reinterpret_cast<uint32_t*>(&m_data[offset]) = static_cast_with_assert<uint32_t>(size);
+                    uint32_t s = static_cast_with_assert<uint32_t>(size);
+                    std::copy_n(reinterpret_cast<char*>(&s), sizeof(uint32_t), &m_data[offset]);
                 }
 
             public:
 
-                typedef std::string point_type;
-                typedef std::string linestring_type;
-                typedef std::string polygon_type;
-                typedef std::string multipolygon_type;
-                typedef std::string ring_type;
+                using point_type        = std::string;
+                using linestring_type   = std::string;
+                using polygon_type      = std::string;
+                using multipolygon_type = std::string;
+                using ring_type         = std::string;
 
                 explicit WKBFactoryImpl(wkb_type wtype = wkb_type::wkb, out_type otype = out_type::binary) :
                     m_wkb_type(wtype),

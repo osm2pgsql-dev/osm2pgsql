@@ -66,7 +66,7 @@ namespace osmium {
                 }
 
                 if (num_threads < 0) {
-                    num_threads += hardware_concurrency;
+                    num_threads += int(hardware_concurrency);
                 }
 
                 if (num_threads < 1) {
@@ -190,7 +190,7 @@ namespace osmium {
             template <typename TFunction>
             std::future<typename std::result_of<TFunction()>::type> submit(TFunction&& func) {
 
-                typedef typename std::result_of<TFunction()>::type result_type;
+                using result_type = typename std::result_of<TFunction()>::type;
 
                 std::packaged_task<result_type()> task(std::forward<TFunction>(func));
                 std::future<result_type> future_result(task.get_future());
