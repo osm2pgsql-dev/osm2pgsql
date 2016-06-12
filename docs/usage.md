@@ -40,7 +40,7 @@ that only impact performance.
   but causes the last stages to take significantly longer.
 
 * ``--cache-strategy`` sets the cache strategy to use. The defaults are fine
-  here, and optimizied uses less RAM than the other options.
+  here, and optimized uses less RAM than the other options.
 
 ## Database options ##
 
