@@ -8,6 +8,7 @@ struct processor_line : public geometry_processor {
     virtual ~processor_line();
 
     geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
+    geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
 
 private:
     geometry_builder builder;
