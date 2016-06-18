@@ -265,7 +265,7 @@ std::string database_options_t::conninfo() const
 options_t::options_t():
     prefix("planet_osm"), scale(DEFAULT_SCALE), projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false), slim(false),
     cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_max_bbox(20000), expire_tiles_filename("dirty_tiles"),
+    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
     hstore_mode(HSTORE_NONE), enable_hstore_index(false),
     enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
     #ifdef __amd64__
@@ -382,7 +382,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             expire_tiles_filename = optarg;
             break;
         case 214:
-            expire_tiles_max_bbox = atoi(optarg);
+            expire_tiles_max_bbox = atof(optarg);
             break;
         case 'O':
             output_backend = optarg;

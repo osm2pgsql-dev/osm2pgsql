@@ -1,18 +1,18 @@
 #ifndef EXPIRE_TILES_H
 #define EXPIRE_TILES_H
 
+#include <memory>
+
 #include "osmtypes.hpp"
 
-#include <boost/noncopyable.hpp>
-
+class reprojection;
 class table_t;
-struct options_t;
+class tile;
 
-struct expire_tiles : public boost::noncopyable {
-    explicit expire_tiles(const options_t *options);
-    ~expire_tiles();
-
-    //TODO: copy constructor
+struct expire_tiles
+{
+    expire_tiles(int maxzoom, double maxbbox,
+                 const std::shared_ptr<reprojection> &projection);
 
     int from_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
     void from_nodes_line(const nodelist_t &nodes);
@@ -20,25 +20,20 @@ struct expire_tiles : public boost::noncopyable {
     void from_wkb(const char* wkb, osmid_t osm_id);
     int from_db(table_t* table, osmid_t osm_id);
 
-    struct tile {
-        int	complete[2][2];
-        struct tile* subtiles[2][2];
-    };
-
     /* customisable tile output. this can be passed into the
      * `output_and_destroy` function to override output to a file.
      * this is primarily useful for testing.
      */
     struct tile_output {
-        virtual ~tile_output() {}
+        virtual ~tile_output() = default;
         // dirty a tile at x, y & zoom, and all descendants of that
         // tile at the given zoom if zoom < min_zoom.
-        virtual void output_dirty_tile(int x, int y, int zoom, int min_zoom) = 0;
+        virtual void output_dirty_tile(int x, int y, int zoom) = 0;
     };
 
     // output the list of expired tiles to a file. note that this
     // consumes the list of expired tiles destructively.
-    void output_and_destroy();
+    void output_and_destroy(const char *filename, int minzoom);
 
     // output the list of expired tiles using a `tile_output`
     // functor. this consumes the list of expired tiles destructively.
@@ -55,10 +50,34 @@ private:
     void from_xnodes_poly(const multinodelist_t &xnodes, osmid_t osm_id);
     void from_xnodes_line(const multinodelist_t &xnodes);
 
-    int map_width;
     double tile_width;
-    const options_t *Options;
-    struct tile *dirty;
+    double max_bbox;
+    int map_width;
+    int maxzoom;
+    std::shared_ptr<reprojection> projection;
+    std::unique_ptr<tile> dirty;
+};
+
+
+class tile
+{
+public:
+    int mark_tile(int x, int y, int zoom, int this_zoom);
+    void output_and_destroy(expire_tiles::tile_output *output,
+                            int x, int y, int this_zoom);
+    int merge(tile *other);
+
+private:
+    int sub2x(int sub) const { return sub >> 1; }
+    int sub2y(int sub) const { return sub & 1; }
+
+    int num_complete() const
+    {
+        return complete[0] + complete[1] + complete[2] + complete[3];
+    }
+
+    std::unique_ptr<tile> subtiles[4];
+    char complete[4] = {0, 0, 0, 0};
 };
 
 #endif
