@@ -2,11 +2,12 @@
 
 -- Objects with any of the following keys will be treated as polygon
 polygon_keys = {
-    'building',
-    'landuse',
+    'aeroway',
     'amenity',
+    'building',
     'harbour',
     'historic',
+    'landuse',
     'leisure',
     'man_made',
     'military',
@@ -18,10 +19,9 @@ polygon_keys = {
     'shop',
     'sport',
     'tourism',
-    'waterway',
-    'wetland',
     'water',
-    'aeroway'
+    'waterway',
+    'wetland'
 }
 
 -- Objects without any of the following keys will be deleted
@@ -37,9 +37,9 @@ generic_keys = {
     'area',
     'barrier',
     'bicycle',
+    'boundary',
     'brand',
     'bridge',
-    'boundary',
     'building',
     'capital',
     'construction',
@@ -88,12 +88,12 @@ generic_keys = {
     'tower:type',
     'tracktype',
     'tunnel',
+    'type',
     'water',
     'waterway',
     'wetland',
     'width',
-    'wood',
-    'type'
+    'wood'
 }
 
 -- The following keys will be deleted
