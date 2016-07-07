@@ -79,7 +79,7 @@ database if the database server ever crashes, but are faster to import.
 
 ### Column options
 
-* ``--extra-attributes`` creates psudo-tags with OSM meta-data like user,
+* ``--extra-attributes`` creates pseudo-tags with OSM meta-data like user,
   last edited, and changeset. These also need to be added to the style file.
 
 * ``--style`` specifies the location of the style file. This defines what
@@ -124,7 +124,7 @@ osm2pgsql has five hstore options
 Either ``--hstore`` or ``--hstore-all`` when combined with ``--hstore-match-only``
 should give the same rows as no hstore, just with the additional hstore column.
 
-Hstore is used to give more flexability to use additional tags without
+Hstore is used to give more flexibility in using additional tags without
 reimporting the database, at the cost of a
 [less speed and more space.](http://paulnorman.ca/blog/2014/03/osm2pgsql-and-hstore/)
 
