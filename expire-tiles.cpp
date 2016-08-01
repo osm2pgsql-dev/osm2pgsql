@@ -157,6 +157,9 @@ int tile::merge(tile *other)
 
 void expire_tiles::output_and_destroy(tile_output *output)
 {
+    if (!dirty)
+        return;
+
     dirty->output_and_destroy(output, 0, 0, 0);
     dirty.reset();
 }
