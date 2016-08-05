@@ -1,6 +1,6 @@
 # osm2pgsql #
 
-osm2pgsql is a tool for loading OpenStreetMap data into a PostgreSQL / PostGIS
+osm2pgsql is a tool for loading [OpenStreetMap data](http://planet.openstreetmap.org/) into a PostgreSQL / PostGIS
 database suitable for applications like rendering into a map, geocoding with
 Nominatim, or general analysis.
 
