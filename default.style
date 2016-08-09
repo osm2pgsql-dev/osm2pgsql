@@ -20,7 +20,7 @@
 # should be created, and if ways with the tag are assumed to be areas. The area
 # assumptions can be overridden with an area=yes/no tag
 #
-# polygon - Create a column for this tag, and objects the tag with are areas
+# polygon - Create a column for this tag, and objects with the tag are areas
 #
 # linear - Create a column for this tag
 #
