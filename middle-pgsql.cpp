@@ -905,13 +905,14 @@ void middle_pgsql_t::end(void)
  *
  * The input string is mangled as follows:
  * %p replaced by the content of the "prefix" option
+ * %P replaced by the content of the table part of the "prefix" option
  * %i replaced by the content of the "tblsslim_data" option
  * %t replaced by the content of the "tblssslim_index" option
  * %m replaced by "UNLOGGED" if the "unlogged" option is set
  * other occurrences of the "%" char are treated normally.
  * any occurrence of { or } will be ignored (not copied to output string);
  * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
+ * %p, %P, %i, %t, %m that was not NULL.
  *
  * So, the input string
  *    Hello{ dear %i}!
@@ -951,6 +952,14 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
                 if (!options->prefix.empty()) {
                     strcpy(dest, options->prefix.c_str());
                     dest += strlen(options->prefix.c_str());
+                    copied = 1;
+                }
+                source+=2;
+                continue;
+            } else if (*(source+1) == 'P') {
+                if (!options->prefix.empty()) {
+                    strcpy(dest, options->prefix_table.c_str());
+                    dest += strlen(options->prefix_table.c_str());
                     copied = 1;
                 }
                 source+=2;
