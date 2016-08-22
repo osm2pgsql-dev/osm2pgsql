@@ -49,6 +49,8 @@ public:
     virtual ~options_t();
 
     std::string prefix; ///< prefix for table names
+    std::string prefix_schema; ///< prefix for table names (schema part)
+    std::string prefix_table; ///< prefix for table names (table part)
     int scale; ///< scale for converting coordinates to fixed point
     std::shared_ptr<reprojection> projection; ///< SRS of projection
     bool append; ///< Append to existing data
