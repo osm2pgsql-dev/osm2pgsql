@@ -15,10 +15,12 @@ typedef boost::format fmt;
 #define BUFFER_SEND_SIZE 1024
 
 
-table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
+table_t::table_t(const string& conninfo, const string& schema_name, const string& table_name,
+    const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
+    conninfo(conninfo), schema_name(schema_name), table_name(table_name), type(type),
+    sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
     append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
@@ -33,10 +35,12 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
     single_fmt = fmt("%1%");
     point_fmt = fmt("POINT(%.15g %.15g)");
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
+    name = table_name;
 }
 
 table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
+    conninfo(other.conninfo), name(other.name), schema_name(other.schema_name), table_name(other.table_name),
+    type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
     table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
