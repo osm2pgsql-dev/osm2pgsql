@@ -1203,7 +1203,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_ways FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_ways;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %P_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
     tables.push_back(table_desc(
         /*table = t_rel,*/
@@ -1223,7 +1223,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %P_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
 
     // set up the rest of the variables from the tables.
