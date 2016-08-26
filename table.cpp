@@ -35,7 +35,12 @@ table_t::table_t(const string& conninfo, const string& schema_name, const string
     single_fmt = fmt("%1%");
     point_fmt = fmt("POINT(%.15g %.15g)");
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
-    name = table_name;
+
+    if (schema_name.empty()) {
+	    name = table_name;
+    } else {
+	    name = (fmt("%s.%s") % schema_name % table_name).str();
+    }
 }
 
 table_t::table_t(const table_t& other):
