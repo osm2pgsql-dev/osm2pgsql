@@ -226,7 +226,7 @@ void table_t::stop()
 
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) COLLATE \"C\"") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %2%") % name % table_name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
