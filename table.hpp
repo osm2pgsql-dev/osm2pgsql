@@ -3,6 +3,7 @@
 
 #include "pgsql.hpp"
 #include "osmtypes.hpp"
+#include "taginfo.hpp"
 
 #include <cstddef>
 #include <string>
@@ -14,7 +15,6 @@
 #include <boost/format.hpp>
 
 typedef std::vector<std::string> hstores_t;
-typedef std::vector<std::pair<std::string, std::string> > columns_t;
 
 class table_t
 {
@@ -88,7 +88,7 @@ class table_t
         void write_hstore_columns(const taglist_t &tags, std::string& values);
 
         void escape4hstore(const char *src, std::string& dst);
-        void escape_type(const std::string &value, const std::string &type, std::string& dst);
+        void escape_type(const std::string &value, ColumnType flags, std::string& dst);
 
         std::string conninfo;
         std::string name;
