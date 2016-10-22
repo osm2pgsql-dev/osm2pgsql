@@ -29,7 +29,7 @@ struct test_output_t : public output_t {
     }
 
     explicit test_output_t(const test_output_t &other)
-        : output_t(this->m_mid, this->m_options), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
+        : output_t(other.m_mid, other.m_options), sum_ids(0), num_nodes(0), num_ways(0), num_relations(0),
           num_nds(0), num_members(0) {
     }
 
