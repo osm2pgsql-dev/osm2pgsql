@@ -87,7 +87,7 @@ private:
      * Sets up sql_conn for the table
      */
     void connect(table_desc& table);
-    void local_nodes_set(const osmid_t& id, const double& lat, const double& lon, const taglist_t &tags);
+    void local_nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
     size_t local_nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     void local_nodes_delete(osmid_t osm_id);
 
@@ -103,7 +103,14 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
+    void buffer_store_nodes(idlist_t const &nodes);
+    void buffer_store_string(std::string const &in, bool escape);
+    void buffer_store_tags(taglist_t const &tags, bool escape);
+
+    void buffer_correct_params(char const **param, size_t size);
+
     bool build_indexes;
+    std::string copy_buffer;
 };
 
 #endif

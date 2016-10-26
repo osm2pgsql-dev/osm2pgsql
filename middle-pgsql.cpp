@@ -69,137 +69,6 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
 {}
 
 namespace {
-char *pgsql_store_nodes(const idlist_t &nds) {
-  static char *buffer;
-  static size_t buflen;
-
-  if( buflen <= nds.size() * 10 )
-  {
-    buflen = ((nds.size() * 10) | 4095) + 1;  // Round up to next page */
-    buffer = static_cast<char *>(realloc( buffer, buflen ));
-  }
-_restart:
-
-  char *ptr = buffer;
-  bool first = true;
-  *ptr++ = '{';
-  for (idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it)
-  {
-    if (!first)
-      *ptr++ = ',';
-    ptr += sprintf(ptr, "%" PRIdOSMID, *it);
-
-    if( (size_t) (ptr-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = static_cast<char *>(realloc( buffer, buflen ));
-
-      goto _restart;
-    }
-    first = false;
-  }
-
-  *ptr++ = '}';
-  *ptr++ = 0;
-
-  return buffer;
-}
-
-// Special escape routine for escaping strings in array constants: double quote, backslash,newline, tab*/
-inline char *escape_tag( char *ptr, const std::string &in, bool escape )
-{
-  for (const char c: in)
-  {
-    switch(c)
-    {
-      case '"':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '"';
-        break;
-      case '\\':
-        if( escape ) *ptr++ = '\\';
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = '\\';
-        break;
-      case '\n':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'n';
-        break;
-      case '\r':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 'r';
-        break;
-      case '\t':
-        if( escape ) *ptr++ = '\\';
-        *ptr++ = '\\';
-        *ptr++ = 't';
-        break;
-      default:
-        *ptr++ = c;
-        break;
-    }
-  }
-  return ptr;
-}
-
-// escape means we return '\N' for copy mode, otherwise we return just nullptr */
-const char *pgsql_store_tags(const taglist_t &tags, bool escape)
-{
-  static char *buffer;
-  static int buflen;
-
-  int countlist = tags.size();
-  if( countlist == 0 )
-  {
-    if( escape )
-      return "\\N";
-    else
-      return nullptr;
-  }
-
-  if( buflen <= countlist * 24 ) // LE so 0 always matches */
-  {
-    buflen = ((countlist * 24) | 4095) + 1;  // Round up to next page */
-    buffer = static_cast<char *>(realloc( buffer, buflen ));
-  }
-_restart:
-
-  char *ptr = buffer;
-  bool first = true;
-  *ptr++ = '{';
-
-  for (taglist_t::const_iterator it = tags.begin(); it != tags.end(); ++it)
-  {
-    int maxlen = (it->key.length() + it->value.length()) * 4;
-    if( (ptr+maxlen-buffer) > (buflen-20) ) // Almost overflowed? */
-    {
-      buflen <<= 1;
-      buffer = static_cast<char *>(realloc( buffer, buflen ));
-
-      goto _restart;
-    }
-    if( !first ) *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag(ptr, it->key, escape);
-    *ptr++ = '"';
-    *ptr++ = ',';
-    *ptr++ = '"';
-    ptr = escape_tag(ptr, it->value, escape);
-    *ptr++ = '"';
-
-    first = false;
-  }
-
-  *ptr++ = '}';
-  *ptr++ = 0;
-
-  return buffer;
-}
-
 // Decodes a portion of an array literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto( const char *src, char *dst )
@@ -290,46 +159,135 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
 }
 } // anonymous namespace
 
-void middle_pgsql_t::local_nodes_set(const osmid_t& id, const double& lat,
-                                    const double& lon, const taglist_t &tags)
+
+void middle_pgsql_t::buffer_store_nodes(idlist_t const &nds)
 {
-    if( node_table->copyMode )
-    {
-      const char *tag_buf = pgsql_store_tags(tags,1);
-      int length = strlen(tag_buf) + 64;
-      char *buffer = static_cast<char *>(alloca( length ));
+    if (nds.size() == 0) {
+        copy_buffer += "{}";
+        return;
+    }
+
+    copy_buffer += "{";
+
+    for (auto const &it : nds) {
+        copy_buffer += std::to_string(it);
+        copy_buffer += ',';
+    }
+
+    copy_buffer[copy_buffer.size() - 1] = '}';
+}
+
+void middle_pgsql_t::buffer_store_string(std::string const &in, bool escape)
+{
+    for (char const c: in) {
+        switch (c) {
+            case '"':
+                if (escape) copy_buffer += "\\";
+                copy_buffer += "\\\"";
+                break;
+            case '\\':
+                if (escape) copy_buffer += "\\\\";
+                copy_buffer += "\\\\";
+                break;
+            case '\n':
+                if (escape) copy_buffer += "\\";
+                copy_buffer += "\\n";
+                break;
+            case '\r':
+                if (escape) copy_buffer += "\\";
+                copy_buffer += "\\r";
+                break;
+            case '\t':
+                if (escape) copy_buffer += "\\";
+                copy_buffer += "\\t";
+                break;
+            default:
+                copy_buffer += c;
+                break;
+        }
+    }
+}
+
+// escape means we return '\N' for copy mode, otherwise we return just nullptr
+void middle_pgsql_t::buffer_store_tags(taglist_t const &tags, bool escape)
+{
+    copy_buffer += "{";
+
+    bool first = true;
+    for (auto const &it : tags) {
+        if (!first) {
+            copy_buffer += ',';
+        }
+        copy_buffer += "\"";
+        buffer_store_string(it.key, escape);
+        copy_buffer += "\",\"";
+        buffer_store_string(it.value, escape);
+        copy_buffer += '"';
+
+        first = false;
+    }
+
+    copy_buffer += "}";
+}
+
+void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
+{
+    if (copy_buffer.c_str() != param[0]) {
+        auto diff = copy_buffer.c_str() - param[0];
+        for (size_t i = 0; i < size; ++i) {
+            if (param[i]) {
+                param[i] += diff;
+            }
+        }
+    }
+}
+
+void middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon,
+                                     const taglist_t &tags)
+{
+    copy_buffer.reserve(tags.size() * 24 + 64);
+
+    bool copy = node_table->copyMode;
+    char delim = copy ? '\t' : '\0';
+    const char *paramValues[4] = { copy_buffer.c_str(), };
+
+    copy_buffer = std::to_string(id);
+    copy_buffer += delim;
+
 #ifdef FIXED_POINT
-      ramNode n(lon, lat);
-      if (snprintf(buffer, length, "%" PRIdOSMID "\t%d\t%d\t%s\n",
-                   id, n.int_lat(), n.int_lon(), tag_buf ) > (length-10)) {
-         throw std::runtime_error((boost::format("Buffer overflow node id %1%") % id).str());
-      }
+    ramNode n(lon, lat);
+    paramValues[1] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(n.int_lat());
+    copy_buffer += delim;
+
+    paramValues[2] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(n.int_lon());
+    copy_buffer += delim;
 #else
-      if (snprintf( buffer, length, "%" PRIdOSMID "\t%.10f\t%.10f\t%s\n", id, lat, lon, tag_buf ) > (length-10)) {
-        throw std::runtime_error((boost::format("Buffer overflow node id %1%") % id).str());
-      }
+    paramValues[1] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(lat);
+    copy_buffer += delim;
+
+    paramValues[2] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(lon);
+    copy_buffer += delim;
 #endif
-      pgsql_CopyData(__FUNCTION__, node_table->sql_conn, buffer);
+
+    if (tags.size() == 0) {
+        paramValues[3] = nullptr;
+        copy_buffer += "\\N";
     } else {
-        // Four params: id, lat, lon, tags */
-        const char *paramValues[4];
-        char buffer[64];
-        char *ptr = buffer;
-        paramValues[0] = ptr;
-        ptr += sprintf( ptr, "%" PRIdOSMID, id ) + 1;
-        paramValues[1] = ptr;
-#ifdef FIXED_POINT
-        ramNode n(lon, lat);
-        ptr += sprintf(ptr, "%d", n.int_lat()) + 1;
-        paramValues[2] = ptr;
-        sprintf(ptr, "%d", n.int_lon());
-#else
-        ptr += sprintf( ptr, "%.10f", lat ) + 1;
-        paramValues[2] = ptr;
-        sprintf( ptr, "%.10f", lon );
-#endif
-        paramValues[3] = pgsql_store_tags(tags,0);
-        pgsql_execPrepared(node_table->sql_conn, "insert_node", 4, (const char * const *)paramValues, PGRES_COMMAND_OK);
+        paramValues[3] = paramValues[0] + copy_buffer.size();
+        buffer_store_tags(tags, copy);
+    }
+
+    if (copy) {
+        copy_buffer += '\n';
+        pgsql_CopyData(__FUNCTION__, node_table->sql_conn, copy_buffer);
+    } else {
+        buffer_correct_params(paramValues, 4);
+        pgsql_execPrepared(node_table->sql_conn, "insert_node", 4,
+                           (const char * const *)paramValues, PGRES_COMMAND_OK);
     }
 }
 
@@ -499,27 +457,34 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
 
 void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist_t &tags)
 {
+    copy_buffer.reserve(nds.size() * 10 + tags.size() * 24 + 64);
+    bool copy = way_table->copyMode;
+    char delim = copy ? '\t' : '\0';
     // Three params: id, nodes, tags */
-    const char *paramValues[4];
+    const char *paramValues[4] = { copy_buffer.c_str(), };
 
-    if (way_table->copyMode) {
-      const char *tag_buf = pgsql_store_tags(tags,1);
-      char *node_buf = pgsql_store_nodes(nds);
-      int length = strlen(tag_buf) + strlen(node_buf) + 64;
-      char *buffer = static_cast<char *>(alloca(length));
-      if (snprintf( buffer, length, "%" PRIdOSMID "\t%s\t%s\n",
-              way_id, node_buf, tag_buf ) > (length-10)) {
-          throw std::runtime_error((boost::format("Buffer overflow way id %1%") % way_id).str());
-      }
-      pgsql_CopyData(__FUNCTION__, way_table->sql_conn, buffer);
+    copy_buffer = std::to_string(way_id);
+    copy_buffer += delim;
+
+    paramValues[1] = paramValues[0] + copy_buffer.size();
+    buffer_store_nodes(nds);
+    copy_buffer += delim;
+
+    if (tags.size() == 0) {
+        paramValues[2] = nullptr;
+        copy_buffer += "\\N";
     } else {
-        char buffer[64];
-        char *ptr = buffer;
-        paramValues[0] = ptr;
-        sprintf(ptr, "%" PRIdOSMID, way_id);
-        paramValues[1] = pgsql_store_nodes(nds);
-        paramValues[2] = pgsql_store_tags(tags,0);
-        pgsql_execPrepared(way_table->sql_conn, "insert_way", 3, (const char * const *)paramValues, PGRES_COMMAND_OK);
+        paramValues[2] = paramValues[0] + copy_buffer.size();
+        buffer_store_tags(tags, copy);
+    }
+
+    if (copy) {
+        copy_buffer += '\n';
+        pgsql_CopyData(__FUNCTION__, way_table->sql_conn, copy_buffer);
+    } else {
+        buffer_correct_params(paramValues, 3);
+        pgsql_execPrepared(way_table->sql_conn, "insert_way", 3,
+                           (const char * const *)paramValues, PGRES_COMMAND_OK);
     }
 }
 
@@ -681,8 +646,6 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
 
 void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
-    // Params: id, way_off, rel_off, parts, members, tags */
-    const char *paramValues[6];
     taglist_t member_list;
     char buf[64];
 
@@ -711,39 +674,53 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
     all_parts.insert(all_parts.end(), way_parts.begin(), way_parts.end());
     all_parts.insert(all_parts.end(), rel_parts.begin(), rel_parts.end());
 
-    if (rel_table->copyMode)
-    {
-      char *tag_buf = strdup(pgsql_store_tags(tags,1));
-      const char *member_buf = pgsql_store_tags(member_list,1);
-      char *parts_buf = pgsql_store_nodes(all_parts);
-      int length = strlen(member_buf) + strlen(tag_buf) + strlen(parts_buf) + 64;
-      char *buffer = static_cast<char *>(alloca(length));
-      if (snprintf( buffer, length, "%" PRIdOSMID "\t%zu\t%zu\t%s\t%s\t%s\n",
-                    id, node_parts.size(), node_parts.size() + way_parts.size(),
-                    parts_buf, member_buf, tag_buf ) > (length-10)) {
-          throw std::runtime_error((boost::format("Buffer overflow relation id %1%") % id).str());
-      }
-      free(tag_buf);
-      pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, buffer);
+    copy_buffer.reserve(all_parts.size() * 10 + member_list.size() * 24
+                        + tags.size() * 24 + 64);
+
+    // Params: id, way_off, rel_off, parts, members, tags */
+    const char *paramValues[6] = { copy_buffer.c_str(), };
+    bool copy = rel_table->copyMode;
+    char delim = copy ? '\t' : '\0';
+
+    copy_buffer = std::to_string(id);
+    copy_buffer+= delim;
+
+    paramValues[1] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(node_parts.size());
+    copy_buffer+= delim;
+
+    paramValues[2] = paramValues[0] + copy_buffer.size();
+    copy_buffer += std::to_string(node_parts.size() + way_parts.size());
+    copy_buffer+= delim;
+
+    paramValues[3] = paramValues[0] + copy_buffer.size();
+    buffer_store_nodes(all_parts);
+    copy_buffer+= delim;
+
+    if (member_list.size() == 0) {
+        paramValues[4] = nullptr;
+        copy_buffer += "\\N";
     } else {
-        char buffer[64];
-        char *ptr = buffer;
-        paramValues[0] = ptr;
-        ptr += sprintf(ptr, "%" PRIdOSMID, id ) + 1;
-        paramValues[1] = ptr;
-        ptr += sprintf(ptr, "%zu", node_parts.size() ) + 1;
-        paramValues[2] = ptr;
-        sprintf( ptr, "%zu", node_parts.size() + way_parts.size() );
-        paramValues[3] = pgsql_store_nodes(all_parts);
-        paramValues[4] = pgsql_store_tags(member_list,0);
-        if (paramValues[4]) {
-            paramValues[4] = strdup(paramValues[4]);
-        }
-        paramValues[5] = pgsql_store_tags(tags,0);
-        pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6, (const char * const *)paramValues, PGRES_COMMAND_OK);
-        if (paramValues[4]) {
-            free((void *)paramValues[4]);
-        }
+        paramValues[4] = paramValues[0] + copy_buffer.size();
+        buffer_store_tags(member_list, copy);
+    }
+    copy_buffer+= delim;
+
+    if (tags.size() == 0) {
+        paramValues[5] = nullptr;
+        copy_buffer += "\\N";
+    } else {
+        paramValues[5] = paramValues[0] + copy_buffer.size();
+        buffer_store_tags(tags, copy);
+    }
+
+    if (copy) {
+        copy_buffer+= '\n';
+        pgsql_CopyData(__FUNCTION__, rel_table->sql_conn, copy_buffer);
+    } else {
+        buffer_correct_params(paramValues, 6);
+        pgsql_execPrepared(rel_table->sql_conn, "insert_rel", 6,
+                           (const char * const *)paramValues, PGRES_COMMAND_OK);
     }
 }
 
