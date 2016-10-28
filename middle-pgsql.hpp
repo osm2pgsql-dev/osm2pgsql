@@ -103,7 +103,6 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_nodes(idlist_t const &nodes);
     void buffer_store_string(std::string const &in, bool escape);
     void buffer_store_tags(taglist_t const &tags, bool escape);
 

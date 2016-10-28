@@ -160,23 +160,6 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
 } // anonymous namespace
 
 
-void middle_pgsql_t::buffer_store_nodes(idlist_t const &nds)
-{
-    if (nds.size() == 0) {
-        copy_buffer += "{}";
-        return;
-    }
-
-    copy_buffer += "{";
-
-    for (auto const &it : nds) {
-        copy_buffer += std::to_string(it);
-        copy_buffer += ',';
-    }
-
-    copy_buffer[copy_buffer.size() - 1] = '}';
-}
-
 void middle_pgsql_t::buffer_store_string(std::string const &in, bool escape)
 {
     for (char const c: in) {
@@ -213,21 +196,15 @@ void middle_pgsql_t::buffer_store_tags(taglist_t const &tags, bool escape)
 {
     copy_buffer += "{";
 
-    bool first = true;
     for (auto const &it : tags) {
-        if (!first) {
-            copy_buffer += ',';
-        }
         copy_buffer += "\"";
         buffer_store_string(it.key, escape);
         copy_buffer += "\",\"";
         buffer_store_string(it.value, escape);
-        copy_buffer += '"';
-
-        first = false;
+        copy_buffer += "\",";
     }
 
-    copy_buffer += "}";
+    copy_buffer[copy_buffer.size() - 1] = '}';
 }
 
 void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
@@ -467,7 +444,16 @@ void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist
     copy_buffer += delim;
 
     paramValues[1] = paramValues[0] + copy_buffer.size();
-    buffer_store_nodes(nds);
+    if (nds.size() == 0) {
+        copy_buffer += "{}";
+    } else {
+        copy_buffer += "{";
+        for (auto const &it : nds) {
+            copy_buffer += std::to_string(it);
+            copy_buffer += ',';
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
+    }
     copy_buffer += delim;
 
     if (tags.size() == 0) {
@@ -646,32 +632,16 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
 
 void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
 {
-    taglist_t member_list;
-    char buf[64];
-
-    idlist_t all_parts, node_parts, way_parts, rel_parts;
-    all_parts.reserve(members.size());
-    node_parts.reserve(members.size());
-    way_parts.reserve(members.size());
-    rel_parts.reserve(members.size());
-
-    for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it) {
-        switch (it->type) {
-            case osmium::item_type::node: node_parts.push_back(it->id); break;
-            case osmium::item_type::way: way_parts.push_back(it->id); break;
-            case osmium::item_type::relation: rel_parts.push_back(it->id); break;
-            default: throw std::runtime_error("Unknown OSM type");
-        }
-        sprintf(buf, "%c%" PRIdOSMID, osmium::item_type_to_char(it->type), it->id);
-        member_list.push_back(tag_t(buf, it->role));
+    idlist_t parts[3];
+    for (int i = 0; i < 3; ++i) {
+        parts[i].reserve(members.size());
     }
 
-    all_parts.insert(all_parts.end(), node_parts.begin(), node_parts.end());
-    all_parts.insert(all_parts.end(), way_parts.begin(), way_parts.end());
-    all_parts.insert(all_parts.end(), rel_parts.begin(), rel_parts.end());
+    for (auto const &m : members) {
+        parts[osmium::item_type_to_nwr_index(m.type)].push_back(m.id);
+    }
 
-    copy_buffer.reserve(all_parts.size() * 10 + member_list.size() * 24
-                        + tags.size() * 24 + 64);
+    copy_buffer.reserve(members.size() * 34 + tags.size() * 24 + 64);
 
     // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6] = { copy_buffer.c_str(), };
@@ -682,23 +652,43 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
     copy_buffer+= delim;
 
     paramValues[1] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(node_parts.size());
+    copy_buffer += std::to_string(parts[0].size());
     copy_buffer+= delim;
 
     paramValues[2] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(node_parts.size() + way_parts.size());
+    copy_buffer += std::to_string(parts[0].size() + parts[1].size());
     copy_buffer+= delim;
 
     paramValues[3] = paramValues[0] + copy_buffer.size();
-    buffer_store_nodes(all_parts);
+    if (members.size() == 0) {
+        copy_buffer += "{}";
+    } else {
+        copy_buffer += "{";
+        for (int i = 0; i < 3; ++i) {
+            for (auto it : parts[i]) {
+                copy_buffer += std::to_string(it);
+                copy_buffer += ',';
+            }
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
+    }
     copy_buffer+= delim;
 
-    if (member_list.size() == 0) {
+    if (members.size() == 0) {
         paramValues[4] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[4] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(member_list, copy);
+        copy_buffer += "{";
+        for (auto const &m : members) {
+            copy_buffer += '"';
+            copy_buffer += osmium::item_type_to_char(m.type);
+            copy_buffer += std::to_string(m.id);
+            copy_buffer += "\",\"";
+            buffer_store_string(m.role, copy);
+            copy_buffer += "\",";
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
     }
     copy_buffer+= delim;
 
