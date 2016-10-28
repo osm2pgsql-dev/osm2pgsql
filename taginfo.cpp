@@ -43,37 +43,34 @@ taginfo::taginfo(const taginfo &other)
       flags(other.flags) {
 }
 
-export_list::export_list()
-    : num_tables(0), exportList() {
-}
-
-void export_list::add(enum OsmType id, const taginfo &info) {
+void export_list::add(osmium::item_type id, const taginfo &info) {
     std::vector<taginfo> &infos = get(id);
     infos.push_back(info);
 }
 
-std::vector<taginfo> &export_list::get(enum OsmType id) {
-    if (id >= num_tables) {
-        exportList.resize(id+1);
-        num_tables = id + 1;
+std::vector<taginfo> &export_list::get(osmium::item_type id) {
+    auto idx = item_type_to_nwr_index(id);
+    if (idx >= exportList.size()) {
+        exportList.resize(idx+1);
     }
-    return exportList[id];
+    return exportList[idx];
 }
 
-const std::vector<taginfo> &export_list::get(enum OsmType id) const {
+const std::vector<taginfo> &export_list::get(osmium::item_type id) const {
     // this fakes as if we have infinite taginfo vectors, but
     // means we don't actually have anything allocated unless
     // the info object has been assigned.
     static const std::vector<taginfo> empty;
 
-    if (id < num_tables) {
-        return exportList[id];
+    auto idx = item_type_to_nwr_index(id);
+    if (idx < exportList.size()) {
+        return exportList[idx];
     } else {
         return empty;
     }
 }
 
-columns_t export_list::normal_columns(OsmType id) const {
+columns_t export_list::normal_columns(osmium::item_type id) const {
     columns_t columns;
 
     for (auto const &info : get(id)) {
@@ -176,14 +173,14 @@ int read_style_file( const std::string &filename, export_list *exlist )
     //keep this tag info if it applies to nodes
     if( strstr( osmtype, "node" ) )
     {
-        exlist->add(OSMTYPE_NODE, temp);
+        exlist->add(osmium::item_type::node, temp);
         kept = true;
     }
 
     //keep this tag info if it applies to ways
     if( strstr( osmtype, "way" ) )
     {
-        exlist->add(OSMTYPE_WAY, temp);
+        exlist->add(osmium::item_type::way, temp);
         kept = true;
     }
 

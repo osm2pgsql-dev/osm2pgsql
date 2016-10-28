@@ -107,7 +107,7 @@ size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid
     //grab the way members' ids
     input_way_ids.reserve(member_list->size());
     for (memberlist_t::const_iterator it = members->begin(); it != members->end(); ++it) {
-        if(it->type == OSMTYPE_WAY)
+        if(it->type == osmium::item_type::way)
             input_way_ids.push_back(it->id);
     }
 

@@ -656,17 +656,13 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
     rel_parts.reserve(members.size());
 
     for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it) {
-        char type = 0;
-        switch (it->type)
-        {
-            case OSMTYPE_NODE:     node_parts.push_back(it->id); type = 'n'; break;
-            case OSMTYPE_WAY:      way_parts.push_back(it->id); type = 'w'; break;
-            case OSMTYPE_RELATION: rel_parts.push_back(it->id); type = 'r'; break;
-            default:
-                fprintf(stderr, "Internal error: Unknown member type %d\n", it->type);
-                util::exit_nicely();
+        switch (it->type) {
+            case osmium::item_type::node: node_parts.push_back(it->id); break;
+            case osmium::item_type::way: way_parts.push_back(it->id); break;
+            case osmium::item_type::relation: rel_parts.push_back(it->id); break;
+            default: throw std::runtime_error("Unknown OSM type");
         }
-        sprintf( buf, "%c%" PRIdOSMID, type, it->id );
+        sprintf(buf, "%c%" PRIdOSMID, osmium::item_type_to_char(it->type), it->id);
         member_list.push_back(tag_t(buf, it->role));
     }
 
@@ -756,9 +752,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
     PQclear(res);
 
     for (taglist_t::const_iterator it = member_temp.begin(); it != member_temp.end(); ++it) {
-        char tag = it->key[0];
-        OsmType type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
-        members.push_back(member(type,
+        members.push_back(member(osmium::char_to_item_type(it->key[0]),
                                  strtoosmid(it->key.c_str()+1, nullptr, 10 ),
                                  it->value));
     }

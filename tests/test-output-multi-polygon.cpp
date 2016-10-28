@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
         std::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
 
         export_list columns;
-        { taginfo info; info.name = "building"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
+        { taginfo info; info.name = "building"; info.type = "text"; columns.add(osmium::item_type::way, info); }
 
         auto out_test = std::make_shared<output_multi_t>("foobar_buildings", processor, columns, mid_pgsql.get(), options);
 

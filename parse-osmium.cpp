@@ -216,14 +216,6 @@ void parse_osmium_t::convert_members(const osmium::RelationMemberList &in_rels)
     members.clear();
 
     for (auto const &m: in_rels) {
-        OsmType type;
-        switch (m.type()) {
-            case osmium::item_type::node: type = OSMTYPE_NODE; break;
-            case osmium::item_type::way: type = OSMTYPE_WAY; break;
-            case osmium::item_type::relation: type = OSMTYPE_RELATION; break;
-            default:
-                fprintf(stderr, "Unsupported type: %u""\n", unsigned(m.type()));
-        }
-        members.emplace_back(type, m.ref(), m.role());
+        members.emplace_back(m.type(), m.ref(), m.role());
     }
 }

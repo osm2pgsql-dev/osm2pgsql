@@ -60,8 +60,8 @@ std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
         geometry_processor::create(proc_type, &new_opts);
 
     // TODO: we're faking this up, but there has to be a better way?
-    OsmType osm_type = ((processor->interests() & geometry_processor::interest_node) > 0)
-        ? OSMTYPE_NODE : OSMTYPE_WAY;
+    osmium::item_type osm_type = ((processor->interests() & geometry_processor::interest_node) > 0)
+        ? osmium::item_type::node : osmium::item_type::way;
 
     export_list columns;
     const pt::ptree &tags = conf.get_child("tags");

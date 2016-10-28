@@ -37,16 +37,13 @@ struct taginfo {
 };
 
 struct export_list {
-    export_list();
+    void add(osmium::item_type id, const taginfo &info);
+    std::vector<taginfo> &get(osmium::item_type id);
+    const std::vector<taginfo> &get(osmium::item_type id) const;
 
-    void add(enum OsmType id, const taginfo &info);
-    std::vector<taginfo> &get(enum OsmType id);
-    const std::vector<taginfo> &get(enum OsmType id) const;
+    columns_t normal_columns(osmium::item_type id) const;
 
-    columns_t normal_columns(OsmType id) const;
-
-    int num_tables;
-    std::vector<std::vector<taginfo> > exportList; /* Indexed by enum OsmType */
+    std::vector<std::vector<taginfo> > exportList; /* Indexed osmium nwr index */
 };
 
 /* Parse a comma or whitespace delimited list of tags to apply to

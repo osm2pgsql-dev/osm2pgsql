@@ -13,12 +13,12 @@
 #include <vector>
 #include <cmath>
 
+#include <osmium/osm.hpp>
+
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
 #define PRIdOSMID PRId64
 #define POSTGRES_OSMID_TYPE "int8"
-
-enum OsmType { OSMTYPE_WAY, OSMTYPE_NODE, OSMTYPE_RELATION };
 
 struct osmNode {
   double lon;
@@ -33,11 +33,12 @@ typedef std::vector<osmNode> nodelist_t;
 typedef std::vector<nodelist_t> multinodelist_t;
 
 struct member {
-  OsmType type;
-  osmid_t id;
-  std::string role;
+    osmium::item_type type;
+    osmid_t id;
+    std::string role;
 
-  member(OsmType t, osmid_t i, const std::string &r) : type(t), id(i), role(r) {}
+    member(osmium::item_type t, osmid_t i, const std::string &r)
+    : type(t), id(i), role(r) {}
 };
 
 typedef std::vector<member> memberlist_t;

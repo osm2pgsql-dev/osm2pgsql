@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
         options.slim = true;
 
         export_list columns;
-        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
+        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(osmium::item_type::node, info); }
 
         std::vector<std::shared_ptr<output_t> > outputs;
 

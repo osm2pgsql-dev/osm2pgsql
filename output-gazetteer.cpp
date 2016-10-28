@@ -734,7 +734,7 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
     idlist_t xid2;
     for (const auto& member: members) {
         /* only interested in ways */
-        if (member.type == OSMTYPE_WAY)
+        if (member.type == osmium::item_type::way)
             xid2.push_back(member.id);
     }
 

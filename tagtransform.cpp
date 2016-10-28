@@ -216,7 +216,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             if (tag.key == "area") {
                 poly_tags.push_back(tag);
             } else {
-                const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+                const std::vector<taginfo> &infos = exlist.get(osmium::item_type::way);
                 for (const auto& info: infos) {
                     if (info.name == tag.key) {
                         if (info.flags & FLAG_POLYGON) {
@@ -264,7 +264,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             /* We need to re-check and only keep polygon tags in the list of polytags */
             // TODO what is that for? The list is cleared just below.
             taglist_t::iterator q = poly_tags.begin();
-            const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+            const std::vector<taginfo> &infos = exlist.get(osmium::item_type::way);
             while (q != poly_tags.end()) {
                 bool contains_tag = false;
                 for (std::vector<taginfo>::const_iterator info = infos.begin();
@@ -452,10 +452,11 @@ unsigned int tagtransform::filter_node_tags(const taglist_t &tags, const export_
                                             taglist_t &out_tags, bool strict)
 {
     if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, exlist, out_tags, strict);
+        return lua_filter_basic_tags(osmium::item_type::node, tags, 0, 0, out_tags);
     }
+
+    return c_filter_basic_tags(osmium::item_type::node, tags, 0, 0, exlist,
+                               out_tags, strict);
 }
 
 /*
@@ -465,20 +466,22 @@ unsigned tagtransform::filter_way_tags(const taglist_t &tags, int *polygon, int 
                                        const export_list &exlist, taglist_t &out_tags, bool strict)
 {
     if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist, out_tags, strict);
+        return lua_filter_basic_tags(osmium::item_type::way, tags, polygon, roads, out_tags);
     }
+
+    return c_filter_basic_tags(osmium::item_type::way, tags, polygon, roads,
+                               exlist, out_tags, strict);
 }
 
 unsigned tagtransform::filter_rel_tags(const taglist_t &tags, const export_list &exlist,
                                        taglist_t &out_tags, bool strict)
 {
     if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, exlist, out_tags, strict);
+        return lua_filter_basic_tags(osmium::item_type::relation, tags, 0, 0, out_tags);
     }
+
+    return c_filter_basic_tags(osmium::item_type::relation, tags, 0, 0,
+                               exlist, out_tags, strict);
 }
 
 unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
@@ -497,23 +500,22 @@ unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
     }
 }
 
-unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags,
+unsigned tagtransform::lua_filter_basic_tags(osmium::item_type type, const taglist_t &tags,
                                              int *polygon, int *roads, taglist_t &out_tags)
 {
 #ifdef HAVE_LUA
     switch (type) {
-    case OSMTYPE_NODE: {
-        lua_getglobal(L, m_node_func.c_str());
-        break;
-    }
-    case OSMTYPE_WAY: {
-        lua_getglobal(L, m_way_func.c_str());
-        break;
-    }
-    case OSMTYPE_RELATION: {
-        lua_getglobal(L, m_rel_func.c_str());
-        break;
-    }
+        case osmium::item_type::node:
+            lua_getglobal(L, m_node_func.c_str());
+            break;
+        case osmium::item_type::way:
+            lua_getglobal(L, m_way_func.c_str());
+            break;
+        case osmium::item_type::relation:
+            lua_getglobal(L, m_rel_func.c_str());
+            break;
+        default:
+            throw std::runtime_error("Unknown OSM type");
     }
 
     lua_newtable(L);    /* key value table */
@@ -526,13 +528,13 @@ unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags
 
     lua_pushinteger(L, tags.size());
 
-    if (lua_pcall(L,2,type == OSMTYPE_WAY ? 4 : 2,0)) {
+    if (lua_pcall(L, 2, (type == osmium::item_type::way) ? 4 : 2, 0)) {
         fprintf(stderr, "Failed to execute lua function for basic tag processing: %s\n", lua_tostring(L, -1));
         /* lua function failed */
         return 1;
     }
 
-    if (type == OSMTYPE_WAY) {
+    if (type == osmium::item_type::way) {
         assert(roads);
         *roads = lua_tointeger(L, -1);
         lua_pop(L,1);
@@ -561,7 +563,7 @@ unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
-unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &tags, int *polygon,
+unsigned int tagtransform::c_filter_basic_tags(osmium::item_type type, const taglist_t &tags, int *polygon,
                                                int *roads, const export_list &exlist,
                                                taglist_t &out_tags, bool strict)
 {
@@ -571,11 +573,9 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
     int flags = 0;
     int add_area_tag = 0;
 
-    OsmType export_type;
-    if (type == OSMTYPE_RELATION) {
-        export_type = OSMTYPE_WAY;
-    } else {
-        export_type = type;
+    auto export_type = type;
+    if (type == osmium::item_type::relation) {
+        export_type = osmium::item_type::way;
     }
     const std::vector<taginfo> &infos = exlist.get(export_type);
 
@@ -585,7 +585,7 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
     for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
         //if we want to do more than the export list says
         if(!strict) {
-            if (type == OSMTYPE_RELATION && "type" == item->key) {
+            if (type == osmium::item_type::relation && "type" == item->key) {
                 out_tags.push_back(*item);
                 filter = 0;
                 continue;
@@ -665,7 +665,7 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
         }
     }
 
-    if (roads && !filter && (type == OSMTYPE_WAY)) {
+    if (roads && !filter && (type == osmium::item_type::way)) {
         add_z_order(out_tags, roads);
     }
 

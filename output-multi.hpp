@@ -74,7 +74,7 @@ protected:
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
-    const OsmType m_osm_type;
+    osmium::item_type const m_osm_type;
     std::unique_ptr<table_t> m_table;
     id_tracker ways_pending_tracker, rels_pending_tracker;
     std::shared_ptr<id_tracker> ways_done_tracker;

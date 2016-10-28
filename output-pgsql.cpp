@@ -410,7 +410,7 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &membe
   for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it)
   {
     /* Need to handle more than just ways... */
-    if (it->type == OSMTYPE_WAY)
+    if (it->type == osmium::item_type::way)
         xid2.push_back(it->id);
   }
 
@@ -614,7 +614,9 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
     for (int i = 0; i < t_MAX; i++) {
 
         //figure out the columns this table needs
-        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
+        columns_t columns = m_export_list->normal_columns((i == t_point)
+                            ? osmium::item_type::node
+                            : osmium::item_type::way);
 
         //figure out what name we are using for this and what type
         std::string name = m_options.prefix;

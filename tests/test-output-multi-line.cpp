@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
             geometry_processor::create("line", &options);
 
         export_list columns;
-        { taginfo info; info.name = "highway"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
+        { taginfo info; info.name = "highway"; info.type = "text"; columns.add(osmium::item_type::way, info); }
 
         // This actually uses the multi-backend with C transforms, not Lua transforms. This is unusual and doesn't reflect real practice
         auto out_test = std::make_shared<output_multi_t>("foobar_highways", processor, columns, mid_pgsql.get(), options);

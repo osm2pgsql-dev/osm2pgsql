@@ -35,9 +35,9 @@ public:
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless = false);
 
 private:
-    unsigned lua_filter_basic_tags(OsmType type, const taglist_t &tags,
+    unsigned lua_filter_basic_tags(osmium::item_type type, const taglist_t &tags,
                                    int *polygon, int *roads, taglist_t &out_tags);
-    unsigned c_filter_basic_tags(OsmType type, const taglist_t &tags, int *polygon,
+    unsigned c_filter_basic_tags(osmium::item_type type, const taglist_t &tags, int *polygon,
                                  int *roads, const export_list &exlist,
                                  taglist_t &out_tags, bool strict);
     unsigned int lua_filter_rel_member_tags(const taglist_t &rel_tags,
