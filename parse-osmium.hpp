@@ -35,7 +35,6 @@
 #include <osmium/handler.hpp>
 
 
-class reprojection;
 class osmdata_t;
 
 class parse_stats_t
@@ -106,8 +105,8 @@ private:
 class parse_osmium_t: public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(bool extra_attrs, const boost::optional<std::string> &bbox,
-                   const reprojection *proj, bool do_append, osmdata_t *osmdata);
+    parse_osmium_t(const boost::optional<std::string> &bbox,
+                   bool do_append, osmdata_t *osmdata);
 
     void stream_file(const std::string &filename, const std::string &fmt);
 
@@ -126,8 +125,6 @@ private:
     osmdata_t *m_data;
     bool m_append;
     boost::optional<osmium::Box> m_bbox;
-    bool m_attributes;
-    const reprojection *m_proj;
     parse_stats_t m_stats;
 };
 

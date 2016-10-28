@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         // This actually uses the multi-backend with C transforms, not Lua transforms. This is unusual and doesn't reflect real practice
         auto out_test = std::make_shared<output_multi_t>("foobar_highways", processor, columns, mid_pgsql.get(), options);
 
-        osmdata_t osmdata(mid_pgsql, out_test);
+        osmdata_t osmdata(mid_pgsql, out_test, options.projection, options.extra_attributes);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

@@ -12,23 +12,30 @@
 
 class output_t;
 struct middle_t;
+class reprojection;
 
 class osmdata_t {
 public:
-    osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_);
-    osmdata_t(std::shared_ptr<middle_t> mid_, const std::vector<std::shared_ptr<output_t> > &outs_);
+    osmdata_t(std::shared_ptr<middle_t> mid_,
+              std::shared_ptr<output_t> const &out_,
+              std::shared_ptr<reprojection> proj,
+              bool extra_attributes);
+    osmdata_t(std::shared_ptr<middle_t> mid_,
+              std::vector<std::shared_ptr<output_t> > const &outs_,
+              std::shared_ptr<reprojection> proj,
+              bool extra_attributes);
     ~osmdata_t();
 
     void start();
     void stop();
 
-    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_add(osmium::Node const &node);
+    int way_add(osmium::Way const &way);
+    int relation_add(osmium::Relation const &rel);
 
-    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_modify(osmium::Node const &node);
+    int way_modify(osmium::Way const &way);
+    int relation_modify(osmium::Relation const &rel);
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
@@ -37,6 +44,8 @@ public:
 private:
     std::shared_ptr<middle_t> mid;
     std::vector<std::shared_ptr<output_t> > outs;
+    std::shared_ptr<reprojection> projection;
+    bool extra_attributes;
 };
 
 #endif

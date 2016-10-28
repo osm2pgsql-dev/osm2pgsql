@@ -105,10 +105,10 @@ int main() {
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<dummy_slim_middle_t>(), out_test);
+  osmdata_t osmdata(std::make_shared<dummy_slim_middle_t>(), out_test, options.projection, options.extra_attributes);
 
   boost::optional<std::string> bbox;
-  parse_osmium_t parser(false, bbox, projection.get(), true, &osmdata);
+  parse_osmium_t parser(bbox, true, &osmdata);
 
   parser.stream_file(inputfile, "");
 

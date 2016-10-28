@@ -78,7 +78,7 @@ void test_regression_simple() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test);
+    osmdata_t osmdata(mid_pgsql, out_test, options.projection, options.extra_attributes);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);

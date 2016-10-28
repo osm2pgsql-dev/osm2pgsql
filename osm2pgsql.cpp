@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
+        osmdata_t osmdata(middle, outputs, options.projection, options.extra_attributes);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->target_srs(),
@@ -82,9 +82,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
             time_t start = time(nullptr);
 
-            parse_osmium_t parser(options.extra_attributes,
-                                  options.bbox, options.projection.get(),
-                                  options.append, &osmdata);
+            parse_osmium_t parser(options.bbox, options.append, &osmdata);
             parser.stream_file(filename, options.input_reader);
 
             stats.update(parser.stats());
