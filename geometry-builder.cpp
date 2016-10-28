@@ -228,8 +228,8 @@ geometry_builder::pg_geom_t geometry_builder::get_wkb_simple(const nodelist_t &n
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
-	const GeometryFactory& gf = *gf_p;
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
 
         auto coords = nodes2coords(gf, nodes);
         if (polygon && is_polygon_line(coords.get())) {
@@ -267,8 +267,8 @@ geometry_builder::pg_geoms_t geometry_builder::get_wkb_split(const nodelist_t &n
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
-	const GeometryFactory& gf = *gf_p;
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
 
         auto coords = nodes2coords(gf, nodes);
 
@@ -405,8 +405,8 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
-	const GeometryFactory& gf = *gf_p;
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
 
         geom_ptr mline = create_multi_line(gf, xnodes);
 
@@ -546,8 +546,8 @@ geometry_builder::pg_geom_t geometry_builder::build_multilines(const multinodeli
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
-	const GeometryFactory& gf = *gf_p;
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
 
         geom_ptr mline = create_multi_line(gf, xnodes);
 
@@ -573,9 +573,9 @@ geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t 
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
-	const GeometryFactory& gf = *gf_p;
-	
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
