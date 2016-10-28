@@ -31,7 +31,7 @@ struct dummy_middle_t : public middle_t {
 
     virtual size_t pending_count() const { return 0; }
 
-    std::vector<osmid_t> relations_using_way(osmid_t) const { return std::vector<osmid_t>(); }
+    idlist_t relations_using_way(osmid_t) const { return idlist_t(); }
 
     virtual std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
 };
@@ -63,7 +63,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
 
     size_t pending_count() const { return 0; }
 
-    std::vector<osmid_t> relations_using_way(osmid_t) const { return std::vector<osmid_t>(); }
+    idlist_t relations_using_way(osmid_t) const { return idlist_t(); }
 
     std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
 

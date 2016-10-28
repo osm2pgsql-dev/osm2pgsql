@@ -198,7 +198,7 @@ middle_ram_t::~middle_ram_t() {
     //instance.reset();
 }
 
-std::vector<osmid_t> middle_ram_t::relations_using_way(osmid_t way_id) const
+idlist_t middle_ram_t::relations_using_way(osmid_t way_id) const
 {
     // this function shouldn't be called - relations_using_way is only used in
     // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode

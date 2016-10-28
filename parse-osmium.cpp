@@ -144,7 +144,10 @@ void parse_osmium_t::node(osmium::Node& node)
         if (!m_bbox || m_bbox->contains(node.location())) {
             auto c = m_proj->reproject(node.location());
 
-            convert_tags(node);
+            taglist_t tags(node.tags());
+            if (m_attributes) {
+                tags.add_attributes(node);
+            }
             if (m_append) {
                 m_data->node_modify(node.id(), c.y, c.x, tags);
             } else {
@@ -160,8 +163,11 @@ void parse_osmium_t::way(osmium::Way& way)
     if (way.deleted()) {
         m_data->way_delete(way.id());
     } else {
-        convert_tags(way);
-        convert_nodes(way.nodes());
+        taglist_t tags(way.tags());
+        if (m_attributes) {
+            tags.add_attributes(way);
+        }
+        idlist_t nds(way.nodes());
         if (m_append) {
             m_data->way_modify(way.id(), nds, tags);
         } else {
@@ -176,8 +182,11 @@ void parse_osmium_t::relation(osmium::Relation& rel)
     if (rel.deleted()) {
         m_data->relation_delete(rel.id());
     } else {
-        convert_tags(rel);
-        convert_members(rel.members());
+        taglist_t tags(rel.tags());
+        if (m_attributes) {
+            tags.add_attributes(rel);
+        }
+        memberlist_t members(rel.members());
         if (m_append) {
             m_data->relation_modify(rel.id(), members, tags);
         } else {
@@ -185,37 +194,4 @@ void parse_osmium_t::relation(osmium::Relation& rel)
         }
     }
     m_stats.add_rel(rel.id());
-}
-
-void parse_osmium_t::convert_tags(const osmium::OSMObject &obj)
-{
-    tags.clear();
-    for (auto const &t : obj.tags()) {
-        tags.emplace_back(t.key(), t.value());
-    }
-    if (m_attributes) {
-        tags.emplace_back("osm_user", obj.user());
-        tags.emplace_back("osm_uid", std::to_string(obj.uid()));
-        tags.emplace_back("osm_version", std::to_string(obj.version()));
-        tags.emplace_back("osm_timestamp", obj.timestamp().to_iso());
-        tags.emplace_back("osm_changeset", std::to_string(obj.changeset()));
-    }
-}
-
-void parse_osmium_t::convert_nodes(const osmium::NodeRefList &in_nodes)
-{
-    nds.clear();
-
-    for (auto const &n : in_nodes) {
-        nds.push_back(n.ref());
-    }
-}
-
-void parse_osmium_t::convert_members(const osmium::RelationMemberList &in_rels)
-{
-    members.clear();
-
-    for (auto const &m: in_rels) {
-        members.emplace_back(m.type(), m.ref(), m.role());
-    }
 }

@@ -121,10 +121,6 @@ public:
     }
 
 private:
-    void convert_tags(const osmium::OSMObject &obj);
-    void convert_nodes(const osmium::NodeRefList &in_nodes);
-    void convert_members(const osmium::RelationMemberList &in_rels);
-
     osmium::Box parse_bbox(const boost::optional<std::string> &bbox);
 
     osmdata_t *m_data;
@@ -133,13 +129,6 @@ private:
     bool m_attributes;
     const reprojection *m_proj;
     parse_stats_t m_stats;
-
-    /* Since {node,way} elements are not nested we can guarantee that
-       elements are parsed sequentially and can therefore be cached.
-    */
-    taglist_t tags;
-    idlist_t nds;
-    memberlist_t members;
 };
 
 #endif

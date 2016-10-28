@@ -108,7 +108,7 @@ struct middle_ram_t : public middle_t {
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const;
 
     void iterate_ways(middle_t::pending_processor& pf);
     void iterate_relations(pending_processor& pf);

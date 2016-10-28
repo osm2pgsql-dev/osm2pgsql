@@ -49,7 +49,7 @@ struct middle_pgsql_t : public slim_middle_t {
 
     size_t pending_count() const;
 
-    std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const;
 
     struct table_desc {
         table_desc(const char *name_ = NULL,

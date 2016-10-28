@@ -837,7 +837,8 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     PGresult *result = pgsql_execPrepared(rel_table->sql_conn, "rels_using_way",
                                           1, paramValues, PGRES_TUPLES_OK );
     const int ntuples = PQntuples(result);
-    idlist_t rel_ids(ntuples);
+    idlist_t rel_ids;
+    rel_ids.resize((size_t) ntuples);
     for (int i = 0; i < ntuples; ++i) {
         rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), nullptr, 10);
     }

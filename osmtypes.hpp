@@ -41,7 +41,15 @@ struct member {
     : type(t), id(i), role(r) {}
 };
 
-typedef std::vector<member> memberlist_t;
+struct memberlist_t : public std::vector<member> {
+    memberlist_t() {}
+
+    explicit memberlist_t(osmium::RelationMemberList const &list) {
+        for (auto const &m: list) {
+            emplace_back(m.type(), m.ref(), m.role());
+        }
+    }
+};
 
 struct tag_t {
   std::string key;
@@ -56,6 +64,24 @@ class taglist_t : public std::vector<tag_t> {
   typedef std::vector<tag_t> base_t;
 
 public:
+  taglist_t() {}
+
+  explicit taglist_t(osmium::TagList const &list)
+  {
+      for (auto const &t : list) {
+          emplace_back(t.key(), t.value());
+      }
+  }
+
+  void add_attributes(const osmium::OSMObject &obj)
+  {
+      emplace_back("osm_user", obj.user());
+      emplace_back("osm_uid", std::to_string(obj.uid()));
+      emplace_back("osm_version", std::to_string(obj.version()));
+      emplace_back("osm_timestamp", obj.timestamp().to_iso());
+      emplace_back("osm_changeset", std::to_string(obj.changeset()));
+  }
+
   const tag_t *find(const std::string &key) const { return _find(key); }
 
   tag_t *find(const std::string &key) {  return const_cast<tag_t *>(_find(key)); }
@@ -128,7 +154,15 @@ private:
 
 typedef std::vector<taglist_t> multitaglist_t;
 
-typedef std::vector<osmid_t> idlist_t;
+struct idlist_t : public std::vector<osmid_t> {
+    idlist_t() {}
+
+    explicit idlist_t(osmium::NodeRefList const &list) {
+        for (auto const &n : list) {
+            push_back(n.ref());
+        }
+    }
+};
 
 typedef std::vector<const std::string *> rolelist_t;
 
