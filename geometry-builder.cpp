@@ -558,7 +558,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t 
     try
     {
         // geos36 - auto-allocation no longer supported in GEOS 3.6+
-	GeometryFactory &gf = *GeometryFactory::getDefaultInstance();
+	GeometryFactory *gf = GeometryFactory::getDefaultInstance();
 	
         geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
