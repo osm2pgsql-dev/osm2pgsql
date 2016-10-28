@@ -92,12 +92,12 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
     return 0;
 }
 
-void pgsql_CopyData(const char *context, PGconn *sql_conn, const char *sql, int len)
+void pgsql_CopyData(const char *context, PGconn *sql_conn, std::string const &sql)
 {
 #ifdef DEBUG_PGSQL
-    fprintf(stderr, "%s>>> %s\n", context, sql );
+    fprintf(stderr, "%s>>> %s\n", context, sql.c_str());
 #endif
-    int r = PQputCopyData(sql_conn, sql, len);
+    int r = PQputCopyData(sql_conn, sql.c_str(), sql.size());
     switch(r)
     {
         //need to wait for write ready
