@@ -104,7 +104,7 @@ public:
 
 private:
     std::unique_ptr<geos::geom::Geometry>
-    create_simple_poly(geos::geom::GeometryFactory &gf,
+    create_simple_poly(const geos::geom::GeometryFactory &gf,
                        std::unique_ptr<geos::geom::CoordinateSequence> coords) const;
 
     bool excludepoly = false;
