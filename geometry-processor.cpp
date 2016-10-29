@@ -124,7 +124,7 @@ size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid
     for (idlist_t::const_iterator it = ways.begin(); it != ways.end(); ++it) {
         while (memberpos < members->size()) {
             if (members->at(memberpos).id == *it) {
-                roles.push_back(&(members->at(memberpos).role));
+                roles.push_back(members->at(memberpos).role.c_str());
                 memberpos++;
                 break;
             }

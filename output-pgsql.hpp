@@ -57,8 +57,6 @@ public:
     void merge_expire_trees(output_t *other);
 
 protected:
-
-    int pgsql_out_node(osmid_t id, const taglist_t &tags, double node_lat, double node_lon);
     int pgsql_out_way(osmid_t id, taglist_t &tags, const nodelist_t &nodes,
                       int polygons, int roads);
     int pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
@@ -66,6 +64,8 @@ protected:
                            const idlist_t &xid, const rolelist_t &xrole,
                            bool pending);
     int pgsql_process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, int exists, bool pending=false);
+    int pgsql_process_relation(osmium::Relation const &rel,
+                               bool extra, bool exists, bool pending=false);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 

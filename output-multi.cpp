@@ -179,25 +179,14 @@ void output_multi_t::commit() {
 
 int output_multi_t::node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        taglist_t tags(node.tags());
-        if (extra_tags) {
-            tags.add_attributes(node);
-        }
-
-        return process_node(node.id(), lat, lon, tags);
+        return process_node(node, extra_tags, lat, lon);
     }
     return 0;
 }
 
 int output_multi_t::way_add(osmium::Way const &way, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_way) && way.nodes().size() > 1) {
-        taglist_t tags(way.tags());
-        if (extra_tags) {
-            tags.add_attributes(way);
-        }
-        idlist_t nodes(way.nodes());
-
-        return process_way(way.id(), nodes, tags);
+        return process_way(way, extra_tags);
     }
     return 0;
 }
@@ -206,72 +195,50 @@ int output_multi_t::way_add(osmium::Way const &way, bool extra_tags) {
 int output_multi_t::relation_add(osmium::Relation const &rel, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_relation)
         && rel.members().size() > 0) {
-        taglist_t tags(rel.tags());
-        if (extra_tags) {
-            tags.add_attributes(rel);
-        }
-        memberlist_t members(rel.members());
-
-        return process_relation(rel.id(), members, tags, 0);
+        return process_relation(rel, extra_tags, 0);
     }
     return 0;
 }
 
 int output_multi_t::node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        taglist_t tags(node.tags());
-        if (extra_tags) {
-            tags.add_attributes(node);
-        }
         // TODO - need to know it's a node?
         delete_from_output(node.id());
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(node.id(), lat, lon, tags);
+        return process_node(node, extra_tags, lat, lon);
 
-    } else {
-        return 0;
     }
+
+    return 0;
 }
 
 int output_multi_t::way_modify(osmium::Way const &way, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_way)) {
-        taglist_t tags(way.tags());
-        if (extra_tags) {
-            tags.add_attributes(way);
-        }
-        idlist_t nodes(way.nodes());
-
         // TODO - need to know it's a way?
         delete_from_output(way.id());
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(way.id(), nodes, tags);
-
-    } else {
-        return 0;
+        return process_way(way, extra_tags);
     }
+
+    return 0;
 }
 
 int output_multi_t::relation_modify(osmium::Relation const &rel, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_relation)) {
-        taglist_t tags(rel.tags());
-        if (extra_tags) {
-            tags.add_attributes(rel);
-        }
-        memberlist_t members(rel.members());
         // TODO - need to know it's a relation?
         delete_from_output(-rel.id());
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_relation(rel.id(), members, tags, false);
+        return process_relation(rel, extra_tags, false);
 
-    } else {
-        return 0;
     }
+
+    return 0;
 }
 
 int output_multi_t::node_delete(osmid_t id) {
@@ -298,16 +265,16 @@ int output_multi_t::relation_delete(osmid_t id) {
     return 0;
 }
 
-int output_multi_t::process_node(osmid_t id, double lat, double lon, const taglist_t &tags) {
+int output_multi_t::process_node(osmium::Node const &node, bool extra, double lat, double lon) {
     //check if we are keeping this node
     taglist_t outtags;
-    unsigned int filter = m_tagtransform->filter_node_tags(tags, *m_export_list.get(), outtags, true);
+    auto filter = m_tagtransform->filter_tags(node, extra, 0, 0, *m_export_list.get(), outtags, true);
     if (!filter) {
         //grab its geom
         auto geom = m_processor->process_node(lat, lon);
         if (geom.valid()) {
             m_expire.from_bbox(lon, lat, lon, lat);
-            copy_node_to_table(id, geom.geom, outtags);
+            copy_node_to_table(node.id(), geom.geom, outtags);
         }
     }
     return 0;
@@ -340,14 +307,15 @@ int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const tag
     return 0;
 }
 
-int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
+int output_multi_t::process_way(osmium::Way const &way, bool extra) {
     //check if we are keeping this way
     int polygon = 0, roads = 0;
     taglist_t outtags;
-    unsigned filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
-                                                      *m_export_list.get(), outtags, true);
+    auto filter = m_tagtransform->filter_tags(way, extra, &polygon, &roads,
+                                              *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
+        idlist_t nodes(way.nodes());
         if(m_way_helper.set(nodes, m_mid) < 1)
             return 0;
         //grab its geom
@@ -357,11 +325,11 @@ int output_multi_t::process_way(osmid_t id, const idlist_t &nodes, const taglist
             //if we are also interested in relations we need to mark
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
-                ways_pending_tracker.mark(id);
+                ways_pending_tracker.mark(way.id());
             } else {
                 // We wouldn't be interested in this as a relation, so no need to mark it pending.
                 // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(id, geom, outtags, polygon);
+                copy_to_table(way.id(), geom, outtags, polygon);
             }
         }
     }
@@ -421,6 +389,82 @@ int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
                 m_expire.from_wkb(geom.geom.c_str(), -id);
                 //what part of the code relies on relation members getting negative ids?
                 copy_to_table(-id, geom, outtags, make_polygon);
+            }
+
+            //TODO: should this loop be inside the if above just in case?
+            //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
+            for(size_t i = 0; i < m_relation_helper.ways.size(); ++i) {
+                //tags matched so we are keeping this one with this relation
+                if (m_relation_helper.superseeded[i]) {
+                    //just in case it wasnt previously with this relation we get rid of them
+                    way_delete(m_relation_helper.ways[i]);
+                    //the other option is that we marked them pending in the way processing so here we mark them
+                    //done so when we go back over the pendings we can just skip it because its in the done list
+                    //TODO: dont do this when working with pending relations to avoid thread races
+                    if(!pending)
+                        ways_done_tracker->mark(m_relation_helper.ways[i]);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
+                                     bool exists, bool pending)
+{
+    //if it may exist already, delete it first
+    if(exists)
+        relation_delete(rel.id());
+
+    //does this relation have anything interesting to us
+    taglist_t rel_outtags;
+    auto filter = m_tagtransform->filter_tags(rel, extra, 0, 0, *m_export_list.get(),
+                                              rel_outtags, true);
+    if (!filter) {
+        //TODO: move this into geometry processor, figure a way to come back for tag transform
+        //grab ways/nodes of the members in the relation, bail if none were used
+        memberlist_t members(rel.members());
+        if (m_relation_helper.set(&members, (middle_t*)m_mid) < 1)
+            return 0;
+
+        //filter the tags on each member because we got them from the middle
+        //and since the middle is no longer tied to the output it no longer
+        //shares any kind of tag transform and therefore has all original tags
+        //so we filter here because each individual outputs cares about different tags
+        int polygon, roads;
+        multitaglist_t filtered(m_relation_helper.tags.size(), taglist_t());
+        for(size_t i = 0; i < m_relation_helper.tags.size(); ++i)
+        {
+            m_tagtransform->filter_way_tags(m_relation_helper.tags[i], &polygon,
+                                            &roads, *m_export_list.get(), filtered[i]);
+            //TODO: if the filter says that this member is now not interesting we
+            //should decrement the count and remove his nodes and tags etc. for
+            //now we'll just keep him with no tags so he will get filtered later
+        }
+
+        //do the members of this relation have anything interesting to us
+        //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
+        //normally this wouldnt work but we tell the tag transform to allow typeless relations
+        //this is needed because the type can get stripped off by the rel_tag filter above
+        //if the export list did not include the type tag.
+        //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
+        //all this trickery
+        int make_boundary, make_polygon = 1;
+        taglist_t outtags;
+        filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
+                                                        &m_relation_helper.superseeded.front(),
+                                                        &make_boundary, &make_polygon, &roads,
+                                                        *m_export_list.get(), outtags, true);
+        if (!filter)
+        {
+            auto geoms = m_processor->process_relation(m_relation_helper.nodes);
+            for (const auto geom: geoms) {
+                //TODO: we actually have the nodes in the m_relation_helper and could use them
+                //instead of having to reparse the wkb in the expiry code
+                m_expire.from_wkb(geom.geom.c_str(), -rel.id());
+                //what part of the code relies on relation members getting negative ids?
+                copy_to_table(-rel.id(), geom, outtags, make_polygon);
             }
 
             //TODO: should this loop be inside the if above just in case?

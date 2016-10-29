@@ -104,20 +104,28 @@ public:
     return 0;
   }
 
+  static bool value_to_bool(char const *value, bool defval)
+  {
+      if (!defval &&
+          (strcmp(value, "yes") == 0
+           || strcmp(value, "true") == 0
+           || strcmp(value, "1") == 0))
+          return true;
+      if (defval &&
+          (strcmp(value, "no") == 0 || strcmp(value, "false") == 0 || strcmp(value, "0") == 0))
+          return false;
+
+      return defval;
+  }
+
   bool get_bool(const std::string &key, bool defval) const
   {
-    for (base_t::const_iterator it = begin() ; it != end(); ++it)
-      if (it->key == key) {
-          if (!defval &&
-              (it->value == "yes" || it->value == "true" || it->value == "1"))
-              return true;
-          if (defval &&
-              (it->value == "no" || it->value == "false" || it->value == "0"))
-              return false;
-          return defval;
-      }
+      for (auto const &t : *this)
+          if (t.key == key) {
+              return value_to_bool(t.value.c_str(), defval);
+          }
 
-    return defval;
+      return defval;
   }
 
   void push_dedupe(const tag_t& t)
@@ -164,6 +172,6 @@ struct idlist_t : public std::vector<osmid_t> {
     }
 };
 
-typedef std::vector<const std::string *> rolelist_t;
+typedef std::vector<char const *> rolelist_t;
 
 #endif
