@@ -42,7 +42,6 @@ enum { BUFFER_SIZE = 4092 };
 void place_tag_processor::clear()
 {
     // set members to sane defaults
-    src = nullptr;
     admin_level = ADMINLEVEL_NONE;
     countrycode = 0;
     housenumber.assign("\\N");
@@ -77,249 +76,250 @@ struct UnnamedPredicate
     }
 };
 
-void place_tag_processor::process_tags(const taglist_t &tags)
+void place_tag_processor::process_tags(osmium::OSMObject const &o)
 {
     bool placeadmin = false;
     bool placehouse = false;
     bool placebuilding = false;
-    const tag_t *place = 0;
-    const tag_t *junction = 0;
-    const tag_t *landuse = 0;
+    osmium::Tag const *place = 0;
+    osmium::Tag const *junction = 0;
+    osmium::Tag const *landuse = 0;
     bool isnamed = false;
     bool isinterpolation = false;
-    const std::string *house_nr = 0;
-    const std::string *conscr_nr = 0;
-    const std::string *street_nr = 0;
+    char const *house_nr = 0;
+    char const *conscr_nr = 0;
+    char const *street_nr = 0;
 
     clear();
-    src = &tags;
 
-    for (const auto& item: tags) {
-        if (boost::ends_with(item.key, "source")) {
+    for (const auto &item: o.tags()) {
+        char const *k = item.key();
+        char const *v = item.value();
+        if (boost::ends_with(k, "source")) {
             // ignore
-        } else if (item.key == "name:prefix" ||
-                   item.key == "name:botanical" ||
-                   boost::ends_with(item.key, "wikidata")) {
+        } else if (strcmp(k, "name:prefix") == 0 ||
+                   strcmp(k, "name:botanical") == 0 ||
+                   boost::ends_with(k, "wikidata")) {
             extratags.push_back(&item);
-        } else if (item.key == "ref" ||
-                   item.key == "int_ref" ||
-                   item.key == "nat_ref" ||
-                   item.key == "reg_ref" ||
-                   item.key == "loc_ref" ||
-                   item.key == "old_ref" ||
-                   item.key == "iata" ||
-                   item.key == "icao" ||
-                   item.key == "operator" ||
-                   item.key == "pcode" ||
-                   boost::starts_with(item.key, "pcode:")) {
+        } else if (strcmp(k, "ref") == 0 ||
+                   strcmp(k, "int_ref") == 0 ||
+                   strcmp(k, "nat_ref") == 0 ||
+                   strcmp(k, "reg_ref") == 0 ||
+                   strcmp(k, "loc_ref") == 0 ||
+                   strcmp(k, "old_ref") == 0 ||
+                   strcmp(k, "iata") == 0 ||
+                   strcmp(k, "icao") == 0 ||
+                   strcmp(k, "operator") == 0 ||
+                   strcmp(k, "pcode") == 0 ||
+                   boost::starts_with(k, "pcode:")) {
             names.push_back(&item);
-        } else if (item.key == "name" ||
-                   boost::starts_with(item.key, "name:") ||
-                   item.key == "int_name" ||
-                   boost::starts_with(item.key, "int_name:") ||
-                   item.key == "nat_name" ||
-                   boost::starts_with(item.key, "nat_name:") ||
-                   item.key == "reg_name" ||
-                   boost::starts_with(item.key, "reg_name:") ||
-                   item.key == "loc_name" ||
-                   boost::starts_with(item.key, "loc_name:") ||
-                   item.key == "old_name" ||
-                   boost::starts_with(item.key, "old_name:") ||
-                   item.key == "alt_name" ||
-                   boost::starts_with(item.key, "alt_name:") ||
-                   boost::starts_with(item.key, "alt_name_") ||
-                   item.key == "official_name" ||
-                   boost::starts_with(item.key, "official_name:") ||
-                   item.key == "place_name" ||
-                   boost::starts_with(item.key, "place_name:") ||
-                   item.key == "short_name" ||
-                   boost::starts_with(item.key, "short_name:") ||
-                   item.key == "brand") {
+        } else if (strcmp(k, "name") == 0 ||
+                   boost::starts_with(k, "name:") ||
+                   strcmp(k, "int_name") == 0 ||
+                   boost::starts_with(k, "int_name:") ||
+                   strcmp(k, "nat_name") == 0 ||
+                   boost::starts_with(k, "nat_name:") ||
+                   strcmp(k, "reg_name") == 0 ||
+                   boost::starts_with(k, "reg_name:") ||
+                   strcmp(k, "loc_name") == 0 ||
+                   boost::starts_with(k, "loc_name:") ||
+                   strcmp(k, "old_name") == 0 ||
+                   boost::starts_with(k, "old_name:") ||
+                   strcmp(k, "alt_name") == 0 ||
+                   boost::starts_with(k, "alt_name:") ||
+                   boost::starts_with(k, "alt_name_") ||
+                   strcmp(k, "official_name") == 0 ||
+                   boost::starts_with(k, "official_name:") ||
+                   strcmp(k, "place_name") == 0 ||
+                   boost::starts_with(k, "place_name:") ||
+                   strcmp(k, "short_name") == 0 ||
+                   boost::starts_with(k, "short_name:") ||
+                   strcmp(k, "brand") == 0) {
             names.push_back(&item);
             isnamed = true;
-        } else if (item.key == "addr:housename") {
+        } else if (strcmp(k, "addr:housename") == 0) {
             names.push_back(&item);
             placehouse = true;
-        } else if (item.key == "emergency") {
-            if (item.value != "fire_hydrant" &&
-                item.value != "yes" &&
-                item.value != "no")
-                places.push_back(item);
-        } else if (item.key == "tourism" ||
-                   item.key == "historic" ||
-                   item.key == "military") {
-            if (item.value != "no" && item.value != "yes")
-                places.push_back(item);
-        } else if (item.key == "natural") {
-            if (item.value != "no" &&
-                item.value != "yes" &&
-                item.value != "coastline")
-                places.push_back(item);
-        } else if (item.key == "landuse") {
-            if (item.value == "cemetry")
-                places.push_back(item);
+        } else if (strcmp(k, "emergency") == 0) {
+            if (strcmp(v, "fire_hydrant") != 0 &&
+                strcmp(v, "yes") != 0 &&
+                strcmp(v, "no") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "tourism") == 0 ||
+                   strcmp(k, "historic") == 0 ||
+                   strcmp(k, "military") == 0) {
+            if (strcmp(v, "no") != 0 && strcmp(v, "yes") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "natural") == 0) {
+            if (strcmp(v, "no") != 0 &&
+                strcmp(v, "yes") != 0 &&
+                strcmp(v, "coastline") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "landuse") == 0) {
+            if (strcmp(v, "cemetry") == 0)
+                places.emplace_back(k, v);
             else
                 landuse = &item;
-        } else if (item.key == "highway") {
-            if (item.value == "footway") {
-                auto *footway = tags.get("footway");
-                if (footway == nullptr || *footway != "sidewalk")
-                    places.push_back(item);
-            } else if (item.value != "no" &&
-                item.value != "turning_circle" &&
-                item.value != "mini_roundabout" &&
-                item.value != "noexit" &&
-                item.value != "crossing")
-                places.push_back(item);
-        } else if (item.key == "railway") {
-            if (item.value != "level_crossing" &&
-                item.value != "no")
-                places.push_back(item);
-        } else if (item.key == "man_made") {
-            if (item.value != "survey_point" &&
-                item.value != "cutline")
-                places.push_back(item);
-        } else if (item.key == "aerialway") {
-            if (item.value != "pylon" &&
-                item.value != "no")
-                places.push_back(item);
-        } else if (item.key == "boundary") {
-            if (item.value == "administrative")
+        } else if (strcmp(k, "highway") == 0) {
+            if (strcmp(v, "footway") == 0) {
+                auto *footway = o.tags()["footway"];
+                if (footway == nullptr || strcmp(footway, "sidewalk") != 0)
+                    places.emplace_back(k, v);
+            } else if (strcmp(v, "no") != 0 &&
+                strcmp(v, "turning_circle") != 0 &&
+                strcmp(v, "mini_roundabout") != 0 &&
+                strcmp(v, "noexit") != 0 &&
+                strcmp(v, "crossing") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "railway") == 0) {
+            if (strcmp(v, "level_crossing") != 0 &&
+                strcmp(v, "no") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "man_made") == 0) {
+            if (strcmp(v, "survey_point") != 0 &&
+                strcmp(v, "cutline") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "aerialway") == 0) {
+            if (strcmp(v, "pylon") != 0 &&
+                strcmp(v, "no") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "boundary") == 0) {
+            if (strcmp(v, "administrative") == 0)
                 placeadmin = true;
-            places.push_back(item);
-        } else if (item.key == "aeroway" ||
-                   item.key == "amenity" ||
-                   item.key == "boundary" ||
-                   item.key == "bridge" ||
-                   item.key == "craft" ||
-                   item.key == "leisure" ||
-                   item.key == "office" ||
-                   item.key == "shop" ||
-                   item.key == "tunnel" ||
-                   item.key == "mountain_pass") {
-            if (item.value != "no")
+            places.emplace_back(k, v);
+        } else if (strcmp(k, "aeroway") == 0 ||
+                   strcmp(k, "amenity") == 0 ||
+                   strcmp(k, "boundary") == 0 ||
+                   strcmp(k, "bridge") == 0 ||
+                   strcmp(k, "craft") == 0 ||
+                   strcmp(k, "leisure") == 0 ||
+                   strcmp(k, "office") == 0 ||
+                   strcmp(k, "shop") == 0 ||
+                   strcmp(k, "tunnel") == 0 ||
+                   strcmp(k, "mountain_pass") == 0) {
+            if (strcmp(v, "no") != 0)
             {
-                places.push_back(item);
+                places.emplace_back(k, v);
             }
-        } else if (item.key == "waterway") {
-            if (item.value != "riverbank")
-                places.push_back(item);
-        } else if (item.key == "place") {
+        } else if (strcmp(k, "waterway") == 0) {
+            if (strcmp(v, "riverbank") != 0)
+                places.emplace_back(k, v);
+        } else if (strcmp(k, "place") == 0) {
             place = &item;
-        } else if (item.key == "junction") {
+        } else if (strcmp(k, "junction") == 0) {
             junction = &item;
-        } else if (item.key == "addr:interpolation") {
+        } else if (strcmp(k, "addr:interpolation") == 0) {
             housenumber.clear();
-            escape(item.value, housenumber);
+            escape(v, housenumber);
             isinterpolation = true;
-        } else if (item.key == "addr:housenumber") {
-            house_nr = &item.value;
+        } else if (strcmp(k, "addr:housenumber") == 0) {
+            house_nr = v;
             placehouse = true;
-        } else if (item.key == "addr:conscriptionnumber") {
-            conscr_nr = &item.value;
+        } else if (strcmp(k, "addr:conscriptionnumber") == 0) {
+            conscr_nr = v;
             placehouse = true;
-        } else if (item.key == "addr:streetnumber") {
-            street_nr = &item.value;
+        } else if (strcmp(k, "addr:streetnumber") == 0) {
+            street_nr = v;
             placehouse = true;
-        } else if (item.key == "addr:street") {
-            street = &item.value;
-        } else if (item.key == "addr:place") {
-            addr_place = &item.value;
-        } else if (item.key == "postal_code" ||
-                   item.key == "postcode" ||
-                   item.key == "addr:postcode" ||
-                   item.key == "tiger:zip_left" ||
-                   item.key == "tiger:zip_right") {
+        } else if (strcmp(k, "addr:street") == 0) {
+            street = v;
+        } else if (strcmp(k, "addr:place") == 0) {
+            addr_place = v;
+        } else if (strcmp(k, "postal_code") == 0 ||
+                   strcmp(k, "postcode") == 0 ||
+                   strcmp(k, "addr:postcode") == 0 ||
+                   strcmp(k, "tiger:zip_left") == 0 ||
+                   strcmp(k, "tiger:zip_right") == 0) {
             if (!postcode)
-                postcode = &item.value;
-        } else if (item.key == "country_code" ||
-                   item.key == "ISO3166-1" ||
-                   item.key == "is_in:country_code" ||
-                   item.key == "addr:country" ||
-                   item.key == "addr:country_code") {
-            if (item.value.length() == 2)
-                countrycode = &item.value;
-        } else if (boost::starts_with(item.key, "addr:") ||
-                   item.key == "is_in" ||
-                   boost::starts_with(item.key, "is_in:") ||
-                   item.key == "tiger:county") {
+                postcode = v;
+        } else if (strcmp(k, "country_code") == 0 ||
+                   strcmp(k, "ISO3166-1") == 0 ||
+                   strcmp(k, "is_in:country_code") == 0 ||
+                   strcmp(k, "addr:country") == 0 ||
+                   strcmp(k, "addr:country_code") == 0) {
+            if (strlen(v) == 2)
+                countrycode = v;
+        } else if (boost::starts_with(k, "addr:") ||
+                   strcmp(k, "is_in") == 0 ||
+                   boost::starts_with(k, "is_in:") ||
+                   strcmp(k, "tiger:county") == 0) {
             address.push_back(&item);
-        } else if (item.key == "admin_level") {
-            admin_level = atoi(item.value.c_str());
+        } else if (strcmp(k, "admin_level") == 0) {
+            admin_level = atoi(v);
             if (admin_level <= 0 || admin_level > 100)
                 admin_level = 100;
-        } else if (item.key == "tracktype" ||
-                   item.key == "traffic_calming" ||
-                   item.key == "service" ||
-                   item.key == "cuisine" ||
-                   item.key == "capital" ||
-                   item.key == "dispensing" ||
-                   item.key == "religion" ||
-                   item.key == "denomination" ||
-                   item.key == "sport" ||
-                   item.key == "internet_access" ||
-                   item.key == "lanes" ||
-                   item.key == "surface" ||
-                   item.key == "smoothness" ||
-                   item.key == "width" ||
-                   item.key == "est_width" ||
-                   item.key == "incline" ||
-                   item.key == "opening_hours" ||
-                   item.key == "collection_times" ||
-                   item.key == "service_times" ||
-                   item.key == "disused" ||
-                   item.key == "wheelchair" ||
-                   item.key == "sac_scale" ||
-                   item.key == "trail_visibility" ||
-                   item.key == "mtb:scale" ||
-                   item.key == "mtb:description" ||
-                   item.key == "wood" ||
-                   item.key == "drive_through" ||
-                   item.key == "drive_in" ||
-                   item.key == "access" ||
-                   item.key == "vehicle" ||
-                   item.key == "bicyle" ||
-                   item.key == "foot" ||
-                   item.key == "goods" ||
-                   item.key == "hgv" ||
-                   item.key == "motor_vehicle" ||
-                   item.key == "motor_car" ||
-                   boost::starts_with(item.key, "access:") ||
-                   boost::starts_with(item.key, "contact:") ||
-                   boost::starts_with(item.key, "drink:") ||
-                   item.key == "oneway" ||
-                   item.key == "date_on" ||
-                   item.key == "date_off" ||
-                   item.key == "day_on" ||
-                   item.key == "day_off" ||
-                   item.key == "hour_on" ||
-                   item.key == "hour_off" ||
-                   item.key == "maxweight" ||
-                   item.key == "maxheight" ||
-                   item.key == "maxspeed" ||
-                   item.key == "fee" ||
-                   item.key == "toll" ||
-                   boost::starts_with(item.key, "toll:") ||
-                   item.key == "charge" ||
-                   item.key == "population" ||
-                   item.key == "description" ||
-                   item.key == "image" ||
-                   item.key == "attribution" ||
-                   item.key == "fax" ||
-                   item.key == "email" ||
-                   item.key == "url" ||
-                   item.key == "website" ||
-                   item.key == "phone" ||
-                   item.key == "real_ale" ||
-                   item.key == "smoking" ||
-                   item.key == "food" ||
-                   item.key == "camera" ||
-                   item.key == "brewery" ||
-                   item.key == "locality" ||
-                   item.key == "wikipedia" ||
-                   boost::starts_with(item.key, "wikipedia:")) {
+        } else if (strcmp(k, "tracktype") == 0 ||
+                   strcmp(k, "traffic_calming") == 0 ||
+                   strcmp(k, "service") == 0 ||
+                   strcmp(k, "cuisine") == 0 ||
+                   strcmp(k, "capital") == 0 ||
+                   strcmp(k, "dispensing") == 0 ||
+                   strcmp(k, "religion") == 0 ||
+                   strcmp(k, "denomination") == 0 ||
+                   strcmp(k, "sport") == 0 ||
+                   strcmp(k, "internet_access") == 0 ||
+                   strcmp(k, "lanes") == 0 ||
+                   strcmp(k, "surface") == 0 ||
+                   strcmp(k, "smoothness") == 0 ||
+                   strcmp(k, "width") == 0 ||
+                   strcmp(k, "est_width") == 0 ||
+                   strcmp(k, "incline") == 0 ||
+                   strcmp(k, "opening_hours") == 0 ||
+                   strcmp(k, "collection_times") == 0 ||
+                   strcmp(k, "service_times") == 0 ||
+                   strcmp(k, "disused") == 0 ||
+                   strcmp(k, "wheelchair") == 0 ||
+                   strcmp(k, "sac_scale") == 0 ||
+                   strcmp(k, "trail_visibility") == 0 ||
+                   strcmp(k, "mtb:scale") == 0 ||
+                   strcmp(k, "mtb:description") == 0 ||
+                   strcmp(k, "wood") == 0 ||
+                   strcmp(k, "drive_through") == 0 ||
+                   strcmp(k, "drive_in") == 0 ||
+                   strcmp(k, "access") == 0 ||
+                   strcmp(k, "vehicle") == 0 ||
+                   strcmp(k, "bicyle") == 0 ||
+                   strcmp(k, "foot") == 0 ||
+                   strcmp(k, "goods") == 0 ||
+                   strcmp(k, "hgv") == 0 ||
+                   strcmp(k, "motor_vehicle") == 0 ||
+                   strcmp(k, "motor_car") == 0 ||
+                   boost::starts_with(k, "access:") ||
+                   boost::starts_with(k, "contact:") ||
+                   boost::starts_with(k, "drink:") ||
+                   strcmp(k, "oneway") == 0 ||
+                   strcmp(k, "date_on") == 0 ||
+                   strcmp(k, "date_off") == 0 ||
+                   strcmp(k, "day_on") == 0 ||
+                   strcmp(k, "day_off") == 0 ||
+                   strcmp(k, "hour_on") == 0 ||
+                   strcmp(k, "hour_off") == 0 ||
+                   strcmp(k, "maxweight") == 0 ||
+                   strcmp(k, "maxheight") == 0 ||
+                   strcmp(k, "maxspeed") == 0 ||
+                   strcmp(k, "fee") == 0 ||
+                   strcmp(k, "toll") == 0 ||
+                   boost::starts_with(k, "toll:") ||
+                   strcmp(k, "charge") == 0 ||
+                   strcmp(k, "population") == 0 ||
+                   strcmp(k, "description") == 0 ||
+                   strcmp(k, "image") == 0 ||
+                   strcmp(k, "attribution") == 0 ||
+                   strcmp(k, "fax") == 0 ||
+                   strcmp(k, "email") == 0 ||
+                   strcmp(k, "url") == 0 ||
+                   strcmp(k, "website") == 0 ||
+                   strcmp(k, "phone") == 0 ||
+                   strcmp(k, "real_ale") == 0 ||
+                   strcmp(k, "smoking") == 0 ||
+                   strcmp(k, "food") == 0 ||
+                   strcmp(k, "camera") == 0 ||
+                   strcmp(k, "brewery") == 0 ||
+                   strcmp(k, "locality") == 0 ||
+                   strcmp(k, "wikipedia") == 0 ||
+                   boost::starts_with(k, "wikipedia:")) {
             extratags.push_back(&item);
-        } else if (item.key == "building") {
+        } else if (strcmp(k, "building") == 0) {
             placebuilding = true;
         }
     }
@@ -333,32 +333,32 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     }
 
     if (isinterpolation)
-        places.push_back(tag_t("place", "houses"));
+        places.emplace_back("place", "houses");
 
     if (place) {
         if (isinterpolation ||
              (placeadmin &&
-              place ->value != "island" &&
-              place ->value != "islet"))
-            extratags.push_back(place);
+              strcmp(place->value(), "island") != 0 &&
+              strcmp(place->value(), "islet") != 0))
+            extratags.emplace_back(place);
         else
-            places.push_back(*place);
+            places.emplace_back(place->key(), place->value());
     }
 
     if (isnamed && places.empty()) {
         if (junction)
-            places.push_back(*junction);
+            places.emplace_back(junction->key(), junction->value());
         else if (landuse)
-            places.push_back(*landuse);
+            places.emplace_back(landuse->key(), landuse->value());
     }
 
     if (places.empty()) {
         if (placebuilding && (!names.empty() || placehouse || postcode)) {
-            places.push_back(tag_t("building", "yes"));
+            places.emplace_back("building", "yes");
         } else if (placehouse) {
-            places.push_back(tag_t("place", "house"));
+            places.emplace_back("place", "house");
         } else if (postcode) {
-            places.push_back(tag_t("place", "postcode"));
+            places.emplace_back("place", "postcode");
         }
     }
 
@@ -366,40 +366,40 @@ void place_tag_processor::process_tags(const taglist_t &tags)
     if (!isinterpolation) {
         if (street_nr && conscr_nr) {
             housenumber.clear();
-            escape(*conscr_nr, housenumber);
+            escape(conscr_nr, housenumber);
             housenumber.append("/");
-            escape(*street_nr, housenumber);
+            escape(street_nr, housenumber);
         } else if (conscr_nr) {
             housenumber.clear();
-            escape(*conscr_nr, housenumber);
+            escape(conscr_nr, housenumber);
         } else if (street_nr) {
             housenumber.clear();
-            escape(*street_nr, housenumber);
+            escape(street_nr, housenumber);
         } else if (house_nr) {
             housenumber.clear();
-            escape(*house_nr, housenumber);
+            escape(house_nr, housenumber);
         }
     }
 
 }
 
-void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
+void place_tag_processor::copy_out(osmium::OSMObject const &o,
                                    const std::string &geom,
                                    std::string &buffer)
 {
     for (const auto& place: places) {
         std::string name;
         if (place.key == "bridge" || place.key == "tunnel") {
-            name = domain_name(place.key);
+            name = domain_name(place.key, o.tags());
             if (name.empty())
                 continue; // don't include unnamed bridges and tunnels
         }
 
         // osm_type
-        buffer += osm_type;
+        buffer += (char) toupper(osmium::item_type_to_char(o.type()));
         buffer += '\t';
         // osm_id
-        buffer += (single_fmt % osm_id).str();
+        buffer += (single_fmt % o.id()).str();
         // class
         escape(place.key, buffer);
         buffer += '\t';
@@ -418,7 +418,7 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                         (place.key == "amenity") ||
                         (place.key == "tourism");
             for (const auto entry: names) {
-                if (!shop && (entry->key == "operator"))
+                if (!shop && strcmp(entry->key(), "operator") == 0)
                     continue;
 
                 if (first)
@@ -427,9 +427,9 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                     buffer += ',';
 
                 buffer += "\"";
-                escape_array_record(entry->key, buffer);
+                escape_array_record(entry->key(), buffer);
                 buffer += "\"=>\"";
-                escape_array_record(entry->value, buffer);
+                escape_array_record(entry->value(), buffer);
                 buffer += "\"";
             }
             buffer += '\t';
@@ -447,12 +447,13 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
         // isin
         if (!address.empty()) {
             for (const auto entry: address) {
-                if (entry->key == "tiger:county") {
-                    escape(std::string(entry->value, 0, entry->value.find(",")),
+                if (strcmp(entry->key(), "tiger:county") == 0) {
+                    auto *end = strchrnul(entry->value(), ',');
+                    escape(std::string(entry->value(), (size_t) (end - entry->value())),
                            buffer);
                     buffer += " county";
                 } else {
-                    escape(entry->value, buffer);
+                    escape(entry->value(), buffer);
                 }
                 buffer += ',';
             }
@@ -475,9 +476,9 @@ void place_tag_processor::copy_out(char osm_type, osmid_t osm_id,
                     buffer += ',';
 
                 buffer += "\"";
-                escape_array_record(entry->key, buffer);
+                escape_array_record(entry->key(), buffer);
                 buffer += "\"=>\"";
-                escape_array_record(entry->value, buffer);
+                escape_array_record(entry->value(), buffer);
                 buffer += "\"";
             }
             buffer += "\t";
@@ -662,41 +663,40 @@ void output_gazetteer_t::stop()
    return;
 }
 
-int output_gazetteer_t::process_node(osmid_t id, double lat, double lon,
-                                     const taglist_t &tags)
+int output_gazetteer_t::process_node(osmium::Node const &node, double lat, double lon)
 {
-    places.process_tags(tags);
+    places.process_tags(node);
 
     if (m_options.append)
-        delete_unused_classes('N', id);
+        delete_unused_classes('N', node.id());
 
     /* Are we interested in this item? */
     if (places.has_data()) {
         std::string wkt = (point_fmt % lon % lat).str();
-        places.copy_out('N', id, wkt, buffer);
+        places.copy_out(node, wkt, buffer);
         flush_place_buffer();
     }
 
     return 0;
 }
 
-int output_gazetteer_t::process_way(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+int output_gazetteer_t::process_way(osmium::Way const &way)
 {
-    places.process_tags(tags);
+    places.process_tags(way);
 
     if (m_options.append)
-        delete_unused_classes('W', id);
+        delete_unused_classes('W', way.id());
 
     /* Are we interested in this item? */
     if (places.has_data()) {
         /* Fetch the node details */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, nds);
+        m_mid->nodes_get_list(nodes, idlist_t(way.nodes()));
 
         /* Get the geometry of the object */
         auto geom = builder.get_wkb_simple(nodes, 1);
         if (geom.valid()) {
-            places.copy_out('W', id, geom.geom, buffer);
+            places.copy_out(way, geom.geom, buffer);
             flush_place_buffer();
         }
     }
@@ -704,27 +704,28 @@ int output_gazetteer_t::process_way(osmid_t id, const idlist_t &nds, const tagli
     return 0;
 }
 
-int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members,
-                                         const taglist_t &tags)
+int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
-    const std::string *type = tags.get("type");
+    auto const &tags = rel.tags();
+    char const *type = tags["type"];
     if (!type) {
-        delete_unused_full('R', id);
+        delete_unused_full('R', rel.id());
         return 0;
     }
 
-    int cmp_waterway = type->compare("waterway");
+    bool is_waterway = strcmp(type, "waterway") == 0;
 
-    if (*type == "associatedStreet"
-            || !(*type == "boundary" || *type == "multipolygon" || !cmp_waterway)) {
-        delete_unused_full('R', id);
+    if (strcmp(type, "associatedStreet") == 0
+        || !(strcmp(type, "boundary") == 0
+             || strcmp(type, "multipolygon") == 0 || is_waterway)) {
+        delete_unused_full('R', rel.id());
         return 0;
     }
 
-    places.process_tags(tags);
+    places.process_tags(rel);
 
     if (m_options.append)
-        delete_unused_classes('R', id);
+        delete_unused_classes('R', rel.id());
 
     /* Are we interested in this item? */
     if (!places.has_data())
@@ -732,15 +733,15 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
 
     /* get the boundary path (ways) */
     idlist_t xid2;
-    for (const auto& member: members) {
+    for (const auto& member: rel.members()) {
         /* only interested in ways */
-        if (member.type == osmium::item_type::way)
-            xid2.push_back(member.id);
+        if (member.type() == osmium::item_type::way)
+            xid2.push_back(member.ref());
     }
 
     if (xid2.empty()) {
         if (m_options.append)
-            delete_unused_full('R', id);
+            delete_unused_full('R', rel.id());
 
         return 0;
     }
@@ -750,11 +751,11 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
     idlist_t xid;
     m_mid->ways_get_list(xid2, xid, xtags, xnodes);
 
-    if (cmp_waterway) {
-        auto geoms = builder.build_both(xnodes, 1, 1, 1000000, id);
+    if (!is_waterway) {
+        auto geoms = builder.build_both(xnodes, 1, 1, 1000000, rel.id());
         for (const auto& geom: geoms) {
             if (geom.is_polygon()) {
-                places.copy_out('R', id, geom.geom, buffer);
+                places.copy_out(rel, geom.geom, buffer);
                 flush_place_buffer();
             } else {
                 /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
@@ -762,14 +763,12 @@ int output_gazetteer_t::process_relation(osmid_t id, const memberlist_t &members
         }
     } else {
         /* waterways result in multilinestrings */
-        auto geom = builder.build_multilines(xnodes, id);
+        auto geom = builder.build_multilines(xnodes, rel.id());
         if (geom.valid()) {
-            places.copy_out('R', id, geom.geom, buffer);
+            places.copy_out(rel, geom.geom, buffer);
             flush_place_buffer();
         }
     }
 
     return 0;
 }
-
-

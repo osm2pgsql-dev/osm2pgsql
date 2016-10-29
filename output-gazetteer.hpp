@@ -29,7 +29,7 @@ public:
 
     ~place_tag_processor() {}
 
-    void process_tags(const taglist_t &tags);
+    void process_tags(osmium::OSMObject const &o);
 
     bool has_data() const { return !places.empty(); }
 
@@ -43,42 +43,42 @@ public:
         return false;
     }
 
-    void copy_out(char osm_type, osmid_t osm_id, const std::string &geom,
+    void copy_out(osmium::OSMObject const &o, const std::string &geom,
                   std::string &buffer);
 
     void clear();
 
 private:
-    void copy_opt_string(const std::string *val, std::string &buffer)
+    void copy_opt_string(char const *val, std::string &buffer)
     {
         if (val) {
-            escape(*val, buffer);
+            escape(val, buffer);
             buffer += "\t";
         } else {
             buffer += "\\N\t";
         }
     }
 
-    std::string domain_name(const std::string &cls)
+    std::string domain_name(const std::string &cls, osmium::TagList const &tags)
     {
         std::string ret;
         bool hasname = false;
 
         std::string prefix(cls + ":name");
 
-        for (const auto& item: *src) {
-            if (boost::starts_with(item.key, prefix) &&
-                (item.key.length() == prefix.length()
-                 || item.key[prefix.length()] == ':')) {
+        for (const auto& item: tags) {
+            char const *k = item.key();
+            if (boost::starts_with(k, prefix)
+                && (k[prefix.length()] == '\0' || k[prefix.length()] == ':')) {
                 if (!hasname) {
-                    ret.reserve(item.key.length() + item.value.length() + 10);
                     hasname = true;
-                } else
+                } else {
                     ret += ",";
+                }
                 ret += "\"";
-                escape_array_record(std::string(item.key, cls.length() + 1), ret);
+                escape_array_record(k + cls.length() + 1, ret);
                 ret += "\"=>\"";
-                escape_array_record(item.value, ret);
+                escape_array_record(item.value(), ret);
                 ret += "\"";
             }
         }
@@ -111,16 +111,15 @@ private:
 
 
     std::vector<tag_t> places;
-    std::vector<const tag_t *> names;
-    std::vector<const tag_t *> extratags;
-    std::vector<const tag_t *> address;
-    const taglist_t *src;
+    std::vector<osmium::Tag const *> names;
+    std::vector<osmium::Tag const *> extratags;
+    std::vector<osmium::Tag const *> address;
     int admin_level;
-    const std::string *countrycode;
+    char const *countrycode;
     std::string housenumber;
-    const std::string *street;
-    const std::string *addr_place;
-    const std::string *postcode;
+    char const *street;
+    char const *addr_place;
+    char const *postcode;
 
     boost::format single_fmt;
 public:
@@ -176,62 +175,34 @@ public:
     void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) {}
     int pending_relation(osmid_t, int) { return 0; }
 
-    int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags)
+    int node_add(osmium::Node const &node, double lat, double lon, bool) override
     {
-        taglist_t tags(node.tags());
-        if (extra_tags) {
-            tags.add_attributes(node);
-        }
-        return process_node(node.id(), lat, lon, tags);
+        return process_node(node, lat, lon);
     }
 
-    int way_add(osmium::Way const &way, bool extra_tags)
+    int way_add(osmium::Way const &way, bool) override
     {
-        taglist_t tags(way.tags());
-        if (extra_tags) {
-            tags.add_attributes(way);
-        }
-        idlist_t nodes(way.nodes());
-        return process_way(way.id(), nodes, tags);
+        return process_way(way);
     }
 
-    int relation_add(osmium::Relation const &rel, bool extra_tags)
+    int relation_add(osmium::Relation const &rel, bool) override
     {
-        taglist_t tags(rel.tags());
-        if (extra_tags) {
-            tags.add_attributes(rel);
-        }
-        memberlist_t members(rel.members());
-        return process_relation(rel.id(), members, tags);
+        return process_relation(rel);
     }
 
-    int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags)
+    int node_modify(osmium::Node const &node, double lat, double lon, bool) override
     {
-        taglist_t tags(node.tags());
-        if (extra_tags) {
-            tags.add_attributes(node);
-        }
-        return process_node(node.id(), lat, lon, tags);
+        return process_node(node, lat, lon);
     }
 
-    int way_modify(osmium::Way const &way, bool extra_tags)
+    int way_modify(osmium::Way const &way, bool) override
     {
-        taglist_t tags(way.tags());
-        if (extra_tags) {
-            tags.add_attributes(way);
-        }
-        idlist_t nodes(way.nodes());
-        return process_way(way.id(), nodes, tags);
+        return process_way(way);
     }
 
-    int relation_modify(osmium::Relation const &rel, bool extra_tags)
+    int relation_modify(osmium::Relation const &rel, bool) override
     {
-        taglist_t tags(rel.tags());
-        if (extra_tags) {
-            tags.add_attributes(rel);
-        }
-        memberlist_t members(rel.members());
-        return process_relation(rel.id(), members, tags);
+        return process_relation(rel);
     }
 
     int node_delete(osmid_t id)
@@ -258,9 +229,9 @@ private:
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id);
     void delete_place(char osm_type, osmid_t osm_id);
-    int process_node(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int process_node(osmium::Node const &node, double lat, double lon);
+    int process_way(osmium::Way const &way);
+    int process_relation(osmium::Relation const &rel);
     int connect();
 
     void flush_place_buffer()
