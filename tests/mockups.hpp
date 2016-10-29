@@ -14,16 +14,16 @@ struct dummy_middle_t : public middle_t {
     void end(void) { }
     void commit(void) { }
 
-    void nodes_set(osmid_t, double, double, const taglist_t &) { }
+    void nodes_set(osmium::Node const &, double, double, bool) { }
     size_t nodes_get_list(nodelist_t &, const idlist_t) const { return 0; }
 
-    void ways_set(osmid_t, const idlist_t &, const taglist_t &) { }
+    void ways_set(osmium::Way const &, bool) { }
     bool ways_get(osmid_t, taglist_t &, nodelist_t &) const { return true; }
     size_t ways_get_list(const idlist_t &, idlist_t &,
                               std::vector<taglist_t> &,
                               std::vector<nodelist_t> &) const { return 0; }
 
-    void relations_set(osmid_t, const memberlist_t &, const taglist_t &) { }
+    void relations_set(osmium::Relation const &, bool) { }
     bool relations_get(osmid_t, memberlist_t &, taglist_t &) const { return 0; }
 
     void iterate_ways(pending_processor&) { }
@@ -46,16 +46,16 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void end(void) { }
     void commit(void) { }
 
-    void nodes_set(osmid_t, double, double, const taglist_t &) { }
+    void nodes_set(osmium::Node const &, double, double, bool) { }
     size_t nodes_get_list(nodelist_t &, const idlist_t) const { return 0; }
 
-    void ways_set(osmid_t, const idlist_t &, const taglist_t &) { }
+    void ways_set(osmium::Way const &, bool) { }
     bool ways_get(osmid_t, taglist_t &, nodelist_t &) const { return true; }
     size_t ways_get_list(const idlist_t &, idlist_t &,
                               std::vector<taglist_t> &,
                               std::vector<nodelist_t> &) const { return 0; }
 
-    void relations_set(osmid_t, const memberlist_t &, const taglist_t &) { }
+    void relations_set(osmium::Relation const &, bool) { }
     bool relations_get(osmid_t, memberlist_t &, taglist_t &) const { return 0; }
 
     void iterate_ways(pending_processor&) { }

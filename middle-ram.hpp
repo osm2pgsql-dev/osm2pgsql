@@ -90,12 +90,12 @@ struct middle_ram_t : public middle_t {
     void end(void);
     void commit(void);
 
-    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void nodes_set(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
     size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
+    void ways_set(osmium::Way const &way, bool extra_tags) override;
     bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
     size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                       multitaglist_t &tags, multinodelist_t &nodes) const;
@@ -104,7 +104,7 @@ struct middle_ram_t : public middle_t {
     int way_changed(osmid_t id);
 
     bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
-    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    void relations_set(osmium::Relation const &rel, bool extra_tags) override;
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
@@ -125,14 +125,24 @@ private:
         taglist_t tags;
         idlist_t ndids;
 
-        ramWay(const taglist_t &t, const idlist_t &n) : tags(t), ndids(n) {}
+        ramWay(osmium::Way const &way, bool add_attributes)
+        : tags(way.tags()), ndids(way.nodes())
+        {
+            if (add_attributes)
+                tags.add_attributes(way);
+        }
     };
 
     struct ramRel {
         taglist_t tags;
         memberlist_t members;
 
-        ramRel(const taglist_t &t, const memberlist_t &m) : tags(t), members(m) {}
+        ramRel(osmium::Relation const &rel, bool add_attributes)
+        : tags(rel.tags()), members(rel.members())
+        {
+            if (add_attributes)
+                tags.add_attributes(rel);
+        }
     };
 
     elem_cache_t<ramWay, 10> ways;

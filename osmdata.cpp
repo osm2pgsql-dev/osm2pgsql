@@ -43,7 +43,7 @@ int osmdata_t::node_add(osmium::Node const &node) {
         tags.add_attributes(node);
     }
 
-    mid->nodes_set(node.id(), c.y, c.x, tags);
+    mid->nodes_set(node, c.y, c.x, extra_attributes);
 
     // guarantee that we use the same values as in the node cache
     ramNode n(c.x, c.y);
@@ -62,7 +62,7 @@ int osmdata_t::way_add(osmium::Way const &way) {
     }
     idlist_t nodes(way.nodes());
 
-    mid->ways_set(way.id(), nodes, tags);
+    mid->ways_set(way, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {
@@ -78,7 +78,7 @@ int osmdata_t::relation_add(osmium::Relation const &rel) {
     }
     memberlist_t members(rel.members());
 
-    mid->relations_set(rel.id(), members, tags);
+    mid->relations_set(rel, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {
@@ -97,7 +97,7 @@ int osmdata_t::node_modify(osmium::Node const &node) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(node.id());
-    slim->nodes_set(node.id(), c.y, c.x, tags);
+    slim->nodes_set(node, c.y, c.x, extra_attributes);
 
     // guarantee that we use the same values as in the node cache
     ramNode n(c.x, c.y);
@@ -122,7 +122,7 @@ int osmdata_t::way_modify(osmium::Way const &way) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->ways_delete(way.id());
-    slim->ways_set(way.id(), nodes, tags);
+    slim->ways_set(way, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {
@@ -144,7 +144,7 @@ int osmdata_t::relation_modify(osmium::Relation const &rel) {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(rel.id());
-    slim->relations_set(rel.id(), members, tags);
+    slim->relations_set(rel, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {

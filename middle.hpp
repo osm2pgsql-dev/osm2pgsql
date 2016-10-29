@@ -63,9 +63,9 @@ struct middle_t : public middle_query_t {
     virtual void end(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) = 0;
-    virtual void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual void nodes_set(osmium::Node const &node, double lat, double lon, bool extra_tags) = 0;
+    virtual void ways_set(osmium::Way const &way, bool extra_tags) = 0;
+    virtual void relations_set(osmium::Relation const &rel, bool extra_tags) = 0;
 
     struct pending_processor {
         virtual ~pending_processor() {}

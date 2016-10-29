@@ -26,12 +26,13 @@ struct middle_pgsql_t : public slim_middle_t {
     void end(void);
     void commit(void);
 
-    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void nodes_set(osmium::Node const &node, double lat, double lon,
+                   bool extra_tags) override;
     size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     void nodes_delete(osmid_t id);
     void node_changed(osmid_t id);
 
-    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
+    void ways_set(osmium::Way const &way, bool extra_tags) override;
     bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
     size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                       multitaglist_t &tags, multinodelist_t &nodes) const;
@@ -40,7 +41,7 @@ struct middle_pgsql_t : public slim_middle_t {
     void way_changed(osmid_t id);
 
     bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
-    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    void relations_set(osmium::Relation const &rel, bool extra_tags) override;
     void relations_delete(osmid_t id);
     void relation_changed(osmid_t id);
 
@@ -87,7 +88,8 @@ private:
      * Sets up sql_conn for the table
      */
     void connect(table_desc& table);
-    void local_nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void local_nodes_set(osmium::Node const &node,
+                         double lat, double lon, bool extra_tags);
     size_t local_nodes_get_list(nodelist_t &out, const idlist_t nds) const;
     void local_nodes_delete(osmid_t osm_id);
 
@@ -104,7 +106,7 @@ private:
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     void buffer_store_string(std::string const &in, bool escape);
-    void buffer_store_tags(taglist_t const &tags, bool escape);
+    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
 
     void buffer_correct_params(char const **param, size_t size);
 

@@ -32,18 +32,19 @@
  */
 
 
-void middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    cache->set(id, lat, lon, tags);
+void middle_ram_t::nodes_set(osmium::Node const &node, double lat, double lon, bool)
+{
+    cache->set(node.id(), lat, lon);
 }
 
-void middle_ram_t::ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+void middle_ram_t::ways_set(osmium::Way const &way, bool extra_tags)
 {
-    ways.set(id, new ramWay(tags, nds));
+    ways.set(way.id(), new ramWay(way, extra_tags));
 }
 
-void middle_ram_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+void middle_ram_t::relations_set(osmium::Relation const &rel, bool extra_tags)
 {
-    rels.set(id, new ramRel(tags, members));
+    rels.set(rel.id(), new ramRel(rel, extra_tags));
 }
 
 size_t middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
@@ -54,7 +55,7 @@ size_t middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
             out.push_back(n);
     }
 
-    return int(out.size());
+    return out.size();
 }
 
 void middle_ram_t::iterate_relations(pending_processor& pf)
@@ -140,7 +141,7 @@ size_t middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
         nodes.resize(count);
     }
 
-    return int(count);
+    return count;
 }
 
 bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
