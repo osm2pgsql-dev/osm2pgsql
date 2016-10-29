@@ -170,11 +170,11 @@ public:
     void stop();
     void commit() {}
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {}
-    int pending_way(osmid_t id, int exists) { return 0; }
+    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) {}
+    int pending_way(osmid_t, int) { return 0; }
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {}
-    int pending_relation(osmid_t id, int exists) { return 0; }
+    void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) {}
+    int pending_relation(osmid_t, int) { return 0; }
 
     int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags)
     {
