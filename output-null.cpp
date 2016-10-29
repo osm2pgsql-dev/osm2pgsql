@@ -17,53 +17,53 @@ void output_null_t::stop() {
 void output_null_t::commit() {
 }
 
-void output_null_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_null_t::enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) {
 }
 
-int output_null_t::pending_way(osmid_t id, int exists) {
+int output_null_t::pending_way(osmid_t, int) {
     return 0;
 }
 
-void output_null_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_null_t::enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) {
 }
 
-int output_null_t::pending_relation(osmid_t id, int exists) {
+int output_null_t::pending_relation(osmid_t, int) {
     return 0;
 }
 
-int output_null_t::node_add(osmid_t, double, double, const taglist_t &) {
+int output_null_t::node_add(osmium::Node const &, double, double, bool) {
   return 0;
 }
 
-int output_null_t::way_add(osmid_t a, const idlist_t &, const taglist_t &) {
+int output_null_t::way_add(osmium::Way const &, bool) {
   return 0;
 }
 
-int output_null_t::relation_add(osmid_t a, const memberlist_t &, const taglist_t &) {
+int output_null_t::relation_add(osmium::Relation const &, bool) {
   return 0;
 }
 
-int output_null_t::node_delete(osmid_t i) {
+int output_null_t::node_delete(osmid_t) {
   return 0;
 }
 
-int output_null_t::way_delete(osmid_t i) {
+int output_null_t::way_delete(osmid_t) {
   return 0;
 }
 
-int output_null_t::relation_delete(osmid_t i) {
+int output_null_t::relation_delete(osmid_t) {
   return 0;
 }
 
-int output_null_t::node_modify(osmid_t, double, double, const taglist_t &) {
+int output_null_t::node_modify(osmium::Node const &, double, double, bool) {
   return 0;
 }
 
-int output_null_t::way_modify(osmid_t, const idlist_t &, const taglist_t &) {
+int output_null_t::way_modify(osmium::Way const &, bool) {
   return 0;
 }
 
-int output_null_t::relation_modify(osmid_t, const memberlist_t &, const taglist_t &) {
+int output_null_t::relation_modify(osmium::Relation const &, bool) {
   return 0;
 }
 

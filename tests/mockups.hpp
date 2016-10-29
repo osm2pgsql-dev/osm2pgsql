@@ -2,7 +2,7 @@
 #define TESTS_MOCKUPS_HPP
 
 #include "middle.hpp"
-#include "output.hpp"
+#include "output-null.hpp"
 
 struct dummy_middle_t : public middle_t {
     virtual ~dummy_middle_t() = default;
@@ -77,39 +77,13 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void relation_changed(osmid_t) {};
 };
 
-struct dummy_output_t : public output_t {
+struct dummy_output_t : public output_null_t {
 
     explicit dummy_output_t(const options_t &options_)
-        : output_t(nullptr, options_) {
+        : output_null_t(nullptr, options_) {
     }
 
-    virtual ~dummy_output_t() = default;
-
-    int node_add(osmid_t, double, double, const taglist_t &) { return 0; }
-    int way_add(osmid_t, const idlist_t &, const taglist_t &) { return 0; }
-    int relation_add(osmid_t, const memberlist_t &, const taglist_t &) { return 0; }
-
-    int start() { return 0; }
-    int connect(int) { return 0; }
-    void stop() { }
-    void commit() { }
-    void cleanup(void) { }
-    void close(int) { }
-
-    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) { }
-    int pending_way(osmid_t, int) { return 0; }
-
-    void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) { }
-    int pending_relation(osmid_t, int) { return 0; }
-
-    int node_modify(osmid_t, double, double, const taglist_t &) { return 0; }
-    int way_modify(osmid_t, const idlist_t &, const taglist_t &) { return 0; }
-    int relation_modify(osmid_t, const memberlist_t &, const taglist_t &) { return 0; }
-
-    int node_delete(osmid_t) { return 0; }
-    int way_delete(osmid_t) { return 0; }
-    int relation_delete(osmid_t) { return 0; }
-
+    ~dummy_output_t() = default;
 };
 
 #endif

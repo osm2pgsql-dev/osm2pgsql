@@ -36,12 +36,9 @@ osmdata_t::~osmdata_t()
 {
 }
 
-int osmdata_t::node_add(osmium::Node const &node) {
+int osmdata_t::node_add(osmium::Node const &node)
+{
     auto c = projection->reproject(node.location());
-    taglist_t tags(node.tags());
-    if (extra_attributes) {
-        tags.add_attributes(node);
-    }
 
     mid->nodes_set(node, c.y, c.x, extra_attributes);
 
@@ -50,49 +47,36 @@ int osmdata_t::node_add(osmium::Node const &node) {
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_add(node.id(), n.lat(), n.lon(), tags);
+        status |= out->node_add(node, n.lat(), n.lon(), extra_attributes);
     }
     return status;
 }
 
-int osmdata_t::way_add(osmium::Way const &way) {
-    taglist_t tags(way.tags());
-    if (extra_attributes) {
-        tags.add_attributes(way);
-    }
-    idlist_t nodes(way.nodes());
-
+int osmdata_t::way_add(osmium::Way const &way)
+{
     mid->ways_set(way, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_add(way.id(), nodes, tags);
+        status |= out->way_add(way, extra_attributes);
     }
     return status;
 }
 
-int osmdata_t::relation_add(osmium::Relation const &rel) {
-    taglist_t tags(rel.tags());
-    if (extra_attributes) {
-        tags.add_attributes(rel);
-    }
-    memberlist_t members(rel.members());
-
+int osmdata_t::relation_add(osmium::Relation const &rel)
+{
     mid->relations_set(rel, extra_attributes);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_add(rel.id(), members, tags);
+        status |= out->relation_add(rel, extra_attributes);
     }
     return status;
 }
 
-int osmdata_t::node_modify(osmium::Node const &node) {
+int osmdata_t::node_modify(osmium::Node const &node)
+{
     auto c = projection->reproject(node.location());
-    taglist_t tags(node.tags());
-    if (extra_attributes) {
-        tags.add_attributes(node);
-    }
 
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -104,7 +88,7 @@ int osmdata_t::node_modify(osmium::Node const &node) {
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_modify(node.id(), n.lat(), n.lon(), tags);
+        status |= out->node_modify(node, n.lat(), n.lon(), extra_attributes);
     }
 
     slim->node_changed(node.id());
@@ -112,12 +96,8 @@ int osmdata_t::node_modify(osmium::Node const &node) {
     return status;
 }
 
-int osmdata_t::way_modify(osmium::Way const &way) {
-    taglist_t tags(way.tags());
-    if (extra_attributes) {
-        tags.add_attributes(way);
-    }
-
+int osmdata_t::way_modify(osmium::Way const &way)
+{
     idlist_t nodes(way.nodes());
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -126,7 +106,7 @@ int osmdata_t::way_modify(osmium::Way const &way) {
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_modify(way.id(), nodes, tags);
+        status |= out->way_modify(way, extra_attributes);
     }
 
     slim->way_changed(way.id());
@@ -134,13 +114,8 @@ int osmdata_t::way_modify(osmium::Way const &way) {
     return status;
 }
 
-int osmdata_t::relation_modify(osmium::Relation const &rel) {
-    taglist_t tags(rel.tags());
-    if (extra_attributes) {
-        tags.add_attributes(rel);
-    }
-    memberlist_t members(rel.members());
-
+int osmdata_t::relation_modify(osmium::Relation const &rel)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(rel.id());
@@ -148,7 +123,7 @@ int osmdata_t::relation_modify(osmium::Relation const &rel) {
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_modify(rel.id(), members, tags);
+        status |= out->relation_modify(rel, extra_attributes);
     }
 
     slim->relation_changed(rel.id());

@@ -176,34 +176,62 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {}
     int pending_relation(osmid_t id, int exists) { return 0; }
 
-    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
+    int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags)
     {
-        return process_node(id, lat, lon, tags);
+        taglist_t tags(node.tags());
+        if (extra_tags) {
+            tags.add_attributes(node);
+        }
+        return process_node(node.id(), lat, lon, tags);
     }
 
-    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
+    int way_add(osmium::Way const &way, bool extra_tags)
     {
-        return process_way(id, nodes, tags);
+        taglist_t tags(way.tags());
+        if (extra_tags) {
+            tags.add_attributes(way);
+        }
+        idlist_t nodes(way.nodes());
+        return process_way(way.id(), nodes, tags);
     }
 
-    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+    int relation_add(osmium::Relation const &rel, bool extra_tags)
     {
-        return process_relation(id, members, tags);
+        taglist_t tags(rel.tags());
+        if (extra_tags) {
+            tags.add_attributes(rel);
+        }
+        memberlist_t members(rel.members());
+        return process_relation(rel.id(), members, tags);
     }
 
-    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags)
+    int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags)
     {
-        return process_node(id, lat, lon, tags);
+        taglist_t tags(node.tags());
+        if (extra_tags) {
+            tags.add_attributes(node);
+        }
+        return process_node(node.id(), lat, lon, tags);
     }
 
-    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags)
+    int way_modify(osmium::Way const &way, bool extra_tags)
     {
-        return process_way(id, nodes, tags);
+        taglist_t tags(way.tags());
+        if (extra_tags) {
+            tags.add_attributes(way);
+        }
+        idlist_t nodes(way.nodes());
+        return process_way(way.id(), nodes, tags);
     }
 
-    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+    int relation_modify(osmium::Relation const &rel, bool extra_tags)
     {
-        return process_relation(id, members, tags);
+        taglist_t tags(rel.tags());
+        if (extra_tags) {
+            tags.add_attributes(rel);
+        }
+        memberlist_t members(rel.members());
+        return process_relation(rel.id(), members, tags);
     }
 
     int node_delete(osmid_t id)

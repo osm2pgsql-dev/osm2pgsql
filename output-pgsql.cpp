@@ -358,35 +358,46 @@ void output_pgsql_t::stop()
     }
 }
 
-int output_pgsql_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
+int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon, bool extra_tags)
 {
-  pgsql_out_node(id, tags, lat, lon);
+    taglist_t tags(node.tags());
+    if (extra_tags) {
+        tags.add_attributes(node);
+    }
 
-  return 0;
+    pgsql_out_node(node.id(), tags, lat, lon);
+
+    return 0;
 }
 
-int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
 {
-  int polygon = 0;
-  int roads = 0;
-  taglist_t outtags;
+    taglist_t tags(way.tags());
+    if (extra_tags) {
+        tags.add_attributes(way);
+    }
+    idlist_t nds(way.nodes());
 
-  /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  auto filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
-                                                *m_export_list.get(), outtags);
+    int polygon = 0;
+    int roads = 0;
+    taglist_t outtags;
 
-  /* If this isn't a polygon then it can not be part of a multipolygon
-     Hence only polygons are "pending" */
-  if (!filter && polygon) { ways_pending_tracker.mark(id); }
+    /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
+    auto filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
+            *m_export_list.get(), outtags);
 
-  if( !polygon && !filter )
-  {
-    /* Get actual node data and generate output */
-    nodelist_t nodes;
-    m_mid->nodes_get_list(nodes, nds);
-    pgsql_out_way(id, outtags, nodes, polygon, roads);
-  }
-  return 0;
+    /* If this isn't a polygon then it can not be part of a multipolygon
+       Hence only polygons are "pending" */
+    if (!filter && polygon) { ways_pending_tracker.mark(way.id()); }
+
+    if( !polygon && !filter )
+    {
+        /* Get actual node data and generate output */
+        nodelist_t nodes;
+        m_mid->nodes_get_list(nodes, nds);
+        pgsql_out_way(way.id(), outtags, nodes, polygon, roads);
+    }
+    return 0;
 }
 
 
@@ -445,20 +456,25 @@ int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &membe
   return 0;
 }
 
-int output_pgsql_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+int output_pgsql_t::relation_add(osmium::Relation const &rel, bool extra_tags)
 {
-  const std::string *type = tags.get("type");
+    taglist_t tags(rel.tags());
+    if (extra_tags) {
+        tags.add_attributes(rel);
+    }
+    memberlist_t members(rel.members());
 
-  /* Must have a type field or we ignore it */
-  if (!type)
-      return 0;
+    const std::string *type = tags.get("type");
 
-  /* Only a limited subset of type= is supported, ignore other */
-  if ( (*type != "route") && (*type != "multipolygon") && (*type != "boundary"))
-    return 0;
+    /* Must have a type field or we ignore it */
+    if (!type)
+        return 0;
 
+    /* Only a limited subset of type= is supported, ignore other */
+    if ( (*type != "route") && (*type != "multipolygon") && (*type != "boundary"))
+        return 0;
 
-  return pgsql_process_relation(id, members, tags, 0);
+    return pgsql_process_relation(rel.id(), members, tags, 0);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -532,40 +548,40 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, const taglist_t &tags)
+int output_pgsql_t::node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    node_delete(osm_id);
-    node_add(osm_id, lat, lon, tags);
+    node_delete(node.id());
+    node_add(node, lat, lon, extra_tags);
     return 0;
 }
 
-int output_pgsql_t::way_modify(osmid_t osm_id, const idlist_t &nodes, const taglist_t &tags)
+int output_pgsql_t::way_modify(osmium::Way const &way, bool extra_tags)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    way_delete(osm_id);
-    way_add(osm_id, nodes, tags);
+    way_delete(way.id());
+    way_add(way, extra_tags);
 
     return 0;
 }
 
-int output_pgsql_t::relation_modify(osmid_t osm_id, const memberlist_t &members, const taglist_t &tags)
+int output_pgsql_t::relation_modify(osmium::Relation const &rel, bool extra_tags)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    relation_delete(osm_id);
-    relation_add(osm_id, members, tags);
+    relation_delete(rel.id());
+    relation_add(rel, extra_tags);
     return 0;
 }
 

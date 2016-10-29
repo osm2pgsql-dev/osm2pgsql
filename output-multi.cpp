@@ -177,64 +177,97 @@ void output_multi_t::commit() {
     m_table->commit();
 }
 
-int output_multi_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
+int output_multi_t::node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        return process_node(id, lat, lon, tags);
+        taglist_t tags(node.tags());
+        if (extra_tags) {
+            tags.add_attributes(node);
+        }
+
+        return process_node(node.id(), lat, lon, tags);
     }
     return 0;
 }
 
-int output_multi_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
-    if (m_processor->interests(geometry_processor::interest_way) && nodes.size() > 1) {
-        return process_way(id, nodes, tags);
+int output_multi_t::way_add(osmium::Way const &way, bool extra_tags) {
+    if (m_processor->interests(geometry_processor::interest_way) && way.nodes().size() > 1) {
+        taglist_t tags(way.tags());
+        if (extra_tags) {
+            tags.add_attributes(way);
+        }
+        idlist_t nodes(way.nodes());
+
+        return process_way(way.id(), nodes, tags);
     }
     return 0;
 }
 
 
-int output_multi_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
-    if (m_processor->interests(geometry_processor::interest_relation) && !members.empty()) {
-        return process_relation(id, members, tags, 0);
+int output_multi_t::relation_add(osmium::Relation const &rel, bool extra_tags) {
+    if (m_processor->interests(geometry_processor::interest_relation)
+        && rel.members().size() > 0) {
+        taglist_t tags(rel.tags());
+        if (extra_tags) {
+            tags.add_attributes(rel);
+        }
+        memberlist_t members(rel.members());
+
+        return process_relation(rel.id(), members, tags, 0);
     }
     return 0;
 }
 
-int output_multi_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) {
+int output_multi_t::node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_node)) {
+        taglist_t tags(node.tags());
+        if (extra_tags) {
+            tags.add_attributes(node);
+        }
         // TODO - need to know it's a node?
-        delete_from_output(id);
+        delete_from_output(node.id());
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(id, lat, lon, tags);
+        return process_node(node.id(), lat, lon, tags);
 
     } else {
         return 0;
     }
 }
 
-int output_multi_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
+int output_multi_t::way_modify(osmium::Way const &way, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_way)) {
+        taglist_t tags(way.tags());
+        if (extra_tags) {
+            tags.add_attributes(way);
+        }
+        idlist_t nodes(way.nodes());
+
         // TODO - need to know it's a way?
-        delete_from_output(id);
+        delete_from_output(way.id());
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(id, nodes, tags);
+        return process_way(way.id(), nodes, tags);
 
     } else {
         return 0;
     }
 }
 
-int output_multi_t::relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
+int output_multi_t::relation_modify(osmium::Relation const &rel, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_relation)) {
+        taglist_t tags(rel.tags());
+        if (extra_tags) {
+            tags.add_attributes(rel);
+        }
+        memberlist_t members(rel.members());
         // TODO - need to know it's a relation?
-        delete_from_output(-id);
+        delete_from_output(-rel.id());
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_relation(id, members, tags, false);
+        return process_relation(rel.id(), members, tags, false);
 
     } else {
         return 0;

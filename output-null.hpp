@@ -25,13 +25,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
+    int way_add(osmium::Way const &way, bool extra_tags) override;
+    int relation_add(osmium::Relation const &rel, bool extra_tags) override;
 
-    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
+    int way_modify(osmium::Way const &way, bool extra_tags) override;
+    int relation_modify(osmium::Relation const &rel, bool extra_tags) override;
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);

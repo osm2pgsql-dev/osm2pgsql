@@ -49,13 +49,13 @@ public:
     virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
     virtual int pending_relation(osmid_t id, int exists) = 0;
 
-    virtual int node_add(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) = 0;
-    virtual int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) = 0;
+    virtual int way_add(osmium::Way const &way, bool extra_tags) = 0;
+    virtual int relation_add(osmium::Relation const &rel, bool extra_tags) = 0;
 
-    virtual int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) = 0;
-    virtual int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) = 0;
+    virtual int way_modify(osmium::Way const &way, bool extra_tags) = 0;
+    virtual int relation_modify(osmium::Relation const &rel, bool extra_tags) = 0;
 
     virtual int node_delete(osmid_t id) = 0;
     virtual int way_delete(osmid_t id) = 0;

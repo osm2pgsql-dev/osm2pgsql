@@ -41,33 +41,33 @@ struct test_output_t : public dummy_output_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmid_t id, double, double, const taglist_t &) {
-        assert(id > 0);
+    int node_add(osmium::Node const &n, double, double, bool) override {
+        assert(n.id() > 0);
         ++node.added;
         return 0;
     }
 
-    int way_add(osmid_t id, const idlist_t &, const taglist_t &) {
-        assert(id > 0);
+    int way_add(osmium::Way const &w, bool) override {
+        assert(w.id() > 0);
         ++way.added;
         return 0;
     }
 
-    int relation_add(osmid_t id, const memberlist_t &, const taglist_t &) {
-        assert(id > 0);
+    int relation_add(osmium::Relation const &r, bool) override {
+        assert(r.id() > 0);
         ++rel.added;
         return 0;
     }
 
-    int node_modify(osmid_t, double, double, const taglist_t &) {
+    int node_modify(osmium::Node const &, double, double, bool) override {
         ++node.modified;
         return 0;
     }
-    int way_modify(osmid_t, const idlist_t &, const taglist_t &) {
+    int way_modify(osmium::Way const &, bool) override {
         ++way.modified;
         return 0;
     }
-    int relation_modify(osmid_t, const memberlist_t &, const taglist_t &) {
+    int relation_modify(osmium::Relation const &, bool) override {
         ++rel.modified;
         return 0;
     }
