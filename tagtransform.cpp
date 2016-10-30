@@ -475,17 +475,6 @@ unsigned tagtransform::filter_way_tags(const taglist_t &tags, int *polygon, int 
                                exlist, out_tags, strict);
 }
 
-unsigned tagtransform::filter_rel_tags(const taglist_t &tags, const export_list &exlist,
-                                       taglist_t &out_tags, bool strict)
-{
-    if (transform_method) {
-        return lua_filter_basic_tags(osmium::item_type::relation, tags, 0, 0, out_tags);
-    }
-
-    return c_filter_basic_tags(osmium::item_type::relation, tags, 0, 0,
-                               exlist, out_tags, strict);
-}
-
 unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
         int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,

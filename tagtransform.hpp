@@ -28,8 +28,6 @@ public:
                      taglist_t &out_tags, bool strict = false);
     unsigned filter_way_tags(const taglist_t &tags, int *polygon, int *roads,
                              const export_list &exlist, taglist_t &out_tags, bool strict = false);
-    unsigned filter_rel_tags(const taglist_t &tags, const export_list &exlist,
-                             taglist_t &out_tags, bool strict = false);
     unsigned filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
         int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
