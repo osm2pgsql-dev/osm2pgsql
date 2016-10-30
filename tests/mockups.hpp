@@ -24,7 +24,7 @@ struct dummy_middle_t : public middle_t {
                               std::vector<nodelist_t> &) const { return 0; }
 
     void relations_set(osmium::Relation const &, bool) { }
-    bool relations_get(osmid_t, memberlist_t &, taglist_t &) const { return 0; }
+    bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
 
     void iterate_ways(pending_processor&) { }
     void iterate_relations(pending_processor&) { }
@@ -56,7 +56,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
                               std::vector<nodelist_t> &) const { return 0; }
 
     void relations_set(osmium::Relation const &, bool) { }
-    bool relations_get(osmid_t, memberlist_t &, taglist_t &) const { return 0; }
+    bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
 
     void iterate_ways(pending_processor&) { }
     void iterate_relations(pending_processor&) { }

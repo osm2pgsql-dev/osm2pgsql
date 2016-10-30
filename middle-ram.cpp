@@ -12,7 +12,6 @@
 #include <cassert>
 #include <cstdio>
 
-#include <osmium/memory/buffer.hpp>
 #include <osmium/builder/attr.hpp>
 
 #include "id-tracker.hpp"
@@ -151,7 +150,7 @@ size_t middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
     return count;
 }
 
-bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_ram_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     auto const *ele = rels.get(id);
 
@@ -159,8 +158,9 @@ bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &t
         return false;
     }
 
-    tags = ele->tags;
-    members = ele->members;
+    using namespace osmium::builder::attr;
+    osmium::builder::add_relation(buffer, _id(id), _members(ele->members.for_builder()),
+                                  _tags(ele->tags));
 
     return true;
 }

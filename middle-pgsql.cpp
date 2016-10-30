@@ -98,6 +98,7 @@ inline const char *decode_upto( const char *src, char *dst )
   return src;
 }
 
+
 void pgsql_parse_tags(const char *string, taglist_t &tags)
 {
   char key[1024];
@@ -119,6 +120,52 @@ void pgsql_parse_tags(const char *string, taglist_t &tags)
     if( *string == ',' )
       string++;
   }
+}
+
+template <typename T>
+void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer, T &obuilder)
+{
+    if( *string++ != '{' )
+        return;
+
+    char key[1024];
+    char val[1024];
+    osmium::builder::TagListBuilder builder(buffer, &obuilder);
+
+    while( *string != '}' ) {
+        string = decode_upto(string, key);
+        // String points to the comma */
+        string++;
+        string = decode_upto(string, val);
+        builder.add_tag(key, val);
+        // String points to the comma or closing '}' */
+        if( *string == ',' ) {
+            string++;
+        }
+    }
+}
+
+void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
+                         osmium::builder::RelationBuilder &obuilder)
+{
+    if( *string++ != '{' )
+        return;
+
+    char role[1024];
+    osmium::builder::RelationMemberListBuilder builder(buffer, &obuilder);
+
+    while( *string != '}' ) {
+        char type = string[0];
+        char *endp;
+        osmid_t id = strtoosmid(string + 1, &endp, 10);
+        // String points to the comma */
+        string = decode_upto(endp + 1, role);
+        builder.add_member(osmium::char_to_item_type(type), id, role);
+        // String points to the comma or closing '}' */
+        if( *string == ',' ) {
+            string++;
+        }
+    }
 }
 
 size_t pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer)
@@ -739,7 +786,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     }
 }
 
-bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     char tmp[16];
     char const *paramValues[1];
@@ -760,21 +807,17 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
         return false;
     }
 
-    pgsql_parse_tags(PQgetvalue(res, 0, 1), tags);
-    pgsql_parse_tags(PQgetvalue(res, 0, 0), member_temp);
+    {
+        osmium::builder::RelationBuilder builder(buffer);
+        builder.object().set_id(id);
+        builder.add_user("", 0);
 
-    if (member_temp.size() != strtoul(PQgetvalue(res, 0, 2), nullptr, 10)) {
-        fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
-        util::exit_nicely();
+        pgsql_parse_members(PQgetvalue(res, 0, 0), buffer, builder);
+        pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
     }
 
-    PQclear(res);
+    buffer.commit();
 
-    for (taglist_t::const_iterator it = member_temp.begin(); it != member_temp.end(); ++it) {
-        members.push_back(member(osmium::char_to_item_type(it->key[0]),
-                                 strtoosmid(it->key.c_str()+1, nullptr, 10 ),
-                                 it->value));
-    }
     return true;
 }
 

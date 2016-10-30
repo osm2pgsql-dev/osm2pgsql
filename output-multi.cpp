@@ -29,7 +29,8 @@ output_multi_t::output_multi_t(const std::string &name,
                           m_options.tblsmain_data, m_options.tblsmain_index)),
       ways_done_tracker(new id_tracker()),
       m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-               m_options.projection)
+               m_options.projection),
+      buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {}
 
 output_multi_t::output_multi_t(const output_multi_t& other):
@@ -39,7 +40,8 @@ output_multi_t::output_multi_t(const output_multi_t& other):
     //must have a copy of the original marked done ways, its read only so its ok
     ways_done_tracker(other.ways_done_tracker),
     m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-             m_options.projection)
+             m_options.projection),
+    buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {}
 
 
@@ -152,13 +154,14 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 }
 
 int output_multi_t::pending_relation(osmid_t id, int exists) {
-    taglist_t tags_int;
-    memberlist_t members_int;
     int ret = 0;
 
     // Try to fetch the relation from the DB
-    if (m_mid->relations_get(id, members_int, tags_int)) {
-        ret = process_relation(id, members_int, tags_int, exists);
+    buffer.clear();
+    if (m_mid->relations_get(id, buffer)) {
+        auto const &rel = buffer.get<osmium::Relation>(0);
+        ret = process_relation(id, memberlist_t(rel.members()),
+                               taglist_t(rel.tags()), exists);
     }
 
     return ret;

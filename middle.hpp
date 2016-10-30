@@ -9,6 +9,8 @@
 
 #include "osmtypes.hpp"
 
+#include <osmium/memory/buffer.hpp>
+
 #include <cstddef>
 #include <memory>
 
@@ -34,11 +36,16 @@ struct middle_query_t {
                               multinodelist_t &nodes) const = 0;
 
     /**
-     * Retrives a single relation from the relation storage.
+     * Retrives a single relation from the relation storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the relation to retrive
+     * \param buffer osmium buffer where to put the relation
+     *
+     *
      * \return true if the relation was retrieved
-     * \param id id of the relation to retrive
      */
-    virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
+    virtual bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member

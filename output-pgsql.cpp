@@ -303,8 +303,11 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     int ret = 0;
 
     // Try to fetch the relation from the DB
-    if (m_mid->relations_get(id, members_int, tags_int)) {
-        ret = pgsql_process_relation(id, members_int, tags_int, exists, true);
+    buffer.clear();
+    if (m_mid->relations_get(id, buffer)) {
+        auto const &rel = buffer.get<osmium::Relation>(0);
+        ret = pgsql_process_relation(id, memberlist_t(rel.members()),
+                                     taglist_t(rel.tags()), exists, true);
     }
 
     return ret;
@@ -642,7 +645,8 @@ std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_mid
 output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
     : output_t(mid, o),
       expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-      ways_done_tracker(new id_tracker())
+      ways_done_tracker(new id_tracker()),
+      buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
@@ -718,7 +722,8 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     reproj(other.reproj),
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
-    ways_done_tracker(other.ways_done_tracker)
+    ways_done_tracker(other.ways_done_tracker),
+    buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     if (m_options.reproject_area) builder.set_reprojection(reproj.get());

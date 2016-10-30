@@ -82,6 +82,7 @@ protected:
     expire_tiles m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
+    osmium::memory::Buffer buffer;
 };
 
 #endif

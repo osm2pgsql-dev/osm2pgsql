@@ -40,7 +40,7 @@ struct middle_pgsql_t : public slim_middle_t {
     void ways_delete(osmid_t id);
     void way_changed(osmid_t id);
 
-    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
+    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel, bool extra_tags) override;
     void relations_delete(osmid_t id);
     void relation_changed(osmid_t id);

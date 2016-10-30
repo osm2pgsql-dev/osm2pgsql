@@ -103,7 +103,7 @@ struct middle_ram_t : public middle_t {
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
-    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
+    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel, bool extra_tags) override;
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);

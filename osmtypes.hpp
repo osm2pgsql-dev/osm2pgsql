@@ -14,6 +14,7 @@
 #include <cmath>
 
 #include <osmium/osm.hpp>
+#include <osmium/builder/attr.hpp>
 
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
@@ -37,6 +38,11 @@ struct member {
     osmid_t id;
     std::string role;
 
+    operator osmium::builder::attr::member_type const() const
+    {
+        return osmium::builder::attr::member_type(type, id, role.c_str());
+    }
+
     member(osmium::item_type t, osmid_t i, const std::string &r)
     : type(t), id(i), role(r) {}
 };
@@ -49,11 +55,26 @@ struct memberlist_t : public std::vector<member> {
             emplace_back(m.type(), m.ref(), m.role());
         }
     }
+
+    std::vector<osmium::builder::attr::member_type> for_builder() const
+    {
+        std::vector<osmium::builder::attr::member_type> ret;
+        for (auto const &m : *this) {
+            ret.emplace_back(m.type, m.id, m.role.c_str());
+        }
+
+        return ret;
+    }
 };
 
 struct tag_t {
   std::string key;
   std::string value;
+
+  operator std::pair<char const *, char const *> const() const
+  {
+      return std::pair<char const *, char const *>(key.c_str(), value.c_str());
+  }
 
   tag_t(const std::string &k, const std::string &v) : key(k), value(v) {}
 };
