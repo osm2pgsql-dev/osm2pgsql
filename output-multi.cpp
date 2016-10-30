@@ -160,8 +160,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     buffer.clear();
     if (m_mid->relations_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = process_relation(id, memberlist_t(rel.members()),
-                               taglist_t(rel.tags()), exists);
+        ret = process_relation(rel, false, exists, true);
     }
 
     return ret;
@@ -338,79 +337,6 @@ int output_multi_t::process_way(osmium::Way const &way, bool extra) {
     return 0;
 }
 
-int output_multi_t::process_relation(osmid_t id, const memberlist_t &members,
-                                     const taglist_t &tags, bool exists, bool pending) {
-    //if it may exist already, delete it first
-    if(exists)
-        relation_delete(id);
-
-    //does this relation have anything interesting to us
-    taglist_t rel_outtags;
-    unsigned filter = m_tagtransform->filter_rel_tags(tags, *m_export_list.get(),
-                                                      rel_outtags, true);
-    if (!filter) {
-        //TODO: move this into geometry processor, figure a way to come back for tag transform
-        //grab ways/nodes of the members in the relation, bail if none were used
-        if(m_relation_helper.set(&members, (middle_t*)m_mid) < 1)
-            return 0;
-
-        //filter the tags on each member because we got them from the middle
-        //and since the middle is no longer tied to the output it no longer
-        //shares any kind of tag transform and therefore has all original tags
-        //so we filter here because each individual outputs cares about different tags
-        int polygon, roads;
-        multitaglist_t filtered(m_relation_helper.tags.size(), taglist_t());
-        for(size_t i = 0; i < m_relation_helper.tags.size(); ++i)
-        {
-            m_tagtransform->filter_way_tags(m_relation_helper.tags[i], &polygon,
-                                            &roads, *m_export_list.get(), filtered[i]);
-            //TODO: if the filter says that this member is now not interesting we
-            //should decrement the count and remove his nodes and tags etc. for
-            //now we'll just keep him with no tags so he will get filtered later
-        }
-
-        //do the members of this relation have anything interesting to us
-        //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
-        //normally this wouldnt work but we tell the tag transform to allow typeless relations
-        //this is needed because the type can get stripped off by the rel_tag filter above
-        //if the export list did not include the type tag.
-        //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
-        //all this trickery
-        int make_boundary, make_polygon = 1;
-        taglist_t outtags;
-        filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
-                                                        &m_relation_helper.superseeded.front(),
-                                                        &make_boundary, &make_polygon, &roads,
-                                                        *m_export_list.get(), outtags, true);
-        if (!filter)
-        {
-            auto geoms = m_processor->process_relation(m_relation_helper.nodes);
-            for (const auto geom: geoms) {
-                //TODO: we actually have the nodes in the m_relation_helper and could use them
-                //instead of having to reparse the wkb in the expiry code
-                m_expire.from_wkb(geom.geom.c_str(), -id);
-                //what part of the code relies on relation members getting negative ids?
-                copy_to_table(-id, geom, outtags, make_polygon);
-            }
-
-            //TODO: should this loop be inside the if above just in case?
-            //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
-            for(size_t i = 0; i < m_relation_helper.ways.size(); ++i) {
-                //tags matched so we are keeping this one with this relation
-                if (m_relation_helper.superseeded[i]) {
-                    //just in case it wasnt previously with this relation we get rid of them
-                    way_delete(m_relation_helper.ways[i]);
-                    //the other option is that we marked them pending in the way processing so here we mark them
-                    //done so when we go back over the pendings we can just skip it because its in the done list
-                    //TODO: dont do this when working with pending relations to avoid thread races
-                    if(!pending)
-                        ways_done_tracker->mark(m_relation_helper.ways[i]);
-                }
-            }
-        }
-    }
-    return 0;
-}
 
 int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
                                      bool exists, bool pending)
