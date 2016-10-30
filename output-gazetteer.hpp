@@ -6,6 +6,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
+#include <osmium/memory/buffer.hpp>
 
 #include "geometry-builder.hpp"
 #include "osmtypes.hpp"
@@ -136,7 +137,8 @@ public:
       ConnectionError(NULL),
       copy_active(false),
       single_fmt("%1%"),
-      point_fmt("POINT(%.15g %.15g)")
+      point_fmt("POINT(%.15g %.15g)"),
+      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
     }
@@ -149,7 +151,8 @@ public:
       copy_active(false),
       reproj(other.reproj),
       single_fmt(other.single_fmt),
-      point_fmt(other.point_fmt)
+      point_fmt(other.point_fmt),
+      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
         builder.set_exclude_broken_polygon(m_options.excludepoly);
@@ -224,7 +227,7 @@ public:
     }
 
 private:
-    enum { PLACE_BUFFER_SIZE = 4092 };
+    enum { PLACE_BUFFER_SIZE = 4096 };
 
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id);
@@ -271,8 +274,7 @@ private:
     // Need to be part of the class, so we have one per thread.
     boost::format single_fmt;
     boost::format point_fmt;
+    osmium::memory::Buffer osmium_buffer;
 };
-
-extern output_gazetteer_t out_gazetteer;
 
 #endif

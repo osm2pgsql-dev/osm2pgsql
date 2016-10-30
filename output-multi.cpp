@@ -103,14 +103,13 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 }
 
 int output_multi_t::pending_way(osmid_t id, int exists) {
-    taglist_t tags_int;
-    nodelist_t nodes_int;
     int ret = 0;
 
     // Try to fetch the way from the DB
-    if (m_mid->ways_get(id, tags_int, nodes_int)) {
+    buffer.clear();
+    if (m_mid->ways_get(id, buffer)) {
         // Output the way
-        ret = reprocess_way(id, nodes_int, tags_int, exists);
+        ret = reprocess_way(buffer.get<osmium::Way>(0), exists);
     }
 
     return ret;
@@ -282,28 +281,30 @@ int output_multi_t::process_node(osmium::Node const &node, bool extra, double la
     return 0;
 }
 
-int output_multi_t::reprocess_way(osmid_t id, const nodelist_t &nodes, const taglist_t &tags, bool exists)
+int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
 {
     //if the way could exist already we have to make the relation pending and reprocess it later
     //but only if we actually care about relations
     if(m_processor->interests(geometry_processor::interest_relation) && exists) {
-        way_delete(id);
-        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(id);
+        way_delete(way.id());
+        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(way.id());
         for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
             rels_pending_tracker.mark(*itr);
         }
     }
 
     //check if we are keeping this way
-    int polygon = 0, roads = 0;
+    int polygon = 0;
     taglist_t outtags;
-    unsigned int filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
-                                                          *m_export_list.get(), outtags, true);
+    unsigned int filter = m_tagtransform->filter_tags(way, false, &polygon, 0,
+                                                      *m_export_list.get(), outtags, true);
     if (!filter) {
         //grab its geom
+        nodelist_t nodes;
+        m_mid->nodes_get_list(nodes, way.nodes());
         auto geom = m_processor->process_way(nodes);
         if (geom.valid()) {
-            copy_to_table(id, geom, outtags, polygon);
+            copy_to_table(way.id(), geom, outtags, polygon);
         }
     }
     return 0;
@@ -352,24 +353,17 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
-        memberlist_t members(rel.members());
-        if (m_relation_helper.set(&members, (middle_t*)m_mid) < 1)
+        if (m_relation_helper.set(rel.members(), (middle_t*)m_mid) < 1)
             return 0;
 
         //filter the tags on each member because we got them from the middle
         //and since the middle is no longer tied to the output it no longer
         //shares any kind of tag transform and therefore has all original tags
         //so we filter here because each individual outputs cares about different tags
-        int polygon, roads;
-        multitaglist_t filtered(m_relation_helper.tags.size(), taglist_t());
-        for(size_t i = 0; i < m_relation_helper.tags.size(); ++i)
-        {
-            m_tagtransform->filter_way_tags(m_relation_helper.tags[i], &polygon,
-                                            &roads, *m_export_list.get(), filtered[i]);
-            //TODO: if the filter says that this member is now not interesting we
-            //should decrement the count and remove his nodes and tags etc. for
-            //now we'll just keep him with no tags so he will get filtered later
-        }
+        int roads;
+        multitaglist_t filtered =
+            m_relation_helper.get_filtered_tags(m_tagtransform.get(),
+                                                *m_export_list.get());
 
         //do the members of this relation have anything interesting to us
         //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
@@ -386,7 +380,8 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
                                                         *m_export_list.get(), outtags, true);
         if (!filter)
         {
-            auto geoms = m_processor->process_relation(m_relation_helper.nodes);
+            auto nodes = m_relation_helper.get_nodes((middle_t *)m_mid);
+            auto geoms = m_processor->process_relation(nodes);
             for (const auto geom: geoms) {
                 //TODO: we actually have the nodes in the m_relation_helper and could use them
                 //instead of having to reparse the wkb in the expiry code
@@ -397,17 +392,19 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
 
             //TODO: should this loop be inside the if above just in case?
             //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
-            for(size_t i = 0; i < m_relation_helper.ways.size(); ++i) {
+            size_t i = 0;
+            for (auto const &w : m_relation_helper.way_iterator()) {
                 //tags matched so we are keeping this one with this relation
                 if (m_relation_helper.superseeded[i]) {
                     //just in case it wasnt previously with this relation we get rid of them
-                    way_delete(m_relation_helper.ways[i]);
+                    way_delete(w.id());
                     //the other option is that we marked them pending in the way processing so here we mark them
                     //done so when we go back over the pendings we can just skip it because its in the done list
                     //TODO: dont do this when working with pending relations to avoid thread races
                     if(!pending)
-                        ways_done_tracker->mark(m_relation_helper.ways[i]);
+                        ways_done_tracker->mark(w.id());
                 }
+                ++i;
             }
         }
     }

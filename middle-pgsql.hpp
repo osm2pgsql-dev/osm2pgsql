@@ -33,9 +33,8 @@ struct middle_pgsql_t : public slim_middle_t {
     void node_changed(osmid_t id);
 
     void ways_set(osmium::Way const &way, bool extra_tags) override;
-    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
-    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                      multitaglist_t &tags, multinodelist_t &nodes) const;
+    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    size_t ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const override;
 
     void ways_delete(osmid_t id);
     void way_changed(osmid_t id);

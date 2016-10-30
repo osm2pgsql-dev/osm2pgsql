@@ -231,11 +231,9 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 }
 
 int output_pgsql_t::pending_way(osmid_t id, int exists) {
-    taglist_t tags_int;
-    nodelist_t nodes_int;
-
     // Try to fetch the way from the DB
-    if (m_mid->ways_get(id, tags_int, nodes_int)) {
+    buffer.clear();
+    if (m_mid->ways_get(id, buffer)) {
         /* If the flag says this object may exist already, delete it first */
         if (exists) {
             pgsql_delete_way_from_output(id);
@@ -251,9 +249,12 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         taglist_t outtags;
         int polygon;
         int roads;
-        if (!m_tagtransform->filter_way_tags(tags_int, &polygon, &roads,
-                                            *m_export_list.get(), outtags)) {
-            return pgsql_out_way(id, outtags, nodes_int, polygon, roads);
+        auto &way = buffer.get<osmium::Way>(0);
+        if (!m_tagtransform->filter_tags(way, false, &polygon, &roads,
+                                         *m_export_list.get(), outtags)) {
+            nodelist_t nodes;
+            m_mid->nodes_get_list(nodes, way.nodes());
+            return pgsql_out_way(id, outtags, nodes, polygon, roads);
         }
     }
 
@@ -299,9 +300,11 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 
 int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     // Try to fetch the relation from the DB
-    osmium::memory::Buffer mybuffer(1024, osmium::memory::Buffer::auto_grow::yes);
-    if (m_mid->relations_get(id, mybuffer)) {
-        auto const &rel = mybuffer.get<osmium::Relation>(0);
+    // Note that we cannot use the global buffer here because
+    // we cannot keep a reference to it. XXX find a better solution.
+    osmium::memory::Buffer relbuf(512, osmium::memory::Buffer::auto_grow::yes);
+    if (m_mid->relations_get(id, relbuf)) {
+        auto const &rel = relbuf.get<osmium::Relation>(0);
         return pgsql_process_relation(rel, exists, true);
     }
 
@@ -394,9 +397,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
       return 1;
 
   idlist_t xid2;
-  multitaglist_t xtags2;
-  multinodelist_t xnodes;
-
   for (auto const &m : rel.members())
   {
     /* Need to handle more than just ways... */
@@ -404,26 +404,31 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
         xid2.push_back(m.ref());
   }
 
+  buffer.clear();
+  auto num_ways = m_mid->ways_get_list(xid2, buffer);
+  multitaglist_t xtags(num_ways);
+  rolelist_t xrole(num_ways);
+  multinodelist_t xnodes(num_ways);
   idlist_t xid;
-  m_mid->ways_get_list(xid2, xid, xtags2, xnodes);
-  int polygon = 0, roads = 0;
-  multitaglist_t xtags(xid.size(), taglist_t());
-  rolelist_t xrole(xid.size(), 0);
 
-  for (size_t i = 0; i < xid.size(); i++) {
+  size_t i = 0;
+  for (auto const &w : buffer.select<osmium::Way>()) {
+      xid.push_back(w.id());
+      m_mid->nodes_get_list(xnodes[i], w.nodes());
+
+      //filter the tags on this member because we got it from the middle
+      //and since the middle is no longer tied to the output it no longer
+      //shares any kind of tag transform and therefore all original tags
+      //will come back and need to be filtered by individual outputs before
+      //using these ways
+      m_tagtransform->filter_tags(w, false, 0, 0, *m_export_list.get(), xtags[i]);
+      //TODO: if the filter says that this member is now not interesting we
+      //should decrement the count and remove his nodes and tags etc. for
+      //now we'll just keep him with no tags so he will get filtered later
       for (auto const &member : rel.members()) {
-          if (member.ref() == xid[i]) {
-              //filter the tags on this member because we got it from the middle
-              //and since the middle is no longer tied to the output it no longer
-              //shares any kind of tag transform and therefore all original tags
-              //will come back and need to be filtered by individual outputs before
-              //using these ways
-              m_tagtransform->filter_way_tags(xtags2[i], &polygon, &roads,
-                                              *m_export_list.get(), xtags[i]);
-              //TODO: if the filter says that this member is now not interesting we
-              //should decrement the count and remove his nodes and tags etc. for
-              //now we'll just keep him with no tags so he will get filtered later
+          if (member.ref() == w.id()) {
               xrole[i] = member.role();
+              ++i;
               break;
           }
       }

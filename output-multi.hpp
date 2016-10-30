@@ -66,7 +66,7 @@ protected:
     void delete_from_output(osmid_t id);
     int process_node(osmium::Node const &node, bool extra, double lat, double lon);
     int process_way(osmium::Way const &way, bool extra);
-    int reprocess_way(osmid_t id, const nodelist_t &nodes, const taglist_t &tags, bool exists);
+    int reprocess_way(osmium::Way const &way, bool exists);
     int process_relation(osmium::Relation const &rel, bool extra, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
     void copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon);

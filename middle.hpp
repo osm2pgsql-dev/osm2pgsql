@@ -25,15 +25,19 @@ struct middle_query_t {
     virtual size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const = 0;
 
     /**
-     * Retrives a single way from the ways storage.
+     * Retrives a single way from the ways storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the way to retrive
+     * \param buffer osmium buffer where to put the way
+     *
+     * The function does not retrieve the node locations.
+     *
      * \return true if the way was retrieved
-     * \param id id of the way to retrive
      */
-    virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
+    virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
-    virtual size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                              multitaglist_t &tags,
-                              multinodelist_t &nodes) const = 0;
+    virtual size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const = 0;
 
     /**
      * Retrives a single relation from the relation storage
@@ -41,7 +45,6 @@ struct middle_query_t {
      *
      * \param id     id of the relation to retrive
      * \param buffer osmium buffer where to put the relation
-     *
      *
      * \return true if the relation was retrieved
      */

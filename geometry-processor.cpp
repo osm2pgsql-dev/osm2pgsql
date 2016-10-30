@@ -86,30 +86,27 @@ size_t way_helper::set(osmium::WayNodeList const &node_ids,
 }
 
 relation_helper::relation_helper()
-{
-}
+: data(1024, osmium::memory::Buffer::auto_grow::yes)
+{}
 
-relation_helper::~relation_helper()
-{
-}
+relation_helper::~relation_helper() = default;
 
-size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid)
+size_t relation_helper::set(osmium::RelationMemberList const &member_list, middle_t const *mid)
 {
     // cleanup
     input_way_ids.clear();
-    ways.clear();
-    tags.clear();
-    nodes.clear();
+    data.clear();
     roles.clear();
 
-    //keep a few things
-    members = member_list;
-
     //grab the way members' ids
-    input_way_ids.reserve(member_list->size());
-    for (memberlist_t::const_iterator it = members->begin(); it != members->end(); ++it) {
-        if(it->type == osmium::item_type::way)
-            input_way_ids.push_back(it->id);
+    size_t num_input = member_list.size();
+    input_way_ids.reserve(num_input);
+    roles.reserve(num_input);
+    for (auto const &member : member_list) {
+        if (member.type() == osmium::item_type::way) {
+            input_way_ids.push_back(member.ref());
+            roles.push_back(member.role());
+        }
     }
 
     //if we didn't end up using any we'll bail
@@ -117,24 +114,52 @@ size_t relation_helper::set(const memberlist_t *member_list, const middle_t* mid
         return 0;
 
     //get the nodes of the ways
-    mid->ways_get_list(input_way_ids, ways, tags, nodes);
+    auto num_ways = mid->ways_get_list(input_way_ids, data);
 
     //grab the roles of each way
-    roles.reserve(ways.size());
-    size_t memberpos = 0;
-    for (idlist_t::const_iterator it = ways.begin(); it != ways.end(); ++it) {
-        while (memberpos < members->size()) {
-            if (members->at(memberpos).id == *it) {
-                roles.push_back(members->at(memberpos).role.c_str());
-                memberpos++;
-                break;
+    if (num_ways < input_way_ids.size()) {
+        size_t memberpos = 0;
+        size_t waypos = 0;
+        for (auto const &w : data.select<osmium::Way>()) {
+            while (memberpos < input_way_ids.size()) {
+                if (input_way_ids[memberpos] == w.id()) {
+                    roles[waypos] = roles[memberpos];
+                    ++memberpos;
+                    break;
+                }
+                ++memberpos;
             }
-            memberpos++;
+            ++waypos;
         }
+        roles.resize(num_ways);
     }
 
     //mark the ends of each so whoever uses them will know where they end..
-    superseeded.resize(ways.size());
+    superseeded.resize(num_ways);
 
-    return ways.size();
+    return num_ways;
+}
+
+multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, export_list const &el) const
+{
+    multitaglist_t filtered(roles.size());
+
+    size_t i = 0;
+    for (auto const &w : data.select<osmium::Way>()) {
+        transform->filter_tags(w, false, 0, 0, el, filtered[i++]);
+    }
+
+    return filtered;
+}
+
+multinodelist_t relation_helper::get_nodes(middle_t const *mid) const
+{
+    multinodelist_t nodes(roles.size());
+
+    size_t i = 0;
+    for (auto const &w : data.select<osmium::Way>()) {
+        mid->nodes_get_list(nodes[i++], w.nodes());
+    }
+
+    return nodes;
 }

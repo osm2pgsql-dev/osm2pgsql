@@ -37,8 +37,6 @@
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) %s %s"
 
 
-enum { BUFFER_SIZE = 4092 };
-
 void place_tag_processor::clear()
 {
     // set members to sane defaults
@@ -746,10 +744,13 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
         return 0;
     }
 
-    multitaglist_t xtags;
-    multinodelist_t xnodes;
-    idlist_t xid;
-    m_mid->ways_get_list(xid2, xid, xtags, xnodes);
+    osmium_buffer.clear();
+    auto num_ways = m_mid->ways_get_list(xid2, osmium_buffer);
+    multinodelist_t xnodes(num_ways);
+    size_t i = 0;
+    for (auto const &w : osmium_buffer.select<osmium::Way>()) {
+        m_mid->nodes_get_list(xnodes[i++], w.nodes());
+    }
 
     if (!is_waterway) {
         auto geoms = builder.build_both(xnodes, 1, 1, 1000000, rel.id());

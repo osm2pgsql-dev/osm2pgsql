@@ -97,7 +97,7 @@ void middle_ram_t::release_ways()
     ways.clear();
 }
 
-bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
+bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     if (simulate_ways_deleted) {
         return false;
@@ -109,42 +109,23 @@ bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) cons
         return false;
     }
 
-    tags = ele->tags;
-    osmium::memory::Buffer buffer(sizeof(osmium::Way) + 32
-                                  + ele->ndids.size() * sizeof(osmium::NodeRef),
-                                  osmium::memory::Buffer::auto_grow::yes);
-    osmium::builder::add_way_node_list(buffer, osmium::builder::attr::_nodes(ele->ndids));
-    nodes_get_list(nodes, buffer.get<osmium::WayNodeList>(0));
+    using namespace osmium::builder::attr;
+    osmium::builder::add_way(buffer, _id(id), _tags(ele->tags), _nodes(ele->ndids));
 
     return true;
 }
 
-size_t middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                                multitaglist_t &tags, multinodelist_t &nodes) const
+size_t middle_ram_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty())
-    {
+    if (ids.empty()) {
         return 0;
     }
 
-    assert(way_ids.empty());
-    tags.assign(ids.size(), taglist_t());
-    nodes.assign(ids.size(), nodelist_t());
-
     size_t count = 0;
-    for (idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
-        if (ways_get(*it, tags[count], nodes[count])) {
-            way_ids.push_back(*it);
-            count++;
-        } else {
-            tags[count].clear();
-            nodes[count].clear();
+    for (auto const id: ids) {
+        if (ways_get(id, buffer)) {
+            ++count;
         }
-    }
-
-    if (count < ids.size()) {
-        tags.resize(count);
-        nodes.resize(count);
     }
 
     return count;

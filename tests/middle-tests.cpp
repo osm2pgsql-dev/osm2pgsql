@@ -209,31 +209,33 @@ int test_way_set(middle_t *mid)
     mid->commit();
 
     // get it back
-    idlist_t ways, xways;
+    idlist_t ways;
     ways.push_back(way_id);
-    std::vector<taglist_t> xtags;
-    multinodelist_t xnodes;
-    size_t way_count = mid->ways_get_list(ways, xways, xtags, xnodes);
+    auto buf_pos = buffer.committed();
+    size_t way_count = mid->ways_get_list(ways, buffer);
     if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
 
+    auto const &way = buffer.get<osmium::Way>(buf_pos);
     // check that it's the same
-    if (xnodes[0].size() != nds.size()) {
+    if (way.nodes().size() != nds.size()) {
         std::cerr << "ERROR: Way should have " << nds.size() << " nodes, but got back "
-            << xnodes[0].size() << " from middle.\n";
+            << way.nodes().size() << " from middle.\n";
         return 1;
     }
-    if (xways[0] != way_id) {
+    if (way.id() != way_id) {
         std::cerr << "ERROR: Way should have id=" << way_id << ", but got back "
-            << xways[0] << " from middle.\n";
+            << way.id() << " from middle.\n";
         return 1;
     }
+    nodelist_t xnodes;
+    mid->nodes_get_list(xnodes, way.nodes());
     for (size_t i = 0; i < nds.size(); ++i) {
-        if (xnodes[0][i].lon != lon) {
+        if (xnodes[i].lon != lon) {
             std::cerr << "ERROR: Way node should have lon=" << lon << ", but got back "
                 << node_ptr[i].lon << " from middle.\n";
             return 1;
         }
-        if (xnodes[0][i].lat != lat) {
+        if (xnodes[i].lat != lat) {
             std::cerr << "ERROR: Way node should have lat=" << lat << ", but got back "
                 << node_ptr[i].lat << " from middle.\n";
             return 1;
