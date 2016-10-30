@@ -27,6 +27,8 @@ using namespace std;
 #include <future>
 
 #include <boost/format.hpp>
+#include <osmium/memory/buffer.hpp>
+#include <osmium/builder/osm_object_builder.hpp>
 
 #include <libpq-fe.h>
 
@@ -119,20 +121,29 @@ void pgsql_parse_tags(const char *string, taglist_t &tags)
   }
 }
 
-// Parses an array of integers */
-void pgsql_parse_nodes(const char *string, idlist_t &nds)
+size_t pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer)
 {
-  if( *string++ != '{' )
-    return;
+    size_t offset = buffer.committed();
 
-  while( *string != '}' )
-  {
-    char *ptr;
-    nds.push_back(strtoosmid( string, &ptr, 10 ));
-    string = ptr;
-    if( *string == ',' )
-      string++;
-  }
+    // open a scope here to make sure the builder is destructed before commiting
+    {
+        osmium::builder::WayBuilder builder(buffer);
+        builder.add_user("", 0); // username is required by libosmium
+        if (*string++ == '{') {
+            osmium::builder::WayNodeListBuilder wnl_builder(buffer, &builder);
+            while (*string != '}')
+            {
+                char *ptr;
+                wnl_builder.add_node_ref(strtoosmid(string, &ptr, 10));
+                string = ptr;
+                if (*string == ',')
+                    string++;
+            }
+        }
+    }
+
+    buffer.commit();
+    return offset;
 }
 
 int pgsql_endCopy(middle_pgsql_t::table_desc *table)
@@ -281,7 +292,7 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
     assert(out.empty());
 
@@ -294,10 +305,10 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
     int countDB = 0;
-    for(idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it) {
+    for (auto const &n : nds) {
         // Check cache first */
         osmNode loc;
-        if (cache->get(&loc, *it) == 0) {
+        if (cache->get(&loc, n.ref()) == 0) {
             out.push_back(loc);
             continue;
         }
@@ -306,7 +317,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
         // Mark nodes as needing to be fetched from the DB */
         out.push_back(osmNode());
 
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", *it);
+        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
         strncat(tmp2, tmp, sizeof(char)*(nds.size()*16 - 2));
     }
     tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
@@ -352,7 +363,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); ++i) {
         if (std::isnan(out[i].lat)) {
-            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i]);
+            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i].ref());
             if(found != pg_nodes.end()) {
                 out[wrtidx] = found->second;
                 ++wrtidx;
@@ -381,7 +392,7 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node,
     }
 }
 
-size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
     return (out_options->flat_node_cache_enabled)
              ? persistent_cache->get_list(out, nds)
@@ -510,16 +521,18 @@ bool middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) co
     pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
 
     size_t num_nodes = strtoul(PQgetvalue(res, 0, 2), nullptr, 10);
-    idlist_t list;
-    pgsql_parse_nodes( PQgetvalue(res, 0, 0), list);
-    if (num_nodes != list.size()) {
+    osmium::memory::Buffer buffer(sizeof(osmium::Way) + 32
+                                  + num_nodes * sizeof(osmium::NodeRef),
+                                  osmium::memory::Buffer::auto_grow::yes);
+    auto const &way = buffer.get<osmium::Way>(pgsql_parse_nodes(PQgetvalue(res, 0, 0), buffer));
+    if (num_nodes != way.nodes().size()) {
         fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
-                tmp, num_nodes, list.size());
+                tmp, num_nodes, way.nodes().size());
         util::exit_nicely();
     }
     PQclear(res);
 
-    nodes_get_list(nodes, list);
+    nodes_get_list(nodes, way.nodes());
     return true;
 }
 
@@ -559,6 +572,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
+    osmium::memory::Buffer buffer(1024, osmium::memory::Buffer::auto_grow::yes);
     for(idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
         for (int j = 0; j < countPG; j++) {
             if (*it == wayidspg[j]) {
@@ -566,17 +580,18 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
                 tags.push_back(taglist_t());
                 pgsql_parse_tags(PQgetvalue(res, j, 2), tags.back());
 
+                buffer.clear();
                 size_t num_nodes = strtoul(PQgetvalue(res, j, 3), nullptr, 10);
-                idlist_t list;
-                pgsql_parse_nodes( PQgetvalue(res, j, 1), list);
-                if (num_nodes != list.size()) {
+                auto pos = pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer);
+                auto const &way = buffer.get<osmium::Way>(pos);
+                if (num_nodes != way.nodes().size()) {
                     fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
-                            tmp, num_nodes, list.size());
+                            tmp, num_nodes, way.nodes().size());
                     util::exit_nicely();
                 }
 
                 nodes.push_back(nodelist_t());
-                nodes_get_list(nodes.back(), list);
+                nodes_get_list(nodes.back(), way.nodes());
 
                 break;
             }

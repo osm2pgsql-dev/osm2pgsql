@@ -91,7 +91,7 @@ struct middle_ram_t : public middle_t {
     void commit(void);
 
     void nodes_set(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
-    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
+    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 

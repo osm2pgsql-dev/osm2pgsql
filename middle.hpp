@@ -20,7 +20,7 @@ struct options_t;
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
-    virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
+    virtual size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const = 0;
 
     /**
      * Retrives a single way from the ways storage.

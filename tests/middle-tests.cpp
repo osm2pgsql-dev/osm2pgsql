@@ -41,24 +41,29 @@ size_t add_node(osmid_t id, double lat, double lon)
     return osmium::builder::add_node(buffer, _id(id), _location(lon, lat));
 }
 
+size_t way_with_nodes(std::vector<osmid_t> const &ids)
+{
+    using namespace osmium::builder::attr;
+    return osmium::builder::add_way(buffer, _nodes(ids));
+}
+
 int test_node_set(middle_t *mid)
 {
     buffer.clear();
 
     auto const &node = buffer.get<osmium::Node>(add_node(1234, 12.3456789, 98.7654321));
-    idlist_t ids;
+    auto const &way = buffer.get<osmium::Way>(way_with_nodes({node.id()}));
     nodelist_t nodes;
 
     // set the node
     mid->nodes_set(node, node.location().lat(), node.location().lon(), false);
 
     // get it back
-    ids.push_back(node.id());
-    if (mid->nodes_get_list(nodes, ids) != ids.size()) {
+    if (mid->nodes_get_list(nodes, way.nodes()) != way.nodes().size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
         return 1;
     }
-    if (nodes.size() != ids.size()) {
+    if (nodes.size() != way.nodes().size()) {
         std::cerr << "ERROR: Mismatch in returned node list size.\n";
         return 1;
     }
@@ -117,8 +122,7 @@ int test_nodes_comprehensive_set(middle_t *mid)
     expected_nodes.emplace_back(add_node(PER_BLOCK*8+1, 0.0, 0.0));
 
     // Load up the nodes into the middle
-    idlist_t ids;
-    ids.reserve(expected_nodes.size());
+    std::vector<osmid_t> ids;
 
     for (auto pos : expected_nodes)
     {
@@ -127,8 +131,10 @@ int test_nodes_comprehensive_set(middle_t *mid)
         ids.push_back(node.id());
     }
 
+    auto const &way = buffer.get<osmium::Way>(way_with_nodes(ids));
+
     nodelist_t nodes;
-    if (mid->nodes_get_list(nodes, ids) != ids.size()) {
+    if (mid->nodes_get_list(nodes, way.nodes()) != ids.size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
         return 1;
     }

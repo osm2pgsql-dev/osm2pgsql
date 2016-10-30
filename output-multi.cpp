@@ -315,8 +315,7 @@ int output_multi_t::process_way(osmium::Way const &way, bool extra) {
                                               *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
-        idlist_t nodes(way.nodes());
-        if(m_way_helper.set(nodes, m_mid) < 1)
+        if(m_way_helper.set(way.nodes(), m_mid) < 1)
             return 0;
         //grab its geom
         auto geom = m_processor->process_way(m_way_helper.node_cache);

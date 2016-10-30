@@ -75,7 +75,7 @@ struct way_helper
 {
     way_helper();
     ~way_helper();
-    size_t set(const idlist_t &node_ids, const middle_query_t *mid);
+    size_t set(osmium::WayNodeList const &node_ids, const middle_query_t *mid);
 
     nodelist_t node_cache;
 };

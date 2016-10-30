@@ -15,7 +15,7 @@ struct dummy_middle_t : public middle_t {
     void commit(void) { }
 
     void nodes_set(osmium::Node const &, double, double, bool) { }
-    size_t nodes_get_list(nodelist_t &, const idlist_t) const { return 0; }
+    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const { return 0; }
 
     void ways_set(osmium::Way const &, bool) { }
     bool ways_get(osmid_t, taglist_t &, nodelist_t &) const { return true; }
@@ -47,7 +47,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void commit(void) { }
 
     void nodes_set(osmium::Node const &, double, double, bool) { }
-    size_t nodes_get_list(nodelist_t &, const idlist_t) const { return 0; }
+    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const { return 0; }
 
     void ways_set(osmium::Way const &, bool) { }
     bool ways_get(osmid_t, taglist_t &, nodelist_t &) const { return true; }

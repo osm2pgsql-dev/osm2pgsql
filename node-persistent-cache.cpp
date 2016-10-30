@@ -417,7 +417,7 @@ int node_persistent_cache::get(osmNode *out, osmid_t id)
     return 0;
 }
 
-size_t node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
+size_t node_persistent_cache::get_list(nodelist_t &out, osmium::WayNodeList const &nds)
 {
     set_read_mode();
 
@@ -426,10 +426,10 @@ size_t node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     bool need_fetch = false;
     for (size_t i = 0; i < nds.size(); ++i) {
         /* Check cache first */
-        if (ram_cache->get(&out[i], nds[i]) != 0) {
+        if (ram_cache->get(&out[i], nds[i].ref()) != 0) {
             /* In order to have a higher OS level I/O queue depth
                issue posix_fadvise(WILLNEED) requests for all I/O */
-            nodes_prefetch_async(nds[i]);
+            nodes_prefetch_async(nds[i].ref());
             need_fetch = true;
         }
     }
@@ -439,7 +439,7 @@ size_t node_persistent_cache::get_list(nodelist_t &out, const idlist_t nds)
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); i++) {
         if (std::isnan(out[i].lat) && std::isnan(out[i].lon)) {
-            if (get(&(out[wrtidx]), nds[i]) == 0)
+            if (get(&(out[wrtidx]), nds[i].ref()) == 0)
                 wrtidx++;
         } else {
             if (wrtidx < i)

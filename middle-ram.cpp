@@ -12,6 +12,9 @@
 #include <cassert>
 #include <cstdio>
 
+#include <osmium/memory/buffer.hpp>
+#include <osmium/builder/attr.hpp>
+
 #include "id-tracker.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
@@ -47,11 +50,11 @@ void middle_ram_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     rels.set(rel.id(), new ramRel(rel, extra_tags));
 }
 
-size_t middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_ram_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
-    for (idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it) {
+    for (auto const &in : nds) {
         osmNode n;
-        if (!cache->get(&n, *it))
+        if (!cache->get(&n, in.ref()))
             out.push_back(n);
     }
 
@@ -108,7 +111,11 @@ bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) cons
     }
 
     tags = ele->tags;
-    nodes_get_list(nodes, ele->ndids);
+    osmium::memory::Buffer buffer(sizeof(osmium::Way) + 32
+                                  + ele->ndids.size() * sizeof(osmium::NodeRef),
+                                  osmium::memory::Buffer::auto_grow::yes);
+    osmium::builder::add_way_node_list(buffer, osmium::builder::attr::_nodes(ele->ndids));
+    nodes_get_list(nodes, buffer.get<osmium::WayNodeList>(0));
 
     return true;
 }

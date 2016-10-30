@@ -360,8 +360,6 @@ int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon, b
 
 int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
 {
-    idlist_t nds(way.nodes());
-
     int polygon = 0;
     int roads = 0;
     taglist_t outtags;
@@ -378,7 +376,7 @@ int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
     {
         /* Get actual node data and generate output */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, nds);
+        m_mid->nodes_get_list(nodes, way.nodes());
         pgsql_out_way(way.id(), outtags, nodes, polygon, roads);
     }
     return 0;

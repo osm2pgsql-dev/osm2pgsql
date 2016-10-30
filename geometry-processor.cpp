@@ -75,7 +75,8 @@ way_helper::way_helper()
 way_helper::~way_helper()
 {
 }
-size_t way_helper::set(const idlist_t &node_ids, const middle_query_t *mid)
+size_t way_helper::set(osmium::WayNodeList const &node_ids,
+                       const middle_query_t *mid)
 {
     node_cache.clear();
     mid->nodes_get_list(node_cache, node_ids);

@@ -691,7 +691,7 @@ int output_gazetteer_t::process_way(osmium::Way const &way)
     if (places.has_data()) {
         /* Fetch the node details */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, idlist_t(way.nodes()));
+        m_mid->nodes_get_list(nodes, way.nodes());
 
         /* Get the geometry of the object */
         auto geom = builder.get_wkb_simple(nodes, 1);
