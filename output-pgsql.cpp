@@ -298,19 +298,14 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 }
 
 int output_pgsql_t::pending_relation(osmid_t id, int exists) {
-    taglist_t tags_int;
-    memberlist_t members_int;
-    int ret = 0;
-
     // Try to fetch the relation from the DB
-    buffer.clear();
-    if (m_mid->relations_get(id, buffer)) {
-        auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = pgsql_process_relation(id, memberlist_t(rel.members()),
-                                     taglist_t(rel.tags()), exists, true);
+    osmium::memory::Buffer mybuffer(1024, osmium::memory::Buffer::auto_grow::yes);
+    if (m_mid->relations_get(id, mybuffer)) {
+        auto const &rel = mybuffer.get<osmium::Relation>(0);
+        return pgsql_process_relation(rel, exists, true);
     }
 
-    return ret;
+    return 0;
 }
 
 void output_pgsql_t::commit()
@@ -387,61 +382,6 @@ int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &members,
-                                           const taglist_t &tags, int exists, bool pending)
-{
-  /* If the flag says this object may exist already, delete it first */
-  if(exists)
-      pgsql_delete_relation_from_output(id);
-
-  taglist_t outtags;
-
-  if (m_tagtransform->filter_rel_tags(tags, *m_export_list.get(), outtags))
-      return 1;
-
-  idlist_t xid2;
-  multitaglist_t xtags2;
-  multinodelist_t xnodes;
-
-  for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it)
-  {
-    /* Need to handle more than just ways... */
-    if (it->type == osmium::item_type::way)
-        xid2.push_back(it->id);
-  }
-
-  idlist_t xid;
-  m_mid->ways_get_list(xid2, xid, xtags2, xnodes);
-  int polygon = 0, roads = 0;
-  multitaglist_t xtags(xid.size(), taglist_t());
-  rolelist_t xrole(xid.size(), 0);
-
-  for (size_t i = 0; i < xid.size(); i++) {
-      for (size_t j = i; j < members.size(); j++) {
-          if (members[j].id == xid[i]) {
-              //filter the tags on this member because we got it from the middle
-              //and since the middle is no longer tied to the output it no longer
-              //shares any kind of tag transform and therefore all original tags
-              //will come back and need to be filtered by individual outputs before
-              //using these ways
-              m_tagtransform->filter_way_tags(xtags2[i], &polygon, &roads,
-                                              *m_export_list.get(), xtags[i]);
-              //TODO: if the filter says that this member is now not interesting we
-              //should decrement the count and remove his nodes and tags etc. for
-              //now we'll just keep him with no tags so he will get filtered later
-              xrole[i] = members[j].role.c_str();
-              break;
-          }
-      }
-  }
-
-  /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, outtags, xnodes, xtags, xid, xrole, pending);
-
-  return 0;
-}
-
-/* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
 int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool extra,
                                            bool exists, bool pending)
 {
@@ -497,23 +437,19 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
 
 int output_pgsql_t::relation_add(osmium::Relation const &rel, bool extra_tags)
 {
-    taglist_t tags(rel.tags());
-    if (extra_tags) {
-        tags.add_attributes(rel);
-    }
-    memberlist_t members(rel.members());
-
-    const std::string *type = tags.get("type");
+    char const *type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
     if (!type)
         return 0;
 
     /* Only a limited subset of type= is supported, ignore other */
-    if ( (*type != "route") && (*type != "multipolygon") && (*type != "boundary"))
+    if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0
+        && strcmp(type, "boundary") != 0) {
         return 0;
+    }
 
-    return pgsql_process_relation(rel.id(), members, tags, 0);
+    return pgsql_process_relation(rel, extra_tags, 0);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to

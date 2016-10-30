@@ -63,7 +63,6 @@ protected:
                            const multinodelist_t &xnodes, const multitaglist_t & xtags,
                            const idlist_t &xid, const rolelist_t &xrole,
                            bool pending);
-    int pgsql_process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, int exists, bool pending=false);
     int pgsql_process_relation(osmium::Relation const &rel,
                                bool extra, bool exists, bool pending=false);
     int pgsql_delete_way_from_output(osmid_t osm_id);
