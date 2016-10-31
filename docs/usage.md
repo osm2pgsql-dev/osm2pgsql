@@ -29,7 +29,7 @@ that only impact performance.
   ``--slim`` mode, this is just node positions while in non-slim it has to
   store information about ways and relations too. The maximum RAM it is useful
   to set this to in slim mode is 8 bytes * number of nodes / efficiency, where
-  efficiency ranges from 50% on small extracts to 80% for a planet.
+  efficiency ranges from 50% on small imports to 80% for a planet.
 
 * ``--number-processes`` sets the number of processes to use. This should
   typically be set to the number of CPU threads, but gains in speed are minimal
