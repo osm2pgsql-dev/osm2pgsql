@@ -118,16 +118,16 @@ namespace osmium {
 
         public:
 
-            typedef std::function<osmium::io::Compressor*(int, fsync)> create_compressor_type;
-            typedef std::function<osmium::io::Decompressor*(int)> create_decompressor_type_fd;
-            typedef std::function<osmium::io::Decompressor*(const char*, size_t)> create_decompressor_type_buffer;
+            using create_compressor_type          = std::function<osmium::io::Compressor*(int, fsync)>;
+            using create_decompressor_type_fd     = std::function<osmium::io::Decompressor*(int)>;
+            using create_decompressor_type_buffer = std::function<osmium::io::Decompressor*(const char*, size_t)>;
 
         private:
 
-            typedef std::map<const osmium::io::file_compression,
-                             std::tuple<create_compressor_type,
-                                        create_decompressor_type_fd,
-                                        create_decompressor_type_buffer>> compression_map_type;
+            using compression_map_type = std::map<const osmium::io::file_compression,
+                                                  std::tuple<create_compressor_type,
+                                                             create_decompressor_type_fd,
+                                                             create_decompressor_type_buffer>>;
 
             compression_map_type m_callbacks;
 

@@ -62,10 +62,25 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
 #include <osmium/thread/util.hpp>
+#include <osmium/util/config.hpp>
 
 namespace osmium {
 
     namespace io {
+
+        namespace detail {
+
+            inline size_t get_input_queue_size() noexcept {
+                size_t n = osmium::config::get_max_queue_size("INPUT", 20);
+                return n > 2 ? n : 2;
+            }
+
+            inline size_t get_osmdata_queue_size() noexcept {
+                size_t n = osmium::config::get_max_queue_size("OSMDATA", 20);
+                return n > 2 ? n : 2;
+            }
+
+        } // namespace detail
 
         /**
          * This is the user-facing interface for reading OSM files. Instantiate
@@ -74,9 +89,6 @@ namespace osmium {
          * Buffer.
          */
         class Reader {
-
-            static constexpr size_t max_input_queue_size = 20; // XXX
-            static constexpr size_t max_osmdata_queue_size = 20; // XXX
 
             osmium::io::File m_file;
             osmium::osm_entity_bits::type m_read_which_entities;
@@ -202,12 +214,12 @@ namespace osmium {
                 m_read_which_entities(read_which_entities),
                 m_status(status::okay),
                 m_childpid(0),
-                m_input_queue(max_input_queue_size, "raw_input"),
+                m_input_queue(detail::get_input_queue_size(), "raw_input"),
                 m_decompressor(m_file.buffer() ?
                     osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), m_file.buffer(), m_file.buffer_size()) :
                     osmium::io::CompressionFactory::instance().create_decompressor(file.compression(), open_input_file_or_url(m_file.filename(), &m_childpid))),
                 m_read_thread_manager(*m_decompressor, m_input_queue),
-                m_osmdata_queue(max_osmdata_queue_size, "parser_results"),
+                m_osmdata_queue(detail::get_osmdata_queue_size(), "parser_results"),
                 m_osmdata_queue_wrapper(m_osmdata_queue),
                 m_header_future(),
                 m_header(),

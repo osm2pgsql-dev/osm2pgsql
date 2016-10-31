@@ -44,12 +44,15 @@ DEALINGS IN THE SOFTWARE.
 #include <thread>
 #include <utility>
 
+#include <boost/crc.hpp>
+
 #include <osmium/io/detail/output_format.hpp>
 #include <osmium/io/file_format.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/memory/collection.hpp>
 #include <osmium/osm/box.hpp>
 #include <osmium/osm/changeset.hpp>
+#include <osmium/osm/crc.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/location.hpp>
 #include <osmium/osm/node.hpp>
@@ -90,6 +93,9 @@ namespace osmium {
                 /// Output with ANSI colors?
                 bool use_color;
 
+                /// Add CRC32 checksum to each object?
+                bool add_crc32;
+
             };
 
             /**
@@ -104,6 +110,11 @@ namespace osmium {
 
                 void append_encoded_string(const char* data) {
                     append_debug_encoded_string(*m_out, data, m_utf8_prefix, m_utf8_suffix);
+                }
+
+                template <typename... TArgs>
+                void output_formatted(const char* format, TArgs&&... args) {
+                    append_printf_formatted_string(*m_out, format, std::forward<TArgs>(args)...);
                 }
 
                 void write_color(const char* color) {
@@ -161,7 +172,9 @@ namespace osmium {
                 void write_timestamp(const osmium::Timestamp& timestamp) {
                     if (timestamp.valid()) {
                         *m_out += timestamp.to_iso();
-                        output_formatted(" (%d)", timestamp.seconds_since_epoch());
+                        *m_out += " (";
+                        output_int(timestamp.seconds_since_epoch());
+                        *m_out += ')';
                     } else {
                         write_error("NOT SET");
                     }
@@ -169,21 +182,26 @@ namespace osmium {
                 }
 
                 void write_meta(const osmium::OSMObject& object) {
-                    output_formatted("%" PRId64 "\n", object.id());
+                    output_int(object.id());
+                    *m_out += '\n';
                     if (m_options.add_metadata) {
                         write_fieldname("version");
-                        output_formatted("  %d", object.version());
+                        *m_out += "  ";
+                        output_int(object.version());
                         if (object.visible()) {
                             *m_out += " visible\n";
                         } else {
                             write_error(" deleted\n");
                         }
                         write_fieldname("changeset");
-                        output_formatted("%d\n", object.changeset());
+                        output_int(object.changeset());
+                        *m_out += '\n';
                         write_fieldname("timestamp");
                         write_timestamp(object.timestamp());
                         write_fieldname("user");
-                        output_formatted("     %d ", object.uid());
+                        *m_out += "     ";
+                        output_int(object.uid());
+                        *m_out += ' ';
                         write_string(object.user());
                         *m_out += '\n';
                     }
@@ -193,7 +211,9 @@ namespace osmium {
                     if (!tags.empty()) {
                         write_fieldname("tags");
                         *m_out += padding;
-                        output_formatted("     %d\n", tags.size());
+                        *m_out += "     ";
+                        output_int(tags.size());
+                        *m_out += '\n';
 
                         osmium::max_op<size_t> max;
                         for (const auto& tag : tags) {
@@ -215,7 +235,8 @@ namespace osmium {
 
                 void write_location(const osmium::Location& location) {
                     write_fieldname("lon/lat");
-                    output_formatted("  %.7f,%.7f", location.lon_without_check(), location.lat_without_check());
+                    *m_out += "  ";
+                    location.as_string_without_check(std::back_inserter(*m_out));
                     if (!location.valid()) {
                         write_error(" INVALID LOCATION!");
                     }
@@ -230,11 +251,28 @@ namespace osmium {
                     }
                     const auto& bl = box.bottom_left();
                     const auto& tr = box.top_right();
-                    output_formatted("%.7f,%.7f %.7f,%.7f", bl.lon_without_check(), bl.lat_without_check(), tr.lon_without_check(), tr.lat_without_check());
+                    bl.as_string(std::back_inserter(*m_out));
+                    *m_out += ' ';
+                    tr.as_string(std::back_inserter(*m_out));
                     if (!box.valid()) {
                         write_error(" INVALID BOX!");
                     }
                     *m_out += '\n';
+                }
+
+                template <typename T>
+                void write_crc32(const T& object) {
+                    write_fieldname("crc32");
+                    osmium::CRC<boost::crc_32_type> crc32;
+                    crc32.update(object);
+                    output_formatted("    %x\n", crc32().checksum());
+                }
+
+                void write_crc32(const osmium::Changeset& object) {
+                    write_fieldname("crc32");
+                    osmium::CRC<boost::crc_32_type> crc32;
+                    crc32.update(object);
+                    output_formatted("      %x\n", crc32().checksum());
                 }
 
             public:
@@ -274,6 +312,10 @@ namespace osmium {
 
                     write_tags(node.tags());
 
+                    if (m_options.add_crc32) {
+                        write_crc32(node);
+                    }
+
                     *m_out += '\n';
                 }
 
@@ -284,7 +326,8 @@ namespace osmium {
 
                     write_fieldname("nodes");
 
-                    output_formatted("    %d", way.nodes().size());
+                    *m_out += "    ";
+                    output_int(way.nodes().size());
                     if (way.nodes().size() < 2) {
                         write_error(" LESS THAN 2 NODES!\n");
                     } else if (way.nodes().size() > 2000) {
@@ -301,9 +344,15 @@ namespace osmium {
                         write_counter(width, n++);
                         output_formatted("%10" PRId64, node_ref.ref());
                         if (node_ref.location().valid()) {
-                            output_formatted(" (%.7f,%.7f)", node_ref.location().lon_without_check(), node_ref.location().lat_without_check());
+                            *m_out += " (";
+                            node_ref.location().as_string(std::back_inserter(*m_out));
+                            *m_out += ')';
                         }
                         *m_out += '\n';
+                    }
+
+                    if (m_options.add_crc32) {
+                        write_crc32(way);
                     }
 
                     *m_out += '\n';
@@ -316,7 +365,9 @@ namespace osmium {
                     write_tags(relation.tags());
 
                     write_fieldname("members");
-                    output_formatted("  %d\n", relation.members().size());
+                    *m_out += "  ";
+                    output_int(relation.members().size());
+                    *m_out += '\n';
 
                     int width = int(log10(relation.members().size())) + 1;
                     int n = 0;
@@ -328,15 +379,20 @@ namespace osmium {
                         *m_out += '\n';
                     }
 
+                    if (m_options.add_crc32) {
+                        write_crc32(relation);
+                    }
+
                     *m_out += '\n';
                 }
 
                 void changeset(const osmium::Changeset& changeset) {
                     write_object_type("changeset");
-                    output_formatted("%d\n", changeset.id());
+                    output_int(changeset.id());
+                    *m_out += '\n';
 
                     write_fieldname("num changes");
-                    output_formatted("%d", changeset.num_changes());
+                    output_int(changeset.num_changes());
                     if (changeset.num_changes() == 0) {
                         write_error(" NO CHANGES!");
                     }
@@ -355,7 +411,9 @@ namespace osmium {
                     }
 
                     write_fieldname("user");
-                    output_formatted("       %d ", changeset.uid());
+                    *m_out += "       ";
+                    output_int(changeset.uid());
+                    *m_out += ' ';
                     write_string(changeset.user());
                     *m_out += '\n';
 
@@ -364,7 +422,9 @@ namespace osmium {
 
                     if (changeset.num_comments() > 0) {
                         write_fieldname("comments");
-                        output_formatted("   %d\n", changeset.num_comments());
+                        *m_out += "   ";
+                        output_int(changeset.num_comments());
+                        *m_out += '\n';
 
                         int width = int(log10(changeset.num_comments())) + 1;
                         int n = 0;
@@ -376,7 +436,8 @@ namespace osmium {
                             output_formatted("      %*s", width, "");
 
                             write_comment_field("user");
-                            output_formatted("%d ", comment.uid());
+                            output_int(comment.uid());
+                            *m_out += ' ';
                             write_string(comment.user());
                             output_formatted("\n      %*s", width, "");
 
@@ -384,6 +445,10 @@ namespace osmium {
                             write_string(comment.text());
                             *m_out += '\n';
                         }
+                    }
+
+                    if (m_options.add_crc32) {
+                        write_crc32(changeset);
                     }
 
                     *m_out += '\n';
@@ -414,6 +479,7 @@ namespace osmium {
                     m_options() {
                     m_options.add_metadata = file.is_not_false("add_metadata");
                     m_options.use_color    = file.is_true("color");
+                    m_options.add_crc32    = file.is_true("add_crc32");
                 }
 
                 DebugOutputFormat(const DebugOutputFormat&) = delete;
@@ -439,9 +505,9 @@ namespace osmium {
                     out += '\n';
                     for (const auto& box : header.boxes()) {
                         out += "    ";
-                        box.bottom_left().as_string(std::back_inserter(out), ',');
-                        out += " ";
-                        box.top_right().as_string(std::back_inserter(out), ',');
+                        box.bottom_left().as_string(std::back_inserter(out));
+                        out += ' ';
+                        box.top_right().as_string(std::back_inserter(out));
                         out += '\n';
                     }
                     write_fieldname(out, "options");

@@ -148,7 +148,7 @@ namespace osmium {
             /**
              * Add all points of an outer or inner ring to a multipolygon.
              */
-            void add_points(const osmium::OuterRing& nodes) {
+            void add_points(const osmium::NodeRefList& nodes) {
                 osmium::Location last_location;
                 for (const osmium::NodeRef& node_ref : nodes) {
                     if (last_location != node_ref.location()) {
@@ -169,7 +169,7 @@ namespace osmium {
             template <typename... TArgs>
             explicit GeometryFactory<TGeomImpl, TProjection>(TArgs&&... args) :
                 m_projection(),
-                m_impl(std::forward<TArgs>(args)...) {
+                m_impl(m_projection.epsg(), std::forward<TArgs>(args)...) {
             }
 
             /**
@@ -179,15 +179,16 @@ namespace osmium {
             template <typename... TArgs>
             explicit GeometryFactory<TGeomImpl, TProjection>(TProjection&& projection, TArgs&&... args) :
                 m_projection(std::move(projection)),
-                m_impl(std::forward<TArgs>(args)...) {
+                m_impl(m_projection.epsg(), std::forward<TArgs>(args)...) {
             }
 
-            typedef TProjection projection_type;
-            typedef typename TGeomImpl::point_type        point_type;
-            typedef typename TGeomImpl::linestring_type   linestring_type;
-            typedef typename TGeomImpl::polygon_type      polygon_type;
-            typedef typename TGeomImpl::multipolygon_type multipolygon_type;
-            typedef typename TGeomImpl::ring_type         ring_type;
+            using projection_type   = TProjection;
+
+            using point_type        = typename TGeomImpl::point_type;
+            using linestring_type   = typename TGeomImpl::linestring_type;
+            using polygon_type      = typename TGeomImpl::polygon_type;
+            using multipolygon_type = typename TGeomImpl::multipolygon_type;
+            using ring_type         = typename TGeomImpl::ring_type;
 
             int epsg() const {
                 return m_projection.epsg();
@@ -286,7 +287,7 @@ namespace osmium {
                 return linestring_finish(num_points);
             }
 
-            linestring_type create_linestring(const osmium::Way& way, use_nodes un=use_nodes::unique, direction dir=direction::forward) {
+            linestring_type create_linestring(const osmium::Way& way, use_nodes un=use_nodes::unique, direction dir = direction::forward) {
                 try {
                     return create_linestring(way.nodes(), un, dir);
                 } catch (osmium::geometry_error& e) {
@@ -360,7 +361,7 @@ namespace osmium {
                 return polygon_finish(num_points);
             }
 
-            polygon_type create_polygon(const osmium::Way& way, use_nodes un=use_nodes::unique, direction dir=direction::forward) {
+            polygon_type create_polygon(const osmium::Way& way, use_nodes un=use_nodes::unique, direction dir = direction::forward) {
                 try {
                     return create_polygon(way.nodes(), un, dir);
                 } catch (osmium::geometry_error& e) {
@@ -378,8 +379,8 @@ namespace osmium {
                     m_impl.multipolygon_start();
 
                     for (auto it = area.cbegin(); it != area.cend(); ++it) {
-                        const osmium::OuterRing& ring = static_cast<const osmium::OuterRing&>(*it);
                         if (it->type() == osmium::item_type::outer_ring) {
+                            auto& ring = static_cast<const osmium::OuterRing&>(*it);
                             if (num_polygons > 0) {
                                 m_impl.multipolygon_polygon_finish();
                             }
@@ -390,6 +391,7 @@ namespace osmium {
                             ++num_rings;
                             ++num_polygons;
                         } else if (it->type() == osmium::item_type::inner_ring) {
+                            auto& ring = static_cast<const osmium::InnerRing&>(*it);
                             m_impl.multipolygon_inner_ring_start();
                             add_points(ring);
                             m_impl.multipolygon_inner_ring_finish();
