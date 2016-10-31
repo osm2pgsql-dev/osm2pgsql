@@ -1,5 +1,5 @@
-#ifndef OSMIUM_UTIL_ITERATOR_HPP
-#define OSMIUM_UTIL_ITERATOR_HPP
+#ifndef OSMIUM_UTIL_MISC_HPP
+#define OSMIUM_UTIL_MISC_HPP
 
 /*
 
@@ -33,51 +33,20 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <cstddef>
-#include <utility>
+#include <tuple>
 
 namespace osmium {
 
-    template <typename It, typename P = std::pair<It, It>>
-    struct iterator_range : public P {
-
-        using iterator = It;
-
-        iterator_range(P&& p) :
-            P(std::forward<P>(p)) {
-        }
-/*
-        It begin() {
-            return this->first;
-        }
-
-        It end() {
-            return this->second;
-        }
-*/
-        It begin() const {
-            return this->first;
-        }
-
-        It end() const {
-            return this->second;
-        }
-
-        size_t empty() const {
-            return begin() == end();
-        }
-
-    }; // struct iterator_range
-
     /**
-     * Helper function to create iterator_range from std::pair.
+     * Like std::tie(), but takes its arguments as const references. Used
+     * as a helper function when sorting.
      */
-    template <typename P, typename It = typename P::first_type>
-    inline iterator_range<It> make_range(P&& p) {
-        static_assert(std::is_same<P, std::pair<It, It>>::value, "make_range needs pair of iterators as argument");
-        return iterator_range<It>(std::forward<P>(p));
+    template<typename... Ts>
+    inline std::tuple<const Ts&...>
+    const_tie(const Ts&... args) noexcept {
+        return std::tuple<const Ts&...>(args...);
     }
 
 } // namespace osmium
 
-#endif // OSMIUM_UTIL_ITERATOR_HPP
+#endif // OSMIUM_UTIL_MISC_HPP

@@ -47,7 +47,7 @@ namespace osmium {
 
     namespace memory {
 
-        typedef uint32_t item_size_type;
+        using item_size_type = uint32_t;
 
         // align datastructures to this many bytes
         constexpr item_size_type align_bytes = 8;

@@ -149,7 +149,7 @@ namespace osmium {
 
     public:
 
-        typedef size_t size_type;
+        using size_type = size_t;
 
         RelationMemberList() :
             osmium::memory::Collection<RelationMember, osmium::item_type::relation_member_list>() {
