@@ -534,8 +534,7 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 
     {
         osmium::builder::WayBuilder builder(buffer);
-        builder.object().set_id(id);
-        builder.add_user("", 0);
+        builder.set_id(id);
 
         pgsql_parse_nodes(PQgetvalue(res, 0, 0), buffer, builder);
         pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
@@ -588,8 +587,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
             if (id == wayidspg[j]) {
                 {
                     osmium::builder::WayBuilder builder(buffer);
-                    builder.object().set_id(id);
-                    builder.add_user("", 0);
+                    builder.set_id(id);
 
                     pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer, builder);
                     pgsql_parse_tags(PQgetvalue(res, j, 2), buffer, builder);
@@ -748,7 +746,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
     taglist_t member_temp;
 
     // Make sure we're out of copy mode */
-    pgsql_endCopy( rel_table );
+    pgsql_endCopy(rel_table);
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
@@ -763,13 +761,13 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
 
     {
         osmium::builder::RelationBuilder builder(buffer);
-        builder.object().set_id(id);
-        builder.add_user("", 0);
+        builder.set_id(id);
 
         pgsql_parse_members(PQgetvalue(res, 0, 0), buffer, builder);
         pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
     }
 
+    PQclear(res);
     buffer.commit();
 
     return true;
