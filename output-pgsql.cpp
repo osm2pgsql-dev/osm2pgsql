@@ -400,19 +400,22 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
   for (auto const &m : rel.members())
   {
     /* Need to handle more than just ways... */
-    if (m.type() == osmium::item_type::way)
+    if (m.type() == osmium::item_type::way) {
         xid2.push_back(m.ref());
+    }
+
   }
 
   buffer.clear();
   auto num_ways = m_mid->ways_get_list(xid2, buffer);
-  multitaglist_t xtags(num_ways);
+  multitaglist_t xtags(num_ways, taglist_t());
   rolelist_t xrole(num_ways);
-  multinodelist_t xnodes(num_ways);
+  multinodelist_t xnodes(num_ways, nodelist_t());
   idlist_t xid;
 
   size_t i = 0;
   for (auto const &w : buffer.select<osmium::Way>()) {
+      assert(i < num_ways);
       xid.push_back(w.id());
       m_mid->nodes_get_list(xnodes[i], w.nodes());
 
@@ -426,12 +429,12 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
       //should decrement the count and remove his nodes and tags etc. for
       //now we'll just keep him with no tags so he will get filtered later
       for (auto const &member : rel.members()) {
-          if (member.ref() == w.id()) {
+          if (member.ref() == w.id() && member.type() == osmium::item_type::way) {
               xrole[i] = member.role();
-              ++i;
               break;
           }
       }
+      ++i;
   }
 
   /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */

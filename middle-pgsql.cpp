@@ -319,6 +319,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList
     // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
     int countDB = 0;
+    out.reserve(nds.size());
     for (auto const &n : nds) {
         // Check cache first */
         osmNode loc;
@@ -582,6 +583,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
 
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
+    int outres = 0;
     for (auto id : ids) {
         for (int j = 0; j < countPG; j++) {
             if (id == wayidspg[j]) {
@@ -594,6 +596,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
                 }
 
                 buffer.commit();
+                outres++;
                 break;
             }
         }
@@ -601,7 +604,7 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
 
     PQclear(res);
 
-    return wayidspg.size();
+    return outres;
 }
 
 
