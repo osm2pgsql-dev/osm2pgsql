@@ -259,7 +259,7 @@ void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
 void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
                                      double lat, double lon, bool extra_tags)
 {
-    copy_buffer.reserve(node.tags().size() * 24 + 64);
+    copy_buffer.reserve(node.tags().byte_size() + 100);
 
     bool copy = node_table->copyMode;
     char delim = copy ? '\t' : '\0';
@@ -287,7 +287,7 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
     copy_buffer += delim;
 #endif
 
-    if (node.tags().size() == 0 && !extra_tags) {
+    if (node.tags().empty() && !extra_tags) {
         paramValues[3] = nullptr;
         copy_buffer += "\\N";
     } else {
@@ -474,7 +474,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
 
 void middle_pgsql_t::ways_set(osmium::Way const &way, bool extra_tags)
 {
-    copy_buffer.reserve(way.nodes().size() * 10 + way.tags().size() * 24 + 64);
+    copy_buffer.reserve(way.nodes().size() * 10 + way.tags().byte_size() + 100);
     bool copy = way_table->copyMode;
     char delim = copy ? '\t' : '\0';
     // Three params: id, nodes, tags */
@@ -496,7 +496,7 @@ void middle_pgsql_t::ways_set(osmium::Way const &way, bool extra_tags)
     }
     copy_buffer += delim;
 
-    if (way.tags().size() == 0 && !extra_tags) {
+    if (way.tags().empty() && !extra_tags) {
         paramValues[2] = nullptr;
         copy_buffer += "\\N";
     } else {
@@ -664,15 +664,12 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
 void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
 {
     idlist_t parts[3];
-    for (int i = 0; i < 3; ++i) {
-        parts[i].reserve(rel.members().size());
-    }
 
     for (auto const &m : rel.members()) {
         parts[osmium::item_type_to_nwr_index(m.type())].push_back(m.ref());
     }
 
-    copy_buffer.reserve(rel.members().size() * 34 + rel.tags().size() * 24 + 64);
+    copy_buffer.reserve(rel.members().byte_size() * 2 + rel.tags().byte_size() + 128);
 
     // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6] = { copy_buffer.c_str(), };
@@ -691,7 +688,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     copy_buffer+= delim;
 
     paramValues[3] = paramValues[0] + copy_buffer.size();
-    if (rel.members().size() == 0) {
+    if (rel.members().empty()) {
         copy_buffer += "{}";
     } else {
         copy_buffer += "{";
@@ -705,7 +702,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     }
     copy_buffer+= delim;
 
-    if (rel.members().size() == 0) {
+    if (rel.members().empty()) {
         paramValues[4] = nullptr;
         copy_buffer += "\\N";
     } else {
@@ -723,7 +720,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     }
     copy_buffer+= delim;
 
-    if (rel.tags().size() == 0 && ! extra_tags) {
+    if (rel.tags().empty() && ! extra_tags) {
         paramValues[5] = nullptr;
         copy_buffer += "\\N";
     } else {

@@ -497,11 +497,12 @@ bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o, bool extra,
 
     lua_newtable(L);    /* key value table */
 
-    lua_Integer sz = (lua_Integer) o.tags().size();
+    lua_Integer sz = 0;
     for (auto const &t: o.tags()) {
         lua_pushstring(L, t.key());
         lua_pushstring(L, t.value());
         lua_rawset(L, -3);
+        ++sz;
     }
     if (extra) {
         taglist_t tags;
@@ -649,7 +650,7 @@ bool tagtransform::c_filter_basic_tags(osmium::OSMObject const &o, bool extra, i
         } else {
             auto const *area = o.tags()["area"];
             if (area)
-                *polygon = taglist_t::value_to_bool(o.tags()["area"], flags & FLAG_POLYGON);
+                *polygon = taglist_t::value_to_bool(area, flags & FLAG_POLYGON);
             else
                 *polygon = flags & FLAG_POLYGON;
         }

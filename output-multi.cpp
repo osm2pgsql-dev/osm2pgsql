@@ -195,7 +195,7 @@ int output_multi_t::way_add(osmium::Way const &way, bool extra_tags) {
 
 int output_multi_t::relation_add(osmium::Relation const &rel, bool extra_tags) {
     if (m_processor->interests(geometry_processor::interest_relation)
-        && rel.members().size() > 0) {
+        && rel.members().empty()) {
         return process_relation(rel, extra_tags, 0);
     }
     return 0;
