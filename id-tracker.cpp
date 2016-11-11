@@ -169,7 +169,7 @@ osmid_t id_tracker::pop_mark() {
     return id;
 }
 
-size_t id_tracker::size() { return impl->count; }
+size_t id_tracker::size() const { return impl->count; }
 
 osmid_t id_tracker::last_returned() const { return impl->old_id; }
 

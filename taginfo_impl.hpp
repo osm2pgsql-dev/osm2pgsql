@@ -7,12 +7,14 @@
 #include <vector>
 #include <utility>
 
-#define FLAG_POLYGON 1    /* For polygon table */
-#define FLAG_LINEAR  2    /* For lines table */
-#define FLAG_NOCACHE 4    /* Optimisation: don't bother remembering this one */
-#define FLAG_DELETE  8    /* These tags should be simply deleted on sight */
-#define FLAG_NOCOLUMN 16    /* objects without column but should be listed in database hstore column */
-#define FLAG_PHSTORE 17   /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
+enum column_flags {
+  FLAG_POLYGON = 1,   /* For polygon table */
+  FLAG_LINEAR = 2,    /* For lines table */
+  FLAG_NOCACHE = 4,   /* Optimisation: don't bother remembering this one */
+  FLAG_DELETE = 8,    /* These tags should be simply deleted on sight */
+  FLAG_NOCOLUMN = 16, /* objects without column but should be listed in database hstore column */
+  FLAG_PHSTORE = 17   /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
+};
 
 struct taginfo {
     taginfo();

@@ -12,6 +12,7 @@ set(TESTS
   test-middle-ram.cpp
   test-options-database.cpp
   test-options-parse.cpp
+  test-options-projection.cpp
   test-output-multi-line-storage.cpp
   test-output-multi-line.cpp
   test-output-multi-point-multi-table.cpp
@@ -27,6 +28,7 @@ set(TESTS
   test-parse-diff.cpp
   test-parse-xml2.cpp
   test-pgsql-escape.cpp
+  test-wildcard-match.cpp
 )
 
 foreach (test ${TESTS})
@@ -48,6 +50,7 @@ set(TEST_NODB
  test-parse-diff
  test-parse-xml2
  test-pgsql-escape
+ test-wildcard-match
 )
 
 foreach (test ${TEST_NODB})
@@ -57,12 +60,20 @@ endforeach()
 set_property(TEST test-middle-flat PROPERTY LABELS FlatNodes)
 set_property(TEST test-output-pgsql PROPERTY LABELS FlatNodes)
 
+if (NOT LUA_FOUND)
+  # these tests require LUA support
+  set_tests_properties(test-output-multi-poly-trivial PROPERTIES WILL_FAIL on)
+  set_tests_properties(test-output-multi-tags PROPERTIES WILL_FAIL on)
+endif()
+
 find_package(PythonInterp)
 
 if (PYTHONINTERP_FOUND)
   add_test(NAME regression-test-pbf COMMAND ${PYTHON_EXECUTABLE} tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.pbf -x $<TARGET_FILE:osm2pgsql>
     WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
   set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
+  set_tests_properties(regression-test-pbf
+      PROPERTIES ENVIRONMENT "HAVE_LUA=${LUA_FOUND}")
   message(STATUS "Added test: regression-test-pbf (needs Python with psycopg2 module)")
 else()
   message(WARNING "Can not find python, regression test disabled")

@@ -65,10 +65,8 @@ public:
 
     const options_t *get_options() const;
 
-    virtual void merge_pending_relations(std::shared_ptr<output_t> other);
-    virtual void merge_expire_trees(std::shared_ptr<output_t> other);
-    virtual std::shared_ptr<id_tracker> get_pending_relations();
-    virtual std::shared_ptr<expire_tiles> get_expire_tree();
+    virtual void merge_pending_relations(output_t *other);
+    virtual void merge_expire_trees(output_t *other);
 
 protected:
 

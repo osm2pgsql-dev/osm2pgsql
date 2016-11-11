@@ -53,7 +53,7 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
     /* Based on vprintf manual page */
     /* Guess we need no more than 100 bytes. */
 
-    if ((sql = (char *)malloc(size)) == nullptr)
+    if ((sql = static_cast<char *>(malloc(size))) == nullptr)
         throw std::runtime_error("Memory allocation failed in pgsql_exec");
 
     while (1) {
@@ -69,7 +69,7 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
             size = n+1; /* precisely what is needed */
         else           /* glibc 2.0 */
             size *= 2;  /* twice the old size */
-        if ((nsql = (char *)realloc (sql, size)) == nullptr) {
+        if ((nsql = static_cast<char *>(realloc (sql, size))) == nullptr) {
             free(sql);
             throw std::runtime_error("Memory re-allocation failed in pgsql_exec");
         } else {

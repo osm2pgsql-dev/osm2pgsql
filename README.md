@@ -18,6 +18,8 @@ Nominatim, or general analysis.
 
 ## Installing ##
 
+Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/). Unoffical builds for Windows are built by [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts.
+
 The latest source code is available in the OSM git repository on github
 and can be downloaded as follows:
 
@@ -42,7 +44,7 @@ Required libraries are
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
 
 It also requires access to a database server running
-[PostgreSQL](http://www.postgresql.org/) and [PostGIS](http://www.postgis.net/).
+[PostgreSQL](http://www.postgresql.org/) 9.1+ and [PostGIS](http://www.postgis.net/) 2.0+.
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
@@ -108,7 +110,7 @@ cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **43** command line
+Osm2pgsql has one program, the executable itself, which has **44** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
