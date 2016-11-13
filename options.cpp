@@ -222,7 +222,7 @@ namespace
             printf("\n");
             printf("A typical command to update a database imported with the above command is\n");
             printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc - \\\n");
-            printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -\n", name);
+            printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -r xml -\n", name);
             printf("where\n");
             printf("    <flat nodes> is the same location as above.\n");
             printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
