@@ -146,7 +146,7 @@ namespace
                         dense: caching strategy optimised for full planet import\n\
                         chunk: caching strategy optimised for non-contiguous \n\
                             memory allocation\n\
-                        sparse: caching strategy optimised for small extracts\n\
+                        sparse: caching strategy optimised for small imports\n\
                         optimized: automatically combines dense and sparse \n\
                             strategies for optimal storage efficiency. This may\n\
                             us twice as much virtual memory, but no more physical \n\
