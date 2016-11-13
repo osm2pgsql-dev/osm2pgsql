@@ -23,7 +23,7 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
     //if we dont have any columns
-    if(columns.size() == 0)
+    if(columns.size() == 0 && hstore_mode != HSTORE_ALL)
         throw std::runtime_error((fmt("No columns provided for table %1%") % name).str());
 
     //nothing to copy to start with
