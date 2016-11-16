@@ -41,33 +41,33 @@ struct test_output_t : public dummy_output_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmium::Node const &n, double, double, bool) override {
+    int node_add(osmium::Node const &n, double, double) override {
         assert(n.id() > 0);
         ++node.added;
         return 0;
     }
 
-    int way_add(osmium::Way const &w, bool) override {
+    int way_add(osmium::Way const &w) override {
         assert(w.id() > 0);
         ++way.added;
         return 0;
     }
 
-    int relation_add(osmium::Relation const &r, bool) override {
+    int relation_add(osmium::Relation const &r) override {
         assert(r.id() > 0);
         ++rel.added;
         return 0;
     }
 
-    int node_modify(osmium::Node const &, double, double, bool) override {
+    int node_modify(osmium::Node const &, double, double) override {
         ++node.modified;
         return 0;
     }
-    int way_modify(osmium::Way const &, bool) override {
+    int way_modify(osmium::Way const &) override {
         ++way.modified;
         return 0;
     }
-    int relation_modify(osmium::Relation const &, bool) override {
+    int relation_modify(osmium::Relation const &) override {
         ++rel.modified;
         return 0;
     }
@@ -105,7 +105,7 @@ int main() {
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<dummy_slim_middle_t>(), out_test, options.projection, options.extra_attributes);
+  osmdata_t osmdata(std::make_shared<dummy_slim_middle_t>(), out_test, options.projection);
 
   boost::optional<std::string> bbox;
   parse_osmium_t parser(bbox, true, &osmdata);

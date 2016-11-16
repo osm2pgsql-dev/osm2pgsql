@@ -250,7 +250,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         int polygon;
         int roads;
         auto &way = buffer.get<osmium::Way>(0);
-        if (!m_tagtransform->filter_tags(way, false, &polygon, &roads,
+        if (!m_tagtransform->filter_tags(way, &polygon, &roads,
                                          *m_export_list.get(), outtags)) {
             nodelist_t nodes;
             m_mid->nodes_get_list(nodes, way.nodes());
@@ -347,10 +347,10 @@ void output_pgsql_t::stop()
     }
 }
 
-int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon, bool extra_tags)
+int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon)
 {
     taglist_t outtags;
-    if (m_tagtransform->filter_tags(node, extra_tags, 0, 0, *m_export_list.get(), outtags))
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr, *m_export_list.get(), outtags))
         return 1;
 
     expire.from_bbox(lon, lat, lon, lat);
@@ -359,14 +359,14 @@ int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon, b
     return 0;
 }
 
-int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
+int output_pgsql_t::way_add(osmium::Way const &way)
 {
     int polygon = 0;
     int roads = 0;
     taglist_t outtags;
 
     /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-    auto filter = m_tagtransform->filter_tags(way, extra_tags, &polygon, &roads,
+    auto filter = m_tagtransform->filter_tags(way, &polygon, &roads,
                                               *m_export_list.get(), outtags);
 
     /* If this isn't a polygon then it can not be part of a multipolygon
@@ -385,7 +385,7 @@ int output_pgsql_t::way_add(osmium::Way const &way, bool extra_tags)
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool extra,
+int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
                                            bool exists, bool pending)
 {
   /* If the flag says this object may exist already, delete it first */
@@ -393,7 +393,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
       pgsql_delete_relation_from_output(rel.id());
 
   taglist_t outtags;
-  if (m_tagtransform->filter_tags(rel, extra, 0, 0, *m_export_list.get(), outtags))
+  if (m_tagtransform->filter_tags(rel, nullptr, nullptr, *m_export_list.get(), outtags))
       return 1;
 
   idlist_t xid2;
@@ -424,7 +424,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
       //shares any kind of tag transform and therefore all original tags
       //will come back and need to be filtered by individual outputs before
       //using these ways
-      m_tagtransform->filter_tags(w, false, 0, 0, *m_export_list.get(), xtags[i]);
+      m_tagtransform->filter_tags(w, nullptr, nullptr, *m_export_list.get(), xtags[i]);
       //TODO: if the filter says that this member is now not interesting we
       //should decrement the count and remove his nodes and tags etc. for
       //now we'll just keep him with no tags so he will get filtered later
@@ -443,7 +443,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel, bool ext
   return 0;
 }
 
-int output_pgsql_t::relation_add(osmium::Relation const &rel, bool extra_tags)
+int output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
     char const *type = rel.tags()["type"];
 
@@ -457,7 +457,7 @@ int output_pgsql_t::relation_add(osmium::Relation const &rel, bool extra_tags)
         return 0;
     }
 
-    return pgsql_process_relation(rel, extra_tags, 0);
+    return pgsql_process_relation(rel, 0);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -531,7 +531,7 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags)
+int output_pgsql_t::node_modify(osmium::Node const &node, double lat, double lon)
 {
     if( !m_options.slim )
     {
@@ -539,11 +539,11 @@ int output_pgsql_t::node_modify(osmium::Node const &node, double lat, double lon
         util::exit_nicely();
     }
     node_delete(node.id());
-    node_add(node, lat, lon, extra_tags);
+    node_add(node, lat, lon);
     return 0;
 }
 
-int output_pgsql_t::way_modify(osmium::Way const &way, bool extra_tags)
+int output_pgsql_t::way_modify(osmium::Way const &way)
 {
     if( !m_options.slim )
     {
@@ -551,12 +551,12 @@ int output_pgsql_t::way_modify(osmium::Way const &way, bool extra_tags)
         util::exit_nicely();
     }
     way_delete(way.id());
-    way_add(way, extra_tags);
+    way_add(way);
 
     return 0;
 }
 
-int output_pgsql_t::relation_modify(osmium::Relation const &rel, bool extra_tags)
+int output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
     if( !m_options.slim )
     {
@@ -564,7 +564,7 @@ int output_pgsql_t::relation_modify(osmium::Relation const &rel, bool extra_tags
         util::exit_nicely();
     }
     relation_delete(rel.id());
-    relation_add(rel, extra_tags);
+    relation_add(rel);
     return 0;
 }
 

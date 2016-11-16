@@ -23,7 +23,7 @@ public:
 	tagtransform(const options_t *options_);
 	~tagtransform();
 
-    bool filter_tags(osmium::OSMObject const &o, bool extra,
+    bool filter_tags(osmium::OSMObject const &o,
                      int *polygon, int *roads, const export_list &exlist,
                      taglist_t &out_tags, bool strict = false);
     unsigned filter_rel_member_tags(const taglist_t &rel_tags,
@@ -32,9 +32,9 @@ public:
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless = false);
 
 private:
-    bool lua_filter_basic_tags(osmium::OSMObject const &o, bool extra,
+    bool lua_filter_basic_tags(osmium::OSMObject const &o,
                                int *polygon, int *roads, taglist_t &out_tags);
-    bool c_filter_basic_tags(osmium::OSMObject const &o, bool extra, int *polygon,
+    bool c_filter_basic_tags(osmium::OSMObject const &o, int *polygon,
                              int *roads, const export_list &exlist,
                              taglist_t &out_tags, bool strict);
     unsigned int lua_filter_rel_member_tags(const taglist_t &rel_tags,

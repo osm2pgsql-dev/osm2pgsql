@@ -42,14 +42,14 @@ struct test_output_t : public output_null_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmium::Node const &node, double, double, bool) override {
+    int node_add(osmium::Node const &node, double, double) override {
         assert(node.id() > 0);
         sum_ids += (unsigned) node.id();
         num_nodes += 1;
         return 0;
     }
 
-    int way_add(osmium::Way const &way, bool) override {
+    int way_add(osmium::Way const &way) override {
         assert(way.id() > 0);
         sum_ids += (unsigned) way.id();
         num_ways += 1;
@@ -58,7 +58,7 @@ struct test_output_t : public output_null_t {
         return 0;
     }
 
-    int relation_add(osmium::Relation const &rel, bool) override {
+    int relation_add(osmium::Relation const &rel) override {
         assert(rel.id() > 0);
         sum_ids += (unsigned) rel.id();
         num_relations += 1;
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test, options.projection, options.extra_attributes);
+  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test, options.projection);
 
   boost::optional<std::string> bbox;
   parse_osmium_t parser(bbox, false, &osmdata);

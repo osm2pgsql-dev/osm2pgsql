@@ -34,19 +34,19 @@
  */
 
 
-void middle_ram_t::nodes_set(osmium::Node const &node, double lat, double lon, bool)
+void middle_ram_t::nodes_set(osmium::Node const &node, double lat, double lon)
 {
     cache->set(node.id(), lat, lon);
 }
 
-void middle_ram_t::ways_set(osmium::Way const &way, bool extra_tags)
+void middle_ram_t::ways_set(osmium::Way const &way)
 {
-    ways.set(way.id(), new ramWay(way, extra_tags));
+    ways.set(way.id(), new ramWay(way, out_options->extra_attributes));
 }
 
-void middle_ram_t::relations_set(osmium::Relation const &rel, bool extra_tags)
+void middle_ram_t::relations_set(osmium::Relation const &rel)
 {
-    rels.set(rel.id(), new ramRel(rel, extra_tags));
+    rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
 }
 
 size_t middle_ram_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const

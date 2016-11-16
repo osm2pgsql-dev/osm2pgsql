@@ -159,7 +159,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     buffer.clear();
     if (m_mid->relations_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = process_relation(rel, false, exists, true);
+        ret = process_relation(rel, exists, true);
     }
 
     return ret;
@@ -178,64 +178,64 @@ void output_multi_t::commit() {
     m_table->commit();
 }
 
-int output_multi_t::node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) {
+int output_multi_t::node_add(osmium::Node const &node, double lat, double lon) {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        return process_node(node, extra_tags, lat, lon);
+        return process_node(node, lat, lon);
     }
     return 0;
 }
 
-int output_multi_t::way_add(osmium::Way const &way, bool extra_tags) {
+int output_multi_t::way_add(osmium::Way const &way) {
     if (m_processor->interests(geometry_processor::interest_way) && way.nodes().size() > 1) {
-        return process_way(way, extra_tags);
+        return process_way(way);
     }
     return 0;
 }
 
 
-int output_multi_t::relation_add(osmium::Relation const &rel, bool extra_tags) {
+int output_multi_t::relation_add(osmium::Relation const &rel) {
     if (m_processor->interests(geometry_processor::interest_relation)
         && rel.members().empty()) {
-        return process_relation(rel, extra_tags, 0);
+        return process_relation(rel, 0);
     }
     return 0;
 }
 
-int output_multi_t::node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) {
+int output_multi_t::node_modify(osmium::Node const &node, double lat, double lon) {
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(node.id());
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(node, extra_tags, lat, lon);
+        return process_node(node, lat, lon);
 
     }
 
     return 0;
 }
 
-int output_multi_t::way_modify(osmium::Way const &way, bool extra_tags) {
+int output_multi_t::way_modify(osmium::Way const &way) {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(way.id());
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(way, extra_tags);
+        return process_way(way);
     }
 
     return 0;
 }
 
-int output_multi_t::relation_modify(osmium::Relation const &rel, bool extra_tags) {
+int output_multi_t::relation_modify(osmium::Relation const &rel) {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(-rel.id());
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_relation(rel, extra_tags, false);
+        return process_relation(rel, false);
 
     }
 
@@ -266,10 +266,11 @@ int output_multi_t::relation_delete(osmid_t id) {
     return 0;
 }
 
-int output_multi_t::process_node(osmium::Node const &node, bool extra, double lat, double lon) {
+int output_multi_t::process_node(osmium::Node const &node, double lat, double lon) {
     //check if we are keeping this node
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(node, extra, 0, 0, *m_export_list.get(), outtags, true);
+    auto filter = m_tagtransform->filter_tags(node, 0, 0, *m_export_list.get(),
+                                              outtags, true);
     if (!filter) {
         //grab its geom
         auto geom = m_processor->process_node(lat, lon);
@@ -296,7 +297,7 @@ int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
     //check if we are keeping this way
     int polygon = 0;
     taglist_t outtags;
-    unsigned int filter = m_tagtransform->filter_tags(way, false, &polygon, 0,
+    unsigned int filter = m_tagtransform->filter_tags(way, &polygon, 0,
                                                       *m_export_list.get(), outtags, true);
     if (!filter) {
         //grab its geom
@@ -310,11 +311,11 @@ int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
     return 0;
 }
 
-int output_multi_t::process_way(osmium::Way const &way, bool extra) {
+int output_multi_t::process_way(osmium::Way const &way) {
     //check if we are keeping this way
     int polygon = 0, roads = 0;
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(way, extra, &polygon, &roads,
+    auto filter = m_tagtransform->filter_tags(way, &polygon, &roads,
                                               *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
@@ -339,7 +340,7 @@ int output_multi_t::process_way(osmium::Way const &way, bool extra) {
 }
 
 
-int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
+int output_multi_t::process_relation(osmium::Relation const &rel,
                                      bool exists, bool pending)
 {
     //if it may exist already, delete it first
@@ -348,7 +349,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool extra,
 
     //does this relation have anything interesting to us
     taglist_t rel_outtags;
-    auto filter = m_tagtransform->filter_tags(rel, extra, 0, 0, *m_export_list.get(),
+    auto filter = m_tagtransform->filter_tags(rel, 0, 0, *m_export_list.get(),
                                               rel_outtags, true);
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform

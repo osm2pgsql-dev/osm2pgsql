@@ -39,13 +39,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
-    int way_add(osmium::Way const &way, bool extra_tags) override;
-    int relation_add(osmium::Relation const &rel, bool extra_tags) override;
+    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int way_add(osmium::Way const &way) override;
+    int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
-    int way_modify(osmium::Way const &way, bool extra_tags) override;
-    int relation_modify(osmium::Relation const &rel, bool extra_tags) override;
+    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int way_modify(osmium::Way const &way) override;
+    int relation_modify(osmium::Relation const &rel) override;
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
@@ -64,7 +64,7 @@ protected:
                            const idlist_t &xid, const rolelist_t &xrole,
                            bool pending);
     int pgsql_process_relation(osmium::Relation const &rel,
-                               bool extra, bool exists, bool pending=false);
+                               bool exists, bool pending=false);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 

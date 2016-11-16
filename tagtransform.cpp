@@ -449,15 +449,15 @@ tagtransform::~tagtransform() {
 #endif
 }
 
-bool tagtransform::filter_tags(osmium::OSMObject const &o, bool extra,
+bool tagtransform::filter_tags(osmium::OSMObject const &o,
                                int *polygon, int *roads, const export_list &exlist,
                                taglist_t &out_tags, bool strict)
 {
     if (transform_method) {
-        return lua_filter_basic_tags(o, extra, polygon, roads, out_tags);
+        return lua_filter_basic_tags(o, polygon, roads, out_tags);
     }
 
-    return c_filter_basic_tags(o, extra, polygon, roads, exlist,
+    return c_filter_basic_tags(o, polygon, roads, exlist,
                                out_tags, strict);
 }
 
@@ -477,7 +477,7 @@ unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
     }
 }
 
-bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o, bool extra,
+bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o,
                                          int *polygon, int *roads, taglist_t &out_tags)
 {
 #ifdef HAVE_LUA
@@ -504,7 +504,7 @@ bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o, bool extra,
         lua_rawset(L, -3);
         ++sz;
     }
-    if (extra) {
+    if (options->extra_attributes && o.version() > 0) {
         taglist_t tags;
         tags.add_attributes(o);
         for (auto const &t: tags) {
@@ -554,7 +554,7 @@ bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o, bool extra,
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
-bool tagtransform::c_filter_basic_tags(osmium::OSMObject const &o, bool extra, int *polygon,
+bool tagtransform::c_filter_basic_tags(osmium::OSMObject const &o, int *polygon,
                                        int *roads, const export_list &exlist,
                                        taglist_t &out_tags, bool strict)
 {
@@ -638,7 +638,7 @@ bool tagtransform::c_filter_basic_tags(osmium::OSMObject const &o, bool extra, i
             }
         }
     }
-    if (extra) {
+    if (options->extra_attributes && o.version() > 0) {
         out_tags.add_attributes(o);
     }
 

@@ -257,7 +257,7 @@ void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
 }
 
 void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
-                                     double lat, double lon, bool extra_tags)
+                                     double lat, double lon)
 {
     copy_buffer.reserve(node.tags().byte_size() + 100);
 
@@ -287,12 +287,12 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
     copy_buffer += delim;
 #endif
 
-    if (node.tags().empty() && !extra_tags) {
+    if (node.tags().empty() && !out_options->extra_attributes) {
         paramValues[3] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[3] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(node, extra_tags, copy);
+        buffer_store_tags(node, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -395,15 +395,14 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList
 }
 
 
-void middle_pgsql_t::nodes_set(osmium::Node const &node,
-                               double lat, double lon, bool extra_tags)
+void middle_pgsql_t::nodes_set(osmium::Node const &node, double lat, double lon)
 {
     cache->set(node.id(), lat, lon);
 
     if (out_options->flat_node_cache_enabled) {
         persistent_cache->set(node.id(), lat, lon);
     } else {
-        local_nodes_set(node, lat, lon, extra_tags);
+        local_nodes_set(node, lat, lon);
     }
 }
 
@@ -472,7 +471,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     PQclear(res);
 }
 
-void middle_pgsql_t::ways_set(osmium::Way const &way, bool extra_tags)
+void middle_pgsql_t::ways_set(osmium::Way const &way)
 {
     copy_buffer.reserve(way.nodes().size() * 10 + way.tags().byte_size() + 100);
     bool copy = way_table->copyMode;
@@ -496,12 +495,12 @@ void middle_pgsql_t::ways_set(osmium::Way const &way, bool extra_tags)
     }
     copy_buffer += delim;
 
-    if (way.tags().empty() && !extra_tags) {
+    if (way.tags().empty() && !out_options->extra_attributes) {
         paramValues[2] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[2] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(way, extra_tags, copy);
+        buffer_store_tags(way, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -661,7 +660,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     PQclear(res);
 }
 
-void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
+void middle_pgsql_t::relations_set(osmium::Relation const &rel)
 {
     idlist_t parts[3];
 
@@ -720,12 +719,12 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel, bool extra_tags)
     }
     copy_buffer+= delim;
 
-    if (rel.tags().empty() && ! extra_tags) {
+    if (rel.tags().empty() && !out_options->extra_attributes) {
         paramValues[5] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[5] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(rel, extra_tags, copy);
+        buffer_store_tags(rel, out_options->extra_attributes, copy);
     }
 
     if (copy) {

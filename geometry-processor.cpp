@@ -146,7 +146,7 @@ multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, expor
 
     size_t i = 0;
     for (auto const &w : data.select<osmium::Way>()) {
-        transform->filter_tags(w, false, 0, 0, el, filtered[i++]);
+        transform->filter_tags(w, nullptr, nullptr, el, filtered[i++]);
     }
 
     return filtered;

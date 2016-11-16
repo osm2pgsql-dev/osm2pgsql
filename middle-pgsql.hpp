@@ -26,13 +26,12 @@ struct middle_pgsql_t : public slim_middle_t {
     void end(void);
     void commit(void);
 
-    void nodes_set(osmium::Node const &node, double lat, double lon,
-                   bool extra_tags) override;
+    void nodes_set(osmium::Node const &node, double lat, double lon) override;
     size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
     void nodes_delete(osmid_t id);
     void node_changed(osmid_t id);
 
-    void ways_set(osmium::Way const &way, bool extra_tags) override;
+    void ways_set(osmium::Way const &way) override;
     bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     size_t ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const override;
 
@@ -40,7 +39,7 @@ struct middle_pgsql_t : public slim_middle_t {
     void way_changed(osmid_t id);
 
     bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
-    void relations_set(osmium::Relation const &rel, bool extra_tags) override;
+    void relations_set(osmium::Relation const &rel) override;
     void relations_delete(osmid_t id);
     void relation_changed(osmid_t id);
 
@@ -87,8 +86,7 @@ private:
      * Sets up sql_conn for the table
      */
     void connect(table_desc& table);
-    void local_nodes_set(osmium::Node const &node,
-                         double lat, double lon, bool extra_tags);
+    void local_nodes_set(osmium::Node const &node, double lat, double lon);
     size_t local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const;
     void local_nodes_delete(osmid_t osm_id);
 

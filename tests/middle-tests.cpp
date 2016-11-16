@@ -56,7 +56,7 @@ int test_node_set(middle_t *mid)
     nodelist_t nodes;
 
     // set the node
-    mid->nodes_set(node, node.location().lat(), node.location().lon(), false);
+    mid->nodes_set(node, node.location().lat(), node.location().lon());
 
     // get it back
     if (mid->nodes_get_list(nodes, way.nodes()) != way.nodes().size()) {
@@ -127,7 +127,7 @@ int test_nodes_comprehensive_set(middle_t *mid)
     for (auto pos : expected_nodes)
     {
         auto const &node = buffer.get<osmium::Node>(pos);
-        mid->nodes_set(node, node.location().lat(), node.location().lon(), false);
+        mid->nodes_set(node, node.location().lat(), node.location().lon());
         ids.push_back(node.id());
     }
 
@@ -194,7 +194,7 @@ int test_way_set(middle_t *mid)
         nds.push_back(i);
         nodes.push_back(add_node(i, lat, lon));
         auto const &node = buffer.get<osmium::Node>(nodes.back());
-        mid->nodes_set(node, lat, lon, false);
+        mid->nodes_set(node, lat, lon);
     }
 
     // set the way
@@ -202,7 +202,7 @@ int test_way_set(middle_t *mid)
         using namespace osmium::builder::attr;
         auto pos = osmium::builder::add_way(buffer, _id(way_id), _nodes(nds));
         auto const &way = buffer.get<osmium::Way>(pos);
-        mid->ways_set(way, false);
+        mid->ways_set(way);
     }
 
     // commit the setup data

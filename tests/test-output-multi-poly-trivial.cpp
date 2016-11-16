@@ -31,7 +31,7 @@ void run_osm2pgsql(options_t &options) {
   std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
   //let osmdata orchestrate between the middle and the outs
-  osmdata_t osmdata(middle, outputs, options.projection, options.extra_attributes);
+  osmdata_t osmdata(middle, outputs, options.projection);
 
   testing::parse("tests/test_output_multi_poly_trivial.osm", "xml",
                  options, &osmdata);

@@ -178,32 +178,32 @@ public:
     void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) {}
     int pending_relation(osmid_t, int) { return 0; }
 
-    int node_add(osmium::Node const &node, double lat, double lon, bool) override
+    int node_add(osmium::Node const &node, double lat, double lon) override
     {
         return process_node(node, lat, lon);
     }
 
-    int way_add(osmium::Way const &way, bool) override
+    int way_add(osmium::Way const &way) override
     {
         return process_way(way);
     }
 
-    int relation_add(osmium::Relation const &rel, bool) override
+    int relation_add(osmium::Relation const &rel) override
     {
         return process_relation(rel);
     }
 
-    int node_modify(osmium::Node const &node, double lat, double lon, bool) override
+    int node_modify(osmium::Node const &node, double lat, double lon) override
     {
         return process_node(node, lat, lon);
     }
 
-    int way_modify(osmium::Way const &way, bool) override
+    int way_modify(osmium::Way const &way) override
     {
         return process_way(way);
     }
 
-    int relation_modify(osmium::Relation const &rel, bool) override
+    int relation_modify(osmium::Relation const &rel) override
     {
         return process_relation(rel);
     }

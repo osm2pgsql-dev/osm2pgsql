@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs, options.projection, options.extra_attributes);
+        osmdata_t osmdata(middle, outputs, options.projection);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->target_srs(),

@@ -90,12 +90,12 @@ struct middle_ram_t : public middle_t {
     void end(void);
     void commit(void);
 
-    void nodes_set(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
+    void nodes_set(osmium::Node const &node, double lat, double lon) override;
     size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    void ways_set(osmium::Way const &way, bool extra_tags) override;
+    void ways_set(osmium::Way const &way) override;
     bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const override;
 
@@ -103,7 +103,7 @@ struct middle_ram_t : public middle_t {
     int way_changed(osmid_t id);
 
     bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
-    void relations_set(osmium::Relation const &rel, bool extra_tags) override;
+    void relations_set(osmium::Relation const &rel) override;
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 

@@ -45,7 +45,7 @@ static void check_tables(pg::tempdb *db, options_t &options,
     options.database_options = db->database_options;
     auto mid_ram = std::make_shared<middle_ram_t>();
     auto out_test = std::make_shared<output_pgsql_t>(mid_ram.get(), options);
-    osmdata_t osmdata(mid_ram, out_test, options.projection, false);
+    osmdata_t osmdata(mid_ram, out_test, options.projection);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);

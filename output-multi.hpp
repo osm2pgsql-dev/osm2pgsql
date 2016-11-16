@@ -44,13 +44,13 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
     int pending_relation(osmid_t id, int exists);
 
-    int node_add(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
-    int way_add(osmium::Way const &way, bool extra_tags) override;
-    int relation_add(osmium::Relation const &rel, bool extra_tags) override;
+    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int way_add(osmium::Way const &way) override;
+    int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmium::Node const &node, double lat, double lon, bool extra_tags) override;
-    int way_modify(osmium::Way const &way, bool extra_tags) override;
-    int relation_modify(osmium::Relation const &rel, bool extra_tags) override;
+    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int way_modify(osmium::Way const &way) override;
+    int relation_modify(osmium::Relation const &rel) override;
 
     int node_delete(osmid_t id);
     int way_delete(osmid_t id);
@@ -64,10 +64,10 @@ public:
 protected:
 
     void delete_from_output(osmid_t id);
-    int process_node(osmium::Node const &node, bool extra, double lat, double lon);
-    int process_way(osmium::Way const &way, bool extra);
+    int process_node(osmium::Node const &node, double lat, double lon);
+    int process_way(osmium::Way const &way);
     int reprocess_way(osmium::Way const &way, bool exists);
-    int process_relation(osmium::Relation const &rel, bool extra, bool exists, bool pending=false);
+    int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
     void copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon);
 

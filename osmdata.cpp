@@ -13,18 +13,16 @@
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
                      std::shared_ptr<output_t> const &out_,
-                     std::shared_ptr<reprojection> proj,
-                     bool extra_attrs)
-: mid(mid_), projection(proj), extra_attributes(extra_attrs)
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), projection(proj)
 {
     outs.push_back(out_);
 }
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
                      std::vector<std::shared_ptr<output_t> > const &outs_,
-                     std::shared_ptr<reprojection> proj,
-                     bool extra_attrs)
-: mid(mid_), outs(outs_), projection(proj), extra_attributes(extra_attrs)
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), outs(outs_), projection(proj)
 {
     if (outs.empty()) {
         throw std::runtime_error("Must have at least one output, but none have "
@@ -40,36 +38,36 @@ int osmdata_t::node_add(osmium::Node const &node)
 {
     auto c = projection->reproject(node.location());
 
-    mid->nodes_set(node, c.y, c.x, extra_attributes);
+    mid->nodes_set(node, c.y, c.x);
 
     // guarantee that we use the same values as in the node cache
     ramNode n(c.x, c.y);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_add(node, n.lat(), n.lon(), extra_attributes);
+        status |= out->node_add(node, n.lat(), n.lon());
     }
     return status;
 }
 
 int osmdata_t::way_add(osmium::Way const &way)
 {
-    mid->ways_set(way, extra_attributes);
+    mid->ways_set(way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_add(way, extra_attributes);
+        status |= out->way_add(way);
     }
     return status;
 }
 
 int osmdata_t::relation_add(osmium::Relation const &rel)
 {
-    mid->relations_set(rel, extra_attributes);
+    mid->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_add(rel, extra_attributes);
+        status |= out->relation_add(rel);
     }
     return status;
 }
@@ -81,14 +79,14 @@ int osmdata_t::node_modify(osmium::Node const &node)
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(node.id());
-    slim->nodes_set(node, c.y, c.x, extra_attributes);
+    slim->nodes_set(node, c.y, c.x);
 
     // guarantee that we use the same values as in the node cache
     ramNode n(c.x, c.y);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_modify(node, n.lat(), n.lon(), extra_attributes);
+        status |= out->node_modify(node, n.lat(), n.lon());
     }
 
     slim->node_changed(node.id());
@@ -102,11 +100,11 @@ int osmdata_t::way_modify(osmium::Way const &way)
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->ways_delete(way.id());
-    slim->ways_set(way, extra_attributes);
+    slim->ways_set(way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_modify(way, extra_attributes);
+        status |= out->way_modify(way);
     }
 
     slim->way_changed(way.id());
@@ -119,11 +117,11 @@ int osmdata_t::relation_modify(osmium::Relation const &rel)
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(rel.id());
-    slim->relations_set(rel, extra_attributes);
+    slim->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_modify(rel, extra_attributes);
+        status |= out->relation_modify(rel);
     }
 
     slim->relation_changed(rel.id());

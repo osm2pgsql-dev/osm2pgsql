@@ -31,15 +31,15 @@ int output_null_t::pending_relation(osmid_t, int) {
     return 0;
 }
 
-int output_null_t::node_add(osmium::Node const &, double, double, bool) {
+int output_null_t::node_add(osmium::Node const &, double, double) {
   return 0;
 }
 
-int output_null_t::way_add(osmium::Way const &, bool) {
+int output_null_t::way_add(osmium::Way const &) {
   return 0;
 }
 
-int output_null_t::relation_add(osmium::Relation const &, bool) {
+int output_null_t::relation_add(osmium::Relation const &) {
   return 0;
 }
 
@@ -55,15 +55,15 @@ int output_null_t::relation_delete(osmid_t) {
   return 0;
 }
 
-int output_null_t::node_modify(osmium::Node const &, double, double, bool) {
+int output_null_t::node_modify(osmium::Node const &, double, double) {
   return 0;
 }
 
-int output_null_t::way_modify(osmium::Way const &, bool) {
+int output_null_t::way_modify(osmium::Way const &) {
   return 0;
 }
 
-int output_null_t::relation_modify(osmium::Relation const &, bool) {
+int output_null_t::relation_modify(osmium::Relation const &) {
   return 0;
 }
 

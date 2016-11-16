@@ -18,12 +18,10 @@ class osmdata_t {
 public:
     osmdata_t(std::shared_ptr<middle_t> mid_,
               std::shared_ptr<output_t> const &out_,
-              std::shared_ptr<reprojection> proj,
-              bool extra_attributes);
+              std::shared_ptr<reprojection> proj);
     osmdata_t(std::shared_ptr<middle_t> mid_,
               std::vector<std::shared_ptr<output_t> > const &outs_,
-              std::shared_ptr<reprojection> proj,
-              bool extra_attributes);
+              std::shared_ptr<reprojection> proj);
     ~osmdata_t();
 
     void start();
@@ -45,7 +43,6 @@ private:
     std::shared_ptr<middle_t> mid;
     std::vector<std::shared_ptr<output_t> > outs;
     std::shared_ptr<reprojection> projection;
-    bool extra_attributes;
 };
 
 #endif

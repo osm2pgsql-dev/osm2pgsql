@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
             outputs.push_back(out_test);
         }
 
-        osmdata_t osmdata(mid_pgsql, outputs, options.projection, options.extra_attributes);
+        osmdata_t osmdata(mid_pgsql, outputs, options.projection);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);
