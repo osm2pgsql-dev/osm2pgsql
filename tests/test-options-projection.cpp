@@ -24,6 +24,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 #include "middle-ram.hpp"
 #include "options.hpp"
