@@ -301,10 +301,11 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 int output_pgsql_t::pending_relation(osmid_t id, int exists) {
     // Try to fetch the relation from the DB
     // Note that we cannot use the global buffer here because
-    // we cannot keep a reference to it. XXX find a better solution.
-    osmium::memory::Buffer relbuf(512, osmium::memory::Buffer::auto_grow::yes);
-    if (m_mid->relations_get(id, relbuf)) {
-        auto const &rel = relbuf.get<osmium::Relation>(0);
+    // we cannot keep a reference to the relation and an autogrow buffer
+    // might be relocated when more data is added.
+    rels_buffer.clear();
+    if (m_mid->relations_get(id, rels_buffer)) {
+        auto const &rel = rels_buffer.get<osmium::Relation>(0);
         return pgsql_process_relation(rel, exists, true);
     }
 
@@ -590,7 +591,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
     : output_t(mid, o),
       expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
       ways_done_tracker(new id_tracker()),
-      buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+      buffer(32768, osmium::memory::Buffer::auto_grow::yes),
+      rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     reproj = m_options.projection;
     builder.set_exclude_broken_polygon(m_options.excludepoly);
@@ -667,7 +669,8 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
     //NOTE: we need to know which ways were used by relations so each thread
     //must have a copy of the original marked done ways, its read only so its ok
     ways_done_tracker(other.ways_done_tracker),
-    buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+    buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+    rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
     builder.set_exclude_broken_polygon(m_options.excludepoly);
     if (m_options.reproject_area) builder.set_reprojection(reproj.get());
