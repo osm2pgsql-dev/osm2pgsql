@@ -39,13 +39,13 @@ DEALINGS IN THE SOFTWARE.
 #include <cstdint>
 #include <functional>
 #include <iomanip>
-//#include <iostream>
+#include <iostream>
+#include <utility>
 #include <vector>
 
-#include <osmium/fwd.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/object.hpp>
-#include <osmium/osm/relation.hpp> // IWYU pragma: keep
+#include <osmium/osm/relation.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/handler.hpp>
 #include <osmium/memory/buffer.hpp>
@@ -57,19 +57,15 @@ DEALINGS IN THE SOFTWARE.
 
 namespace osmium {
 
+    class Node;
+    class Way;
+
     /**
      * @brief Code related to the assembly of OSM relations
      */
     namespace relations {
 
         namespace detail {
-
-            template <typename R>
-            inline typename std::iterator_traits<typename R::iterator>::difference_type count_not_removed(const R& range) {
-                return std::count_if(range.begin(), range.end(), [](MemberMeta& mm) {
-                    return !mm.removed();
-                });
-            }
 
         } // namespace detail
 
@@ -113,7 +109,7 @@ namespace osmium {
 
             public:
 
-                HandlerPass1(TCollector& collector) noexcept :
+                explicit HandlerPass1(TCollector& collector) noexcept :
                     m_collector(collector) {
                 }
 
@@ -136,7 +132,7 @@ namespace osmium {
 
             public:
 
-                HandlerPass2(TCollector& collector) noexcept :
+                explicit HandlerPass2(TCollector& collector) noexcept :
                     m_collector(collector) {
                 }
 
@@ -193,14 +189,14 @@ namespace osmium {
 
             int m_count_complete = 0;
 
-            typedef std::function<void(osmium::memory::Buffer&&)> callback_func_type;
+            using callback_func_type = std::function<void(osmium::memory::Buffer&&)>;
             callback_func_type m_callback;
 
             static constexpr size_t initial_buffer_size = 1024 * 1024;
 
             iterator_range<mm_iterator> find_member_meta(osmium::item_type type, osmium::object_id_type id) {
                 auto& mmv = member_meta(type);
-                return iterator_range<mm_iterator>{std::equal_range(mmv.begin(), mmv.end(), MemberMeta(id))};
+                return make_range(std::equal_range(mmv.begin(), mmv.end(), MemberMeta(id)));
             }
 
         public:
@@ -313,6 +309,7 @@ namespace osmium {
             }
 
             const osmium::Relation& get_relation(size_t offset) const {
+                assert(m_relations_buffer.committed() > offset);
                 return m_relations_buffer.get<osmium::Relation>(offset);
             }
 
@@ -323,7 +320,15 @@ namespace osmium {
                 return get_relation(relation_meta.relation_offset());
             }
 
+            /**
+             * Get the relation from a member_meta.
+             */
+            const osmium::Relation& get_relation(const MemberMeta& member_meta) const {
+                return get_relation(m_relations[member_meta.relation_pos()]);
+            }
+
             osmium::OSMObject& get_member(size_t offset) const {
+                assert(m_members_buffer.committed() > offset);
                 return m_members_buffer.get<osmium::OSMObject>(offset);
             }
 
@@ -349,7 +354,7 @@ namespace osmium {
                         member_meta(member.type()).emplace_back(member.ref(), m_relations.size(), n);
                         relation_meta.increment_need_members();
                     } else {
-                        member.ref(0); // set member id to zero to indicate we are not interested
+                        member.set_ref(0); // set member id to zero to indicate we are not interested
                     }
                     ++n;
                 }
@@ -360,7 +365,6 @@ namespace osmium {
                 } else {
                     m_relations_buffer.commit();
                     m_relations.push_back(std::move(relation_meta));
-//                    std::cerr << "added relation id=" << relation.id() << "\n";
                 }
             }
 
@@ -369,13 +373,15 @@ namespace osmium {
              * search on them.
              */
             void sort_member_meta() {
-/*                std::cerr << "relations:        " << m_relations.size() << "\n";
-                std::cerr << "node members:     " << m_member_meta[0].size() << "\n";
-                std::cerr << "way members:      " << m_member_meta[1].size() << "\n";
-                std::cerr << "relation members: " << m_member_meta[2].size() << "\n";*/
                 std::sort(m_member_meta[0].begin(), m_member_meta[0].end());
                 std::sort(m_member_meta[1].begin(), m_member_meta[1].end());
                 std::sort(m_member_meta[2].begin(), m_member_meta[2].end());
+            }
+
+            static typename iterator_range<mm_iterator>::iterator::difference_type count_not_removed(const iterator_range<mm_iterator>& range) {
+                return std::count_if(range.begin(), range.end(), [](MemberMeta& mm) {
+                    return !mm.removed();
+                });
             }
 
             /**
@@ -388,7 +394,7 @@ namespace osmium {
             bool find_and_add_object(const osmium::OSMObject& object) {
                 auto range = find_member_meta(object.type(), object.id());
 
-                if (detail::count_not_removed(range) == 0) {
+                if (count_not_removed(range) == 0) {
                     // nothing found
                     return false;
                 }
@@ -409,9 +415,7 @@ namespace osmium {
                     assert(member_meta.member_id() == object.id());
                     assert(member_meta.relation_pos() < m_relations.size());
                     RelationMeta& relation_meta = m_relations[member_meta.relation_pos()];
-//                        std::cerr << "  => " << member_meta.member_pos() << " < " << get_relation(relation_meta).members().size() << " (id=" << get_relation(relation_meta).id() << ")\n";
                     assert(member_meta.member_pos() < get_relation(relation_meta).members().size());
-//                        std::cerr << "  add way " << member_meta.member_id() << " to rel " << get_relation(relation_meta).id() << " at pos " << member_meta.member_pos() << "\n";
                     relation_meta.got_one_member();
                     if (relation_meta.has_all_members()) {
                         const size_t relation_offset = member_meta.relation_pos();
@@ -429,17 +433,17 @@ namespace osmium {
                 const osmium::Relation& relation = get_relation(relation_meta);
                 for (const auto& member : relation.members()) {
                     if (member.ref() != 0) {
-                        auto range = find_member_meta(member.type(), member.ref());
+                        const auto range = find_member_meta(member.type(), member.ref());
                         assert(!range.empty());
 
                         // if this is the last time this object was needed
                         // then mark it as removed
-                        if (detail::count_not_removed(range) == 1) {
+                        if (count_not_removed(range) == 1) {
                             get_member(range.begin()->buffer_offset()).set_removed(true);
                         }
 
                         for (auto& member_meta : range) {
-                            if (!member_meta.removed() && relation.id() == get_relation(member_meta.relation_pos()).id()) {
+                            if (!member_meta.removed() && relation.id() == get_relation(member_meta).id()) {
                                 member_meta.remove();
                                 break;
                             }
@@ -491,10 +495,63 @@ namespace osmium {
                 return m_members_buffer;
             }
 
+            /**
+             * Is the given member available in the members buffer?
+             *
+             * If you also need the offset of the object, use
+             * get_availability_and_offset() instead, it is more efficient
+             * that way.
+             *
+             * @param type Item type
+             * @param id Object Id
+             * @returns True if the object is available, false otherwise.
+             */
+            bool is_available(osmium::item_type type, osmium::object_id_type id) {
+                const auto range = find_member_meta(type, id);
+                assert(!range.empty());
+                return range.begin()->is_available();
+            }
+
+            /**
+             * Get offset of a member in the members buffer.
+             *
+             * @pre The member must be available. If you are not sure, call
+             *      get_availability_and_offset() instead.
+             * @param type Item type
+             * @param id Object Id
+             * @returns The offset of the object in the members buffer.
+             */
             size_t get_offset(osmium::item_type type, osmium::object_id_type id) {
                 const auto range = find_member_meta(type, id);
                 assert(!range.empty());
+                assert(range.begin()->is_available());
                 return range.begin()->buffer_offset();
+            }
+
+            /**
+             * Checks whether a member is available in the members buffer
+             * and returns its offset.
+             *
+             * If the member is not available, the boolean returned as the
+             * first element in the pair is false. In that case the offset
+             * in the second element is undefined.
+             *
+             * If the member is available, the boolean returned as the first
+             * element in the pair is true and the second element of the
+             * pair contains the offset into the members buffer.
+             *
+             * @param type Item type
+             * @param id Object Id
+             * @returns Pair of bool (showing availability) and the offset.
+             */
+            std::pair<bool, size_t> get_availability_and_offset(osmium::item_type type, osmium::object_id_type id) {
+                const auto range = find_member_meta(type, id);
+                assert(!range.empty());
+                if (range.begin()->is_available()) {
+                    return std::make_pair(true, range.begin()->buffer_offset());
+                } else {
+                    return std::make_pair(false, 0);
+                }
             }
 
             template <typename TIter>
@@ -522,7 +579,7 @@ namespace osmium {
             /**
              * Decide whether to purge removed members and then do it.
              *
-             * Currently the purging is done every thousand calls.
+             * Currently the purging is done every 10000 calls.
              * This could probably be improved upon.
              */
             void possibly_purge_removed_members() {

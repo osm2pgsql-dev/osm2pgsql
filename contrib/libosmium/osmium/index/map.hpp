@@ -48,6 +48,18 @@ DEALINGS IN THE SOFTWARE.
 
 namespace osmium {
 
+    struct map_factory_error : public std::runtime_error {
+
+        explicit map_factory_error(const char* message) :
+            std::runtime_error(message) {
+        }
+
+        explicit map_factory_error(const std::string& message) :
+            std::runtime_error(message) {
+        }
+
+    }; // struct map_factory_error
+
     namespace index {
 
         /**
@@ -98,10 +110,10 @@ namespace osmium {
             public:
 
                 /// The "key" type, usually osmium::unsigned_object_id_type.
-                typedef TId key_type;
+                using key_type = TId;
 
                 /// The "value" type, usually a Location or size_t.
-                typedef TValue value_type;
+                using value_type = TValue;
 
                 Map() = default;
 
@@ -148,14 +160,14 @@ namespace osmium {
                     // default implementation is empty
                 }
 
-                // This function could usually be const in derived classes,
+                // This function can usually be const in derived classes,
                 // but not always. It could, for instance, sort internal data.
                 // This is why it is not declared const here.
                 virtual void dump_as_list(const int /*fd*/) {
                     throw std::runtime_error("can't dump as list");
                 }
 
-                // This function could usually be const in derived classes,
+                // This function can usually be const in derived classes,
                 // but not always. It could, for instance, sort internal data.
                 // This is why it is not declared const here.
                 virtual void dump_as_array(const int /*fd*/) {
@@ -171,10 +183,10 @@ namespace osmium {
 
         public:
 
-            typedef TId id_type;
-            typedef TValue value_type;
-            typedef osmium::index::map::Map<id_type, value_type> map_type;
-            typedef std::function<map_type*(const std::vector<std::string>&)> create_map_func;
+            using id_type         = TId;
+            using value_type      = TValue;
+            using map_type        = osmium::index::map::Map<id_type, value_type>;
+            using create_map_func = std::function<map_type*(const std::vector<std::string>&)>;
 
         private:
 
@@ -188,13 +200,6 @@ namespace osmium {
             MapFactory(MapFactory&&) = delete;
             MapFactory& operator=(MapFactory&&) = delete;
 
-            OSMIUM_NORETURN static void error(const std::string& map_type_name) {
-                std::string error_message {"Support for map type '"};
-                error_message += map_type_name;
-                error_message += "' not compiled into this binary.";
-                throw std::runtime_error(error_message);
-            }
-
         public:
 
             static MapFactory<id_type, value_type>& instance() {
@@ -207,7 +212,7 @@ namespace osmium {
             }
 
             bool has_map_type(const std::string& map_type_name) const {
-                return m_callbacks.count(map_type_name);
+                return m_callbacks.count(map_type_name) != 0;
             }
 
             std::vector<std::string> map_types() const {
@@ -226,7 +231,7 @@ namespace osmium {
                 std::vector<std::string> config = osmium::split_string(config_string, ',');
 
                 if (config.empty()) {
-                    throw std::runtime_error("Need non-empty map type name.");
+                    throw map_factory_error{"Need non-empty map type name"};
                 }
 
                 auto it = m_callbacks.find(config[0]);
@@ -234,7 +239,7 @@ namespace osmium {
                     return std::unique_ptr<map_type>((it->second)(config));
                 }
 
-                error(config[0]);
+                throw map_factory_error{std::string{"Support for map type '"} + config[0] + "' not compiled into this binary"};
             }
 
         }; // class MapFactory

@@ -33,17 +33,19 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/memory/collection.hpp>
 #include <osmium/memory/item.hpp>
+#include <osmium/osm/entity.hpp>
 #include <osmium/osm/item_type.hpp>
-#include <osmium/osm/object.hpp>
-#include <osmium/osm/types.hpp>
 #include <osmium/osm/node_ref.hpp>
 #include <osmium/osm/node_ref_list.hpp>
+#include <osmium/osm/object.hpp>
 
 namespace osmium {
 
     namespace builder {
-        template <typename T> class ObjectBuilder;
+        template <typename TDerived, typename T>
+        class OSMObjectBuilder;
     } // namespace builder
 
     /**
@@ -65,7 +67,8 @@ namespace osmium {
 
     class Way : public OSMObject {
 
-        friend class osmium::builder::ObjectBuilder<osmium::Way>;
+        template <typename TDerived, typename T>
+        friend class osmium::builder::OSMObjectBuilder;
 
         Way() noexcept :
             OSMObject(sizeof(Way), osmium::item_type::way) {

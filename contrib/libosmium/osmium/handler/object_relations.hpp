@@ -46,13 +46,15 @@ namespace osmium {
     namespace handler {
 
         /**
+         * This handler updates the indexes given to the constructor with
+         * the relations between objects.
          *
          * Note: This handler will only work if either all object IDs are
          *       positive or all object IDs are negative.
          */
         class ObjectRelations : public osmium::handler::Handler {
 
-            typedef osmium::index::multimap::Multimap<unsigned_object_id_type, unsigned_object_id_type> index_type;
+            using index_type = osmium::index::multimap::Multimap<unsigned_object_id_type, unsigned_object_id_type>;
 
             index_type& m_index_n2w;
             index_type& m_index_n2r;
