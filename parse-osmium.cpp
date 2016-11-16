@@ -112,7 +112,7 @@ void parse_osmium_t::stream_file(const std::string &filename, const std::string 
     osmium::io::File infile(filename, osmium_format);
 
     if (infile.format() == osmium::io::file_format::unknown)
-        throw std::runtime_error(fmt.empty()
+        throw std::runtime_error(fmt == "auto"
                                    ?"Cannot detect file format. Try using -r."
                                    : ((boost::format("Unknown file format '%1%'.")
                                                     % fmt).str()));
