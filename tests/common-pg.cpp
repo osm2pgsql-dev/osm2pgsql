@@ -1,5 +1,6 @@
 #include "common-pg.hpp"
 
+#include <iostream>
 #include <sstream>
 #include <cstdarg>
 #include <cstdio>
