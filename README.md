@@ -35,7 +35,7 @@ to configure and build itself and requires
 Required libraries are
 
 * [expat](http://www.libexpat.org/)
-* [geos](http://geos.osgeo.org/)
+* [geos](http://trac.osgeo.org/geos)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
