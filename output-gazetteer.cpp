@@ -11,6 +11,7 @@
 #include "util.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <iostream>
 #include <memory>
 
@@ -446,9 +447,13 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
         if (!address.empty()) {
             for (const auto entry: address) {
                 if (strcmp(entry->key(), "tiger:county") == 0) {
-                    auto *end = strchrnul(entry->value(), ',');
-                    escape(std::string(entry->value(), (size_t) (end - entry->value())),
-                           buffer);
+                    auto *end = strchr(entry->value(), ',');
+                    if (end) {
+                        escape(std::string(entry->value(), (size_t) (end - entry->value())),
+                               buffer);
+                    } else {
+                        escape(entry->value(), buffer);
+                    }
                     buffer += " county";
                 } else {
                     escape(entry->value(), buffer);
