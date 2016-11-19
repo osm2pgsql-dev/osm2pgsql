@@ -1,5 +1,4 @@
 #include "taginfo_impl.hpp"
-#include "table.hpp"
 #include "util.hpp"
 
 #include <cassert>
@@ -15,13 +14,24 @@
 #endif
 #endif
 
-static const std::map<std::string, int> tagflags = {
+static const std::map<std::string, unsigned> tagflags = {
     {"polygon", FLAG_POLYGON},
     {"linear",  FLAG_LINEAR},
     {"nocache", FLAG_NOCACHE},
     {"delete",  FLAG_DELETE},
     {"phstore", FLAG_PHSTORE},
     {"nocolumn", FLAG_NOCOLUMN}
+};
+
+static const std::map<std::string, unsigned> tagtypes = {
+    {"smallint", FLAG_INT_TYPE},
+    {"integer", FLAG_INT_TYPE},
+    {"bigint", FLAG_INT_TYPE},
+    {"int2", FLAG_INT_TYPE},
+    {"int4", FLAG_INT_TYPE},
+    {"int8", FLAG_INT_TYPE},
+    {"real", FLAG_REAL_TYPE},
+    {"double precision", FLAG_REAL_TYPE}
 };
 
 taginfo::taginfo()
@@ -63,17 +73,15 @@ const std::vector<taginfo> &export_list::get(enum OsmType id) const {
     }
 }
 
-columns_t export_list::normal_columns(enum OsmType id) const {
+columns_t export_list::normal_columns(OsmType id) const {
     columns_t columns;
-    const std::vector<taginfo> &infos = get(id);
-    for(std::vector<taginfo>::const_iterator info = infos.begin(); info != infos.end(); ++info)
-    {
-        if( info->flags & FLAG_DELETE )
-            continue;
-        if( (info->flags & FLAG_NOCOLUMN ) == FLAG_NOCOLUMN)
-            continue;
-        columns.push_back(std::pair<std::string, std::string>(info->name, info->type));
+
+    for (auto const &info : get(id)) {
+        if (!(info.flags & (FLAG_DELETE | FLAG_NOCOLUMN))) {
+            columns.emplace_back(info.name, info.type, info.column_type());
+        }
     }
+
     return columns;
 }
 
@@ -144,6 +152,12 @@ int read_style_file( const std::string &filename, export_list *exlist )
     temp.name.assign(tag);
     temp.type.assign(datatype);
     temp.flags = parse_tag_flags(flags, lineno);
+
+    // check for special data types, by default everything is handled as text
+    auto const typ = tagtypes.find(temp.type);
+    if (typ != tagtypes.end()) {
+        temp.flags |= typ->second;
+    }
 
     if ((temp.flags != FLAG_DELETE) &&
         ((temp.name.find('?') != std::string::npos) ||

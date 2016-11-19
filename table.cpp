@@ -1,6 +1,7 @@
 #include "table.hpp"
 #include "options.hpp"
 #include "util.hpp"
+#include "taginfo.hpp"
 
 #include <exception>
 #include <algorithm>
@@ -123,8 +124,9 @@ void table_t::start()
         string sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") % name % POSTGRES_OSMID_TYPE).str();
 
         //first with the regular columns
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-            sql += (fmt("\"%1%\" %2%,") % column->first % column->second).str();
+        for (auto const &column : columns) {
+            sql += (fmt("\"%1%\" %2%,") % column.name % column.type_name).str();
+        }
 
         //then with the hstore columns
         for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
@@ -160,15 +162,13 @@ void table_t::start()
     else {
         //check the columns against those in the existing table
         std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        {
-            if(PQfnumber(res.get(), ('"' + column->first + '"').c_str()) < 0)
-            {
+        for (auto const &column :  columns) {
+            if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
 #if 0
                 throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%1%\"\n") % info.name).str());
 #else
-                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column->first % name).str().c_str());
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column->first % column->second).str());
+                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column.name % name).str().c_str());
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column.name % column.type_name).str());
 #endif
             }
             //Note: we do not verify the type or delete unused columns
@@ -185,8 +185,9 @@ void table_t::start()
     //generate column list for COPY
     string cols = "osm_id,";
     //first with the regular columns
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        cols += (fmt("\"%1%\",") % column->first).str();
+    for (auto const &column : columns) {
+        cols += (fmt("\"%1%\",") % column.name).str();
+    }
 
     //then with the hstore columns
     for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
@@ -347,12 +348,10 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
 void table_t::write_columns(const taglist_t &tags, string& values, std::vector<bool> *used)
 {
     //for each column
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-    {
+    for (auto const &column : columns) {
         int idx;
-        if ((idx = tags.indexof(column->first)) >= 0)
-        {
-            escape_type(tags[idx].value, column->second, values);
+        if ((idx = tags.indexof(column.name)) >= 0) {
+            escape_type(tags[idx].value, column.type, values);
             //remember we already used this one so we cant use again later in the hstore column
             if (used)
                 (*used)[idx] = true;
@@ -459,53 +458,60 @@ void table_t::escape4hstore(const char *src, string& dst)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const string &value, const string &type, string& dst) {
+void table_t::escape_type(const string &value, ColumnType type, string& dst) {
 
-    // For integers we take the first number, or the average if it's a-b
-    if (type == "int4") {
-        int from, to;
-        int items = sscanf(value.c_str(), "%d-%d", &from, &to);
-        if (items == 1)
-            dst.append((single_fmt % from).str());
-        else if (items == 2)
-            dst.append((single_fmt % ((from + to) / 2)).str());
-        else
-            dst.append("\\N");
-    }
-        /* try to "repair" real values as follows:
-         * assume "," to be a decimal mark which need to be replaced by "."
-         * like int4 take the first number, or the average if it's a-b
-         * assume SI unit (meters)
-         * convert feet to meters (1 foot = 0.3048 meters)
-         * reject anything else
-         */
-    else if (type == "real")
-    {
-        string escaped(value);
-        std::replace(escaped.begin(), escaped.end(), ',', '.');
-
-        float from, to;
-        int items = sscanf(escaped.c_str(), "%f-%f", &from, &to);
-        if (items == 1)
-        {
-            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
-                from *= 0.3048;
-            dst.append((single_fmt % from).str());
-        }
-        else if (items == 2)
-        {
-            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
+    switch (type) {
+        case COLUMN_TYPE_INT:
             {
-                from *= 0.3048;
-                to *= 0.3048;
+                // For integers we take the first number, or the average if it's a-b
+                long from, to;
+                int items = sscanf(value.c_str(), "%ld-%ld", &from, &to);
+                if (items == 1) {
+                    dst.append((single_fmt % from).str());
+                } else if (items == 2) {
+                    dst.append((single_fmt % ((from + to) / 2)).str());
+                } else {
+                    dst.append("\\N");
+                }
+                break;
             }
-            dst.append((single_fmt % ((from + to) / 2)).str());
-        }
-        else
-            dst.append("\\N");
-    }//just a string
-    else
-        escape(value, dst);
+        case COLUMN_TYPE_REAL:
+            /* try to "repair" real values as follows:
+             * assume "," to be a decimal mark which need to be replaced by "."
+             * like int4 take the first number, or the average if it's a-b
+             * assume SI unit (meters)
+             * convert feet to meters (1 foot = 0.3048 meters)
+             * reject anything else
+             */
+            {
+                string escaped(value);
+                std::replace(escaped.begin(), escaped.end(), ',', '.');
+
+                double from, to;
+                int items = sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
+                if (items == 1) {
+                    if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                        from *= 0.3048;
+                    }
+                    dst.append((single_fmt % from).str());
+                }
+                else if (items == 2) {
+                    if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                        from *= 0.3048;
+                        to *= 0.3048;
+                    }
+                    dst.append((single_fmt % ((from + to) / 2)).str());
+                }
+                else {
+                    dst.append("\\N");
+                }
+                break;
+            }
+        case COLUMN_TYPE_TEXT:
+            //just a string
+            escape(value, dst);
+            break;
+    }
 }
 
 table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
