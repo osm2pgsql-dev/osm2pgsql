@@ -148,7 +148,7 @@ Many different data files (e.g., .pbf) can be found at [planet.osm.org](http://p
 The databases from either of these commands can be used immediately by
 [Mapnik](http://mapnik.org/) for rendering maps with standard tools like
 [renderd/mod_tile](https://github.com/openstreetmap/mod_tile),
-[TileMill](https://www.mapbox.com/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
+[TileMill](https://tilemill-project.github.io/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
 among others. It can also be used for [spatial analysis](docs/analysis.md) or
 [shapefile exports](docs/export.md).
 
