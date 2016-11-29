@@ -91,7 +91,13 @@ private:
     {
         for (const char c: in) {
             switch(c) {
-                case '\\': out += "\\\\\\\\\\\\\\\\"; break;
+                case '\\':
+                    // Tripple escaping required: string escaping leaves us
+                    // with 4 backslashes, COPY then reduces it to two, which
+                    // are then interpreted as a single backslash by the hash
+                    // parsing code.
+                    out += "\\\\\\\\";
+                    break;
                 case '\n':
                 case '\r':
                 case '\t':
