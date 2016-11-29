@@ -91,7 +91,7 @@ private:
     {
         for (const char c: in) {
             switch(c) {
-                case '\\': out += "\\\\\\\\\\\\\\\\"; break;
+                case '\\': out += "\\\\\\\\"; break;
                 case '\n':
                 case '\r':
                 case '\t':
