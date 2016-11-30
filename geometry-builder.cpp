@@ -209,11 +209,14 @@ geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
     std::unique_ptr<std::vector<Geometry *> > empty(new std::vector<Geometry *>);
     geom_ptr geom(gf.createPolygon(shell.release(), empty.release()));
 
-    if (!geom->isValid()) {
+    if (geom->isEmpty() || !geom->isValid()) {
         if (excludepoly) {
             throw std::runtime_error("Excluding broken polygon.");
         } else {
             geom = geom_ptr(geom->buffer(0));
+            if (geom->isEmpty() || !geom->isValid()) {
+                throw std::runtime_error("Excluding unrecoverable broken polygon.");
+            }
         }
     }
     geom->normalize(); // Fix direction of ring
@@ -496,7 +499,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid())) {
+                if (!multipoly->isEmpty() && multipoly->isValid()) {
                     wkbs.emplace_back(multipoly.get(), true, projection);
                 }
             }
@@ -504,11 +507,11 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
             {
                 for(unsigned i=0; i<toplevelpolygons; i++) {
                     geom_ptr poly(polygons->at(i));
-                    if (!poly->isValid() && !excludepoly) {
+                    if ((poly->isEmpty() || !poly->isValid()) && !excludepoly) {
                         poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
-                    if ((excludepoly == 0) || (poly->isValid())) {
+                    if (!poly->isEmpty() && poly->isValid()) {
                         wkbs.emplace_back(poly.get(), true, projection);
                     }
                 }
@@ -692,7 +695,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t 
                 }
                 multipoly->normalize();
 
-                if ((excludepoly == 0) || (multipoly->isValid())) {
+                if (!multipoly->isEmpty() && multipoly->isValid()) {
                     wkbs.emplace_back(multipoly.get(), true, projection);
                 }
             }
@@ -705,7 +708,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t 
                         poly = geom_ptr(poly->buffer(0));
                         poly->normalize();
                     }
-                    if (!excludepoly || (poly->isValid())) {
+                    if (!poly->isEmpty() && poly->isValid()) {
                         wkbs.emplace_back(poly.get(), true, projection);
                     }
                 }
