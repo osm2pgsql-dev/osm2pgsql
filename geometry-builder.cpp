@@ -209,7 +209,10 @@ geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
     std::unique_ptr<std::vector<Geometry *> > empty(new std::vector<Geometry *>);
     geom_ptr geom(gf.createPolygon(shell.release(), empty.release()));
 
-    if (geom->isEmpty() || !geom->isValid()) {
+    if (geom->isEmpty()) {
+        throw std::runtime_error("Excluding empty polygon.");
+    }
+    if (!geom->isValid()) {
         if (excludepoly) {
             throw std::runtime_error("Excluding broken polygon.");
         } else {
