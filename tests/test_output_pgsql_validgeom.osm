@@ -1,5 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6" generator="CGImap 0.4.0 (1701 thorn-02.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id='1804384035' visible='true' lat='50.5539565' lon='8.6482181' />
+ <node id='1804384038' visible='true' lat='50.5539629' lon='8.6481648' />
+ <node id='1804384039' visible='true' lat='50.553966' lon='8.6481391' />
+ <node id='1804384040' visible='true' lat='50.5539686' lon='8.6481399' />
+ <node id='1804384044' visible='true' lat='50.5539795' lon='8.6482828' />
+ <node id='1804384047' visible='true' lat='50.5539862' lon='8.6482269' />
+ <node id='1804384055' visible='true' lat='50.5540076' lon='8.6481515' />
+ <node id='1804384056' visible='true' lat='50.5540093' lon='8.6481372' />
+ <node id='1804384085' visible='true' lat='50.5540642' lon='8.648308' />
+ <node id='1804384087' visible='true' lat='50.5540702' lon='8.6481694' />
+ <node id='1804384089' visible='true' lat='50.5540725' lon='8.648156' />
+ <node id='1804384092' visible='true' lat='50.5540804' lon='8.6481732' />
  <node id="2659775198" visible="true" lat="51.7084540" lon="-113.2670930"/>
  <node id="2659775222" visible="true" lat="51.7080945" lon="-113.2671020"/>
  <node id="2659775225" visible="true" lat="51.7080114" lon="-113.2672826"/>
@@ -68,6 +80,38 @@
  <node id="3357025928" visible="true" lat="54.1139153" lon="-3.2313655"/>
  <node id="3357025929" visible="true" lat="54.1139183" lon="-3.2314504"/>
  <node id="3357025930" visible="true" lat="54.1139960" lon="-3.2315802"/>
+ <node id="4370458249" visible="true" lat="-38.9566624" lon="-68.1336890"/>
+ <node id="4370458250" visible="true" lat="-38.9567937" lon="-68.1336863"/>
+ <node id="4370458251" visible="true" lat="-38.9567916" lon="-68.1335173"/>
+ <node id="4370458252" visible="true" lat="-38.9566603" lon="-68.1335200"/>
+ <way id='169272321' visible='true' version='7'>
+    <nd ref='1804384056' />
+    <nd ref='1804384089' />
+    <nd ref='1804384087' />
+    <nd ref='1804384055' />
+    <nd ref='1804384056' />
+    <tag k='building' v='yes' />
+  </way>
+  <way id='169272605' visible='true' version='7'>
+    <nd ref='1804384038' />
+    <nd ref='1804384035' />
+    <nd ref='1804384047' />
+    <nd ref='1804384044' />
+    <nd ref='1804384085' />
+    <nd ref='1804384092' />
+    <nd ref='1804384087' />
+    <nd ref='1804384055' />
+    <nd ref='1804384040' />
+    <nd ref='1804384039' />
+    <nd ref='1804384038' />
+    <tag k='addr:city' v='Kleinlinden' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:housenumber' v='12' />
+    <tag k='addr:postcode' v='35398' />
+    <tag k='addr:state' v='Hessen' />
+    <tag k='addr:street' v='Gregor-Mendel-Straße' />
+    <tag k='building' v='yes' />
+  </way>
  <way id="260490104" visible="true" uid="1820014">
   <nd ref="2659775198"/>
   <nd ref="2659775479"/>
@@ -168,6 +212,31 @@
   <nd ref="3357025913"/>
   <nd ref="3357025912"/>
  </way>
+ <way id="439432117" visible="true" version="1">
+  <nd ref="4370458249"/>
+  <nd ref="4370458250"/>
+  <nd ref="4370458251"/>
+  <nd ref="4370458252"/>
+  <nd ref="4370458251"/>
+  <nd ref="4370458252"/>
+  <nd ref="4370458249"/>
+  <tag k="building" v="church"/>
+  <tag k="name" v="Parroquia &quot;María Madre de los Pobres&quot;"/>
+ </way>
+ <relation id="3726445" version="2" visible="true">
+    <member type="way" ref="169272321" role="outer"/>
+    <member type="way" ref="169272605" role="outer"/>
+    <member type="way" ref="169272321" role="outer"/>
+    <tag k="addr:city" v="Kleinlinden"/>
+    <tag k="addr:country" v="DE"/>
+    <tag k="addr:housenumber" v="12"/>
+    <tag k="addr:postcode" v="35398"/>
+    <tag k="addr:state" v="Hessen"/>
+    <tag k="addr:street" v="Gregor-Mendel-Straße"/>
+    <tag k="building" v="yes"/>
+    <tag k="source" v="HiRes aerial imagery (Aerowest)"/>
+    <tag k="type" v="multipolygon"/>
+ </relation>
  <relation id="4621350" visible="true">
   <member type="way" ref="328880344" role="outer"/>
   <member type="way" ref="328880342" role="inner"/>
