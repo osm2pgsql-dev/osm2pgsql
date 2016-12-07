@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="CGImap 0.4.0 (1701 thorn-02.openstreetmap.org)" copyright="OpenStreetMap and contributors" attribution="http://www.openstreetmap.org/copyright" license="http://opendatacommons.org/licenses/odbl/1-0/">
+ <node id='1804384035' visible='true' lat='50.5539565' lon='8.6482181' />
+ <node id='1804384038' visible='true' lat='50.5539629' lon='8.6481648' />
+ <node id='1804384039' visible='true' lat='50.553966' lon='8.6481391' />
+ <node id='1804384040' visible='true' lat='50.5539686' lon='8.6481399' />
+ <node id='1804384044' visible='true' lat='50.5539795' lon='8.6482828' />
+ <node id='1804384047' visible='true' lat='50.5539862' lon='8.6482269' />
+ <node id='1804384055' visible='true' lat='50.5540076' lon='8.6481515' />
+ <node id='1804384056' visible='true' lat='50.5540093' lon='8.6481372' />
+ <node id='1804384085' visible='true' lat='50.5540642' lon='8.648308' />
+ <node id='1804384087' visible='true' lat='50.5540702' lon='8.6481694' />
+ <node id='1804384089' visible='true' lat='50.5540725' lon='8.648156' />
+ <node id='1804384092' visible='true' lat='50.5540804' lon='8.6481732' />
+ <node id="2659775198" visible="true" lat="51.7084540" lon="-113.2670930"/>
+ <node id="2659775222" visible="true" lat="51.7080945" lon="-113.2671020"/>
+ <node id="2659775225" visible="true" lat="51.7080114" lon="-113.2672826"/>
+ <node id="2659775227" visible="true" lat="51.7080129" lon="-113.2669508"/>
+ <node id="2659775229" visible="true" lat="51.7078990" lon="-113.2669494"/>
+ <node id="2659775231" visible="true" lat="51.7078968" lon="-113.2674229"/>
+ <node id="2659775233" visible="true" lat="51.7080869" lon="-113.2674252"/>
+ <node id="2659775240" visible="true" lat="51.7079749" lon="-113.2677588"/>
+ <node id="2659775242" visible="true" lat="51.7079746" lon="-113.2676063"/>
+ <node id="2659775244" visible="true" lat="51.7076598" lon="-113.2676078"/>
+ <node id="2659775411" visible="true" lat="51.7080661" lon="-113.2672880"/>
+ <node id="2659775461" visible="true" lat="51.7080689" lon="-113.2671023"/>
+ <node id="2659775462" visible="true" lat="51.7079742" lon="-113.2678325"/>
+ <node id="2659775464" visible="true" lat="51.7076402" lon="-113.2667319"/>
+ <node id="2659775466" visible="true" lat="51.7080125" lon="-113.2667340"/>
+ <node id="2659775468" visible="true" lat="51.7080125" lon="-113.2665246"/>
+ <node id="2659775472" visible="true" lat="51.7084410" lon="-113.2661419"/>
+ <node id="2659775475" visible="true" lat="51.7084010" lon="-113.2664730"/>
+ <node id="2659775477" visible="true" lat="51.7083981" lon="-113.2670147"/>
+ <node id="2659775479" visible="true" lat="51.7084326" lon="-113.2671126"/>
+ <node id="2659775481" visible="true" lat="51.7084401" lon="-113.2664240"/>
+ <node id="2659775470" visible="true" lat="51.7080721" lon="-113.2664637"/>
+ <node id="2659775474" visible="true" lat="51.7080732" lon="-113.2661178"/>
+ <node id="2659775413" visible="true" lat="51.7080712" lon="-113.2676946"/>
+ <node id="2659775440" visible="true" lat="51.7080743" lon="-113.2678341"/>
+ <node id="3357025788" visible="true" lat="54.1141803" lon="-3.2313862"/>
+ <node id="3357025789" visible="true" lat="54.1140676" lon="-3.2312034"/>
+ <node id="3357025790" visible="true" lat="54.1139595" lon="-3.2313974"/>
+ <node id="3357025791" visible="true" lat="54.1140722" lon="-3.2315802"/>
+ <node id="3357025792" visible="true" lat="54.1142050" lon="-3.2313843"/>
+ <node id="3357025893" visible="true" lat="54.1140685" lon="-3.2311649"/>
+ <node id="3357025894" visible="true" lat="54.1139382" lon="-3.2313999"/>
+ <node id="3357025895" visible="true" lat="54.1140745" lon="-3.2316202"/>
+ <node id="3357025896" visible="true" lat="54.1141160" lon="-3.2316073"/>
+ <node id="3357025897" visible="true" lat="54.1141971" lon="-3.2313149"/>
+ <node id="3357025898" visible="true" lat="54.1140271" lon="-3.2311778"/>
+ <node id="3357025899" visible="true" lat="54.1139460" lon="-3.2314694"/>
+ <node id="3357025900" visible="true" lat="54.1141530" lon="-3.2315730"/>
+ <node id="3357025901" visible="true" lat="54.1141819" lon="-3.2315207"/>
+ <node id="3357025902" visible="true" lat="54.1141998" lon="-3.2314557"/>
+ <node id="3357025903" visible="true" lat="54.1141771" lon="-3.2312530"/>
+ <node id="3357025904" visible="true" lat="54.1141469" lon="-3.2312046"/>
+ <node id="3357025905" visible="true" lat="54.1141095" lon="-3.2311742"/>
+ <node id="3357025906" visible="true" lat="54.1139902" lon="-3.2312120"/>
+ <node id="3357025907" visible="true" lat="54.1139614" lon="-3.2312641"/>
+ <node id="3357025908" visible="true" lat="54.1139435" lon="-3.2313288"/>
+ <node id="3357025909" visible="true" lat="54.1139659" lon="-3.2315315"/>
+ <node id="3357025910" visible="true" lat="54.1140334" lon="-3.2316107"/>
+ <node id="3357025911" visible="true" lat="54.1139368" lon="-3.2315294"/>
+ <node id="3357025912" visible="true" lat="54.1139689" lon="-3.2315944"/>
+ <node id="3357025913" visible="true" lat="54.1140148" lon="-3.2316414"/>
+ <node id="3357025914" visible="true" lat="54.1141797" lon="-3.2311993"/>
+ <node id="3357025915" visible="true" lat="54.1141387" lon="-3.2311509"/>
+ <node id="3357025916" visible="true" lat="54.1140672" lon="-3.2316592"/>
+ <node id="3357025917" visible="true" lat="54.1141201" lon="-3.2316459"/>
+ <node id="3357025918" visible="true" lat="54.1141673" lon="-3.2316030"/>
+ <node id="3357025919" visible="true" lat="54.1142033" lon="-3.2315355"/>
+ <node id="3357025920" visible="true" lat="54.1142239" lon="-3.2314513"/>
+ <node id="3357025921" visible="true" lat="54.1142267" lon="-3.2313602"/>
+ <node id="3357025922" visible="true" lat="54.1142114" lon="-3.2312728"/>
+ <node id="3357025923" visible="true" lat="54.1140909" lon="-3.2311269"/>
+ <node id="3357025924" visible="true" lat="54.1140411" lon="-3.2311298"/>
+ <node id="3357025925" visible="true" lat="54.1139943" lon="-3.2311592"/>
+ <node id="3357025926" visible="true" lat="54.1139553" lon="-3.2312122"/>
+ <node id="3357025927" visible="true" lat="54.1139281" lon="-3.2312834"/>
+ <node id="3357025928" visible="true" lat="54.1139153" lon="-3.2313655"/>
+ <node id="3357025929" visible="true" lat="54.1139183" lon="-3.2314504"/>
+ <node id="3357025930" visible="true" lat="54.1139960" lon="-3.2315802"/>
+ <node id="4370458249" visible="true" lat="-38.9566624" lon="-68.1336890"/>
+ <node id="4370458250" visible="true" lat="-38.9567937" lon="-68.1336863"/>
+ <node id="4370458251" visible="true" lat="-38.9567916" lon="-68.1335173"/>
+ <node id="4370458252" visible="true" lat="-38.9566603" lon="-68.1335200"/>
+ <way id='169272321' visible='true' version='7'>
+    <nd ref='1804384056' />
+    <nd ref='1804384089' />
+    <nd ref='1804384087' />
+    <nd ref='1804384055' />
+    <nd ref='1804384056' />
+    <tag k='building' v='yes' />
+  </way>
+  <way id='169272605' visible='true' version='7'>
+    <nd ref='1804384038' />
+    <nd ref='1804384035' />
+    <nd ref='1804384047' />
+    <nd ref='1804384044' />
+    <nd ref='1804384085' />
+    <nd ref='1804384092' />
+    <nd ref='1804384087' />
+    <nd ref='1804384055' />
+    <nd ref='1804384040' />
+    <nd ref='1804384039' />
+    <nd ref='1804384038' />
+    <tag k='addr:city' v='Kleinlinden' />
+    <tag k='addr:country' v='DE' />
+    <tag k='addr:housenumber' v='12' />
+    <tag k='addr:postcode' v='35398' />
+    <tag k='addr:state' v='Hessen' />
+    <tag k='addr:street' v='Gregor-Mendel-Straße' />
+    <tag k='building' v='yes' />
+  </way>
+ <way id="260490104" visible="true" uid="1820014">
+  <nd ref="2659775198"/>
+  <nd ref="2659775479"/>
+  <nd ref="2659775222"/>
+  <nd ref="2659775461"/>
+  <nd ref="2659775411"/>
+  <nd ref="2659775225"/>
+  <nd ref="2659775227"/>
+  <nd ref="2659775229"/>
+  <nd ref="2659775231"/>
+  <nd ref="2659775233"/>
+  <nd ref="2659775413"/>
+  <nd ref="2659775440"/>
+  <nd ref="2659775462"/>
+  <nd ref="2659775240"/>
+  <nd ref="2659775242"/>
+  <nd ref="2659775244"/>
+  <nd ref="2659775464"/>
+  <nd ref="2659775466"/>
+  <nd ref="2659775468"/>
+  <nd ref="2659775470"/>
+  <nd ref="2659775474"/>
+  <nd ref="2659775472"/>
+  <nd ref="2659775481"/>
+  <nd ref="2659775475"/>
+  <nd ref="2659775477"/>
+  <nd ref="2659775479"/>
+  <nd ref="2659775198"/>
+  <tag k="landuse" v="grass"/>
+ </way>
+ <way id="328880342" visible="true" version="1" changeset="28922079" >
+  <nd ref="3357025791"/>
+  <nd ref="3357025788"/>
+  <nd ref="3357025789"/>
+  <nd ref="3357025790"/>
+  <nd ref="3357025791"/>
+  <tag k="leisure" v="garden"/>
+ </way>
+ <way id="328880345" visible="true">
+  <nd ref="3357025902"/>
+  <nd ref="3357025792"/>
+  <nd ref="3357025895"/>
+  <nd ref="3357025896"/>
+  <nd ref="3357025900"/>
+  <nd ref="3357025901"/>
+  <nd ref="3357025902"/>
+  <tag k="leisure" v="garden"/>
+ </way>
+ <way id="328880346" visible="true">
+  <nd ref="3357025897"/>
+  <nd ref="3357025903"/>
+  <nd ref="3357025904"/>
+  <nd ref="3357025905"/>
+  <nd ref="3357025893"/>
+  <nd ref="3357025792"/>
+  <nd ref="3357025897"/>
+  <tag k="leisure" v="garden"/>
+ </way>
+ <way id="328880347" visible="true">
+  <nd ref="3357025906"/>
+  <nd ref="3357025907"/>
+  <nd ref="3357025908"/>
+  <nd ref="3357025894"/>
+  <nd ref="3357025893"/>
+  <nd ref="3357025898"/>
+  <nd ref="3357025906"/>
+  <tag k="leisure" v="garden"/>
+ </way>
+ <way id="328880348" visible="true">
+  <nd ref="3357025909"/>
+  <nd ref="3357025930"/>
+  <nd ref="3357025910"/>
+  <nd ref="3357025895"/>
+  <nd ref="3357025894"/>
+  <nd ref="3357025899"/>
+  <nd ref="3357025909"/>
+  <tag k="leisure" v="garden"/>
+ </way>
+ <way id="328880344" visible="true">
+  <nd ref="3357025912"/>
+  <nd ref="3357025911"/>
+  <nd ref="3357025929"/>
+  <nd ref="3357025928"/>
+  <nd ref="3357025927"/>
+  <nd ref="3357025926"/>
+  <nd ref="3357025925"/>
+  <nd ref="3357025924"/>
+  <nd ref="3357025923"/>
+  <nd ref="3357025915"/>
+  <nd ref="3357025914"/>
+  <nd ref="3357025922"/>
+  <nd ref="3357025921"/>
+  <nd ref="3357025920"/>
+  <nd ref="3357025919"/>
+  <nd ref="3357025918"/>
+  <nd ref="3357025917"/>
+  <nd ref="3357025916"/>
+  <nd ref="3357025913"/>
+  <nd ref="3357025912"/>
+ </way>
+ <way id="439432117" visible="true" version="1">
+  <nd ref="4370458249"/>
+  <nd ref="4370458250"/>
+  <nd ref="4370458251"/>
+  <nd ref="4370458252"/>
+  <nd ref="4370458251"/>
+  <nd ref="4370458252"/>
+  <nd ref="4370458249"/>
+  <tag k="building" v="church"/>
+  <tag k="name" v="Parroquia &quot;María Madre de los Pobres&quot;"/>
+ </way>
+ <relation id="3726445" version="2" visible="true">
+    <member type="way" ref="169272321" role="outer"/>
+    <member type="way" ref="169272605" role="outer"/>
+    <member type="way" ref="169272321" role="outer"/>
+    <tag k="addr:city" v="Kleinlinden"/>
+    <tag k="addr:country" v="DE"/>
+    <tag k="addr:housenumber" v="12"/>
+    <tag k="addr:postcode" v="35398"/>
+    <tag k="addr:state" v="Hessen"/>
+    <tag k="addr:street" v="Gregor-Mendel-Straße"/>
+    <tag k="building" v="yes"/>
+    <tag k="source" v="HiRes aerial imagery (Aerowest)"/>
+    <tag k="type" v="multipolygon"/>
+ </relation>
+ <relation id="4621350" visible="true">
+  <member type="way" ref="328880344" role="outer"/>
+  <member type="way" ref="328880342" role="inner"/>
+  <member type="way" ref="328880345" role="inner"/>
+  <member type="way" ref="328880346" role="inner"/>
+  <member type="way" ref="328880347" role="inner"/>
+  <member type="way" ref="328880348" role="inner"/>
+  <tag k="natural" v="grassland"/>
+  <tag k="type" v="multipolygon"/>
+ </relation>
+</osm>
