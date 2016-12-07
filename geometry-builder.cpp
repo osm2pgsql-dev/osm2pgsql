@@ -497,25 +497,33 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
             if ((toplevelpolygons > 1) && enable_multi)
             {
                 geom_ptr multipoly(gf.createMultiPolygon(polygons.release()));
-                if (!multipoly->isValid() && !excludepoly) {
-                    multipoly = geom_ptr(multipoly->buffer(0));
-                }
-                multipoly->normalize();
 
-                if (!multipoly->isEmpty() && multipoly->isValid()) {
-                    wkbs.emplace_back(multipoly.get(), true, projection);
+                if (!multipoly->isEmpty()) {
+                    if (!multipoly->isValid() && !excludepoly) {
+                        multipoly = geom_ptr(multipoly->buffer(0));
+                        multipoly->normalize();
+                        if (!!multipoly->isEmpty() && multipoly->isValid()) {
+                            wkbs.emplace_back(multipoly.get(), true, projection);
+                        }
+                    } else {
+                        multipoly->normalize();
+                        wkbs.emplace_back(multipoly.get(), true, projection);
+                    }
                 }
-            }
-            else
-            {
+            } else {
                 for(unsigned i=0; i<toplevelpolygons; i++) {
                     geom_ptr poly(polygons->at(i));
-                    if ((poly->isEmpty() || !poly->isValid()) && !excludepoly) {
-                        poly = geom_ptr(poly->buffer(0));
-                        poly->normalize();
-                    }
-                    if (!poly->isEmpty() && poly->isValid()) {
-                        wkbs.emplace_back(poly.get(), true, projection);
+                    if (!poly->isEmpty()) {
+                        if (!poly->isValid() && !excludepoly) {
+                            poly = geom_ptr(poly->buffer(0));
+                            poly->normalize();
+                            if (!!poly->isEmpty() && poly->isValid()) {
+                                wkbs.emplace_back(poly.get(), true, projection);
+                            }
+                        } else {
+                            poly->normalize();
+                            wkbs.emplace_back(poly.get(), true, projection);
+                        }
                     }
                 }
             }
