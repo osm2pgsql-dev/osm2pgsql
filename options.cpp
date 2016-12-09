@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:B:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
