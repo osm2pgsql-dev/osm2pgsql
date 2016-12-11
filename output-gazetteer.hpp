@@ -161,22 +161,22 @@ public:
 
     virtual ~output_gazetteer_t() {}
 
-    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const
+    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override
     {
         output_gazetteer_t *clone = new output_gazetteer_t(*this);
         clone->m_mid = cloned_middle;
         return std::shared_ptr<output_t>(clone);
     }
 
-    int start();
-    void stop();
-    void commit() {}
+    int start() override;
+    void stop() override;
+    void commit() override {}
 
-    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) {}
-    int pending_way(osmid_t, int) { return 0; }
+    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) override {}
+    int pending_way(osmid_t, int) override { return 0; }
 
-    void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) {}
-    int pending_relation(osmid_t, int) { return 0; }
+    void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) override {}
+    int pending_relation(osmid_t, int) override { return 0; }
 
     int node_add(osmium::Node const &node, double lat, double lon) override
     {
@@ -208,19 +208,19 @@ public:
         return process_relation(rel);
     }
 
-    int node_delete(osmid_t id)
+    int node_delete(osmid_t id) override
     {
         delete_place('N', id);
         return 0;
     }
 
-    int way_delete(osmid_t id)
+    int way_delete(osmid_t id) override
     {
         delete_place('W', id);
         return 0;
     }
 
-    int relation_delete(osmid_t id)
+    int relation_delete(osmid_t id) override
     {
         delete_place('R', id);
         return 0;

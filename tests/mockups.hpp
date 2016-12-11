@@ -7,12 +7,12 @@
 struct dummy_middle_t : public middle_t {
     virtual ~dummy_middle_t() = default;
 
-    void start(const options_t *) { }
-    void stop(void) { }
+    void start(const options_t *) override { }
+    void stop(void) override  { }
     void cleanup(void) { }
-    void analyze(void) { }
-    void end(void) { }
-    void commit(void) { }
+    void analyze(void) override  { }
+    void end(void) override  { }
+    void commit(void) override  { }
 
     void nodes_set(osmium::Node const &, double, double) override { }
     size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const override { return 0; }
@@ -24,25 +24,28 @@ struct dummy_middle_t : public middle_t {
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
 
-    void iterate_ways(pending_processor&) { }
-    void iterate_relations(pending_processor&) { }
+    void iterate_ways(pending_processor&) override  { }
+    void iterate_relations(pending_processor&) override  { }
 
-    virtual size_t pending_count() const { return 0; }
+    virtual size_t pending_count() const override  { return 0; }
 
-    idlist_t relations_using_way(osmid_t) const { return idlist_t(); }
+    idlist_t relations_using_way(osmid_t) const override  { return idlist_t(); }
 
-    virtual std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
+    std::shared_ptr<const middle_query_t> get_instance() const override
+    {
+        return std::shared_ptr<const middle_query_t>();
+    }
 };
 
 struct dummy_slim_middle_t : public slim_middle_t {
     virtual ~dummy_slim_middle_t() = default;
 
-    void start(const options_t *) { }
-    void stop(void) { }
+    void start(const options_t *) override  { }
+    void stop(void) override  { }
     void cleanup(void) { }
-    void analyze(void) { }
-    void end(void) { }
-    void commit(void) { }
+    void analyze(void) override  { }
+    void end(void) override  { }
+    void commit(void) override  { }
 
     void nodes_set(osmium::Node const &, double, double) override { }
     size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const override { return 0; }
@@ -54,23 +57,23 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
 
-    void iterate_ways(pending_processor&) { }
-    void iterate_relations(pending_processor&) { }
+    void iterate_ways(pending_processor&) override  { }
+    void iterate_relations(pending_processor&) override  { }
 
-    size_t pending_count() const { return 0; }
+    size_t pending_count() const override  { return 0; }
 
-    idlist_t relations_using_way(osmid_t) const { return idlist_t(); }
+    idlist_t relations_using_way(osmid_t) const override  { return idlist_t(); }
 
-    std::shared_ptr<const middle_query_t> get_instance() const {return std::shared_ptr<const middle_query_t>();}
+    std::shared_ptr<const middle_query_t> get_instance() const override  {return std::shared_ptr<const middle_query_t>();}
 
-    void nodes_delete(osmid_t) {};
-    void node_changed(osmid_t) {};
+    void nodes_delete(osmid_t) override  {};
+    void node_changed(osmid_t) override  {};
 
-    void ways_delete(osmid_t) {};
-    void way_changed(osmid_t) {};
+    void ways_delete(osmid_t) override  {};
+    void way_changed(osmid_t) override  {};
 
-    void relations_delete(osmid_t) {};
-    void relation_changed(osmid_t) {};
+    void relations_delete(osmid_t) override  {};
+    void relation_changed(osmid_t) override  {};
 };
 
 struct dummy_output_t : public output_null_t {

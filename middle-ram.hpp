@@ -84,11 +84,11 @@ struct middle_ram_t : public middle_t {
     middle_ram_t();
     virtual ~middle_ram_t();
 
-    void start(const options_t *out_options_);
-    void stop(void);
-    void analyze(void);
-    void end(void);
-    void commit(void);
+    void start(const options_t *out_options_) override;
+    void stop(void) override;
+    void analyze(void) override;
+    void end(void) override;
+    void commit(void) override;
 
     void nodes_set(osmium::Node const &node, double lat, double lon) override;
     size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
@@ -107,14 +107,14 @@ struct middle_ram_t : public middle_t {
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    idlist_t relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const override;
 
-    void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(pending_processor& pf);
+    void iterate_ways(middle_t::pending_processor& pf) override;
+    void iterate_relations(pending_processor& pf) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    virtual std::shared_ptr<const middle_query_t> get_instance() const;
+    std::shared_ptr<const middle_query_t> get_instance() const override;
 private:
 
     void release_ways();

@@ -27,17 +27,17 @@ public:
     virtual ~output_pgsql_t();
     output_pgsql_t(const output_pgsql_t& other);
 
-    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
+    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
 
-    int start();
-    void stop();
-    void commit();
+    int start() override;
+    void stop() override;
+    void commit() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_way(osmid_t id, int exists);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_relation(osmid_t id, int exists);
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node, double lat, double lon) override;
     int way_add(osmium::Way const &way) override;
@@ -47,14 +47,14 @@ public:
     int way_modify(osmium::Way const &way) override;
     int relation_modify(osmium::Relation const &rel) override;
 
-    int node_delete(osmid_t id);
-    int way_delete(osmid_t id);
-    int relation_delete(osmid_t id);
+    int node_delete(osmid_t id) override;
+    int way_delete(osmid_t id) override;
+    int relation_delete(osmid_t id) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    void merge_pending_relations(output_t *other);
-    void merge_expire_trees(output_t *other);
+    void merge_pending_relations(output_t *other) override;
+    void merge_expire_trees(output_t *other) override;
 
 protected:
     int pgsql_out_way(osmid_t id, taglist_t &tags, const nodelist_t &nodes,

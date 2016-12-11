@@ -35,7 +35,7 @@ struct test_output_t : public dummy_output_t {
 
     virtual ~test_output_t() = default;
 
-    std::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) const{
+    std::shared_ptr<output_t> clone(const middle_query_t *cloned_middle) const override {
         test_output_t *clone = new test_output_t(m_options);
         clone->m_mid = cloned_middle;
         return std::shared_ptr<output_t>(clone);
@@ -72,15 +72,15 @@ struct test_output_t : public dummy_output_t {
         return 0;
     }
 
-    int node_delete(osmid_t) {
+    int node_delete(osmid_t) override {
         ++node.deleted;
         return 0;
     }
-    int way_delete(osmid_t) {
+    int way_delete(osmid_t) override {
         ++way.deleted;
         return 0;
     }
-    int relation_delete(osmid_t) {
+    int relation_delete(osmid_t) override {
         ++rel.deleted;
         return 0;
     }

@@ -20,35 +20,35 @@ struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
     virtual ~middle_pgsql_t();
 
-    void start(const options_t *out_options_);
-    void stop(void);
-    void analyze(void);
-    void end(void);
-    void commit(void);
+    void start(const options_t *out_options_) override;
+    void stop(void) override;
+    void analyze(void) override;
+    void end(void) override;
+    void commit(void) override;
 
     void nodes_set(osmium::Node const &node, double lat, double lon) override;
     size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
-    void nodes_delete(osmid_t id);
-    void node_changed(osmid_t id);
+    void nodes_delete(osmid_t id) override;
+    void node_changed(osmid_t id) override;
 
     void ways_set(osmium::Way const &way) override;
     bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     size_t ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const override;
 
-    void ways_delete(osmid_t id);
-    void way_changed(osmid_t id);
+    void ways_delete(osmid_t id) override;
+    void way_changed(osmid_t id) override;
 
     bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel) override;
-    void relations_delete(osmid_t id);
-    void relation_changed(osmid_t id);
+    void relations_delete(osmid_t id) override;
+    void relation_changed(osmid_t id) override;
 
-    void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(pending_processor& pf);
+    void iterate_ways(middle_t::pending_processor& pf) override;
+    void iterate_relations(pending_processor& pf) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    idlist_t relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const override;
 
     struct table_desc {
         table_desc(const char *name_ = NULL,
@@ -78,7 +78,7 @@ struct middle_pgsql_t : public slim_middle_t {
         struct pg_conn *sql_conn;
     };
 
-    virtual std::shared_ptr<const middle_query_t> get_instance() const;
+    std::shared_ptr<const middle_query_t> get_instance() const override;
 private:
     void pgsql_stop_one(table_desc *table);
 
