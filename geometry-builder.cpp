@@ -502,7 +502,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
                     if (!multipoly->isValid() && !excludepoly) {
                         multipoly = geom_ptr(multipoly->buffer(0));
                         multipoly->normalize();
-                        if (!!multipoly->isEmpty() && multipoly->isValid()) {
+                        if (!multipoly->isEmpty() && multipoly->isValid()) {
                             wkbs.emplace_back(multipoly.get(), true, projection);
                         }
                     } else {
@@ -517,7 +517,7 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
                         if (!poly->isValid() && !excludepoly) {
                             poly = geom_ptr(poly->buffer(0));
                             poly->normalize();
-                            if (!!poly->isEmpty() && poly->isValid()) {
+                            if (!poly->isEmpty() && poly->isValid()) {
                                 wkbs.emplace_back(poly.get(), true, projection);
                             }
                         } else {
