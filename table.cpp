@@ -16,10 +16,12 @@ typedef boost::format fmt;
 #define BUFFER_SEND_SIZE 1024
 
 
-table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
+table_t::table_t(const string& conninfo, const string& schema_name, const string& table_name,
+    const string& type, const columns_t& columns, const hstores_t& hstore_columns,
     const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
+    conninfo(conninfo), schema_name(schema_name), table_name(table_name), type(type),
+    sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
     append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
@@ -34,10 +36,17 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
     single_fmt = fmt("%1%");
     point_fmt = fmt("POINT(%.15g %.15g)");
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
+
+    if (schema_name.empty()) {
+	    name = table_name;
+    } else {
+	    name = (fmt("%s.%s") % schema_name % table_name).str();
+    }
 }
 
 table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
+    conninfo(other.conninfo), name(other.name), schema_name(other.schema_name), table_name(other.table_name),
+    type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
     table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
@@ -152,7 +161,7 @@ void table_t::start()
 
         //slim mode needs this to be able to delete from tables in pending
         if (slim && !drop_temp) {
-            sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
+            sql = (fmt("CREATE INDEX %1%_pkey ON %2% USING BTREE (osm_id)") % table_name % name).str();
             if (table_space_index)
                 sql += " TABLESPACE " + table_space_index.get();
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
@@ -218,12 +227,12 @@ void table_t::stop()
 
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) COLLATE \"C\"") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %2%") % name % table_name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
         // Use fillfactor 100 for un-updatable imports
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %1% USING GIST (way) %2% %3%") % name %
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %2% USING GIST (way) %3% %4%") % table_name % name %
             (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
             (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
 
@@ -231,18 +240,18 @@ void table_t::stop()
         if (slim && !drop_temp)
         {
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %2% USING BTREE (osm_id) %3%") % table_name % name %
                 (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
             if (hstore_mode != HSTORE_NONE) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %1% USING GIN (tags) %2%") % name %
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %2% USING GIN (tags) %3%") % table_name % name %
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             }
             for(size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %1% USING GIN (\"%3%\") %4%") % name % i % hstore_columns[i] %
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %3% USING GIN (\"%4%\") %5%") % table_name % i % name % hstore_columns[i] %
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             }
         }

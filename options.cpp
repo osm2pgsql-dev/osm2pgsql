@@ -177,6 +177,7 @@ namespace
                         Must be specified as: minlon,minlat,maxlon,maxlat\n\
                         e.g. --bbox -0.5,51.25,0.5,51.75\n\
        -p|--prefix      Prefix for table names (default planet_osm)\n\
+                        The prefix may also contain a schema like in \"geodata.osm\".\n\
        -r|--input-reader    Input format.\n\
                         auto      - Detect file format. (default)\n\
                         o5m       - Parse as o5m format.\n\
@@ -500,6 +501,17 @@ options_t::options_t(int argc, char *argv[]): options_t()
     //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
     //you could get overflow when working with larger coordinates (mercator) and larger scales
     scale = (projection->target_latlon()) ? 10000000 : 100;
+
+    // handle schema in prefix
+    size_t offset;
+    offset = prefix.find(".");
+    if (offset == std::string::npos) {
+        prefix_schema = ""; // we don't assume any schema
+        prefix_table = prefix;
+    } else {
+        prefix_schema = prefix.substr(0, offset);;
+        prefix_table = prefix.substr(offset+1);
+    }
 }
 
 void options_t::check_options()

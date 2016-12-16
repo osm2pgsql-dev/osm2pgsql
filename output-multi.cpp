@@ -21,7 +21,7 @@ output_multi_t::output_multi_t(const std::string &name,
       m_processor(processor_),
       //TODO: we could in fact have something that is interested in nodes and ways..
       m_osm_type(m_processor->interests(geometry_processor::interest_node) ? OSMTYPE_NODE : OSMTYPE_WAY),
-      m_table(new table_t(m_options.database_options.conninfo(), name, m_processor->column_type(),
+      m_table(new table_t(m_options.database_options.conninfo(), m_options.prefix_schema, name, m_processor->column_type(),
                           m_export_list->normal_columns(m_osm_type),
                           m_options.hstore_columns, m_processor->srid(),
                           m_options.append, m_options.slim, m_options.droptemp,

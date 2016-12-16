@@ -617,24 +617,24 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
         columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
 
         //figure out what name we are using for this and what type
-        std::string name = m_options.prefix;
+        std::string table_name = m_options.prefix_table;
         std::string type;
         switch(i)
         {
             case t_point:
-                name += "_point";
+                table_name += "_point";
                 type = "POINT";
                 break;
             case t_line:
-                name += "_line";
+                table_name += "_line";
                 type = "LINESTRING";
                 break;
             case t_poly:
-                name += "_polygon";
+                table_name += "_polygon";
                 type = "GEOMETRY"; // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
                 break;
             case t_roads:
-                name += "_roads";
+                table_name += "_roads";
                 type = "LINESTRING";
                 break;
             default:
@@ -647,8 +647,8 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
         //have a different tablespace/hstores/etc per table
         m_tables.push_back(std::shared_ptr<table_t>(
             new table_t(
-                m_options.database_options.conninfo(), name, type, columns, m_options.hstore_columns,
-                reproj->target_srs(),
+                m_options.database_options.conninfo(), m_options.prefix_schema, table_name, type, columns,
+                m_options.hstore_columns, reproj->target_srs(),
                 m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
                 m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
             )

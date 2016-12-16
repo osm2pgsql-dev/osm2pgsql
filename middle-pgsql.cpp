@@ -882,13 +882,14 @@ void middle_pgsql_t::end(void)
  *
  * The input string is mangled as follows:
  * %p replaced by the content of the "prefix" option
+ * %P replaced by the content of the table part of the "prefix" option
  * %i replaced by the content of the "tblsslim_data" option
  * %t replaced by the content of the "tblssslim_index" option
  * %m replaced by "UNLOGGED" if the "unlogged" option is set
  * other occurrences of the "%" char are treated normally.
  * any occurrence of { or } will be ignored (not copied to output string);
  * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
+ * %p, %P, %i, %t, %m that was not NULL.
  *
  * So, the input string
  *    Hello{ dear %i}!
@@ -928,6 +929,14 @@ static void set_prefix_and_tbls(const struct options_t *options, const char **st
                 if (!options->prefix.empty()) {
                     strcpy(dest, options->prefix.c_str());
                     dest += strlen(options->prefix.c_str());
+                    copied = 1;
+                }
+                source+=2;
+                continue;
+            } else if (*(source+1) == 'P') {
+                if (!options->prefix.empty()) {
+                    strcpy(dest, options->prefix_table.c_str());
+                    dest += strlen(options->prefix_table.c_str());
                     copied = 1;
                 }
                 source+=2;
@@ -1171,7 +1180,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_ways FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_ways;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %P_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
     tables.push_back(table_desc(
         /*table = t_rel,*/
@@ -1191,7 +1200,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*copy*/ "COPY %p_rels FROM STDIN;\n",
          /*analyze*/ "ANALYZE %p_rels;\n",
             /*stop*/  "COMMIT;\n",
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX %P_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
 
     // set up the rest of the variables from the tables.
