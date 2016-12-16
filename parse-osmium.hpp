@@ -73,9 +73,11 @@ class parse_stats_t
     };
 
 public:
+    parse_stats_t() : print_time(time(nullptr)) {}
+
     void update(const parse_stats_t &other);
     void print_summary() const;
-    void print_status() const;
+    void print_status();
 
     inline void add_node(osmid_t id)
     {
@@ -100,6 +102,7 @@ public:
 
 private:
     Counter node, way, rel;
+    time_t print_time;
 };
 
 

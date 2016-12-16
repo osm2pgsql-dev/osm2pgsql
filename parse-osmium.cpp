@@ -60,9 +60,14 @@ void parse_stats_t::print_summary() const
             rel.count > 0 ? (int) (end_rel - rel.start) : 0);
 }
 
-void parse_stats_t::print_status() const
+void parse_stats_t::print_status()
 {
     time_t now = time(nullptr);
+
+    if (print_time >= now) {
+        return;
+    }
+
     time_t end_nodes = way.start > 0 ? way.start : now;
     time_t end_way = rel.start > 0 ? rel.start : now;
     time_t end_rel = now;
@@ -73,6 +78,8 @@ void parse_stats_t::print_status() const
             way.count / 1000,
             way.count > 0 ? (double) way.count / 1000.0 / ((double) (end_way - way.start) > 0.0 ? (double) (end_way - way.start) : 1.0) : 0.0, rel.count,
             rel.count > 0 ? (double) rel.count / ((double) (end_rel - rel.start) > 0.0 ? (double) (end_rel - rel.start) : 1.0) : 0.0);
+
+    print_time = now;
 }
 
 
