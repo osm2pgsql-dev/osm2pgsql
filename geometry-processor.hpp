@@ -97,7 +97,7 @@ struct relation_helper
     { return data.select<osmium::Way>(); }
 
     rolelist_t roles;
-    std::vector<int> superseeded;
+    std::vector<int> superseded;
     osmium::memory::Buffer data;
 
 private:

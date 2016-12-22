@@ -116,12 +116,12 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     int make_boundary = 0;
     double split_at;
 
-    std::vector<int> members_superseeded(xnodes.size(), 0);
+    std::vector<int> members_superseded(xnodes.size(), 0);
     taglist_t outtags;
 
     //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
     if (m_tagtransform->filter_rel_member_tags(rel_tags, xtags, xrole,
-              &(members_superseeded[0]), &make_boundary, &make_polygon, &roads,
+              &(members_superseded[0]), &make_boundary, &make_polygon, &roads,
               *m_export_list.get(), outtags)) {
         return 0;
     }
@@ -164,7 +164,7 @@ int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
     //dont do this when working with pending relations as its not needed
     if (make_polygon) {
         for (size_t i=0; i < xid.size(); i++) {
-            if (members_superseeded[i]) {
+            if (members_superseded[i]) {
                 pgsql_delete_way_from_output(xid[i]);
                 if(!pending)
                     ways_done_tracker->mark(xid[i]);

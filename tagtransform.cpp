@@ -104,7 +104,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
 unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
-        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        int *member_superseded, int *make_boundary, int *make_polygon, int *roads,
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless)
 {
     //if it has a relation figure out what kind it is
@@ -299,7 +299,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
      but only if the polygon-tags look the same as the outer ring */
     if (make_polygon) {
         for (size_t i = 0; i < member_tags.size(); i++) {
-            member_superseeded[i] = 1;
+            member_superseded[i] = 1;
             for (const auto& member_tag: member_tags[i]) {
                 const std::string *v = out_tags.get(member_tag.key);
                 if (!v || *v != member_tag.value) {
@@ -307,7 +307,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
                     if ((member_tag.key != "z_order") && (member_tag.key != "osm_user") &&
                         (member_tag.key != "osm_version") && (member_tag.key != "osm_uid") &&
                         (member_tag.key != "osm_changeset") && (member_tag.key != "osm_timestamp")) {
-                        member_superseeded[i] = 0;
+                        member_superseded[i] = 0;
                         break;
                     }
                 }
@@ -324,7 +324,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
 #ifdef HAVE_LUA
 unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &members_tags, const rolelist_t &member_roles,
-        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        int *member_superseded, int *make_boundary, int *make_polygon, int *roads,
         taglist_t &out_tags)
 {
     lua_getglobal(L, m_rel_mem_func.c_str());
@@ -377,10 +377,10 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
     lua_pushnil(L);
     for (size_t i = 0; i < members_tags.size(); i++) {
         if (lua_next(L,-2)) {
-            member_superseeded[i] = lua_tointeger(L,-1);
+            member_superseded[i] = lua_tointeger(L,-1);
             lua_pop(L,1);
         } else {
-            fprintf(stderr, "Failed to read member_superseeded from lua function\n");
+            fprintf(stderr, "Failed to read member_superseded from lua function\n");
         }
     }
     lua_pop(L,2);
@@ -463,17 +463,17 @@ bool tagtransform::filter_tags(osmium::OSMObject const &o,
 
 unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
-        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        int *member_superseded, int *make_boundary, int *make_polygon, int *roads,
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless)
 {
     if (transform_method) {
 #ifdef HAVE_LUA
-        return lua_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, out_tags);
+        return lua_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseded, make_boundary, make_polygon, roads, out_tags);
 #else
         return 1;
 #endif
     } else {
-        return c_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseeded, make_boundary, make_polygon, roads, exlist, out_tags, allow_typeless);
+        return c_filter_rel_member_tags(rel_tags, member_tags, member_roles, member_superseded, make_boundary, make_polygon, roads, exlist, out_tags, allow_typeless);
     }
 }
 

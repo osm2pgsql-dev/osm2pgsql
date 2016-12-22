@@ -12,13 +12,13 @@ function test_rels (kv, num_keys)
 end
 
 function test_members (kv, member_tags, roles, num_members)
-  membersuperseeded = {}
+  membersuperseded = {}
   for i = 1, num_members do
-    membersuperseeded[i] = 0
+    membersuperseded[i] = 0
   end
 
   tags = kv
   tags["bar"] = "baz"
 
-  return 0, tags, membersuperseeded, 0, 0, 0
+  return 0, tags, membersuperseded, 0, 0, 0
 end

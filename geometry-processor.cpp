@@ -135,7 +135,7 @@ size_t relation_helper::set(osmium::RelationMemberList const &member_list, middl
     }
 
     //mark the ends of each so whoever uses them will know where they end..
-    superseeded.resize(num_ways);
+    superseded.resize(num_ways);
 
     return num_ways;
 }
