@@ -83,11 +83,9 @@ void parse_stats_t::print_status()
 }
 
 
-parse_osmium_t::parse_osmium_t(bool extra_attrs,
-                               const boost::optional<std::string> &bbox,
-                               const reprojection *proj, bool do_append,
-                               osmdata_t *osmdata)
-: m_data(osmdata), m_append(do_append), m_attributes(extra_attrs), m_proj(proj)
+parse_osmium_t::parse_osmium_t(const boost::optional<std::string> &bbox,
+                               bool do_append, osmdata_t *osmdata)
+: m_data(osmdata), m_append(do_append)
 {
     if (bbox) {
         m_bbox = parse_bbox(bbox);
@@ -149,13 +147,10 @@ void parse_osmium_t::node(osmium::Node& node)
         }
 
         if (!m_bbox || m_bbox->contains(node.location())) {
-            auto c = m_proj->reproject(node.location());
-
-            convert_tags(node);
             if (m_append) {
-                m_data->node_modify(node.id(), c.y, c.x, tags);
+                m_data->node_modify(node);
             } else {
-                m_data->node_add(node.id(), c.y, c.x, tags);
+                m_data->node_add(node);
             }
             m_stats.add_node(node.id());
         }
@@ -167,12 +162,10 @@ void parse_osmium_t::way(osmium::Way& way)
     if (way.deleted()) {
         m_data->way_delete(way.id());
     } else {
-        convert_tags(way);
-        convert_nodes(way.nodes());
         if (m_append) {
-            m_data->way_modify(way.id(), nds, tags);
+            m_data->way_modify(way);
         } else {
-            m_data->way_add(way.id(), nds, tags);
+            m_data->way_add(way);
         }
     }
     m_stats.add_way(way.id());
@@ -183,54 +176,11 @@ void parse_osmium_t::relation(osmium::Relation& rel)
     if (rel.deleted()) {
         m_data->relation_delete(rel.id());
     } else {
-        convert_tags(rel);
-        convert_members(rel.members());
         if (m_append) {
-            m_data->relation_modify(rel.id(), members, tags);
+            m_data->relation_modify(rel);
         } else {
-            m_data->relation_add(rel.id(), members, tags);
+            m_data->relation_add(rel);
         }
     }
     m_stats.add_rel(rel.id());
-}
-
-void parse_osmium_t::convert_tags(const osmium::OSMObject &obj)
-{
-    tags.clear();
-    for (auto const &t : obj.tags()) {
-        tags.emplace_back(t.key(), t.value());
-    }
-    if (m_attributes) {
-        tags.emplace_back("osm_user", obj.user());
-        tags.emplace_back("osm_uid", std::to_string(obj.uid()));
-        tags.emplace_back("osm_version", std::to_string(obj.version()));
-        tags.emplace_back("osm_timestamp", obj.timestamp().to_iso());
-        tags.emplace_back("osm_changeset", std::to_string(obj.changeset()));
-    }
-}
-
-void parse_osmium_t::convert_nodes(const osmium::NodeRefList &in_nodes)
-{
-    nds.clear();
-
-    for (auto const &n : in_nodes) {
-        nds.push_back(n.ref());
-    }
-}
-
-void parse_osmium_t::convert_members(const osmium::RelationMemberList &in_rels)
-{
-    members.clear();
-
-    for (auto const &m: in_rels) {
-        OsmType type;
-        switch (m.type()) {
-            case osmium::item_type::node: type = OSMTYPE_NODE; break;
-            case osmium::item_type::way: type = OSMTYPE_WAY; break;
-            case osmium::item_type::relation: type = OSMTYPE_RELATION; break;
-            default:
-                fprintf(stderr, "Unsupported type: %u""\n", unsigned(m.type()));
-        }
-        members.emplace_back(type, m.ref(), m.role());
-    }
 }

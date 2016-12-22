@@ -4,6 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 #include <vector>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 
 #include "tagtransform.hpp"
@@ -216,7 +217,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             if (tag.key == "area") {
                 poly_tags.push_back(tag);
             } else {
-                const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+                const std::vector<taginfo> &infos = exlist.get(osmium::item_type::way);
                 for (const auto& info: infos) {
                     if (info.name == tag.key) {
                         if (info.flags & FLAG_POLYGON) {
@@ -233,7 +234,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
         if (poly_tags.empty()) {
             int first_outerway = 1;
             for (size_t i = 0; i < member_tags.size(); i++) {
-                if (member_roles[i] && *(member_roles[i]) == "inner")
+                if (member_roles[i] && strcmp(member_roles[i], "inner") == 0)
                     continue;
 
                 /* insert all tags of the first outerway to the potential list of copied tags. */
@@ -264,7 +265,7 @@ unsigned int c_filter_rel_member_tags(const taglist_t &rel_tags,
             /* We need to re-check and only keep polygon tags in the list of polytags */
             // TODO what is that for? The list is cleared just below.
             taglist_t::iterator q = poly_tags.begin();
-            const std::vector<taginfo> &infos = exlist.get(OSMTYPE_WAY);
+            const std::vector<taginfo> &infos = exlist.get(osmium::item_type::way);
             while (q != poly_tags.end()) {
                 bool contains_tag = false;
                 for (std::vector<taginfo>::const_iterator info = infos.begin();
@@ -354,7 +355,7 @@ unsigned tagtransform::lua_filter_rel_member_tags(const taglist_t &rel_tags,
 
     for (size_t i = 0; i < member_roles.size(); i++) {
         lua_pushnumber(L, i + 1);
-        lua_pushstring(L, member_roles[i]->c_str());
+        lua_pushstring(L, member_roles[i]);
         lua_rawset(L, -3);
     }
 
@@ -448,37 +449,16 @@ tagtransform::~tagtransform() {
 #endif
 }
 
-unsigned int tagtransform::filter_node_tags(const taglist_t &tags, const export_list &exlist,
-                                            taglist_t &out_tags, bool strict)
+bool tagtransform::filter_tags(osmium::OSMObject const &o,
+                               int *polygon, int *roads, const export_list &exlist,
+                               taglist_t &out_tags, bool strict)
 {
     if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_NODE, tags, 0, 0, exlist, out_tags, strict);
+        return lua_filter_basic_tags(o, polygon, roads, out_tags);
     }
-}
 
-/*
- * This function gets called twice during initial import per way. Once from add_way and once from out_way
- */
-unsigned tagtransform::filter_way_tags(const taglist_t &tags, int *polygon, int *roads,
-                                       const export_list &exlist, taglist_t &out_tags, bool strict)
-{
-    if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_WAY, tags, polygon, roads, exlist, out_tags, strict);
-    }
-}
-
-unsigned tagtransform::filter_rel_tags(const taglist_t &tags, const export_list &exlist,
-                                       taglist_t &out_tags, bool strict)
-{
-    if (transform_method) {
-        return lua_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, out_tags);
-    } else {
-        return c_filter_basic_tags(OSMTYPE_RELATION, tags, 0, 0, exlist, out_tags, strict);
-    }
+    return c_filter_basic_tags(o, polygon, roads, exlist,
+                               out_tags, strict);
 }
 
 unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
@@ -497,47 +477,60 @@ unsigned tagtransform::filter_rel_member_tags(const taglist_t &rel_tags,
     }
 }
 
-unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags,
-                                             int *polygon, int *roads, taglist_t &out_tags)
+bool tagtransform::lua_filter_basic_tags(osmium::OSMObject const &o,
+                                         int *polygon, int *roads, taglist_t &out_tags)
 {
 #ifdef HAVE_LUA
-    switch (type) {
-    case OSMTYPE_NODE: {
-        lua_getglobal(L, m_node_func.c_str());
-        break;
-    }
-    case OSMTYPE_WAY: {
-        lua_getglobal(L, m_way_func.c_str());
-        break;
-    }
-    case OSMTYPE_RELATION: {
-        lua_getglobal(L, m_rel_func.c_str());
-        break;
-    }
+    switch (o.type()) {
+        case osmium::item_type::node:
+            lua_getglobal(L, m_node_func.c_str());
+            break;
+        case osmium::item_type::way:
+            lua_getglobal(L, m_way_func.c_str());
+            break;
+        case osmium::item_type::relation:
+            lua_getglobal(L, m_rel_func.c_str());
+            break;
+        default:
+            throw std::runtime_error("Unknown OSM type");
     }
 
     lua_newtable(L);    /* key value table */
 
-    for (taglist_t::const_iterator it = tags.begin(); it != tags.end(); ++it) {
-        lua_pushstring(L, it->key.c_str());
-        lua_pushstring(L, it->value.c_str());
+    lua_Integer sz = 0;
+    for (auto const &t: o.tags()) {
+        lua_pushstring(L, t.key());
+        lua_pushstring(L, t.value());
         lua_rawset(L, -3);
+        ++sz;
+    }
+    if (options->extra_attributes && o.version() > 0) {
+        taglist_t tags;
+        tags.add_attributes(o);
+        for (auto const &t: tags) {
+            lua_pushstring(L, t.key.c_str());
+            lua_pushstring(L, t.value.c_str());
+            lua_rawset(L, -3);
+        }
+        sz += tags.size();
     }
 
-    lua_pushinteger(L, tags.size());
+    lua_pushinteger(L, sz);
 
-    if (lua_pcall(L,2,type == OSMTYPE_WAY ? 4 : 2,0)) {
+    if (lua_pcall(L, 2, (o.type() == osmium::item_type::way) ? 4 : 2, 0)) {
         fprintf(stderr, "Failed to execute lua function for basic tag processing: %s\n", lua_tostring(L, -1));
         /* lua function failed */
         return 1;
     }
 
-    if (type == OSMTYPE_WAY) {
-        assert(roads);
-        *roads = lua_tointeger(L, -1);
+    if (o.type() == osmium::item_type::way) {
+        if (roads) {
+            *roads = lua_tointeger(L, -1);
+        }
         lua_pop(L,1);
-        assert(polygon);
-        *polygon = lua_tointeger(L, -1);
+        if (polygon) {
+            *polygon = lua_tointeger(L, -1);
+        }
         lua_pop(L,1);
     }
 
@@ -545,53 +538,53 @@ unsigned tagtransform::lua_filter_basic_tags(OsmType type, const taglist_t &tags
     while (lua_next(L,-2) != 0) {
         const char *key = lua_tostring(L,-2);
         const char *value = lua_tostring(L,-1);
-        out_tags.push_back(tag_t(key, value));
+        out_tags.emplace_back(key, value);
         lua_pop(L,1);
     }
 
-    int filter = lua_tointeger(L, -2);
+    bool filter = lua_tointeger(L, -2);
 
     lua_pop(L,2);
 
     return filter;
 #else
-    return 1;
+    return true;
 #endif
 }
 
 /* Go through the given tags and determine the union of flags. Also remove
  * any tags from the list that we don't know about */
-unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &tags, int *polygon,
-                                               int *roads, const export_list &exlist,
-                                               taglist_t &out_tags, bool strict)
+bool tagtransform::c_filter_basic_tags(osmium::OSMObject const &o, int *polygon,
+                                       int *roads, const export_list &exlist,
+                                       taglist_t &out_tags, bool strict)
 {
     //assume we dont like this set of tags
-    int filter = 1;
+    bool filter = true;
 
     int flags = 0;
     int add_area_tag = 0;
 
-    OsmType export_type;
-    if (type == OSMTYPE_RELATION) {
-        export_type = OSMTYPE_WAY;
-    } else {
-        export_type = type;
+    auto export_type = o.type();
+    if (o.type() == osmium::item_type::relation) {
+        export_type = osmium::item_type::way;
     }
     const std::vector<taginfo> &infos = exlist.get(export_type);
 
     /* We used to only go far enough to determine if it's a polygon or not,
        but now we go through and filter stuff we don't need
        pop each tag off and keep it in the temp list if we like it */
-    for (taglist_t::const_iterator item = tags.begin(); item != tags.end(); ++item) {
+    for (auto const &item : o.tags()) {
+        char const *k = item.key();
+        char const *v = item.value();
         //if we want to do more than the export list says
         if(!strict) {
-            if (type == OSMTYPE_RELATION && "type" == item->key) {
-                out_tags.push_back(*item);
-                filter = 0;
+            if (o.type() == osmium::item_type::relation && strcmp("type", k) == 0) {
+                out_tags.emplace_back(k, v);
+                filter = false;
                 continue;
             }
             /* Allow named islands to appear as polygons */
-            if ("natural" == item->key && "coastline" == item->value) {
+            if (strcmp("natural", k) == 0 && strcmp("coastline", v) == 0) {
                 add_area_tag = 1;
 
                 /* Discard natural=coastline tags (we render these from a shapefile instead) */
@@ -606,14 +599,14 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
         for (; i < infos.size(); i++) {
             const taginfo &info = infos[i];
             if (info.flags & FLAG_DELETE) {
-                if (wildMatch(info.name.c_str(), item->key.c_str())) {
+                if (wildMatch(info.name.c_str(), k)) {
                     break;
                 }
-            } else if (info.name == item->key) {
-                filter = 0;
+            } else if (strcmp(info.name.c_str(), k) == 0) {
+                filter = false;
                 flags |= info.flags;
 
-                out_tags.push_back(*item);
+                out_tags.emplace_back(k, v);
                 break;
             }
         }
@@ -623,36 +616,30 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
         if (i == infos.size() && !strict) {
             if (options->hstore_mode != HSTORE_NONE) {
                 /* with hstore, copy all tags... */
-                out_tags.push_back(*item);
+                out_tags.emplace_back(k, v);
                 /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
-                if (!options->hstore_match_only && "osm_uid" != item->key
-                        && "osm_user" != item->key
-                        && "osm_timestamp" != item->key
-                        && "osm_version" != item->key
-                        && "osm_changeset" != item->key)
-                    filter = 0;
+                if (!options->hstore_match_only)
+                    filter = false;
             } else if (options->hstore_columns.size() > 0) {
                 /* does this column match any of the hstore column prefixes? */
                 size_t j = 0;
                 for(; j < options->hstore_columns.size(); ++j) {
-                    size_t pos = item->key.find(options->hstore_columns[j]);
-                    if (pos == 0) {
-                        out_tags.push_back(*item);
+                    if (boost::starts_with(k, options->hstore_columns[j])) {
+                        out_tags.emplace_back(k, v);
                         /* ... but if hstore_match_only is set then don't take this
                          as a reason for keeping the object */
-                        if (!options->hstore_match_only
-                                && "osm_uid" != item->key
-                                && "osm_user" != item->key
-                                && "osm_timestamp" != item->key
-                                && "osm_version" != item->key
-                                && "osm_changeset" != item->key)
-                            filter = 0;
+                        if (!options->hstore_match_only) {
+                            filter = false;
+                        }
                         break;
                     }
                 }
             }
         }
+    }
+    if (options->extra_attributes && o.version() > 0) {
+        out_tags.add_attributes(o);
     }
 
     if (polygon) {
@@ -661,11 +648,15 @@ unsigned int tagtransform::c_filter_basic_tags(OsmType type, const taglist_t &ta
             out_tags.push_dedupe(tag_t("area", "yes"));
             *polygon = 1;
         } else {
-            *polygon = tags.get_bool("area", flags & FLAG_POLYGON);
+            auto const *area = o.tags()["area"];
+            if (area)
+                *polygon = taglist_t::value_to_bool(area, flags & FLAG_POLYGON);
+            else
+                *polygon = flags & FLAG_POLYGON;
         }
     }
 
-    if (roads && !filter && (type == OSMTYPE_WAY)) {
+    if (roads && !filter && (o.type() == osmium::item_type::way)) {
         add_z_order(out_tags, roads);
     }
 

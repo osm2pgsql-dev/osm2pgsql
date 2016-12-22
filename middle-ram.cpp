@@ -12,6 +12,8 @@
 #include <cassert>
 #include <cstdio>
 
+#include <osmium/builder/attr.hpp>
+
 #include "id-tracker.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
@@ -32,29 +34,30 @@
  */
 
 
-void middle_ram_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    cache->set(id, lat, lon, tags);
+void middle_ram_t::nodes_set(osmium::Node const &node, double lat, double lon)
+{
+    cache->set(node.id(), lat, lon);
 }
 
-void middle_ram_t::ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+void middle_ram_t::ways_set(osmium::Way const &way)
 {
-    ways.set(id, new ramWay(tags, nds));
+    ways.set(way.id(), new ramWay(way, out_options->extra_attributes));
 }
 
-void middle_ram_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+void middle_ram_t::relations_set(osmium::Relation const &rel)
 {
-    rels.set(id, new ramRel(tags, members));
+    rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
 }
 
-size_t middle_ram_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_ram_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
-    for (idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it) {
+    for (auto const &in : nds) {
         osmNode n;
-        if (!cache->get(&n, *it))
+        if (!cache->get(&n, in.ref()))
             out.push_back(n);
     }
 
-    return int(out.size());
+    return out.size();
 }
 
 void middle_ram_t::iterate_relations(pending_processor& pf)
@@ -94,7 +97,7 @@ void middle_ram_t::release_ways()
     ways.clear();
 }
 
-bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
+bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     if (simulate_ways_deleted) {
         return false;
@@ -106,44 +109,29 @@ bool middle_ram_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) cons
         return false;
     }
 
-    tags = ele->tags;
-    nodes_get_list(nodes, ele->ndids);
+    using namespace osmium::builder::attr;
+    osmium::builder::add_way(buffer, _id(id), _tags(ele->tags), _nodes(ele->ndids));
 
     return true;
 }
 
-size_t middle_ram_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                                multitaglist_t &tags, multinodelist_t &nodes) const
+size_t middle_ram_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty())
-    {
+    if (ids.empty()) {
         return 0;
     }
 
-    assert(way_ids.empty());
-    tags.assign(ids.size(), taglist_t());
-    nodes.assign(ids.size(), nodelist_t());
-
     size_t count = 0;
-    for (idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
-        if (ways_get(*it, tags[count], nodes[count])) {
-            way_ids.push_back(*it);
-            count++;
-        } else {
-            tags[count].clear();
-            nodes[count].clear();
+    for (auto const id: ids) {
+        if (ways_get(id, buffer)) {
+            ++count;
         }
     }
 
-    if (count < ids.size()) {
-        tags.resize(count);
-        nodes.resize(count);
-    }
-
-    return int(count);
+    return count;
 }
 
-bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_ram_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     auto const *ele = rels.get(id);
 
@@ -151,8 +139,9 @@ bool middle_ram_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &t
         return false;
     }
 
-    tags = ele->tags;
-    members = ele->members;
+    using namespace osmium::builder::attr;
+    osmium::builder::add_relation(buffer, _id(id), _members(ele->members.for_builder()),
+                                  _tags(ele->tags));
 
     return true;
 }
@@ -198,7 +187,7 @@ middle_ram_t::~middle_ram_t() {
     //instance.reset();
 }
 
-std::vector<osmid_t> middle_ram_t::relations_using_way(osmid_t way_id) const
+idlist_t middle_ram_t::relations_using_way(osmid_t way_id) const
 {
     // this function shouldn't be called - relations_using_way is only used in
     // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode

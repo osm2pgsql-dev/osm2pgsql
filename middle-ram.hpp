@@ -84,38 +84,37 @@ struct middle_ram_t : public middle_t {
     middle_ram_t();
     virtual ~middle_ram_t();
 
-    void start(const options_t *out_options_);
-    void stop(void);
-    void analyze(void);
-    void end(void);
-    void commit(void);
+    void start(const options_t *out_options_) override;
+    void stop(void) override;
+    void analyze(void) override;
+    void end(void) override;
+    void commit(void) override;
 
-    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
-    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
+    void nodes_set(osmium::Node const &node, double lat, double lon) override;
+    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
-    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
-    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
-    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                      multitaglist_t &tags, multinodelist_t &nodes) const;
+    void ways_set(osmium::Way const &way) override;
+    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const override;
 
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
-    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
-    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    void relations_set(osmium::Relation const &rel) override;
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
 
-    std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const override;
 
-    void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(pending_processor& pf);
+    void iterate_ways(middle_t::pending_processor& pf) override;
+    void iterate_relations(pending_processor& pf) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    virtual std::shared_ptr<const middle_query_t> get_instance() const;
+    std::shared_ptr<const middle_query_t> get_instance() const override;
 private:
 
     void release_ways();
@@ -125,14 +124,24 @@ private:
         taglist_t tags;
         idlist_t ndids;
 
-        ramWay(const taglist_t &t, const idlist_t &n) : tags(t), ndids(n) {}
+        ramWay(osmium::Way const &way, bool add_attributes)
+        : tags(way.tags()), ndids(way.nodes())
+        {
+            if (add_attributes)
+                tags.add_attributes(way);
+        }
     };
 
     struct ramRel {
         taglist_t tags;
         memberlist_t members;
 
-        ramRel(const taglist_t &t, const memberlist_t &m) : tags(t), members(m) {}
+        ramRel(osmium::Relation const &rel, bool add_attributes)
+        : tags(rel.tags()), members(rel.members())
+        {
+            if (add_attributes)
+                tags.add_attributes(rel);
+        }
     };
 
     elem_cache_t<ramWay, 10> ways;

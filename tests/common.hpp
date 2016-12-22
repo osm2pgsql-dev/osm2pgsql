@@ -10,8 +10,7 @@ namespace testing {
     void parse(const char *filename, const char *format,
                 const options_t &options, osmdata_t *osmdata)
     {
-        parse_osmium_t parser(options.extra_attributes, options.bbox,
-                              options.projection.get(), options.append, osmdata);
+        parse_osmium_t parser(options.bbox, options.append, osmdata);
 
         osmdata->start();
         parser.stream_file(filename, format);

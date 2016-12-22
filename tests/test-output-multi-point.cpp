@@ -45,11 +45,11 @@ int main(int argc, char *argv[]) {
             geometry_processor::create("point", &options);
 
         export_list columns;
-        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(OSMTYPE_NODE, info); }
+        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(osmium::item_type::node, info); }
 
         auto out_test = std::make_shared<output_multi_t>("foobar_amenities", processor, columns, mid_pgsql.get(), options);
 
-        osmdata_t osmdata(mid_pgsql, out_test);
+        osmdata_t osmdata(mid_pgsql, out_test, options.projection);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

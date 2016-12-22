@@ -9,6 +9,8 @@
 
 #include "osmtypes.hpp"
 
+#include <osmium/memory/buffer.hpp>
+
 #include <cstddef>
 #include <memory>
 
@@ -20,25 +22,33 @@ struct options_t;
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
-    virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
+    virtual size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const = 0;
 
     /**
-     * Retrives a single way from the ways storage.
+     * Retrives a single way from the ways storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the way to retrive
+     * \param buffer osmium buffer where to put the way
+     *
+     * The function does not retrieve the node locations.
+     *
      * \return true if the way was retrieved
-     * \param id id of the way to retrive
      */
-    virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
+    virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
-    virtual size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                              multitaglist_t &tags,
-                              multinodelist_t &nodes) const = 0;
+    virtual size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const = 0;
 
     /**
-     * Retrives a single relation from the relation storage.
+     * Retrives a single relation from the relation storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the relation to retrive
+     * \param buffer osmium buffer where to put the relation
+     *
      * \return true if the relation was retrieved
-     * \param id id of the relation to retrive
      */
-    virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
+    virtual bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member
@@ -63,9 +73,9 @@ struct middle_t : public middle_query_t {
     virtual void end(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) = 0;
-    virtual void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual void nodes_set(osmium::Node const &node, double lat, double lon) = 0;
+    virtual void ways_set(osmium::Way const &way) = 0;
+    virtual void relations_set(osmium::Relation const &rel) = 0;
 
     struct pending_processor {
         virtual ~pending_processor() {}

@@ -11,13 +11,18 @@
 #include "osmdata.hpp"
 #include "output.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_): mid(mid_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+                     std::shared_ptr<output_t> const &out_,
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), projection(proj)
 {
     outs.push_back(out_);
 }
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::vector<std::shared_ptr<output_t> > &outs_)
-    : mid(mid_), outs(outs_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+                     std::vector<std::shared_ptr<output_t> > const &outs_,
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), outs(outs_), projection(proj)
 {
     if (outs.empty()) {
         throw std::runtime_error("Must have at least one output, but none have "
@@ -29,86 +34,97 @@ osmdata_t::~osmdata_t()
 {
 }
 
-int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    mid->nodes_set(id, lat, lon, tags);
+int osmdata_t::node_add(osmium::Node const &node)
+{
+    auto c = projection->reproject(node.location());
+
+    mid->nodes_set(node, c.y, c.x);
 
     // guarantee that we use the same values as in the node cache
-    ramNode n(lon, lat);
+    ramNode n(c.x, c.y);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_add(id, n.lat(), n.lon(), tags);
+        status |= out->node_add(node, n.lat(), n.lon());
     }
     return status;
 }
 
-int osmdata_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
-    mid->ways_set(id, nodes, tags);
+int osmdata_t::way_add(osmium::Way const &way)
+{
+    mid->ways_set(way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_add(id, nodes, tags);
+        status |= out->way_add(way);
     }
     return status;
 }
 
-int osmdata_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
-    mid->relations_set(id, members, tags);
+int osmdata_t::relation_add(osmium::Relation const &rel)
+{
+    mid->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_add(id, members, tags);
+        status |= out->relation_add(rel);
     }
     return status;
 }
 
-int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) {
+int osmdata_t::node_modify(osmium::Node const &node)
+{
+    auto c = projection->reproject(node.location());
+
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->nodes_delete(id);
-    slim->nodes_set(id, lat, lon, tags);
+    slim->nodes_delete(node.id());
+    slim->nodes_set(node, c.y, c.x);
 
     // guarantee that we use the same values as in the node cache
-    ramNode n(lon, lat);
+    ramNode n(c.x, c.y);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_modify(id, n.lat(), n.lon(), tags);
+        status |= out->node_modify(node, n.lat(), n.lon());
     }
 
-    slim->node_changed(id);
+    slim->node_changed(node.id());
 
     return status;
 }
 
-int osmdata_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
+int osmdata_t::way_modify(osmium::Way const &way)
+{
+    idlist_t nodes(way.nodes());
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->ways_delete(id);
-    slim->ways_set(id, nodes, tags);
+    slim->ways_delete(way.id());
+    slim->ways_set(way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_modify(id, nodes, tags);
+        status |= out->way_modify(way);
     }
 
-    slim->way_changed(id);
+    slim->way_changed(way.id());
 
     return status;
 }
 
-int osmdata_t::relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
+int osmdata_t::relation_modify(osmium::Relation const &rel)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->relations_delete(id);
-    slim->relations_set(id, members, tags);
+    slim->relations_delete(rel.id());
+    slim->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_modify(id, members, tags);
+        status |= out->relation_modify(rel);
     }
 
-    slim->relation_changed(id);
+    slim->relation_changed(rel.id());
 
     return status;
 }

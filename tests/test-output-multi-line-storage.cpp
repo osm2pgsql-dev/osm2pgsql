@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
         std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
+        osmdata_t osmdata(middle, outputs, options.projection);
 
         testing::parse("tests/test_output_multi_line_storage.osm", "xml",
                        options, &osmdata);

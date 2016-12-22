@@ -32,55 +32,56 @@ public:
     output_multi_t(const output_multi_t& other);
     virtual ~output_multi_t();
 
-    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
+    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
 
-    int start();
-    void stop();
-    void commit();
+    int start() override;
+    void stop() override;
+    void commit() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_way(osmid_t id, int exists);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_relation(osmid_t id, int exists);
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_relation(osmid_t id, int exists) override;
 
-    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int way_add(osmium::Way const &way) override;
+    int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int way_modify(osmium::Way const &way) override;
+    int relation_modify(osmium::Relation const &rel) override;
 
-    int node_delete(osmid_t id);
-    int way_delete(osmid_t id);
-    int relation_delete(osmid_t id);
+    int node_delete(osmid_t id) override;
+    int way_delete(osmid_t id) override;
+    int relation_delete(osmid_t id) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    void merge_pending_relations(output_t *other);
-    void merge_expire_trees(output_t *other);
+    void merge_pending_relations(output_t *other) override;
+    void merge_expire_trees(output_t *other) override;
 
 protected:
 
     void delete_from_output(osmid_t id);
-    int process_node(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int process_way(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int reprocess_way(osmid_t id, const nodelist_t &nodes, const taglist_t &tags, bool exists);
-    int process_relation(osmid_t id, const memberlist_t &members, const taglist_t &tags, bool exists, bool pending=false);
+    int process_node(osmium::Node const &node, double lat, double lon);
+    int process_way(osmium::Way const &way);
+    int reprocess_way(osmium::Way const &way, bool exists);
+    int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
     void copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon);
 
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
-    const OsmType m_osm_type;
+    osmium::item_type const m_osm_type;
     std::unique_ptr<table_t> m_table;
     id_tracker ways_pending_tracker, rels_pending_tracker;
     std::shared_ptr<id_tracker> ways_done_tracker;
     expire_tiles m_expire;
     way_helper m_way_helper;
     relation_helper m_relation_helper;
+    osmium::memory::Buffer buffer;
 };
 
 #endif

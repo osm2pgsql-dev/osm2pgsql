@@ -5,8 +5,12 @@
 #include <string>
 #include <vector>
 #include <memory>
+
+#include <osmium/memory/buffer.hpp>
+
 #include "geometry-builder.hpp"
 #include "osmtypes.hpp"
+#include "tagtransform.hpp"
 
 struct middle_query_t;
 struct middle_t;
@@ -75,7 +79,7 @@ struct way_helper
 {
     way_helper();
     ~way_helper();
-    size_t set(const idlist_t &node_ids, const middle_query_t *mid);
+    size_t set(osmium::WayNodeList const &node_ids, const middle_query_t *mid);
 
     nodelist_t node_cache;
 };
@@ -85,14 +89,16 @@ struct relation_helper
 {
     relation_helper();
     ~relation_helper();
-    size_t set(const memberlist_t *member_list, const middle_t *mid);
+    size_t set(osmium::RelationMemberList const &member_list, middle_t const *mid);
+    multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
+    multinodelist_t get_nodes(middle_t const *mid) const;
 
-    const memberlist_t *members;
-    multitaglist_t tags;
-    multinodelist_t nodes;
-    idlist_t ways;
+    osmium::memory::ItemIteratorRange<const osmium::Way> way_iterator() const
+    { return data.select<osmium::Way>(); }
+
     rolelist_t roles;
     std::vector<int> superseeded;
+    osmium::memory::Buffer data;
 
 private:
     idlist_t input_way_ids;

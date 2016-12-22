@@ -20,36 +20,35 @@ struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
     virtual ~middle_pgsql_t();
 
-    void start(const options_t *out_options_);
-    void stop(void);
-    void analyze(void);
-    void end(void);
-    void commit(void);
+    void start(const options_t *out_options_) override;
+    void stop(void) override;
+    void analyze(void) override;
+    void end(void) override;
+    void commit(void) override;
 
-    void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
-    size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const;
-    void nodes_delete(osmid_t id);
-    void node_changed(osmid_t id);
+    void nodes_set(osmium::Node const &node, double lat, double lon) override;
+    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
+    void nodes_delete(osmid_t id) override;
+    void node_changed(osmid_t id) override;
 
-    void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags);
-    bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const;
-    size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                      multitaglist_t &tags, multinodelist_t &nodes) const;
+    void ways_set(osmium::Way const &way) override;
+    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    size_t ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const override;
 
-    void ways_delete(osmid_t id);
-    void way_changed(osmid_t id);
+    void ways_delete(osmid_t id) override;
+    void way_changed(osmid_t id) override;
 
-    bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const;
-    void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags);
-    void relations_delete(osmid_t id);
-    void relation_changed(osmid_t id);
+    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    void relations_set(osmium::Relation const &rel) override;
+    void relations_delete(osmid_t id) override;
+    void relation_changed(osmid_t id) override;
 
-    void iterate_ways(middle_t::pending_processor& pf);
-    void iterate_relations(pending_processor& pf);
+    void iterate_ways(middle_t::pending_processor& pf) override;
+    void iterate_relations(pending_processor& pf) override;
 
-    size_t pending_count() const;
+    size_t pending_count() const override;
 
-    std::vector<osmid_t> relations_using_way(osmid_t way_id) const;
+    idlist_t relations_using_way(osmid_t way_id) const override;
 
     struct table_desc {
         table_desc(const char *name_ = NULL,
@@ -79,7 +78,7 @@ struct middle_pgsql_t : public slim_middle_t {
         struct pg_conn *sql_conn;
     };
 
-    virtual std::shared_ptr<const middle_query_t> get_instance() const;
+    std::shared_ptr<const middle_query_t> get_instance() const override;
 private:
     void pgsql_stop_one(table_desc *table);
 
@@ -87,8 +86,8 @@ private:
      * Sets up sql_conn for the table
      */
     void connect(table_desc& table);
-    void local_nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags);
-    size_t local_nodes_get_list(nodelist_t &out, const idlist_t nds) const;
+    void local_nodes_set(osmium::Node const &node, double lat, double lon);
+    size_t local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const;
     void local_nodes_delete(osmid_t osm_id);
 
     std::vector<table_desc> tables;
@@ -103,9 +102,8 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_nodes(idlist_t const &nodes);
     void buffer_store_string(std::string const &in, bool escape);
-    void buffer_store_tags(taglist_t const &tags, bool escape);
+    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
 
     void buffer_correct_params(char const **param, size_t size);
 

@@ -396,7 +396,7 @@ node_ram_cache::~node_ram_cache() {
   }
 }
 
-void node_ram_cache::set(osmid_t id, double lat, double lon, const taglist_t &) {
+void node_ram_cache::set(osmid_t id, double lat, double lon) {
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) || (id < 0 && ~id >> BLOCK_SHIFT >> 32 )) {
         fprintf(stderr, "\nAbsolute node IDs must not be larger than %" PRId64 " (got%" PRId64 " )\n",
                 (int64_t) 1 << 42, (int64_t) id);

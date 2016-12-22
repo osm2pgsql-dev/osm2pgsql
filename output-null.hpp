@@ -12,30 +12,30 @@ public:
     output_null_t(const output_null_t& other);
     virtual ~output_null_t();
 
-    virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const;
+    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
 
-    int start();
-    void stop();
-    void commit();
+    int start() override;
+    void stop() override;
+    void commit() override;
     void cleanup(void);
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_way(osmid_t id, int exists);
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added);
-    int pending_relation(osmid_t id, int exists);
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    int pending_relation(osmid_t id, int exists) override;
 
-    int node_add(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int way_add(osmium::Way const &way) override;
+    int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmid_t id, double lat, double lon, const taglist_t &tags);
-    int way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags);
-    int relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags);
+    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int way_modify(osmium::Way const &way) override;
+    int relation_modify(osmium::Relation const &rel) override;
 
-    int node_delete(osmid_t id);
-    int way_delete(osmid_t id);
-    int relation_delete(osmid_t id);
+    int node_delete(osmid_t id) override;
+    int way_delete(osmid_t id) override;
+    int relation_delete(osmid_t id) override;
 };
 
 #endif

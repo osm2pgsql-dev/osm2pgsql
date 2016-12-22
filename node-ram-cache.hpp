@@ -109,7 +109,7 @@ struct node_ram_cache : public boost::noncopyable
     node_ram_cache(int strategy, int cacheSizeMB, int fixpointscale);
     ~node_ram_cache();
 
-    void set(osmid_t id, double lat, double lon, const taglist_t &tags);
+    void set(osmid_t id, double lat, double lon);
     int get(osmNode *out, osmid_t id);
 
 private:

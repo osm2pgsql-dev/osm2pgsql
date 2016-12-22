@@ -27,6 +27,8 @@ using namespace std;
 #include <future>
 
 #include <boost/format.hpp>
+#include <osmium/memory/buffer.hpp>
+#include <osmium/builder/osm_object_builder.hpp>
 
 #include <libpq-fe.h>
 
@@ -96,43 +98,66 @@ inline const char *decode_upto( const char *src, char *dst )
   return src;
 }
 
-void pgsql_parse_tags(const char *string, taglist_t &tags)
+template <typename T>
+void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer, T &obuilder)
 {
-  char key[1024];
-  char val[1024];
+    if( *string++ != '{' )
+        return;
 
-  if( *string == '\0' )
-    return;
+    char key[1024];
+    char val[1024];
+    osmium::builder::TagListBuilder builder(buffer, &obuilder);
 
-  if( *string++ != '{' )
-    return;
-  while( *string != '}' )
-  {
-    string = decode_upto( string, key );
-    // String points to the comma */
-    string++;
-    string = decode_upto( string, val );
-    // String points to the comma or closing '}' */
-    tags.push_back(tag_t(key, val));
-    if( *string == ',' )
-      string++;
-  }
+    while( *string != '}' ) {
+        string = decode_upto(string, key);
+        // String points to the comma */
+        string++;
+        string = decode_upto(string, val);
+        builder.add_tag(key, val);
+        // String points to the comma or closing '}' */
+        if( *string == ',' ) {
+            string++;
+        }
+    }
 }
 
-// Parses an array of integers */
-void pgsql_parse_nodes(const char *string, idlist_t &nds)
+void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
+                         osmium::builder::RelationBuilder &obuilder)
 {
-  if( *string++ != '{' )
-    return;
+    if( *string++ != '{' )
+        return;
 
-  while( *string != '}' )
-  {
-    char *ptr;
-    nds.push_back(strtoosmid( string, &ptr, 10 ));
-    string = ptr;
-    if( *string == ',' )
-      string++;
-  }
+    char role[1024];
+    osmium::builder::RelationMemberListBuilder builder(buffer, &obuilder);
+
+    while( *string != '}' ) {
+        char type = string[0];
+        char *endp;
+        osmid_t id = strtoosmid(string + 1, &endp, 10);
+        // String points to the comma */
+        string = decode_upto(endp + 1, role);
+        builder.add_member(osmium::char_to_item_type(type), id, role);
+        // String points to the comma or closing '}' */
+        if( *string == ',' ) {
+            string++;
+        }
+    }
+}
+
+void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
+                         osmium::builder::WayBuilder &builder)
+{
+    if (*string++ == '{') {
+        osmium::builder::WayNodeListBuilder wnl_builder(buffer, &builder);
+        while (*string != '}') {
+            char *ptr;
+            wnl_builder.add_node_ref(strtoosmid(string, &ptr, 10));
+            string = ptr;
+            if (*string == ',') {
+                string++;
+            }
+        }
+    }
 }
 
 int pgsql_endCopy(middle_pgsql_t::table_desc *table)
@@ -159,23 +184,6 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
 }
 } // anonymous namespace
 
-
-void middle_pgsql_t::buffer_store_nodes(idlist_t const &nds)
-{
-    if (nds.size() == 0) {
-        copy_buffer += "{}";
-        return;
-    }
-
-    copy_buffer += "{";
-
-    for (auto const &it : nds) {
-        copy_buffer += std::to_string(it);
-        copy_buffer += ',';
-    }
-
-    copy_buffer[copy_buffer.size() - 1] = '}';
-}
 
 void middle_pgsql_t::buffer_store_string(std::string const &in, bool escape)
 {
@@ -209,25 +217,31 @@ void middle_pgsql_t::buffer_store_string(std::string const &in, bool escape)
 }
 
 // escape means we return '\N' for copy mode, otherwise we return just nullptr
-void middle_pgsql_t::buffer_store_tags(taglist_t const &tags, bool escape)
+void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs,
+                                       bool escape)
 {
     copy_buffer += "{";
 
-    bool first = true;
-    for (auto const &it : tags) {
-        if (!first) {
-            copy_buffer += ',';
-        }
+    for (auto const &it : obj.tags()) {
         copy_buffer += "\"";
-        buffer_store_string(it.key, escape);
+        buffer_store_string(it.key(), escape);
         copy_buffer += "\",\"";
-        buffer_store_string(it.value, escape);
-        copy_buffer += '"';
-
-        first = false;
+        buffer_store_string(it.value(), escape);
+        copy_buffer += "\",";
+    }
+    if (attrs) {
+        taglist_t extra;
+        extra.add_attributes(obj);
+        for (auto const &it : extra) {
+            copy_buffer += "\"";
+            copy_buffer += it.key;
+            copy_buffer += "\",\"";
+            buffer_store_string(it.value.c_str(), escape);
+            copy_buffer += "\",";
+        }
     }
 
-    copy_buffer += "}";
+    copy_buffer[copy_buffer.size() - 1] = '}';
 }
 
 void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
@@ -242,16 +256,16 @@ void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
     }
 }
 
-void middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon,
-                                     const taglist_t &tags)
+void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
+                                     double lat, double lon)
 {
-    copy_buffer.reserve(tags.size() * 24 + 64);
+    copy_buffer.reserve(node.tags().byte_size() + 100);
 
     bool copy = node_table->copyMode;
     char delim = copy ? '\t' : '\0';
     const char *paramValues[4] = { copy_buffer.c_str(), };
 
-    copy_buffer = std::to_string(id);
+    copy_buffer = std::to_string(node.id());
     copy_buffer += delim;
 
 #ifdef FIXED_POINT
@@ -273,12 +287,12 @@ void middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon,
     copy_buffer += delim;
 #endif
 
-    if (tags.size() == 0) {
+    if (node.tags().empty() && !out_options->extra_attributes) {
         paramValues[3] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[3] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(tags, copy);
+        buffer_store_tags(node, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -292,7 +306,7 @@ void middle_pgsql_t::local_nodes_set(osmid_t id, double lat, double lon,
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
     assert(out.empty());
 
@@ -305,10 +319,11 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2, "{");
     int countDB = 0;
-    for(idlist_t::const_iterator it = nds.begin(); it != nds.end(); ++it) {
+    out.reserve(nds.size());
+    for (auto const &n : nds) {
         // Check cache first */
         osmNode loc;
-        if (cache->get(&loc, *it) == 0) {
+        if (cache->get(&loc, n.ref()) == 0) {
             out.push_back(loc);
             continue;
         }
@@ -317,7 +332,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
         // Mark nodes as needing to be fetched from the DB */
         out.push_back(osmNode());
 
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", *it);
+        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
         strncat(tmp2, tmp, sizeof(char)*(nds.size()*16 - 2));
     }
     tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
@@ -363,7 +378,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); ++i) {
         if (std::isnan(out[i].lat)) {
-            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i]);
+            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i].ref());
             if(found != pg_nodes.end()) {
                 out[wrtidx] = found->second;
                 ++wrtidx;
@@ -380,17 +395,18 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, const idlist_t nds)
 }
 
 
-void middle_pgsql_t::nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    cache->set( id, lat, lon, tags );
+void middle_pgsql_t::nodes_set(osmium::Node const &node, double lat, double lon)
+{
+    cache->set(node.id(), lat, lon);
 
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(id, lat, lon);
+        persistent_cache->set(node.id(), lat, lon);
     } else {
-        local_nodes_set(id, lat, lon, tags);
+        local_nodes_set(node, lat, lon);
     }
 }
 
-size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, const idlist_t nds) const
+size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
 {
     return (out_options->flat_node_cache_enabled)
              ? persistent_cache->get_list(out, nds)
@@ -455,27 +471,36 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     PQclear(res);
 }
 
-void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist_t &tags)
+void middle_pgsql_t::ways_set(osmium::Way const &way)
 {
-    copy_buffer.reserve(nds.size() * 10 + tags.size() * 24 + 64);
+    copy_buffer.reserve(way.nodes().size() * 10 + way.tags().byte_size() + 100);
     bool copy = way_table->copyMode;
     char delim = copy ? '\t' : '\0';
     // Three params: id, nodes, tags */
     const char *paramValues[4] = { copy_buffer.c_str(), };
 
-    copy_buffer = std::to_string(way_id);
+    copy_buffer = std::to_string(way.id());
     copy_buffer += delim;
 
     paramValues[1] = paramValues[0] + copy_buffer.size();
-    buffer_store_nodes(nds);
+    if (way.nodes().size() == 0) {
+        copy_buffer += "{}";
+    } else {
+        copy_buffer += "{";
+        for (auto const &n : way.nodes()) {
+            copy_buffer += std::to_string(n.ref());
+            copy_buffer += ',';
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
+    }
     copy_buffer += delim;
 
-    if (tags.size() == 0) {
+    if (way.tags().empty() && !out_options->extra_attributes) {
         paramValues[2] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[2] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(tags, copy);
+        buffer_store_tags(way, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -488,13 +513,13 @@ void middle_pgsql_t::ways_set(osmid_t way_id, const idlist_t &nds, const taglist
     }
 }
 
-bool middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const
+bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     char const *paramValues[1];
     PGconn *sql_conn = way_table->sql_conn;
 
     // Make sure we're out of copy mode */
-    pgsql_endCopy( way_table );
+    pgsql_endCopy(way_table);
 
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
@@ -507,24 +532,22 @@ bool middle_pgsql_t::ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) co
         return false;
     }
 
-    pgsql_parse_tags( PQgetvalue(res, 0, 1), tags );
+    {
+        osmium::builder::WayBuilder builder(buffer);
+        builder.set_id(id);
 
-    size_t num_nodes = strtoul(PQgetvalue(res, 0, 2), nullptr, 10);
-    idlist_t list;
-    pgsql_parse_nodes( PQgetvalue(res, 0, 0), list);
-    if (num_nodes != list.size()) {
-        fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
-                tmp, num_nodes, list.size());
-        util::exit_nicely();
+        pgsql_parse_nodes(PQgetvalue(res, 0, 0), buffer, builder);
+        pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
     }
-    PQclear(res);
 
-    nodes_get_list(nodes, list);
+    PQclear(res);
+    buffer.commit();
+
     return true;
 }
 
-size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                                  multitaglist_t &tags, multinodelist_t &nodes) const {
+size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
+{
     if (ids.empty())
         return 0;
 
@@ -536,8 +559,8 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 
     // create a list of ids in tmp2 to query the database  */
     sprintf(tmp2.get(), "{");
-    for(idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", *it);
+    for (auto id : ids) {
+        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", id);
         strncat(tmp2.get(), tmp, sizeof(char)*(ids.size()*16 - 2));
     }
     tmp2[strlen(tmp2.get()) - 1] = '}'; // replace last , with } to complete list of ids*/
@@ -559,35 +582,28 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, idlist_t &way_ids,
 
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
-    for(idlist_t::const_iterator it = ids.begin(); it != ids.end(); ++it) {
+    int outres = 0;
+    for (auto id : ids) {
         for (int j = 0; j < countPG; j++) {
-            if (*it == wayidspg[j]) {
-                way_ids.push_back(*it);
-                tags.push_back(taglist_t());
-                pgsql_parse_tags(PQgetvalue(res, j, 2), tags.back());
+            if (id == wayidspg[j]) {
+                {
+                    osmium::builder::WayBuilder builder(buffer);
+                    builder.set_id(id);
 
-                size_t num_nodes = strtoul(PQgetvalue(res, j, 3), nullptr, 10);
-                idlist_t list;
-                pgsql_parse_nodes( PQgetvalue(res, j, 1), list);
-                if (num_nodes != list.size()) {
-                    fprintf(stderr, "parse_nodes problem for way %s: expected nodes %zu got %zu\n",
-                            tmp, num_nodes, list.size());
-                    util::exit_nicely();
+                    pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer, builder);
+                    pgsql_parse_tags(PQgetvalue(res, j, 2), buffer, builder);
                 }
 
-                nodes.push_back(nodelist_t());
-                nodes_get_list(nodes.back(), list);
-
+                buffer.commit();
+                outres++;
                 break;
             }
         }
     }
 
-    assert(way_ids.size() <= ids.size());
-
     PQclear(res);
 
-    return way_ids.size();
+    return outres;
 }
 
 
@@ -644,74 +660,71 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     PQclear(res);
 }
 
-void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+void middle_pgsql_t::relations_set(osmium::Relation const &rel)
 {
-    taglist_t member_list;
-    char buf[64];
+    idlist_t parts[3];
 
-    idlist_t all_parts, node_parts, way_parts, rel_parts;
-    all_parts.reserve(members.size());
-    node_parts.reserve(members.size());
-    way_parts.reserve(members.size());
-    rel_parts.reserve(members.size());
-
-    for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it) {
-        char type = 0;
-        switch (it->type)
-        {
-            case OSMTYPE_NODE:     node_parts.push_back(it->id); type = 'n'; break;
-            case OSMTYPE_WAY:      way_parts.push_back(it->id); type = 'w'; break;
-            case OSMTYPE_RELATION: rel_parts.push_back(it->id); type = 'r'; break;
-            default:
-                fprintf(stderr, "Internal error: Unknown member type %d\n", it->type);
-                util::exit_nicely();
-        }
-        sprintf( buf, "%c%" PRIdOSMID, type, it->id );
-        member_list.push_back(tag_t(buf, it->role));
+    for (auto const &m : rel.members()) {
+        parts[osmium::item_type_to_nwr_index(m.type())].push_back(m.ref());
     }
 
-    all_parts.insert(all_parts.end(), node_parts.begin(), node_parts.end());
-    all_parts.insert(all_parts.end(), way_parts.begin(), way_parts.end());
-    all_parts.insert(all_parts.end(), rel_parts.begin(), rel_parts.end());
-
-    copy_buffer.reserve(all_parts.size() * 10 + member_list.size() * 24
-                        + tags.size() * 24 + 64);
+    copy_buffer.reserve(rel.members().byte_size() * 2 + rel.tags().byte_size() + 128);
 
     // Params: id, way_off, rel_off, parts, members, tags */
     const char *paramValues[6] = { copy_buffer.c_str(), };
     bool copy = rel_table->copyMode;
     char delim = copy ? '\t' : '\0';
 
-    copy_buffer = std::to_string(id);
+    copy_buffer = std::to_string(rel.id());
     copy_buffer+= delim;
 
     paramValues[1] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(node_parts.size());
+    copy_buffer += std::to_string(parts[0].size());
     copy_buffer+= delim;
 
     paramValues[2] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(node_parts.size() + way_parts.size());
+    copy_buffer += std::to_string(parts[0].size() + parts[1].size());
     copy_buffer+= delim;
 
     paramValues[3] = paramValues[0] + copy_buffer.size();
-    buffer_store_nodes(all_parts);
+    if (rel.members().empty()) {
+        copy_buffer += "{}";
+    } else {
+        copy_buffer += "{";
+        for (int i = 0; i < 3; ++i) {
+            for (auto it : parts[i]) {
+                copy_buffer += std::to_string(it);
+                copy_buffer += ',';
+            }
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
+    }
     copy_buffer+= delim;
 
-    if (member_list.size() == 0) {
+    if (rel.members().empty()) {
         paramValues[4] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[4] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(member_list, copy);
+        copy_buffer += "{";
+        for (auto const &m : rel.members()) {
+            copy_buffer += '"';
+            copy_buffer += osmium::item_type_to_char(m.type());
+            copy_buffer += std::to_string(m.ref());
+            copy_buffer += "\",\"";
+            buffer_store_string(m.role(), copy);
+            copy_buffer += "\",";
+        }
+        copy_buffer[copy_buffer.size() - 1] = '}';
     }
     copy_buffer+= delim;
 
-    if (tags.size() == 0) {
+    if (rel.tags().empty() && !out_options->extra_attributes) {
         paramValues[5] = nullptr;
         copy_buffer += "\\N";
     } else {
         paramValues[5] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(tags, copy);
+        buffer_store_tags(rel, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -724,7 +737,7 @@ void middle_pgsql_t::relations_set(osmid_t id, const memberlist_t &members, cons
     }
 }
 
-bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const
+bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     char tmp[16];
     char const *paramValues[1];
@@ -732,7 +745,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
     taglist_t member_temp;
 
     // Make sure we're out of copy mode */
-    pgsql_endCopy( rel_table );
+    pgsql_endCopy(rel_table);
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
@@ -745,23 +758,17 @@ bool middle_pgsql_t::relations_get(osmid_t id, memberlist_t &members, taglist_t 
         return false;
     }
 
-    pgsql_parse_tags(PQgetvalue(res, 0, 1), tags);
-    pgsql_parse_tags(PQgetvalue(res, 0, 0), member_temp);
+    {
+        osmium::builder::RelationBuilder builder(buffer);
+        builder.set_id(id);
 
-    if (member_temp.size() != strtoul(PQgetvalue(res, 0, 2), nullptr, 10)) {
-        fprintf(stderr, "Unexpected member_count reading relation %" PRIdOSMID "\n", id);
-        util::exit_nicely();
+        pgsql_parse_members(PQgetvalue(res, 0, 0), buffer, builder);
+        pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
     }
 
     PQclear(res);
+    buffer.commit();
 
-    for (taglist_t::const_iterator it = member_temp.begin(); it != member_temp.end(); ++it) {
-        char tag = it->key[0];
-        OsmType type = (tag == 'n')?OSMTYPE_NODE:(tag == 'w')?OSMTYPE_WAY:(tag == 'r')?OSMTYPE_RELATION:((OsmType)-1);
-        members.push_back(member(type,
-                                 strtoosmid(it->key.c_str()+1, nullptr, 10 ),
-                                 it->value));
-    }
     return true;
 }
 
@@ -843,7 +850,8 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     PGresult *result = pgsql_execPrepared(rel_table->sql_conn, "rels_using_way",
                                           1, paramValues, PGRES_TUPLES_OK );
     const int ntuples = PQntuples(result);
-    idlist_t rel_ids(ntuples);
+    idlist_t rel_ids;
+    rel_ids.resize((size_t) ntuples);
     for (int i = 0; i < ntuples; ++i) {
         rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), nullptr, 10);
     }

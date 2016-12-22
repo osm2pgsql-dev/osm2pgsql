@@ -57,7 +57,7 @@ struct node_persistent_cache : public boost::noncopyable
 
     void set(osmid_t id, double lat, double lon);
     int get(osmNode *out, osmid_t id);
-    size_t get_list(nodelist_t &out, const idlist_t nds);
+    size_t get_list(nodelist_t &out, osmium::WayNodeList const &nds);
 
 private:
 
