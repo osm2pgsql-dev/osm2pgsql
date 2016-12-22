@@ -1141,6 +1141,7 @@ middle_pgsql_t::middle_pgsql_t()
     : tables(), num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
       append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(true)
 {
+    // clang-format off
     /*table = t_node,*/
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
@@ -1201,6 +1202,7 @@ middle_pgsql_t::middle_pgsql_t()
             /*stop*/  "COMMIT;\n",
    /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          ));
+    // clang-format on
 
     // set up the rest of the variables from the tables.
     num_tables = tables.size();
