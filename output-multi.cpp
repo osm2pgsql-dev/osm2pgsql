@@ -376,7 +376,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         int make_boundary, make_polygon = 1;
         taglist_t outtags;
         filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
-                                                        &m_relation_helper.superseeded.front(),
+                                                        &m_relation_helper.superseded.front(),
                                                         &make_boundary, &make_polygon, &roads,
                                                         *m_export_list.get(), outtags, true);
         if (!filter)
@@ -396,7 +396,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
             size_t i = 0;
             for (auto const &w : m_relation_helper.way_iterator()) {
                 //tags matched so we are keeping this one with this relation
-                if (m_relation_helper.superseeded[i]) {
+                if (m_relation_helper.superseded[i]) {
                     //just in case it wasnt previously with this relation we get rid of them
                     way_delete(w.id());
                     //the other option is that we marked them pending in the way processing so here we mark them

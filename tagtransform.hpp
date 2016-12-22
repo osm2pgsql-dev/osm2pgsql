@@ -28,7 +28,7 @@ public:
                      taglist_t &out_tags, bool strict = false);
     unsigned filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &member_tags, const rolelist_t &member_roles,
-        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        int *member_superseded, int *make_boundary, int *make_polygon, int *roads,
         const export_list &exlist, taglist_t &out_tags, bool allow_typeless = false);
 
 private:
@@ -39,7 +39,7 @@ private:
                              taglist_t &out_tags, bool strict);
     unsigned int lua_filter_rel_member_tags(const taglist_t &rel_tags,
         const multitaglist_t &members_tags, const rolelist_t &member_roles,
-        int *member_superseeded, int *make_boundary, int *make_polygon, int *roads,
+        int *member_superseded, int *make_boundary, int *make_polygon, int *roads,
         taglist_t &out_tags);
     void check_lua_function_exists(const std::string &func_name);
 
