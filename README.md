@@ -141,7 +141,7 @@ osm2pgsql -c -d gis --slim -C <cache size> \
 ```
 where
 * ``<cache size>`` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
-* ``<flat nodes>`` is a location where a 24GiB file can be saved.
+* ``<flat nodes>`` is a location where a 36GiB+ file can be saved.
 
 Many different data files (e.g., .pbf) can be found at [planet.osm.org](http://planet.osm.org/).
 
