@@ -90,7 +90,8 @@ struct relation_helper
     relation_helper();
     ~relation_helper();
     size_t set(osmium::RelationMemberList const &member_list, middle_t const *mid);
-    multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
+    multitaglist_t get_member_tags(tagtransform *transform,
+                                   export_list const &el) const;
     multinodelist_t get_nodes(middle_t const *mid) const;
 
     osmium::memory::ItemIteratorRange<const osmium::Way> way_iterator() const

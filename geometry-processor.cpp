@@ -140,16 +140,17 @@ size_t relation_helper::set(osmium::RelationMemberList const &member_list, middl
     return num_ways;
 }
 
-multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, export_list const &el) const
+multitaglist_t relation_helper::get_member_tags(tagtransform *transform,
+                                                export_list const &el) const
 {
-    multitaglist_t filtered(roles.size());
+    multitaglist_t member_tags(roles.size());
 
     size_t i = 0;
     for (auto const &w : data.select<osmium::Way>()) {
-        transform->filter_tags(w, nullptr, nullptr, el, filtered[i++]);
+        member_tags[i++] = taglist_t(w.tags());
     }
 
-    return filtered;
+    return member_tags;
 }
 
 multinodelist_t relation_helper::get_nodes(middle_t const *mid) const

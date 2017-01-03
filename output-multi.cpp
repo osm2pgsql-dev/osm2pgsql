@@ -357,14 +357,12 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         if (m_relation_helper.set(rel.members(), (middle_t*)m_mid) < 1)
             return 0;
 
-        //filter the tags on each member because we got them from the middle
-        //and since the middle is no longer tied to the output it no longer
-        //shares any kind of tag transform and therefore has all original tags
-        //so we filter here because each individual outputs cares about different tags
+        // Roads is ignored by the multi backend, but we need a variable for it
         int roads;
-        multitaglist_t filtered =
-            m_relation_helper.get_filtered_tags(m_tagtransform.get(),
-                                                *m_export_list.get());
+        // We want the original tags here so the transforms have enough information to
+        // construct old-style MPs
+        multitaglist_t member_tags = m_relation_helper.get_member_tags(
+            m_tagtransform.get(), *m_export_list.get());
 
         //do the members of this relation have anything interesting to us
         //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
@@ -375,10 +373,10 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         //all this trickery
         int make_boundary, make_polygon = 1;
         taglist_t outtags;
-        filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
-                                                        &m_relation_helper.superseded.front(),
-                                                        &make_boundary, &make_polygon, &roads,
-                                                        *m_export_list.get(), outtags, true);
+        filter = m_tagtransform->filter_rel_member_tags(
+            rel_outtags, member_tags, m_relation_helper.roles,
+            &m_relation_helper.superseded.front(), &make_boundary,
+            &make_polygon, &roads, *m_export_list.get(), outtags, true);
         if (!filter)
         {
             auto nodes = m_relation_helper.get_nodes((middle_t *)m_mid);
