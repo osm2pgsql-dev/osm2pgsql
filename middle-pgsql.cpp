@@ -1016,7 +1016,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
                                    out_options->cache));
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
 
-    fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
+    fprintf(stderr, "Mid: pgsql, cache=%d\n", out_options->cache);
 
     // We use a connection per table to enable the use of COPY */
     for (auto& table: tables) {

@@ -17,9 +17,6 @@
 /* create a hstore column for all tags */
 #define HSTORE_ALL 2
 
-/* Scale is chosen such that 40,000 * SCALE < 2^32          */
-enum { DEFAULT_SCALE = 100 };
-
 /**
  * Database options, not specific to a table
  */
@@ -49,7 +46,6 @@ public:
     virtual ~options_t();
 
     std::string prefix; ///< prefix for table names
-    int scale; ///< scale for converting coordinates to fixed point
     std::shared_ptr<reprojection> projection; ///< SRS of projection
     bool append; ///< Append to existing data
     bool slim; ///< In slim mode

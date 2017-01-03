@@ -72,7 +72,6 @@ void test_area_base(bool latlon, bool reproj, double expect_area_poly, double ex
     if (reproj) {
         options.reproject_area = true;
     }
-    options.scale = latlon ? 10000000 : 100;
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
