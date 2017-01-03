@@ -7,6 +7,7 @@
 #include <tuple>
 
 #include "osmtypes.hpp"
+#include "reprojection.hpp"
 #include "tests/middle-tests.hpp"
 
 #include <osmium/builder/attr.hpp>
@@ -17,6 +18,9 @@
 
 // simple osmium buffer to store all the objects in
 osmium::memory::Buffer buffer(4096, osmium::memory::Buffer::auto_grow::yes);
+// do not project anything
+std::shared_ptr<reprojection>
+    proj(reprojection::create_projection(PROJ_LATLONG));
 
 #define ALLOWED_ERROR 10e-9
 bool node_okay(osmNode node, osmium::Node const &expected) {
@@ -56,10 +60,11 @@ int test_node_set(middle_t *mid)
     nodelist_t nodes;
 
     // set the node
-    mid->nodes_set(node, node.location().lat(), node.location().lon());
+    mid->nodes_set(node);
 
     // get it back
-    if (mid->nodes_get_list(nodes, way.nodes()) != way.nodes().size()) {
+    if (mid->nodes_get_list(nodes, way.nodes(), proj.get()) !=
+        way.nodes().size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
         return 1;
     }
@@ -127,14 +132,14 @@ int test_nodes_comprehensive_set(middle_t *mid)
     for (auto pos : expected_nodes)
     {
         auto const &node = buffer.get<osmium::Node>(pos);
-        mid->nodes_set(node, node.location().lat(), node.location().lon());
+        mid->nodes_set(node);
         ids.push_back(node.id());
     }
 
     auto const &way = buffer.get<osmium::Way>(way_with_nodes(ids));
 
     nodelist_t nodes;
-    if (mid->nodes_get_list(nodes, way.nodes()) != ids.size()) {
+    if (mid->nodes_get_list(nodes, way.nodes(), proj.get()) != ids.size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
         return 1;
     }
@@ -194,7 +199,7 @@ int test_way_set(middle_t *mid)
         nds.push_back(i);
         nodes.push_back(add_node(i, lat, lon));
         auto const &node = buffer.get<osmium::Node>(nodes.back());
-        mid->nodes_set(node, lat, lon);
+        mid->nodes_set(node);
     }
 
     // set the way
@@ -228,7 +233,7 @@ int test_way_set(middle_t *mid)
         return 1;
     }
     nodelist_t xnodes;
-    mid->nodes_get_list(xnodes, way.nodes());
+    mid->nodes_get_list(xnodes, way.nodes(), proj.get());
     for (size_t i = 0; i < nds.size(); ++i) {
         if (xnodes[i].lon != lon) {
             std::cerr << "ERROR: Way node should have lon=" << lon << ", but got back "

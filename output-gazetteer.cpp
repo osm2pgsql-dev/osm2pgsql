@@ -666,7 +666,7 @@ void output_gazetteer_t::stop()
    return;
 }
 
-int output_gazetteer_t::process_node(osmium::Node const &node, double lat, double lon)
+int output_gazetteer_t::process_node(osmium::Node const &node)
 {
     places.process_tags(node);
 
@@ -675,7 +675,8 @@ int output_gazetteer_t::process_node(osmium::Node const &node, double lat, doubl
 
     /* Are we interested in this item? */
     if (places.has_data()) {
-        std::string wkt = (point_fmt % lon % lat).str();
+        auto c = reproj->reproject(node.location());
+        std::string wkt = (point_fmt % c.x % c.y).str();
         places.copy_out(node, wkt, buffer);
         flush_place_buffer();
     }
@@ -694,7 +695,7 @@ int output_gazetteer_t::process_way(osmium::Way const &way)
     if (places.has_data()) {
         /* Fetch the node details */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes());
+        m_mid->nodes_get_list(nodes, way.nodes(), reproj.get());
 
         /* Get the geometry of the object */
         auto geom = builder.get_wkb_simple(nodes, 1);
@@ -754,7 +755,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     multinodelist_t xnodes(num_ways);
     size_t i = 0;
     for (auto const &w : osmium_buffer.select<osmium::Way>()) {
-        m_mid->nodes_get_list(xnodes[i++], w.nodes());
+        m_mid->nodes_get_list(xnodes[i++], w.nodes(), reproj.get());
     }
 
     if (!is_waterway) {

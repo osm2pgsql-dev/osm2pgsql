@@ -41,7 +41,8 @@ struct test_output_t : public dummy_output_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmium::Node const &n, double, double) override {
+    int node_add(osmium::Node const &n) override
+    {
         assert(n.id() > 0);
         ++node.added;
         return 0;
@@ -59,7 +60,8 @@ struct test_output_t : public dummy_output_t {
         return 0;
     }
 
-    int node_modify(osmium::Node const &, double, double) override {
+    int node_modify(osmium::Node const &) override
+    {
         ++node.modified;
         return 0;
     }

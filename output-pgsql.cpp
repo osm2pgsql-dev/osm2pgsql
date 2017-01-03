@@ -253,7 +253,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         if (!m_tagtransform->filter_tags(way, &polygon, &roads,
                                          *m_export_list.get(), outtags)) {
             nodelist_t nodes;
-            m_mid->nodes_get_list(nodes, way.nodes());
+            m_mid->nodes_get_list(nodes, way.nodes(), reproj.get());
             return pgsql_out_way(id, outtags, nodes, polygon, roads);
         }
     }
@@ -348,14 +348,16 @@ void output_pgsql_t::stop()
     }
 }
 
-int output_pgsql_t::node_add(osmium::Node const &node, double lat, double lon)
+int output_pgsql_t::node_add(osmium::Node const &node)
 {
     taglist_t outtags;
-    if (m_tagtransform->filter_tags(node, nullptr, nullptr, *m_export_list.get(), outtags))
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr,
+                                    *m_export_list.get(), outtags))
         return 1;
 
-    expire.from_bbox(lon, lat, lon, lat);
-    m_tables[t_point]->write_node(node.id(), outtags, lat, lon);
+    auto c = reproj->reproject(node.location());
+    expire.from_bbox(c.x, c.y, c.x, c.y);
+    m_tables[t_point]->write_node(node.id(), outtags, c.y, c.x);
 
     return 0;
 }
@@ -378,7 +380,7 @@ int output_pgsql_t::way_add(osmium::Way const &way)
     {
         /* Get actual node data and generate output */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes());
+        m_mid->nodes_get_list(nodes, way.nodes(), reproj.get());
         pgsql_out_way(way.id(), outtags, nodes, polygon, roads);
     }
     return 0;
@@ -418,7 +420,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
   for (auto const &w : buffer.select<osmium::Way>()) {
       assert(i < num_ways);
       xid.push_back(w.id());
-      m_mid->nodes_get_list(xnodes[i], w.nodes());
+      m_mid->nodes_get_list(xnodes[i], w.nodes(), reproj.get());
 
       //filter the tags on this member because we got it from the middle
       //and since the middle is no longer tied to the output it no longer
@@ -532,15 +534,14 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmium::Node const &node, double lat, double lon)
+int output_pgsql_t::node_modify(osmium::Node const &node)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     node_delete(node.id());
-    node_add(node, lat, lon);
+    node_add(node);
     return 0;
 }
 

@@ -256,36 +256,26 @@ void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
     }
 }
 
-void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
-                                     double lat, double lon)
+void middle_pgsql_t::local_nodes_set(osmium::Node const &node)
 {
     copy_buffer.reserve(node.tags().byte_size() + 100);
 
     bool copy = node_table->copyMode;
     char delim = copy ? '\t' : '\0';
-    const char *paramValues[4] = { copy_buffer.c_str(), };
+    const char *paramValues[4] = {
+        copy_buffer.c_str(),
+    };
 
     copy_buffer = std::to_string(node.id());
     copy_buffer += delim;
 
-#ifdef FIXED_POINT
-    ramNode n(lon, lat);
     paramValues[1] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(n.int_lat());
+    copy_buffer += std::to_string(node.location().y());
     copy_buffer += delim;
 
     paramValues[2] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(n.int_lon());
+    copy_buffer += std::to_string(node.location().x());
     copy_buffer += delim;
-#else
-    paramValues[1] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(lat);
-    copy_buffer += delim;
-
-    paramValues[2] = paramValues[0] + copy_buffer.size();
-    copy_buffer += std::to_string(lon);
-    copy_buffer += delim;
-#endif
 
     if (node.tags().empty() && !out_options->extra_attributes) {
         paramValues[3] = nullptr;
@@ -301,45 +291,50 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node,
     } else {
         buffer_correct_params(paramValues, 4);
         pgsql_execPrepared(node_table->sql_conn, "insert_node", 4,
-                           (const char * const *)paramValues, PGRES_COMMAND_OK);
+                           (const char *const *)paramValues, PGRES_COMMAND_OK);
     }
 }
 
 // This should be made more efficient by using an IN(ARRAY[]) construct */
-size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
+size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
+                                            osmium::WayNodeList const &nds,
+                                            reprojection const *proj) const
 {
     assert(out.empty());
 
     char tmp[16];
 
     char *tmp2 = static_cast<char *>(malloc(sizeof(char) * nds.size() * 16));
-    if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
+    if (tmp2 == nullptr) {
+        return 0; // failed to allocate memory, return
+    }
 
-
-    // create a list of ids in tmp2 to query the database  */
+    // create a list of ids in tmp2 to query the database
     sprintf(tmp2, "{");
     int countDB = 0;
     out.reserve(nds.size());
     for (auto const &n : nds) {
         // Check cache first */
-        osmNode loc;
-        if (cache->get(&loc, n.ref()) == 0) {
-            out.push_back(loc);
+        auto loc = cache->get(n.ref());
+        if (loc.valid()) {
+            auto coord = proj->reproject(loc);
+            out.push_back(osmNode(coord.x, coord.y));
             continue;
         }
 
         countDB++;
-        // Mark nodes as needing to be fetched from the DB */
+        // Mark nodes as needing to be fetched from the DB
         out.push_back(osmNode());
 
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
-        strncat(tmp2, tmp, sizeof(char)*(nds.size()*16 - 2));
+        strncat(tmp2, tmp, sizeof(char) * (nds.size() * 16 - 2));
     }
-    tmp2[strlen(tmp2) - 1] = '}'; // replace last , with } to complete list of ids*/
+    // replace last , with } to complete list of ids
+    tmp2[strlen(tmp2) - 1] = '}';
 
     if (countDB == 0) {
         free(tmp2);
-        return nds.size(); // All ids where in cache, so nothing more to do */
+        return nds.size(); // All ids where in cache, so nothing more to do
     }
 
     pgsql_endCopy(node_table);
@@ -348,26 +343,20 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList
 
     char const *paramValues[1];
     paramValues[0] = tmp2;
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues, PGRES_TUPLES_OK);
+    PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1,
+                                       paramValues, PGRES_TUPLES_OK);
     int countPG = PQntuples(res);
 
-    //store the pg results in a hashmap and telling it how many we expect
+    // store the pg results in a hashmap and telling it how many we expect
     std::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
 
     for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
-        osmNode node;
-#ifdef FIXED_POINT
-        ramNode n((int) strtol(PQgetvalue(res, i, 2), nullptr, 10),
-                  (int) strtol(PQgetvalue(res, i, 1), nullptr, 10));
+        osmium::Location n((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
+                           (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
 
-        node.lat = n.lat();
-        node.lon = n.lon();
-#else
-        node.lat = strtod(PQgetvalue(res, i, 1), nullptr);
-        node.lon = strtod(PQgetvalue(res, i, 2), nullptr);
-#endif
-        pg_nodes.emplace(id, node);
+        auto coord = proj->reproject(n);
+        pg_nodes.emplace(id, osmNode(coord.x, coord.y));
     }
 
     PQclear(res);
@@ -378,8 +367,9 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); ++i) {
         if (std::isnan(out[i].lat)) {
-            std::unordered_map<osmid_t, osmNode>::iterator found = pg_nodes.find(nds[i].ref());
-            if(found != pg_nodes.end()) {
+            std::unordered_map<osmid_t, osmNode>::iterator found =
+                pg_nodes.find(nds[i].ref());
+            if (found != pg_nodes.end()) {
                 out[wrtidx] = found->second;
                 ++wrtidx;
             }
@@ -394,23 +384,24 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out, osmium::WayNodeList
     return wrtidx;
 }
 
-
-void middle_pgsql_t::nodes_set(osmium::Node const &node, double lat, double lon)
+void middle_pgsql_t::nodes_set(osmium::Node const &node)
 {
-    cache->set(node.id(), lat, lon);
+    cache->set(node.id(), node.location());
 
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(node.id(), lat, lon);
+        persistent_cache->set(node.id(), node.location());
     } else {
-        local_nodes_set(node, lat, lon);
+        local_nodes_set(node);
     }
 }
 
-size_t middle_pgsql_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
+size_t middle_pgsql_t::nodes_get_list(nodelist_t &out,
+                                      osmium::WayNodeList const &nds,
+                                      reprojection const *proj) const
 {
     return (out_options->flat_node_cache_enabled)
-             ? persistent_cache->get_list(out, nds)
-             : local_nodes_get_list(out, nds);
+               ? persistent_cache->get_list(out, nds, proj)
+               : local_nodes_get_list(out, nds, proj);
 }
 
 void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -428,7 +419,7 @@ void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
 void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(osm_id, NAN, NAN);
+        persistent_cache->set(osm_id, osmium::Location());
     } else {
         local_nodes_delete(osm_id);
     }
@@ -1021,7 +1012,8 @@ void middle_pgsql_t::start(const options_t *out_options_)
     // staying set for the second.
     build_indexes = !append && !out_options->droptemp;
 
-    cache.reset(new node_ram_cache( out_options->alloc_chunkwise | ALLOC_LOSSY, out_options->cache, out_options->scale));
+    cache.reset(new node_ram_cache(out_options->alloc_chunkwise | ALLOC_LOSSY,
+                                   out_options->cache));
     if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
 
     fprintf(stderr, "Mid: pgsql, scale=%d cache=%d\n", out_options->scale, out_options->cache);
@@ -1146,15 +1138,9 @@ middle_pgsql_t::middle_pgsql_t()
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
            /*start*/ "BEGIN;\n",
-#ifdef FIXED_POINT
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
     /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#else
-          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat double precision not null, lon double precision not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ nullptr,
-         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", double precision, double precision, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-#endif
                "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",

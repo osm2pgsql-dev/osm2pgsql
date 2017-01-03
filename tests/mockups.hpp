@@ -14,8 +14,12 @@ struct dummy_middle_t : public middle_t {
     void end(void) override  { }
     void commit(void) override  { }
 
-    void nodes_set(osmium::Node const &, double, double) override { }
-    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const override { return 0; }
+    void nodes_set(osmium::Node const &) override {}
+    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &,
+                          reprojection const *) const override
+    {
+        return 0;
+    }
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }
@@ -47,8 +51,12 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void end(void) override  { }
     void commit(void) override  { }
 
-    void nodes_set(osmium::Node const &, double, double) override { }
-    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &) const override { return 0; }
+    void nodes_set(osmium::Node const &) override {}
+    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &,
+                          reprojection const *) const override
+    {
+        return 0;
+    }
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }

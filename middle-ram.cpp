@@ -33,10 +33,9 @@
  *
  */
 
-
-void middle_ram_t::nodes_set(osmium::Node const &node, double lat, double lon)
+void middle_ram_t::nodes_set(osmium::Node const &node)
 {
-    cache->set(node.id(), lat, lon);
+    cache->set(node.id(), node.location());
 }
 
 void middle_ram_t::ways_set(osmium::Way const &way)
@@ -49,12 +48,16 @@ void middle_ram_t::relations_set(osmium::Relation const &rel)
     rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
 }
 
-size_t middle_ram_t::nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const
+size_t middle_ram_t::nodes_get_list(nodelist_t &out,
+                                    osmium::WayNodeList const &nds,
+                                    reprojection const *proj) const
 {
     for (auto const &in : nds) {
-        osmNode n;
-        if (!cache->get(&n, in.ref()))
-            out.push_back(n);
+        auto loc = cache->get(in.ref());
+        if (loc.valid()) {
+            auto coord = proj->reproject(loc);
+            out.push_back(osmNode(coord.x, coord.y));
+        }
     }
 
     return out.size();
@@ -159,12 +162,8 @@ void middle_ram_t::end(void)
 void middle_ram_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
-    /* latlong has a range of +-180, mercator +-20000
-       The fixed poing scaling needs adjusting accordingly to
-       be stored accurately in an int */
-    cache.reset(new node_ram_cache(out_options->alloc_chunkwise, out_options->cache, out_options->scale));
-
-    fprintf( stderr, "Mid: Ram, scale=%d\n", out_options->scale );
+    cache.reset(
+        new node_ram_cache(out_options->alloc_chunkwise, out_options->cache));
 }
 
 void middle_ram_t::stop(void)
@@ -187,19 +186,21 @@ middle_ram_t::~middle_ram_t() {
     //instance.reset();
 }
 
-idlist_t middle_ram_t::relations_using_way(osmid_t way_id) const
+idlist_t middle_ram_t::relations_using_way(osmid_t) const
 {
     // this function shouldn't be called - relations_using_way is only used in
     // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode
     // option is set.
-    throw std::runtime_error("middle_ram_t::relations_using_way is unimlpemented, and "
-                             "should not have been called. This is probably a bug, please "
-                             "report it at https://github.com/openstreetmap/osm2pgsql/issues");
+    throw std::runtime_error(
+        "middle_ram_t::relations_using_way is unimlpemented, and "
+        "should not have been called. This is probably a bug, please "
+        "report it at https://github.com/openstreetmap/osm2pgsql/issues");
 }
 
 namespace {
 
-void no_delete(const middle_ram_t * middle) {
+void no_delete(const middle_ram_t *)
+{
     // boost::shared_ptr thinks we are going to delete
     // the middle object, but we are not. Heh heh heh.
     // So yeah, this is a hack...

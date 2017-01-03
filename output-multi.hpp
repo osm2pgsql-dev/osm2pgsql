@@ -44,11 +44,11 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
     int pending_relation(osmid_t id, int exists) override;
 
-    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int node_add(osmium::Node const &node) override;
     int way_add(osmium::Way const &way) override;
     int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int node_modify(osmium::Node const &node) override;
     int way_modify(osmium::Way const &way) override;
     int relation_modify(osmium::Relation const &rel) override;
 
@@ -64,7 +64,7 @@ public:
 protected:
 
     void delete_from_output(osmid_t id);
-    int process_node(osmium::Node const &node, double lat, double lon);
+    int process_node(osmium::Node const &node);
     int process_way(osmium::Way const &way);
     int reprocess_way(osmium::Way const &way, bool exists);
     int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
@@ -74,6 +74,7 @@ protected:
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
+    std::shared_ptr<reprojection> m_proj;
     osmium::item_type const m_osm_type;
     std::unique_ptr<table_t> m_table;
     id_tracker ways_pending_tracker, rels_pending_tracker;

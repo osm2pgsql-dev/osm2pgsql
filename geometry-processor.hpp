@@ -15,6 +15,7 @@
 struct middle_query_t;
 struct middle_t;
 struct options_t;
+class reprojection;
 
 struct geometry_processor {
     // factory method for creating various types of geometry processors either by name or by geometry column type
@@ -79,7 +80,8 @@ struct way_helper
 {
     way_helper();
     ~way_helper();
-    size_t set(osmium::WayNodeList const &node_ids, const middle_query_t *mid);
+    size_t set(osmium::WayNodeList const &node_ids, middle_query_t const *mid,
+               reprojection const *proj);
 
     nodelist_t node_cache;
 };
@@ -91,7 +93,8 @@ struct relation_helper
     ~relation_helper();
     size_t set(osmium::RelationMemberList const &member_list, middle_t const *mid);
     multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
-    multinodelist_t get_nodes(middle_t const *mid) const;
+    multinodelist_t get_nodes(middle_t const *mid,
+                              reprojection const *proj) const;
 
     osmium::memory::ItemIteratorRange<const osmium::Way> way_iterator() const
     { return data.select<osmium::Way>(); }

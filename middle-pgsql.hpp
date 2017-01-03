@@ -26,8 +26,9 @@ struct middle_pgsql_t : public slim_middle_t {
     void end(void) override;
     void commit(void) override;
 
-    void nodes_set(osmium::Node const &node, double lat, double lon) override;
-    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const override;
+    void nodes_set(osmium::Node const &node) override;
+    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
+                          reprojection const *proj) const override;
     void nodes_delete(osmid_t id) override;
     void node_changed(osmid_t id) override;
 
@@ -86,8 +87,9 @@ private:
      * Sets up sql_conn for the table
      */
     void connect(table_desc& table);
-    void local_nodes_set(osmium::Node const &node, double lat, double lon);
-    size_t local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const;
+    void local_nodes_set(osmium::Node const &node);
+    size_t local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
+                                reprojection const *proj) const;
     void local_nodes_delete(osmid_t osm_id);
 
     std::vector<table_desc> tables;

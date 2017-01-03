@@ -136,6 +136,7 @@ public:
       ConnectionDelete(NULL),
       ConnectionError(NULL),
       copy_active(false),
+      reproj(options_.projection),
       single_fmt("%1%"),
       point_fmt("POINT(%.15g %.15g)"),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
@@ -178,9 +179,9 @@ public:
     void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) override {}
     int pending_relation(osmid_t, int) override { return 0; }
 
-    int node_add(osmium::Node const &node, double lat, double lon) override
+    int node_add(osmium::Node const &node) override
     {
-        return process_node(node, lat, lon);
+        return process_node(node);
     }
 
     int way_add(osmium::Way const &way) override
@@ -193,9 +194,9 @@ public:
         return process_relation(rel);
     }
 
-    int node_modify(osmium::Node const &node, double lat, double lon) override
+    int node_modify(osmium::Node const &node) override
     {
-        return process_node(node, lat, lon);
+        return process_node(node);
     }
 
     int way_modify(osmium::Way const &way) override
@@ -232,7 +233,7 @@ private:
     void stop_copy(void);
     void delete_unused_classes(char osm_type, osmid_t osm_id);
     void delete_place(char osm_type, osmid_t osm_id);
-    int process_node(osmium::Node const &node, double lat, double lon);
+    int process_node(osmium::Node const &node);
     int process_way(osmium::Way const &way);
     int process_relation(osmium::Relation const &rel);
     int connect();

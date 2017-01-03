@@ -1,11 +1,14 @@
 #ifndef NODE_PERSISTENT_CACHE_H
 #define NODE_PERSISTENT_CACHE_H
 
-#include "osmtypes.hpp"
-#include "node-ram-cache.hpp"
 #include <memory>
-
 #include <vector>
+
+#include <osmium/osm/location.hpp>
+
+#include "node-ram-cache.hpp"
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 #define MAXIMUM_INITIAL_ID 2600000000
 
@@ -55,14 +58,14 @@ struct node_persistent_cache : public boost::noncopyable
                           bool ro, std::shared_ptr<node_ram_cache> ptr);
     ~node_persistent_cache();
 
-    void set(osmid_t id, double lat, double lon);
-    int get(osmNode *out, osmid_t id);
-    size_t get_list(nodelist_t &out, osmium::WayNodeList const &nds);
+    void set(osmid_t id, const osmium::Location &coord);
+    osmium::Location get(osmid_t id);
+    size_t get_list(nodelist_t &out, osmium::WayNodeList const &nds,
+                    const reprojection *proj);
 
 private:
-
-    void set_append(osmid_t id, double lat, double lon);
-    void set_create(osmid_t id, double lat, double lon);
+    void set_append(osmid_t id, const osmium::Location &coord);
+    void set_create(osmid_t id, const osmium::Location &coord);
 
     void writeout_dirty_nodes();
     size_t replace_block();
