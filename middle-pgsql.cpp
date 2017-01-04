@@ -1084,9 +1084,6 @@ void middle_pgsql_t::commit(void) {
             table.transactionMode = 0;
         }
     }
-    // Make sure the flat nodes are committed to disk or there will be
-    // surprises later.
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset();
 }
 
 void middle_pgsql_t::pgsql_stop_one(table_desc *table)
@@ -1133,8 +1130,8 @@ void middle_pgsql_t::stop(void)
 }
 
 middle_pgsql_t::middle_pgsql_t()
-    : tables(), num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
-      append(false), mark_pending(true), cache(), persistent_cache(), build_indexes(true)
+: num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
+  append(false), mark_pending(true), build_indexes(true)
 {
     // clang-format off
     /*table = t_node,*/
@@ -1220,11 +1217,7 @@ std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     //NOTE: this is thread safe for use in pending async processing only because
     //during that process they are only read from
     mid->cache = cache;
-    // The persistent cache on the other hand is not thread-safe for reading,
-    // so we create one per instance.
-    if (out_options->flat_node_cache_enabled)
-        mid->persistent_cache.reset(
-            new node_persistent_cache(out_options, cache));
+    mid->persistent_cache = persistent_cache;
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
