@@ -1014,7 +1014,10 @@ void middle_pgsql_t::start(const options_t *out_options_)
 
     cache.reset(new node_ram_cache(out_options->alloc_chunkwise | ALLOC_LOSSY,
                                    out_options->cache));
-    if (out_options->flat_node_cache_enabled) persistent_cache.reset(new node_persistent_cache(out_options, out_options->append, false, cache));
+
+    if (out_options->flat_node_cache_enabled) {
+        persistent_cache.reset(new node_persistent_cache(out_options, cache));
+    }
 
     fprintf(stderr, "Mid: pgsql, cache=%d\n", out_options->cache);
 
@@ -1220,7 +1223,8 @@ std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
     // The persistent cache on the other hand is not thread-safe for reading,
     // so we create one per instance.
     if (out_options->flat_node_cache_enabled)
-        mid->persistent_cache.reset(new node_persistent_cache(out_options, 1, true, cache));
+        mid->persistent_cache.reset(
+            new node_persistent_cache(out_options, cache));
 
     // We use a connection per table to enable the use of COPY */
     for(int i=0; i<num_tables; i++) {
