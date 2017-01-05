@@ -28,11 +28,11 @@ size_t node_persistent_cache::get_list(nodelist_t &out,
     assert(nds.empty());
     out.reserve(nds.size());
 
-    for (size_t i = 0; i < nds.size(); ++i) {
+    for (auto const &n: nds) {
         /* Check cache first */
-        auto loc = m_ram_cache->get(nds[i].ref());
+        auto loc = m_ram_cache->get(n.ref());
         if (!loc.valid()) {
-            loc = get(nds[i].ref());
+            loc = get(n.ref());
         }
         if (loc.valid()) {
             auto coord = proj->reproject(loc);
