@@ -14,11 +14,15 @@ void node_persistent_cache::set(osmid_t id, const osmium::Location &coord)
 
 osmium::Location node_persistent_cache::get(osmid_t id)
 {
-    if (id < 0) {
-        return osmium::Location();
+    if (id >= 0) {
+        try {
+            return m_index->get(
+                static_cast<osmium::unsigned_object_id_type>(id));
+        } catch (osmium::not_found const &) {
+        }
     }
 
-    return m_index->get(static_cast<osmium::unsigned_object_id_type>(id));
+    return osmium::Location();
 }
 
 size_t node_persistent_cache::get_list(nodelist_t &out,
@@ -28,7 +32,7 @@ size_t node_persistent_cache::get_list(nodelist_t &out,
     assert(nds.empty());
     out.reserve(nds.size());
 
-    for (auto const &n: nds) {
+    for (auto const &n : nds) {
         /* Check cache first */
         auto loc = m_ram_cache->get(n.ref());
         if (!loc.valid()) {
