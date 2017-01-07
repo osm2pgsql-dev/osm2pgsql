@@ -275,22 +275,13 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node)
 
     paramValues[2] = paramValues[0] + copy_buffer.size();
     copy_buffer += std::to_string(node.location().x());
-    copy_buffer += delim;
-
-    if (node.tags().empty() && !out_options->extra_attributes) {
-        paramValues[3] = nullptr;
-        copy_buffer += "\\N";
-    } else {
-        paramValues[3] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(node, out_options->extra_attributes, copy);
-    }
 
     if (copy) {
         copy_buffer += '\n';
         pgsql_CopyData(__FUNCTION__, node_table->sql_conn, copy_buffer);
     } else {
         buffer_correct_params(paramValues, 4);
-        pgsql_execPrepared(node_table->sql_conn, "insert_node", 4,
+        pgsql_execPrepared(node_table->sql_conn, "insert_node", 3,
                            (const char *const *)paramValues, PGRES_COMMAND_OK);
     }
 }
@@ -1138,10 +1129,9 @@ middle_pgsql_t::middle_pgsql_t()
     tables.push_back(table_desc(
             /*name*/ "%p_nodes",
            /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null, tags text[]) {TABLESPACE %t};\n",
+          /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null) {TABLESPACE %t};\n",
     /*create_index*/ nullptr,
-         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4, text[]) AS INSERT INTO %p_nodes VALUES ($1,$2,$3,$4);\n"
-               "PREPARE get_node (" POSTGRES_OSMID_TYPE ") AS SELECT lat,lon,tags FROM %p_nodes WHERE id = $1 LIMIT 1;\n"
+         /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4) AS INSERT INTO %p_nodes VALUES ($1,$2,$3);\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
 /*prepare_intarray*/ nullptr,
