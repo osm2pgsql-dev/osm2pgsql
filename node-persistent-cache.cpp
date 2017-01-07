@@ -33,14 +33,18 @@ size_t node_persistent_cache::get_list(nodelist_t &out,
     out.reserve(nds.size());
 
     for (auto const &n : nds) {
-        /* Check cache first */
-        auto loc = m_ram_cache->get(n.ref());
-        if (!loc.valid()) {
-            loc = get(n.ref());
-        }
-        if (loc.valid()) {
-            auto coord = proj->reproject(loc);
-            out.emplace_back(coord.x, coord.y);
+        try {
+            /* Check cache first */
+            auto loc = m_ram_cache->get(n.ref());
+            if (!loc.valid() && n.ref() >= 0) {
+                loc = m_index->get(
+                    static_cast<osmium::unsigned_object_id_type>(n.ref()));
+            }
+            if (loc.valid()) {
+                auto coord = proj->reproject(loc);
+                out.emplace_back(coord.x, coord.y);
+            }
+        } catch (osmium::not_found const &) {
         }
     }
 
