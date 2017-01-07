@@ -23,12 +23,14 @@
 #define ALLOC_DENSE_CHUNK 4
 #define ALLOC_LOSSY 8
 
-struct ramNodeID {
+struct ramNodeID
+{
     osmid_t id;
     osmium::Location coord;
 };
 
-class ramNodeBlock {
+class ramNodeBlock
+{
 public:
     ramNodeBlock() : nodes(nullptr), block_offset(-1), _used(0) {}
 
@@ -43,6 +45,7 @@ public:
 
     osmium::Location *nodes;
     int32_t block_offset;
+
 private:
     int32_t _used; // 0-bit indicates dirty
 };
@@ -56,7 +59,7 @@ struct node_ram_cache : public boost::noncopyable
     osmium::Location get(osmid_t id);
 
 private:
-    void percolate_up( int pos );
+    void percolate_up(int pos);
     osmium::Location *next_chunk();
     void set_sparse(osmid_t id, const osmium::Location &coord);
     void set_dense(osmid_t id, const osmium::Location &coord);

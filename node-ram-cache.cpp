@@ -54,10 +54,8 @@
  *  Reuse old block: O(log maxBlocks)
  */
 
-
-
 #define BLOCK_SHIFT 13
-#define PER_BLOCK  (((osmid_t)1) << BLOCK_SHIFT)
+#define PER_BLOCK (((osmid_t)1) << BLOCK_SHIFT)
 #define NUM_BLOCKS (((osmid_t)1) << (36 - BLOCK_SHIFT))
 
 #define SAFETY_MARGIN (1024 * PER_BLOCK * sizeof(osmium::Location))
@@ -65,34 +63,32 @@
 static int32_t id2block(osmid_t id)
 {
     /* + NUM_BLOCKS/2 allows for negative IDs */
-    return (id >> BLOCK_SHIFT) + NUM_BLOCKS/2;
+    return (id >> BLOCK_SHIFT) + NUM_BLOCKS / 2;
 }
 
-static int id2offset(osmid_t id)
-{
-    return id & (PER_BLOCK-1);
-}
+static int id2offset(osmid_t id) { return id & (PER_BLOCK - 1); }
 
 static osmid_t block2id(int32_t block, int offset)
 {
-    return (((osmid_t) block - NUM_BLOCKS/2) << BLOCK_SHIFT) + (osmid_t) offset;
+    return (((osmid_t)block - NUM_BLOCKS / 2) << BLOCK_SHIFT) + (osmid_t)offset;
 }
 
-#define Swap(a,b) { ramNodeBlock * __tmp = a; a = b; b = __tmp; }
+#define Swap(a, b)                                                             \
+    {                                                                          \
+        ramNodeBlock *__tmp = a;                                               \
+        a = b;                                                                 \
+        b = __tmp;                                                             \
+    }
 
-void node_ram_cache::percolate_up( int pos )
+void node_ram_cache::percolate_up(int pos)
 {
     int i = pos;
-    while( i > 0 )
-    {
-      int parent = (i-1)>>1;
-      if( queue[i]->used() < queue[parent]->used() )
-      {
-        Swap( queue[i], queue[parent] )
-        i = parent;
-      }
-      else
-        break;
+    while (i > 0) {
+        int parent = (i - 1) >> 1;
+        if (queue[i]->used() < queue[parent]->used()) {
+            Swap(queue[i], queue[parent]) i = parent;
+        } else
+            break;
     }
 }
 
@@ -390,7 +386,8 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
             (int64_t)PER_BLOCK * sizeof(osmium::Location), allocStrategy);
 }
 
-node_ram_cache::~node_ram_cache() {
+node_ram_cache::~node_ram_cache()
+{
     fprintf(stderr, "node cache: stored: %" PRIdOSMID
                     "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
                     "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
@@ -411,10 +408,11 @@ node_ram_cache::~node_ram_cache() {
         }
         free(blocks);
         free(queue);
-  }
-  if ( ((allocStrategy & ALLOC_SPARSE) > 0) && ((allocStrategy & ALLOC_DENSE) == 0)) {
-      free(sparseBlock);
-  }
+    }
+    if (((allocStrategy & ALLOC_SPARSE) > 0) &&
+        ((allocStrategy & ALLOC_DENSE) == 0)) {
+        free(sparseBlock);
+    }
 }
 
 void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
