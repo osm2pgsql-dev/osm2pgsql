@@ -55,8 +55,7 @@ size_t middle_ram_t::nodes_get_list(nodelist_t &out,
     for (auto const &in : nds) {
         auto loc = cache->get(in.ref());
         if (loc.valid()) {
-            auto coord = proj->reproject(loc);
-            out.push_back(osmNode(coord.x, coord.y));
+            out.push_back(proj->reproject(loc));
         }
     }
 

@@ -23,17 +23,18 @@ std::shared_ptr<reprojection>
     proj(reprojection::create_projection(PROJ_LATLONG));
 
 #define ALLOWED_ERROR 10e-9
-bool node_okay(osmNode node, osmium::Node const &expected) {
-    if ((node.lat > expected.location().lat() + ALLOWED_ERROR)
-            || (node.lat < expected.location().lat() - ALLOWED_ERROR)) {
-        std::cerr << "ERROR: Node should have lat=" << expected.location().lat() << ", but got back "
-            << node.lat << " from middle.\n";
+bool node_okay(osmium::geom::Coordinates node, osmium::Node const &expected)
+{
+    if ((node.y > expected.location().lat() + ALLOWED_ERROR) ||
+        (node.y < expected.location().lat() - ALLOWED_ERROR)) {
+        std::cerr << "ERROR: Node should have lat=" << expected.location().lat()
+                  << ", but got back " << node.y << " from middle.\n";
         return false;
     }
-    if ((node.lon > expected.location().lon() + ALLOWED_ERROR)
-            || (node.lon < expected.location().lon() - ALLOWED_ERROR)) {
-        std::cerr << "ERROR: Node should have lon=" << expected.location().lon() << ", but got back "
-            << node.lon << " from middle.\n";
+    if ((node.x > expected.location().lon() + ALLOWED_ERROR) ||
+        (node.x < expected.location().lon() - ALLOWED_ERROR)) {
+        std::cerr << "ERROR: Node should have lon=" << expected.location().lon()
+                  << ", but got back " << node.x << " from middle.\n";
         return false;
     }
     return true;
@@ -190,7 +191,6 @@ int test_way_set(middle_t *mid)
     osmid_t way_id = 1;
     double lat = 12.3456789;
     double lon = 98.7654321;
-    osmNode *node_ptr = nullptr;
     idlist_t nds;
     std::vector<size_t> nodes;
 
@@ -235,14 +235,14 @@ int test_way_set(middle_t *mid)
     nodelist_t xnodes;
     mid->nodes_get_list(xnodes, way.nodes(), proj.get());
     for (size_t i = 0; i < nds.size(); ++i) {
-        if (xnodes[i].lon != lon) {
-            std::cerr << "ERROR: Way node should have lon=" << lon << ", but got back "
-                << node_ptr[i].lon << " from middle.\n";
+        if (xnodes[i].x != lon) {
+            std::cerr << "ERROR: Way node should have lon=" << lon
+                      << ", but got back " << xnodes[i].x << " from middle.\n";
             return 1;
         }
-        if (xnodes[i].lat != lat) {
-            std::cerr << "ERROR: Way node should have lat=" << lat << ", but got back "
-                << node_ptr[i].lat << " from middle.\n";
+        if (xnodes[i].y != lat) {
+            std::cerr << "ERROR: Way node should have lat=" << lat
+                      << ", but got back " << xnodes[i].y << " from middle.\n";
             return 1;
         }
     }

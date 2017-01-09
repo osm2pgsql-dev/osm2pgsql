@@ -13,24 +13,16 @@
 #include <vector>
 #include <cmath>
 
-#include <osmium/osm.hpp>
 #include <osmium/builder/attr.hpp>
+#include <osmium/geom/coordinates.hpp>
+#include <osmium/osm.hpp>
 
 typedef int64_t osmid_t;
 #define strtoosmid strtoll
 #define PRIdOSMID PRId64
 #define POSTGRES_OSMID_TYPE "int8"
 
-struct osmNode {
-  double lon;
-  double lat;
-
-  osmNode() : lon(NAN), lat(NAN) {}
-
-  osmNode(double x, double y) : lon(x), lat(y) {}
-};
-
-typedef std::vector<osmNode> nodelist_t;
+typedef std::vector<osmium::geom::Coordinates> nodelist_t;
 typedef std::vector<nodelist_t> multinodelist_t;
 
 struct member {

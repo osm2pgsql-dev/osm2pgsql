@@ -308,14 +308,13 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
         // Check cache first */
         auto loc = cache->get(n.ref());
         if (loc.valid()) {
-            auto coord = proj->reproject(loc);
-            out.push_back(osmNode(coord.x, coord.y));
+            out.push_back(proj->reproject(loc));
             continue;
         }
 
         countDB++;
         // Mark nodes as needing to be fetched from the DB
-        out.push_back(osmNode());
+        out.emplace_back(NAN, NAN);
 
         snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
         strncat(tmp2, tmp, sizeof(char) * (nds.size() * 16 - 2));
@@ -339,15 +338,14 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
     int countPG = PQntuples(res);
 
     // store the pg results in a hashmap and telling it how many we expect
-    std::unordered_map<osmid_t, osmNode> pg_nodes(countPG);
+    std::unordered_map<osmid_t, osmium::Location> pg_nodes(countPG);
 
     for (int i = 0; i < countPG; i++) {
         osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
         osmium::Location n((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
                            (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
 
-        auto coord = proj->reproject(n);
-        pg_nodes.emplace(id, osmNode(coord.x, coord.y));
+        pg_nodes.emplace(id, n);
     }
 
     PQclear(res);
@@ -357,11 +355,10 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
     // Merge the two lists removing any holes.
     size_t wrtidx = 0;
     for (size_t i = 0; i < nds.size(); ++i) {
-        if (std::isnan(out[i].lat)) {
-            std::unordered_map<osmid_t, osmNode>::iterator found =
-                pg_nodes.find(nds[i].ref());
+        if (std::isnan(out[i].x)) {
+            auto found = pg_nodes.find(nds[i].ref());
             if (found != pg_nodes.end()) {
-                out[wrtidx] = found->second;
+                out[wrtidx] = proj->reproject(found->second);
                 ++wrtidx;
             }
         } else {
@@ -370,7 +367,7 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
             ++wrtidx;
         }
     }
-    out.resize(wrtidx);
+    out.resize(wrtidx, osmium::geom::Coordinates(NAN, NAN));
 
     return wrtidx;
 }
