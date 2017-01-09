@@ -7,6 +7,11 @@ the default `planet_osm` prefix.
 It is frequently better to reimport as this will also recluster the tables and
 remove table or index bloat.
 
+## 0.93 unprojected slim coordinates ##
+
+The method of storing coordinates in the slim tables has changed. There is no
+migration and a reload is required.
+
 ## 0.91 default projection ##
 
 The default projection was moved from 900913 to 3857. This does not effect
