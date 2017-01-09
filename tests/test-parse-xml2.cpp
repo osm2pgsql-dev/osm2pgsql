@@ -42,9 +42,10 @@ struct test_output_t : public output_null_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmium::Node const &node, double, double) override {
+    int node_add(osmium::Node const &node) override
+    {
         assert(node.id() > 0);
-        sum_ids += (unsigned) node.id();
+        sum_ids += (unsigned)node.id();
         num_nodes += 1;
         return 0;
     }

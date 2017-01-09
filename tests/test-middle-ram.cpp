@@ -48,7 +48,6 @@ void run_tests(const options_t options, const std::string cache_type) {
 int main(int argc, char *argv[]) {
   try {
     options_t options;
-    options.scale = 10000000;
     options.cache = 1; // Non-zero cache is needed to test
 
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized

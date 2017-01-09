@@ -14,36 +14,44 @@
 output_multi_t::output_multi_t(const std::string &name,
                                std::shared_ptr<geometry_processor> processor_,
                                const struct export_list &export_list_,
-                               const middle_query_t* mid_, const options_t &options_)
-    : output_t(mid_, options_),
-      m_tagtransform(new tagtransform(&m_options)),
-      m_export_list(new export_list(export_list_)),
-      m_processor(processor_),
-      //TODO: we could in fact have something that is interested in nodes and ways..
-      m_osm_type(m_processor->interests(geometry_processor::interest_node) ? osmium::item_type::node : osmium::item_type::way),
-      m_table(new table_t(m_options.database_options.conninfo(), name, m_processor->column_type(),
-                          m_export_list->normal_columns(m_osm_type),
-                          m_options.hstore_columns, m_processor->srid(),
-                          m_options.append, m_options.slim, m_options.droptemp,
-                          m_options.hstore_mode, m_options.enable_hstore_index,
-                          m_options.tblsmain_data, m_options.tblsmain_index)),
-      ways_done_tracker(new id_tracker()),
-      m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-               m_options.projection),
-      buffer(1024, osmium::memory::Buffer::auto_grow::yes)
-{}
+                               const middle_query_t *mid_,
+                               const options_t &options_)
+: output_t(mid_, options_), m_tagtransform(new tagtransform(&m_options)),
+  m_export_list(new export_list(export_list_)), m_processor(processor_),
+  m_proj(m_options.projection),
+  // TODO: we could in fact have something that is interested in nodes and
+  // ways..
+  m_osm_type(m_processor->interests(geometry_processor::interest_node)
+                 ? osmium::item_type::node
+                 : osmium::item_type::way),
+  m_table(new table_t(
+      m_options.database_options.conninfo(), name, m_processor->column_type(),
+      m_export_list->normal_columns(m_osm_type), m_options.hstore_columns,
+      m_processor->srid(), m_options.append, m_options.slim, m_options.droptemp,
+      m_options.hstore_mode, m_options.enable_hstore_index,
+      m_options.tblsmain_data, m_options.tblsmain_index)),
+  ways_done_tracker(new id_tracker()),
+  m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+           m_options.projection),
+  buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+{
+}
 
-output_multi_t::output_multi_t(const output_multi_t& other):
-    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_export_list(new export_list(*other.m_export_list)),
-    m_processor(other.m_processor), m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
-    //NOTE: we need to know which ways were used by relations so each thread
-    //must have a copy of the original marked done ways, its read only so its ok
-    ways_done_tracker(other.ways_done_tracker),
-    m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-             m_options.projection),
-    buffer(1024, osmium::memory::Buffer::auto_grow::yes)
-{}
-
+output_multi_t::output_multi_t(const output_multi_t &other)
+: output_t(other.m_mid, other.m_options),
+  m_tagtransform(new tagtransform(&m_options)),
+  m_export_list(new export_list(*other.m_export_list)),
+  m_processor(other.m_processor), m_proj(other.m_proj),
+  m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
+  // NOTE: we need to know which ways were used by relations so each thread
+  // must have a copy of the original marked done ways, its read only so its
+  // ok
+  ways_done_tracker(other.ways_done_tracker),
+  m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+           m_options.projection),
+  buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+{
+}
 
 output_multi_t::~output_multi_t() = default;
 
@@ -178,9 +186,10 @@ void output_multi_t::commit() {
     m_table->commit();
 }
 
-int output_multi_t::node_add(osmium::Node const &node, double lat, double lon) {
+int output_multi_t::node_add(osmium::Node const &node)
+{
     if (m_processor->interests(geometry_processor::interest_node)) {
-        return process_node(node, lat, lon);
+        return process_node(node);
     }
     return 0;
 }
@@ -201,15 +210,15 @@ int output_multi_t::relation_add(osmium::Relation const &rel) {
     return 0;
 }
 
-int output_multi_t::node_modify(osmium::Node const &node, double lat, double lon) {
+int output_multi_t::node_modify(osmium::Node const &node)
+{
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(node.id());
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(node, lat, lon);
-
+        return process_node(node);
     }
 
     return 0;
@@ -266,16 +275,18 @@ int output_multi_t::relation_delete(osmid_t id) {
     return 0;
 }
 
-int output_multi_t::process_node(osmium::Node const &node, double lat, double lon) {
-    //check if we are keeping this node
+int output_multi_t::process_node(osmium::Node const &node)
+{
+    // check if we are keeping this node
     taglist_t outtags;
     auto filter = m_tagtransform->filter_tags(node, 0, 0, *m_export_list.get(),
                                               outtags, true);
     if (!filter) {
-        //grab its geom
-        auto geom = m_processor->process_node(lat, lon);
+        auto c = m_proj->reproject(node.location());
+        // grab its geom
+        auto geom = m_processor->process_node(c.y, c.x);
         if (geom.valid()) {
-            m_expire.from_bbox(lon, lat, lon, lat);
+            m_expire.from_bbox(c.x, c.y, c.x, c.y);
             copy_node_to_table(node.id(), geom.geom, outtags);
         }
     }
@@ -302,7 +313,7 @@ int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
     if (!filter) {
         //grab its geom
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes());
+        m_mid->nodes_get_list(nodes, way.nodes(), m_proj.get());
         auto geom = m_processor->process_way(nodes);
         if (geom.valid()) {
             copy_to_table(way.id(), geom, outtags, polygon);
@@ -319,7 +330,7 @@ int output_multi_t::process_way(osmium::Way const &way) {
                                               *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
-        if(m_way_helper.set(way.nodes(), m_mid) < 1)
+        if (m_way_helper.set(way.nodes(), m_mid, m_proj.get()) < 1)
             return 0;
         //grab its geom
         auto geom = m_processor->process_way(m_way_helper.node_cache);
@@ -381,13 +392,16 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
                                                         *m_export_list.get(), outtags, true);
         if (!filter)
         {
-            auto nodes = m_relation_helper.get_nodes((middle_t *)m_mid);
+            auto nodes =
+                m_relation_helper.get_nodes((middle_t *)m_mid, m_proj.get());
             auto geoms = m_processor->process_relation(nodes);
-            for (const auto geom: geoms) {
-                //TODO: we actually have the nodes in the m_relation_helper and could use them
-                //instead of having to reparse the wkb in the expiry code
+            for (const auto geom : geoms) {
+                // TODO: we actually have the nodes in the m_relation_helper and
+                // could use them
+                // instead of having to reparse the wkb in the expiry code
                 m_expire.from_wkb(geom.geom.c_str(), -rel.id());
-                //what part of the code relies on relation members getting negative ids?
+                // what part of the code relies on relation members getting negative
+                // ids?
                 copy_to_table(-rel.id(), geom, outtags, make_polygon);
             }
 

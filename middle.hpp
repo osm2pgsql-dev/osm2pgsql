@@ -7,12 +7,13 @@
 #ifndef MIDDLE_H
 #define MIDDLE_H
 
-#include "osmtypes.hpp"
-
 #include <osmium/memory/buffer.hpp>
 
 #include <cstddef>
 #include <memory>
+
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 struct options_t;
 
@@ -22,7 +23,9 @@ struct options_t;
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
-    virtual size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds) const = 0;
+    virtual size_t nodes_get_list(nodelist_t &out,
+                                  osmium::WayNodeList const &nds,
+                                  reprojection const *proj) const = 0;
 
     /**
      * Retrives a single way from the ways storage
@@ -73,7 +76,7 @@ struct middle_t : public middle_query_t {
     virtual void end(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual void nodes_set(osmium::Node const &node, double lat, double lon) = 0;
+    virtual void nodes_set(osmium::Node const &node) = 0;
     virtual void ways_set(osmium::Way const &way) = 0;
     virtual void relations_set(osmium::Relation const &rel) = 0;
 

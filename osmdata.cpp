@@ -36,16 +36,11 @@ osmdata_t::~osmdata_t()
 
 int osmdata_t::node_add(osmium::Node const &node)
 {
-    auto c = projection->reproject(node.location());
-
-    mid->nodes_set(node, c.y, c.x);
-
-    // guarantee that we use the same values as in the node cache
-    ramNode n(c.x, c.y);
+    mid->nodes_set(node);
 
     int status = 0;
-    for (auto& out: outs) {
-        status |= out->node_add(node, n.lat(), n.lon());
+    for (auto &out : outs) {
+        status |= out->node_add(node);
     }
     return status;
 }
@@ -74,19 +69,14 @@ int osmdata_t::relation_add(osmium::Relation const &rel)
 
 int osmdata_t::node_modify(osmium::Node const &node)
 {
-    auto c = projection->reproject(node.location());
-
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(node.id());
-    slim->nodes_set(node, c.y, c.x);
-
-    // guarantee that we use the same values as in the node cache
-    ramNode n(c.x, c.y);
+    slim->nodes_set(node);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_modify(node, n.lat(), n.lon());
+        status |= out->node_modify(node);
     }
 
     slim->node_changed(node.id());

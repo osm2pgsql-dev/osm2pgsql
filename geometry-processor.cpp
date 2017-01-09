@@ -76,12 +76,13 @@ way_helper::~way_helper()
 {
 }
 size_t way_helper::set(osmium::WayNodeList const &node_ids,
-                       const middle_query_t *mid)
+                       middle_query_t const *mid, reprojection const *proj)
 {
     node_cache.clear();
-    mid->nodes_get_list(node_cache, node_ids);
+    mid->nodes_get_list(node_cache, node_ids, proj);
 
-    // equivalent to returning node_count for complete ways, different for partial extracts
+    // equivalent to returning node_count for complete ways, different for partial
+    // extracts
     return node_cache.size();
 }
 
@@ -152,13 +153,14 @@ multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, expor
     return filtered;
 }
 
-multinodelist_t relation_helper::get_nodes(middle_t const *mid) const
+multinodelist_t relation_helper::get_nodes(middle_t const *mid,
+                                           reprojection const *proj) const
 {
     multinodelist_t nodes(roles.size());
 
     size_t i = 0;
     for (auto const &w : data.select<osmium::Way>()) {
-        mid->nodes_get_list(nodes[i++], w.nodes());
+        mid->nodes_get_list(nodes[i++], w.nodes(), proj);
     }
 
     return nodes;

@@ -96,9 +96,9 @@ void test_regression_simple() {
     db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
     db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
 
-    db->check_number(311.21, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(311.21, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(143.81, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.289, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.289, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
 
     // Check a point's location
     db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=3857;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
@@ -126,7 +126,6 @@ void test_latlong() {
     options.style = "default.style";
 
     options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
-    options.scale = (options.projection->target_latlon()) ? 10000000 : 100;
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 

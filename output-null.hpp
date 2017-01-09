@@ -25,11 +25,11 @@ public:
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
     int pending_relation(osmid_t id, int exists) override;
 
-    int node_add(osmium::Node const &node, double lat, double lon) override;
+    int node_add(osmium::Node const &node) override;
     int way_add(osmium::Way const &way) override;
     int relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmium::Node const &node, double lat, double lon) override;
+    int node_modify(osmium::Node const &node) override;
     int way_modify(osmium::Way const &way) override;
     int relation_modify(osmium::Relation const &rel) override;
 

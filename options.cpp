@@ -262,22 +262,29 @@ std::string database_options_t::conninfo() const
     return out.str();
 }
 
-options_t::options_t():
-    prefix("planet_osm"), scale(DEFAULT_SCALE), projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false), slim(false),
-    cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
-    hstore_mode(HSTORE_NONE), enable_hstore_index(false),
-    enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
-    #ifdef __amd64__
-    alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
-    #else
-    alloc_chunkwise(ALLOC_SPARSE),
-    #endif
-    droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), reproject_area(false), flat_node_file(boost::none),
-    tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
-    tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-    create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-    extra_attributes(false), verbose(false)
+options_t::options_t()
+: prefix("planet_osm"),
+  projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false),
+  slim(false), cache(800), tblsmain_index(boost::none),
+  tblsslim_index(boost::none), tblsmain_data(boost::none),
+  tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
+  expire_tiles_zoom(-1), expire_tiles_zoom_min(-1),
+  expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
+  hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
+  hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+#ifdef __amd64__
+  alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
+#else
+  alloc_chunkwise(ALLOC_SPARSE),
+#endif
+  droptemp(false), unlogged(false), hstore_match_only(false),
+  flat_node_cache_enabled(false), excludepoly(false), reproject_area(false),
+  flat_node_file(boost::none), tag_transform_script(boost::none),
+  tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
+  tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
+  create(false), long_usage_bool(false), pass_prompt(false),
+  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
+  extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -495,11 +502,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
             database_options.password = std::string(prompt);
         }
     }
-
-
-    //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
-    //you could get overflow when working with larger coordinates (mercator) and larger scales
-    scale = (projection->target_latlon()) ? 10000000 : 100;
 }
 
 void options_t::check_options()
