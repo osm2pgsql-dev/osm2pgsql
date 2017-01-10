@@ -339,10 +339,10 @@ void expire_tiles::from_nodes_line(const nodelist_t &nodes)
         return;
 
     if (nodes.size() == 1) {
-        from_bbox(nodes[0].lon, nodes[0].lat, nodes[0].lon, nodes[0].lat);
+        from_bbox(nodes[0].x, nodes[0].y, nodes[0].x, nodes[0].y);
     } else {
         for (size_t i = 1; i < nodes.size(); ++i)
-            from_line(nodes[i-1].lon, nodes[i-1].lat, nodes[i].lon, nodes[i].lat);
+            from_line(nodes[i - 1].x, nodes[i - 1].y, nodes[i].x, nodes[i].y);
     }
 }
 
@@ -354,16 +354,20 @@ void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
     if (maxzoom < 0 || nodes.empty())
         return;
 
-    double min_lon = nodes[0].lon;
-    double min_lat = nodes[0].lat;
-    double max_lon = nodes[0].lon;
-    double max_lat = nodes[0].lat;
+    double min_lon = nodes[0].x;
+    double min_lat = nodes[0].y;
+    double max_lon = nodes[0].x;
+    double max_lat = nodes[0].y;
 
     for (size_t i = 1; i < nodes.size(); ++i) {
-        if (nodes[i].lon < min_lon) min_lon = nodes[i].lon;
-        if (nodes[i].lat < min_lat) min_lat = nodes[i].lat;
-        if (nodes[i].lon > max_lon) max_lon = nodes[i].lon;
-        if (nodes[i].lat > max_lat) max_lat = nodes[i].lat;
+        if (nodes[i].x < min_lon)
+            min_lon = nodes[i].x;
+        if (nodes[i].y < min_lat)
+            min_lat = nodes[i].y;
+        if (nodes[i].x > max_lon)
+            max_lon = nodes[i].x;
+        if (nodes[i].y > max_lat)
+            max_lat = nodes[i].y;
     }
 
     if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {

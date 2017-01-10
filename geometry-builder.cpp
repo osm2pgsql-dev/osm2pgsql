@@ -70,7 +70,7 @@ void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
 
     for (size_t i = 0; i < num_coords; i++) {
         Coordinate coord = coords->getAt(i);
-        nodes.push_back(osmNode(coord.x, coord.y));
+        nodes.emplace_back(coord.x, coord.y);
     }
 }
 
@@ -79,7 +79,7 @@ coord_ptr nodes2coords(GeometryFactory &gf, const nodelist_t &nodes)
     coord_ptr coords(gf.getCoordinateSequenceFactory()->create(size_t(0), size_t(2)));
 
     for (const auto& nd: nodes) {
-        coords->add(Coordinate(nd.lon, nd.lat), 0);
+        coords->add(Coordinate(nd.x, nd.y), 0);
     }
 
     return coords;
