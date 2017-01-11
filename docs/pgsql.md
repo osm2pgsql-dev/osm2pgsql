@@ -2,7 +2,7 @@
 
 The pgsql backend is designed for rendering OpenStreetMap data, principally
 with Mapnik, but is also useful for [analysis](analysis.md) and
-[exporting](exporting.md) to other formats.
+[exporting](export.md) to other formats.
 
 ## Database Layout ##
 It connects to a PostgreSQL database and stores the data in four tables
