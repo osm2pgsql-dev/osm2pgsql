@@ -93,6 +93,7 @@ struct middle_ram_t : public middle_t {
     void nodes_set(osmium::Node const &node) override;
     size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
                           reprojection const *proj) const override;
+    size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 

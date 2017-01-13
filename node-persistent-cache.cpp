@@ -51,6 +51,29 @@ size_t node_persistent_cache::get_list(nodelist_t &out,
     return out.size();
 }
 
+size_t node_persistent_cache::get_list(osmium::WayNodeList *nodes)
+{
+    size_t count = 0;
+
+    for (auto &n : *nodes) {
+        auto loc = m_ram_cache->get(n.ref());
+        /* Check cache first */
+        if (!loc.valid() && n.ref() >= 0) {
+            try {
+                loc = m_index->get(
+                        static_cast<osmium::unsigned_object_id_type>(n.ref()));
+            } catch (osmium::not_found const &) {
+            }
+        }
+        n.set_location(loc);
+        if (loc.valid()) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
 node_persistent_cache::node_persistent_cache(
     const options_t *options, std::shared_ptr<node_ram_cache> ptr)
 : m_ram_cache(ptr), m_fd(-1)

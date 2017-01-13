@@ -62,6 +62,21 @@ size_t middle_ram_t::nodes_get_list(nodelist_t &out,
     return out.size();
 }
 
+size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
+{
+    size_t count = 0;
+
+    for (auto &n : *nodes) {
+        auto loc = cache->get(n.ref());
+        n.set_location(loc);
+        if (loc.valid()) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
 void middle_ram_t::iterate_relations(pending_processor& pf)
 {
     //TODO: just dont do anything

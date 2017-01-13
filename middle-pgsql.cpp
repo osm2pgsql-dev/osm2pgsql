@@ -372,6 +372,56 @@ size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
     return wrtidx;
 }
 
+size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
+{
+    size_t count = 0;
+    std::string buffer("{");
+    std::unordered_map<osmid_t, size_t> node_pos;
+
+    // get nodes where possible from cache,
+    // at the same time build a list for querying missing nodes from DB
+    size_t pos = 0;
+    for (auto &n : *nodes) {
+        auto loc = cache->get(n.ref());
+        if (loc.valid()) {
+            n.set_location(loc);
+            ++count;
+        } else {
+            node_pos.emplace(n.ref(), pos);
+            buffer += std::to_string(n.ref());
+            buffer += ',';
+        }
+        ++pos;
+    }
+
+    if (node_pos.empty()) {
+        return count; // all ids found in cache, nothing more to do
+    }
+
+    // get any remaining nodes from the DB
+    buffer[buffer.size() - 1] = '}';
+
+    pgsql_endCopy(node_table);
+
+    PGconn *sql_conn = node_table->sql_conn;
+
+    char const *paramValues[1];
+    paramValues[0] = buffer.c_str();
+    PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1,
+                                       paramValues, PGRES_TUPLES_OK);
+    auto countPG = PQntuples(res);
+
+    for (int i = 0; i < countPG; ++i) {
+        auto &npos = node_pos.at(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
+
+        osmium::Location loc((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
+                             (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
+        (*nodes)[npos].set_location(loc);
+    }
+
+    return count + (size_t) countPG;
+}
+
 void middle_pgsql_t::nodes_set(osmium::Node const &node)
 {
     cache->set(node.id(), node.location());
@@ -390,6 +440,13 @@ size_t middle_pgsql_t::nodes_get_list(nodelist_t &out,
     return (out_options->flat_node_cache_enabled)
                ? persistent_cache->get_list(out, nds, proj)
                : local_nodes_get_list(out, nds, proj);
+}
+
+size_t middle_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
+{
+    return (out_options->flat_node_cache_enabled)
+        ? persistent_cache->get_list(nodes)
+        : local_nodes_get_list(nodes);
 }
 
 void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
