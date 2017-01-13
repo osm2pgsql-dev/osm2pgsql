@@ -45,11 +45,11 @@ public:
     int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node) override;
-    int way_add(osmium::Way const &way) override;
+    int way_add(osmium::Way *way) override;
     int relation_add(osmium::Relation const &rel) override;
 
     int node_modify(osmium::Node const &node) override;
-    int way_modify(osmium::Way const &way) override;
+    int way_modify(osmium::Way *way) override;
     int relation_modify(osmium::Relation const &rel) override;
 
     int node_delete(osmid_t id) override;
@@ -65,7 +65,7 @@ protected:
 
     void delete_from_output(osmid_t id);
     int process_node(osmium::Node const &node);
-    int process_way(osmium::Way const &way);
+    int process_way(osmium::Way *way);
     int reprocess_way(osmium::Way const &way, bool exists);
     int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);

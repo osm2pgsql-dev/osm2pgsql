@@ -129,7 +129,7 @@ void parse_osmium_t::stream_file(const std::string &filename, const std::string 
     reader.close();
 }
 
-void parse_osmium_t::node(osmium::Node& node)
+void parse_osmium_t::node(osmium::Node const &node)
 {
     if (node.deleted()) {
         m_data->node_delete(node.id());
@@ -163,15 +163,15 @@ void parse_osmium_t::way(osmium::Way& way)
         m_data->way_delete(way.id());
     } else {
         if (m_append) {
-            m_data->way_modify(way);
+            m_data->way_modify(&way);
         } else {
-            m_data->way_add(way);
+            m_data->way_add(&way);
         }
     }
     m_stats.add_way(way.id());
 }
 
-void parse_osmium_t::relation(osmium::Relation& rel)
+void parse_osmium_t::relation(osmium::Relation const &rel)
 {
     if (rel.deleted()) {
         m_data->relation_delete(rel.id());

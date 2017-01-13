@@ -362,26 +362,26 @@ int output_pgsql_t::node_add(osmium::Node const &node)
     return 0;
 }
 
-int output_pgsql_t::way_add(osmium::Way const &way)
+int output_pgsql_t::way_add(osmium::Way *way)
 {
     int polygon = 0;
     int roads = 0;
     taglist_t outtags;
 
     /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-    auto filter = m_tagtransform->filter_tags(way, &polygon, &roads,
+    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads,
                                               *m_export_list.get(), outtags);
 
     /* If this isn't a polygon then it can not be part of a multipolygon
        Hence only polygons are "pending" */
-    if (!filter && polygon) { ways_pending_tracker.mark(way.id()); }
+    if (!filter && polygon) { ways_pending_tracker.mark(way->id()); }
 
     if( !polygon && !filter )
     {
         /* Get actual node data and generate output */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes(), reproj.get());
-        pgsql_out_way(way.id(), outtags, nodes, polygon, roads);
+        m_mid->nodes_get_list(nodes, way->nodes(), reproj.get());
+        pgsql_out_way(way->id(), outtags, nodes, polygon, roads);
     }
     return 0;
 }
@@ -545,14 +545,14 @@ int output_pgsql_t::node_modify(osmium::Node const &node)
     return 0;
 }
 
-int output_pgsql_t::way_modify(osmium::Way const &way)
+int output_pgsql_t::way_modify(osmium::Way *way)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    way_delete(way.id());
+    way_delete(way->id());
     way_add(way);
 
     return 0;

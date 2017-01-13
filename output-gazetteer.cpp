@@ -684,23 +684,23 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
     return 0;
 }
 
-int output_gazetteer_t::process_way(osmium::Way const &way)
+int output_gazetteer_t::process_way(osmium::Way *way)
 {
-    places.process_tags(way);
+    places.process_tags(*way);
 
     if (m_options.append)
-        delete_unused_classes('W', way.id());
+        delete_unused_classes('W', way->id());
 
     /* Are we interested in this item? */
     if (places.has_data()) {
         /* Fetch the node details */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes(), reproj.get());
+        m_mid->nodes_get_list(nodes, way->nodes(), reproj.get());
 
         /* Get the geometry of the object */
         auto geom = builder.get_wkb_simple(nodes, 1);
         if (geom.valid()) {
-            places.copy_out(way, geom.geom, buffer);
+            places.copy_out(*way, geom.geom, buffer);
             flush_place_buffer();
         }
     }

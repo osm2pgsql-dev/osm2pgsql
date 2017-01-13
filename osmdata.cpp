@@ -45,9 +45,9 @@ int osmdata_t::node_add(osmium::Node const &node)
     return status;
 }
 
-int osmdata_t::way_add(osmium::Way const &way)
+int osmdata_t::way_add(osmium::Way *way)
 {
-    mid->ways_set(way);
+    mid->ways_set(*way);
 
     int status = 0;
     for (auto& out: outs) {
@@ -84,20 +84,19 @@ int osmdata_t::node_modify(osmium::Node const &node)
     return status;
 }
 
-int osmdata_t::way_modify(osmium::Way const &way)
+int osmdata_t::way_modify(osmium::Way *way)
 {
-    idlist_t nodes(way.nodes());
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->ways_delete(way.id());
-    slim->ways_set(way);
+    slim->ways_delete(way->id());
+    slim->ways_set(*way);
 
     int status = 0;
     for (auto& out: outs) {
         status |= out->way_modify(way);
     }
 
-    slim->way_changed(way.id());
+    slim->way_changed(way->id());
 
     return status;
 }

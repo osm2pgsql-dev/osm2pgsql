@@ -28,11 +28,11 @@ public:
     void stop();
 
     int node_add(osmium::Node const &node);
-    int way_add(osmium::Way const &way);
+    int way_add(osmium::Way *way);
     int relation_add(osmium::Relation const &rel);
 
     int node_modify(osmium::Node const &node);
-    int way_modify(osmium::Way const &way);
+    int way_modify(osmium::Way *way);
     int relation_modify(osmium::Relation const &rel);
 
     int node_delete(osmid_t id);

@@ -194,8 +194,8 @@ int output_multi_t::node_add(osmium::Node const &node)
     return 0;
 }
 
-int output_multi_t::way_add(osmium::Way const &way) {
-    if (m_processor->interests(geometry_processor::interest_way) && way.nodes().size() > 1) {
+int output_multi_t::way_add(osmium::Way *way) {
+    if (m_processor->interests(geometry_processor::interest_way) && way->nodes().size() > 1) {
         return process_way(way);
     }
     return 0;
@@ -224,10 +224,10 @@ int output_multi_t::node_modify(osmium::Node const &node)
     return 0;
 }
 
-int output_multi_t::way_modify(osmium::Way const &way) {
+int output_multi_t::way_modify(osmium::Way *way) {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
-        delete_from_output(way.id());
+        delete_from_output(way->id());
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
@@ -322,15 +322,15 @@ int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
     return 0;
 }
 
-int output_multi_t::process_way(osmium::Way const &way) {
+int output_multi_t::process_way(osmium::Way *way) {
     //check if we are keeping this way
     int polygon = 0, roads = 0;
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(way, &polygon, &roads,
+    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads,
                                               *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
-        if (m_way_helper.set(way.nodes(), m_mid, m_proj.get()) < 1)
+        if (m_way_helper.set(way->nodes(), m_mid, m_proj.get()) < 1)
             return 0;
         //grab its geom
         auto geom = m_processor->process_way(m_way_helper.node_cache);
@@ -339,11 +339,11 @@ int output_multi_t::process_way(osmium::Way const &way) {
             //if we are also interested in relations we need to mark
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
-                ways_pending_tracker.mark(way.id());
+                ways_pending_tracker.mark(way->id());
             } else {
                 // We wouldn't be interested in this as a relation, so no need to mark it pending.
                 // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(way.id(), geom, outtags, polygon);
+                copy_to_table(way->id(), geom, outtags, polygon);
             }
         }
     }

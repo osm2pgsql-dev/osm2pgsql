@@ -184,7 +184,7 @@ public:
         return process_node(node);
     }
 
-    int way_add(osmium::Way const &way) override
+    int way_add(osmium::Way *way) override
     {
         return process_way(way);
     }
@@ -199,7 +199,7 @@ public:
         return process_node(node);
     }
 
-    int way_modify(osmium::Way const &way) override
+    int way_modify(osmium::Way *way) override
     {
         return process_way(way);
     }
@@ -234,7 +234,7 @@ private:
     void delete_unused_classes(char osm_type, osmid_t osm_id);
     void delete_place(char osm_type, osmid_t osm_id);
     int process_node(osmium::Node const &node);
-    int process_way(osmium::Way const &way);
+    int process_way(osmium::Way *way);
     int process_relation(osmium::Relation const &rel);
     int connect();
 

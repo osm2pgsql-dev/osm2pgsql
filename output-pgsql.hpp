@@ -40,11 +40,11 @@ public:
     int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node) override;
-    int way_add(osmium::Way const &way) override;
+    int way_add(osmium::Way *way) override;
     int relation_add(osmium::Relation const &rel) override;
 
     int node_modify(osmium::Node const &node) override;
-    int way_modify(osmium::Way const &way) override;
+    int way_modify(osmium::Way *way) override;
     int relation_modify(osmium::Relation const &rel) override;
 
     int node_delete(osmid_t id) override;

@@ -50,12 +50,12 @@ struct test_output_t : public output_null_t {
         return 0;
     }
 
-    int way_add(osmium::Way const &way) override {
-        assert(way.id() > 0);
-        sum_ids += (unsigned) way.id();
+    int way_add(osmium::Way *way) override {
+        assert(way->id() > 0);
+        sum_ids += (unsigned) way->id();
         num_ways += 1;
-        assert(way.nodes().size() >= 0);
-        num_nds += uint64_t(way.nodes().size());
+        assert(way->nodes().size() >= 0);
+        num_nds += uint64_t(way->nodes().size());
         return 0;
     }
 

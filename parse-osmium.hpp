@@ -113,9 +113,9 @@ public:
 
     void stream_file(const std::string &filename, const std::string &fmt);
 
-    void node(osmium::Node& node);
+    void node(osmium::Node const &node);
     void way(osmium::Way& way);
-    void relation(osmium::Relation& rel);
+    void relation(osmium::Relation const &rel);
 
     parse_stats_t const &stats() const
     {
