@@ -177,6 +177,7 @@ set(osm2pgsql_lib_SOURCES
   node-ram-cache.cpp
   options.cpp
   osmdata.cpp
+  osmium-builder.cpp
   output-gazetteer.cpp
   output-multi.cpp
   output-null.cpp

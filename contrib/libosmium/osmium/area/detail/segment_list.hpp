@@ -110,11 +110,18 @@ namespace osmium {
                     });
                 }
 
-                uint32_t extract_segments_from_way_impl(osmium::area::ProblemReporter* problem_reporter, const osmium::Way& way, role_type role) {
+                uint32_t extract_segments_from_way_impl(
+                    osmium::area::ProblemReporter *problem_reporter,
+                    const osmium::Way &way, role_type role,
+                    bool ignore_invalid = false)
+                {
                     uint32_t duplicate_nodes = 0;
 
                     osmium::NodeRef previous_nr;
                     for (const osmium::NodeRef& nr : way.nodes()) {
+                        if (ignore_invalid && !nr.location().valid()) {
+                            continue;
+                        }
                         if (previous_nr.location()) {
                             if (previous_nr.location() != nr.location()) {
                                 m_segments.emplace_back(previous_nr, nr, role, &way);
@@ -213,19 +220,29 @@ namespace osmium {
                  * same node or different nodes with same location) are
                  * removed after reporting the duplicate node.
                  */
-                uint32_t extract_segments_from_way(osmium::area::ProblemReporter* problem_reporter, const osmium::Way& way) {
+                uint32_t extract_segments_from_way(
+                    osmium::area::ProblemReporter *problem_reporter,
+                    const osmium::Way &way, bool ignore_invalid = false)
+                {
                     if (way.nodes().empty()) {
                         return 0;
                     }
                     m_segments.reserve(way.nodes().size() - 1);
-                    return extract_segments_from_way_impl(problem_reporter, way, role_type::outer);
+                    return extract_segments_from_way_impl(problem_reporter, way,
+                                                          role_type::outer,
+                                                          ignore_invalid);
                 }
 
                 /**
                  * Extract all segments from all ways that make up this
                  * multipolygon relation and add them to the list.
                  */
-                uint32_t extract_segments_from_ways(osmium::area::ProblemReporter* problem_reporter, const osmium::Relation& relation, const std::vector<const osmium::Way*>& members) {
+                uint32_t extract_segments_from_ways(
+                    osmium::area::ProblemReporter *problem_reporter,
+                    const osmium::Relation &relation,
+                    const std::vector<const osmium::Way *> &members,
+                    bool ignore_invalid = false)
+                {
                     assert(relation.members().size() >= members.size());
 
                     const size_t num_segments = get_num_segments(members);
@@ -235,9 +252,15 @@ namespace osmium {
                     m_segments.reserve(num_segments);
 
                     uint32_t duplicate_nodes = 0;
-                    for_each_member(relation, members, [this, &problem_reporter, &duplicate_nodes](const osmium::RelationMember& member, const osmium::Way& way) {
-                        duplicate_nodes += extract_segments_from_way_impl(problem_reporter, way, parse_role(member.role()));
-                    });
+                    for_each_member(
+                        relation, members,
+                        [this, &problem_reporter, &duplicate_nodes,
+                         ignore_invalid](const osmium::RelationMember &member,
+                                         const osmium::Way &way) {
+                            duplicate_nodes += extract_segments_from_way_impl(
+                                problem_reporter, way,
+                                parse_role(member.role()), ignore_invalid);
+                        });
 
                     return duplicate_nodes;
                 }

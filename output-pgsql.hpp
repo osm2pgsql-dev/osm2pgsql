@@ -6,13 +6,13 @@
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
-#include "output.hpp"
-#include "tagtransform.hpp"
-#include "geometry-builder.hpp"
-#include "reprojection.hpp"
 #include "expire-tiles.hpp"
 #include "id-tracker.hpp"
+#include "osmium-builder.hpp"
+#include "output.hpp"
+#include "reprojection.hpp"
 #include "table.hpp"
+#include "tagtransform.hpp"
 
 #include <vector>
 #include <memory>
@@ -57,14 +57,9 @@ public:
     void merge_expire_trees(output_t *other) override;
 
 protected:
-    int pgsql_out_way(osmid_t id, taglist_t &tags, const nodelist_t &nodes,
-                      int polygons, int roads);
-    int pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
-                           const multinodelist_t &xnodes, const multitaglist_t & xtags,
-                           const idlist_t &xid, const rolelist_t &xrole,
-                           bool pending);
-    int pgsql_process_relation(osmium::Relation const &rel,
-                               bool exists, bool pending=false);
+    void pgsql_out_way(osmium::Way const &way, taglist_t *tags, bool polygon,
+                       bool roads);
+    int pgsql_process_relation(osmium::Relation const &rel, bool pending);
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 
@@ -77,10 +72,8 @@ protected:
 
     std::unique_ptr<export_list> m_export_list;
 
-    geometry_builder builder;
+    geom::osmium_builder_t m_builder;
     expire_tiles expire;
-
-    std::shared_ptr<reprojection> reproj;
 
     id_tracker ways_pending_tracker, rels_pending_tracker;
     std::shared_ptr<id_tracker> ways_done_tracker;

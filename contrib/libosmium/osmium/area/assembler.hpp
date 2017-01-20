@@ -1467,6 +1467,43 @@ namespace osmium {
                 }
             }
 
+            bool make_area(const osmium::Way &way,
+                           osmium::memory::Buffer &out_buffer)
+            {
+                m_segment_list.extract_segments_from_way(
+                    m_config.problem_reporter, way, true);
+
+                if (!create_rings()) {
+                    return false;
+                }
+
+                osmium::builder::AreaBuilder builder{out_buffer};
+                builder.initialize_from_object(way);
+                add_rings_to_area(builder);
+                out_buffer.commit();
+                return true;
+            }
+
+            bool make_area(const osmium::Relation &relation,
+                           osmium::memory::Buffer const &ways,
+                           osmium::memory::Buffer &out_buffer)
+            {
+                for (auto const &w : ways.select<osmium::Way>()) {
+                    m_segment_list.extract_segments_from_way(
+                        m_config.problem_reporter, w, true);
+                }
+
+                if (!create_rings()) {
+                    return false;
+                }
+
+                osmium::builder::AreaBuilder builder{out_buffer};
+                builder.initialize_from_object(relation);
+                add_rings_to_area(builder);
+                out_buffer.commit();
+                return true;
+            }
+
             /**
              * Assemble an area from the given relation and its members.
              * All members are to be found in the in_buffer at the offsets

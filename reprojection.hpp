@@ -50,6 +50,17 @@ public:
         return target_srs() == PROJ_LATLONG;
     }
 
+    // interface for osmium GeometryFactory
+
+    osmium::geom::Coordinates operator()(osmium::Location location) const
+    {
+        return reproject(location);
+    }
+
+    int epsg() const { return target_srs(); }
+
+    std::string proj_string() const { return target_desc(); }
+
     /**
      * Create a reprojection object with target srs `srs`.
      *

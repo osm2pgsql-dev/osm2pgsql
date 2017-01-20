@@ -344,6 +344,52 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
     }
 }
 
+static const char *lookup_hex = "0123456789ABCDEF";
+
+void table_t::write_row_wkb(const osmid_t id, const taglist_t &tags,
+                            const std::string &geom)
+{
+    //add the osm id
+    buffer.append((single_fmt % id).str());
+    buffer.push_back('\t');
+
+    // used to remember which columns have been written out already.
+    std::vector<bool> used;
+
+    if (hstore_mode != HSTORE_NONE)
+        used.assign(tags.size(), false);
+
+    //get the regular columns' values
+    write_columns(tags, buffer, hstore_mode == HSTORE_NORM ? &used : nullptr);
+
+    //get the hstore columns' values
+    write_hstore_columns(tags, buffer);
+
+    //get the key value pairs for the tags column
+    if (hstore_mode != HSTORE_NONE)
+        write_tags_column(tags, buffer, used);
+
+    //add the geometry - encoding it to hex along the way
+    for (char c : geom) {
+        buffer += lookup_hex[(c >> 4) & 0xf];
+        buffer += lookup_hex[c & 0xf];
+    }
+    //we need \n because we are copying from stdin
+    buffer.push_back('\n');
+
+    //tell the db we are copying if for some reason we arent already
+    if (!copyMode) {
+        pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
+        copyMode = true;
+    }
+
+    //send all the data to postgres
+    if (buffer.length() > BUFFER_SEND_SIZE) {
+        pgsql_CopyData(name.c_str(), sql_conn, buffer);
+        buffer.clear();
+    }
+}
+
 void table_t::write_columns(const taglist_t &tags, string& values, std::vector<bool> *used)
 {
     //for each column
