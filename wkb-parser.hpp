@@ -33,6 +33,9 @@ public:
     {
     }
 
+    unsigned save_pos() const { return m_pos; }
+    void rewind(unsigned pos) { m_pos = pos; }
+
     int read_header()
     {
         m_pos += sizeof(uint8_t); // skip endianess
@@ -53,6 +56,8 @@ public:
 
         return osmium::geom::Coordinates(x, y);
     }
+
+    void skip_points(size_t num) { m_pos += sizeof(double) * 2 * num; }
 
     template <typename PROJ>
     double get_area(PROJ *proj = nullptr)
