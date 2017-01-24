@@ -1,3 +1,8 @@
+#include <algorithm>
+#include <cassert>
+#include <tuple>
+#include <vector>
+
 #include <osmium/area/assembler.hpp>
 #include <osmium/geom/wkb.hpp>
 
@@ -22,19 +27,39 @@ inline osmium::geom::Coordinates interpolate(osmium::geom::Coordinates p1,
     return osmium::geom::Coordinates(frac * (p1.x - p2.x) + p2.x,
                                      frac * (p1.y - p2.y) + p2.y);
 }
+
+template <typename ITERATOR>
+inline void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
+                                 ITERATOR const &begin, ITERATOR const &end,
+                                 bool skip_first)
+{
+    auto it = begin;
+    if (skip_first) {
+        ++it;
+    }
+
+    while (it != end) {
+        if (it->location().valid()) {
+            builder.add_node_ref(*it);
+        }
+        ++it;
+    }
 }
+
+} // name space
 
 namespace geom {
 
 using WKBWriter = osmium::geom::detail::WKBFactoryImpl;
 
 osmium_builder_t::wkb_t
-osmium_builder_t::get_wkb_node(osmium::Location const &loc)
+osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
 {
     return m_writer.make_point(m_proj->reproject(loc));
 }
 
-osmium_builder_t::wkbs_t osmium_builder_t::get_wkb_split(osmium::Way const &way)
+osmium_builder_t::wkbs_t
+osmium_builder_t::get_wkb_split(osmium::WayNodeList const &nodes)
 {
     wkbs_t ret;
 
@@ -45,7 +70,7 @@ osmium_builder_t::wkbs_t osmium_builder_t::get_wkb_split(osmium::Way const &way)
     m_writer.linestring_start();
     size_t curlen = 0;
 
-    for (auto const &node : way.nodes()) {
+    for (auto const &node : nodes) {
         if (!node.location().valid())
             continue;
 
@@ -139,14 +164,141 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways, bool)
 {
     wkbs_t ret;
 
-    // XXX need to combine ways
+    // make a list of all endpoints
+    using endpoint_t = std::tuple<osmium::object_id_type, size_t, bool>;
+    std::vector<endpoint_t> endpoints;
+    // and a list of way connections
+    enum lmt : size_t
+    {
+        NOCONN = -1UL
+    };
+    std::vector<std::tuple<size_t, osmium::Way const *, size_t>> conns;
+
+    // initialise the two lists
+    for (auto const &w : ways.select<osmium::Way>()) {
+        if (w.nodes().size() > 1) {
+            endpoints.emplace_back(w.nodes().front().ref(), conns.size(), true);
+            endpoints.emplace_back(w.nodes().back().ref(), conns.size(), false);
+            conns.emplace_back(NOCONN, &w, NOCONN);
+        }
+    }
+    // sort by node id
+    std::sort(endpoints.begin(), endpoints.end());
+    // now fill the connection list based on the sorted list
+    {
+        endpoint_t const *prev = nullptr;
+        for (auto const &pt : endpoints) {
+            if (prev) {
+                if (std::get<0>(*prev) == std::get<0>(pt)) {
+                    auto previd = std::get<1>(*prev);
+                    auto ptid = std::get<1>(pt);
+                    if (std::get<2>(*prev)) {
+                        std::get<0>(conns[previd]) = ptid;
+                    } else {
+                        std::get<2>(conns[previd]) = ptid;
+                    }
+                    if (std::get<2>(pt)) {
+                        std::get<0>(conns[ptid]) = previd;
+                    } else {
+                        std::get<2>(conns[ptid]) = previd;
+                    }
+                    prev = nullptr;
+                    continue;
+                }
+            }
+
+            prev = &pt;
+        }
+    }
+
     // XXX need to do non-split version
+    size_t done_ways = 0;
+    size_t todo_ways = conns.size();
     wkbs_t linewkbs;
-    for (auto &w : ways.select<osmium::Way>()) {
-        linewkbs = get_wkb_split(w);
+    for (size_t i = 0; i < todo_ways; ++i) {
+        if (!std::get<1>(conns[i]) || (std::get<0>(conns[i]) != NOCONN &&
+                                       std::get<2>(conns[i]) != NOCONN)) {
+            continue; // way already done or not the beginning of a segment
+        }
+
+        m_buffer.clear();
+        osmium::builder::WayNodeListBuilder wnl_builder(m_buffer);
+        size_t prev = NOCONN;
+        size_t cur = i;
+
+        do {
+            auto &conn = conns[cur];
+            assert(std::get<1>(conn));
+            auto &nl = std::get<1>(conn)->nodes();
+            bool skip_first = prev != NOCONN;
+            bool forward = std::get<0>(conn) == prev;
+            prev = cur;
+            // add way nodes
+            if (forward) {
+                add_nodes_to_builder(wnl_builder, nl.cbegin(), nl.cend(),
+                                     skip_first);
+                cur = std::get<2>(conn);
+            } else {
+                add_nodes_to_builder(wnl_builder, nl.crbegin(), nl.crend(),
+                                     skip_first);
+                cur = std::get<0>(conn);
+            }
+            // mark way as done
+            std::get<1>(conns[prev]) = nullptr;
+            ++done_ways;
+        } while (cur != NOCONN);
+
+        // found a line end, create the wkbs
+        m_buffer.commit();
+        linewkbs = get_wkb_split(m_buffer.get<osmium::WayNodeList>(0));
         std::move(linewkbs.begin(), linewkbs.end(),
                   std::inserter(ret, ret.end()));
         linewkbs.clear();
+    }
+
+    if (done_ways < todo_ways) {
+        // oh dear, there must be circular ways without an end
+        // need to do the same shebang again
+        for (size_t i = 0; i < todo_ways; ++i) {
+            if (!std::get<1>(conns[i])) {
+                continue; // way already done
+            }
+
+            m_buffer.clear();
+            osmium::builder::WayNodeListBuilder wnl_builder(m_buffer);
+            size_t prev = std::get<0>(conns[i]);
+            size_t cur = i;
+            bool skip_first = false;
+
+            do {
+                auto &conn = conns[cur];
+                assert(std::get<1>(conn));
+                auto &nl = std::get<1>(conn)->nodes();
+                bool forward = std::get<0>(conn) == prev;
+                prev = cur;
+                if (forward) {
+                    // add way forwards
+                    add_nodes_to_builder(wnl_builder, nl.cbegin(), nl.cend(),
+                                         skip_first);
+                    cur = std::get<2>(conn);
+                } else {
+                    // add way backwards
+                    add_nodes_to_builder(wnl_builder, nl.crbegin(), nl.crend(),
+                                         skip_first);
+                    cur = std::get<0>(conn);
+                }
+                // mark way as done
+                std::get<1>(conns[prev]) = nullptr;
+                skip_first = true;
+            } while (cur != i);
+
+            // found a line end, create the wkbs
+            m_buffer.commit();
+            linewkbs = get_wkb_split(m_buffer.get<osmium::WayNodeList>(0));
+            std::move(linewkbs.begin(), linewkbs.end(),
+                      std::inserter(ret, ret.end()));
+            linewkbs.clear();
+        }
     }
 
     return ret;

@@ -90,9 +90,9 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             m_tables[t_poly]->write_row_wkb(way.id(), *tags, wkb);
         }
     } else {
-        for (auto const &wkb : m_builder.get_wkb_split(way)) {
+        for (auto const &wkb : m_builder.get_wkb_split(way.nodes())) {
             expire.from_wkb(wkb.c_str(), way.id());
-            m_tables[t_poly]->write_row_wkb(way.id(), *tags, wkb);
+            m_tables[t_line]->write_row_wkb(way.id(), *tags, wkb);
             if (roads) {
                 m_tables[t_roads]->write_row_wkb(way.id(), *tags, wkb);
             }
