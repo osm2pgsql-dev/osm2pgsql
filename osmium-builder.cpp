@@ -96,10 +96,11 @@ osmium_builder_t::get_wkb_split(osmium::WayNodeList const &nodes)
                         ((double)(j + 1) * split_at - dist) / delta;
                     ipoint = interpolate(this_pt, prev_pt, frac);
                     m_writer.linestring_add_location(ipoint);
-                    ret.push_back(m_writer.linestring_finish(curlen));
+                    ret.push_back(m_writer.linestring_finish(curlen + 1));
                     // start a new segment
                     m_writer.linestring_start();
                     m_writer.linestring_add_location(ipoint);
+                    curlen = 1;
                 }
                 // reset the distance based on the final splitting point for
                 // the next iteration.
@@ -109,7 +110,6 @@ osmium_builder_t::get_wkb_split(osmium::WayNodeList const &nodes)
                     curlen = 0;
                 } else {
                     dist = distance(this_pt, ipoint);
-                    curlen = 1;
                 }
             } else {
                 dist += delta;
@@ -139,7 +139,7 @@ osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
         return wkb_t();
     }
 
-    auto wkbs = create_multipolygon(m_buffer.get<osmium::Area>(0));
+    auto wkbs = create_polygons(m_buffer.get<osmium::Area>(0));
 
     return wkbs.empty() ? wkb_t() : wkbs[0];
 }
@@ -153,7 +153,11 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
 
     m_buffer.clear();
     if (assembler.make_area(rel, ways, m_buffer)) {
-        ret = create_multipolygon(m_buffer.get<osmium::Area>(0));
+        if (m_build_multigeoms) {
+            ret.push_back(create_multipolygon(m_buffer.get<osmium::Area>(0)));
+        } else {
+            ret = create_polygons(m_buffer.get<osmium::Area>(0));
+        }
     }
 
     return ret;
@@ -317,12 +321,10 @@ void osmium_builder_t::add_mp_points(const osmium::NodeRefList &nodes)
     }
 }
 
-osmium_builder_t::wkbs_t
+osmium_builder_t::wkb_t
 osmium_builder_t::create_multipolygon(osmium::Area const &area)
 {
-    wkbs_t ret;
-
-    // XXX need to split into polygons
+    wkb_t ret;
 
     try {
         size_t num_polygons = 0;
@@ -353,8 +355,43 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
         // if there are no rings, this area is invalid
         if (num_rings > 0) {
             m_writer.multipolygon_polygon_finish();
-            ret.push_back(m_writer.multipolygon_finish());
+            ret = m_writer.multipolygon_finish();
         }
+
+    } catch (osmium::geometry_error &e) { /* ignored */
+    }
+
+    return ret;
+}
+
+osmium_builder_t::wkbs_t
+osmium_builder_t::create_polygons(osmium::Area const &area)
+{
+    wkbs_t ret;
+
+    try {
+        size_t num_polygons = 0;
+
+        for (auto it = area.cbegin(); it != area.cend(); ++it) {
+            if (it->type() == osmium::item_type::outer_ring) {
+                auto &ring = static_cast<const osmium::OuterRing &>(*it);
+                if (num_polygons > 0) {
+                    ret.push_back(m_writer.polygon_finish());
+                }
+                m_writer.multipolygon_polygon_start();
+                m_writer.multipolygon_outer_ring_start();
+                add_mp_points(ring);
+                m_writer.multipolygon_outer_ring_finish();
+                ++num_polygons;
+            } else if (it->type() == osmium::item_type::inner_ring) {
+                auto &ring = static_cast<const osmium::InnerRing &>(*it);
+                m_writer.multipolygon_inner_ring_start();
+                add_mp_points(ring);
+                m_writer.multipolygon_inner_ring_finish();
+            }
+        }
+
+        ret.push_back(m_writer.polygon_finish());
 
     } catch (osmium::geometry_error &e) { /* ignored */
     }

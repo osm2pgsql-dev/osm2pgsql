@@ -571,7 +571,7 @@ std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_mid
 }
 
 output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
-: output_t(mid, o), m_builder(o.projection),
+: output_t(mid, o), m_builder(o.projection, o.enable_multi),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   ways_done_tracker(new id_tracker()),
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -642,7 +642,7 @@ output_pgsql_t::output_pgsql_t(const output_pgsql_t &other)
   m_tagtransform(new tagtransform(&m_options)),
   m_enable_way_area(other.m_enable_way_area),
   m_export_list(new export_list(*other.m_export_list)),
-  m_builder(m_options.projection),
+  m_builder(m_options.projection, other.m_options.enable_multi),
   expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
          m_options.projection),
   //NOTE: we need to know which ways were used by relations so each thread

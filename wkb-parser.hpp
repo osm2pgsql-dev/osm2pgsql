@@ -103,6 +103,7 @@ private:
     {
         // Algorithm borrowed from
         // http://stackoverflow.com/questions/451426/how-do-i-calculate-the-area-of-a-2d-polygon
+        // XXX numerically not stable (useless for latlon)
         auto num_pts = read_length();
         assert(num_pts > 3);
 

@@ -199,6 +199,21 @@ namespace osmium {
                     }
                 }
 
+                /* Polygon */
+                polygon_type polygon_finish() {
+                    set_size(m_polygon_size_offset, m_rings);
+                    std::string data;
+
+                    using std::swap;
+                    swap(data, m_data);
+
+                    if (m_out_type == out_type::hex) {
+                        return convert_to_hex(data);
+                    } else {
+                        return data;
+                    }
+                }
+
                 /* MultiPolygon */
 
                 void multipolygon_start() {
