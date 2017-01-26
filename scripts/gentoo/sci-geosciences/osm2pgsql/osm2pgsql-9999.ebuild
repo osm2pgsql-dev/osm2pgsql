@@ -3,7 +3,7 @@
 
 EAPI="5"
 
-inherit cmake-multilib cmake-utils git-2
+inherit cmake-utils git-2
 
 DESCRIPTION="OpenStreetMap data to PostgreSQL converter."
 HOMEPAGE="https://github.com/openstreetmap/osm2pgsql"
@@ -40,13 +40,13 @@ src_configure() {
         $(cmake-utils_use lua  WITH_LUA)
         $(cmake-utils_use test BUILD_TESTS)
     )
-    cmake-multilib_src_configure
+    cmake-utils_src_configure
 }
 
 src_test() {
-    cmake-multilib_src_test
+    cmake-utils_src_test
 }
 
 src_install() {
-    cmake-multilib_src_install
+    cmake-utils_src_install
 }
