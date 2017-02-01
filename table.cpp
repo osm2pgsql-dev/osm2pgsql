@@ -247,7 +247,6 @@ void table_t::stop()
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("GRANT SELECT ON %1% TO PUBLIC") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
         time(&end);
         fprintf(stderr, "All indexes on %s created in %ds\n", name.c_str(), (int)(end - start));
