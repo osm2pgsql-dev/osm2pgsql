@@ -5,7 +5,6 @@
 #include "osmtypes.hpp"
 #include "middle.hpp"
 #include "pgsql.hpp"
-#include "reprojection.hpp"
 #include "output-gazetteer.hpp"
 #include "options.hpp"
 #include "util.hpp"
@@ -37,6 +36,7 @@
 #define CREATE_PLACE_ID_INDEX \
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) %s %s"
 
+static const char *lookup_hex = "0123456789ABCDEF";
 
 void place_tag_processor::clear()
 {
@@ -486,9 +486,11 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
             }
             buffer += "\t";
         }
-        // geometry
-        buffer += srid_str;
-        buffer += geom;
+        // add the geometry - encoding it to hex along the way
+        for (char c : geom) {
+            buffer += lookup_hex[(c >> 4) & 0xf];
+            buffer += lookup_hex[c & 0xf];
+        }
         buffer += '\n';
     }
 }
@@ -611,7 +613,6 @@ int output_gazetteer_t::connect() {
 int output_gazetteer_t::start()
 {
    int srid = m_options.projection->target_srs();
-   builder.set_exclude_broken_polygon(m_options.excludepoly);
 
    places.srid_str = (boost::format("SRID=%1%;") % srid).str();
 
@@ -675,9 +676,8 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 
     /* Are we interested in this item? */
     if (places.has_data()) {
-        auto c = reproj->reproject(node.location());
-        std::string wkt = (point_fmt % c.x % c.y).str();
-        places.copy_out(node, wkt, buffer);
+        auto wkb = m_builder.get_wkb_node(node.location());
+        places.copy_out(node, wkb, buffer);
         flush_place_buffer();
     }
 
@@ -695,14 +695,24 @@ int output_gazetteer_t::process_way(osmium::Way *way)
     if (places.has_data()) {
         /* Fetch the node details */
         nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way->nodes(), reproj.get());
+        m_mid->nodes_get_list(&(way->nodes()));
 
         /* Get the geometry of the object */
-        auto geom = builder.get_wkb_simple(nodes, 1);
-        if (geom.valid()) {
-            places.copy_out(*way, geom.geom, buffer);
-            flush_place_buffer();
+        geom::osmium_builder_t::wkb_t geom;
+        if (way->is_closed()) {
+            geom = m_builder.get_wkb_polygon(*way);
         }
+        if (geom.empty()) {
+            auto wkbs = m_builder.get_wkb_line(way->nodes(), false);
+            if (wkbs.empty()) {
+                return 0;
+            }
+
+            geom = wkbs[0];
+        }
+
+        places.copy_out(*way, geom, buffer);
+        flush_place_buffer();
     }
 
     return 0;
@@ -743,38 +753,25 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
             xid2.push_back(member.ref());
     }
 
-    if (xid2.empty()) {
+    osmium_buffer.clear();
+    if (xid2.empty() || (m_mid->ways_get_list(xid2, osmium_buffer) == 0)) {
         if (m_options.append)
             delete_unused_full('R', rel.id());
 
         return 0;
     }
 
-    osmium_buffer.clear();
-    auto num_ways = m_mid->ways_get_list(xid2, osmium_buffer);
-    multinodelist_t xnodes(num_ways);
-    size_t i = 0;
-    for (auto const &w : osmium_buffer.select<osmium::Way>()) {
-        m_mid->nodes_get_list(xnodes[i++], w.nodes(), reproj.get());
+    for (auto &w : osmium_buffer.select<osmium::Way>()) {
+        m_mid->nodes_get_list(&(w.nodes()));
     }
 
-    if (!is_waterway) {
-        auto geoms = builder.build_both(xnodes, 1, 1, 1000000, rel.id());
-        for (const auto& geom: geoms) {
-            if (geom.is_polygon()) {
-                places.copy_out(rel, geom.geom, buffer);
-                flush_place_buffer();
-            } else {
-                /* add_polygon_error('R', id, "boundary", "adminitrative", &names, countrycode, wkt); */
-            }
-        }
-    } else {
-        /* waterways result in multilinestrings */
-        auto geom = builder.build_multilines(xnodes, rel.id());
-        if (geom.valid()) {
-            places.copy_out(rel, geom.geom, buffer);
-            flush_place_buffer();
-        }
+    auto geoms = is_waterway
+                     ? m_builder.get_wkb_multiline(osmium_buffer, false)
+                     : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
+
+    if (!geoms.empty()) {
+        places.copy_out(rel, geoms[0], buffer);
+        flush_place_buffer();
     }
 
     return 0;

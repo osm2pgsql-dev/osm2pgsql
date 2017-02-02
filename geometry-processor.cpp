@@ -14,16 +14,16 @@
 std::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,
                                                                  const options_t *options) {
     std::shared_ptr<geometry_processor> ptr;
-    int srid = options->projection->target_srs();
 
     if (type == "point") {
-        ptr = std::make_shared<processor_point>(srid);
+        ptr = std::make_shared<processor_point>(options->projection);
     }
     else if (type == "line") {
-        ptr = std::make_shared<processor_line>(srid);
+        ptr = std::make_shared<processor_line>(options->projection);
     }
     else if (type == "polygon") {
-        ptr = std::make_shared<processor_polygon>(srid, options->enable_multi);
+        ptr = std::make_shared<processor_polygon>(options->projection,
+                                                  options->enable_multi);
     }
     else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "
@@ -38,8 +38,7 @@ geometry_processor::geometry_processor(int srid, const std::string &type, unsign
     : m_srid(srid), m_type(type), m_interests(interests) {
 }
 
-geometry_processor::~geometry_processor() {
-}
+geometry_processor::~geometry_processor() = default;
 
 int geometry_processor::srid() const {
     return m_srid;
@@ -57,40 +56,29 @@ bool geometry_processor::interests(unsigned int interested) const {
     return (interested & m_interests) == interested;
 }
 
-geometry_builder::pg_geom_t geometry_processor::process_node(double, double) {
-    return geometry_builder::pg_geom_t();
-}
-
-geometry_builder::pg_geom_t geometry_processor::process_way(const nodelist_t &) {
-    return geometry_builder::pg_geom_t();
-}
-
-geometry_builder::pg_geoms_t geometry_processor::process_relation(const multinodelist_t &) {
-    return geometry_builder::pg_geoms_t();
-}
-
-way_helper::way_helper()
+geometry_processor::wkb_t
+geometry_processor::process_node(osmium::Location const &)
 {
+    return wkb_t();
 }
-way_helper::~way_helper()
-{
-}
-size_t way_helper::set(osmium::WayNodeList const &node_ids,
-                       middle_query_t const *mid, reprojection const *proj)
-{
-    node_cache.clear();
-    mid->nodes_get_list(node_cache, node_ids, proj);
 
-    // equivalent to returning node_count for complete ways, different for partial
-    // extracts
-    return node_cache.size();
+geometry_processor::wkb_t geometry_processor::process_way(osmium::Way const &)
+{
+    return wkb_t();
 }
+
+geometry_processor::wkbs_t
+geometry_processor::process_relation(osmium::Relation const &,
+                                     osmium::memory::Buffer const &)
+{
+    return wkbs_t();
+}
+
 
 relation_helper::relation_helper()
 : data(1024, osmium::memory::Buffer::auto_grow::yes)
 {}
 
-relation_helper::~relation_helper() = default;
 
 size_t relation_helper::set(osmium::RelationMemberList const &member_list, middle_t const *mid)
 {
@@ -100,13 +88,10 @@ size_t relation_helper::set(osmium::RelationMemberList const &member_list, middl
     roles.clear();
 
     //grab the way members' ids
-    size_t num_input = member_list.size();
-    input_way_ids.reserve(num_input);
-    roles.reserve(num_input);
-    for (auto const &member : member_list) {
-        if (member.type() == osmium::item_type::way) {
-            input_way_ids.push_back(member.ref());
-            roles.push_back(member.role());
+    for (auto const &m : member_list) {
+        /* Need to handle more than just ways... */
+        if (m.type() == osmium::item_type::way) {
+            input_way_ids.push_back(m.ref());
         }
     }
 
@@ -118,21 +103,14 @@ size_t relation_helper::set(osmium::RelationMemberList const &member_list, middl
     auto num_ways = mid->ways_get_list(input_way_ids, data);
 
     //grab the roles of each way
-    if (num_ways < input_way_ids.size()) {
-        size_t memberpos = 0;
-        size_t waypos = 0;
-        for (auto const &w : data.select<osmium::Way>()) {
-            while (memberpos < input_way_ids.size()) {
-                if (input_way_ids[memberpos] == w.id()) {
-                    roles[waypos] = roles[memberpos];
-                    ++memberpos;
-                    break;
-                }
-                ++memberpos;
+    for (auto const &w : data.select<osmium::Way>()) {
+        for (auto const &member : member_list) {
+            if (member.ref() == w.id() &&
+                member.type() == osmium::item_type::way) {
+                roles.emplace_back(member.role());
+                break;
             }
-            ++waypos;
         }
-        roles.resize(num_ways);
     }
 
     //mark the ends of each so whoever uses them will know where they end..
@@ -147,21 +125,15 @@ multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, expor
 
     size_t i = 0;
     for (auto const &w : data.select<osmium::Way>()) {
-        transform->filter_tags(w, nullptr, nullptr, el, filtered[i++]);
+        transform->filter_tags(w, nullptr, nullptr, el, filtered[++i]);
     }
 
     return filtered;
 }
 
-multinodelist_t relation_helper::get_nodes(middle_t const *mid,
-                                           reprojection const *proj) const
+void relation_helper::add_way_locations(middle_t const *mid)
 {
-    multinodelist_t nodes(roles.size());
-
-    size_t i = 0;
-    for (auto const &w : data.select<osmium::Way>()) {
-        mid->nodes_get_list(nodes[i++], w.nodes(), proj);
+    for (auto &w : data.select<osmium::Way>()) {
+        mid->nodes_get_list(&(w.nodes()));
     }
-
-    return nodes;
 }

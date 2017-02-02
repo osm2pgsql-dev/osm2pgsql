@@ -1,19 +1,23 @@
 #include "processor-line.hpp"
 
-processor_line::processor_line(int srid) : geometry_processor(srid, "LINESTRING", interest_way | interest_relation )
+processor_line::processor_line(std::shared_ptr<reprojection> const &proj)
+: geometry_processor(proj->target_srs(), "LINESTRING",
+                     interest_way | interest_relation),
+  m_builder(proj, false)
 {
 }
 
-processor_line::~processor_line()
+geometry_processor::wkb_t processor_line::process_way(osmium::Way const &way)
 {
+    auto wkbs = m_builder.get_wkb_line(way.nodes(), false);
+
+    return wkbs.empty() ? wkb_t() : wkbs[0];
 }
 
-geometry_builder::pg_geom_t processor_line::process_way(const nodelist_t &nodes)
+geometry_processor::wkbs_t
+processor_line::process_relation(osmium::Relation const &,
+                                 osmium::memory::Buffer const &ways)
 {
-    return builder.get_wkb_simple(nodes, false);
-}
-
-geometry_builder::pg_geoms_t processor_line::process_relation(const multinodelist_t &nodes)
-{
-    return builder.build_both(nodes, false, false, 1000000);
+    // XXX are multilines really acceptable?
+    return m_builder.get_wkb_multiline(ways, false);
 }

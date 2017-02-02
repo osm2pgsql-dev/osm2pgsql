@@ -90,7 +90,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             m_tables[t_poly]->write_row_wkb(way.id(), *tags, wkb);
         }
     } else {
-        for (auto const &wkb : m_builder.get_wkb_split(way.nodes())) {
+        for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), true)) {
             expire.from_wkb(wkb.c_str(), way.id());
             m_tables[t_line]->write_row_wkb(way.id(), *tags, wkb);
             if (roads) {
@@ -321,42 +321,40 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
         if (m.type() == osmium::item_type::way) {
             xid2.push_back(m.ref());
         }
+    }
 
+    buffer.clear();
+    auto num_ways = m_mid->ways_get_list(xid2, buffer);
+
+    if (num_ways == 0)
+        return 0;
+
+    multitaglist_t xtags(num_ways, taglist_t());
+    rolelist_t xrole(num_ways);
+
+    size_t i = 0;
+    for (auto const &w : buffer.select<osmium::Way>()) {
+        assert(i < num_ways);
+
+        //filter the tags on this member because we got it from the middle
+        //and since the middle is no longer tied to the output it no longer
+        //shares any kind of tag transform and therefore all original tags
+        //will come back and need to be filtered by individual outputs before
+        //using these ways
+        m_tagtransform->filter_tags(w, nullptr, nullptr, *m_export_list.get(),
+                                    xtags[i]);
+        //TODO: if the filter says that this member is now not interesting we
+        //should decrement the count and remove his nodes and tags etc. for
+        //now we'll just keep him with no tags so he will get filtered later
+        for (auto const &member : rel.members()) {
+            if (member.ref() == w.id() &&
+                member.type() == osmium::item_type::way) {
+                xrole[i] = member.role();
+                break;
+            }
+        }
+        ++i;
   }
-
-  buffer.clear();
-  auto num_ways = m_mid->ways_get_list(xid2, buffer);
-
-  if (num_ways == 0)
-      return 0;
-
-  multitaglist_t xtags(num_ways, taglist_t());
-  rolelist_t xrole(num_ways);
-
-  size_t i = 0;
-  for (auto const &w : buffer.select<osmium::Way>()) {
-      assert(i < num_ways);
-
-      //filter the tags on this member because we got it from the middle
-      //and since the middle is no longer tied to the output it no longer
-      //shares any kind of tag transform and therefore all original tags
-      //will come back and need to be filtered by individual outputs before
-      //using these ways
-      m_tagtransform->filter_tags(w, nullptr, nullptr, *m_export_list.get(), xtags[i]);
-      //TODO: if the filter says that this member is now not interesting we
-      //should decrement the count and remove his nodes and tags etc. for
-      //now we'll just keep him with no tags so he will get filtered later
-      for (auto const &member : rel.members()) {
-          if (member.ref() == w.id() && member.type() == osmium::item_type::way) {
-              xrole[i] = member.role();
-              break;
-          }
-      }
-      ++i;
-  }
-
-  ////// pgsql_out_relation
-  //pgsql_out_relation(rel, outtags, xtags, xid, xrole, pending);
 
   int roads = 0;
   int make_polygon = 0;

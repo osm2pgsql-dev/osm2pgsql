@@ -508,6 +508,7 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     //dirty the stuff
     const char* wkb = nullptr;
     while((wkb = wkbs.get_next()))
+        // XXX need to convert from hex to binary
         from_wkb(wkb, osm_id);
 
     //return how many rows were affected

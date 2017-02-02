@@ -3,16 +3,18 @@
 
 #include "geometry-processor.hpp"
 
-struct processor_polygon : public geometry_processor {
-    processor_polygon(int srid, bool enable_multi);
-    virtual ~processor_polygon();
+class processor_polygon : public geometry_processor
+{
+public:
+    processor_polygon(std::shared_ptr<reprojection> const &proj,
+                      bool enable_multi);
 
-    geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
-    geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
+    wkb_t process_way(osmium::Way const &nodes) override;
+    wkbs_t process_relation(osmium::Relation const &rel,
+                            osmium::memory::Buffer const &ways) override;
 
 private:
-    bool enable_multi;
-    geometry_builder builder;
+    geom::osmium_builder_t m_builder;
 };
 
 #endif /* PROCESSOR_POLYGON_HPP */

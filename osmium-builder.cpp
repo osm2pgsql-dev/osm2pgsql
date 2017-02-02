@@ -59,7 +59,7 @@ osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
 }
 
 osmium_builder_t::wkbs_t
-osmium_builder_t::get_wkb_split(osmium::WayNodeList const &nodes)
+osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
 {
     wkbs_t ret;
 
@@ -79,40 +79,43 @@ osmium_builder_t::get_wkb_split(osmium::WayNodeList const &nodes)
             if (prev_pt == this_pt) {
                 continue;
             }
-            double const delta = distance(prev_pt, this_pt);
 
-            // figure out if the addition of this point would take the total
-            // length of the line in `segment` over the `split_at` distance.
+            if (do_split) {
+                double const delta = distance(prev_pt, this_pt);
 
-            if (dist + delta > split_at) {
-                size_t const splits =
-                    (size_t)std::floor((dist + delta) / split_at);
-                // use the splitting distance to split the current segment up
-                // into as many parts as necessary to keep each part below
-                // the `split_at` distance.
-                osmium::geom::Coordinates ipoint;
-                for (size_t j = 0; j < splits; ++j) {
-                    double const frac =
-                        ((double)(j + 1) * split_at - dist) / delta;
-                    ipoint = interpolate(this_pt, prev_pt, frac);
-                    m_writer.linestring_add_location(ipoint);
-                    ret.push_back(m_writer.linestring_finish(curlen + 1));
-                    // start a new segment
-                    m_writer.linestring_start();
-                    m_writer.linestring_add_location(ipoint);
-                    curlen = 1;
-                }
-                // reset the distance based on the final splitting point for
-                // the next iteration.
-                if (this_pt == ipoint) {
-                    dist = 0;
-                    m_writer.linestring_start();
-                    curlen = 0;
+                // figure out if the addition of this point would take the total
+                // length of the line in `segment` over the `split_at` distance.
+
+                if (dist + delta > split_at) {
+                    size_t const splits =
+                        (size_t)std::floor((dist + delta) / split_at);
+                    // use the splitting distance to split the current segment up
+                    // into as many parts as necessary to keep each part below
+                    // the `split_at` distance.
+                    osmium::geom::Coordinates ipoint;
+                    for (size_t j = 0; j < splits; ++j) {
+                        double const frac =
+                            ((double)(j + 1) * split_at - dist) / delta;
+                        ipoint = interpolate(this_pt, prev_pt, frac);
+                        m_writer.linestring_add_location(ipoint);
+                        ret.push_back(m_writer.linestring_finish(curlen + 1));
+                        // start a new segment
+                        m_writer.linestring_start();
+                        m_writer.linestring_add_location(ipoint);
+                        curlen = 1;
+                    }
+                    // reset the distance based on the final splitting point for
+                    // the next iteration.
+                    if (this_pt == ipoint) {
+                        dist = 0;
+                        m_writer.linestring_start();
+                        curlen = 0;
+                    } else {
+                        dist = distance(this_pt, ipoint);
+                    }
                 } else {
-                    dist = distance(this_pt, ipoint);
+                    dist += delta;
                 }
-            } else {
-                dist += delta;
             }
         }
 
@@ -164,10 +167,9 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
 }
 
 osmium_builder_t::wkbs_t
-osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways, bool)
+osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
+                                    bool do_split)
 {
-    wkbs_t ret;
-
     // make a list of all endpoints
     using endpoint_t = std::tuple<osmium::object_id_type, size_t, bool>;
     std::vector<endpoint_t> endpoints;
@@ -215,10 +217,10 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways, bool)
         }
     }
 
-    // XXX need to do non-split version
+    wkbs_t ret;
+
     size_t done_ways = 0;
     size_t todo_ways = conns.size();
-    wkbs_t linewkbs;
     for (size_t i = 0; i < todo_ways; ++i) {
         if (!std::get<1>(conns[i]) || (std::get<0>(conns[i]) != NOCONN &&
                                        std::get<2>(conns[i]) != NOCONN)) {
@@ -254,10 +256,10 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways, bool)
 
         // found a line end, create the wkbs
         m_buffer.commit();
-        linewkbs = get_wkb_split(m_buffer.get<osmium::WayNodeList>(0));
+        auto linewkbs =
+            get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), do_split);
         std::move(linewkbs.begin(), linewkbs.end(),
                   std::inserter(ret, ret.end()));
-        linewkbs.clear();
     }
 
     if (done_ways < todo_ways) {
@@ -298,11 +300,21 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways, bool)
 
             // found a line end, create the wkbs
             m_buffer.commit();
-            linewkbs = get_wkb_split(m_buffer.get<osmium::WayNodeList>(0));
+            auto linewkbs =
+                get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), do_split);
             std::move(linewkbs.begin(), linewkbs.end(),
                       std::inserter(ret, ret.end()));
-            linewkbs.clear();
         }
+    }
+
+    if (!do_split && !ret.empty()) {
+        auto num_lines = ret.size();
+        m_writer.multilinestring_start();
+        for (auto const &line : ret) {
+            m_writer.add_part(line);
+        }
+        ret.clear();
+        ret.push_back(m_writer.multilinestring_finish(num_lines));
     }
 
     return ret;

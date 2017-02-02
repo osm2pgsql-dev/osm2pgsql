@@ -1,3 +1,6 @@
+#ifndef OSMIUM_BUILDER_H
+#define OSMIUM_BUILDER_H
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -25,7 +28,7 @@ public:
     }
 
     wkb_t get_wkb_node(osmium::Location const &loc) const;
-    wkbs_t get_wkb_split(osmium::WayNodeList const &way);
+    wkbs_t get_wkb_line(osmium::WayNodeList const &way, bool do_split);
     wkb_t get_wkb_polygon(osmium::Way const &way);
 
     wkbs_t get_wkb_multipolygon(osmium::Relation const &rel,
@@ -45,3 +48,5 @@ private:
 };
 
 } // namespace
+
+#endif // OSMIUM_BUILDER_H

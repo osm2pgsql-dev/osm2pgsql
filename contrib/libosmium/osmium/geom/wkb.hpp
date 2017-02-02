@@ -199,6 +199,31 @@ namespace osmium {
                     }
                 }
 
+                /* MultiLineString */
+
+                void multilinestring_start() {
+                    m_data.clear();
+                    m_multipolygon_size_offset = header(m_data, wkbMultiLineString, true);
+                }
+
+                void add_part(std::string const &part) {
+                    m_data.append(part);
+                }
+
+                linestring_type multilinestring_finish(size_t num_lines) {
+                    set_size(m_multipolygon_size_offset, num_lines);
+                    std::string data;
+
+                    using std::swap;
+                    swap(data, m_data);
+
+                    if (m_out_type == out_type::hex) {
+                        return convert_to_hex(data);
+                    } else {
+                        return data;
+                    }
+                }
+
                 /* Polygon */
                 polygon_type polygon_finish() {
                     set_size(m_polygon_size_offset, m_rings);

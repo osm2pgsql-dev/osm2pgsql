@@ -66,10 +66,11 @@ protected:
     void delete_from_output(osmid_t id);
     int process_node(osmium::Node const &node);
     int process_way(osmium::Way *way);
-    int reprocess_way(osmium::Way const &way, bool exists);
+    int reprocess_way(osmium::Way *way, bool exists);
     int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
-    void copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon);
+    void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
+                       taglist_t &tags, int polygon);
 
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
@@ -80,7 +81,6 @@ protected:
     id_tracker ways_pending_tracker, rels_pending_tracker;
     std::shared_ptr<id_tracker> ways_done_tracker;
     expire_tiles m_expire;
-    way_helper m_way_helper;
     relation_helper m_relation_helper;
     osmium::memory::Buffer buffer;
 };

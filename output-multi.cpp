@@ -1,12 +1,13 @@
 #include "output-multi.hpp"
-#include "taginfo_impl.hpp"
-#include "table.hpp"
-#include "tagtransform.hpp"
-#include "options.hpp"
-#include "middle.hpp"
-#include "id-tracker.hpp"
-#include "geometry-builder.hpp"
 #include "expire-tiles.hpp"
+#include "geometry-builder.hpp"
+#include "id-tracker.hpp"
+#include "middle.hpp"
+#include "options.hpp"
+#include "table.hpp"
+#include "taginfo_impl.hpp"
+#include "tagtransform.hpp"
+#include "wkb-parser.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
@@ -117,7 +118,7 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
     buffer.clear();
     if (m_mid->ways_get(id, buffer)) {
         // Output the way
-        ret = reprocess_way(buffer.get<osmium::Way>(0), exists);
+        ret = reprocess_way(&buffer.get<osmium::Way>(0), exists);
     }
 
     return ret;
@@ -282,24 +283,24 @@ int output_multi_t::process_node(osmium::Node const &node)
     auto filter = m_tagtransform->filter_tags(node, 0, 0, *m_export_list.get(),
                                               outtags, true);
     if (!filter) {
-        auto c = m_proj->reproject(node.location());
         // grab its geom
-        auto geom = m_processor->process_node(c.y, c.x);
-        if (geom.valid()) {
-            m_expire.from_bbox(c.x, c.y, c.x, c.y);
-            copy_node_to_table(node.id(), geom.geom, outtags);
+        auto geom = m_processor->process_node(node.location());
+        if (!geom.empty()) {
+            m_expire.from_wkb(geom.c_str(), node.id());
+            copy_node_to_table(node.id(), geom, outtags);
         }
     }
     return 0;
 }
 
-int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
+int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 {
     //if the way could exist already we have to make the relation pending and reprocess it later
     //but only if we actually care about relations
     if(m_processor->interests(geometry_processor::interest_relation) && exists) {
-        way_delete(way.id());
-        const std::vector<osmid_t> rel_ids = m_mid->relations_using_way(way.id());
+        way_delete(way->id());
+        const std::vector<osmid_t> rel_ids =
+            m_mid->relations_using_way(way->id());
         for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
             rels_pending_tracker.mark(*itr);
         }
@@ -308,15 +309,13 @@ int output_multi_t::reprocess_way(osmium::Way const &way, bool exists)
     //check if we are keeping this way
     int polygon = 0;
     taglist_t outtags;
-    unsigned int filter = m_tagtransform->filter_tags(way, &polygon, 0,
-                                                      *m_export_list.get(), outtags, true);
+    unsigned int filter = m_tagtransform->filter_tags(
+        *way, &polygon, 0, *m_export_list.get(), outtags, true);
     if (!filter) {
-        //grab its geom
-        nodelist_t nodes;
-        m_mid->nodes_get_list(nodes, way.nodes(), m_proj.get());
-        auto geom = m_processor->process_way(nodes);
-        if (geom.valid()) {
-            copy_to_table(way.id(), geom, outtags, polygon);
+        m_mid->nodes_get_list(&(way->nodes()));
+        auto geom = m_processor->process_way(*way);
+        if (!geom.empty()) {
+            copy_to_table(way->id(), geom, outtags, polygon);
         }
     }
     return 0;
@@ -330,12 +329,12 @@ int output_multi_t::process_way(osmium::Way *way) {
                                               *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
-        if (m_way_helper.set(way->nodes(), m_mid, m_proj.get()) < 1)
+        if (m_mid->nodes_get_list(&(way->nodes())) < 1)
             return 0;
         //grab its geom
-        auto geom = m_processor->process_way(m_way_helper.node_cache);
+        auto geom = m_processor->process_way(*way);
 
-        if (geom.valid()) {
+        if (!geom.empty()) {
             //if we are also interested in relations we need to mark
             //this way pending just in case it shows up in one
             if (m_processor->interests(geometry_processor::interest_relation)) {
@@ -384,7 +383,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         //if the export list did not include the type tag.
         //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
         //all this trickery
-        int make_boundary, make_polygon = 1;
+        int make_boundary, make_polygon;
         taglist_t outtags;
         filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
                                                         &m_relation_helper.superseded.front(),
@@ -392,23 +391,17 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
                                                         *m_export_list.get(), outtags, true);
         if (!filter)
         {
-            auto nodes =
-                m_relation_helper.get_nodes((middle_t *)m_mid, m_proj.get());
-            auto geoms = m_processor->process_relation(nodes);
+            m_relation_helper.add_way_locations((middle_t *)m_mid);
+            auto geoms =
+                m_processor->process_relation(rel, m_relation_helper.data);
             for (const auto geom : geoms) {
-                // TODO: we actually have the nodes in the m_relation_helper and
-                // could use them
-                // instead of having to reparse the wkb in the expiry code
-                m_expire.from_wkb(geom.geom.c_str(), -rel.id());
-                // what part of the code relies on relation members getting negative
-                // ids?
                 copy_to_table(-rel.id(), geom, outtags, make_polygon);
             }
 
             //TODO: should this loop be inside the if above just in case?
             //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
             size_t i = 0;
-            for (auto const &w : m_relation_helper.way_iterator()) {
+            for (auto const &w : m_relation_helper.data.select<osmium::Way>()) {
                 //tags matched so we are keeping this one with this relation
                 if (m_relation_helper.superseded[i]) {
                     //just in case it wasnt previously with this relation we get rid of them
@@ -426,8 +419,10 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
     return 0;
 }
 
-void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags) {
-    m_table->write_row(id, tags, geom);
+void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,
+                                        taglist_t &tags)
+{
+    m_table->write_row_wkb(id, tags, geom);
 }
 
 /**
@@ -439,25 +434,23 @@ void output_multi_t::copy_node_to_table(osmid_t id, const std::string &geom, tag
  *
  * \pre geom must be valid.
  */
-void output_multi_t::copy_to_table(const osmid_t id, const geometry_builder::pg_geom_t &geom, taglist_t &tags, int polygon) {
-    if (geom.is_polygon()) {
+void output_multi_t::copy_to_table(const osmid_t id,
+                                   geometry_processor::wkb_t const &geom,
+                                   taglist_t &tags, int polygon)
+{
+    // XXX really should depend on expected output type
+    if (polygon) {
         // It's a polygon table (implied by it turning into a poly),
         // and it got formed into a polygon, so expire as a polygon and write the geom
-        m_expire.from_nodes_poly(m_way_helper.node_cache, id);
-        if (geom.area > 0.0) {
-            char tmp[32];
-            snprintf(tmp, sizeof(tmp), "%g", geom.area);
-            tags.push_override(tag_t("way_area", tmp));
-        }
-        m_table->write_row(id, tags, geom.geom);
-    } else {
-        // Linestring
-        if (!polygon) {
-            // non-polygons are okay
-            m_expire.from_nodes_line(m_way_helper.node_cache);
-            m_table->write_row(id, tags, geom.geom);
-        }
+        auto area =
+            ewkb_parser_t(geom).get_area<osmium::geom::IdentityProjection>();
+        char tmp[32];
+        snprintf(tmp, sizeof(tmp), "%g", area);
+        tags.push_override(tag_t("way_area", tmp));
     }
+
+    m_expire.from_wkb(geom.c_str(), id);
+    m_table->write_row_wkb(id, tags, geom);
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {

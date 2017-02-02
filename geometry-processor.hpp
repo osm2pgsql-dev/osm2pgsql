@@ -8,7 +8,7 @@
 
 #include <osmium/memory/buffer.hpp>
 
-#include "geometry-builder.hpp"
+#include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "tagtransform.hpp"
 
@@ -18,6 +18,8 @@ struct options_t;
 class reprojection;
 
 struct geometry_processor {
+    using wkb_t = geom::osmium_builder_t::wkb_t;
+    using wkbs_t = geom::osmium_builder_t::wkbs_t;
     // factory method for creating various types of geometry processors either by name or by geometry column type
     static std::shared_ptr<geometry_processor> create(const std::string &type,
                                                         const options_t *options);
@@ -45,17 +47,18 @@ struct geometry_processor {
 
     // process a node, optionally returning a WKB string describing
     // geometry to be inserted into the table.
-    virtual geometry_builder::pg_geom_t process_node(double lat, double lon);
+    virtual wkb_t process_node(osmium::Location const &loc);
 
     // process a way
     // position data and optionally returning WKB-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
+    virtual wkb_t process_way(osmium::Way const &way);
 
     // process a way, taking a middle query object to get way and
     // node position data. optionally returns an array of WKB-encoded geometry
     // for insertion into the table.
-    virtual geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
+    virtual wkbs_t process_relation(osmium::Relation const &rel,
+                                    osmium::memory::Buffer const &ways);
 
     // returns the SRID of the output geometry.
     int srid() const;
@@ -75,29 +78,15 @@ protected:
 };
 
 
-//various bits for continuous processing of ways
-struct way_helper
-{
-    way_helper();
-    ~way_helper();
-    size_t set(osmium::WayNodeList const &node_ids, middle_query_t const *mid,
-               reprojection const *proj);
-
-    nodelist_t node_cache;
-};
-
 //various bits for continuous processing of members of relations
-struct relation_helper
+class relation_helper
 {
+public:
     relation_helper();
-    ~relation_helper();
+
     size_t set(osmium::RelationMemberList const &member_list, middle_t const *mid);
     multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
-    multinodelist_t get_nodes(middle_t const *mid,
-                              reprojection const *proj) const;
-
-    osmium::memory::ItemIteratorRange<const osmium::Way> way_iterator() const
-    { return data.select<osmium::Way>(); }
+    void add_way_locations(middle_t const *mid);
 
     rolelist_t roles;
     std::vector<int> superseded;

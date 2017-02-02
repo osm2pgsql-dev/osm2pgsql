@@ -10,7 +10,6 @@
 #include "id-tracker.hpp"
 #include "osmium-builder.hpp"
 #include "output.hpp"
-#include "reprojection.hpp"
 #include "table.hpp"
 #include "tagtransform.hpp"
 
