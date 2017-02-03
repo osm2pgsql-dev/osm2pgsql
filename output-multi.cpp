@@ -1,6 +1,5 @@
 #include "output-multi.hpp"
 #include "expire-tiles.hpp"
-#include "geometry-builder.hpp"
 #include "id-tracker.hpp"
 #include "middle.hpp"
 #include "options.hpp"
