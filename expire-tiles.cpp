@@ -333,49 +333,6 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 	return 0;
 }
 
-void expire_tiles::from_nodes_line(const nodelist_t &nodes)
-{
-    if (maxzoom < 0 || nodes.empty())
-        return;
-
-    if (nodes.size() == 1) {
-        from_bbox(nodes[0].x, nodes[0].y, nodes[0].x, nodes[0].y);
-    } else {
-        for (size_t i = 1; i < nodes.size(); ++i)
-            from_line(nodes[i - 1].x, nodes[i - 1].y, nodes[i].x, nodes[i].y);
-    }
-}
-
-/*
- * Calculate a bounding box from a list of nodes and expire all tiles within it
- */
-void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
-{
-    if (maxzoom < 0 || nodes.empty())
-        return;
-
-    double min_lon = nodes[0].x;
-    double min_lat = nodes[0].y;
-    double max_lon = nodes[0].x;
-    double max_lat = nodes[0].y;
-
-    for (size_t i = 1; i < nodes.size(); ++i) {
-        if (nodes[i].x < min_lon)
-            min_lon = nodes[i].x;
-        if (nodes[i].y < min_lat)
-            min_lat = nodes[i].y;
-        if (nodes[i].x > max_lon)
-            max_lon = nodes[i].x;
-        if (nodes[i].y > max_lat)
-            max_lat = nodes[i].y;
-    }
-
-    if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {
-        /* Bounding box too big - just expire tiles on the line */
-        fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
-        from_nodes_line(nodes);
-    }
-}
 
 void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
 {
