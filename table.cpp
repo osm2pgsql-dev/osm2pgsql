@@ -33,7 +33,6 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 
     //we use these a lot, so instead of constantly allocating them we predefine these
     single_fmt = fmt("%1%");
-    point_fmt = fmt("POINT(%.15g %.15g)");
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
 }
 
@@ -41,7 +40,7 @@ table_t::table_t(const table_t& other):
     conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
-    table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
+    table_space_index(other.table_space_index), single_fmt(other.single_fmt), del_fmt(other.del_fmt)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -288,65 +287,13 @@ void table_t::stop_copy()
     copyMode = false;
 }
 
-void table_t::write_node(const osmid_t id, const taglist_t &tags, double lat, double lon)
-{
-    write_row(id, tags, (point_fmt % lon % lat).str());
-}
-
 void table_t::delete_row(const osmid_t id)
 {
     stop_copy();
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (del_fmt % name % id).str());
 }
 
-void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::string &geom)
-{
-    //add the osm id
-    buffer.append((single_fmt % id).str());
-    buffer.push_back('\t');
-
-    // used to remember which columns have been written out already.
-    std::vector<bool> used;
-
-    if (hstore_mode != HSTORE_NONE)
-        used.assign(tags.size(), false);
-
-    //get the regular columns' values
-    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:nullptr);
-
-    //get the hstore columns' values
-    write_hstore_columns(tags, buffer);
-
-    //get the key value pairs for the tags column
-    if (hstore_mode != HSTORE_NONE)
-        write_tags_column(tags, buffer, used);
-
-    //give the geometry an srid
-    buffer.append("SRID=");
-    buffer.append(srid);
-    buffer.push_back(';');
-    //add the geometry
-    buffer.append(geom);
-    //we need \n because we are copying from stdin
-    buffer.push_back('\n');
-
-    //tell the db we are copying if for some reason we arent already
-    if (!copyMode)
-    {
-        pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
-        copyMode = true;
-    }
-
-    //send all the data to postgres
-    if(buffer.length() > BUFFER_SEND_SIZE)
-    {
-        pgsql_CopyData(name.c_str(), sql_conn, buffer);
-        buffer.clear();
-    }
-}
-
-void table_t::write_row_wkb(osmid_t const id, taglist_t const &tags,
-                            std::string const &geom)
+void table_t::write_row(osmid_t id, taglist_t const &tags, std::string const &geom)
 {
     //add the osm id
     buffer.append((single_fmt % id).str());

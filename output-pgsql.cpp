@@ -87,14 +87,14 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                               .get_area<osmium::geom::IdentityProjection>();
                 tags->push_override(tag_t("way_area", std::to_string(area)));
             }
-            m_tables[t_poly]->write_row_wkb(way.id(), *tags, wkb);
+            m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
     } else {
         for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), true)) {
             expire.from_wkb(wkb.c_str(), way.id());
-            m_tables[t_line]->write_row_wkb(way.id(), *tags, wkb);
+            m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
-                m_tables[t_roads]->write_row_wkb(way.id(), *tags, wkb);
+                m_tables[t_roads]->write_row(way.id(), *tags, wkb);
             }
         }
 
@@ -274,7 +274,7 @@ int output_pgsql_t::node_add(osmium::Node const &node)
 
     auto wkb = m_builder.get_wkb_node(node.location());
     expire.from_wkb(wkb.c_str(), node.id());
-    m_tables[t_point]->write_row_wkb(node.id(), outtags, wkb);
+    m_tables[t_point]->write_row(node.id(), outtags, wkb);
 
     return 0;
 }
@@ -390,7 +390,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
                             .get_area<osmium::geom::IdentityProjection>();
               outtags.push_override(tag_t("way_area", std::to_string(area)));
           }
-          m_tables[t_poly]->write_row_wkb(-rel.id(), outtags, wkb);
+          m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
       }
 
       /* Tagtransform will have marked those member ways of the relation that
@@ -417,9 +417,9 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
       auto wkbs = m_builder.get_wkb_multiline(buffer, true);
       for (auto const &wkb : wkbs) {
           expire.from_wkb(wkb.c_str(), -rel.id());
-          m_tables[t_line]->write_row_wkb(-rel.id(), outtags, wkb);
+          m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
           if (roads)
-              m_tables[t_roads]->write_row_wkb(-rel.id(), outtags, wkb);
+              m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
       }
   }
 

@@ -421,7 +421,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
 void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,
                                         taglist_t &tags)
 {
-    m_table->write_row_wkb(id, tags, geom);
+    m_table->write_row(id, tags, geom);
 }
 
 /**
@@ -449,7 +449,7 @@ void output_multi_t::copy_to_table(const osmid_t id,
     }
 
     m_expire.from_wkb(geom.c_str(), id);
-    m_table->write_row_wkb(id, tags, geom);
+    m_table->write_row(id, tags, geom);
 }
 
 void output_multi_t::delete_from_output(osmid_t id) {

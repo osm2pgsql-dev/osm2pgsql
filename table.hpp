@@ -31,10 +31,7 @@ class table_t
         void begin();
         void commit();
 
-        void write_row(const osmid_t id, const taglist_t &tags, const std::string &geom);
-        void write_row_wkb(const osmid_t id, const taglist_t &tags,
-                           const std::string &geom);
-        void write_node(const osmid_t id, const taglist_t &tags, double lat, double lon);
+        void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
         void delete_row(const osmid_t id);
 
         std::string const& get_name();
@@ -110,7 +107,7 @@ class table_t
         boost::optional<std::string> table_space;
         boost::optional<std::string> table_space_index;
 
-        boost::format single_fmt, point_fmt, del_fmt;
+        boost::format single_fmt, del_fmt;
 };
 
 #endif
