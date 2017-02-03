@@ -1,14 +1,15 @@
-#include "table.hpp"
-#include "options.hpp"
-#include "util.hpp"
-#include "taginfo.hpp"
-
 #include <exception>
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
 #include <utility>
 #include <time.h>
+
+#include "options.hpp"
+#include "table.hpp"
+#include "taginfo.hpp"
+#include "util.hpp"
+#include "wkb.hpp"
 
 using std::string;
 typedef boost::format fmt;
@@ -344,10 +345,8 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
     }
 }
 
-static const char *lookup_hex = "0123456789ABCDEF";
-
-void table_t::write_row_wkb(const osmid_t id, const taglist_t &tags,
-                            const std::string &geom)
+void table_t::write_row_wkb(osmid_t const id, taglist_t const &tags,
+                            std::string const &geom)
 {
     //add the osm id
     buffer.append((single_fmt % id).str());
@@ -370,10 +369,8 @@ void table_t::write_row_wkb(const osmid_t id, const taglist_t &tags,
         write_tags_column(tags, buffer, used);
 
     //add the geometry - encoding it to hex along the way
-    for (char c : geom) {
-        buffer += lookup_hex[(c >> 4) & 0xf];
-        buffer += lookup_hex[c & 0xf];
-    }
+    ewkb::writer_t::write_as_hex(buffer, geom);
+
     //we need \n because we are copying from stdin
     buffer.push_back('\n');
 

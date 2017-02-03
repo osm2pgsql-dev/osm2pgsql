@@ -7,7 +7,7 @@
 #include "table.hpp"
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
-#include "wkb-parser.hpp"
+#include "wkb.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
@@ -443,7 +443,7 @@ void output_multi_t::copy_to_table(const osmid_t id,
         // It's a polygon table (implied by it turning into a poly),
         // and it got formed into a polygon, so expire as a polygon and write the geom
         auto area =
-            ewkb_parser_t(geom).get_area<osmium::geom::IdentityProjection>();
+            ewkb::parser_t(geom).get_area<osmium::geom::IdentityProjection>();
         char tmp[32];
         snprintf(tmp, sizeof(tmp), "%g", area);
         tags.push_override(tag_t("way_area", tmp));

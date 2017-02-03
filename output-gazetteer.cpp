@@ -2,12 +2,13 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 
-#include "osmtypes.hpp"
 #include "middle.hpp"
-#include "pgsql.hpp"
-#include "output-gazetteer.hpp"
 #include "options.hpp"
+#include "osmtypes.hpp"
+#include "output-gazetteer.hpp"
+#include "pgsql.hpp"
 #include "util.hpp"
+#include "wkb.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -35,8 +36,6 @@
 
 #define CREATE_PLACE_ID_INDEX \
    "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id) %s %s"
-
-static const char *lookup_hex = "0123456789ABCDEF";
 
 void place_tag_processor::clear()
 {
@@ -487,10 +486,7 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
             buffer += "\t";
         }
         // add the geometry - encoding it to hex along the way
-        for (char c : geom) {
-            buffer += lookup_hex[(c >> 4) & 0xf];
-            buffer += lookup_hex[c & 0xf];
-        }
+        ewkb::writer_t::write_as_hex(buffer, geom);
         buffer += '\n';
     }
 }

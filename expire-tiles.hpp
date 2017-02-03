@@ -8,7 +8,9 @@
 class reprojection;
 class table_t;
 class tile;
-class ewkb_parser_t;
+namespace ewkb {
+class parser_t;
+}
 
 struct expire_tiles
 {
@@ -49,9 +51,9 @@ private:
     int normalise_tile_x_coord(int x);
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
 
-    void from_wkb_point(ewkb_parser_t *wkb);
-    void from_wkb_line(ewkb_parser_t *wkb);
-    void from_wkb_polygon(ewkb_parser_t *wkb, osmid_t osm_id);
+    void from_wkb_point(ewkb::parser_t *wkb);
+    void from_wkb_line(ewkb::parser_t *wkb);
+    void from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id);
 
     double tile_width;
     double max_bbox;

@@ -38,7 +38,7 @@
 #include "tagtransform.hpp"
 #include "util.hpp"
 #include "wildcmp.hpp"
-#include "wkb-parser.hpp"
+#include "wkb.hpp"
 
 /* make the diagnostic information work with older versions of
  * boost - the function signature changed at version 1.54.
@@ -81,9 +81,9 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             if (m_enable_way_area) {
                 auto const area =
                     m_options.reproject_area
-                        ? ewkb_parser_t(wkb).get_area<reprojection>(
+                        ? ewkb::parser_t(wkb).get_area<reprojection>(
                               m_options.projection.get())
-                        : ewkb_parser_t(wkb)
+                        : ewkb::parser_t(wkb)
                               .get_area<osmium::geom::IdentityProjection>();
                 tags->push_override(tag_t("way_area", std::to_string(area)));
             }
@@ -384,9 +384,9 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
           if (m_enable_way_area) {
               auto const area =
                   m_options.reproject_area
-                      ? ewkb_parser_t(wkb).get_area<reprojection>(
+                      ? ewkb::parser_t(wkb).get_area<reprojection>(
                             m_options.projection.get())
-                      : ewkb_parser_t(wkb)
+                      : ewkb::parser_t(wkb)
                             .get_area<osmium::geom::IdentityProjection>();
               outtags.push_override(tag_t("way_area", std::to_string(area)));
           }

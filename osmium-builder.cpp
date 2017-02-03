@@ -4,7 +4,6 @@
 #include <vector>
 
 #include <osmium/area/assembler.hpp>
-#include <osmium/geom/wkb.hpp>
 
 #include "osmium-builder.hpp"
 
@@ -49,8 +48,6 @@ inline void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
 } // name space
 
 namespace geom {
-
-using WKBWriter = osmium::geom::detail::WKBFactoryImpl;
 
 osmium_builder_t::wkb_t
 osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
@@ -97,11 +94,11 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
                         double const frac =
                             ((double)(j + 1) * split_at - dist) / delta;
                         ipoint = interpolate(this_pt, prev_pt, frac);
-                        m_writer.linestring_add_location(ipoint);
+                        m_writer.add_location(ipoint);
                         ret.push_back(m_writer.linestring_finish(curlen + 1));
                         // start a new segment
                         m_writer.linestring_start();
-                        m_writer.linestring_add_location(ipoint);
+                        m_writer.add_location(ipoint);
                         curlen = 1;
                     }
                     // reset the distance based on the final splitting point for
@@ -119,7 +116,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
             }
         }
 
-        m_writer.linestring_add_location(this_pt);
+        m_writer.add_location(this_pt);
         ++curlen;
 
         prev_pt = this_pt;
@@ -311,7 +308,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
         auto num_lines = ret.size();
         m_writer.multilinestring_start();
         for (auto const &line : ret) {
-            m_writer.add_part(line);
+            m_writer.add_sub_geometry(line);
         }
         ret.clear();
         ret.push_back(m_writer.multilinestring_finish(num_lines));
@@ -320,17 +317,20 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
     return ret;
 }
 
-void osmium_builder_t::add_mp_points(const osmium::NodeRefList &nodes)
+size_t osmium_builder_t::add_mp_points(const osmium::NodeRefList &nodes)
 {
+    size_t num_points = 0;
     osmium::Location last_location;
     for (const osmium::NodeRef &node_ref : nodes) {
         if (node_ref.location().valid() &&
             last_location != node_ref.location()) {
             last_location = node_ref.location();
-            m_writer.multipolygon_add_location(
-                m_proj->reproject(last_location));
+            m_writer.add_location(m_proj->reproject(last_location));
+            ++num_points;
         }
     }
+
+    return num_points;
 }
 
 osmium_builder_t::wkb_t
@@ -347,30 +347,33 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
             if (it->type() == osmium::item_type::outer_ring) {
                 auto &ring = static_cast<const osmium::OuterRing &>(*it);
                 if (num_polygons > 0) {
-                    m_writer.multipolygon_polygon_finish();
+                    m_writer.multipolygon_polygon_finish(num_rings);
+                    num_rings = 0;
                 }
-                m_writer.multipolygon_polygon_start();
-                m_writer.multipolygon_outer_ring_start();
-                add_mp_points(ring);
-                m_writer.multipolygon_outer_ring_finish();
+                m_writer.polygon_start();
+                m_writer.polygon_ring_start();
+                auto num_points = add_mp_points(ring);
+                m_writer.polygon_ring_finish(num_points);
                 ++num_rings;
-                ++num_polygons;
             } else if (it->type() == osmium::item_type::inner_ring) {
                 auto &ring = static_cast<const osmium::InnerRing &>(*it);
-                m_writer.multipolygon_inner_ring_start();
-                add_mp_points(ring);
-                m_writer.multipolygon_inner_ring_finish();
+                m_writer.polygon_ring_start();
+                auto num_points = add_mp_points(ring);
+                m_writer.polygon_ring_finish(num_points);
                 ++num_rings;
             }
         }
 
-        // if there are no rings, this area is invalid
-        if (num_rings > 0) {
-            m_writer.multipolygon_polygon_finish();
-            ret = m_writer.multipolygon_finish();
+        // if there are no polygons, this area is invalid
+        if (num_polygons > 0) {
+            m_writer.multipolygon_polygon_finish(num_rings);
+            ret = m_writer.multipolygon_finish(num_polygons);
+        } else {
+            ret.clear();
         }
 
-    } catch (osmium::geometry_error &e) { /* ignored */
+    } catch (osmium::geometry_error &e) {
+        /* ignored */
     }
 
     return ret;
@@ -382,28 +385,32 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
     wkbs_t ret;
 
     try {
-        size_t num_polygons = 0;
+        size_t num_rings = 0;
 
         for (auto it = area.cbegin(); it != area.cend(); ++it) {
             if (it->type() == osmium::item_type::outer_ring) {
                 auto &ring = static_cast<const osmium::OuterRing &>(*it);
-                if (num_polygons > 0) {
-                    ret.push_back(m_writer.polygon_finish());
+                if (num_rings > 0) {
+                    ret.push_back(m_writer.polygon_finish(num_rings));
+                    num_rings = 0;
                 }
-                m_writer.multipolygon_polygon_start();
-                m_writer.multipolygon_outer_ring_start();
-                add_mp_points(ring);
-                m_writer.multipolygon_outer_ring_finish();
-                ++num_polygons;
+                m_writer.polygon_start();
+                m_writer.polygon_ring_start();
+                auto num_points = add_mp_points(ring);
+                m_writer.polygon_ring_finish(num_points);
+                ++num_rings;
             } else if (it->type() == osmium::item_type::inner_ring) {
                 auto &ring = static_cast<const osmium::InnerRing &>(*it);
-                m_writer.multipolygon_inner_ring_start();
-                add_mp_points(ring);
-                m_writer.multipolygon_inner_ring_finish();
+                m_writer.polygon_ring_start();
+                auto num_points = add_mp_points(ring);
+                m_writer.polygon_ring_finish(num_points);
+                ++num_rings;
             }
         }
 
-        ret.push_back(m_writer.polygon_finish());
+        if (num_rings > 0) {
+            ret.push_back(m_writer.polygon_finish(num_rings));
+        }
 
     } catch (osmium::geometry_error &e) { /* ignored */
     }

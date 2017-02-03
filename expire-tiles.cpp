@@ -18,7 +18,7 @@
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
-#include "wkb-parser.hpp"
+#include "wkb.hpp"
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
@@ -383,19 +383,19 @@ void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
         return;
     }
 
-    auto parse = ewkb_parser_t(wkb);
+    auto parse = ewkb::parser_t(wkb);
 
     switch (parse.read_header()) {
-    case ewkb_parser_t::wkb_point:
+    case ewkb::wkb_point:
         from_wkb_point(&parse);
         break;
-    case ewkb_parser_t::wkb_line:
+    case ewkb::wkb_line:
         from_wkb_line(&parse);
         break;
-    case ewkb_parser_t::wkb_polygon:
+    case ewkb::wkb_polygon:
         from_wkb_polygon(&parse, osm_id);
         break;
-    case ewkb_parser_t::wkb_multi_line: {
+    case ewkb::wkb_multi_line: {
         auto num = parse.read_length();
         for (unsigned i = 0; i < num; ++i) {
             parse.read_header();
@@ -403,7 +403,7 @@ void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
         }
         break;
     }
-    case ewkb_parser_t::wkb_multi_polygon: {
+    case ewkb::wkb_multi_polygon: {
         auto num = parse.read_length();
         for (unsigned i = 0; i < num; ++i) {
             parse.read_header();
@@ -418,13 +418,13 @@ void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
     }
 }
 
-void expire_tiles::from_wkb_point(ewkb_parser_t *wkb)
+void expire_tiles::from_wkb_point(ewkb::parser_t *wkb)
 {
     auto c = wkb->read_point();
     from_bbox(c.x, c.y, c.x, c.y);
 }
 
-void expire_tiles::from_wkb_line(ewkb_parser_t *wkb)
+void expire_tiles::from_wkb_line(ewkb::parser_t *wkb)
 {
     auto sz = wkb->read_length();
 
@@ -444,7 +444,7 @@ void expire_tiles::from_wkb_line(ewkb_parser_t *wkb)
     }
 }
 
-void expire_tiles::from_wkb_polygon(ewkb_parser_t *wkb, osmid_t osm_id)
+void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 {
     auto num_rings = wkb->read_length();
     assert(num_rings > 0);
