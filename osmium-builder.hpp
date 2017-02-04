@@ -22,7 +22,7 @@ public:
     explicit osmium_builder_t(std::shared_ptr<reprojection> const &proj,
                               bool build_multigeoms)
     : m_proj(proj), m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-      m_writer(m_proj->epsg()), m_build_multigeoms(build_multigeoms)
+      m_writer(m_proj->target_srs()), m_build_multigeoms(build_multigeoms)
     {
     }
 
