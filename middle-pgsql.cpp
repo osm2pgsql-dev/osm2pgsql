@@ -286,92 +286,6 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node)
     }
 }
 
-// This should be made more efficient by using an IN(ARRAY[]) construct */
-size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
-                                            osmium::WayNodeList const &nds,
-                                            reprojection const *proj) const
-{
-    assert(out.empty());
-
-    char tmp[16];
-
-    char *tmp2 = static_cast<char *>(malloc(sizeof(char) * nds.size() * 16));
-    if (tmp2 == nullptr) {
-        return 0; // failed to allocate memory, return
-    }
-
-    // create a list of ids in tmp2 to query the database
-    sprintf(tmp2, "{");
-    int countDB = 0;
-    out.reserve(nds.size());
-    for (auto const &n : nds) {
-        // Check cache first */
-        auto loc = cache->get(n.ref());
-        if (loc.valid()) {
-            out.push_back(proj->reproject(loc));
-            continue;
-        }
-
-        countDB++;
-        // Mark nodes as needing to be fetched from the DB
-        out.emplace_back(NAN, NAN);
-
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
-        strncat(tmp2, tmp, sizeof(char) * (nds.size() * 16 - 2));
-    }
-    // replace last , with } to complete list of ids
-    tmp2[strlen(tmp2) - 1] = '}';
-
-    if (countDB == 0) {
-        free(tmp2);
-        return nds.size(); // All ids where in cache, so nothing more to do
-    }
-
-    pgsql_endCopy(node_table);
-
-    PGconn *sql_conn = node_table->sql_conn;
-
-    char const *paramValues[1];
-    paramValues[0] = tmp2;
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1,
-                                       paramValues, PGRES_TUPLES_OK);
-    int countPG = PQntuples(res);
-
-    // store the pg results in a hashmap and telling it how many we expect
-    std::unordered_map<osmid_t, osmium::Location> pg_nodes(countPG);
-
-    for (int i = 0; i < countPG; i++) {
-        osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
-        osmium::Location n((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
-                           (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
-
-        pg_nodes.emplace(id, n);
-    }
-
-    PQclear(res);
-    free(tmp2);
-
-    // If some of the nodes in the way don't exist, the returning list has holes.
-    // Merge the two lists removing any holes.
-    size_t wrtidx = 0;
-    for (size_t i = 0; i < nds.size(); ++i) {
-        if (std::isnan(out[i].x)) {
-            auto found = pg_nodes.find(nds[i].ref());
-            if (found != pg_nodes.end()) {
-                out[wrtidx] = proj->reproject(found->second);
-                ++wrtidx;
-            }
-        } else {
-            if (wrtidx < i)
-                out[wrtidx] = out[i];
-            ++wrtidx;
-        }
-    }
-    out.resize(wrtidx, osmium::geom::Coordinates(NAN, NAN));
-
-    return wrtidx;
-}
-
 size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
@@ -431,15 +345,6 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node)
     } else {
         local_nodes_set(node);
     }
-}
-
-size_t middle_pgsql_t::nodes_get_list(nodelist_t &out,
-                                      osmium::WayNodeList const &nds,
-                                      reprojection const *proj) const
-{
-    return (out_options->flat_node_cache_enabled)
-               ? persistent_cache->get_list(out, nds, proj)
-               : local_nodes_get_list(out, nds, proj);
 }
 
 size_t middle_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const

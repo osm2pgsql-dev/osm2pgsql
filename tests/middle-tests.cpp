@@ -23,18 +23,18 @@ std::shared_ptr<reprojection>
     proj(reprojection::create_projection(PROJ_LATLONG));
 
 #define ALLOWED_ERROR 10e-9
-bool node_okay(osmium::geom::Coordinates node, osmium::Node const &expected)
+bool node_okay(osmium::Location loc, osmium::Node const &expected)
 {
-    if ((node.y > expected.location().lat() + ALLOWED_ERROR) ||
-        (node.y < expected.location().lat() - ALLOWED_ERROR)) {
+    if ((loc.lat() > expected.location().lat() + ALLOWED_ERROR) ||
+        (loc.lat() < expected.location().lat() - ALLOWED_ERROR)) {
         std::cerr << "ERROR: Node should have lat=" << expected.location().lat()
-                  << ", but got back " << node.y << " from middle.\n";
+                  << ", but got back " << loc.lat() << " from middle.\n";
         return false;
     }
-    if ((node.x > expected.location().lon() + ALLOWED_ERROR) ||
-        (node.x < expected.location().lon() - ALLOWED_ERROR)) {
+    if ((loc.lon() > expected.location().lon() + ALLOWED_ERROR) ||
+        (loc.lon() < expected.location().lon() - ALLOWED_ERROR)) {
         std::cerr << "ERROR: Node should have lon=" << expected.location().lon()
-                  << ", but got back " << node.x << " from middle.\n";
+                  << ", but got back " << loc.lon() << " from middle.\n";
         return false;
     }
     return true;
@@ -57,25 +57,19 @@ int test_node_set(middle_t *mid)
     buffer.clear();
 
     auto const &node = buffer.get<osmium::Node>(add_node(1234, 12.3456789, 98.7654321));
-    auto const &way = buffer.get<osmium::Way>(way_with_nodes({node.id()}));
-    nodelist_t nodes;
+    auto &way = buffer.get<osmium::Way>(way_with_nodes({node.id()}));
 
     // set the node
     mid->nodes_set(node);
 
     // get it back
-    if (mid->nodes_get_list(nodes, way.nodes(), proj.get()) !=
-        way.nodes().size()) {
+    if (mid->nodes_get_list(&(way.nodes())) != way.nodes().size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
-        return 1;
-    }
-    if (nodes.size() != way.nodes().size()) {
-        std::cerr << "ERROR: Mismatch in returned node list size.\n";
         return 1;
     }
 
     // check that it's the same
-    if (!node_okay(nodes[0], node)) {
+    if (!node_okay(way.nodes()[0].location(), node)) {
         return 1;
     }
 
@@ -137,23 +131,16 @@ int test_nodes_comprehensive_set(middle_t *mid)
         ids.push_back(node.id());
     }
 
-    auto const &way = buffer.get<osmium::Way>(way_with_nodes(ids));
+    auto &way = buffer.get<osmium::Way>(way_with_nodes(ids));
 
-    nodelist_t nodes;
-    if (mid->nodes_get_list(nodes, way.nodes(), proj.get()) != ids.size()) {
+    if (mid->nodes_get_list(&(way.nodes())) != ids.size()) {
         std::cerr << "ERROR: Unable to get node list.\n";
         return 1;
     }
 
-    if (nodes.size() != ids.size()) {
-        std::cerr << "ERROR: Mismatch in returned node list size.\n";
-        return 1;
-    }
-
-    for (size_t i = 0; i < nodes.size(); ++i)
-    {
+    for (size_t i = 0; i < ids.size(); ++i) {
         auto const &node = buffer.get<osmium::Node>(expected_nodes[i]);
-        if (!node_okay(nodes[i], node)) {
+        if (!node_okay(way.nodes()[i].location(), node)) {
             return 1;
         }
     }
@@ -220,7 +207,7 @@ int test_way_set(middle_t *mid)
     size_t way_count = mid->ways_get_list(ways, buffer);
     if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
 
-    auto const &way = buffer.get<osmium::Way>(buf_pos);
+    auto &way = buffer.get<osmium::Way>(buf_pos);
     // check that it's the same
     if (way.nodes().size() != nds.size()) {
         std::cerr << "ERROR: Way should have " << nds.size() << " nodes, but got back "
@@ -232,17 +219,18 @@ int test_way_set(middle_t *mid)
             << way.id() << " from middle.\n";
         return 1;
     }
-    nodelist_t xnodes;
-    mid->nodes_get_list(xnodes, way.nodes(), proj.get());
+    mid->nodes_get_list(&(way.nodes()));
     for (size_t i = 0; i < nds.size(); ++i) {
-        if (xnodes[i].x != lon) {
+        if (way.nodes()[i].location().lon() != lon) {
             std::cerr << "ERROR: Way node should have lon=" << lon
-                      << ", but got back " << xnodes[i].x << " from middle.\n";
+                      << ", but got back " << way.nodes()[i].location().lon()
+                      << " from middle.\n";
             return 1;
         }
-        if (xnodes[i].y != lat) {
+        if (way.nodes()[i].location().lat() != lat) {
             std::cerr << "ERROR: Way node should have lat=" << lat
-                      << ", but got back " << xnodes[i].y << " from middle.\n";
+                      << ", but got back " << way.nodes()[i].location().lat()
+                      << " from middle.\n";
             return 1;
         }
     }

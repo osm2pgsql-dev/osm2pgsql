@@ -48,20 +48,6 @@ void middle_ram_t::relations_set(osmium::Relation const &rel)
     rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
 }
 
-size_t middle_ram_t::nodes_get_list(nodelist_t &out,
-                                    osmium::WayNodeList const &nds,
-                                    reprojection const *proj) const
-{
-    for (auto const &in : nds) {
-        auto loc = cache->get(in.ref());
-        if (loc.valid()) {
-            out.push_back(proj->reproject(loc));
-        }
-    }
-
-    return out.size();
-}
-
 size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;

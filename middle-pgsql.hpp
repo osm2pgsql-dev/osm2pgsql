@@ -27,8 +27,6 @@ struct middle_pgsql_t : public slim_middle_t {
     void commit(void) override;
 
     void nodes_set(osmium::Node const &node) override;
-    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
-                          reprojection const *proj) const override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
     void nodes_delete(osmid_t id) override;
     void node_changed(osmid_t id) override;

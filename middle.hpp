@@ -24,14 +24,6 @@ struct middle_query_t {
     virtual ~middle_query_t() {}
 
     /**
-     * Retrives node locations for the given node list and
-     * reprojects them.
-     */
-    virtual size_t nodes_get_list(nodelist_t &out,
-                                  osmium::WayNodeList const &nds,
-                                  reprojection const *proj) const = 0;
-
-    /**
      * Retrives node locations for the given node list.
      *
      * The locations are saved directly in the input list.
