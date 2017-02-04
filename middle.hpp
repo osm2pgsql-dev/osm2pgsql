@@ -43,7 +43,17 @@ struct middle_query_t {
      */
     virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
-    virtual size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const = 0;
+    /**
+     * Retrives the way members of a relation and stores them in
+     * the given osmium buffer.
+     *
+     * \param      rel    Relation to get the members for.
+     * \param[out] roles  Roles for the ways that where retrived.
+     * \param[out] buffer Buffer where to store the members in.
+     */
+    virtual size_t
+    rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+                        osmium::memory::Buffer &buffer) const = 0;
 
     /**
      * Retrives a single relation from the relation storage

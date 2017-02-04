@@ -201,11 +201,31 @@ int test_way_set(middle_t *mid)
     mid->commit();
 
     // get it back
-    idlist_t ways;
-    ways.push_back(way_id);
+    osmium::memory::Buffer relbuf(4096, osmium::memory::Buffer::auto_grow::yes);
+    {
+        using namespace osmium::builder::attr;
+        osmium::builder::add_relation(
+            relbuf, _id(123), _member(osmium::item_type::node, 132),
+            _member(osmium::item_type::way, way_id, "outer"));
+    }
+
+    auto const &rel = relbuf.get<osmium::Relation>(0);
+
     auto buf_pos = buffer.committed();
-    size_t way_count = mid->ways_get_list(ways, buffer);
+    rolelist_t roles;
+    size_t way_count = mid->rel_way_members_get(rel, &roles, buffer);
     if (way_count != 1) { std::cerr << "ERROR: Unable to get way list.\n"; return 1; }
+
+    if (roles.size() != 1) {
+        std::cerr << "Bad length of role ist. Expected 1, got " << roles.size()
+                  << ".\n";
+        return 1;
+    }
+
+    if (strcmp(roles[0], "outer") != 0) {
+        std::cerr << "Bad role. Expected 'outer', got '" << roles[0] << "'.\n";
+        return 1;
+    }
 
     auto &way = buffer.get<osmium::Way>(buf_pos);
     // check that it's the same

@@ -326,13 +326,13 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
     }
 
     buffer.clear();
-    auto num_ways = m_mid->ways_get_list(xid2, buffer);
+    rolelist_t xrole;
+    auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
 
     if (num_ways == 0)
         return 0;
 
     multitaglist_t xtags(num_ways, taglist_t());
-    rolelist_t xrole(num_ways);
 
     size_t i = 0;
     for (auto const &w : buffer.select<osmium::Way>()) {
@@ -348,13 +348,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
         //TODO: if the filter says that this member is now not interesting we
         //should decrement the count and remove his nodes and tags etc. for
         //now we'll just keep him with no tags so he will get filtered later
-        for (auto const &member : rel.members()) {
-            if (member.ref() == w.id() &&
-                member.type() == osmium::item_type::way) {
-                xrole[i] = member.role();
-                break;
-            }
-        }
         ++i;
   }
 

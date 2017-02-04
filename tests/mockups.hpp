@@ -19,7 +19,11 @@ struct dummy_middle_t : public middle_t {
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }
-    size_t ways_get_list(idlist_t const &, osmium::memory::Buffer &) const override { return 0; }
+    size_t rel_way_members_get(osmium::Relation const &, rolelist_t *,
+                               osmium::memory::Buffer &) const override
+    {
+        return 0;
+    }
 
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
@@ -52,7 +56,11 @@ struct dummy_slim_middle_t : public slim_middle_t {
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }
-    size_t ways_get_list(idlist_t const &, osmium::memory::Buffer &) const override { return 0; }
+    size_t rel_way_members_get(osmium::Relation const &, rolelist_t *,
+                               osmium::memory::Buffer &) const override
+    {
+        return 0;
+    }
 
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }

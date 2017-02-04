@@ -118,15 +118,16 @@ bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     return true;
 }
 
-size_t middle_ram_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
+size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
+                                         rolelist_t *roles,
+                                         osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty()) {
-        return 0;
-    }
-
     size_t count = 0;
-    for (auto const id: ids) {
-        if (ways_get(id, buffer)) {
+    for (auto const &m : rel.members()) {
+        if (m.type() == osmium::item_type::way && ways_get(m.ref(), buffer)) {
+            if (roles) {
+                roles->emplace_back(m.role());
+            }
             ++count;
         }
     }

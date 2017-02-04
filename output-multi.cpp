@@ -363,7 +363,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
-        if (m_relation_helper.set(rel.members(), (middle_t*)m_mid) < 1)
+        if (m_relation_helper.set(rel, (middle_t *)m_mid) < 1)
             return 0;
 
         //filter the tags on each member because we got them from the middle

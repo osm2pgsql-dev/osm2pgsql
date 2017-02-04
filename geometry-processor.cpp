@@ -79,41 +79,16 @@ relation_helper::relation_helper()
 : data(1024, osmium::memory::Buffer::auto_grow::yes)
 {}
 
-
-size_t relation_helper::set(osmium::RelationMemberList const &member_list, middle_t const *mid)
+size_t relation_helper::set(osmium::Relation const &rel, middle_t const *mid)
 {
     // cleanup
-    input_way_ids.clear();
     data.clear();
     roles.clear();
 
-    //grab the way members' ids
-    for (auto const &m : member_list) {
-        /* Need to handle more than just ways... */
-        if (m.type() == osmium::item_type::way) {
-            input_way_ids.push_back(m.ref());
-        }
-    }
+    // get the nodes and roles of the ways
+    auto num_ways = mid->rel_way_members_get(rel, &roles, data);
 
-    //if we didn't end up using any we'll bail
-    if (input_way_ids.empty())
-        return 0;
-
-    //get the nodes of the ways
-    auto num_ways = mid->ways_get_list(input_way_ids, data);
-
-    //grab the roles of each way
-    for (auto const &w : data.select<osmium::Way>()) {
-        for (auto const &member : member_list) {
-            if (member.ref() == w.id() &&
-                member.type() == osmium::item_type::way) {
-                roles.emplace_back(member.role());
-                break;
-            }
-        }
-    }
-
-    //mark the ends of each so whoever uses them will know where they end..
+    // mark the ends of each so whoever uses them will know where they end..
     superseded.resize(num_ways);
 
     return num_ways;

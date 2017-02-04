@@ -84,16 +84,13 @@ class relation_helper
 public:
     relation_helper();
 
-    size_t set(osmium::RelationMemberList const &member_list, middle_t const *mid);
+    size_t set(osmium::Relation const &rel, middle_t const *mid);
     multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
     void add_way_locations(middle_t const *mid);
 
     rolelist_t roles;
     std::vector<int> superseded;
     osmium::memory::Buffer data;
-
-private:
-    idlist_t input_way_ids;
 };
 
 #endif /* GEOMETRY_PROCESSOR_HPP */

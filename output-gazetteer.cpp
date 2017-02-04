@@ -741,15 +741,10 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
         return 0;
 
     /* get the boundary path (ways) */
-    idlist_t xid2;
-    for (const auto& member: rel.members()) {
-        /* only interested in ways */
-        if (member.type() == osmium::item_type::way)
-            xid2.push_back(member.ref());
-    }
-
     osmium_buffer.clear();
-    if (xid2.empty() || (m_mid->ways_get_list(xid2, osmium_buffer) == 0)) {
+    auto num_ways = m_mid->rel_way_members_get(rel, nullptr, osmium_buffer);
+
+    if (num_ways == 0) {
         if (m_options.append)
             delete_unused_full('R', rel.id());
 

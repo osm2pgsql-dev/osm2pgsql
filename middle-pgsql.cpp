@@ -487,30 +487,33 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     return true;
 }
 
-size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
+size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
+                                           rolelist_t *roles,
+                                           osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty())
-        return 0;
-
     char tmp[16];
-    std::unique_ptr<char[]> tmp2(new (std::nothrow) char[ids.size() * 16]);
     char const *paramValues[1];
 
-    if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
-
-    // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2.get(), "{");
-    for (auto id : ids) {
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", id);
-        strncat(tmp2.get(), tmp, sizeof(char)*(ids.size()*16 - 2));
+    // create a list of ids in tmp2 to query the database
+    std::string tmp2("{");
+    for (auto const &m : rel.members()) {
+        if (m.type() == osmium::item_type::way) {
+            snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", m.ref());
+            tmp2.append(tmp);
+        }
     }
-    tmp2[strlen(tmp2.get()) - 1] = '}'; // replace last , with } to complete list of ids*/
+
+    if (tmp2.length() == 1) {
+        return 0; // no ways found
+    }
+    // replace last , with } to complete list of ids
+    tmp2[tmp2.length() - 1] = '}'; 
 
     pgsql_endCopy(way_table);
 
     PGconn *sql_conn = way_table->sql_conn;
 
-    paramValues[0] = tmp2.get();
+    paramValues[0] = tmp2.c_str();
     PGresult *res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
     int countPG = PQntuples(res);
 
@@ -520,22 +523,27 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
         wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
     }
 
-
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
-    int outres = 0;
-    for (auto id : ids) {
+    size_t outres = 0;
+    for (auto const &m : rel.members()) {
+        if (m.type() != osmium::item_type::way) {
+            continue;
+        }
         for (int j = 0; j < countPG; j++) {
-            if (id == wayidspg[j]) {
+            if (m.ref() == wayidspg[j]) {
                 {
                     osmium::builder::WayBuilder builder(buffer);
-                    builder.set_id(id);
+                    builder.set_id(m.ref());
 
                     pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer, builder);
                     pgsql_parse_tags(PQgetvalue(res, j, 2), buffer, builder);
                 }
 
                 buffer.commit();
+                if (roles) {
+                    roles->emplace_back(m.role());
+                }
                 outres++;
                 break;
             }
