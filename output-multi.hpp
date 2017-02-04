@@ -70,7 +70,7 @@ protected:
     int process_relation(osmium::Relation const &rel, bool exists, bool pending=false);
     void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
     void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
-                       taglist_t &tags, int polygon);
+                       taglist_t &tags);
 
     std::unique_ptr<tagtransform> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
@@ -83,6 +83,7 @@ protected:
     expire_tiles m_expire;
     relation_helper m_relation_helper;
     osmium::memory::Buffer buffer;
+    bool m_way_area;
 };
 
 #endif

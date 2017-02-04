@@ -33,7 +33,8 @@ output_multi_t::output_multi_t(const std::string &name,
   ways_done_tracker(new id_tracker()),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
-  buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_way_area(m_export_list->has_column(m_osm_type, "way_area"))
 {
 }
 
@@ -49,7 +50,8 @@ output_multi_t::output_multi_t(const output_multi_t &other)
   ways_done_tracker(other.ways_done_tracker),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
-  buffer(1024, osmium::memory::Buffer::auto_grow::yes)
+  buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_way_area(other.m_way_area)
 {
 }
 
@@ -306,15 +308,14 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     }
 
     //check if we are keeping this way
-    int polygon = 0;
     taglist_t outtags;
     unsigned int filter = m_tagtransform->filter_tags(
-        *way, &polygon, 0, *m_export_list.get(), outtags, true);
+        *way, 0, 0, *m_export_list.get(), outtags, true);
     if (!filter) {
         m_mid->nodes_get_list(&(way->nodes()));
         auto geom = m_processor->process_way(*way);
         if (!geom.empty()) {
-            copy_to_table(way->id(), geom, outtags, polygon);
+            copy_to_table(way->id(), geom, outtags);
         }
     }
     return 0;
@@ -322,10 +323,8 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 
 int output_multi_t::process_way(osmium::Way *way) {
     //check if we are keeping this way
-    int polygon = 0, roads = 0;
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads,
-                                              *m_export_list.get(), outtags, true);
+    auto filter = m_tagtransform->filter_tags(*way, 0, 0, *m_export_list.get(), outtags, true);
     if (!filter) {
         //get the geom from the middle
         if (m_mid->nodes_get_list(&(way->nodes())) < 1)
@@ -341,7 +340,7 @@ int output_multi_t::process_way(osmium::Way *way) {
             } else {
                 // We wouldn't be interested in this as a relation, so no need to mark it pending.
                 // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(way->id(), geom, outtags, polygon);
+                copy_to_table(way->id(), geom, outtags);
             }
         }
     }
@@ -394,7 +393,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
             auto geoms =
                 m_processor->process_relation(rel, m_relation_helper.data);
             for (const auto geom : geoms) {
-                copy_to_table(-rel.id(), geom, outtags, make_polygon);
+                copy_to_table(-rel.id(), geom, outtags);
             }
 
             //TODO: should this loop be inside the if above just in case?
@@ -435,10 +434,10 @@ void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,
  */
 void output_multi_t::copy_to_table(const osmid_t id,
                                    geometry_processor::wkb_t const &geom,
-                                   taglist_t &tags, int polygon)
+                                   taglist_t &tags)
 {
     // XXX really should depend on expected output type
-    if (polygon) {
+    if (m_way_area) {
         // It's a polygon table (implied by it turning into a poly),
         // and it got formed into a polygon, so expire as a polygon and write the geom
         auto area =
