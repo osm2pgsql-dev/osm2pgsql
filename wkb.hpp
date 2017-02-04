@@ -210,6 +210,29 @@ public:
 class parser_t
 {
 public:
+    inline static std::string wkb_from_hex(std::string const &wkb)
+    {
+        std::string out;
+
+        bool front = true;
+        char outc;
+        for (char c : wkb) {
+            c -= 48;
+            if (c > 9) {
+                c -= 7;
+            }
+            if (front) {
+                outc = char(c << 4);
+                front = false;
+            } else {
+                out += outc | c;
+                front = true;
+            }
+        }
+
+        return out;
+    }
+
     explicit parser_t(char const *wkb) : m_wkb(wkb), m_pos(0) {}
     explicit parser_t(std::string const &wkb) : m_wkb(wkb.c_str()), m_pos(0) {}
 
