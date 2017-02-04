@@ -215,7 +215,9 @@ void test_random_perms()
         args.push_back(style);
 
         add_arg_and_val_or_not("--cache", args, options.cache, rand() % 800);
-        add_arg_and_val_or_not("--database", args, options.database_options.db.c_str(), get_random_string(6));
+        if (options.database_options.db) {
+            add_arg_and_val_or_not("--database", args, options.database_options.db->c_str(), get_random_string(6));
+        }
         if (options.database_options.username) {
             add_arg_and_val_or_not("--username", args, options.database_options.username->c_str(), get_random_string(6));
         }
