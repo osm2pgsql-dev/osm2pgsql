@@ -79,13 +79,15 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
         if (!wkb.empty()) {
             expire.from_wkb(wkb.c_str(), way.id());
             if (m_enable_way_area) {
+                char tmp[32];
                 auto const area =
                     m_options.reproject_area
                         ? ewkb::parser_t(wkb).get_area<reprojection>(
                               m_options.projection.get())
                         : ewkb::parser_t(wkb)
                               .get_area<osmium::geom::IdentityProjection>();
-                tags->push_override(tag_t("way_area", std::to_string(area)));
+                snprintf(tmp, sizeof(tmp), "%g", area);
+                tags->push_override(tag_t("way_area", tmp));
             }
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
@@ -379,6 +381,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
   if (make_boundary || make_polygon) {
       auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
 
+      char tmp[32];
       for (auto const &wkb : wkbs) {
           expire.from_wkb(wkb.c_str(), -rel.id());
           if (m_enable_way_area) {
@@ -388,7 +391,8 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
                             m_options.projection.get())
                       : ewkb::parser_t(wkb)
                             .get_area<osmium::geom::IdentityProjection>();
-              outtags.push_override(tag_t("way_area", std::to_string(area)));
+              snprintf(tmp, sizeof(tmp), "%g", area);
+              outtags.push_override(tag_t("way_area", tmp));
           }
           m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
       }
