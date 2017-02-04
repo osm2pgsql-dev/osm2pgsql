@@ -110,7 +110,7 @@ cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **44** command line
+Osm2pgsql has one program, the executable itself, which has **43** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS

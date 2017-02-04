@@ -61,7 +61,6 @@ namespace
         {"drop", 0, 0, 206},
         {"unlogged", 0, 0, 207},
         {"flat-nodes",1,0,209},
-        {"exclude-invalid-polygon",0,0,210},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
         {0, 0, 0, 0}
@@ -204,7 +203,6 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
-          --exclude-invalid-polygon   do not attempt to recover invalid geometries.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
@@ -278,7 +276,7 @@ options_t::options_t()
   alloc_chunkwise(ALLOC_SPARSE),
 #endif
   droptemp(false), unlogged(false), hstore_match_only(false),
-  flat_node_cache_enabled(false), excludepoly(false), reproject_area(false),
+  flat_node_cache_enabled(false), reproject_area(false),
   flat_node_file(boost::none), tag_transform_script(boost::none),
   tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
@@ -452,9 +450,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 209:
             flat_node_cache_enabled = true;
             flat_node_file = optarg;
-            break;
-        case 210:
-            excludepoly = true;
             break;
         case 211:
             enable_hstore_index = true;
