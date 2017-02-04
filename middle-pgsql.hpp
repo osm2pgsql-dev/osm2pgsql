@@ -87,8 +87,6 @@ private:
      */
     void connect(table_desc& table);
     void local_nodes_set(osmium::Node const &node);
-    size_t local_nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
-                                reprojection const *proj) const;
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);
 

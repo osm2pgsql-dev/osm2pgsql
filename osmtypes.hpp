@@ -22,9 +22,6 @@ typedef int64_t osmid_t;
 #define PRIdOSMID PRId64
 #define POSTGRES_OSMID_TYPE "int8"
 
-typedef std::vector<osmium::geom::Coordinates> nodelist_t;
-typedef std::vector<nodelist_t> multinodelist_t;
-
 struct member {
     osmium::item_type type;
     osmid_t id;

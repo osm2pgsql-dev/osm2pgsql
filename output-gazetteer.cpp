@@ -690,7 +690,6 @@ int output_gazetteer_t::process_way(osmium::Way *way)
     /* Are we interested in this item? */
     if (places.has_data()) {
         /* Fetch the node details */
-        nodelist_t nodes;
         m_mid->nodes_get_list(&(way->nodes()));
 
         /* Get the geometry of the object */
