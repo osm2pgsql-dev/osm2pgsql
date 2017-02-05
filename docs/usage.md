@@ -45,8 +45,8 @@ that only impact performance.
 ## Database options ##
 
 osm2pgsql supports standard options for how to connect to PostgreSQL. If left
-unset, it will attempt to connect to the ``gis`` database using a unix socket.
-Most usage only requires setting ``--database``.
+unset, it will attempt to connect to the default database (usually the username)
+using a unix socket. Most usage only requires setting ``--database``.
 
 ``--tablespace`` options allow the location of main and slim tables and indexes
 to be set to different tablespaces independently, typically on machines with
