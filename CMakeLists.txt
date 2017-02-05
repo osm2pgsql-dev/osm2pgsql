@@ -71,17 +71,6 @@ if (WIN32)
   set(HAVE_LIBGEN_H FALSE)
 endif()
 
-CHECK_FUNCTION_EXISTS(lseek64 HAVE_LSEEK64)
-CHECK_FUNCTION_EXISTS(posix_fallocate HAVE_POSIX_FALLOCATE)
-CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
-CHECK_FUNCTION_EXISTS(sync_file_range HAVE_SYNC_FILE_RANGE)
-
-CHECK_TYPE_SIZE("off_t" SIZEOF_OFF_T)
-
-if (NOT WIN32 AND NOT APPLE AND NOT HAVE_LSEEK64 AND NOT SIZEOF_OFF_T EQUAL 8)
-  message(FATAL_ERROR "Flat nodes cache requires a 64 bit capable seek")
-endif()
-
 #############################################################
 # Find necessary libraries
 #############################################################
