@@ -49,25 +49,25 @@ void expect_conninfo(const database_options_t &db, const std::string &expect) {
  */
 void test_conninfo() {
     database_options_t db;
-    expect_conninfo(db, "dbname='gis'");
+    expect_conninfo(db, "");
     db.db = "foo";
     expect_conninfo(db, "dbname='foo'");
 
     db = database_options_t();
     db.username = "bar";
-    expect_conninfo(db, "dbname='gis' user='bar'");
+    expect_conninfo(db, " user='bar'");
 
     db = database_options_t();
     db.password = "bar";
-    expect_conninfo(db, "dbname='gis' password='bar'");
+    expect_conninfo(db, " password='bar'");
 
     db = database_options_t();
     db.host = "bar";
-    expect_conninfo(db, "dbname='gis' host='bar'");
+    expect_conninfo(db, " host='bar'");
 
     db = database_options_t();
     db.port = "bar";
-    expect_conninfo(db, "dbname='gis' port='bar'");
+    expect_conninfo(db, " port='bar'");
 
     db = database_options_t();
     db.db = "foo";

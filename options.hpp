@@ -23,7 +23,7 @@
 class database_options_t {
 public:
     database_options_t();
-    std::string db;
+    boost::optional<std::string> db;
     boost::optional<std::string> username;
     boost::optional<std::string> host;
     boost::optional<std::string> password;

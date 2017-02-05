@@ -102,8 +102,7 @@ namespace
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
     \n\
     Database options:\n\
-       -d|--database    The name of the PostgreSQL database to connect\n\
-                        to (default: gis).\n\
+       -d|--database    The name of the PostgreSQL database to connect to.\n\
        -U|--username    PostgreSQL user name (specify passsword in PGPASS\n\
                         environment variable or use -W).\n\
        -W|--password    Force password prompt.\n\
@@ -234,7 +233,7 @@ namespace
 } // anonymous namespace
 
 database_options_t::database_options_t():
-    db("gis"), username(boost::none), host(boost::none),
+    db(boost::none), username(boost::none), host(boost::none),
     password(boost::none), port(boost::none)
 {
 
@@ -244,8 +243,9 @@ std::string database_options_t::conninfo() const
 {
     std::ostringstream out;
 
-    out << "dbname='" << db << "'";
-
+    if (db) {
+        out << "dbname='" << *db << "'";
+    }
     if (username) {
         out << " user='" << *username << "'";
     }

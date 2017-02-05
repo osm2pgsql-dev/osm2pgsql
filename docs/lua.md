@@ -8,7 +8,7 @@ This allows you to unify disparate tagging (for example, `highway=path; foot=yes
 
 Pass a Lua script to osm2pgsql using the command line switch `--tag-transform-script`:
 
-    osm2pgsql -S your.style --tag-transform-script your.lua --hstore-all extract.osm.pbf
+    osm2pgsql -d gis -S your.style --tag-transform-script your.lua --hstore-all extract.osm.pbf
 
 This Lua script needs to implement the following functions:
 
