@@ -74,7 +74,7 @@ void coords2nodes(CoordinateSequence * coords, nodelist_t &nodes)
     }
 }
 
-coord_ptr nodes2coords(GeometryFactory &gf, const nodelist_t &nodes)
+coord_ptr nodes2coords(const GeometryFactory &gf, const nodelist_t &nodes)
 {
     coord_ptr coords(gf.getCoordinateSequenceFactory()->create(size_t(0), size_t(2)));
 
@@ -85,7 +85,7 @@ coord_ptr nodes2coords(GeometryFactory &gf, const nodelist_t &nodes)
     return coords;
 }
 
-geom_ptr create_multi_line(GeometryFactory &gf, const multinodelist_t &xnodes)
+geom_ptr create_multi_line(const GeometryFactory &gf, const multinodelist_t &xnodes)
 {
     // XXX leaks memory if an exception is thrown
     std::unique_ptr<std::vector<Geometry*> > lines(new std::vector<Geometry*>);
@@ -202,7 +202,7 @@ void geometry_builder::pg_geom_t::set(const geos::geom::Geometry *g, bool poly,
     }
 }
 
-geom_ptr geometry_builder::create_simple_poly(GeometryFactory &gf,
+geom_ptr geometry_builder::create_simple_poly(const GeometryFactory &gf,
                                               std::unique_ptr<CoordinateSequence> coords) const
 {
     std::unique_ptr<LinearRing> shell(gf.createLinearRing(coords.release()));
@@ -233,7 +233,10 @@ geometry_builder::pg_geom_t geometry_builder::get_wkb_simple(const nodelist_t &n
 
     try
     {
-        GeometryFactory gf;
+        // geos36 - auto-allocation no longer supported in GEOS 3.6+
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         auto coords = nodes2coords(gf, nodes);
         if (polygon && is_polygon_line(coords.get())) {
             auto geom = create_simple_poly(gf, std::move(coords));
@@ -269,7 +272,10 @@ geometry_builder::pg_geoms_t geometry_builder::get_wkb_split(const nodelist_t &n
 
     try
     {
-        GeometryFactory gf;
+        // geos36 - auto-allocation no longer supported in GEOS 3.6+
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         auto coords = nodes2coords(gf, nodes);
 
         if (polygon && is_polygon_line(coords.get())) {
@@ -346,7 +352,10 @@ geometry_builder::pg_geoms_t geometry_builder::get_wkb_split(const nodelist_t &n
 }
 
 int geometry_builder::parse_wkb(const char* wkb, multinodelist_t &nodes, bool *polygon) {
-    GeometryFactory gf;
+    // geos36 - auto-allocation no longer supported in GEOS 3.6+
+    const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+    const GeometryFactory& gf = *gf_p;
+
     geos::io::WKBReader reader(gf);
 
     *polygon = false;
@@ -401,7 +410,10 @@ geometry_builder::pg_geoms_t geometry_builder::build_polygons(const multinodelis
 
     try
     {
-        GeometryFactory gf;
+        // geos36 - auto-allocation no longer supported in GEOS 3.6+
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         geom_ptr mline = create_multi_line(gf, xnodes);
 
         //geom_ptr noded (segment->Union(mline.get()));
@@ -547,7 +559,10 @@ geometry_builder::pg_geom_t geometry_builder::build_multilines(const multinodeli
 
     try
     {
-        GeometryFactory gf;
+        // geos36 - auto-allocation no longer supported in GEOS 3.6+
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         geom_ptr mline = create_multi_line(gf, xnodes);
 
         wkb.set(mline.get(), false);
@@ -571,7 +586,10 @@ geometry_builder::pg_geoms_t geometry_builder::build_both(const multinodelist_t 
 
     try
     {
-        GeometryFactory gf;
+        // geos36 - auto-allocation no longer supported in GEOS 3.6+
+        const GeometryFactory *gf_p = GeometryFactory::getDefaultInstance();
+        const GeometryFactory& gf = *gf_p;
+
         geom_ptr mline = create_multi_line(gf, xnodes);
         //geom_ptr noded (segment->Union(mline.get()));
         LineMerger merger;
