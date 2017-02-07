@@ -8,8 +8,6 @@ addons:
     packages:
     - g++-4.8
     - libexpat1-dev
-    - libgeos-dev
-    - libgeos++-dev
     - libpq-dev
     - libbz2-dev
     - libproj-dev
@@ -44,7 +42,6 @@ install:
 before_script:
   - $CXX --version
   - xml2-config --version
-  - geos-config --version
   - proj | head -n1
   - lua -v
 script:

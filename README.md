@@ -35,7 +35,6 @@ to configure and build itself and requires
 Required libraries are
 
 * [expat](http://www.libexpat.org/)
-* [geos](http://trac.osgeo.org/geos)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
@@ -57,15 +56,14 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev \
-  libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev lua5.2 \
-  liblua5.2-dev
+  libbz2-dev libpq-dev libproj-dev lua5.2 liblua5.2-dev
 ```
 
 On a Fedora system, use
 
 ```sh
 sudo yum install cmake gcc-c++ boost-devel expat-devel zlib-devel bzip2-devel \
-  postgresql-devel geos-devel proj-devel proj-epsg lua-devel
+  postgresql-devel proj-devel proj-epsg lua-devel
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
@@ -75,7 +73,7 @@ On a FreeBSD system, use
 
 ```sh
 pkg install devel/cmake devel/boost-libs textproc/expat2 \
-  databases/postgresql94-client graphics/geos graphics/proj lang/lua52
+  databases/postgresql94-client graphics/proj lang/lua52
 ```
 
 Once dependencies are installed, use CMake to build the Makefiles in a separate folder
