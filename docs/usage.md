@@ -144,6 +144,3 @@ reimporting the database, at the cost of a
 
 * ``--keep-coastlines`` disables a hard-coded rule that would otherwise
   discard ``natural=coastline`` ways.
-
-* ``--exclude-invalid-polygon`` prevents osm2pgsql from attempting to form
-  valid polygons from invalid ones and just rejects the invalid ones.
