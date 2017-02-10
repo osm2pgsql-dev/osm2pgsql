@@ -33,11 +33,11 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <algorithm>
 #include <exception>
 #include <future>
 #include <memory>
 #include <string>
+#include <utility>
 
 #include <osmium/io/compression.hpp>
 #include <osmium/io/detail/queue_util.hpp>

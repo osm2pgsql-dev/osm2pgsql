@@ -408,6 +408,7 @@ namespace osmium {
 
         }; // class IdSetSmall
 
+        /// @deprecated Use nrw_array helper class instead.
         template <template<typename> class IdSetType>
         class NWRIdSet {
 

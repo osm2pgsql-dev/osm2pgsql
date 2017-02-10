@@ -33,7 +33,6 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -42,6 +41,7 @@ DEALINGS IN THE SOFTWARE.
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 #include <protozero/pbf_message.hpp>
 #include <protozero/types.hpp>

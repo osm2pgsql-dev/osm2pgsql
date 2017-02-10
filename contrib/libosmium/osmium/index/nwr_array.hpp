@@ -1,5 +1,5 @@
-#ifndef OSMIUM_TAGS_REGEX_FILTER_HPP
-#define OSMIUM_TAGS_REGEX_FILTER_HPP
+#ifndef OSMIUM_INDEX_NWR_ARRAY_HPP
+#define OSMIUM_INDEX_NWR_ARRAY_HPP
 
 /*
 
@@ -33,33 +33,27 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <regex>
-#include <string>
-
-#include <osmium/tags/filter.hpp>
+#include <osmium/osm/item_type.hpp>
 
 namespace osmium {
 
-    namespace tags {
+    template <typename T>
+    class nwr_array {
 
-        template <>
-        struct match_key<std::regex> {
-            bool operator()(const std::regex& rule_key, const char* tag_key) const {
-                return std::regex_match(tag_key, rule_key);
-            }
-        }; // struct match_key<std::regex>
+        T m_sets[3];
 
-        template <>
-        struct match_value<std::regex> {
-            bool operator()(const std::regex& rule_value, const char* tag_value) const {
-                return std::regex_match(tag_value, rule_value);
-            }
-        }; // struct match_value<std::regex>
+    public:
 
-        using RegexFilter = Filter<std::string, std::regex>;
+        T& operator()(osmium::item_type type) noexcept {
+            return m_sets[osmium::item_type_to_nwr_index(type)];
+        }
 
-    } // namespace tags
+        const T& operator()(osmium::item_type type) const noexcept {
+            return m_sets[osmium::item_type_to_nwr_index(type)];
+        }
+
+    }; // class nwr_array
 
 } // namespace osmium
 
-#endif // OSMIUM_TAGS_REGEX_FILTER_HPP
+#endif // OSMIUM_INDEX_NWR_ARRAY_HPP

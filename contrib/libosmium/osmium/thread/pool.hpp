@@ -33,11 +33,11 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <algorithm>
 #include <cstddef>
 #include <future>
 #include <thread>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <osmium/thread/function_wrapper.hpp>

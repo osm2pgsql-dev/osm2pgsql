@@ -73,14 +73,14 @@ namespace osmium {
             gdalcpp::Layer m_layer_ways;
 
             void set_object(gdalcpp::Feature& feature) {
-                const char t[2] = { osmium::item_type_to_char(m_object_type), '\0' };
+                const char t[2] = {osmium::item_type_to_char(m_object_type), '\0'};
                 feature.set_field("obj_type", t);
                 feature.set_field("obj_id", int32_t(m_object_id));
                 feature.set_field("nodes", int32_t(m_nodes));
             }
 
             void write_point(const char* problem_type, osmium::object_id_type id1, osmium::object_id_type id2, osmium::Location location) {
-                gdalcpp::Feature feature(m_layer_perror, m_ogr_factory.create_point(location));
+                gdalcpp::Feature feature{m_layer_perror, m_ogr_factory.create_point(location)};
                 set_object(feature);
                 feature.set_field("id1", double(id1));
                 feature.set_field("id2", double(id2));
@@ -93,7 +93,7 @@ namespace osmium {
                 ogr_linestring->addPoint(loc1.lon(), loc1.lat());
                 ogr_linestring->addPoint(loc2.lon(), loc2.lat());
 
-                gdalcpp::Feature feature(m_layer_lerror, std::move(ogr_linestring));
+                gdalcpp::Feature feature{m_layer_lerror, std::move(ogr_linestring)};
                 set_object(feature);
                 feature.set_field("id1", static_cast<double>(id1));
                 feature.set_field("id2", static_cast<double>(id2));
@@ -175,7 +175,7 @@ namespace osmium {
                     return;
                 }
                 try {
-                    gdalcpp::Feature feature(m_layer_lerror, m_ogr_factory.create_linestring(way));
+                    gdalcpp::Feature feature{m_layer_lerror, m_ogr_factory.create_linestring(way)};
                     set_object(feature);
                     feature.set_field("id1", int32_t(way.id()));
                     feature.set_field("id2", 0);
@@ -191,7 +191,7 @@ namespace osmium {
                     return;
                 }
                 try {
-                    gdalcpp::Feature feature(m_layer_lerror, m_ogr_factory.create_linestring(way));
+                    gdalcpp::Feature feature{m_layer_lerror, m_ogr_factory.create_linestring(way)};
                     set_object(feature);
                     feature.set_field("id1", int32_t(way.id()));
                     feature.set_field("id2", 0);
@@ -212,7 +212,7 @@ namespace osmium {
                     return;
                 }
                 try {
-                    gdalcpp::Feature feature(m_layer_ways, m_ogr_factory.create_linestring(way));
+                    gdalcpp::Feature feature{m_layer_ways, m_ogr_factory.create_linestring(way)};
                     set_object(feature);
                     feature.set_field("way_id", int32_t(way.id()));
                     feature.add_to_layer();

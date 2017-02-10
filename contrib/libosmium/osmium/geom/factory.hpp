@@ -192,7 +192,7 @@ namespace osmium {
             using multipolygon_type = typename TGeomImpl::multipolygon_type;
             using ring_type         = typename TGeomImpl::ring_type;
 
-            int epsg() const {
+            int epsg() const noexcept {
                 return m_projection.epsg();
             }
 

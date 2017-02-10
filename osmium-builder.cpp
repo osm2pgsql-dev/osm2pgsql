@@ -3,7 +3,7 @@
 #include <tuple>
 #include <vector>
 
-#include <osmium/area/assembler.hpp>
+#include <osmium/area/geom_assembler.hpp>
 
 #include "osmium-builder.hpp"
 
@@ -132,10 +132,10 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
 osmium_builder_t::wkb_t
 osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
 {
-    osmium::area::Assembler assembler{area_config};
+    osmium::area::GeomAssembler assembler{area_config};
 
     m_buffer.clear();
-    if (!assembler.make_area(way, m_buffer)) {
+    if (!assembler(way, m_buffer)) {
         return wkb_t();
     }
 
@@ -149,10 +149,10 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
                                        osmium::memory::Buffer const &ways)
 {
     wkbs_t ret;
-    osmium::area::Assembler assembler{area_config};
+    osmium::area::GeomAssembler assembler{area_config};
 
     m_buffer.clear();
-    if (assembler.make_area(rel, ways, m_buffer)) {
+    if (assembler(rel, ways, m_buffer)) {
         if (m_build_multigeoms) {
             ret.push_back(create_multipolygon(m_buffer.get<osmium::Area>(0)));
         } else {
