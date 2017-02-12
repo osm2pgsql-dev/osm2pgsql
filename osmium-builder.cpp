@@ -346,9 +346,10 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
         for (auto it = area.cbegin(); it != area.cend(); ++it) {
             if (it->type() == osmium::item_type::outer_ring) {
                 auto &ring = static_cast<const osmium::OuterRing &>(*it);
-                if (num_polygons > 0) {
+                if (num_rings > 0) {
                     m_writer.multipolygon_polygon_finish(num_rings);
                     num_rings = 0;
+                    ++num_polygons;
                 }
                 m_writer.polygon_start();
                 m_writer.polygon_ring_start();
@@ -365,8 +366,9 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
         }
 
         // if there are no polygons, this area is invalid
-        if (num_polygons > 0) {
+        if (num_rings > 0) {
             m_writer.multipolygon_polygon_finish(num_rings);
+            ++num_polygons;
             ret = m_writer.multipolygon_finish(num_polygons);
         } else {
             ret.clear();
