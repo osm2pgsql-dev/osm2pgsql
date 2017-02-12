@@ -290,7 +290,6 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
     std::string buffer("{");
-    std::unordered_map<osmid_t, size_t> node_pos;
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
@@ -301,14 +300,13 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
             n.set_location(loc);
             ++count;
         } else {
-            node_pos.emplace(n.ref(), pos);
             buffer += std::to_string(n.ref());
             buffer += ',';
         }
         ++pos;
     }
 
-    if (node_pos.empty()) {
+    if (count == pos) {
         return count; // all ids found in cache, nothing more to do
     }
 
@@ -325,15 +323,23 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
                                        paramValues, PGRES_TUPLES_OK);
     auto countPG = PQntuples(res);
 
+    std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < countPG; ++i) {
-        auto &npos = node_pos.at(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
-
-        osmium::Location loc((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
-                             (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
-        (*nodes)[npos].set_location(loc);
+        locs.emplace(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10),
+                     osmium::Location((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
+                                      (int)strtol(PQgetvalue(res, i, 1), nullptr, 10)));
     }
 
-    return count + (size_t) countPG;
+    for (auto &n : *nodes) {
+        auto el = locs.find(n.ref());
+        if (el != locs.end()) {
+            n.set_location(el->second);
+            ++count;
+        }
+
+    }
+
+    return count;
 }
 
 void middle_pgsql_t::nodes_set(osmium::Node const &node)
