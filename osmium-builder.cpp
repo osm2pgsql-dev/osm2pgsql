@@ -9,8 +9,6 @@
 
 namespace {
 
-osmium::area::AssemblerConfig area_config;
-
 inline double distance(osmium::geom::Coordinates p1,
                        osmium::geom::Coordinates p2)
 {
@@ -132,6 +130,8 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
 osmium_builder_t::wkb_t
 osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
 {
+    osmium::area::AssemblerConfig area_config;
+    area_config.ignore_invalid_locations = true;
     osmium::area::GeomAssembler assembler{area_config};
 
     m_buffer.clear();
@@ -149,6 +149,8 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
                                        osmium::memory::Buffer const &ways)
 {
     wkbs_t ret;
+    osmium::area::AssemblerConfig area_config;
+    area_config.ignore_invalid_locations = true;
     osmium::area::GeomAssembler assembler{area_config};
 
     m_buffer.clear();
