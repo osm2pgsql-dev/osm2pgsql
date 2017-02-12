@@ -340,44 +340,21 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
 {
     wkb_t ret;
 
-    try {
-        size_t num_polygons = 0;
-        size_t num_rings = 0;
+    auto polys = create_polygons(area);
+
+    switch (polys.size()) {
+    case 0:
+        break; //nothing
+    case 1:
+        ret = polys[0];
+        break;
+    default:
         m_writer.multipolygon_start();
-
-        for (auto it = area.cbegin(); it != area.cend(); ++it) {
-            if (it->type() == osmium::item_type::outer_ring) {
-                auto &ring = static_cast<const osmium::OuterRing &>(*it);
-                if (num_rings > 0) {
-                    m_writer.multipolygon_polygon_finish(num_rings);
-                    num_rings = 0;
-                    ++num_polygons;
-                }
-                m_writer.polygon_start();
-                m_writer.polygon_ring_start();
-                auto num_points = add_mp_points(ring);
-                m_writer.polygon_ring_finish(num_points);
-                ++num_rings;
-            } else if (it->type() == osmium::item_type::inner_ring) {
-                auto &ring = static_cast<const osmium::InnerRing &>(*it);
-                m_writer.polygon_ring_start();
-                auto num_points = add_mp_points(ring);
-                m_writer.polygon_ring_finish(num_points);
-                ++num_rings;
-            }
+        for (auto const &p : polys) {
+            m_writer.add_sub_geometry(p);
         }
-
-        // if there are no polygons, this area is invalid
-        if (num_rings > 0) {
-            m_writer.multipolygon_polygon_finish(num_rings);
-            ++num_polygons;
-            ret = m_writer.multipolygon_finish(num_polygons);
-        } else {
-            ret.clear();
-        }
-
-    } catch (osmium::geometry_error &e) {
-        /* ignored */
+        ret = m_writer.multipolygon_finish(polys.size());
+        break;
     }
 
     return ret;

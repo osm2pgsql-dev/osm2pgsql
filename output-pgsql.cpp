@@ -370,6 +370,19 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
       m_mid->nodes_get_list(&(w.nodes()));
   }
 
+  // linear features and boundaries
+  // Needs to be done before the polygon treatment below because
+  // for boundaries the way_area tag may be added.
+  if (!make_polygon) {
+      auto wkbs = m_builder.get_wkb_multiline(buffer, true);
+      for (auto const &wkb : wkbs) {
+          expire.from_wkb(wkb.c_str(), -rel.id());
+          m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
+          if (roads)
+              m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
+      }
+  }
+
   // multipolygons and boundaries
   if (make_boundary || make_polygon) {
       auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
@@ -406,17 +419,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
               }
               ++j;
           }
-      }
-  }
-
-  // linear features and boundaries
-  if (!make_polygon) {
-      auto wkbs = m_builder.get_wkb_multiline(buffer, true);
-      for (auto const &wkb : wkbs) {
-          expire.from_wkb(wkb.c_str(), -rel.id());
-          m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
-          if (roads)
-              m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
       }
   }
 
