@@ -236,8 +236,8 @@ public:
     explicit parser_t(char const *wkb) : m_wkb(wkb), m_pos(0) {}
     explicit parser_t(std::string const &wkb) : m_wkb(wkb.c_str()), m_pos(0) {}
 
-    unsigned save_pos() const { return m_pos; }
-    void rewind(unsigned pos) { m_pos = pos; }
+    size_t save_pos() const { return m_pos; }
+    void rewind(size_t pos) { m_pos = pos; }
 
     int read_header()
     {
@@ -353,7 +353,7 @@ private:
     }
 
     char const *m_wkb;
-    unsigned m_pos;
+    size_t m_pos;
 };
 
 } // namespace
