@@ -33,12 +33,12 @@ void run_test(const char* test_name, void (*testfunc)())
 #define ASSERT_EQ(a, b) { if (!((a) == (b))) { throw std::runtime_error((boost::format("Expecting %1% == %2%, but %3% != %4%") % #a % #b % (a) % (b)).str()); } }
 
 struct xyz {
-  int z, x, y;
-  xyz(int z_, int x_, int y_) : z(z_), x(x_), y(y_) {}
-  bool operator==(const xyz &other) const {
-    return ((z == other.z) &&
-            (x == other.x) &&
-            (y == other.y));
+    int z;
+    int64_t x, y;
+    xyz(int z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
+    bool operator==(const xyz &other) const
+    {
+        return ((z == other.z) && (x == other.x) && (y == other.y));
   }
   bool operator<(const xyz &other) const {
     return ((z < other.z) ||
@@ -71,82 +71,125 @@ std::ostream &operator<<(std::ostream &out, const xyz &tile) {
   return out;
 }
 
-struct tile_output_set : public expire_tiles::tile_output
+struct tile_output_set
 {
   tile_output_set(int min) : min_zoom(min) {}
 
   ~tile_output_set() = default;
 
-  void output_dirty_tile(int x, int y, int zoom) override
+  void output_dirty_tile(int64_t x, int64_t y, int zoom)
   {
-    int	y_min, x_iter, y_iter, x_max, y_max, out_zoom, zoom_diff;
-
-    if (zoom > min_zoom) out_zoom = zoom;
-    else out_zoom = min_zoom;
-    zoom_diff = out_zoom - zoom;
-    y_min = y << zoom_diff;
-    x_max = (x + 1) << zoom_diff;
-    y_max = (y + 1) << zoom_diff;
-    for (x_iter = x << zoom_diff; x_iter < x_max; x_iter++) {
-      for (y_iter = y_min; y_iter < y_max; y_iter++) {
-        m_tiles.insert(xyz(out_zoom, x_iter, y_iter));
-      }
-    }
+      m_tiles.insert(xyz(zoom, x, y));
   }
 
   std::set<xyz> m_tiles;
   int min_zoom;
 };
 
+void test_xy_to_quadtree_z3()
+{
+    int64_t qt_expected = 0b100111;
+    int64_t qt2 = expire_tiles::xy_to_quadtree(3, 5, 3);
+    ASSERT_EQ(qt2, qt_expected);
+    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 3);
+    ASSERT_EQ(xy.x, 3);
+    ASSERT_EQ(xy.y, 5);
+}
+
+void test_xy_to_quadtree_z16()
+{
+    int64_t qt_expected = 0b11111111111111111111111111111111;
+    int64_t qt2 = expire_tiles::xy_to_quadtree(65535, 65535, 16);
+    ASSERT_EQ(qt2, qt_expected);
+    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 16);
+    ASSERT_EQ(xy.x, 65535);
+    ASSERT_EQ(xy.y, 65535);
+}
+
+/**
+ * This test prevents problems which occur if 32-bit integers are used
+ * instead of 64-bit integers.
+ */
+void test_xy_to_quadtree_z18()
+{
+    int64_t qt_expected = 0b111111111111111111111111111111111111;
+    int64_t qt2 = expire_tiles::xy_to_quadtree(262143, 262143, 18);
+    ASSERT_EQ(qt2, qt_expected);
+    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 18);
+    ASSERT_EQ(xy.x, 262143);
+    ASSERT_EQ(xy.y, 262143);
+    qt_expected = 0b001111111111111111111111111111110000;
+    qt2 = expire_tiles::xy_to_quadtree(131068, 131068, 18);
+    ASSERT_EQ(qt2, qt_expected);
+    xy = expire_tiles::quadtree_to_xy(qt_expected, 18);
+    ASSERT_EQ(xy.x, 131068);
+    ASSERT_EQ(xy.y, 131068);
+}
+
 void test_expire_simple_z1() {
-  expire_tiles et(1, 20000, defproj);
-  tile_output_set set(1);
+    int minzoom = 1;
+    expire_tiles et(minzoom, 20000, defproj);
+    tile_output_set set(minzoom);
 
-  // as big a bbox as possible at the origin to dirty all four
-  // quadrants of the world.
-  et.from_bbox(-10000, -10000, 10000, 10000);
-  et.output_and_destroy(&set);
+    // as big a bbox as possible at the origin to dirty all four
+    // quadrants of the world.
+    et.from_bbox(-10000, -10000, 10000, 10000);
+    et.output_and_destroy<tile_output_set>(set, minzoom);
 
-  ASSERT_EQ(set.m_tiles.size(), 4);
-  std::set<xyz>::iterator itr = set.m_tiles.begin();
-  ASSERT_EQ(*itr, xyz(1, 0, 0)); ++itr;
-  ASSERT_EQ(*itr, xyz(1, 0, 1)); ++itr;
-  ASSERT_EQ(*itr, xyz(1, 1, 0)); ++itr;
-  ASSERT_EQ(*itr, xyz(1, 1, 1)); ++itr;
+    ASSERT_EQ(set.m_tiles.size(), 4);
+    std::set<xyz>::iterator itr = set.m_tiles.begin();
+    ASSERT_EQ(*itr, xyz(1, 0, 0));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(1, 0, 1));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(1, 1, 0));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(1, 1, 1));
+    ++itr;
 }
 
 void test_expire_simple_z3() {
-  expire_tiles et(3, 20000, defproj);
-  tile_output_set set(3);
+    int minzoom = 3;
+    expire_tiles et(minzoom, 20000, defproj);
+    tile_output_set set(minzoom);
 
-  // as big a bbox as possible at the origin to dirty all four
-  // quadrants of the world.
-  et.from_bbox(-10000, -10000, 10000, 10000);
-  et.output_and_destroy(&set);
+    // as big a bbox as possible at the origin to dirty all four
+    // quadrants of the world.
+    et.from_bbox(-10000, -10000, 10000, 10000);
+    et.output_and_destroy<tile_output_set>(set, minzoom);
 
-  ASSERT_EQ(set.m_tiles.size(), 4);
-  std::set<xyz>::iterator itr = set.m_tiles.begin();
-  ASSERT_EQ(*itr, xyz(3, 3, 3)); ++itr;
-  ASSERT_EQ(*itr, xyz(3, 3, 4)); ++itr;
-  ASSERT_EQ(*itr, xyz(3, 4, 3)); ++itr;
-  ASSERT_EQ(*itr, xyz(3, 4, 4)); ++itr;
+    ASSERT_EQ(set.m_tiles.size(), 4);
+    std::set<xyz>::iterator itr = set.m_tiles.begin();
+    ASSERT_EQ(*itr, xyz(3, 3, 3));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(3, 3, 4));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(3, 4, 3));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(3, 4, 4));
+    ++itr;
 }
 
 void test_expire_simple_z18() {
-  expire_tiles et(18, 20000, defproj);
-  tile_output_set set(18);
+    int minzoom = 18;
+    expire_tiles et(18, 20000, defproj);
+    tile_output_set set(minzoom);
 
-  // dirty a smaller bbox this time, as at z18 the scale is
-  // pretty small.
-  et.from_bbox(-1, -1, 1, 1);
-  et.output_and_destroy(&set);
+    // dirty a smaller bbox this time, as at z18 the scale is
+    // pretty small.
+    et.from_bbox(-1, -1, 1, 1);
+    et.output_and_destroy(set, minzoom);
 
-  ASSERT_EQ(set.m_tiles.size(), 4);
-  std::set<xyz>::iterator itr = set.m_tiles.begin();
-  ASSERT_EQ(*itr, xyz(18, 131071, 131071)); ++itr;
-  ASSERT_EQ(*itr, xyz(18, 131071, 131072)); ++itr;
-  ASSERT_EQ(*itr, xyz(18, 131072, 131071)); ++itr;
-  ASSERT_EQ(*itr, xyz(18, 131072, 131072)); ++itr;
+    ASSERT_EQ(set.m_tiles.size(), 4);
+    std::set<xyz>::iterator itr = set.m_tiles.begin();
+    ASSERT_EQ(*itr, xyz(18, 131071, 131071));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131071, 131072));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131072, 131071));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131072, 131072));
+    ++itr;
 }
 
 std::set<xyz> generate_random(int zoom, size_t count) {
@@ -199,7 +242,7 @@ void test_expire_set() {
     std::set<xyz> check_set = generate_random(zoom, 100);
     expire_centroids(check_set, et);
 
-    et.output_and_destroy(&set);
+    et.output_and_destroy(set, zoom);
 
     assert_tilesets_equal(set.m_tiles, check_set);
   }
@@ -233,7 +276,7 @@ void test_expire_merge() {
                    check_set2.begin(), check_set2.end(),
                    std::inserter(check_set, check_set.end()));
 
-    et.output_and_destroy(&set);
+    et.output_and_destroy(set, zoom);
 
     assert_tilesets_equal(set.m_tiles, check_set);
   }
@@ -260,7 +303,7 @@ void test_expire_merge_same() {
     et.merge_and_destroy(et1);
     et.merge_and_destroy(et2);
 
-    et.output_and_destroy(&set);
+    et.output_and_destroy(set, zoom);
 
     assert_tilesets_equal(set.m_tiles, check_set);
   }
@@ -298,7 +341,7 @@ void test_expire_merge_overlap() {
                    check_set3.begin(), check_set3.end(),
                    std::inserter(check_set, check_set.end()));
 
-    et.output_and_destroy(&set);
+    et.output_and_destroy(set, zoom);
 
     assert_tilesets_equal(set.m_tiles, check_set);
   }
@@ -326,8 +369,8 @@ void test_expire_merge_complete() {
     et.merge_and_destroy(et1);
     et.merge_and_destroy(et2);
 
-    et.output_and_destroy(&set);
-    et0.output_and_destroy(&set0);
+    et.output_and_destroy(set, zoom);
+    et0.output_and_destroy(set0, zoom);
 
     assert_tilesets_equal(set.m_tiles, set0.m_tiles);
   }
@@ -340,6 +383,9 @@ int main(int argc, char *argv[])
     srand(0);
 
     //try each test if any fail we will exit
+    RUN_TEST(test_xy_to_quadtree_z3);
+    RUN_TEST(test_xy_to_quadtree_z16);
+    RUN_TEST(test_xy_to_quadtree_z18);
     RUN_TEST(test_expire_simple_z1);
     RUN_TEST(test_expire_simple_z3);
     RUN_TEST(test_expire_simple_z18);
