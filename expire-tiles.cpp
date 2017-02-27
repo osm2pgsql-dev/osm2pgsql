@@ -88,10 +88,7 @@ xy_coord_t expire_tiles::quadtree_to_xy(int64_t qt_coord, int zoom)
 
 void expire_tiles::expire_tile(int x, int y)
 {
-    if (m_dirty_tiles.find(xy_to_quadtree(x, y, maxzoom)) ==
-        m_dirty_tiles.end()) {
-        m_dirty_tiles.insert(xy_to_quadtree(x, y, maxzoom));
-    }
+    m_dirty_tiles.insert(xy_to_quadtree(x, y, maxzoom));
 }
 
 int expire_tiles::normalise_tile_x_coord(int x) {

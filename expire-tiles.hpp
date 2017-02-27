@@ -81,15 +81,16 @@ struct expire_tiles
     template <class tile_writer_t>
     void output_and_destroy(tile_writer_t &output_writer, int minzoom)
     {
-        // iterate over all expired tiles
-        for (std::unordered_set<int64_t>::iterator it = m_dirty_tiles.begin();
-             it != m_dirty_tiles.end(); it++) {
-            /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
-             * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
-             * bit shifts.
-             */
-            for (int dz = 0; dz <= maxzoom - minzoom; dz++) {
-                std::unordered_set<int64_t> expired_tiles;
+        /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
+         * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
+         * bit shifts.
+         */
+        for (int dz = 0; dz <= maxzoom - minzoom; dz++) {
+            // track which tiles have already been written
+            std::unordered_set<int64_t> expired_tiles;
+            // iterate over all expired tiles
+            for (std::unordered_set<int64_t>::iterator it = m_dirty_tiles.begin();
+                    it != m_dirty_tiles.end(); it++) {
                 int64_t qt_new = *it >> (dz * 2);
                 if (expired_tiles.insert(qt_new).second) {
                     // expired_tiles.insert(qt_new).second is true if the tile has not been written to the list yet
