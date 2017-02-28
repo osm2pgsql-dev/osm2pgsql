@@ -24,6 +24,15 @@ enum geometry_type : uint32_t
     wkb_srid = 0x20000000 // SRID-presence flag (EWKB)
 };
 
+enum wkb_byte_order_type_t : uint8_t
+{
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    Endian = 1 // Little Endian
+#else
+    Endian = 0, // Big Endian
+#endif
+};
+
 /**
  *  Writer for EWKB data suitable for postgres.
  *
@@ -31,11 +40,6 @@ enum geometry_type : uint32_t
  */
 class writer_t
 {
-    enum wkb_byte_order_type_t : uint8_t
-    {
-        XDR = 0, // Big Endian
-        NDR = 1  // Little Endian
-    };
 
     std::string m_data;
     int m_srid;
@@ -46,11 +50,7 @@ class writer_t
 
     size_t header(std::string &str, geometry_type type, bool add_length) const
     {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-        str_push(str, NDR);
-#else
-        str_push(str, XDR);
-#endif
+        str_push(str, Endian);
         str_push(str, type | wkb_srid);
         str_push(str, m_srid);
 
@@ -229,6 +229,10 @@ public:
                 front = true;
             }
         }
+
+        if (out[0] != Endian)
+            throw std::runtime_error(
+                "Endian setting of database WKB not supported.");
 
         return out;
     }
