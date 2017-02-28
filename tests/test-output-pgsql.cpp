@@ -93,12 +93,12 @@ void test_regression_simple() {
     db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 1101");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 1101");
 
-    db->check_number(311.289, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(311.289, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.289, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(311.289, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
     db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=3857;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
@@ -145,12 +145,12 @@ void test_latlong() {
     db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 1101");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 1101");
 
-    db->check_number(1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
     db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=4326;POINT(9.5459035 47.1866494)'::geometry, 0.00001)");
