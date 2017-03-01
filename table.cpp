@@ -108,7 +108,7 @@ void table_t::start()
     //we are making a new table
     if (!append)
     {
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1% CASCADE") % name).str());
     }
 
     /* These _tmp tables can be left behind if we run out of disk space */

@@ -600,7 +600,7 @@ int output_gazetteer_t::start()
     /* (Re)create the table unless we are appending */
     if (!m_options.append) {
         /* Drop any existing table */
-        pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
+        pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place CASCADE");
 
         /* Create the new table */
 
