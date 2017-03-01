@@ -232,7 +232,13 @@ public:
 
         if (out[0] != Endian)
             throw std::runtime_error(
-                "Endian setting of database WKB not supported.");
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+                "Geometries in the database are returned in big-endian byte order. "
+#else
+                "Geometries in the database are returned in little-endian byte order. "
+#endif
+                "osm2pgsql can only process geometries in native byte order."
+                );
 
         return out;
     }
