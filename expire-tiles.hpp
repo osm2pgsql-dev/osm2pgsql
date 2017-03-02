@@ -14,10 +14,7 @@ class parser_t;
 }
 
 /**
- * \brief Simple struct for a method converting a quadtree node ID to a pair of a x and y coordinate.
- *
- * If we used std::pair<int, int> instead of this type, we would have to write foo.first instead
- * of foo.x. The latter one is easier to understand, isn't it?
+ * \brief Simple struct for the x and y index of a tile ID.
  */
 struct xy_coord_t
 {
@@ -27,8 +24,7 @@ struct xy_coord_t
 };
 
 /**
- * This struct is handed over as template parameter to output_and_destroy
- * method.
+ * Implementation of the output of the tile expiry list to a file.
  */
 class tile_output_t
 {
@@ -70,7 +66,7 @@ struct expire_tiles
     void output_and_destroy(const char *filename, int minzoom);
 
     /**
-     * \brief Output expried tiles on all requested zoom levels.
+     * \brief Output expired tiles on all requested zoom levels.
      *
      * \param output_writer class which implements the method
      * output_dirty_tile(int x, int y, int zoom) which usually writes the tile ID to a file
@@ -94,7 +90,7 @@ struct expire_tiles
                 int64_t qt_new = *it >> (dz * 2);
                 if (expired_tiles.insert(qt_new).second) {
                     // expired_tiles.insert(qt_new).second is true if the tile has not been written to the list yet
-                    xy_coord_t xy = quadtree_to_xy(qt_new, maxzoom - dz);
+                    xy_coord_t xy = quadkey_to_xy(qt_new, maxzoom - dz);
                     output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
                 }
             }
@@ -108,27 +104,27 @@ struct expire_tiles
     void merge_and_destroy(expire_tiles &other);
 
     /**
-     * \brief Helper method to convert a tile ID (x and y) into quadtree
-     * coordinate using bitshifts.
+     * \brief Helper method to convert a tile ID (x and y) into a quadkey
+     * using bitshifts.
      *
-     * Quadtree coordinates are interleaved this way: YXYX…
+     * Quadkeys are interleaved this way: YXYX…
      *
      * \param x x index
      * \param y y index
      * \param zoom zoom level
      * \returns quadtree ID as integer
      */
-    static int64_t xy_to_quadtree(int x, int y, int zoom);
+    static int64_t xy_to_quadkey(int x, int y, int zoom);
 
     /**
-     * \brief Convert a quadtree coordinate into a tile ID (x and y) using bitshifts.
+     * \brief Convert a quadkey into a tile ID (x and y) using bitshifts.
      *
-     * Quadtree coordinates are interleaved this way: YXYX…
+     * Quadkeys coordinates are interleaved this way: YXYX…
      *
-     * \param qt_coord quadtree ID
+     * \param quadkey the quadkey to be converted
      * \param zoom zoom level
      */
-    static xy_coord_t quadtree_to_xy(int64_t qt_coord, int zoom);
+    static xy_coord_t quadkey_to_xy(int64_t quadkey, int zoom);
 
 private:
     /**

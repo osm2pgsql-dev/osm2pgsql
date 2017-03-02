@@ -63,32 +63,32 @@ expire_tiles::expire_tiles(int max, double bbox, const std::shared_ptr<reproject
     }
 }
 
-int64_t expire_tiles::xy_to_quadtree(int x, int y, int zoom)
+int64_t expire_tiles::xy_to_quadkey(int x, int y, int zoom)
 {
-    int64_t qt = 0;
+    int64_t quadkey = 0;
     // the two highest bits are the bits of zoom level 1, the third and fourth bit are level 2, …
     for (int z = 0; z < zoom; z++) {
-        qt = qt + ((x & (1l << z)) << z);
-        qt = qt + ((y & (1l << z)) << (z + 1));
+        quadkey = quadkey + ((x & (1l << z)) << z);
+        quadkey = quadkey + ((y & (1l << z)) << (z + 1));
     }
-    return qt;
+    return quadkey;
 }
 
-xy_coord_t expire_tiles::quadtree_to_xy(int64_t qt_coord, int zoom)
+xy_coord_t expire_tiles::quadkey_to_xy(int64_t quadkey_coord, int zoom)
 {
     xy_coord_t result;
     for (int z = zoom; z > 0; z -= 1) {
         int next_zoom = z - 1;
-        result.y = result.y + ((qt_coord & (1l << (z + next_zoom))) >> z);
+        result.y = result.y + ((quadkey_coord & (1l << (z + next_zoom))) >> z);
         result.x =
-            result.x + ((qt_coord & (1l << (2 * next_zoom))) >> next_zoom);
+            result.x + ((quadkey_coord & (1l << (2 * next_zoom))) >> next_zoom);
     }
     return result;
 }
 
 void expire_tiles::expire_tile(int x, int y)
 {
-    m_dirty_tiles.insert(xy_to_quadtree(x, y, maxzoom));
+    m_dirty_tiles.insert(xy_to_quadkey(x, y, maxzoom));
 }
 
 int expire_tiles::normalise_tile_x_coord(int x) {

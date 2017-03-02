@@ -86,22 +86,22 @@ struct tile_output_set
   int min_zoom;
 };
 
-void test_xy_to_quadtree_z3()
+void test_xy_to_quadkey_z3()
 {
-    int64_t qt_expected = 0b100111;
-    int64_t qt2 = expire_tiles::xy_to_quadtree(3, 5, 3);
-    ASSERT_EQ(qt2, qt_expected);
-    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 3);
+    int64_t quadkey_expected = 0b100111;
+    int64_t quadkey2 = expire_tiles::xy_to_quadkey(3, 5, 3);
+    ASSERT_EQ(quadkey2, quadkey_expected);
+    xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 3);
     ASSERT_EQ(xy.x, 3);
     ASSERT_EQ(xy.y, 5);
 }
 
-void test_xy_to_quadtree_z16()
+void test_xy_to_quadkey_z16()
 {
-    int64_t qt_expected = 0b11111111111111111111111111111111;
-    int64_t qt2 = expire_tiles::xy_to_quadtree(65535, 65535, 16);
-    ASSERT_EQ(qt2, qt_expected);
-    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 16);
+    int64_t quadkey_expected = 0b11111111111111111111111111111111;
+    int64_t quadkey2 = expire_tiles::xy_to_quadkey(65535, 65535, 16);
+    ASSERT_EQ(quadkey2, quadkey_expected);
+    xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 16);
     ASSERT_EQ(xy.x, 65535);
     ASSERT_EQ(xy.y, 65535);
 }
@@ -110,18 +110,18 @@ void test_xy_to_quadtree_z16()
  * This test prevents problems which occur if 32-bit integers are used
  * instead of 64-bit integers.
  */
-void test_xy_to_quadtree_z18()
+void test_xy_to_quadkey_z18()
 {
-    int64_t qt_expected = 0b111111111111111111111111111111111111;
-    int64_t qt2 = expire_tiles::xy_to_quadtree(262143, 262143, 18);
-    ASSERT_EQ(qt2, qt_expected);
-    xy_coord_t xy = expire_tiles::quadtree_to_xy(qt_expected, 18);
+    int64_t quadkey_expected = 0b111111111111111111111111111111111111;
+    int64_t quadkey2 = expire_tiles::xy_to_quadkey(262143, 262143, 18);
+    ASSERT_EQ(quadkey2, quadkey_expected);
+    xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 18);
     ASSERT_EQ(xy.x, 262143);
     ASSERT_EQ(xy.y, 262143);
-    qt_expected = 0b001111111111111111111111111111110000;
-    qt2 = expire_tiles::xy_to_quadtree(131068, 131068, 18);
-    ASSERT_EQ(qt2, qt_expected);
-    xy = expire_tiles::quadtree_to_xy(qt_expected, 18);
+    quadkey_expected = 0b001111111111111111111111111111110000;
+    quadkey2 = expire_tiles::xy_to_quadkey(131068, 131068, 18);
+    ASSERT_EQ(quadkey2, quadkey_expected);
+    xy = expire_tiles::quadkey_to_xy(quadkey_expected, 18);
     ASSERT_EQ(xy.x, 131068);
     ASSERT_EQ(xy.y, 131068);
 }
@@ -383,9 +383,9 @@ int main(int argc, char *argv[])
     srand(0);
 
     //try each test if any fail we will exit
-    RUN_TEST(test_xy_to_quadtree_z3);
-    RUN_TEST(test_xy_to_quadtree_z16);
-    RUN_TEST(test_xy_to_quadtree_z18);
+    RUN_TEST(test_xy_to_quadkey_z3);
+    RUN_TEST(test_xy_to_quadkey_z16);
+    RUN_TEST(test_xy_to_quadkey_z18);
     RUN_TEST(test_expire_simple_z1);
     RUN_TEST(test_expire_simple_z3);
     RUN_TEST(test_expire_simple_z18);
