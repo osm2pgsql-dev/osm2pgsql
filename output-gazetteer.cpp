@@ -618,7 +618,8 @@ int output_gazetteer_t::start()
                         "  isin TEXT,"
                         "  postcode TEXT,"
                         "  country_code VARCHAR(2),"
-                        "  extratags HSTORE"
+                        "  extratags HSTORE," +
+                        (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid).str() +
                         ")";
       if (m_options.tblsmain_data) {
           sql += " TABLESPACE " + m_options.tblsmain_data.get();
@@ -632,9 +633,6 @@ int output_gazetteer_t::start()
           index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
       }
       pgsql_exec_simple(Connection, PGRES_COMMAND_OK, index_sql);
-
-      pgsql_exec(Connection, PGRES_TUPLES_OK, "SELECT AddGeometryColumn('place', 'geometry', %d, 'GEOMETRY', 2)", srid);
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "ALTER TABLE place ALTER COLUMN geometry SET NOT NULL");
    }
 
    return 0;
