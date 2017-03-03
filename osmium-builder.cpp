@@ -393,7 +393,7 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
             ret.push_back(m_writer.polygon_finish(num_rings));
         }
 
-    } catch (osmium::geometry_error &e) { /* ignored */
+    } catch (osmium::geometry_error) { /* ignored */
     }
 
     return ret;
