@@ -588,56 +588,58 @@ int output_gazetteer_t::connect() {
 
 int output_gazetteer_t::start()
 {
-   int srid = m_options.projection->target_srs();
+    int srid = m_options.projection->target_srs();
 
-   places.srid_str = (boost::format("SRID=%1%;") % srid).str();
+    places.srid_str = (boost::format("SRID=%1%;") % srid).str();
 
-   if(connect())
-       util::exit_nicely();
+    if (connect()) {
+        util::exit_nicely();
+    }
 
-   /* Start a transaction */
-   pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
+    /* Start a transaction */
+    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
 
-   /* (Re)create the table unless we are appending */
-   if (!m_options.append) {
-      /* Drop any existing table */
-      pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
+    /* (Re)create the table unless we are appending */
+    if (!m_options.append) {
+        /* Drop any existing table */
+        pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place");
 
-      /* Create the new table */
+        /* Create the new table */
 
-      std::string sql = "CREATE TABLE place ("
-                        "  osm_type CHAR(1) NOT NULL,"
-                        "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL,"
-                        "  class TEXT NOT NULL,"
-                        "  type TEXT NOT NULL,"
-                        "  name HSTORE,"
-                        "  admin_level INTEGER,"
-                        "  housenumber TEXT,"
-                        "  street TEXT,"
-                        "  addr_place TEXT,"
-                        "  isin TEXT,"
-                        "  postcode TEXT,"
-                        "  country_code VARCHAR(2),"
-                        "  extratags HSTORE," +
-                        (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid).str() +
-                        ")";
-      if (m_options.tblsmain_data) {
-          sql += " TABLESPACE " + m_options.tblsmain_data.get();
-      }
+        std::string sql =
+            "CREATE TABLE place ("
+            "  osm_type CHAR(1) NOT NULL,"
+            "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL,"
+            "  class TEXT NOT NULL,"
+            "  type TEXT NOT NULL,"
+            "  name HSTORE,"
+            "  admin_level INTEGER,"
+            "  housenumber TEXT,"
+            "  street TEXT,"
+            "  addr_place TEXT,"
+            "  isin TEXT,"
+            "  postcode TEXT,"
+            "  country_code VARCHAR(2),"
+            "  extratags HSTORE," +
+            (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid)
+                .str() +
+            ")";
+        if (m_options.tblsmain_data) {
+            sql += " TABLESPACE " + m_options.tblsmain_data.get();
+        }
 
-      pgsql_exec_simple(Connection, PGRES_COMMAND_OK, sql);
+        pgsql_exec_simple(Connection, PGRES_COMMAND_OK, sql);
 
-      std::string index_sql =
-          "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
-      if (m_options.tblsmain_index) {
-          index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
-      }
-      pgsql_exec_simple(Connection, PGRES_COMMAND_OK, index_sql);
-   }
+        std::string index_sql =
+            "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
+        if (m_options.tblsmain_index) {
+            index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
+        }
+        pgsql_exec_simple(Connection, PGRES_COMMAND_OK, index_sql);
+    }
 
-   return 0;
+    return 0;
 }
-
 
 void output_gazetteer_t::stop()
 {
