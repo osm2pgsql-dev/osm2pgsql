@@ -8,7 +8,7 @@
 #include <boost/format.hpp>
 #include <osmium/memory/buffer.hpp>
 
-#include "geometry-builder.hpp"
+#include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
 #include "pgsql.hpp"
@@ -130,33 +130,22 @@ public:
 
 class output_gazetteer_t : public output_t {
 public:
-    output_gazetteer_t(const middle_query_t* mid_, const options_t &options_)
-    : output_t(mid_, options_),
-      Connection(NULL),
-      ConnectionDelete(NULL),
-      ConnectionError(NULL),
-      copy_active(false),
-      reproj(options_.projection),
-      single_fmt("%1%"),
-      point_fmt("POINT(%.15g %.15g)"),
+    output_gazetteer_t(const middle_query_t *mid_, const options_t &options_)
+    : output_t(mid_, options_), Connection(NULL), ConnectionDelete(NULL),
+      ConnectionError(NULL), copy_active(false),
+      m_builder(options_.projection, true), single_fmt("%1%"),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
     }
 
-    output_gazetteer_t(const output_gazetteer_t& other)
-    : output_t(other.m_mid, other.m_options),
-      Connection(NULL),
-      ConnectionDelete(NULL),
-      ConnectionError(NULL),
-      copy_active(false),
-      reproj(other.reproj),
-      single_fmt(other.single_fmt),
-      point_fmt(other.point_fmt),
+    output_gazetteer_t(const output_gazetteer_t &other)
+    : output_t(other.m_mid, other.m_options), Connection(NULL),
+      ConnectionDelete(NULL), ConnectionError(NULL), copy_active(false),
+      m_builder(other.m_options.projection, true), single_fmt(other.single_fmt),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
-        builder.set_exclude_broken_polygon(m_options.excludepoly);
         connect();
     }
 
@@ -184,7 +173,7 @@ public:
         return process_node(node);
     }
 
-    int way_add(osmium::Way const &way) override
+    int way_add(osmium::Way *way) override
     {
         return process_way(way);
     }
@@ -199,7 +188,7 @@ public:
         return process_node(node);
     }
 
-    int way_modify(osmium::Way const &way) override
+    int way_modify(osmium::Way *way) override
     {
         return process_way(way);
     }
@@ -234,7 +223,7 @@ private:
     void delete_unused_classes(char osm_type, osmid_t osm_id);
     void delete_place(char osm_type, osmid_t osm_id);
     int process_node(osmium::Node const &node);
-    int process_way(osmium::Way const &way);
+    int process_way(osmium::Way *way);
     int process_relation(osmium::Relation const &rel);
     int connect();
 
@@ -267,14 +256,11 @@ private:
     std::string buffer;
     place_tag_processor places;
 
-    geometry_builder builder;
-
-    std::shared_ptr<reprojection> reproj;
+    geom::osmium_builder_t m_builder;
 
     // string formatters
     // Need to be part of the class, so we have one per thread.
     boost::format single_fmt;
-    boost::format point_fmt;
     osmium::memory::Buffer osmium_buffer;
 };
 

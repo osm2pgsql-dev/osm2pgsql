@@ -15,15 +15,15 @@ struct dummy_middle_t : public middle_t {
     void commit(void) override  { }
 
     void nodes_set(osmium::Node const &) override {}
-    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &,
-                          reprojection const *) const override
-    {
-        return 0;
-    }
+    size_t nodes_get_list(osmium::WayNodeList *) const override { return 0; }
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }
-    size_t ways_get_list(idlist_t const &, osmium::memory::Buffer &) const override { return 0; }
+    size_t rel_way_members_get(osmium::Relation const &, rolelist_t *,
+                               osmium::memory::Buffer &) const override
+    {
+        return 0;
+    }
 
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }
@@ -52,15 +52,15 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void commit(void) override  { }
 
     void nodes_set(osmium::Node const &) override {}
-    size_t nodes_get_list(nodelist_t &, osmium::WayNodeList const &,
-                          reprojection const *) const override
-    {
-        return 0;
-    }
+    size_t nodes_get_list(osmium::WayNodeList *) const override { return 0; }
 
     void ways_set(osmium::Way const &) override { }
     bool ways_get(osmid_t, osmium::memory::Buffer &) const override { return true; }
-    size_t ways_get_list(idlist_t const &, osmium::memory::Buffer &) const override { return 0; }
+    size_t rel_way_members_get(osmium::Relation const &, rolelist_t *,
+                               osmium::memory::Buffer &) const override
+    {
+        return 0;
+    }
 
     void relations_set(osmium::Relation const &) override { }
     bool relations_get(osmid_t, osmium::memory::Buffer &) const override { return 0; }

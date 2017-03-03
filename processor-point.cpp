@@ -5,14 +5,14 @@
 #include "processor-point.hpp"
 #include "util.hpp"
 
-processor_point::processor_point(int srid)
-    : geometry_processor(srid, "POINT", interest_node) {
-}
-
-processor_point::~processor_point() {
-}
-
-geometry_builder::pg_geom_t processor_point::process_node(double lat, double lon)
+processor_point::processor_point(std::shared_ptr<reprojection> const &proj)
+: geometry_processor(proj->target_srs(), "POINT", interest_node),
+  m_builder(proj, false)
 {
-    return geometry_builder::pg_geom_t((boost::format("POINT(%.15g %.15g)") % lon % lat).str(), false);
+}
+
+geometry_processor::wkb_t
+processor_point::process_node(osmium::Location const &loc)
+{
+    return m_builder.get_wkb_node(loc);
 }

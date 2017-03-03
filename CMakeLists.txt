@@ -81,7 +81,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium REQUIRED COMPONENTS io geos proj)
+find_package(Osmium REQUIRED COMPONENTS io proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
 
 if (WITH_LUA)
@@ -156,7 +156,6 @@ endif()
 
 set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
-  geometry-builder.cpp
   geometry-processor.cpp
   id-tracker.cpp
   middle-pgsql.cpp
@@ -166,6 +165,7 @@ set(osm2pgsql_lib_SOURCES
   node-ram-cache.cpp
   options.cpp
   osmdata.cpp
+  osmium-builder.cpp
   output-gazetteer.cpp
   output-multi.cpp
   output-null.cpp
@@ -184,7 +184,6 @@ set(osm2pgsql_lib_SOURCES
   util.cpp
   wildcmp.cpp
   expire-tiles.hpp
-  geometry-builder.hpp
   geometry-processor.hpp
   id-tracker.hpp
   middle-pgsql.hpp
@@ -194,6 +193,7 @@ set(osm2pgsql_lib_SOURCES
   node-ram-cache.hpp
   options.hpp
   osmdata.hpp
+  osmium-builder.hpp
   osmtypes.hpp
   output-gazetteer.hpp
   output-multi.hpp
@@ -213,6 +213,7 @@ set(osm2pgsql_lib_SOURCES
   tagtransform.hpp
   util.hpp
   wildcmp.hpp
+  wkb.hpp
 )
 
 add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})

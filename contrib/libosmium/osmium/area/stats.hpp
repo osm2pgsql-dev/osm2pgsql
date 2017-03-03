@@ -68,6 +68,7 @@ namespace osmium {
             uint64_t touching_rings = 0; ///< Rings touching in a node
             uint64_t ways_in_multiple_rings = 0; ///< Different segments of a way ended up in different rings
             uint64_t wrong_role = 0; ///< Member has wrong role (not "outer", "inner", or empty)
+            uint64_t invalid_locations = 0; ///< Invalid location found
 
             area_stats& operator+=(const area_stats& other) noexcept {
                 area_really_complex_case += other.area_really_complex_case;
@@ -91,6 +92,7 @@ namespace osmium {
                 touching_rings += other.touching_rings;
                 ways_in_multiple_rings += other.ways_in_multiple_rings;
                 wrong_role += other.wrong_role;
+                invalid_locations += invalid_locations;
                 return *this;
             }
 
@@ -118,7 +120,8 @@ namespace osmium {
                        << " single_way_in_mp_relation=" << s.single_way_in_mp_relation
                        << " touching_rings=" << s.touching_rings
                        << " ways_in_multiple_rings=" << s.ways_in_multiple_rings
-                       << " wrong_role=" << s.wrong_role;
+                       << " wrong_role=" << s.wrong_role
+                       << " invalid_locations=" << s.invalid_locations;
         }
 
     } // namespace area

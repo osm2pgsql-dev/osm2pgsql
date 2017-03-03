@@ -190,6 +190,15 @@ namespace osmium {
             }
 
             /**
+             * Report an invalid location in a way.
+             *
+             * @param way_id  ID of the way the node is in.
+             * @param node_id ID of the node with the invalid location.
+             */
+            virtual void report_invalid_location(osmium::object_id_type way_id, osmium::object_id_type node_id) {
+            }
+
+            /**
              * In addition to reporting specific problems, this is used to
              * report all ways belonging to areas having problems.
              *

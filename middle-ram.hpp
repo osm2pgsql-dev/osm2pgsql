@@ -91,14 +91,14 @@ struct middle_ram_t : public middle_t {
     void commit(void) override;
 
     void nodes_set(osmium::Node const &node) override;
-    size_t nodes_get_list(nodelist_t &out, osmium::WayNodeList const &nds,
-                          reprojection const *proj) const override;
+    size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
     int nodes_delete(osmid_t id);
     int node_changed(osmid_t id);
 
     void ways_set(osmium::Way const &way) override;
     bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
-    size_t ways_get_list(idlist_t const &ids, osmium::memory::Buffer &buffer) const override;
+    size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+                               osmium::memory::Buffer &buffer) const override;
 
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);

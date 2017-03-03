@@ -267,7 +267,6 @@ void test_random_perms()
         add_arg_or_not("--extra-attributes", args, options.extra_attributes);
         add_arg_or_not("--multi-geometry", args, options.enable_multi);
         add_arg_or_not("--keep-coastlines", args, options.keep_coastlines);
-        add_arg_or_not("--exclude-invalid-polygon", args, options.excludepoly);
 
         //add the input file
         args.push_back("tests/liechtenstein-2013-08-03.osm.pbf");

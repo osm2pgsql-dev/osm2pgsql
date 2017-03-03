@@ -48,18 +48,19 @@ void middle_ram_t::relations_set(osmium::Relation const &rel)
     rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
 }
 
-size_t middle_ram_t::nodes_get_list(nodelist_t &out,
-                                    osmium::WayNodeList const &nds,
-                                    reprojection const *proj) const
+size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
-    for (auto const &in : nds) {
-        auto loc = cache->get(in.ref());
+    size_t count = 0;
+
+    for (auto &n : *nodes) {
+        auto loc = cache->get(n.ref());
+        n.set_location(loc);
         if (loc.valid()) {
-            out.push_back(proj->reproject(loc));
+            ++count;
         }
     }
 
-    return out.size();
+    return count;
 }
 
 void middle_ram_t::iterate_relations(pending_processor& pf)
@@ -117,15 +118,16 @@ bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     return true;
 }
 
-size_t middle_ram_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
+size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
+                                         rolelist_t *roles,
+                                         osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty()) {
-        return 0;
-    }
-
     size_t count = 0;
-    for (auto const id: ids) {
-        if (ways_get(id, buffer)) {
+    for (auto const &m : rel.members()) {
+        if (m.type() == osmium::item_type::way && ways_get(m.ref(), buffer)) {
+            if (roles) {
+                roles->emplace_back(m.role());
+            }
             ++count;
         }
     }

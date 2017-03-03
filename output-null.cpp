@@ -33,7 +33,7 @@ int output_null_t::pending_relation(osmid_t, int) {
 
 int output_null_t::node_add(osmium::Node const &) { return 0; }
 
-int output_null_t::way_add(osmium::Way const &) {
+int output_null_t::way_add(osmium::Way *) {
   return 0;
 }
 
@@ -55,7 +55,7 @@ int output_null_t::relation_delete(osmid_t) {
 
 int output_null_t::node_modify(osmium::Node const &) { return 0; }
 
-int output_null_t::way_modify(osmium::Way const &) {
+int output_null_t::way_modify(osmium::Way *) {
   return 0;
 }
 

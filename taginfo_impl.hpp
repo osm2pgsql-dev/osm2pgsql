@@ -42,6 +42,7 @@ struct export_list {
     const std::vector<taginfo> &get(osmium::item_type id) const;
 
     columns_t normal_columns(osmium::item_type id) const;
+    bool has_column(osmium::item_type id, char const *name) const;
 
     std::vector<std::vector<taginfo> > exportList; /* Indexed osmium nwr index */
 };

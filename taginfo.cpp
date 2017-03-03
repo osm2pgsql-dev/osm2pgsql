@@ -70,6 +70,22 @@ const std::vector<taginfo> &export_list::get(osmium::item_type id) const {
     }
 }
 
+bool export_list::has_column(osmium::item_type id, char const *name) const
+{
+    auto idx = item_type_to_nwr_index(id);
+    if (idx >= exportList.size()) {
+        return false;
+    }
+
+    for (auto const &info : exportList[idx]) {
+        if (info.name == name) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 columns_t export_list::normal_columns(osmium::item_type id) const {
     columns_t columns;
 

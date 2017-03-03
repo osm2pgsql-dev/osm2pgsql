@@ -48,8 +48,8 @@ struct test_output_t : public dummy_output_t {
         return 0;
     }
 
-    int way_add(osmium::Way const &w) override {
-        assert(w.id() > 0);
+    int way_add(osmium::Way *w) override {
+        assert(w->id() > 0);
         ++way.added;
         return 0;
     }
@@ -65,7 +65,7 @@ struct test_output_t : public dummy_output_t {
         ++node.modified;
         return 0;
     }
-    int way_modify(osmium::Way const &) override {
+    int way_modify(osmium::Way *) override {
         ++way.modified;
         return 0;
     }

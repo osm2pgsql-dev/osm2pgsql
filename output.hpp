@@ -50,11 +50,11 @@ public:
     virtual int pending_relation(osmid_t id, int exists) = 0;
 
     virtual int node_add(osmium::Node const &node) = 0;
-    virtual int way_add(osmium::Way const &way) = 0;
+    virtual int way_add(osmium::Way *way) = 0;
     virtual int relation_add(osmium::Relation const &rel) = 0;
 
     virtual int node_modify(osmium::Node const &node) = 0;
-    virtual int way_modify(osmium::Way const &way) = 0;
+    virtual int way_modify(osmium::Way *way) = 0;
     virtual int relation_modify(osmium::Relation const &rel) = 0;
 
     virtual int node_delete(osmid_t id) = 0;

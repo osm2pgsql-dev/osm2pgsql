@@ -70,14 +70,14 @@ namespace osmium {
             // https://msdn.microsoft.com/en-us/library/dfbc2kec.aspx
             const auto size = ::_filelengthi64(fd);
             if (size == -1L) {
-                throw std::system_error(errno, std::system_category(), "_filelengthi64 failed");
+                throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
             return size_t(size);
 #else
             // Unix implementation
             struct stat s;
             if (::fstat(fd, &s) != 0) {
-                throw std::system_error(errno, std::system_category(), "fstat failed");
+                throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
             return size_t(s.st_size);
 #endif
@@ -97,13 +97,13 @@ namespace osmium {
             // https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx
             struct _stat64 s;
             if (::_stati64(name, &s) != 0) {
-                throw std::system_error(errno, std::system_category(), "_stati64 failed");
+                throw std::system_error{errno, std::system_category(), std::string{"Could not get file size of file '"} + name + "'"};
             }
 #else
             // Unix implementation
             struct stat s;
             if (::stat(name, &s) != 0) {
-                throw std::system_error(errno, std::system_category(), "stat failed");
+                throw std::system_error{errno, std::system_category(), std::string{"Could not get file size of file '"} + name + "'"};
             }
 #endif
             return size_t(s.st_size);
@@ -136,7 +136,7 @@ namespace osmium {
 #else
             if (::ftruncate(fd, static_cast_with_assert<off_t>(new_size)) != 0) {
 #endif
-                throw std::system_error(errno, std::system_category(), "resizing file failed");
+                throw std::system_error{errno, std::system_category(), "Could not resize file"};
             }
         }
 

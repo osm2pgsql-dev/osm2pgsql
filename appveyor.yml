@@ -47,7 +47,6 @@ build_script:
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
   - copy /y %PREFIX%\bin\lua.dll osm2pgsql-bin
-  - copy /y %PREFIX%\bin\geos.dll osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libpq.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin

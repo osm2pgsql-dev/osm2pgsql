@@ -114,6 +114,11 @@ namespace osmium {
                 *m_out << "way_id=" << way.id() << '\n';
             }
 
+            void report_invalid_location(osmium::object_id_type way_id, osmium::object_id_type node_id) override {
+                header("invalid location");
+                *m_out << "way_id=" << way_id << " node_id=" << node_id << '\n';
+            }
+
         }; // class ProblemReporterStream
 
     } // namespace area

@@ -286,90 +286,60 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node)
     }
 }
 
-// This should be made more efficient by using an IN(ARRAY[]) construct */
-size_t middle_pgsql_t::local_nodes_get_list(nodelist_t &out,
-                                            osmium::WayNodeList const &nds,
-                                            reprojection const *proj) const
+size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
-    assert(out.empty());
+    size_t count = 0;
+    std::string buffer("{");
 
-    char tmp[16];
-
-    char *tmp2 = static_cast<char *>(malloc(sizeof(char) * nds.size() * 16));
-    if (tmp2 == nullptr) {
-        return 0; // failed to allocate memory, return
-    }
-
-    // create a list of ids in tmp2 to query the database
-    sprintf(tmp2, "{");
-    int countDB = 0;
-    out.reserve(nds.size());
-    for (auto const &n : nds) {
-        // Check cache first */
+    // get nodes where possible from cache,
+    // at the same time build a list for querying missing nodes from DB
+    size_t pos = 0;
+    for (auto &n : *nodes) {
         auto loc = cache->get(n.ref());
         if (loc.valid()) {
-            out.push_back(proj->reproject(loc));
-            continue;
+            n.set_location(loc);
+            ++count;
+        } else {
+            buffer += std::to_string(n.ref());
+            buffer += ',';
         }
-
-        countDB++;
-        // Mark nodes as needing to be fetched from the DB
-        out.emplace_back(NAN, NAN);
-
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", n.ref());
-        strncat(tmp2, tmp, sizeof(char) * (nds.size() * 16 - 2));
+        ++pos;
     }
-    // replace last , with } to complete list of ids
-    tmp2[strlen(tmp2) - 1] = '}';
 
-    if (countDB == 0) {
-        free(tmp2);
-        return nds.size(); // All ids where in cache, so nothing more to do
+    if (count == pos) {
+        return count; // all ids found in cache, nothing more to do
     }
+
+    // get any remaining nodes from the DB
+    buffer[buffer.size() - 1] = '}';
 
     pgsql_endCopy(node_table);
 
     PGconn *sql_conn = node_table->sql_conn;
 
     char const *paramValues[1];
-    paramValues[0] = tmp2;
+    paramValues[0] = buffer.c_str();
     PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1,
                                        paramValues, PGRES_TUPLES_OK);
-    int countPG = PQntuples(res);
+    auto countPG = PQntuples(res);
 
-    // store the pg results in a hashmap and telling it how many we expect
-    std::unordered_map<osmid_t, osmium::Location> pg_nodes(countPG);
-
-    for (int i = 0; i < countPG; i++) {
-        osmid_t id = strtoosmid(PQgetvalue(res, i, 0), nullptr, 10);
-        osmium::Location n((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
-                           (int)strtol(PQgetvalue(res, i, 1), nullptr, 10));
-
-        pg_nodes.emplace(id, n);
+    std::unordered_map<osmid_t, osmium::Location> locs;
+    for (int i = 0; i < countPG; ++i) {
+        locs.emplace(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10),
+                     osmium::Location((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
+                                      (int)strtol(PQgetvalue(res, i, 1), nullptr, 10)));
     }
 
-    PQclear(res);
-    free(tmp2);
-
-    // If some of the nodes in the way don't exist, the returning list has holes.
-    // Merge the two lists removing any holes.
-    size_t wrtidx = 0;
-    for (size_t i = 0; i < nds.size(); ++i) {
-        if (std::isnan(out[i].x)) {
-            auto found = pg_nodes.find(nds[i].ref());
-            if (found != pg_nodes.end()) {
-                out[wrtidx] = proj->reproject(found->second);
-                ++wrtidx;
-            }
-        } else {
-            if (wrtidx < i)
-                out[wrtidx] = out[i];
-            ++wrtidx;
+    for (auto &n : *nodes) {
+        auto el = locs.find(n.ref());
+        if (el != locs.end()) {
+            n.set_location(el->second);
+            ++count;
         }
-    }
-    out.resize(wrtidx, osmium::geom::Coordinates(NAN, NAN));
 
-    return wrtidx;
+    }
+
+    return count;
 }
 
 void middle_pgsql_t::nodes_set(osmium::Node const &node)
@@ -383,13 +353,11 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node)
     }
 }
 
-size_t middle_pgsql_t::nodes_get_list(nodelist_t &out,
-                                      osmium::WayNodeList const &nds,
-                                      reprojection const *proj) const
+size_t middle_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     return (out_options->flat_node_cache_enabled)
-               ? persistent_cache->get_list(out, nds, proj)
-               : local_nodes_get_list(out, nds, proj);
+        ? persistent_cache->get_list(nodes)
+        : local_nodes_get_list(nodes);
 }
 
 void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -525,30 +493,33 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     return true;
 }
 
-size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer &buffer) const
+size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
+                                           rolelist_t *roles,
+                                           osmium::memory::Buffer &buffer) const
 {
-    if (ids.empty())
-        return 0;
-
     char tmp[16];
-    std::unique_ptr<char[]> tmp2(new (std::nothrow) char[ids.size() * 16]);
     char const *paramValues[1];
 
-    if (tmp2 == nullptr) return 0; //failed to allocate memory, return */
-
-    // create a list of ids in tmp2 to query the database  */
-    sprintf(tmp2.get(), "{");
-    for (auto id : ids) {
-        snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", id);
-        strncat(tmp2.get(), tmp, sizeof(char)*(ids.size()*16 - 2));
+    // create a list of ids in tmp2 to query the database
+    std::string tmp2("{");
+    for (auto const &m : rel.members()) {
+        if (m.type() == osmium::item_type::way) {
+            snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", m.ref());
+            tmp2.append(tmp);
+        }
     }
-    tmp2[strlen(tmp2.get()) - 1] = '}'; // replace last , with } to complete list of ids*/
+
+    if (tmp2.length() == 1) {
+        return 0; // no ways found
+    }
+    // replace last , with } to complete list of ids
+    tmp2[tmp2.length() - 1] = '}'; 
 
     pgsql_endCopy(way_table);
 
     PGconn *sql_conn = way_table->sql_conn;
 
-    paramValues[0] = tmp2.get();
+    paramValues[0] = tmp2.c_str();
     PGresult *res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
     int countPG = PQntuples(res);
 
@@ -558,22 +529,27 @@ size_t middle_pgsql_t::ways_get_list(const idlist_t &ids, osmium::memory::Buffer
         wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
     }
 
-
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
-    int outres = 0;
-    for (auto id : ids) {
+    size_t outres = 0;
+    for (auto const &m : rel.members()) {
+        if (m.type() != osmium::item_type::way) {
+            continue;
+        }
         for (int j = 0; j < countPG; j++) {
-            if (id == wayidspg[j]) {
+            if (m.ref() == wayidspg[j]) {
                 {
                     osmium::builder::WayBuilder builder(buffer);
-                    builder.set_id(id);
+                    builder.set_id(m.ref());
 
                     pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer, builder);
                     pgsql_parse_tags(PQgetvalue(res, j, 2), buffer, builder);
                 }
 
                 buffer.commit();
+                if (roles) {
+                    roles->emplace_back(m.role());
+                }
                 outres++;
                 break;
             }

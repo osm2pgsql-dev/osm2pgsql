@@ -2,7 +2,6 @@
 
 #include "node-persistent-cache.hpp"
 #include "options.hpp"
-#include "reprojection.hpp"
 
 void node_persistent_cache::set(osmid_t id, const osmium::Location &coord)
 {
@@ -25,30 +24,27 @@ osmium::Location node_persistent_cache::get(osmid_t id)
     return osmium::Location();
 }
 
-size_t node_persistent_cache::get_list(nodelist_t &out,
-                                       osmium::WayNodeList const &nds,
-                                       reprojection const *proj)
+size_t node_persistent_cache::get_list(osmium::WayNodeList *nodes)
 {
-    assert(nds.empty());
-    out.reserve(nds.size());
+    size_t count = 0;
 
-    for (auto const &n : nds) {
-        try {
-            /* Check cache first */
-            auto loc = m_ram_cache->get(n.ref());
-            if (!loc.valid() && n.ref() >= 0) {
+    for (auto &n : *nodes) {
+        auto loc = m_ram_cache->get(n.ref());
+        /* Check cache first */
+        if (!loc.valid() && n.ref() >= 0) {
+            try {
                 loc = m_index->get(
-                    static_cast<osmium::unsigned_object_id_type>(n.ref()));
+                        static_cast<osmium::unsigned_object_id_type>(n.ref()));
+            } catch (osmium::not_found const &) {
             }
-            if (loc.valid()) {
-                auto coord = proj->reproject(loc);
-                out.emplace_back(coord.x, coord.y);
-            }
-        } catch (osmium::not_found const &) {
+        }
+        n.set_location(loc);
+        if (loc.valid()) {
+            ++count;
         }
     }
 
-    return out.size();
+    return count;
 }
 
 node_persistent_cache::node_persistent_cache(

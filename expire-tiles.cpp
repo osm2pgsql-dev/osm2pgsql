@@ -16,9 +16,9 @@
 
 #include "expire-tiles.hpp"
 #include "options.hpp"
-#include "geometry-builder.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
+#include "wkb.hpp"
 
 #define EARTH_CIRCUMFERENCE		40075016.68
 #define HALF_EARTH_CIRCUMFERENCE	(EARTH_CIRCUMFERENCE / 2)
@@ -333,74 +333,114 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 	return 0;
 }
 
-void expire_tiles::from_nodes_line(const nodelist_t &nodes)
-{
-    if (maxzoom < 0 || nodes.empty())
-        return;
 
-    if (nodes.size() == 1) {
-        from_bbox(nodes[0].x, nodes[0].y, nodes[0].x, nodes[0].y);
+void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
+{
+    if (maxzoom < 0) {
+        return;
+    }
+
+    auto parse = ewkb::parser_t(wkb);
+
+    switch (parse.read_header()) {
+    case ewkb::wkb_point:
+        from_wkb_point(&parse);
+        break;
+    case ewkb::wkb_line:
+        from_wkb_line(&parse);
+        break;
+    case ewkb::wkb_polygon:
+        from_wkb_polygon(&parse, osm_id);
+        break;
+    case ewkb::wkb_multi_line: {
+        auto num = parse.read_length();
+        for (unsigned i = 0; i < num; ++i) {
+            parse.read_header();
+            from_wkb_line(&parse);
+        }
+        break;
+    }
+    case ewkb::wkb_multi_polygon: {
+        auto num = parse.read_length();
+        for (unsigned i = 0; i < num; ++i) {
+            parse.read_header();
+            from_wkb_polygon(&parse, osm_id);
+        }
+        break;
+    }
+    default:
+        fprintf(stderr, "OSM id %" PRIdOSMID
+                        ": Unknown geometry type, cannot expire.\n",
+                osm_id);
+    }
+}
+
+void expire_tiles::from_wkb_point(ewkb::parser_t *wkb)
+{
+    auto c = wkb->read_point();
+    from_bbox(c.x, c.y, c.x, c.y);
+}
+
+void expire_tiles::from_wkb_line(ewkb::parser_t *wkb)
+{
+    auto sz = wkb->read_length();
+
+    if (sz == 0) {
+        return;
+    }
+
+    if (sz == 1) {
+        from_wkb_point(wkb);
     } else {
-        for (size_t i = 1; i < nodes.size(); ++i)
-            from_line(nodes[i - 1].x, nodes[i - 1].y, nodes[i].x, nodes[i].y);
+        auto prev = wkb->read_point();
+        for (size_t i = 1; i < sz; ++i) {
+            auto cur = wkb->read_point();
+            from_line(prev.x, prev.y, cur.x, cur.y);
+            prev = cur;
+        }
     }
 }
 
-/*
- * Calculate a bounding box from a list of nodes and expire all tiles within it
- */
-void expire_tiles::from_nodes_poly(const nodelist_t &nodes, osmid_t osm_id)
+void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 {
-    if (maxzoom < 0 || nodes.empty())
-        return;
+    auto num_rings = wkb->read_length();
+    assert(num_rings > 0);
 
-    double min_lon = nodes[0].x;
-    double min_lat = nodes[0].y;
-    double max_lon = nodes[0].x;
-    double max_lat = nodes[0].y;
+    auto start = wkb->save_pos();
 
-    for (size_t i = 1; i < nodes.size(); ++i) {
-        if (nodes[i].x < min_lon)
-            min_lon = nodes[i].x;
-        if (nodes[i].y < min_lat)
-            min_lat = nodes[i].y;
-        if (nodes[i].x > max_lon)
-            max_lon = nodes[i].x;
-        if (nodes[i].y > max_lat)
-            max_lat = nodes[i].y;
+    auto num_pt = wkb->read_length();
+    auto initpt = wkb->read_point();
+
+    osmium::geom::Coordinates min{initpt}, max{initpt};
+
+    for (size_t i = 1; i < num_pt; ++i) {
+        auto c = wkb->read_point();
+        if (c.x < min.x)
+            min.x = c.x;
+        if (c.y < min.y)
+            min.y = c.y;
+        if (c.x > max.x)
+            max.x = c.x;
+        if (c.y > max.y)
+            max.y = c.y;
     }
 
-    if (from_bbox(min_lon, min_lat, max_lon, max_lat)) {
+    if (from_bbox(min.x, min.y, max.x, max.y)) {
         /* Bounding box too big - just expire tiles on the line */
-        fprintf(stderr, "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID ") - only expiring perimeter\n", max_lon - min_lon, max_lat - min_lat, osm_id);
-        from_nodes_line(nodes);
-    }
-}
-
-void expire_tiles::from_xnodes_poly(const multinodelist_t &xnodes, osmid_t osm_id)
-{
-    for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it)
-        from_nodes_poly(*it, osm_id);
-}
-
-void expire_tiles::from_xnodes_line(const multinodelist_t &xnodes)
-{
-    for (multinodelist_t::const_iterator it = xnodes.begin(); it != xnodes.end(); ++it)
-        from_nodes_line(*it);
-}
-
-void expire_tiles::from_wkb(const char* wkb, osmid_t osm_id)
-{
-    if (maxzoom < 0) return;
-
-    multinodelist_t xnodes;
-    bool polygon;
-
-    if (geometry_builder::parse_wkb(wkb, xnodes, &polygon) == 0) {
-        if (polygon)
-            from_xnodes_poly(xnodes, osm_id);
-        else
-            from_xnodes_line(xnodes);
+        fprintf(stderr,
+                "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID
+                ") - only expiring perimeter\n",
+                max.x - min.x, max.y - min.y, osm_id);
+        wkb->rewind(start);
+        for (unsigned ring = 0; ring < num_rings; ++ring) {
+            from_wkb_line(wkb);
+        }
+    } else {
+        // ignore inner rings
+        for (unsigned ring = 1; ring < num_rings; ++ring) {
+            auto inum_pt = wkb->read_length();
+            wkb->skip_points(inum_pt);
+        }
     }
 }
 
@@ -424,8 +464,10 @@ int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
 
     //dirty the stuff
     const char* wkb = nullptr;
-    while((wkb = wkbs.get_next()))
-        from_wkb(wkb, osm_id);
+    while ((wkb = wkbs.get_next())) {
+        auto binwkb = ewkb::parser_t::wkb_from_hex(wkb);
+        from_wkb(binwkb.c_str(), osm_id);
+    }
 
     //return how many rows were affected
     return wkbs.get_count();

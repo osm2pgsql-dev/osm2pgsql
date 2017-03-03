@@ -88,9 +88,9 @@ void test_regression_simple() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3231, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
     db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
@@ -140,9 +140,9 @@ void test_latlong() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3298, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3229, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count(374, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
     db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
@@ -277,9 +277,9 @@ void test_clone() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3231, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 } // anonymous namespace
