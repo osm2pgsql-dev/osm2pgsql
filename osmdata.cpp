@@ -175,10 +175,6 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::pair<std::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
-#ifdef _MSC_VER
-	// Avoid problems when GEOS WKT-related methods switch the locale
-        _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
-#endif
         while (true) {
             //get the job off the queue synchronously
             pending_job_t job;
