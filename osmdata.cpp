@@ -206,11 +206,18 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(std::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
+    pending_threaded_processor(std::shared_ptr<middle_query_t> mid,
+                               const output_vec_t &outs, size_t thread_count,
+                               int append)
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
-        : outs(outs), ids_queued(0), append(append), queue(), ids_done(0) {
+        : outs(outs),
+          ids_queued(0),
+          append(append),
+          queue(),
+          ids_done(0)
+    {
 
         //clone all the things we need
         clones.reserve(thread_count);
@@ -378,19 +385,18 @@ void osmdata_t::stop() {
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
      */
-    size_t pending_count = mid->pending_count();
     mid->commit();
     for (auto& out: outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
-        pending_count += out->pending_count();
     }
 
     // should be the same for all outputs
     const bool append = outs[0]->get_options()->append;
 
     //threaded pending processing
-    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs, pending_count, append);
+    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs,
+                                   append);
 
     if (!outs.empty()) {
         //This stage takes ways which were processed earlier, but might be
