@@ -590,8 +590,6 @@ int output_gazetteer_t::start()
 {
     int srid = m_options.projection->target_srs();
 
-    places.srid_str = (boost::format("SRID=%1%;") % srid).str();
-
     if (connect()) {
         util::exit_nicely();
     }
