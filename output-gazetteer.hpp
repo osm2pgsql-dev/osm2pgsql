@@ -123,8 +123,6 @@ private:
     char const *postcode;
 
     boost::format single_fmt;
-public:
-    std::string srid_str;
 };
 
 
