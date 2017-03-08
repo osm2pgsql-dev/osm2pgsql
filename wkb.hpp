@@ -255,7 +255,9 @@ public:
 
         auto type = read_data<uint32_t>();
 
-        m_pos += sizeof(int); // skip srid
+        if (type & wkb_srid) {
+            m_pos += sizeof(int); // skip srid
+        }
 
         return type & 0xff;
     }
