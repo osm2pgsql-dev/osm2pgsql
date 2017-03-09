@@ -1008,7 +1008,7 @@ void middle_pgsql_t::start(const options_t *out_options_)
 
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s", table.name);
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s CASCADE", table.name);
         }
 
         if (table.start) {
