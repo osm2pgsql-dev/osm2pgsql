@@ -514,7 +514,7 @@ void options_t::check_options()
         throw std::runtime_error("--drop only makes sense with --slim.\n");
     }
 
-    if (unlogged && !create) {
+    if (unlogged && append) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
         unlogged = false;
     }
