@@ -18,8 +18,8 @@ class parser_t;
  */
 struct xy_coord_t
 {
-    int x;
-    int y;
+    uint32_t x;
+    uint32_t y;
     xy_coord_t() : x(0), y(0) {}
 };
 
@@ -29,6 +29,7 @@ struct xy_coord_t
 class tile_output_t
 {
     FILE *outfile;
+    uint32_t outcount = 0;
 
 public:
     tile_output_t(const char *filename);
@@ -36,18 +37,18 @@ public:
     ~tile_output_t();
 
     /**
-     * \brief output dirty tile
+     * Output dirty tile.
      *
      * \param x x index
      * \param y y index
      * \param zoom zoom level of the tile
      */
-    void output_dirty_tile(int x, int y, int zoom);
+    void output_dirty_tile(uint32_t x, uint32_t y, uint32_t zoom);
 };
 
 struct expire_tiles
 {
-    expire_tiles(int maxzoom, double maxbbox,
+    expire_tiles(uint32_t maxzoom, double maxbbox,
                  const std::shared_ptr<reprojection> &projection);
 
     int from_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
@@ -55,7 +56,7 @@ struct expire_tiles
     int from_db(table_t* table, osmid_t osm_id);
 
     /**
-     * \brief Write the list of expired tiles to a file.
+     * Write the list of expired tiles to a file.
      *
      * You will probably use tile_output_t as template argument for production code
      * and another class which does not write to a file for unit tests.
@@ -63,31 +64,33 @@ struct expire_tiles
      * \param filename name of the file
      * \param minzoom minimum zoom level
      */
-    void output_and_destroy(const char *filename, int minzoom);
+    void output_and_destroy(const char *filename, uint32_t minzoom);
 
     /**
-     * \brief Output expired tiles on all requested zoom levels.
+     * Output expired tiles on all requested zoom levels.
      *
-     * \param output_writer class which implements the method
-     * output_dirty_tile(int x, int y, int zoom) which usually writes the tile ID to a file
+     * \tparam TILE_WRITER class which implements the method
+     * output_dirty_tile(uint32_t x, uint32_t y, uint32_t zoom) which usually writes the tile ID to a file
      * (production code) or does something else (usually unit tests)
      *
      * \param minzoom minimum zoom level
      */
-    template <class tile_writer_t>
-    void output_and_destroy(tile_writer_t &output_writer, int minzoom)
+    template <class TILE_WRITER>
+    void output_and_destroy(TILE_WRITER &output_writer, uint32_t minzoom)
     {
+        assert(minzoom <= maxzoom);
         /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
          * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
          * bit shifts.
          */
-        for (int dz = 0; dz <= maxzoom - minzoom; dz++) {
+        for (uint32_t dz = 0; dz <= maxzoom - minzoom; dz++) {
             // track which tiles have already been written
-            std::unordered_set<int64_t> expired_tiles;
+            std::unordered_set<uint64_t> expired_tiles;
             // iterate over all expired tiles
-            for (std::unordered_set<int64_t>::iterator it = m_dirty_tiles.begin();
-                    it != m_dirty_tiles.end(); it++) {
-                int64_t qt_new = *it >> (dz * 2);
+            for (std::unordered_set<uint64_t>::iterator it =
+                     m_dirty_tiles.begin();
+                 it != m_dirty_tiles.end(); it++) {
+                uint64_t qt_new = *it >> (dz * 2);
                 if (expired_tiles.insert(qt_new).second) {
                     // expired_tiles.insert(qt_new).second is true if the tile has not been written to the list yet
                     xy_coord_t xy = quadkey_to_xy(qt_new, maxzoom - dz);
@@ -104,7 +107,7 @@ struct expire_tiles
     void merge_and_destroy(expire_tiles &other);
 
     /**
-     * \brief Helper method to convert a tile ID (x and y) into a quadkey
+     * Helper method to convert a tile ID (x and y) into a quadkey
      * using bitshifts.
      *
      * Quadkeys are interleaved this way: YXYX…
@@ -114,17 +117,17 @@ struct expire_tiles
      * \param zoom zoom level
      * \returns quadtree ID as integer
      */
-    static int64_t xy_to_quadkey(int x, int y, int zoom);
+    static uint64_t xy_to_quadkey(uint32_t x, uint32_t y, uint32_t zoom);
 
     /**
-     * \brief Convert a quadkey into a tile ID (x and y) using bitshifts.
+     * Convert a quadkey into a tile ID (x and y) using bitshifts.
      *
      * Quadkeys coordinates are interleaved this way: YXYX…
      *
      * \param quadkey the quadkey to be converted
      * \param zoom zoom level
      */
-    static xy_coord_t quadkey_to_xy(int64_t quadkey, int zoom);
+    static xy_coord_t quadkey_to_xy(uint64_t quadkey, uint32_t zoom);
 
 private:
     /**
@@ -133,7 +136,7 @@ private:
      * \param x x index of the tile to be expired.
      * \param y y index of the tile to be expired.
      */
-    void expire_tile(int x, int y);
+    void expire_tile(uint32_t x, uint32_t y);
     int normalise_tile_x_coord(int x);
     void from_line(double lon_a, double lat_a, double lon_b, double lat_b);
 
@@ -143,12 +146,12 @@ private:
 
     double tile_width;
     double max_bbox;
-    int map_width;
-    int maxzoom;
+    uint32_t map_width;
+    uint32_t maxzoom;
     std::shared_ptr<reprojection> projection;
 
     /**
-     * \brief manages which tiles have been marked as empty
+     * manages which tiles have been marked as empty
      *
      * This set stores the IDs of the tiles at the maximum zoom level. We don't
      * store the IDs of the expired tiles of lower zoom levels. They are calculated
@@ -166,7 +169,7 @@ private:
      * Bing Maps itself uses the quadkeys as a base-4 number converted to a string.
      * We interpret this IDs as simple 64-bit integers due to performance reasons.
      */
-    std::unordered_set<int64_t> m_dirty_tiles;
+    std::unordered_set<uint64_t> m_dirty_tiles;
 };
 
 #endif
