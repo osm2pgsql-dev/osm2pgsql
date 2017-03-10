@@ -579,7 +579,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
     m_enable_way_area = read_style_file( m_options.style, m_export_list.get() );
 
     try {
-        m_tagtransform.reset(new tagtransform(&m_options));
+        m_tagtransform = tagtransform_t::make_tagtransform(&m_options);
     }
     catch(const std::runtime_error& e) {
         fprintf(stderr, "%s\n", e.what());
@@ -636,7 +636,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
 
 output_pgsql_t::output_pgsql_t(const output_pgsql_t &other)
 : output_t(other.m_mid, other.m_options),
-  m_tagtransform(new tagtransform(&m_options)),
+  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
   m_enable_way_area(other.m_enable_way_area),
   m_export_list(new export_list(*other.m_export_list)),
   m_builder(m_options.projection, other.m_options.enable_multi),

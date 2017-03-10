@@ -62,7 +62,7 @@ protected:
     int pgsql_delete_way_from_output(osmid_t osm_id);
     int pgsql_delete_relation_from_output(osmid_t osm_id);
 
-    std::unique_ptr<tagtransform> m_tagtransform;
+    std::unique_ptr<tagtransform_t> m_tagtransform;
 
     //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;

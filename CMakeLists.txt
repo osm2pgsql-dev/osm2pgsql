@@ -181,6 +181,7 @@ set(osm2pgsql_lib_SOURCES
   table.cpp
   taginfo.cpp
   tagtransform.cpp
+  tagtransform-c.cpp
   util.cpp
   wildcmp.cpp
   expire-tiles.hpp
@@ -215,6 +216,10 @@ set(osm2pgsql_lib_SOURCES
   wildcmp.hpp
   wkb.hpp
 )
+
+if (LUA_FOUND)
+  list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
+endif()
 
 add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})
 set_target_properties(osm2pgsql_lib PROPERTIES OUTPUT_NAME osm2pgsql)
