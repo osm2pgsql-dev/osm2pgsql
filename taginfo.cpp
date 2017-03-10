@@ -158,6 +158,7 @@ int read_style_file( const std::string &filename, export_list *exlist )
     if( fields < 3 )
     {
       fprintf( stderr, "Error reading style file line %d (fields=%d)\n", lineno, fields );
+      fclose(in);
       util::exit_nicely();
     }
 
@@ -176,6 +177,7 @@ int read_style_file( const std::string &filename, export_list *exlist )
         ((temp.name.find('?') != std::string::npos) ||
          (temp.name.find('*') != std::string::npos))) {
         fprintf( stderr, "wildcard '%s' in non-delete style entry\n",temp.name.c_str());
+        fclose(in);
         util::exit_nicely();
     }
 
@@ -203,6 +205,7 @@ int read_style_file( const std::string &filename, export_list *exlist )
     //do we really want to completely quit on an unusable line?
     if( !kept )
     {
+        fclose(in);
         throw std::runtime_error((boost::format("Weird style line %1%:%2%")
                                   % filename % lineno).str());
     }
@@ -211,13 +214,15 @@ int read_style_file( const std::string &filename, export_list *exlist )
 
 
   if (ferror(in)) {
+      int err = errno;
+      fclose(in);
       throw std::runtime_error((boost::format("%1%: %2%")
-                                % filename % strerror(errno)).str());
+                                % filename % strerror(err)).str());
   }
+  fclose(in);
   if (num_read == 0) {
       throw std::runtime_error("Unable to parse any valid columns from "
                                "the style file. Aborting.");
   }
-  fclose(in);
   return enable_way_area;
 }
