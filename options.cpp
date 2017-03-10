@@ -241,8 +241,9 @@ std::string database_options_t::conninfo() const
 {
     std::ostringstream out;
 
+    out << "fallback_application_name='osm2pgsql'";
     if (db) {
-        out << "dbname='" << *db << "'";
+        out << " dbname='" << *db << "'";
     }
     if (username) {
         out << " user='" << *username << "'";
