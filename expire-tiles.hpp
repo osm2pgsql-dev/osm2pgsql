@@ -79,23 +79,32 @@ struct expire_tiles
     void output_and_destroy(TILE_WRITER &output_writer, uint32_t minzoom)
     {
         assert(minzoom <= maxzoom);
+        // build a sorted vector of all expired tiles
+        std::vector<uint64_t> tiles_maxzoom(m_dirty_tiles.begin(),
+                                            m_dirty_tiles.end());
+        std::sort(tiles_maxzoom.begin(), tiles_maxzoom.end());
         /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
          * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
          * bit shifts.
          */
         for (uint32_t dz = 0; dz <= maxzoom - minzoom; dz++) {
-            // track which tiles have already been written
-            std::unordered_set<uint64_t> expired_tiles;
-            // iterate over all expired tiles
-            for (std::unordered_set<uint64_t>::iterator it =
-                     m_dirty_tiles.begin();
-                 it != m_dirty_tiles.end(); it++) {
-                uint64_t qt_new = *it >> (dz * 2);
-                if (expired_tiles.insert(qt_new).second) {
-                    // expired_tiles.insert(qt_new).second is true if the tile has not been written to the list yet
-                    xy_coord_t xy = quadkey_to_xy(qt_new, maxzoom - dz);
-                    output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
+            // intialize last_quadkey with a value which is not expected to exist
+            uint64_t last_quadkey = (1ULL << maxzoom) + 1;
+            for (std::vector<uint64_t>::const_iterator it =
+                     tiles_maxzoom.cbegin();
+                 it != tiles_maxzoom.cend(); ++it) {
+                // scale down to the current zoom level
+                uint64_t qt_current = *it >> (dz * 2);
+                /* If dz > 0, there are propably multiple elements whose quadkey
+                 * is equal because they are all sub-tiles of the same tile at the current
+                 * zoom level. We skip all of them after we have written the first sibling.
+                 */
+                if (last_quadkey == qt_current) {
+                    continue;
                 }
+                last_quadkey = qt_current;
+                xy_coord_t xy = quadkey_to_xy(qt_current, maxzoom - dz);
+                output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
             }
         }
     }
