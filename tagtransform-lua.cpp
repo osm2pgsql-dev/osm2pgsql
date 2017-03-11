@@ -6,17 +6,17 @@ extern "C" {
 #include <boost/format.hpp>
 
 #include "options.hpp"
-#include "tagtransform.hpp"
+#include "tagtransform-lua.hpp"
 
 lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
-: m_options(options), L(luaL_newstate()),
-  m_node_func(
-      options->tag_transform_node_func.get_value_or("filter_tags_node")),
+: L(luaL_newstate()), m_node_func(options->tag_transform_node_func.get_value_or(
+                          "filter_tags_node")),
   m_way_func(options->tag_transform_way_func.get_value_or("filter_tags_way")),
   m_rel_func(
       options->tag_transform_rel_func.get_value_or("filter_basic_tags_rel")),
   m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or(
-      "filter_tags_relation_member"))
+      "filter_tags_relation_member")),
+  m_extra_attributes(options->extra_attributes)
 {
     luaL_openlibs(L);
     luaL_dofile(L, options->tag_transform_script->c_str());
@@ -69,7 +69,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         lua_rawset(L, -3);
         ++sz;
     }
-    if (m_options->extra_attributes && o.version() > 0) {
+    if (m_extra_attributes && o.version() > 0) {
         taglist_t tags;
         tags.add_attributes(o);
         for (auto const &t : tags) {

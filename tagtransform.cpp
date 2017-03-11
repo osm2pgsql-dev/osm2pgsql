@@ -1,12 +1,10 @@
 #include "tagtransform.hpp"
-#include "options.hpp"
 #include "config.h"
+#include "options.hpp"
+#include "tagtransform-c.hpp"
 
 #ifdef HAVE_LUA
-extern "C" {
-    #include <lualib.h>
-    #include <lauxlib.h>
-}
+#include "tagtransform-lua.hpp"
 #endif
 
 std::unique_ptr<tagtransform_t>

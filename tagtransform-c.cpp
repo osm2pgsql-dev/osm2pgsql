@@ -4,7 +4,7 @@
 
 #include "options.hpp"
 #include "taginfo_impl.hpp"
-#include "tagtransform.hpp"
+#include "tagtransform-c.hpp"
 #include "wildcmp.hpp"
 
 namespace {
