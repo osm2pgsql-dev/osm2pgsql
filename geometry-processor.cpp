@@ -94,7 +94,8 @@ size_t relation_helper::set(osmium::Relation const &rel, middle_t const *mid)
     return num_ways;
 }
 
-multitaglist_t relation_helper::get_filtered_tags(tagtransform *transform, export_list const &el) const
+multitaglist_t relation_helper::get_filtered_tags(tagtransform_t *transform,
+                                                  export_list const &el) const
 {
     multitaglist_t filtered(roles.size());
 

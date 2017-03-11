@@ -18,7 +18,7 @@
 #include <memory>
 
 class table_t;
-class tagtransform;
+class tagtransform_t;
 struct export_list;
 struct middle_query_t;
 struct options_t;
@@ -72,7 +72,7 @@ protected:
     void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
                        taglist_t &tags);
 
-    std::unique_ptr<tagtransform> m_tagtransform;
+    std::unique_ptr<tagtransform_t> m_tagtransform;
     std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
     std::shared_ptr<reprojection> m_proj;

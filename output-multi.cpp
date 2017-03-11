@@ -16,7 +16,8 @@ output_multi_t::output_multi_t(const std::string &name,
                                const struct export_list &export_list_,
                                const middle_query_t *mid_,
                                const options_t &options_)
-: output_t(mid_, options_), m_tagtransform(new tagtransform(&m_options)),
+: output_t(mid_, options_),
+  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
   m_export_list(new export_list(export_list_)), m_processor(processor_),
   m_proj(m_options.projection),
   // TODO: we could in fact have something that is interested in nodes and
@@ -40,7 +41,7 @@ output_multi_t::output_multi_t(const std::string &name,
 
 output_multi_t::output_multi_t(const output_multi_t &other)
 : output_t(other.m_mid, other.m_options),
-  m_tagtransform(new tagtransform(&m_options)),
+  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
   m_export_list(new export_list(*other.m_export_list)),
   m_processor(other.m_processor), m_proj(other.m_proj),
   m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),

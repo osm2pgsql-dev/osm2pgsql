@@ -77,7 +77,6 @@ protected:
     geometry_processor(int srid, const std::string &type, unsigned int interests);
 };
 
-
 //various bits for continuous processing of members of relations
 class relation_helper
 {
@@ -85,7 +84,8 @@ public:
     relation_helper();
 
     size_t set(osmium::Relation const &rel, middle_t const *mid);
-    multitaglist_t get_filtered_tags(tagtransform *transform, export_list const &el) const;
+    multitaglist_t get_filtered_tags(tagtransform_t *transform,
+                                     export_list const &el) const;
     void add_way_locations(middle_t const *mid);
 
     rolelist_t roles;
