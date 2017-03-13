@@ -176,6 +176,9 @@ void parse_osmium_t::relation(osmium::Relation const &rel)
     if (rel.deleted()) {
         m_data->relation_delete(rel.id());
     } else {
+        if (rel.members().size() > 32767) {
+            return;
+        }
         if (m_append) {
             m_data->relation_modify(rel);
         } else {
