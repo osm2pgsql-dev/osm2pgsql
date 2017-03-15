@@ -18,7 +18,10 @@ Nominatim, or general analysis.
 
 ## Installing ##
 
-Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/). Unoffical builds for Windows are built by [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts.
+Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/).
+
+Unoffical builds for Windows are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts. The latest
+release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0).
 
 The latest source code is available in the osm2pgsql git repository on GitHub
 and can be downloaded as follows:
