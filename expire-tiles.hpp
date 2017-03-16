@@ -155,7 +155,7 @@ private:
 
     double tile_width;
     double max_bbox;
-    uint32_t map_width;
+    int map_width;
     uint32_t maxzoom;
     std::shared_ptr<reprojection> projection;
 

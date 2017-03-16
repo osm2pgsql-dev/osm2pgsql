@@ -267,7 +267,7 @@ options_t::options_t()
   slim(false), cache(800), tblsmain_index(boost::none),
   tblsslim_index(boost::none), tblsmain_data(boost::none),
   tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-  expire_tiles_zoom(-1), expire_tiles_zoom_min(-1),
+  expire_tiles_zoom(0), expire_tiles_zoom_min(0),
   expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
   hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
   hstore_columns(), keep_coastlines(false), parallel_indexing(true),

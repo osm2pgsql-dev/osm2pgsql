@@ -62,17 +62,17 @@ expire_tiles::expire_tiles(uint32_t max, double bbox,
                            const std::shared_ptr<reprojection> &proj)
 : max_bbox(bbox), maxzoom(max), projection(proj)
 {
-    if (maxzoom >= 0) {
+    if (maxzoom > 0) {
         map_width = 1 << maxzoom;
         tile_width = EARTH_CIRCUMFERENCE / map_width;
-        last_tile_x = map_width + 1;
-        last_tile_y = map_width + 1;
+        last_tile_x = static_cast<uint32_t>(map_width) + 1;
+        last_tile_y = static_cast<uint32_t>(map_width) + 1;
     }
 }
 
 uint64_t expire_tiles::xy_to_quadkey(uint32_t x, uint32_t y, uint32_t zoom)
 {
-    int64_t quadkey = 0;
+    uint64_t quadkey = 0;
     // the two highest bits are the bits of zoom level 1, the third and fourth bit are level 2, …
     for (uint32_t z = 0; z < zoom; z++) {
         quadkey |= ((x & (1ULL << z)) << z);
@@ -84,14 +84,16 @@ uint64_t expire_tiles::xy_to_quadkey(uint32_t x, uint32_t y, uint32_t zoom)
 xy_coord_t expire_tiles::quadkey_to_xy(uint64_t quadkey_coord, uint32_t zoom)
 {
     xy_coord_t result;
-    for (int z = zoom; z > 0; --z) {
+    for (uint32_t z = zoom; z > 0; --z) {
         /* The quadkey contains Y and X bits interleaved in following order: YXYX...
          * We have to pick out the bit representing the y/x bit of the current zoom
          * level and then shift it back to the right on its position in a y-/x-only
          * coordinate.*/
-        result.y = result.y + ((quadkey_coord & (1ULL << (2 * z - 1))) >> z);
-        result.x =
-            result.x + ((quadkey_coord & (1ULL << (2 * (z - 1)))) >> (z - 1));
+        result.y = result.y + static_cast<uint32_t>(
+                                  (quadkey_coord & (1ULL << (2 * z - 1))) >> z);
+        result.x = result.x +
+                   static_cast<uint32_t>(
+                       (quadkey_coord & (1ULL << (2 * (z - 1)))) >> (z - 1));
     }
     return result;
 }
@@ -213,7 +215,7 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
     double  tmp_x;
     double  tmp_y;
 
-	if (maxzoom < 0) return 0;
+	if (maxzoom == 0) return 0;
 
 	width = max_lon - min_lon;
 	height = max_lat - min_lat;
@@ -253,7 +255,7 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon, doub
 
 void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
 {
-    if (maxzoom < 0) {
+    if (maxzoom == 0) {
         return;
     }
 
@@ -373,7 +375,7 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
  */
 int expire_tiles::from_db(table_t* table, osmid_t osm_id) {
     //bail if we dont care about expiry
-    if (maxzoom < 0)
+    if (maxzoom == 0)
         return -1;
 
     //grab the geom for this id

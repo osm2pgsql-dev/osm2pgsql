@@ -33,9 +33,9 @@ void run_test(const char* test_name, void (*testfunc)())
 #define ASSERT_EQ(a, b) { if (!((a) == (b))) { throw std::runtime_error((boost::format("Expecting %1% == %2%, but %3% != %4%") % #a % #b % (a) % (b)).str()); } }
 
 struct xyz {
-    int z;
+    uint32_t z;
     int64_t x, y;
-    xyz(int z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
+    xyz(uint32_t z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
     bool operator==(const xyz &other) const
     {
         return ((z == other.z) && (x == other.x) && (y == other.y));
@@ -73,23 +73,23 @@ std::ostream &operator<<(std::ostream &out, const xyz &tile) {
 
 struct tile_output_set
 {
-  tile_output_set(int min) : min_zoom(min) {}
+    tile_output_set(uint32_t min) : min_zoom(min) {}
 
-  ~tile_output_set() = default;
+    ~tile_output_set() = default;
 
-  void output_dirty_tile(int64_t x, int64_t y, int zoom)
-  {
-      m_tiles.insert(xyz(zoom, x, y));
+    void output_dirty_tile(int64_t x, int64_t y, uint32_t zoom)
+    {
+        m_tiles.insert(xyz(zoom, x, y));
   }
 
   std::set<xyz> m_tiles;
-  int min_zoom;
+  uint32_t min_zoom;
 };
 
 void test_xy_to_quadkey_z3()
 {
-    int64_t quadkey_expected = 0b100111;
-    int64_t quadkey2 = expire_tiles::xy_to_quadkey(3, 5, 3);
+    uint64_t quadkey_expected = 0b100111;
+    uint64_t quadkey2 = expire_tiles::xy_to_quadkey(3, 5, 3);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 3);
     ASSERT_EQ(xy.x, 3);
@@ -98,8 +98,8 @@ void test_xy_to_quadkey_z3()
 
 void test_xy_to_quadkey_z16()
 {
-    int64_t quadkey_expected = 0b11111111111111111111111111111111;
-    int64_t quadkey2 = expire_tiles::xy_to_quadkey(65535, 65535, 16);
+    uint64_t quadkey_expected = 0b11111111111111111111111111111111;
+    uint64_t quadkey2 = expire_tiles::xy_to_quadkey(65535, 65535, 16);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 16);
     ASSERT_EQ(xy.x, 65535);
@@ -112,8 +112,8 @@ void test_xy_to_quadkey_z16()
  */
 void test_xy_to_quadkey_z18()
 {
-    int64_t quadkey_expected = 0b111111111111111111111111111111111111;
-    int64_t quadkey2 = expire_tiles::xy_to_quadkey(262143, 262143, 18);
+    uint64_t quadkey_expected = 0b111111111111111111111111111111111111;
+    uint64_t quadkey2 = expire_tiles::xy_to_quadkey(262143, 262143, 18);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 18);
     ASSERT_EQ(xy.x, 262143);
@@ -127,7 +127,7 @@ void test_xy_to_quadkey_z18()
 }
 
 void test_expire_simple_z1() {
-    int minzoom = 1;
+    uint32_t minzoom = 1;
     expire_tiles et(minzoom, 20000, defproj);
     tile_output_set set(minzoom);
 
@@ -149,7 +149,7 @@ void test_expire_simple_z1() {
 }
 
 void test_expire_simple_z3() {
-    int minzoom = 3;
+    uint32_t minzoom = 3;
     expire_tiles et(minzoom, 20000, defproj);
     tile_output_set set(minzoom);
 
@@ -171,7 +171,7 @@ void test_expire_simple_z3() {
 }
 
 void test_expire_simple_z18() {
-    int minzoom = 18;
+    uint32_t minzoom = 18;
     expire_tiles et(18, 20000, defproj);
     tile_output_set set(minzoom);
 
@@ -197,7 +197,7 @@ void test_expire_simple_z18() {
  */
 void test_expire_simple_z17_18()
 {
-    int minzoom = 17;
+    uint32_t minzoom = 17;
     expire_tiles et(18, 20000, defproj);
     tile_output_set set(minzoom);
 
@@ -232,7 +232,7 @@ void test_expire_simple_z17_18()
  */
 void test_expire_simple_z17_18_one_superior_tile()
 {
-    int minzoom = 17;
+    uint32_t minzoom = 17;
     expire_tiles et(18, 20000, defproj);
     tile_output_set set(minzoom);
 
@@ -253,20 +253,21 @@ void test_expire_simple_z17_18_one_superior_tile()
     ++itr;
 }
 
-std::set<xyz> generate_random(int zoom, size_t count) {
-  size_t num = 0;
-  std::set<xyz> set;
-  const int coord_mask = (1 << zoom) - 1;
+std::set<xyz> generate_random(uint32_t zoom, size_t count)
+{
+    size_t num = 0;
+    std::set<xyz> set;
+    const int coord_mask = (1 << zoom) - 1;
 
-  while (num < count) {
-    xyz item(zoom, rand() & coord_mask, rand() & coord_mask);
-    if (set.count(item) == 0) {
-      set.insert(item);
-      ++num;
+    while (num < count) {
+        xyz item(zoom, rand() & coord_mask, rand() & coord_mask);
+        if (set.count(item) == 0) {
+            set.insert(item);
+            ++num;
+        }
     }
-  }
 
-  return set;
+    return set;
 }
 
 void assert_tilesets_equal(const std::set<xyz> &a,
@@ -295,17 +296,17 @@ void expire_centroids(const std::set<xyz> &check_set,
 // tests that expiring a set of tile centroids means that
 // those tiles get expired.
 void test_expire_set() {
-  int zoom = 18;
-  for (int i = 0; i < 100; ++i) {
-    expire_tiles et(zoom, 20000, defproj);
-    tile_output_set set(zoom);
+    uint32_t zoom = 18;
+    for (int i = 0; i < 100; ++i) {
+        expire_tiles et(zoom, 20000, defproj);
+        tile_output_set set(zoom);
 
-    std::set<xyz> check_set = generate_random(zoom, 100);
-    expire_centroids(check_set, et);
+        std::set<xyz> check_set = generate_random(zoom, 100);
+        expire_centroids(check_set, et);
 
-    et.output_and_destroy(set, zoom);
+        et.output_and_destroy(set, zoom);
 
-    assert_tilesets_equal(set.m_tiles, check_set);
+        assert_tilesets_equal(set.m_tiles, check_set);
   }
 }
 
@@ -315,31 +316,31 @@ void test_expire_set() {
 // same as if the union of the sets of tiles had been
 // expired.
 void test_expire_merge() {
-  int zoom = 18;
+    uint32_t zoom = 18;
 
-  for (int i = 0; i < 100; ++i) {
-    expire_tiles et(zoom, 20000, defproj);
-    expire_tiles et1(zoom, 20000, defproj);
-    expire_tiles et2(zoom, 20000, defproj);
-    tile_output_set set(zoom);
+    for (int i = 0; i < 100; ++i) {
+        expire_tiles et(zoom, 20000, defproj);
+        expire_tiles et1(zoom, 20000, defproj);
+        expire_tiles et2(zoom, 20000, defproj);
+        tile_output_set set(zoom);
 
-    std::set<xyz> check_set1 = generate_random(zoom, 100);
-    expire_centroids(check_set1, et1);
+        std::set<xyz> check_set1 = generate_random(zoom, 100);
+        expire_centroids(check_set1, et1);
 
-    std::set<xyz> check_set2 = generate_random(zoom, 100);
-    expire_centroids(check_set2, et2);
+        std::set<xyz> check_set2 = generate_random(zoom, 100);
+        expire_centroids(check_set2, et2);
 
-    et.merge_and_destroy(et1);
-    et.merge_and_destroy(et2);
+        et.merge_and_destroy(et1);
+        et.merge_and_destroy(et2);
 
-    std::set<xyz> check_set;
-    std::set_union(check_set1.begin(), check_set1.end(),
-                   check_set2.begin(), check_set2.end(),
-                   std::inserter(check_set, check_set.end()));
+        std::set<xyz> check_set;
+        std::set_union(check_set1.begin(), check_set1.end(), check_set2.begin(),
+                       check_set2.end(),
+                       std::inserter(check_set, check_set.end()));
 
-    et.output_and_destroy(set, zoom);
+        et.output_and_destroy(set, zoom);
 
-    assert_tilesets_equal(set.m_tiles, check_set);
+        assert_tilesets_equal(set.m_tiles, check_set);
   }
 }
 
@@ -349,62 +350,62 @@ void test_expire_merge() {
 // skipped by the random tile set in the previous
 // test.
 void test_expire_merge_same() {
-  int zoom = 18;
+    uint32_t zoom = 18;
 
-  for (int i = 0; i < 100; ++i) {
-    expire_tiles et(zoom, 20000, defproj);
-    expire_tiles et1(zoom, 20000, defproj);
-    expire_tiles et2(zoom, 20000, defproj);
-    tile_output_set set(zoom);
+    for (int i = 0; i < 100; ++i) {
+        expire_tiles et(zoom, 20000, defproj);
+        expire_tiles et1(zoom, 20000, defproj);
+        expire_tiles et2(zoom, 20000, defproj);
+        tile_output_set set(zoom);
 
-    std::set<xyz> check_set = generate_random(zoom, 100);
-    expire_centroids(check_set, et1);
-    expire_centroids(check_set, et2);
+        std::set<xyz> check_set = generate_random(zoom, 100);
+        expire_centroids(check_set, et1);
+        expire_centroids(check_set, et2);
 
-    et.merge_and_destroy(et1);
-    et.merge_and_destroy(et2);
+        et.merge_and_destroy(et1);
+        et.merge_and_destroy(et2);
 
-    et.output_and_destroy(set, zoom);
+        et.output_and_destroy(set, zoom);
 
-    assert_tilesets_equal(set.m_tiles, check_set);
+        assert_tilesets_equal(set.m_tiles, check_set);
   }
 }
 
 // makes sure that we're testing the case where some
 // tiles are in both.
 void test_expire_merge_overlap() {
-  int zoom = 18;
+    uint32_t zoom = 18;
 
-  for (int i = 0; i < 100; ++i) {
-    expire_tiles et(zoom, 20000, defproj);
-    expire_tiles et1(zoom, 20000, defproj);
-    expire_tiles et2(zoom, 20000, defproj);
-    tile_output_set set(zoom);
+    for (int i = 0; i < 100; ++i) {
+        expire_tiles et(zoom, 20000, defproj);
+        expire_tiles et1(zoom, 20000, defproj);
+        expire_tiles et2(zoom, 20000, defproj);
+        tile_output_set set(zoom);
 
-    std::set<xyz> check_set1 = generate_random(zoom, 100);
-    expire_centroids(check_set1, et1);
+        std::set<xyz> check_set1 = generate_random(zoom, 100);
+        expire_centroids(check_set1, et1);
 
-    std::set<xyz> check_set2 = generate_random(zoom, 100);
-    expire_centroids(check_set2, et2);
+        std::set<xyz> check_set2 = generate_random(zoom, 100);
+        expire_centroids(check_set2, et2);
 
-    std::set<xyz> check_set3 = generate_random(zoom, 100);
-    expire_centroids(check_set3, et1);
-    expire_centroids(check_set3, et2);
+        std::set<xyz> check_set3 = generate_random(zoom, 100);
+        expire_centroids(check_set3, et1);
+        expire_centroids(check_set3, et2);
 
-    et.merge_and_destroy(et1);
-    et.merge_and_destroy(et2);
+        et.merge_and_destroy(et1);
+        et.merge_and_destroy(et2);
 
-    std::set<xyz> check_set;
-    std::set_union(check_set1.begin(), check_set1.end(),
-                   check_set2.begin(), check_set2.end(),
-                   std::inserter(check_set, check_set.end()));
-    std::set_union(check_set1.begin(), check_set1.end(),
-                   check_set3.begin(), check_set3.end(),
-                   std::inserter(check_set, check_set.end()));
+        std::set<xyz> check_set;
+        std::set_union(check_set1.begin(), check_set1.end(), check_set2.begin(),
+                       check_set2.end(),
+                       std::inserter(check_set, check_set.end()));
+        std::set_union(check_set1.begin(), check_set1.end(), check_set3.begin(),
+                       check_set3.end(),
+                       std::inserter(check_set, check_set.end()));
 
-    et.output_and_destroy(set, zoom);
+        et.output_and_destroy(set, zoom);
 
-    assert_tilesets_equal(set.m_tiles, check_set);
+        assert_tilesets_equal(set.m_tiles, check_set);
   }
 }
 
@@ -412,28 +413,28 @@ void test_expire_merge_overlap() {
 // large contiguous areas of tiles (i.e: ensure that we
 // handle the "complete" flag correctly).
 void test_expire_merge_complete() {
-  int zoom = 18;
+    uint32_t zoom = 18;
 
-  for (int i = 0; i < 100; ++i) {
-    expire_tiles et(zoom, 20000, defproj);
-    expire_tiles et0(zoom, 20000, defproj);
-    expire_tiles et1(zoom, 20000, defproj);
-    expire_tiles et2(zoom, 20000, defproj);
-    tile_output_set set(zoom);
-    tile_output_set set0(zoom);
+    for (int i = 0; i < 100; ++i) {
+        expire_tiles et(zoom, 20000, defproj);
+        expire_tiles et0(zoom, 20000, defproj);
+        expire_tiles et1(zoom, 20000, defproj);
+        expire_tiles et2(zoom, 20000, defproj);
+        tile_output_set set(zoom);
+        tile_output_set set0(zoom);
 
-    // et1&2 are two halves of et0's box
-    et0.from_bbox(-10000, -10000, 10000, 10000);
-    et1.from_bbox(-10000, -10000,     0, 10000);
-    et2.from_bbox(     0, -10000, 10000, 10000);
+        // et1&2 are two halves of et0's box
+        et0.from_bbox(-10000, -10000, 10000, 10000);
+        et1.from_bbox(-10000, -10000, 0, 10000);
+        et2.from_bbox(0, -10000, 10000, 10000);
 
-    et.merge_and_destroy(et1);
-    et.merge_and_destroy(et2);
+        et.merge_and_destroy(et1);
+        et.merge_and_destroy(et2);
 
-    et.output_and_destroy(set, zoom);
-    et0.output_and_destroy(set0, zoom);
+        et.output_and_destroy(set, zoom);
+        et0.output_and_destroy(set0, zoom);
 
-    assert_tilesets_equal(set.m_tiles, set0.m_tiles);
+        assert_tilesets_equal(set.m_tiles, set0.m_tiles);
   }
 }
 
