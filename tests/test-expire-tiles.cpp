@@ -192,6 +192,67 @@ void test_expire_simple_z18() {
     ++itr;
 }
 
+/**
+ * Test tile expiry on two zoom levels.
+ */
+void test_expire_simple_z17_18()
+{
+    int minzoom = 17;
+    expire_tiles et(18, 20000, defproj);
+    tile_output_set set(minzoom);
+
+    // dirty a smaller bbox this time, as at z18 the scale is
+    // pretty small.
+    et.from_bbox(-1, -1, 1, 1);
+    et.output_and_destroy(set, minzoom);
+
+    ASSERT_EQ(set.m_tiles.size(), 8);
+    std::set<xyz>::iterator itr = set.m_tiles.begin();
+    ASSERT_EQ(*itr, xyz(17, 65535, 65535));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(17, 65535, 65536));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(17, 65536, 65535));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(17, 65536, 65536));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131071, 131071));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131071, 131072));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131072, 131071));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131072, 131072));
+    ++itr;
+}
+
+/**
+ * Similar to test_expire_simple_z17_18 but now all z18 tiles are children
+ * of the same z17 tile.
+ */
+void test_expire_simple_z17_18_one_superior_tile()
+{
+    int minzoom = 17;
+    expire_tiles et(18, 20000, defproj);
+    tile_output_set set(minzoom);
+
+    et.from_bbox(-163, 140, -140, 164);
+    et.output_and_destroy(set, minzoom);
+
+    ASSERT_EQ(set.m_tiles.size(), 5);
+    std::set<xyz>::iterator itr = set.m_tiles.begin();
+    ASSERT_EQ(*itr, xyz(17, 65535, 65535));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131070, 131070));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131070, 131071));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131071, 131070));
+    ++itr;
+    ASSERT_EQ(*itr, xyz(18, 131071, 131071));
+    ++itr;
+}
+
 std::set<xyz> generate_random(int zoom, size_t count) {
   size_t num = 0;
   std::set<xyz> set;
@@ -389,6 +450,8 @@ int main(int argc, char *argv[])
     RUN_TEST(test_expire_simple_z1);
     RUN_TEST(test_expire_simple_z3);
     RUN_TEST(test_expire_simple_z18);
+    RUN_TEST(test_expire_simple_z17_18);
+    RUN_TEST(test_expire_simple_z17_18_one_superior_tile);
     RUN_TEST(test_expire_set);
     RUN_TEST(test_expire_merge);
     RUN_TEST(test_expire_merge_same);
