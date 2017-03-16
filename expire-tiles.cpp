@@ -65,6 +65,8 @@ expire_tiles::expire_tiles(uint32_t max, double bbox,
     if (maxzoom >= 0) {
         map_width = 1 << maxzoom;
         tile_width = EARTH_CIRCUMFERENCE / map_width;
+        last_tile_x = map_width + 1;
+        last_tile_y = map_width + 1;
     }
 }
 
@@ -96,7 +98,13 @@ xy_coord_t expire_tiles::quadkey_to_xy(uint64_t quadkey_coord, uint32_t zoom)
 
 void expire_tiles::expire_tile(uint32_t x, uint32_t y)
 {
-    m_dirty_tiles.insert(xy_to_quadkey(x, y, maxzoom));
+    // Only try to insert to tile into the set if the last inserted tile
+    // is different from this tile.
+    if (last_tile_x != x || last_tile_y != y) {
+        m_dirty_tiles.insert(xy_to_quadkey(x, y, maxzoom));
+        last_tile_x = x;
+        last_tile_y = y;
+    }
 }
 
 int expire_tiles::normalise_tile_x_coord(int x) {

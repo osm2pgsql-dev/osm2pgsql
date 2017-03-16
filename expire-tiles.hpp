@@ -86,26 +86,26 @@ struct expire_tiles
         /* Loop over all requested zoom levels (from maximum down to the minimum zoom level).
          * Tile IDs of the tiles enclosing this tile at lower zoom levels are calculated using
          * bit shifts.
-         */
-        for (uint32_t dz = 0; dz <= maxzoom - minzoom; dz++) {
-            // intialize last_quadkey with a value which is not expected to exist
-            uint64_t last_quadkey = (1ULL << maxzoom) + 1;
-            for (std::vector<uint64_t>::const_iterator it =
-                     tiles_maxzoom.cbegin();
-                 it != tiles_maxzoom.cend(); ++it) {
+         *
+         * last_quadkey is initialized with a value which is not expected to exist
+         * (larger than largest possible quadkey). */
+        uint64_t last_quadkey = 1ULL << (2 * maxzoom);
+        for (std::vector<uint64_t>::const_iterator it = tiles_maxzoom.cbegin();
+             it != tiles_maxzoom.cend(); ++it) {
+            for (uint32_t dz = 0; dz <= maxzoom - minzoom; dz++) {
                 // scale down to the current zoom level
                 uint64_t qt_current = *it >> (dz * 2);
                 /* If dz > 0, there are propably multiple elements whose quadkey
                  * is equal because they are all sub-tiles of the same tile at the current
                  * zoom level. We skip all of them after we have written the first sibling.
                  */
-                if (last_quadkey == qt_current) {
+                if (qt_current == last_quadkey >> (dz * 2)) {
                     continue;
                 }
-                last_quadkey = qt_current;
                 xy_coord_t xy = quadkey_to_xy(qt_current, maxzoom - dz);
                 output_writer.output_dirty_tile(xy.x, xy.y, maxzoom - dz);
             }
+            last_quadkey = *it;
         }
     }
 
@@ -158,6 +158,16 @@ private:
     uint32_t map_width;
     uint32_t maxzoom;
     std::shared_ptr<reprojection> projection;
+
+    /**
+     * x coordinate of the tile which has been added as last tile to the unordered set
+     */
+    uint32_t last_tile_x;
+
+    /**
+     * y coordinate of the tile which has been added as last tile to the unordered set
+     */
+    uint32_t last_tile_y;
 
     /**
      * manages which tiles have been marked as empty
