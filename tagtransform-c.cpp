@@ -210,6 +210,7 @@ bool c_tagtransform_t::filter_rel_member_tags(
     int *make_polygon, int *roads, export_list const &exlist,
     taglist_t &out_tags, bool allow_typeless)
 {
+    auto const &infos = exlist.get(osmium::item_type::way);
     //if it has a relation figure out what kind it is
     const std::string *type = rel_tags.get("type");
     bool is_route = false, is_boundary = false, is_multipolygon = false;
@@ -313,28 +314,29 @@ bool c_tagtransform_t::filter_rel_member_tags(
     } else if (is_multipolygon) {
         *make_polygon = 1;
 
-        /* Collect a list of polygon-like tags, these are used later to
-         identify if an inner rings looks like it should be rendered separately */
-        taglist_t poly_tags;
-        auto const &infos = exlist.get(osmium::item_type::way);
+        // Check if the relation has any polygon-like tags. In that case
+        // we have a new-style polygon.
+        bool newstyle_mp = false;
         for (const auto &tag : out_tags) {
             if (tag.key == "area") {
-                poly_tags.push_back(tag);
+                newstyle_mp = true;
             } else {
                 for (const auto &info : infos) {
                     if (info.name == tag.key) {
-                        if (info.flags & FLAG_POLYGON) {
-                            poly_tags.push_back(tag);
-                        }
+                        newstyle_mp = info.flags & FLAG_POLYGON;
                         break;
                     }
                 }
             }
+            if (newstyle_mp) {
+                break;
+            }
         }
 
-        /* Copy the tags from the outer way(s) if the relation is untagged (with
-         * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
-        if (poly_tags.empty()) {
+        // Old-style MP: copy the tags from the outer way(s). Only use tags
+        // that appear in all outer rings.
+        if (!newstyle_mp) {
+            taglist_t poly_tags;
             bool first_outerway = true;
             size_t i = 0;
             for (auto const &w : members.select<osmium::Way>()) {
@@ -393,7 +395,10 @@ bool c_tagtransform_t::filter_rel_member_tags(
             member_superseded[i] = 1;
             for (const auto &member_tag : w.tags()) {
                 auto const *v = out_tags.get(member_tag.key());
-                if (!v || *v != member_tag.value()) {
+                bool filt;
+                int flag;
+                if ((!v && check_key(infos, member_tag.key(), &filt, &flag, false))
+                     || (v && *v != member_tag.value())) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
                     if (strcmp(member_tag.key(), "z_order") &&
                         strcmp(member_tag.key(), "osm_user") &&
