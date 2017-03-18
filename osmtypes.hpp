@@ -170,8 +170,6 @@ private:
 
 };
 
-typedef std::vector<taglist_t> multitaglist_t;
-
 struct idlist_t : public std::vector<osmid_t> {
     idlist_t() {}
 

@@ -84,6 +84,55 @@ c_tagtransform_t::c_tagtransform_t(options_t const *options)
 {
 }
 
+bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
+                                 char const *k, bool *filter, int *flags,
+                                 bool strict)
+{
+    //go through the actual tags found on the item and keep the ones in the export list
+    size_t i = 0;
+    for (; i < infos.size(); i++) {
+        const taginfo &info = infos[i];
+        if (info.flags & FLAG_DELETE) {
+            if (wildMatch(info.name.c_str(), k)) {
+                return false;
+            }
+        } else if (strcmp(info.name.c_str(), k) == 0) {
+            *filter = false;
+            *flags |= info.flags;
+
+            return true;
+        }
+    }
+
+    // if we didn't find any tags that we wanted to export
+    // and we aren't strictly adhering to the list
+    if (!strict) {
+        if (m_options->hstore_mode != HSTORE_NONE) {
+            /* ... but if hstore_match_only is set then don't take this
+                 as a reason for keeping the object */
+            if (!m_options->hstore_match_only)
+                *filter = false;
+            /* with hstore, copy all tags... */
+            return true;
+        } else if (m_options->hstore_columns.size() > 0) {
+            /* does this column match any of the hstore column prefixes? */
+            size_t j = 0;
+            for (; j < m_options->hstore_columns.size(); ++j) {
+                if (boost::starts_with(k, m_options->hstore_columns[j])) {
+                    /* ... but if hstore_match_only is set then don't take this
+                         as a reason for keeping the object */
+                    if (!m_options->hstore_match_only) {
+                        *filter = false;
+                    }
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
                                    int *roads, export_list const &exlist,
                                    taglist_t &out_tags, bool strict)
@@ -126,47 +175,8 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         }
 
         //go through the actual tags found on the item and keep the ones in the export list
-        size_t i = 0;
-        for (; i < infos.size(); i++) {
-            const taginfo &info = infos[i];
-            if (info.flags & FLAG_DELETE) {
-                if (wildMatch(info.name.c_str(), k)) {
-                    break;
-                }
-            } else if (strcmp(info.name.c_str(), k) == 0) {
-                filter = false;
-                flags |= info.flags;
-
-                out_tags.emplace_back(k, v);
-                break;
-            }
-        }
-
-        // if we didn't find any tags that we wanted to export
-        // and we aren't strictly adhering to the list
-        if (i == infos.size() && !strict) {
-            if (m_options->hstore_mode != HSTORE_NONE) {
-                /* with hstore, copy all tags... */
-                out_tags.emplace_back(k, v);
-                /* ... but if hstore_match_only is set then don't take this
-                 as a reason for keeping the object */
-                if (!m_options->hstore_match_only)
-                    filter = false;
-            } else if (m_options->hstore_columns.size() > 0) {
-                /* does this column match any of the hstore column prefixes? */
-                size_t j = 0;
-                for (; j < m_options->hstore_columns.size(); ++j) {
-                    if (boost::starts_with(k, m_options->hstore_columns[j])) {
-                        out_tags.emplace_back(k, v);
-                        /* ... but if hstore_match_only is set then don't take this
-                         as a reason for keeping the object */
-                        if (!m_options->hstore_match_only) {
-                            filter = false;
-                        }
-                        break;
-                    }
-                }
-            }
+        if (check_key(infos, k, &filter, &flags, strict)) {
+            out_tags.emplace_back(k, v);
         }
     }
     if (m_options->extra_attributes && o.version() > 0) {
@@ -194,8 +204,8 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     return filter;
 }
 
-unsigned c_tagtransform_t::filter_rel_member_tags(
-    taglist_t const &rel_tags, multitaglist_t const &member_tags,
+bool c_tagtransform_t::filter_rel_member_tags(
+    taglist_t const &rel_tags, osmium::memory::Buffer const &members,
     rolelist_t const &member_roles, int *member_superseded, int *make_boundary,
     int *make_polygon, int *roads, export_list const &exlist,
     taglist_t &out_tags, bool allow_typeless)
@@ -211,9 +221,11 @@ unsigned c_tagtransform_t::filter_rel_member_tags(
             is_boundary = true;
         else if (*type == "multipolygon")
             is_multipolygon = true;
+        else if (!allow_typeless)
+            return true;
     } //you didnt have a type and it was required
     else if (!allow_typeless) {
-        return 1;
+        return true;
     }
 
     /* Clone tags from relation */
@@ -304,12 +316,11 @@ unsigned c_tagtransform_t::filter_rel_member_tags(
         /* Collect a list of polygon-like tags, these are used later to
          identify if an inner rings looks like it should be rendered separately */
         taglist_t poly_tags;
+        auto const &infos = exlist.get(osmium::item_type::way);
         for (const auto &tag : out_tags) {
             if (tag.key == "area") {
                 poly_tags.push_back(tag);
             } else {
-                const std::vector<taginfo> &infos =
-                    exlist.get(osmium::item_type::way);
                 for (const auto &info : infos) {
                     if (info.name == tag.key) {
                         if (info.flags & FLAG_POLYGON) {
@@ -324,90 +335,78 @@ unsigned c_tagtransform_t::filter_rel_member_tags(
         /* Copy the tags from the outer way(s) if the relation is untagged (with
          * respect to tags that influence its polygon nature. Tags like name or fixme should be fine*/
         if (poly_tags.empty()) {
-            int first_outerway = 1;
-            for (size_t i = 0; i < member_tags.size(); i++) {
+            bool first_outerway = true;
+            size_t i = 0;
+            for (auto const &w : members.select<osmium::Way>()) {
                 if (member_roles[i] && strcmp(member_roles[i], "inner") == 0)
                     continue;
 
                 /* insert all tags of the first outerway to the potential list of copied tags. */
                 if (first_outerway) {
-                    for (const auto &tag : member_tags[i]) {
-                        poly_tags.push_back(tag);
+                    for (auto const &tag : w.tags()) {
+                        poly_tags.emplace_back(tag.key(), tag.value());
                     }
+                    first_outerway = false;
                 } else {
                     /* Check if all of the tags in the list of potential tags are present on this way,
                        otherwise remove from the list of potential tags. Tags need to be present on
                        all outer ways to be copied over to the relation */
-                    taglist_t::iterator it = poly_tags.begin();
+                    auto it = poly_tags.begin();
                     while (it != poly_tags.end()) {
-                        if (!member_tags[i].contains(it->key))
+                        if (!w.tags().has_key(it->key.c_str()))
                             /* This tag is not present on all member outer ways, so don't copy it over to relation */
                             it = poly_tags.erase(it);
                         else
                             ++it;
                     }
                 }
-                first_outerway = 0;
+                ++i;
             }
-            /* Copy the list identified outer way tags over to the relation */
+            // Copy the list identified outer way tags over to the relation
+            // filtering for wanted tags on the way.
+            bool filter;
+            int flags;
             for (const auto &poly_tag : poly_tags) {
-                out_tags.push_dedupe(poly_tag);
+                if (check_key(infos, poly_tag.key.c_str(), &filter, &flags,
+                              false)) {
+                    out_tags.push_dedupe(poly_tag);
+                }
             }
 
-            /* We need to re-check and only keep polygon tags in the list of polytags */
-            // TODO what is that for? The list is cleared just below.
-            taglist_t::iterator q = poly_tags.begin();
-            const std::vector<taginfo> &infos =
-                exlist.get(osmium::item_type::way);
-            while (q != poly_tags.end()) {
-                bool contains_tag = false;
-                for (std::vector<taginfo>::const_iterator info = infos.begin();
-                     info != infos.end(); ++info) {
-                    if (info->name == q->key) {
-                        if (info->flags & FLAG_POLYGON) {
-                            contains_tag = true;
-                        }
-                        break;
-                    }
-                }
-
-                if (contains_tag)
-                    ++q;
-                else
-                    q = poly_tags.erase(q);
+            if (!(flags & FLAG_POLYGON)) {
+                out_tags.clear();
+                return true;
             }
         }
-    } else if (!allow_typeless) {
-        /* Unknown type, just exit */
-        out_tags.clear();
-        return 1;
     }
 
     if (out_tags.empty()) {
-        return 1;
+        return true;
     }
 
     /* If we are creating a multipolygon then we
      mark each member so that we can skip them during iterate_ways
      but only if the polygon-tags look the same as the outer ring */
     if (make_polygon) {
-        for (size_t i = 0; i < member_tags.size(); i++) {
+        size_t i = 0;
+        for (auto const &w : members.select<osmium::Way>()) {
             member_superseded[i] = 1;
-            for (const auto &member_tag : member_tags[i]) {
-                const std::string *v = out_tags.get(member_tag.key);
-                if (!v || *v != member_tag.value) {
+            for (const auto &member_tag : w.tags()) {
+                auto const *v = out_tags.get(member_tag.key());
+                if (!v || *v != member_tag.value()) {
                     /* z_order and osm_ are automatically generated tags, so ignore them */
-                    if ((member_tag.key != "z_order") &&
-                        (member_tag.key != "osm_user") &&
-                        (member_tag.key != "osm_version") &&
-                        (member_tag.key != "osm_uid") &&
-                        (member_tag.key != "osm_changeset") &&
-                        (member_tag.key != "osm_timestamp")) {
+                    if (strcmp(member_tag.key(), "z_order") &&
+                        strcmp(member_tag.key(), "osm_user") &&
+                        strcmp(member_tag.key(), "osm_version") &&
+                        strcmp(member_tag.key(), "osm_uid") &&
+                        strcmp(member_tag.key(), "osm_changeset") &&
+                        strcmp(member_tag.key(), "osm_timestamp")) {
                         member_superseded[i] = 0;
                         break;
                     }
                 }
             }
+            ++i;
         }
     }
 

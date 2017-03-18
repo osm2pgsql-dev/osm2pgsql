@@ -332,25 +332,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
     if (num_ways == 0)
         return 0;
 
-    multitaglist_t xtags(num_ways, taglist_t());
-
-    size_t i = 0;
-    for (auto const &w : buffer.select<osmium::Way>()) {
-        assert(i < num_ways);
-
-        //filter the tags on this member because we got it from the middle
-        //and since the middle is no longer tied to the output it no longer
-        //shares any kind of tag transform and therefore all original tags
-        //will come back and need to be filtered by individual outputs before
-        //using these ways
-        m_tagtransform->filter_tags(w, nullptr, nullptr, *m_export_list.get(),
-                                    xtags[i]);
-        //TODO: if the filter says that this member is now not interesting we
-        //should decrement the count and remove his nodes and tags etc. for
-        //now we'll just keep him with no tags so he will get filtered later
-        ++i;
-  }
-
   int roads = 0;
   int make_polygon = 0;
   int make_boundary = 0;
@@ -360,7 +341,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
   // If it's a route relation make_boundary and make_polygon will be false
   // otherwise one or the other will be true.
   if (m_tagtransform->filter_rel_member_tags(
-          prefiltered_tags, xtags, xrole, &(members_superseded[0]),
+          prefiltered_tags, buffer, xrole, &(members_superseded[0]),
           &make_boundary, &make_polygon, &roads, *m_export_list.get(),
           outtags)) {
       return 0;
