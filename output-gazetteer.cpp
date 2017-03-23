@@ -15,12 +15,12 @@
 #include <iostream>
 #include <memory>
 
-enum : int { MAX_ADMINLEVEL = 100 };
+enum : int { MAX_ADMINLEVEL = 15 };
 
 void place_tag_processor::clear()
 {
     // set members to sane defaults
-    admin_level = ADMINLEVEL_NONE;
+    admin_level = MAX_ADMINLEVEL;
 
     places.clear();
     extratags.clear();
@@ -214,8 +214,8 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
             address.emplace(k, v);
         } else if (strcmp(k, "admin_level") == 0) {
             admin_level = atoi(v);
-            if (admin_level <= 0 || admin_level > 100)
-                admin_level = 100;
+            if (admin_level <= 0 || admin_level > MAX_ADMINLEVEL)
+                admin_level = MAX_ADMINLEVEL;
         } else if (strcmp(k, "tracktype") == 0 ||
                    strcmp(k, "traffic_calming") == 0 ||
                    strcmp(k, "service") == 0 ||
