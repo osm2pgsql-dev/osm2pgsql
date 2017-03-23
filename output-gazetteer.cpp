@@ -15,17 +15,12 @@
 #include <iostream>
 #include <memory>
 
-#define ADMINLEVEL_NONE 100
+enum : int { MAX_ADMINLEVEL = 100 };
 
 void place_tag_processor::clear()
 {
     // set members to sane defaults
     admin_level = ADMINLEVEL_NONE;
-    countrycode = 0;
-    housenumber.assign("\\N");
-    street = 0;
-    addr_place = 0;
-    postcode = 0;
 
     places.clear();
     extratags.clear();
@@ -64,9 +59,6 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
     osmium::Tag const *landuse = 0;
     bool isnamed = false;
     bool isinterpolation = false;
-    char const *house_nr = 0;
-    char const *conscr_nr = 0;
-    char const *street_nr = 0;
 
     clear();
 
@@ -186,42 +178,40 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
             place = &item;
         } else if (strcmp(k, "junction") == 0) {
             junction = &item;
-        } else if (strcmp(k, "addr:interpolation") == 0) {
-            housenumber.clear();
-            escape(v, housenumber);
-            isinterpolation = true;
-        } else if (strcmp(k, "addr:housenumber") == 0) {
-            house_nr = v;
-            placehouse = true;
-        } else if (strcmp(k, "addr:conscriptionnumber") == 0) {
-            conscr_nr = v;
-            placehouse = true;
-        } else if (strcmp(k, "addr:streetnumber") == 0) {
-            street_nr = v;
-            placehouse = true;
-        } else if (strcmp(k, "addr:street") == 0) {
-            street = v;
-        } else if (strcmp(k, "addr:place") == 0) {
-            addr_place = v;
         } else if (strcmp(k, "postal_code") == 0 ||
                    strcmp(k, "postcode") == 0 ||
                    strcmp(k, "addr:postcode") == 0 ||
                    strcmp(k, "tiger:zip_left") == 0 ||
                    strcmp(k, "tiger:zip_right") == 0) {
-            if (!postcode)
-                postcode = v;
+            if (address.find("postcode") == address.end()) {
+                address.emplace("postcode", v);
+            }
         } else if (strcmp(k, "country_code") == 0 ||
                    strcmp(k, "ISO3166-1") == 0 ||
                    strcmp(k, "is_in:country_code") == 0 ||
+                   strcmp(k, "is_in:country") == 0 ||
                    strcmp(k, "addr:country") == 0 ||
                    strcmp(k, "addr:country_code") == 0) {
-            if (strlen(v) == 2)
-                countrycode = v;
-        } else if (boost::starts_with(k, "addr:") ||
-                   strcmp(k, "is_in") == 0 ||
-                   boost::starts_with(k, "is_in:") ||
+            if (strlen(v) == 2 && address.find("country") == address.end()) {
+                address.emplace("country", v);
+            }
+        } else if (boost::starts_with(k, "addr:")) {
+            if (strcmp(k, "addr:interpolation") == 0) {
+                isinterpolation = true;
+            }
+            if (strcmp(k, "addr:housenumber") == 0 ||
+                strcmp(k, "addr:conscriptionnumber") == 0 ||
+                strcmp(k, "addr:streetnumber") == 0) {
+                placehouse = true;
+            }
+            address.emplace(k + 5, v);
+        } else if (boost::starts_with(k, "is_in:")) {
+            if (address.find(k + 6) == address.end()) {
+                address.emplace(k + 6, v);
+            }
+        } else if (strcmp(k, "is_in") == 0 ||
                    strcmp(k, "tiger:county") == 0) {
-            address.push_back(&item);
+            address.emplace(k, v);
         } else if (strcmp(k, "admin_level") == 0) {
             admin_level = atoi(v);
             if (admin_level <= 0 || admin_level > 100)
@@ -331,34 +321,14 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
     }
 
     if (places.empty()) {
-        if (placebuilding && (!names.empty() || placehouse || postcode)) {
-            places.emplace_back("building", "yes");
-        } else if (placehouse) {
+        if (placehouse) {
             places.emplace_back("place", "house");
-        } else if (postcode) {
+        } else if (address.find("postcode") != address.end()) {
             places.emplace_back("place", "postcode");
+        } else if (placebuilding && !names.empty()) {
+            places.emplace_back("building", "yes");
         }
     }
-
-    // housenumbers
-    if (!isinterpolation) {
-        if (street_nr && conscr_nr) {
-            housenumber.clear();
-            escape(conscr_nr, housenumber);
-            housenumber.append("/");
-            escape(street_nr, housenumber);
-        } else if (conscr_nr) {
-            housenumber.clear();
-            escape(conscr_nr, housenumber);
-        } else if (street_nr) {
-            housenumber.clear();
-            escape(street_nr, housenumber);
-        } else if (house_nr) {
-            housenumber.clear();
-            escape(house_nr, housenumber);
-        }
-    }
-
 }
 
 void place_tag_processor::copy_out(osmium::OSMObject const &o,
@@ -410,60 +380,50 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
                 escape_array_record(entry->value(), buffer);
                 buffer += "\"";
             }
-            buffer += '\t';
+            if (first)
+                buffer += "\\N\t";
+            else
+                buffer += '\t';
         } else
             buffer += "\\N\t";
         // admin_level
         buffer += (single_fmt % admin_level).str();
-        // house number
-        buffer += housenumber;
-        buffer += '\t';
-        // street
-        copy_opt_string(street, buffer);
-        // addr_place
-        copy_opt_string(addr_place, buffer);
-        // isin
-        if (!address.empty()) {
-            for (const auto entry: address) {
-                if (strcmp(entry->key(), "tiger:county") == 0) {
-                    auto *end = strchr(entry->value(), ',');
+        // address
+        if (address.empty()) {
+            buffer += "\\N\t";
+        } else {
+            for (auto const &a : address) {
+                buffer += "\"";
+                escape_array_record(a.first, buffer);
+                buffer += "\"=>\"";
+                if (a.first == "tiger:county") {
+                    auto *end = strchr(a.second, ',');
                     if (end) {
-                        escape(std::string(entry->value(), (size_t) (end - entry->value())),
-                               buffer);
+                        size_t len = (size_t) (end - a.second);
+                        escape_array_record(std::string(a.second, len), buffer);
                     } else {
-                        escape(entry->value(), buffer);
+                        escape_array_record(a.second, buffer);
                     }
                     buffer += " county";
                 } else {
-                    escape(entry->value(), buffer);
+                    escape_array_record(a.second, buffer);
                 }
-                buffer += ',';
+                buffer += "\",";
             }
             buffer[buffer.length() - 1] = '\t';
-        } else
-            buffer += "\\N\t";
-        // postcode
-        copy_opt_string(postcode, buffer);
-        // country code
-        copy_opt_string(countrycode, buffer);
+        } 
         // extra tags
         if (extratags.empty()) {
             buffer += "\\N\t";
         } else {
-            bool first = true;
             for (const auto entry: extratags) {
-                if (first)
-                    first = false;
-                else
-                    buffer += ',';
-
                 buffer += "\"";
                 escape_array_record(entry->key(), buffer);
                 buffer += "\"=>\"";
                 escape_array_record(entry->value(), buffer);
-                buffer += "\"";
+                buffer += "\",";
             }
-            buffer += "\t";
+            buffer[buffer.length() - 1] = '\t';
         }
         // add the geometry - encoding it to hex along the way
         ewkb::writer_t::write_as_hex(buffer, geom);
@@ -605,12 +565,7 @@ int output_gazetteer_t::start()
             "  type TEXT NOT NULL,"
             "  name HSTORE,"
             "  admin_level INTEGER,"
-            "  housenumber TEXT,"
-            "  street TEXT,"
-            "  addr_place TEXT,"
-            "  isin TEXT,"
-            "  postcode TEXT,"
-            "  country_code VARCHAR(2),"
+            "  address HSTORE,"
             "  extratags HSTORE," +
             (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid)
                 .str() +
