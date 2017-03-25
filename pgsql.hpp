@@ -11,10 +11,23 @@
 #include <libpq-fe.h>
 #include <memory>
 
-PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int nParams, const char *const * paramValues, const ExecStatusType expect);
+struct pg_result_deleter_t
+{
+    void operator()(PGresult *p) const { PQclear(p); }
+};
+
+typedef std::unique_ptr<PGresult, pg_result_deleter_t> pg_result_t;
+
+pg_result_t pgsql_execPrepared(PGconn *sql_conn, const char *stmtName,
+                               int nParams, const char *const *paramValues,
+                               ExecStatusType expect);
 void pgsql_CopyData(const char *context, PGconn *sql_conn, std::string const &sql);
-std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql);
-std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql);
+
+pg_result_t pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect,
+                              std::string const &sql);
+pg_result_t pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect,
+                              const char *sql);
+
 int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)
 #ifndef _MSC_VER
  __attribute__ ((format (printf, 3, 4)))

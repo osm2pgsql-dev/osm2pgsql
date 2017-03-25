@@ -36,15 +36,6 @@ class table_t
 
         std::string const& get_name();
 
-        struct pg_result_closer
-        {
-            void operator() (PGresult* result)
-            {
-                PQclear(result);
-            }
-
-        };
-
         //interface from retrieving well known binary geometry from the table
         class wkb_reader
         {
@@ -66,11 +57,12 @@ class table_t
                     m_current = 0;
                 }
             private:
-                wkb_reader(PGresult* result)
-                : m_result(result), m_count(PQntuples(result)), m_current(0)
+                wkb_reader(pg_result_t &&result)
+                : m_result(std::move(result)), m_count(PQntuples(result.get())),
+                  m_current(0)
                 {}
 
-                std::unique_ptr<PGresult, pg_result_closer> m_result;
+                pg_result_t m_result;
                 int m_count;
                 int m_current;
         };
