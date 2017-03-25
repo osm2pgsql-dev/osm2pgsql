@@ -321,12 +321,13 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
     }
 
     if (places.empty()) {
-        if (placehouse) {
-            places.emplace_back("place", "house");
-        } else if (address.find("postcode") != address.end()) {
-            places.emplace_back("place", "postcode");
-        } else if (placebuilding && !names.empty()) {
+        bool postcode = address.find("postcode") != address.end();
+        if (placebuilding && (!names.empty() || placehouse || postcode)) {
             places.emplace_back("building", "yes");
+        } else if (placehouse) {
+            places.emplace_back("place", "house");
+        } else if (postcode) {
+            places.emplace_back("place", "postcode");
         }
     }
 }
