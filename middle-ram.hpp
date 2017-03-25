@@ -75,7 +75,7 @@ public:
     void clear()
     {
         for (auto &ele : arr) {
-            ele.release();
+            ele.reset();
         }
     }
 };
