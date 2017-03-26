@@ -23,24 +23,23 @@ void escape(const std::string &src, std::string &dst)
     }
 }
 
-
-std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const std::string& sql)
+pg_result_t pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect,
+                              const std::string &sql)
 {
     return pgsql_exec_simple(sql_conn, expect, sql.c_str());
 }
 
-std::shared_ptr<PGresult> pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect, const char *sql)
+pg_result_t pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect,
+                              const char *sql)
 {
-    PGresult* res;
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "Executing: %s\n", sql );
 #endif
-    res = PQexec(sql_conn, sql);
-    if (PQresultStatus(res) != expect) {
-        PQclear(res);
+    pg_result_t res(PQexec(sql_conn, sql));
+    if (PQresultStatus(res.get()) != expect) {
         throw std::runtime_error((boost::format("%1% failed: %2%\n") % sql % PQerrorMessage(sql_conn)).str());
     }
-    return std::shared_ptr<PGresult>(res, &PQclear);
+    return res;
 }
 
 int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, ...)
@@ -80,15 +79,13 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "Executing: %s\n", sql );
 #endif
-    PGresult* res = PQexec(sql_conn, sql);
-    if (PQresultStatus(res) != expect) {
+    pg_result_t res(PQexec(sql_conn, sql));
+    if (PQresultStatus(res.get()) != expect) {
         std::string err_msg = (boost::format("%1% failed: %2%") % sql % PQerrorMessage(sql_conn)).str();
         free(sql);
-        PQclear(res);
         throw std::runtime_error(err_msg);
     }
     free(sql);
-    PQclear(res);
     return 0;
 }
 
@@ -112,16 +109,22 @@ void pgsql_CopyData(const char *context, PGconn *sql_conn, std::string const &sq
     }
 }
 
-PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int nParams, const char *const * paramValues, const ExecStatusType expect)
+pg_result_t pgsql_execPrepared(PGconn *sql_conn, const char *stmtName,
+                               const int nParams,
+                               const char *const *paramValues,
+                               const ExecStatusType expect)
 {
 #ifdef DEBUG_PGSQL
     fprintf( stderr, "ExecPrepared: %s\n", stmtName );
 #endif
     //run the prepared statement
-    PGresult *res = PQexecPrepared(sql_conn, stmtName, nParams, paramValues, nullptr, nullptr, 0);
-    if(PQresultStatus(res) != expect)
-    {
-        std::string message = (boost::format("%1% failed: %2%(%3%)\n") % stmtName % PQerrorMessage(sql_conn) % PQresultStatus(res)).str();
+    pg_result_t res(PQexecPrepared(sql_conn, stmtName, nParams, paramValues,
+                                   nullptr, nullptr, 0));
+    if (PQresultStatus(res.get()) != expect) {
+        std::string message =
+            (boost::format("%1% failed: %2%(%3%)\n") % stmtName %
+             PQerrorMessage(sql_conn) % PQresultStatus(res.get()))
+                .str();
         if(nParams)
         {
              message += "Arguments were: ";
@@ -131,16 +134,8 @@ PGresult *pgsql_execPrepared( PGconn *sql_conn, const char *stmtName, const int 
                 message += ", ";
             }
         }
-        PQclear(res);
         throw std::runtime_error(message);
     }
 
-    //TODO: this seems a bit strange
-    //if you decided you wanted to expect something other than this you didnt want to use the result?
-    if( expect != PGRES_TUPLES_OK )
-    {
-        PQclear(res);
-        res = nullptr;
-    }
     return res;
 }

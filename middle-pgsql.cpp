@@ -171,13 +171,11 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
             util::exit_nicely();
         }
 
-        PGresult *res = PQgetResult(sql_conn);
-        if (PQresultStatus(res) != PGRES_COMMAND_OK) {
+        pg_result_t res(PQgetResult(sql_conn));
+        if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
             fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
-            PQclear(res);
             util::exit_nicely();
         }
-        PQclear(res);
         table->copyMode = 0;
     }
     return 0;
@@ -319,15 +317,17 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 
     char const *paramValues[1];
     paramValues[0] = buffer.c_str();
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_node_list", 1,
-                                       paramValues, PGRES_TUPLES_OK);
-    auto countPG = PQntuples(res);
+    auto res = pgsql_execPrepared(sql_conn, "get_node_list", 1, paramValues,
+                                  PGRES_TUPLES_OK);
+    auto countPG = PQntuples(res.get());
 
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < countPG; ++i) {
-        locs.emplace(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10),
-                     osmium::Location((int)strtol(PQgetvalue(res, i, 2), nullptr, 10),
-                                      (int)strtol(PQgetvalue(res, i, 1), nullptr, 10)));
+        locs.emplace(
+            strtoosmid(PQgetvalue(res.get(), i, 0), nullptr, 10),
+            osmium::Location(
+                (int)strtol(PQgetvalue(res.get(), i, 2), nullptr, 10),
+                (int)strtol(PQgetvalue(res.get(), i, 1), nullptr, 10)));
     }
 
     for (auto &n : *nodes) {
@@ -398,24 +398,21 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
 
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
-    PGresult* res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_node", 1, paramValues, PGRES_TUPLES_OK );
-    for(int i = 0; i < PQntuples(res); ++i)
-    {
+    auto res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_node", 1,
+                                  paramValues, PGRES_TUPLES_OK);
+    for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
         ways_pending_tracker->mark(marked);
     }
-    PQclear(res);
 
     //do the rels too
     res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels_by_node", 1, paramValues, PGRES_TUPLES_OK );
-    for(int i = 0; i < PQntuples(res); ++i)
-    {
+    for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
-    PQclear(res);
 }
 
 void middle_pgsql_t::ways_set(osmium::Way const &way)
@@ -472,10 +469,10 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
 
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues, PGRES_TUPLES_OK);
+    auto res = pgsql_execPrepared(sql_conn, "get_way", 1, paramValues,
+                                  PGRES_TUPLES_OK);
 
-    if (PQntuples(res) != 1) {
-        PQclear(res);
+    if (PQntuples(res.get()) != 1) {
         return false;
     }
 
@@ -483,11 +480,10 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
         osmium::builder::WayBuilder builder(buffer);
         builder.set_id(id);
 
-        pgsql_parse_nodes(PQgetvalue(res, 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
+        pgsql_parse_nodes(PQgetvalue(res.get(), 0, 0), buffer, builder);
+        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
     }
 
-    PQclear(res);
     buffer.commit();
 
     return true;
@@ -520,13 +516,15 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     PGconn *sql_conn = way_table->sql_conn;
 
     paramValues[0] = tmp2.c_str();
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues, PGRES_TUPLES_OK);
-    int countPG = PQntuples(res);
+    auto res = pgsql_execPrepared(sql_conn, "get_way_list", 1, paramValues,
+                                  PGRES_TUPLES_OK);
+    int countPG = PQntuples(res.get());
 
     idlist_t wayidspg;
 
     for (int i = 0; i < countPG; i++) {
-        wayidspg.push_back(strtoosmid(PQgetvalue(res, i, 0), nullptr, 10));
+        wayidspg.push_back(
+            strtoosmid(PQgetvalue(res.get(), i, 0), nullptr, 10));
     }
 
     // Match the list of ways coming from postgres in a different order
@@ -542,8 +540,10 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                     osmium::builder::WayBuilder builder(buffer);
                     builder.set_id(m.ref());
 
-                    pgsql_parse_nodes(PQgetvalue(res, j, 1), buffer, builder);
-                    pgsql_parse_tags(PQgetvalue(res, j, 2), buffer, builder);
+                    pgsql_parse_nodes(PQgetvalue(res.get(), j, 1), buffer,
+                                      builder);
+                    pgsql_parse_tags(PQgetvalue(res.get(), j, 2), buffer,
+                                     builder);
                 }
 
                 buffer.commit();
@@ -555,8 +555,6 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
             }
         }
     }
-
-    PQclear(res);
 
     return outres;
 }
@@ -605,14 +603,13 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
 
     //keep track of whatever rels this way intersects
     //TODO: dont need to stop the copy above since we are only reading?
-    PGresult* res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels_by_way", 1, paramValues, PGRES_TUPLES_OK );
-    for(int i = 0; i < PQntuples(res); ++i)
-    {
+    auto res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels_by_way", 1,
+                                  paramValues, PGRES_TUPLES_OK);
+    for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
-    PQclear(res);
 }
 
 void middle_pgsql_t::relations_set(osmium::Relation const &rel)
@@ -705,11 +702,11 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
 
-    PGresult *res = pgsql_execPrepared(sql_conn, "get_rel", 1, paramValues, PGRES_TUPLES_OK);
+    auto res = pgsql_execPrepared(sql_conn, "get_rel", 1, paramValues,
+                                  PGRES_TUPLES_OK);
     // Fields are: members, tags, member_count */
 
-    if (PQntuples(res) != 1) {
-        PQclear(res);
+    if (PQntuples(res.get()) != 1) {
         return false;
     }
 
@@ -717,11 +714,10 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
         osmium::builder::RelationBuilder builder(buffer);
         builder.set_id(id);
 
-        pgsql_parse_members(PQgetvalue(res, 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res, 0, 1), buffer, builder);
+        pgsql_parse_members(PQgetvalue(res.get(), 0, 0), buffer, builder);
+        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
     }
 
-    PQclear(res);
     buffer.commit();
 
     return true;
@@ -741,14 +737,13 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
 
     //keep track of whatever ways this relation interesects
     //TODO: dont need to stop the copy above since we are only reading?
-    PGresult* res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_rel", 1, paramValues, PGRES_TUPLES_OK );
-    for(int i = 0; i < PQntuples(res); ++i)
-    {
+    auto res = pgsql_execPrepared(way_table->sql_conn, "mark_ways_by_rel", 1,
+                                  paramValues, PGRES_TUPLES_OK);
+    for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
         ways_pending_tracker->mark(marked);
     }
-    PQclear(res);
 }
 
 void middle_pgsql_t::iterate_relations(pending_processor& pf)
@@ -782,14 +777,13 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
     //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
-    PGresult* res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels", 1, paramValues, PGRES_TUPLES_OK );
-    for(int i = 0; i < PQntuples(res); ++i)
-    {
+    auto res = pgsql_execPrepared(rel_table->sql_conn, "mark_rels", 1,
+                                  paramValues, PGRES_TUPLES_OK);
+    for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res, i, 0), &end, 10);
+        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
-    PQclear(res);
 }
 
 idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
@@ -802,15 +796,14 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     sprintf(buffer, "%" PRIdOSMID, way_id);
     paramValues[0] = buffer;
 
-    PGresult *result = pgsql_execPrepared(rel_table->sql_conn, "rels_using_way",
-                                          1, paramValues, PGRES_TUPLES_OK );
-    const int ntuples = PQntuples(result);
+    auto result = pgsql_execPrepared(rel_table->sql_conn, "rels_using_way", 1,
+                                     paramValues, PGRES_TUPLES_OK);
+    const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
     rel_ids.resize((size_t) ntuples);
     for (int i = 0; i < ntuples; ++i) {
-        rel_ids[i] = strtoosmid(PQgetvalue(result, i, 0), nullptr, 10);
+        rel_ids[i] = strtoosmid(PQgetvalue(result.get(), i, 0), nullptr, 10);
     }
-    PQclear(result);
 
     return rel_ids;
 }

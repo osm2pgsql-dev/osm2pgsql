@@ -161,7 +161,9 @@ void table_t::start()
     }//appending
     else {
         //check the columns against those in the existing table
-        std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
+        auto res =
+            pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK,
+                              (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
         for (auto const &column :  columns) {
             if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
 #if 0
@@ -258,7 +260,6 @@ void table_t::stop()
 
 void table_t::stop_copy()
 {
-    PGresult* res;
     int stop;
 
     //we werent copying anyway
@@ -277,13 +278,10 @@ void table_t::stop_copy()
        throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
 
     //get the result
-    res = PQgetResult(sql_conn);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK)
-    {
-        PQclear(res);
+    pg_result_t res(PQgetResult(sql_conn));
+    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
     }
-    PQclear(res);
     copyMode = false;
 }
 
@@ -515,6 +513,8 @@ table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 
     //the prepared statement get_wkb will behave differently depending on the sql_conn
     //each table has its own sql_connection with the get_way referring to the appropriate table
-    PGresult* res = pgsql_execPrepared(sql_conn, "get_wkb", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    return wkb_reader(res);
+    auto res =
+        pgsql_execPrepared(sql_conn, "get_wkb", 1,
+                           (const char *const *)paramValues, PGRES_TUPLES_OK);
+    return wkb_reader(std::move(res));
 }

@@ -491,16 +491,11 @@ void output_gazetteer_t::stop_copy(void)
     }
 
     /* Check the result */
-    PGresult *res = PQgetResult(Connection);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK)
-    {
+    pg_result_t res(PQgetResult(Connection));
+    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
-        PQclear(res);
         util::exit_nicely();
     }
-
-    /* Discard the result */
-    PQclear(res);
 
     /* We no longer have an active copy */
     copy_active = false;
@@ -514,18 +509,17 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id) {
     char const *paramValues[2];
     paramValues[0] = tmp2;
     paramValues[1] = (single_fmt % osm_id).str().c_str();
-    PGresult *res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2,
-                                       paramValues, PGRES_TUPLES_OK);
+    auto res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2,
+                                  paramValues, PGRES_TUPLES_OK);
 
-    int sz = PQntuples(res);
+    int sz = PQntuples(res.get());
     if (sz > 0 && !places.has_data()) {
-        PQclear(res);
         /* unconditional delete of all places */
         delete_place(osm_type, osm_id);
     } else {
         std::string clslist;
         for (int i = 0; i < sz; i++) {
-            std::string cls(PQgetvalue(res, i, 0));
+            std::string cls(PQgetvalue(res.get(), i, 0));
             if (!places.has_place(cls)) {
                 clslist.reserve(clslist.length() + cls.length() + 3);
                 if (!clslist.empty())
@@ -536,7 +530,6 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id) {
             }
         }
 
-        PQclear(res);
 
         if (!clslist.empty()) {
            /* Stop any active copy */
