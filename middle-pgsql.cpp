@@ -75,10 +75,11 @@ namespace {
 // Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto( const char *src, char *dst )
 {
+  while (*src == ' ') src++;
   int quoted = (*src == '"');
   if( quoted ) src++;
 
-  while( quoted ? (*src != '"') : (*src != ',' && *src != '}') )
+  while( quoted ? (*src != '"') : (*src != ',' && *src != '}' && *src!=':' ) )
   {
     if( *src == '\\' )
     {
@@ -223,7 +224,7 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs,
     for (auto const &it : obj.tags()) {
         copy_buffer += "\"";
         buffer_store_string(it.key(), escape);
-        copy_buffer += "\",\"";
+        copy_buffer += "\":\"";
         buffer_store_string(it.value(), escape);
         copy_buffer += "\",";
     }
@@ -233,7 +234,7 @@ void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs,
         for (auto const &it : extra) {
             copy_buffer += "\"";
             copy_buffer += it.key;
-            copy_buffer += "\",\"";
+            copy_buffer += "\":\"";
             buffer_store_string(it.value.c_str(), escape);
             copy_buffer += "\",";
         }
@@ -509,7 +510,7 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
         return 0; // no ways found
     }
     // replace last , with } to complete list of ids
-    tmp2[tmp2.length() - 1] = '}'; 
+    tmp2[tmp2.length() - 1] = '}';
 
     pgsql_endCopy(way_table);
 
@@ -1109,9 +1110,9 @@ middle_pgsql_t::middle_pgsql_t()
         /*table t_way,*/
             /*name*/ "%p_ways",
            /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
+          /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags jsonb) {TABLESPACE %t};\n",
     /*create_index*/ nullptr,
-         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
+         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], jsonb) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
@@ -1128,9 +1129,9 @@ middle_pgsql_t::middle_pgsql_t()
         /*table = t_rel,*/
             /*name*/ "%p_rels",
            /*start*/ "BEGIN;\n",
-          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
+          /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags jsonb) {TABLESPACE %t};\n",
     /*create_index*/ nullptr,
-         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
+         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], jsonb) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
 /*prepare_intarray*/
