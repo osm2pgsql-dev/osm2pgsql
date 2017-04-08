@@ -370,10 +370,11 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
                 if (!shop && strcmp(entry->key(), "operator") == 0)
                     continue;
 
-                if (first)
+                if (first) {
                     first = false;
-                else
+                } else {
                     buffer += ',';
+                }
 
                 buffer += "\"";
                 escape_array_record(entry->key(), buffer);
@@ -381,10 +382,8 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
                 escape_array_record(entry->value(), buffer);
                 buffer += "\"";
             }
-            if (first)
-                buffer += "\\N\t";
-            else
-                buffer += '\t';
+
+            buffer += first ? "\\N\t" : "\t";
         } else
             buffer += "\\N\t";
         // admin_level
