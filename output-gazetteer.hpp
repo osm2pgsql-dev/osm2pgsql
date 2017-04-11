@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
@@ -114,13 +116,8 @@ private:
     std::vector<tag_t> places;
     std::vector<osmium::Tag const *> names;
     std::vector<osmium::Tag const *> extratags;
-    std::vector<osmium::Tag const *> address;
+    std::unordered_map<std::string, char const *> address;
     int admin_level;
-    char const *countrycode;
-    std::string housenumber;
-    char const *street;
-    char const *addr_place;
-    char const *postcode;
 
     boost::format single_fmt;
 };
@@ -229,7 +226,9 @@ private:
     {
         if (!copy_active)
         {
-            pgsql_exec(Connection, PGRES_COPY_IN, "COPY place (osm_type, osm_id, class, type, name, admin_level, housenumber, street, addr_place, isin, postcode, country_code, extratags, geometry) FROM STDIN");
+            pgsql_exec(Connection, PGRES_COPY_IN,
+                       "COPY place (osm_type, osm_id, class, type, name, "
+                       "admin_level, address, extratags, geometry) FROM STDIN");
             copy_active = true;
         }
 
