@@ -107,14 +107,13 @@ namespace osmium {
              * contains no equal sign, the whole string is the key and it will
              * be set to "true".
              */
-            void set(std::string data) {
+            void set(const std::string& data) {
                 const size_t pos = data.find_first_of('=');
                 if (pos == std::string::npos) {
                     m_options[data] = "true";
                 } else {
                     std::string value = data.substr(pos+1);
-                    data.erase(pos);
-                    set(data, value);
+                    set(data.substr(0, pos), value);
                 }
             }
 

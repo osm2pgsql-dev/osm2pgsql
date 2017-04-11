@@ -84,19 +84,38 @@ namespace osmium {
         }
 
         /**
-         * Sort objects according to the given order functor.
+         * Sort objects according to the specified order functor.
          */
         template <typename TCompare>
         void sort(TCompare&& compare) {
             std::sort(m_objects.begin(), m_objects.end(), std::forward<TCompare>(compare));
         }
 
-        /// Is the collection empty?
+        /**
+         * Make objects unique according to the specified equality functor.
+         *
+         * Complexity: Linear in the number of items.
+         */
+        template <typename TEqual>
+        void unique(TEqual&& equal) {
+            const auto last = std::unique(m_objects.begin(), m_objects.end(), std::forward<TEqual>(equal));
+            m_objects.erase(last, m_objects.end());
+        }
+
+        /**
+         * Is the collection empty?
+         *
+         * Complexity: Constant.
+         */
         bool empty() const noexcept {
             return m_objects.empty();
         }
 
-        /// Return size of the collection.
+        /**
+         * Return size of the collection.
+         *
+         * Complexity: Constant.
+         */
         size_t size() const noexcept {
             return m_objects.size();
         }

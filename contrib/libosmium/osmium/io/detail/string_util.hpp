@@ -181,7 +181,7 @@ namespace osmium {
 
             inline void append_xml_encoded_string(std::string& out, const char* data) {
                 for (; *data != '\0'; ++data) {
-                    switch(*data) {
+                    switch (*data) {
                         case '&':  out += "&amp;";  break;
                         case '\"': out += "&quot;"; break;
                         case '\'': out += "&apos;"; break;

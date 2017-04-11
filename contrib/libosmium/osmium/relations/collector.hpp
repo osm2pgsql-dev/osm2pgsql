@@ -48,6 +48,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/types.hpp>
 #include <osmium/handler.hpp>
+#include <osmium/handler/check_order.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/util/iterator.hpp>
 #include <osmium/visitor.hpp>
@@ -124,6 +125,7 @@ namespace osmium {
              */
             class HandlerPass2 : public osmium::handler::Handler {
 
+                osmium::handler::CheckOrder m_check_order;
                 TCollector& m_collector;
 
             public:
@@ -134,6 +136,7 @@ namespace osmium {
 
                 void node(const osmium::Node& node) {
                     if (TNodes) {
+                        m_check_order.node(node);
                         if (! m_collector.find_and_add_object(node)) {
                             m_collector.node_not_in_any_relation(node);
                         }
@@ -142,6 +145,7 @@ namespace osmium {
 
                 void way(const osmium::Way& way) {
                     if (TWays) {
+                        m_check_order.way(way);
                         if (! m_collector.find_and_add_object(way)) {
                             m_collector.way_not_in_any_relation(way);
                         }
@@ -150,6 +154,7 @@ namespace osmium {
 
                 void relation(const osmium::Relation& relation) {
                     if (TRelations) {
+                        m_check_order.relation(relation);
                         if (! m_collector.find_and_add_object(relation)) {
                             m_collector.relation_not_in_any_relation(relation);
                         }
