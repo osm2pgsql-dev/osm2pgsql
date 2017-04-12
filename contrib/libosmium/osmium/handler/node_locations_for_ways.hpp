@@ -136,9 +136,9 @@ namespace osmium {
              */
             osmium::Location get_node_location(const osmium::object_id_type id) const {
                 if (id >= 0) {
-                    return m_storage_pos.get(static_cast<osmium::unsigned_object_id_type>( id));
+                    return m_storage_pos.get_noexcept(static_cast<osmium::unsigned_object_id_type>( id));
                 } else {
-                    return m_storage_neg.get(static_cast<osmium::unsigned_object_id_type>(-id));
+                    return m_storage_neg.get_noexcept(static_cast<osmium::unsigned_object_id_type>(-id));
                 }
             }
 
@@ -155,16 +155,12 @@ namespace osmium {
                 }
                 bool error = false;
                 for (auto& node_ref : way.nodes()) {
-                    try {
-                        node_ref.set_location(get_node_location(node_ref.ref()));
-                        if (!node_ref.location()) {
-                            error = true;
-                        }
-                    } catch (const osmium::not_found&) {
+                    node_ref.set_location(get_node_location(node_ref.ref()));
+                    if (!node_ref.location()) {
                         error = true;
                     }
                 }
-                if (error && !m_ignore_errors) {
+                if (!m_ignore_errors && error) {
                     throw osmium::not_found{"location for one or more nodes not found in node location index"};
                 }
             }

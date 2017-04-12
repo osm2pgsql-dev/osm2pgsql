@@ -55,6 +55,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/memory/buffer.hpp>
 #include <osmium/thread/util.hpp>
 #include <osmium/util/config.hpp>
+#include <osmium/version.hpp>
 
 namespace osmium {
 
@@ -223,6 +224,10 @@ namespace osmium {
                 (void)std::initializer_list<int>{
                     (set_option(options, args), 0)...
                 };
+
+                if (options.header.get("generator") == "") {
+                    options.header.set("generator", "libosmium/" LIBOSMIUM_VERSION_STRING);
+                }
 
                 std::unique_ptr<osmium::io::Compressor> compressor =
                     CompressionFactory::instance().create_compressor(file.compression(),

@@ -89,6 +89,7 @@ namespace osmium {
             }
         }; // struct match_value<void>
 
+        /// @deprecated Use osmium::TagsFilter instead.
         template <typename TKey, typename TValue=void, typename TKeyComp=match_key<TKey>, typename TValueComp=match_value<TValue>>
         class Filter {
 
@@ -171,8 +172,13 @@ namespace osmium {
 
         }; // class Filter
 
+        /// @deprecated Use osmium::TagsFilter instead.
         using KeyValueFilter  = Filter<std::string, std::string>;
+
+        /// @deprecated Use osmium::TagsFilter instead.
         using KeyFilter       = Filter<std::string>;
+
+        /// @deprecated Use osmium::TagsFilter instead.
         using KeyPrefixFilter = Filter<std::string, void, match_key_prefix>;
 
     } // namespace tags

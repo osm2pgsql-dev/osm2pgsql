@@ -54,13 +54,8 @@ namespace osmium {
             yes = 1
         };
 
-// avoid g++ false positive
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
         inline const char* as_string(file_format format) {
             switch (format) {
-                case file_format::unknown:
-                    return "unknown";
                 case file_format::xml:
                     return "XML";
                 case file_format::pbf:
@@ -73,9 +68,11 @@ namespace osmium {
                     return "O5M";
                 case file_format::debug:
                     return "DEBUG";
+                default: // file_format::unknown
+                    break;
             }
+            return "unknown";
         }
-#pragma GCC diagnostic pop
 
         template <typename TChar, typename TTraits>
         inline std::basic_ostream<TChar, TTraits>& operator<<(std::basic_ostream<TChar, TTraits>& out, const file_format format) {

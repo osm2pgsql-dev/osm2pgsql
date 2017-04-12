@@ -119,6 +119,15 @@ namespace osmium {
             auto_grow m_auto_grow{auto_grow::no};
             std::function<void(Buffer&)> m_full;
 
+            static size_t calculate_capacity(size_t capacity) noexcept {
+                // The majority of all Nodes will fit into this size.
+                constexpr static const size_t min_capacity = 64;
+                if (capacity < min_capacity) {
+                    return min_capacity;
+                }
+                return padded_length(capacity);
+            }
+
         public:
 
             /**
@@ -191,22 +200,17 @@ namespace osmium {
              * is destroyed.
              *
              * @param capacity The (initial) size of the memory for this buffer.
+             *        Actual capacity might be larger tue to alignment.
              * @param auto_grow Should this buffer automatically grow when it
              *        becomes to small?
-             *
-             * @throws std::invalid_argument if the capacity isn't a multiple
-             *         of the alignment.
              */
             explicit Buffer(size_t capacity, auto_grow auto_grow = auto_grow::yes) :
-                m_memory(new unsigned char[capacity]),
+                m_memory(new unsigned char[calculate_capacity(capacity)]),
                 m_data(m_memory.get()),
-                m_capacity(capacity),
+                m_capacity(calculate_capacity(capacity)),
                 m_written(0),
                 m_committed(0),
                 m_auto_grow(auto_grow) {
-                if (capacity % align_bytes != 0) {
-                    throw std::invalid_argument("buffer capacity needs to be multiple of alignment");
-                }
             }
 
             // buffers can not be copied

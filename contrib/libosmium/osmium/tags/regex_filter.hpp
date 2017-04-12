@@ -56,6 +56,7 @@ namespace osmium {
             }
         }; // struct match_value<std::regex>
 
+        /// @deprecated Use osmium::TagsFilter instead.
         using RegexFilter = Filter<std::string, std::regex>;
 
     } // namespace tags

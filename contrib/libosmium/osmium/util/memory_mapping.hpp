@@ -644,9 +644,10 @@ inline DWORD osmium::util::MemoryMapping::get_protection() const noexcept {
             return PAGE_READONLY;
         case mapping_mode::write_private:
             return PAGE_WRITECOPY;
-        case mapping_mode::write_shared:
-            return PAGE_READWRITE;
+        default: // mapping_mode::write_shared
+            break;
     }
+    return PAGE_READWRITE;
 }
 
 inline DWORD osmium::util::MemoryMapping::get_flags() const noexcept {
@@ -655,9 +656,10 @@ inline DWORD osmium::util::MemoryMapping::get_flags() const noexcept {
             return FILE_MAP_READ;
         case mapping_mode::write_private:
             return FILE_MAP_COPY;
-        case mapping_mode::write_shared:
-            return FILE_MAP_WRITE;
+        default: // mapping_mode::write_shared
+            break;
     }
+    return FILE_MAP_WRITE;
 }
 
 inline HANDLE osmium::util::MemoryMapping::get_handle() const noexcept {
