@@ -59,6 +59,7 @@ test_script:
   - ctest -VV -L NoDB
 #  - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
+
 artifacts:
   - path: osm2pgsql_Release.zip
     name: osm2pgsql_Release.zip
