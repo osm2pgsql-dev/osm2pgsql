@@ -92,7 +92,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //make sure to get this one as well and move to the next
-    if(popped == id) {
+    if (popped > id) {
         if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
@@ -143,7 +143,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //make sure to get this one as well and move to the next
-    if(popped == id) {
+    if (popped > id) {
         if(id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
