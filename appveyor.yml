@@ -55,6 +55,7 @@ build_script:
 
 test_script:
   - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
+  - set PROJ_LIB=c:\libs\share
   - cd c:\osm2pgsql\build
   - ctest -VV -L NoDB
 #  - ctest -VV -LE FlatNodes # enable when Postgis will be available
