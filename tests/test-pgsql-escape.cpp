@@ -1,6 +1,7 @@
 #include <iostream>
 #include "pgsql.hpp"
 
+#include <iostream>
 void test_escape(const char *in, const char *out) {
     std::string sql;
     escape(in, sql);
