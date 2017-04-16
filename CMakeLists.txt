@@ -90,11 +90,6 @@ if (WITH_LUA)
   set(HAVE_LUA 1)
 endif()
 
-if (MSVC)
-  # Boost thread needs extra libraries
-  set(BOOST_EXTRA date_time chrono)
-endif()
-
 if (NOT Boost_ADDITIONAL_VERSIONS)
   set(Boost_ADDITIONAL_VERSIONS "1.55;1.56;1.57;1.58;1.59;1.60;1.61")
 endif()
