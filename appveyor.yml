@@ -4,9 +4,9 @@ environment:
     PGPASSWORD: Password12!
     BOOST_ROOT: c:\libs\boost
     PREFIX: c:\libs
-    PSQL_ROOT: C:\Program Files\PostgreSQL\9.4
+    PSQL_ROOT: C:/Program Files/PostgreSQL/9.4
     CMAKE_PREFIX_PATH: c:\libs;C:\Program Files\PostgreSQL\9.4
-    PYTHONPATH: c:\libs
+    POSTGIS_FILE: postgis-pg94-binaries-2.3.2w64gcc48
   matrix:
   - configuration: Release
 
@@ -14,8 +14,12 @@ environment:
 
 os: Visual Studio 2015
 
+cache:
+  - C:\libs\%POSTGIS_FILE%.zip -> appveyor.yml
+  - C:\osm2pgsql_win_deps_release.7z -> appveyor.yml
+
 services:
-#  - postgresql # enable when Postgis will be available
+  - postgresql94 # enable when Postgis will be available
 
 # scripts that are called at very beginning, before repo cloning
 init:
@@ -32,21 +36,34 @@ install:
   # by default, all script lines are interpreted as batch
   - cd c:\
   - mkdir libs
-  - curl -O https://dl.dropboxusercontent.com/u/63393258/libs_osm2pgsql_%Configuration%.7z
-  - 7z x libs_osm2pgsql_%Configuration%.7z | find ":"
+  - if not exist osm2pgsql_win_deps_release.7z ( curl -O http://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/osm2pgsql_win_deps_release.7z )
+  - 7z x osm2pgsql_win_deps_release.7z | find ":"
+  - cd c:\libs
+  - echo Downloading and installing PostGIS:
+  - if not exist %POSTGIS_FILE%.zip ( curl -L -O -S -s http://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/%POSTGIS_FILE%.zip )
+  - 7z x %POSTGIS_FILE%.zip
+  - echo xcopy /e /y /q %POSTGIS_FILE% %PSQL_ROOT%
+  - xcopy /e /y /q %POSTGIS_FILE% "%PSQL_ROOT%"
+  - echo Creating tablespace for tablespace test...
+  - mkdir temp
+  - cacls temp /T /E /G Users:F
+  - cacls temp /T /E /G "Network Service":F
+  - echo Installing psycopg2 Python module...
+  - python -V
+  - pip install psycopg2
 
 build_script:
   - mkdir c:\osm2pgsql\build
   - cd c:\osm2pgsql\build
   - echo Running cmake...
   - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON -DBoost_ADDITIONAL_VERSIONS=1.57;1.58;1.59
+  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON
   - nmake
   - mkdir osm2pgsql-bin
   - copy /y *.exe osm2pgsql-bin
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
-  - copy /y %PREFIX%\bin\lua.dll osm2pgsql-bin
+  - copy /y %PREFIX%\bin\*.dll osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libpq.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin
   - copy /y "%PSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin
@@ -54,14 +71,14 @@ build_script:
   - 7z a c:\osm2pgsql\osm2pgsql_%Configuration%.zip osm2pgsql-bin -tzip
 
 test_script:
+  - |
+    "%PSQL_ROOT%/bin/psql" -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/libs/temp'"
   - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
+  - set PROJ_LIB=c:\libs\share
   - cd c:\osm2pgsql\build
-  - ctest -VV -L NoDB
-#  - ctest -VV -LE FlatNodes # enable when Postgis will be available
+#  - ctest -VV -L NoDB
+  - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
-#deploy_script:
-#  - cd c:\build
-#  - curl -T osm2pgsql_%Configuration%.zip --user %ACCOUNT% https://webdav.yandex.ru/libs/osm2pgsql_%Configuration%.zip
 
 artifacts:
   - path: osm2pgsql_Release.zip
