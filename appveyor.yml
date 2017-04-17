@@ -57,7 +57,7 @@ build_script:
   - cd c:\osm2pgsql\build
   - echo Running cmake...
   - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON -DBZIP2_LIBRARY_RELEASE=C:/libs/lib/libbz2.lib -DZLIB_LIBRARY=C:\libs\lib\zlibwapi.lib
+  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON
   - nmake
   - mkdir osm2pgsql-bin
   - copy /y *.exe osm2pgsql-bin
