@@ -36,11 +36,11 @@ install:
   # by default, all script lines are interpreted as batch
   - cd c:\
   - mkdir libs
-  - if not exist osm2pgsql_win_deps_release.7z ( curl -O http://lonvia.de/osm2pgsql_win_deps_release.7z )
+  - if not exist osm2pgsql_win_deps_release.7z ( curl -O http://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/osm2pgsql_win_deps_release.7z )
   - 7z x osm2pgsql_win_deps_release.7z | find ":"
   - cd c:\libs
   - echo Downloading and installing PostGIS:
-  - if not exist %POSTGIS_FILE%.zip ( curl -L -O -S -s http://winnie.postgis.net/download/windows/pg94/buildbot/%POSTGIS_FILE%.zip )
+  - if not exist %POSTGIS_FILE%.zip ( curl -L -O -S -s http://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/%POSTGIS_FILE%.zip )
   - 7z x %POSTGIS_FILE%.zip
   - echo xcopy /e /y /q %POSTGIS_FILE% %PSQL_ROOT%
   - xcopy /e /y /q %POSTGIS_FILE% "%PSQL_ROOT%"
