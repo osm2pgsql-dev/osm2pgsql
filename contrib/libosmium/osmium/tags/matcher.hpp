@@ -93,13 +93,22 @@ namespace osmium {
         }
 
         /**
+         * Match against the specified key and value.
+         *
+         * @returns true if the tag matches.
+         */
+        bool operator()(const char* key, const char* value) const noexcept {
+            return m_key_matcher(key) &&
+                   (m_value_matcher(value) == m_result);
+        }
+
+        /**
          * Match against the specified tag.
          *
          * @returns true if the tag matches.
          */
         bool operator()(const osmium::Tag& tag) const noexcept {
-            return m_key_matcher(tag.key()) &&
-                   (m_value_matcher(tag.value()) == m_result);
+            return operator()(tag.key(), tag.value());
         }
 
         /**

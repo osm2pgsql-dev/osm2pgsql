@@ -97,7 +97,7 @@ namespace osmium {
             enum class status {
                 okay   = 0, // normal reading
                 error  = 1, // some error occurred while reading
-                closed = 2, // close() called successfully after eof
+                closed = 2, // close() called
                 eof    = 3  // eof of file was reached without error
             } m_status;
 
@@ -119,14 +119,15 @@ namespace osmium {
 
             size_t m_file_size;
 
-            osmium::io::detail::reader_options m_options;
+            osmium::osm_entity_bits::type m_read_which_entities = osmium::osm_entity_bits::all;
+            osmium::io::read_meta m_read_metadata = osmium::io::read_meta::yes;
 
             void set_option(osmium::osm_entity_bits::type value) noexcept {
-                m_options.read_which_entities = value;
+                m_read_which_entities = value;
             }
 
             void set_option(osmium::io::read_meta value) noexcept {
-                m_options.read_metadata = value;
+                m_read_metadata = value;
             }
 
             // This function will run in a separate thread.
@@ -134,10 +135,17 @@ namespace osmium {
                                       detail::future_string_queue_type& input_queue,
                                       detail::future_buffer_queue_type& osmdata_queue,
                                       std::promise<osmium::io::Header>&& header_promise,
-                                      osmium::io::detail::reader_options options) {
+                                      osmium::osm_entity_bits::type read_which_entities,
+                                      osmium::io::read_meta read_metadata) {
                 std::promise<osmium::io::Header> promise = std::move(header_promise);
-                const auto parser = creator(input_queue, osmdata_queue, promise, options);
-                parser->parse();
+                osmium::io::detail::parser_arguments args = {
+                    input_queue,
+                    osmdata_queue,
+                    promise,
+                    read_which_entities,
+                    read_metadata
+                };
+                creator(args)->parse();
             }
 
 #ifndef _WIN32
@@ -155,11 +163,11 @@ namespace osmium {
             static int execute(const std::string& command, const std::string& filename, int* childpid) {
                 int pipefd[2];
                 if (pipe(pipefd) < 0) {
-                    throw std::system_error(errno, std::system_category(), "opening pipe failed");
+                    throw std::system_error{errno, std::system_category(), "opening pipe failed"};
                 }
                 const pid_t pid = fork();
                 if (pid < 0) {
-                    throw std::system_error(errno, std::system_category(), "fork failed");
+                    throw std::system_error{errno, std::system_category(), "fork failed"};
                 }
                 if (pid == 0) { // child
                     // close all file descriptors except one end of the pipe
@@ -203,7 +211,7 @@ namespace osmium {
 #ifndef _WIN32
                     return execute("curl", filename, childpid);
 #else
-                    throw io_error("Reading OSM files from the network currently not supported on Windows.");
+                    throw io_error{"Reading OSM files from the network currently not supported on Windows."};
 #endif
                 } else {
                     return osmium::io::detail::open_for_reading(filename);
@@ -258,7 +266,7 @@ namespace osmium {
 
                 std::promise<osmium::io::Header> header_promise;
                 m_header_future = header_promise.get_future();
-                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(m_creator), std::ref(m_input_queue), std::ref(m_osmdata_queue), std::move(header_promise), m_options};
+                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(m_creator), std::ref(m_input_queue), std::ref(m_osmdata_queue), std::move(header_promise), m_read_which_entities, m_read_metadata};
             }
 
             template <typename... TArgs>
@@ -313,7 +321,7 @@ namespace osmium {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
                     if (pid < 0 || !WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-                        throw std::system_error(errno, std::system_category(), "subprocess returned error");
+                        throw std::system_error{errno, std::system_category(), "subprocess returned error"};
                     }
 #pragma GCC diagnostic pop
                     m_childpid = 0;
@@ -329,30 +337,26 @@ namespace osmium {
              */
             osmium::io::Header header() {
                 if (m_status == status::error) {
-                    throw io_error("Can not get header from reader when in status 'error'");
+                    throw io_error{"Can not get header from reader when in status 'error'"};
                 }
 
                 try {
                     if (m_header_future.valid()) {
                         m_header = m_header_future.get();
-                        if (m_options.read_which_entities == osmium::osm_entity_bits::nothing) {
-                            m_status = status::eof;
-                        }
                     }
                 } catch (...) {
                     close();
                     m_status = status::error;
                     throw;
                 }
+
                 return m_header;
             }
 
             /**
              * Reads the next buffer from the input. An invalid buffer signals
-             * end-of-file. After end-of-file all read() calls will return an
-             * invalid buffer. An invalid buffer is also always returned if
-             * osmium::osm_entity_bits::nothing was set when the Reader was
-             * constructed.
+             * end-of-file. After end-of-file all read() calls will throw an
+             * osmium::io_error.
              *
              * @returns Buffer.
              * @throws Some form of osmium::io_error if there is an error.
@@ -360,9 +364,13 @@ namespace osmium {
             osmium::memory::Buffer read() {
                 osmium::memory::Buffer buffer;
 
-                if (m_status != status::okay ||
-                    m_options.read_which_entities == osmium::osm_entity_bits::nothing) {
-                    throw io_error("Can not read from reader when in status 'closed', 'eof', or 'error'");
+                if (m_status != status::okay) {
+                    throw io_error{"Can not read from reader when in status 'closed', 'eof', or 'error'"};
+                }
+
+                if (m_read_which_entities == osmium::osm_entity_bits::nothing) {
+                    m_status = status::eof;
+                    return buffer;
                 }
 
                 try {

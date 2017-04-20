@@ -188,7 +188,7 @@ namespace osmium {
             }
 
             bool match(const char* test_string) const noexcept {
-                return std::strstr(test_string, m_str.c_str());
+                return std::strstr(test_string, m_str.c_str()) != nullptr;
             }
 
             template <typename TChar, typename TTraits>

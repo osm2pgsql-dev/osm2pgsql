@@ -627,11 +627,8 @@ namespace osmium {
 
             public:
 
-                XMLParser(future_string_queue_type& input_queue,
-                          future_buffer_queue_type& output_queue,
-                          std::promise<osmium::io::Header>& header_promise,
-                          osmium::io::detail::reader_options options) :
-                    Parser(input_queue, output_queue, header_promise, options),
+                XMLParser(parser_arguments& args) :
+                    Parser(args),
                     m_context(context::root),
                     m_last_context(context::root),
                     m_in_delete_section(false),
@@ -675,11 +672,8 @@ namespace osmium {
             // the variable is only a side-effect, it will never be used
             const bool registered_xml_parser = ParserFactory::instance().register_parser(
                 file_format::xml,
-                [](future_string_queue_type& input_queue,
-                    future_buffer_queue_type& output_queue,
-                    std::promise<osmium::io::Header>& header_promise,
-                    osmium::io::detail::reader_options options) {
-                    return std::unique_ptr<Parser>(new XMLParser{input_queue, output_queue, header_promise, options});
+                [](parser_arguments& args) {
+                    return std::unique_ptr<Parser>(new XMLParser{args});
             });
 
             // dummy function to silence the unused variable warning from above
