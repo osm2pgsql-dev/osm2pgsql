@@ -35,6 +35,7 @@ platform: x64
 install:
   # by default, all script lines are interpreted as batch
   - cd c:\
+  - if exist libs ( rmdir c:\libs /s /q )
   - mkdir libs
   - if not exist osm2pgsql_win_deps_release.7z ( curl -O http://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/osm2pgsql_win_deps_release.7z )
   - 7z x osm2pgsql_win_deps_release.7z | find ":"
