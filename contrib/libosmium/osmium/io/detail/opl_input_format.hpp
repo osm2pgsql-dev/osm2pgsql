@@ -79,11 +79,8 @@ namespace osmium {
 
             public:
 
-                OPLParser(future_string_queue_type& input_queue,
-                          future_buffer_queue_type& output_queue,
-                          std::promise<osmium::io::Header>& header_promise,
-                          osmium::io::detail::reader_options options) :
-                    Parser(input_queue, output_queue, header_promise, options) {
+                OPLParser(parser_arguments& args) :
+                    Parser(args) {
                     set_header_value(osmium::io::Header{});
                 }
 
@@ -123,6 +120,11 @@ namespace osmium {
                         rest = input.substr(ppos);
                     }
 
+                    if (!rest.empty()) {
+                        m_data = rest.data();
+                        parse_line();
+                    }
+
                     if (m_buffer.committed() > 0) {
                         send_to_output_queue(std::move(m_buffer));
                     }
@@ -134,11 +136,8 @@ namespace osmium {
             // the variable is only a side-effect, it will never be used
             const bool registered_opl_parser = ParserFactory::instance().register_parser(
                 file_format::opl,
-                [](future_string_queue_type& input_queue,
-                    future_buffer_queue_type& output_queue,
-                    std::promise<osmium::io::Header>& header_promise,
-                    osmium::io::detail::reader_options options) {
-                    return std::unique_ptr<Parser>(new OPLParser(input_queue, output_queue, header_promise, options));
+                [](parser_arguments& args) {
+                    return std::unique_ptr<Parser>(new OPLParser{args});
             });
 
             // dummy function to silence the unused variable warning from above

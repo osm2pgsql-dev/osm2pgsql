@@ -42,7 +42,9 @@ DEALINGS IN THE SOFTWARE.
 #include <sys/types.h>
 
 #ifdef _WIN32
-# define WIN32_LEAN_AND_MEAN // Prevent winsock.h inclusion; avoid winsock2.h conflict
+#  ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN // Prevent winsock.h inclusion; avoid winsock2.h conflict
+#  endif
 # include <io.h>
 # include <windows.h>
 #endif

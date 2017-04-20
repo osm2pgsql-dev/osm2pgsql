@@ -183,6 +183,17 @@ namespace osmium {
                 options.sync = value;
             }
 
+            void do_close() {
+                if (m_status == status::okay) {
+                    ensure_cleanup([&](){
+                        do_write(std::move(m_buffer));
+                        m_output->write_end();
+                        m_status = status::closed;
+                        detail::add_end_of_data_to_queue(m_output_queue);
+                    });
+                }
+            }
+
         public:
 
             /**
@@ -245,12 +256,12 @@ namespace osmium {
 
             template <typename... TArgs>
             explicit Writer(const std::string& filename, TArgs&&... args) :
-                Writer(osmium::io::File(filename), std::forward<TArgs>(args)...) {
+                Writer(osmium::io::File{filename}, std::forward<TArgs>(args)...) {
             }
 
             template <typename... TArgs>
             explicit Writer(const char* filename, TArgs&&... args) :
-                Writer(osmium::io::File(filename), std::forward<TArgs>(args)...) {
+                Writer(osmium::io::File{filename}, std::forward<TArgs>(args)...) {
             }
 
             Writer(const Writer&) = delete;
@@ -261,7 +272,7 @@ namespace osmium {
 
             ~Writer() noexcept {
                 try {
-                    close();
+                    do_close();
                 } catch (...) {
                     // Ignore any exceptions because destructor must not throw.
                 }
@@ -342,14 +353,7 @@ namespace osmium {
              * @throws Some form of osmium::io_error when there is a problem.
              */
             void close() {
-                if (m_status == status::okay) {
-                    ensure_cleanup([&](){
-                        do_write(std::move(m_buffer));
-                        m_output->write_end();
-                        m_status = status::closed;
-                        detail::add_end_of_data_to_queue(m_output_queue);
-                    });
-                }
+                do_close();
 
                 if (m_write_future.valid()) {
                     m_write_future.get();

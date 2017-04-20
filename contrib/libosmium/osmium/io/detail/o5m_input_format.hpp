@@ -589,11 +589,8 @@ namespace osmium {
 
             public:
 
-                O5mParser(future_string_queue_type& input_queue,
-                          future_buffer_queue_type& output_queue,
-                          std::promise<osmium::io::Header>& header_promise,
-                          osmium::io::detail::reader_options options) :
-                    Parser(input_queue, output_queue, header_promise, options),
+                O5mParser(parser_arguments& args) :
+                    Parser(args),
                     m_header(),
                     m_buffer(buffer_size),
                     m_input(),
@@ -616,11 +613,8 @@ namespace osmium {
             // the variable is only a side-effect, it will never be used
             const bool registered_o5m_parser = ParserFactory::instance().register_parser(
                 file_format::o5m,
-                [](future_string_queue_type& input_queue,
-                    future_buffer_queue_type& output_queue,
-                    std::promise<osmium::io::Header>& header_promise,
-                    osmium::io::detail::reader_options options) {
-                    return std::unique_ptr<Parser>(new O5mParser(input_queue, output_queue, header_promise, options));
+                [](parser_arguments& args) {
+                    return std::unique_ptr<Parser>(new O5mParser{args});
             });
 
             // dummy function to silence the unused variable warning from above
