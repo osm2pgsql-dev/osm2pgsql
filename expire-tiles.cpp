@@ -62,12 +62,10 @@ expire_tiles::expire_tiles(uint32_t max, double bbox,
                            const std::shared_ptr<reprojection> &proj)
 : max_bbox(bbox), maxzoom(max), projection(proj)
 {
-    if (maxzoom > 0) {
-        map_width = 1 << maxzoom;
-        tile_width = EARTH_CIRCUMFERENCE / map_width;
-        last_tile_x = static_cast<uint32_t>(map_width) + 1;
-        last_tile_y = static_cast<uint32_t>(map_width) + 1;
-    }
+    map_width = 1 << maxzoom;
+    tile_width = EARTH_CIRCUMFERENCE / map_width;
+    last_tile_x = static_cast<uint32_t>(map_width) + 1;
+    last_tile_y = static_cast<uint32_t>(map_width) + 1;
 }
 
 uint64_t expire_tiles::xy_to_quadkey(uint32_t x, uint32_t y, uint32_t zoom)

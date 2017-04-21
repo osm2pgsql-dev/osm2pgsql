@@ -298,7 +298,6 @@ options_t::~options_t()
 
 options_t::options_t(int argc, char *argv[]): options_t()
 {
-    const char *temparg;
     int c;
 
     //keep going while there are args left to handle
@@ -377,12 +376,37 @@ options_t::options_t(int argc, char *argv[]): options_t()
             tblsmain_index = optarg;
             break;
         case 'e':
-            expire_tiles_zoom_min = atoi(optarg);
-            temparg = strchr(optarg, '-');
-            if (temparg)
-                expire_tiles_zoom = atoi(temparg + 1);
-            if (expire_tiles_zoom < expire_tiles_zoom_min)
+            if (!optarg || optarg[0] == '-') {
+                throw std::runtime_error("Missing argument for option -e. Zoom "
+                                         "levels must be positive.\n");
+            }
+            char *next_char;
+            expire_tiles_zoom_min =
+                static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
+            if (expire_tiles_zoom_min == 0) {
+                throw std::runtime_error(
+                    "Missing zoom level for tile expiry.\n");
+            }
+            // The first character after the number is ignored because that is the separating hyphen.
+            if (*next_char == '-') {
+                ++next_char;
+                // Second number must not be negative because zoom levels must be positive.
+                if (next_char && *next_char != '-' && isdigit(*next_char)) {
+                    char *after_maxzoom;
+                    expire_tiles_zoom = static_cast<uint32_t>(
+                        std::strtoul(next_char, &after_maxzoom, 10));
+                } else {
+                    throw std::runtime_error(
+                        "Invalid maximum zoom level given for tile expiry.\n");
+                }
+            } else {
+                throw std::runtime_error("Minimum and maximum zoom level for "
+                                         "tile expiry must be separated by "
+                                         "'-'.\n");
+            }
+            if (expire_tiles_zoom < expire_tiles_zoom_min) {
                 expire_tiles_zoom = expire_tiles_zoom_min;
+            }
             break;
         case 'o':
             expire_tiles_filename = optarg;
