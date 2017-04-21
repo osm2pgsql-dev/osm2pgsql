@@ -88,7 +88,7 @@ struct tile_output_set
 
 void test_xy_to_quadkey_z3()
 {
-    uint64_t quadkey_expected = 0b100111;
+    uint64_t quadkey_expected = 0x27;
     uint64_t quadkey2 = expire_tiles::xy_to_quadkey(3, 5, 3);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 3);
@@ -98,7 +98,7 @@ void test_xy_to_quadkey_z3()
 
 void test_xy_to_quadkey_z16()
 {
-    uint64_t quadkey_expected = 0b11111111111111111111111111111111;
+    uint64_t quadkey_expected = 0xffffffff;
     uint64_t quadkey2 = expire_tiles::xy_to_quadkey(65535, 65535, 16);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 16);
@@ -112,13 +112,13 @@ void test_xy_to_quadkey_z16()
  */
 void test_xy_to_quadkey_z18()
 {
-    uint64_t quadkey_expected = 0b111111111111111111111111111111111111;
+    uint64_t quadkey_expected = 0xfffffffff;
     uint64_t quadkey2 = expire_tiles::xy_to_quadkey(262143, 262143, 18);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, 18);
     ASSERT_EQ(xy.x, 262143);
     ASSERT_EQ(xy.y, 262143);
-    quadkey_expected = 0b001111111111111111111111111111110000;
+    quadkey_expected = 0x3fffffff0;
     quadkey2 = expire_tiles::xy_to_quadkey(131068, 131068, 18);
     ASSERT_EQ(quadkey2, quadkey_expected);
     xy = expire_tiles::quadkey_to_xy(quadkey_expected, 18);
