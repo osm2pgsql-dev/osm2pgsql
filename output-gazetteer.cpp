@@ -559,12 +559,12 @@ int output_gazetteer_t::start()
 
         std::string sql =
             "CREATE TABLE place ("
-            "  osm_type CHAR(1) NOT NULL,"
             "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL,"
+            "  osm_type \"char\" NOT NULL,"
             "  class TEXT NOT NULL,"
             "  type TEXT NOT NULL,"
             "  name HSTORE,"
-            "  admin_level INTEGER,"
+            "  admin_level SMALLINT,"
             "  address HSTORE,"
             "  extratags HSTORE," +
             (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid)
