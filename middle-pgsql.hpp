@@ -52,27 +52,18 @@ struct middle_pgsql_t : public slim_middle_t {
     idlist_t relations_using_way(osmid_t way_id) const override;
 
     struct table_desc {
-        table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL,
-                   const char *create_ = NULL,
-                   const char *create_index_ = NULL,
-                   const char *prepare_ = NULL,
-                   const char *prepare_intarray_ = NULL,
-                   const char *copy_ = NULL,
-                   const char *analyze_ = NULL,
-                   const char *stop_ = NULL,
-                   const char *array_indexes_ = NULL);
+        table_desc();
 
-        const char *name;
-        const char *start;
-        const char *create;
-        const char *create_index;
-        const char *prepare;
-        const char *prepare_intarray;
-        const char *copy;
-        const char *analyze;
-        const char *stop;
-        const char *array_indexes;
+        std::string name;
+        std::string start;
+        std::string create;
+        std::string create_index;
+        std::string prepare;
+        std::string prepare_intarray;
+        std::string copy;
+        std::string analyze;
+        std::string stop;
+        std::string array_indexes;
 
         int copyMode;    /* True if we are in copy mode */
         int transactionMode;    /* True if we are in an extended transaction */
