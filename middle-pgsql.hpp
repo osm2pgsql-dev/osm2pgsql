@@ -16,6 +16,8 @@
 #include <memory>
 #include <vector>
 
+class tags_storage_t;
+
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
     virtual ~middle_pgsql_t();
@@ -94,13 +96,18 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_string(std::string const &in, bool escape);
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
+
+    void generate_nodes_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);
+    void generate_ways_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);
+    void generate_rels_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);
 
     void buffer_correct_params(char const **param, size_t size);
 
     bool build_indexes;
     std::string copy_buffer;
+
+    tags_storage_t* tags_storage;
 };
 
 #endif

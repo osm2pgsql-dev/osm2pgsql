@@ -50,12 +50,62 @@ enum table_id
     t_rel
 };
 
-middle_pgsql_t::table_desc::table_desc()
-: copyMode(0), transactionMode(0), sql_conn(nullptr)
+
+std::string escape_string(std::string const &in, bool escape)
 {
+    std::string result;
+    for (char const c : in) {
+        switch (c) {
+        case '"':
+            if (escape)
+                result += "\\";
+            result += "\\\"";
+            break;
+        case '\\':
+            if (escape)
+                result += "\\\\";
+            result += "\\\\";
+            break;
+        case '\n':
+            if (escape)
+                result += "\\";
+            result += "\\n";
+            break;
+        case '\r':
+            if (escape)
+                result += "\\";
+            result += "\\r";
+            break;
+        case '\t':
+            if (escape)
+                result += "\\";
+            result += "\\t";
+            break;
+        default:
+            result += c;
+            break;
+        }
+    }
+    return result;
 }
 
-namespace {
+
+class tags_storage_t {
+public:
+    virtual std::string get_column_name()=0;
+
+virtual void pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder) = 0;
+
+virtual std::string encode_tags(osmium::OSMObject const &obj, bool attrs,
+                                       bool escape) = 0;
+
+virtual ~tags_storage_t(){};
+
+};
+
+class jsonb_tags_storage_t : public tags_storage_t{
+
+
 // Decodes a portion of an array literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto(const char *src, char *dst)
@@ -90,16 +140,15 @@ inline const char *decode_upto(const char *src, char *dst)
     return src;
 }
 
-template <typename T>
-void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
-                      T &obuilder)
-{
+public:
+    std::string get_column_name() {return "jsonb";}
+
+void pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder){
     if (*string++ != '{')
         return;
 
     char key[1024];
     char val[1024];
-    osmium::builder::TagListBuilder builder(buffer, &obuilder);
 
     while (*string != '}') {
         string = decode_upto(string, key);
@@ -112,6 +161,182 @@ void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
             string++;
         }
     }
+}
+
+// escape means we return '\N' for copy mode, otherwise we return just nullptr
+std::string encode_tags(osmium::OSMObject const &obj, bool attrs,
+                                       bool escape)
+{
+    std::string result = "{";
+    for (auto const &it : obj.tags()) {
+        result += (fmt("\"%1%\": \"%2%\",") % escape_string(it.key(), escape) % escape_string(it.value(), escape)).str();
+    }
+    if (attrs) {
+        taglist_t extra;
+        extra.add_attributes(obj);
+        for (auto const &it : extra) {
+            result += (fmt("\"%1%\": \"%2%\",") % it.key % escape_string(it.value, escape)).str();
+        }
+    }
+
+    result[result.size() - 1] = '}';
+    return result;
+}
+
+~jsonb_tags_storage_t(){}
+};
+
+class hstore_tags_storage_t : public tags_storage_t {
+
+// Decodes a portion of an array literal from postgres */
+// Argument should point to beginning of literal, on return points to delimiter */
+inline const char *decode_upto(const char *src, char *dst)
+{
+    while (*src == ' ')
+        src++;
+    int quoted = (*src == '"');
+    if (quoted)
+        src++;
+
+    while (quoted ? (*src != '"')
+                  : (*src != ',' && *src != '}' && *src != ':')) {
+        if (*src == '\\') {
+            switch (src[1]) {
+            case 'n':
+                *dst++ = '\n';
+                break;
+            case 't':
+                *dst++ = '\t';
+                break;
+            default:
+                *dst++ = src[1];
+                break;
+            }
+            src += 2;
+        } else
+            *dst++ = *src++;
+    }
+    if (quoted)
+        src++;
+    *dst = 0;
+    return src;
+}
+
+// TODO! copypasted from table.cpp. Extract to orginal lib.
+//create an escaped version of the string for hstore table insert
+void escape4hstore(const char *src, std::string& dst)
+{
+    dst.push_back('"');
+    for (size_t i = 0; i < strlen(src); ++i) {
+        switch (src[i]) {
+            case '\\':
+                dst.append("\\\\\\\\");
+                break;
+            case '"':
+                dst.append("\\\\\"");
+                break;
+            case '\t':
+                dst.append("\\\t");
+                break;
+            case '\r':
+                dst.append("\\\r");
+                break;
+            case '\n':
+                dst.append("\\\n");
+                break;
+            default:
+                dst.push_back(src[i]);
+                break;
+        }
+    }
+    dst.push_back('"');
+}
+
+
+public:
+    std::string get_column_name() {return "hstore";}
+
+void pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder){
+    if (*string != '"')
+        return;
+
+    char key[1024];
+    char val[1024];
+
+    while (strlen(string)) {
+        string = decode_upto(string, key);
+        // Find start of the next string
+        while (*++string!='"') {}
+        string = decode_upto(string, val);
+        builder.add_tag(key, val);
+        // String points to the comma or end */
+        if (*string == ',') {
+            string++;
+        }
+    }
+}
+
+// escape means we return '\N' for copy mode, otherwise we return just nullptr
+std::string encode_tags(osmium::OSMObject const &obj, bool attrs,
+                                       bool escape)
+{
+    std::string result;// = "'";
+    for (auto const &it : obj.tags()) {
+        //result += (fmt("%1%=>%2%,") % escape_string(it.key(), escape) % escape_string(it.value(), escape)).str();
+        escape4hstore(it.key(), result);
+        result += "=>";
+        escape4hstore(it.value(), result);
+        result += ',';
+    }
+    if (attrs) {
+        taglist_t extra;
+        extra.add_attributes(obj);
+        for (auto const &it : extra) {
+            //result += (fmt("%1%=>%2%,") % it.key % escape_string(it.value, escape)).str();
+            escape4hstore(it.key.c_str(), result);
+            result += "=>";
+            escape4hstore(it.value.c_str(), result);
+            result += ',';
+        }
+    }
+
+    result[result.size() - 1] = ' ';
+    return result;
+}
+
+~hstore_tags_storage_t(){}
+};
+
+middle_pgsql_t::table_desc::table_desc()
+: copyMode(0), transactionMode(0), sql_conn(nullptr)
+{
+}
+
+namespace {
+
+inline const char *decode_upto( const char *src, char *dst )
+{
+  int quoted = (*src == '"');
+  if( quoted ) src++;
+
+  while( quoted ? (*src != '"') : (*src != ',' && *src != '}') )
+  {
+    if( *src == '\\' )
+    {
+      switch( src[1] )
+      {
+        case 'n': *dst++ = '\n'; break;
+        case 't': *dst++ = '\t'; break;
+        default: *dst++ = src[1]; break;
+      }
+      src+=2;
+    }
+    else
+      *dst++ = *src++;
+  }
+  if( quoted ) src++;
+  *dst = 0;
+  return src;
 }
 
 void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
@@ -176,70 +401,6 @@ int pgsql_endCopy(middle_pgsql_t::table_desc *table)
     return 0;
 }
 } // anonymous namespace
-
-void middle_pgsql_t::buffer_store_string(std::string const &in, bool escape)
-{
-    for (char const c : in) {
-        switch (c) {
-        case '"':
-            if (escape)
-                copy_buffer += "\\";
-            copy_buffer += "\\\"";
-            break;
-        case '\\':
-            if (escape)
-                copy_buffer += "\\\\";
-            copy_buffer += "\\\\";
-            break;
-        case '\n':
-            if (escape)
-                copy_buffer += "\\";
-            copy_buffer += "\\n";
-            break;
-        case '\r':
-            if (escape)
-                copy_buffer += "\\";
-            copy_buffer += "\\r";
-            break;
-        case '\t':
-            if (escape)
-                copy_buffer += "\\";
-            copy_buffer += "\\t";
-            break;
-        default:
-            copy_buffer += c;
-            break;
-        }
-    }
-}
-
-// escape means we return '\N' for copy mode, otherwise we return just nullptr
-void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs,
-                                       bool escape)
-{
-    copy_buffer += "{";
-
-    for (auto const &it : obj.tags()) {
-        copy_buffer += "\"";
-        buffer_store_string(it.key(), escape);
-        copy_buffer += "\":\"";
-        buffer_store_string(it.value(), escape);
-        copy_buffer += "\",";
-    }
-    if (attrs) {
-        taglist_t extra;
-        extra.add_attributes(obj);
-        for (auto const &it : extra) {
-            copy_buffer += "\"";
-            copy_buffer += it.key;
-            copy_buffer += "\":\"";
-            buffer_store_string(it.value.c_str(), escape);
-            copy_buffer += "\",";
-        }
-    }
-
-    copy_buffer[copy_buffer.size() - 1] = '}';
-}
 
 void middle_pgsql_t::buffer_correct_params(char const **param, size_t size)
 {
@@ -446,7 +607,7 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
         copy_buffer += "\\N";
     } else {
         paramValues[2] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(way, out_options->extra_attributes, copy);
+        copy_buffer += tags_storage->encode_tags(way, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -483,7 +644,9 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
         builder.set_id(id);
 
         pgsql_parse_nodes(PQgetvalue(res.get(), 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
+
+        osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+        tags_storage->pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), tl_builder);
     }
 
     buffer.commit();
@@ -544,8 +707,8 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
                     pgsql_parse_nodes(PQgetvalue(res.get(), j, 1), buffer,
                                       builder);
-                    pgsql_parse_tags(PQgetvalue(res.get(), j, 2), buffer,
-                                     builder);
+                    osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+                    tags_storage->pgsql_parse_tags(PQgetvalue(res.get(), j, 2), tl_builder);
                 }
 
                 buffer.commit();
@@ -668,7 +831,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
             copy_buffer += osmium::item_type_to_char(m.type());
             copy_buffer += std::to_string(m.ref());
             copy_buffer += "\",\"";
-            buffer_store_string(m.role(), copy);
+            copy_buffer += escape_string(m.role(), copy);
             copy_buffer += "\",";
         }
         copy_buffer[copy_buffer.size() - 1] = '}';
@@ -680,7 +843,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
         copy_buffer += "\\N";
     } else {
         paramValues[5] = paramValues[0] + copy_buffer.size();
-        buffer_store_tags(rel, out_options->extra_attributes, copy);
+        copy_buffer += tags_storage->encode_tags(rel, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -720,7 +883,8 @@ bool middle_pgsql_t::relations_get(osmid_t id,
         builder.set_id(id);
 
         pgsql_parse_members(PQgetvalue(res.get(), 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
+        osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+        tags_storage->pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), tl_builder);
     }
 
     buffer.commit();
@@ -866,22 +1030,22 @@ std::string get_logging_str(const options_t &options)
     }
 }
 
-void generate_rels_table_queries(const options_t &options,
+void middle_pgsql_t::generate_rels_table_queries(const options_t &options,
                                  middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_rels") % options.prefix).str();
     table.start = "BEGIN;";
     table.create =
         (fmt("CREATE %1% TABLE %2%_rels(id %3% PRIMARY KEY %4%, way_off int2, "
-             "rel_off int2, parts %3% [], members text[], tags jsonb) %5%;") %
+             "rel_off int2, parts %3% [], members text[], tags %5%) %6%;") %
          get_logging_str(options) % options.prefix % POSTGRES_OSMID_TYPE %
-         get_tablespace_index_str(options) % get_tablespace_str(options))
+         get_tablespace_index_str(options) % tags_storage->get_column_name() % get_tablespace_str(options))
             .str();
     table.prepare =
-        (fmt("PREPARE insert_rel (%1%, int2, int2, %1%[], text[], jsonb) AS INSERT INTO %2%_rels VALUES ($1,$2,$3,$4,$5,$6);\n\
+        (fmt("PREPARE insert_rel (%1%, int2, int2, %1%[], text[], %3%) AS INSERT INTO %2%_rels VALUES ($1,$2,$3,$4,$5,$6);\n\
                PREPARE get_rel (%1%) AS SELECT members, tags, array_upper(members,1)/2 FROM %2%_rels WHERE id = $1;\n\
                PREPARE delete_rel(%1%) AS DELETE FROM %2%_rels WHERE id = $1;\n") %
-         POSTGRES_OSMID_TYPE % options.prefix)
+         POSTGRES_OSMID_TYPE % options.prefix % tags_storage->get_column_name())
             .str();
     table.prepare_intarray =
         (fmt("PREPARE rels_using_way(%1%) AS SELECT id FROM %2%_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n\
@@ -900,23 +1064,23 @@ void generate_rels_table_queries(const options_t &options,
                               .str();
 }
 
-void generate_ways_table_queries(const options_t &options,
+void middle_pgsql_t::generate_ways_table_queries(const options_t &options,
                                  middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_ways") % options.prefix).str();
     table.start = "BEGIN;";
     table.create =
         (fmt("CREATE %1% TABLE %2%_ways (id %3% PRIMARY KEY %4%, nodes %3% [] "
-             "not null, tags jsonb) %5%;") %
+             "not null, tags %5%) %6%;") %
          get_logging_str(options) % options.prefix % POSTGRES_OSMID_TYPE %
-         get_tablespace_index_str(options) % get_tablespace_str(options))
+         get_tablespace_index_str(options) % tags_storage->get_column_name() % get_tablespace_str(options))
             .str();
     table.prepare =
-        (fmt("PREPARE Insert_way (%1%, %1%[], jsonb) AS INSERT INTO %2%_ways VALUES ($1,$2,$3);\
+        (fmt("PREPARE Insert_way (%1%, %1%[], %3%) AS INSERT INTO %2%_ways VALUES ($1,$2,$3);\
                PREPARE get_way (%1%) AS SELECT nodes, tags, array_upper(nodes,1) FROM %2%_ways WHERE id = $1;\
                PREPARE get_way_list (%1%[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %2%_ways WHERE id = any($1::%1%[]);\
                PREPARE delete_way(%1%) AS DELETE FROM %2%_ways WHERE id = $1;") %
-         POSTGRES_OSMID_TYPE % options.prefix)
+         POSTGRES_OSMID_TYPE % options.prefix % tags_storage->get_column_name())
             .str();
     table.prepare_intarray =
         (fmt("PREPARE mark_ways_by_node(%1%) AS SELECT id FROM %2%_ways WHERE nodes && array[$1];\
@@ -933,7 +1097,7 @@ void generate_ways_table_queries(const options_t &options,
                               .str();
 }
 
-void generate_nodes_table_queries(const options_t &options,
+void middle_pgsql_t::generate_nodes_table_queries(const options_t &options,
                                   middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_nodes") % options.prefix).str();
@@ -959,6 +1123,10 @@ void middle_pgsql_t::connect(table_desc &table)
 {
     PGconn *sql_conn;
 
+    if (out_options->jsonb_mode) {
+        delete tags_storage;
+        tags_storage = new jsonb_tags_storage_t();
+    }
     generate_nodes_table_queries(*out_options, *node_table);
     generate_ways_table_queries(*out_options, *way_table);
     generate_rels_table_queries(*out_options, *rel_table);
@@ -1126,7 +1294,7 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
 : num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
-  append(false), mark_pending(true), build_indexes(true)
+  append(false), mark_pending(true), build_indexes(true), tags_storage(new hstore_tags_storage_t())
 {
     tables.resize(3);
     // set up the rest of the variables from the tables.
@@ -1145,6 +1313,7 @@ middle_pgsql_t::~middle_pgsql_t()
             PQfinish(table.sql_conn);
         }
     }
+    delete tags_storage;
 }
 
 std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const

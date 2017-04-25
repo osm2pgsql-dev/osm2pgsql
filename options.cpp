@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjJGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -26,6 +26,7 @@ namespace
         {"latlong",  0, 0, 'l'},
         {"verbose",  0, 0, 'v'},
         {"slim",     0, 0, 's'},
+        {"jsonb",    0, 0, 'J'},
         {"prefix",   1, 0, 'p'},
         {"proj",     1, 0, 'E'},
         {"merc",     0, 0, 'm'},
@@ -122,6 +123,9 @@ namespace
                         --hstore-column \"name:\" will produce an extra hstore\n\
                         column that contains all name:xx tags\n\
           --hstore-add-index    Add index to hstore column.\n\
+    \n\
+    JSONB options:\n\
+        -J|--jsonb     Use JSONB columns for tags in the slim mode.\n\
     \n\
     Performance options:\n\
        -i|--tablespace-index    The name of the PostgreSQL tablespace where\n\
@@ -283,7 +287,7 @@ options_t::options_t()
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false)
+  extra_attributes(false), verbose(false), jsonb_mode(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -411,6 +415,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
             }
             hstore_mode = HSTORE_ALL;
             break;
+        case 'J':
+            jsonb_mode = true;
+            break;
         case 'z':
             hstore_columns.push_back(optarg);
             break;
@@ -512,6 +519,10 @@ void options_t::check_options()
 
     if (droptemp && !slim) {
         throw std::runtime_error("--drop only makes sense with --slim.\n");
+    }
+
+    if (jsonb_mode && !slim) {
+        throw std::runtime_error("--jsonb only makes sense with --slim.\n");
     }
 
     if (unlogged && append) {
