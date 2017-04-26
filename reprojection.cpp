@@ -53,7 +53,7 @@ class merc_reprojection_t : public reprojection
 public:
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
-        /* The latitude co-ordinate is clipped at slightly larger than the 3857 'world'
+        /* The latitude co-ordinate is clipped at slightly larger than the 900913 'world'
          * extent of +-85.0511 degrees to ensure that the points appear just outside the
          * edge of the map. */
         double lat = loc.lat_without_check();

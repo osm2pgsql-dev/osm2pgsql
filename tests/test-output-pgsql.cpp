@@ -101,7 +101,7 @@ void test_regression_simple() {
     db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
-    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=3857;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
+    db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=900913;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
 }
 
 void test_latlong() {
