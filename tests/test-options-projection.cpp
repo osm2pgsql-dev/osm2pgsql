@@ -26,7 +26,7 @@
 #include <cstring>
 #include <iostream>
 
-#include "middle-ram.hpp"
+#include "middle/middle-ram.hpp"
 #include "options.hpp"
 #include "output-pgsql.hpp"
 #include "reprojection.hpp"

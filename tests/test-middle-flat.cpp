@@ -10,7 +10,7 @@
 #include "osmtypes.hpp"
 #include "output-null.hpp"
 #include "options.hpp"
-#include "middle-pgsql.hpp"
+#include "middle/middle-pgsql.hpp"
 
 #include <sys/types.h>
 #include <unistd.h>

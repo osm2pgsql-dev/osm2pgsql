@@ -1,7 +1,7 @@
 #ifndef TESTS_MOCKUPS_HPP
 #define TESTS_MOCKUPS_HPP
 
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "output-null.hpp"
 
 struct dummy_middle_t : public middle_t {
