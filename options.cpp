@@ -273,7 +273,7 @@ options_t::options_t()
   tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
   expire_tiles_zoom(-1), expire_tiles_zoom_min(-1),
   expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
-  hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
+  hstore_mode(HSTORE_NONE), jsonb_mode(false), enable_hstore_index(false), enable_multi(false),
   hstore_columns(), keep_coastlines(false), parallel_indexing(true),
 #ifdef __amd64__
   alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
@@ -287,7 +287,7 @@ options_t::options_t()
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false), jsonb_mode(false)
+  extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {

@@ -106,7 +106,7 @@ virtual ~tags_storage_t(){};
 class jsonb_tags_storage_t : public tags_storage_t{
 
 
-// Decodes a portion of an array literal from postgres */
+// Decodes a portion of an jsonb literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto(const char *src, char *dst)
 {
@@ -188,7 +188,7 @@ std::string encode_tags(osmium::OSMObject const &obj, bool attrs,
 
 class hstore_tags_storage_t : public tags_storage_t {
 
-// Decodes a portion of an array literal from postgres */
+// Decodes a portion of a hstore literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
 inline const char *decode_upto(const char *src, char *dst)
 {
@@ -207,6 +207,15 @@ inline const char *decode_upto(const char *src, char *dst)
                 break;
             case 't':
                 *dst++ = '\t';
+                break;
+            case 'r':
+                *dst++ = '\r';
+                break;
+            case '"':
+                *dst++ = '"';
+                break;
+            case '\\':
+                *dst++ = '\\';
                 break;
             default:
                 *dst++ = src[1];

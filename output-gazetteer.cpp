@@ -2,7 +2,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
 #include "output-gazetteer.hpp"
