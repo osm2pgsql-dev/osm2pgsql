@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "node-ram-cache.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"

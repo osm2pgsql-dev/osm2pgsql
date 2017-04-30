@@ -1,7 +1,7 @@
 #include "output-multi.hpp"
 #include "expire-tiles.hpp"
 #include "id-tracker.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "options.hpp"
 #include "table.hpp"
 #include "taginfo_impl.hpp"

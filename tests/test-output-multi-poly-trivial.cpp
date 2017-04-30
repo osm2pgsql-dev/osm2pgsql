@@ -9,7 +9,7 @@
 
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "output-multi.hpp"
 #include "options.hpp"
 #include "taginfo_impl.hpp"
