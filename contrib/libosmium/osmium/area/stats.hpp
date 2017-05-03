@@ -52,6 +52,7 @@ namespace osmium {
             uint64_t area_touching_rings_case = 0; ///< More difficult case with touching rings
             uint64_t duplicate_nodes = 0; ///< Consecutive identical nodes or consecutive nodes with same location
             uint64_t duplicate_segments = 0; ///< Segments duplicated (going back and forth)
+            uint64_t duplicate_ways = 0; ///< Ways that are in relation more than once
             uint64_t from_relations = 0; ///< Area created from multipolygon relation
             uint64_t from_ways = 0; ///< Area created from way
             uint64_t inner_rings = 0; ///< Number of inner rings
@@ -76,6 +77,7 @@ namespace osmium {
                 area_touching_rings_case += other.area_touching_rings_case;
                 duplicate_nodes += other.duplicate_nodes;
                 duplicate_segments += other.duplicate_segments;
+                duplicate_ways += other.duplicate_ways;
                 from_relations += other.from_relations;
                 from_ways += other.from_ways;
                 inner_rings += other.inner_rings;
@@ -105,6 +107,7 @@ namespace osmium {
                        << " area_touching_rings_case=" << s.area_touching_rings_case
                        << " duplicate_nodes=" << s.duplicate_nodes
                        << " duplicate_segments=" << s.duplicate_segments
+                       << " duplicate_ways=" << s.duplicate_ways
                        << " from_relations=" << s.from_relations
                        << " from_ways=" << s.from_ways
                        << " inner_rings=" << s.inner_rings

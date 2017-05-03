@@ -120,6 +120,12 @@ namespace osmium {
                 throw std::runtime_error{m_sstream.str()};
             }
 
+            void report_duplicate_way(const osmium::Way& way) override {
+                m_sstream.str("");
+                ProblemReporterStream::report_duplicate_way(way);
+                throw std::runtime_error{m_sstream.str()};
+            }
+
         }; // class ProblemReporterException
 
     } // namespace area

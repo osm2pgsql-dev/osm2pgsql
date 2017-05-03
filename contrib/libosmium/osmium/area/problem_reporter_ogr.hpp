@@ -202,6 +202,22 @@ namespace osmium {
                 }
             }
 
+            void report_duplicate_way(const osmium::Way& way) override {
+                if (way.nodes().size() < 2) {
+                    return;
+                }
+                try {
+                    gdalcpp::Feature feature{m_layer_lerror, m_ogr_factory.create_linestring(way)};
+                    set_object(feature);
+                    feature.set_field("id1", int32_t(way.id()));
+                    feature.set_field("id2", 0);
+                    feature.set_field("problem", "duplicate_way");
+                    feature.add_to_layer();
+                } catch (const osmium::geometry_error&) {
+                    // XXX
+                }
+            }
+
             void report_way(const osmium::Way& way) override {
                 if (way.nodes().empty()) {
                     return;

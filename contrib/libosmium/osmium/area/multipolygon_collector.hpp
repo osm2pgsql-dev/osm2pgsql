@@ -174,6 +174,7 @@ namespace osmium {
                 const osmium::memory::Buffer& buffer = this->members_buffer();
 
                 std::vector<const osmium::Way*> ways;
+                ways.reserve(relation.members().size());
                 for (const auto& member : relation.members()) {
                     if (member.ref() != 0) {
                         const size_t offset = this->get_offset(member.type(), member.ref());

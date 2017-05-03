@@ -119,6 +119,11 @@ namespace osmium {
                 *m_out << "way_id=" << way_id << " node_id=" << node_id << '\n';
             }
 
+            void report_duplicate_way(const osmium::Way& way) override {
+                header("duplicate way");
+                *m_out << "way_id=" << way.id() << '\n';
+            }
+
         }; // class ProblemReporterStream
 
     } // namespace area

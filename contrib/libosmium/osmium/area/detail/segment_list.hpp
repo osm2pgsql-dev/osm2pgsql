@@ -40,6 +40,7 @@ DEALINGS IN THE SOFTWARE.
 #include <iostream>
 #include <iterator>
 #include <numeric>
+#include <unordered_set>
 #include <vector>
 
 #include <osmium/area/detail/node_ref_segment.hpp>
@@ -232,7 +233,11 @@ namespace osmium {
                  * Extract all segments from all ways that make up this
                  * multipolygon relation and add them to the list.
                  */
-                uint32_t extract_segments_from_ways(osmium::area::ProblemReporter* problem_reporter, uint64_t& duplicate_nodes, const osmium::Relation& relation, const std::vector<const osmium::Way*>& members) {
+                uint32_t extract_segments_from_ways(osmium::area::ProblemReporter* problem_reporter,
+                                                    uint64_t& duplicate_nodes,
+                                                    uint64_t& duplicate_ways,
+                                                    const osmium::Relation& relation,
+                                                    const std::vector<const osmium::Way*>& members) {
                     assert(relation.members().size() >= members.size());
 
                     const size_t num_segments = get_num_segments(members);
@@ -241,10 +246,20 @@ namespace osmium {
                     }
                     m_segments.reserve(num_segments);
 
+                    std::unordered_set<osmium::object_id_type> ids;
+                    ids.reserve(members.size());
                     uint32_t invalid_locations = 0;
                     for_each_member(relation, members, [&](const osmium::RelationMember& member, const osmium::Way& way) {
-                        const auto role = parse_role(member.role());
-                        invalid_locations += extract_segments_from_way_impl(problem_reporter, duplicate_nodes, way, role);
+                        if (ids.count(way.id()) == 0) {
+                            ids.insert(way.id());
+                            const auto role = parse_role(member.role());
+                            invalid_locations += extract_segments_from_way_impl(problem_reporter, duplicate_nodes, way, role);
+                        } else {
+                            ++duplicate_ways;
+                            if (problem_reporter) {
+                                problem_reporter->report_duplicate_way(way);
+                            }
+                        }
                     });
 
                     return invalid_locations;
