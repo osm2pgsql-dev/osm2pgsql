@@ -335,6 +335,7 @@ namespace osmium {
                 ++stats().from_relations;
                 stats().invalid_locations = segment_list().extract_segments_from_ways(config().problem_reporter,
                                                                                       stats().duplicate_nodes,
+                                                                                      stats().duplicate_ways,
                                                                                       relation,
                                                                                       members);
                 if (!config().ignore_invalid_locations && stats().invalid_locations > 0) {
@@ -408,6 +409,7 @@ namespace osmium {
                     if (!assembler(*way, out_buffer)) {
                         okay = false;
                     }
+                    stats() += assembler.stats();
                 }
 
                 return okay;

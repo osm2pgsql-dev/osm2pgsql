@@ -199,6 +199,14 @@ namespace osmium {
             }
 
             /**
+             * Report a way that is more than once in a relation.
+             *
+             * @param way The way
+             */
+            virtual void report_duplicate_way(const osmium::Way& way) {
+            }
+
+            /**
              * In addition to reporting specific problems, this is used to
              * report all ways belonging to areas having problems.
              *

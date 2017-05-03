@@ -243,17 +243,17 @@ namespace osmium {
 
                 class rings_stack_element {
 
-                    int32_t m_y;
+                    double m_y;
                     detail::ProtoRing* m_ring_ptr;
 
                 public:
 
-                    rings_stack_element(int32_t y, detail::ProtoRing* ring_ptr) :
+                    rings_stack_element(double y, detail::ProtoRing* ring_ptr) :
                         m_y(y),
                         m_ring_ptr(ring_ptr) {
                     }
 
-                    int32_t y() const noexcept {
+                    double y() const noexcept {
                         return m_y;
                     }
 
@@ -334,7 +334,7 @@ namespace osmium {
                                 }
                                 if (segment->ring()->is_outer()) {
                                     if (debug()) {
-                                        std::cerr << "        Segment belongs to outer ring\n";
+                                        std::cerr << "        Segment belongs to outer ring (y=" << a.y() << " ring=" << *segment->ring() << ")\n";
                                     }
                                     outer_rings.emplace_back(a.y(), segment->ring());
                                 }
@@ -358,10 +358,10 @@ namespace osmium {
                                     std::cerr << "        Segment is below (nesting=" << nesting << ")\n";
                                 }
                                 if (segment->ring()->is_outer()) {
+                                    const double y = ay + (by - ay) * (lx - ax) / double(bx - ax);
                                     if (debug()) {
-                                        std::cerr << "        Segment belongs to outer ring\n";
+                                        std::cerr << "        Segment belongs to outer ring (y=" << y << " ring=" << *segment->ring() << ")\n";
                                     }
-                                    const int32_t y = int32_t(ay + (by - ay) * (lx - ax) / (bx - ax));
                                     outer_rings.emplace_back(y, segment->ring());
                                 }
                             }

@@ -106,7 +106,7 @@ namespace osmium {
                     m_role(role_type::unknown) {
                 }
 
-                NodeRefSegment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2, role_type role = role_type::unknown, const osmium::Way* way = nullptr) noexcept :
+                NodeRefSegment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2, role_type role, const osmium::Way* way) noexcept :
                     m_first(nr1),
                     m_second(nr2),
                     m_way(way),
