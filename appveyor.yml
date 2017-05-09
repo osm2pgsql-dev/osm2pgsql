@@ -2,7 +2,7 @@ environment:
   global:
     PGUSER: postgres
     PGPASSWORD: Password12!
-    BOOST_ROOT: c:\libs\boost
+    BOOST_ROOT: c:/libs/boost
     PREFIX: c:\libs
     PSQL_ROOT: C:/Program Files/PostgreSQL/9.4
     CMAKE_PREFIX_PATH: c:\libs;C:\Program Files\PostgreSQL\9.4
