@@ -5,7 +5,7 @@ class hstore_tags_storage_t : public tags_storage_t {
 
 inline const char * decode_upto(const char *src, char *dst);
 
-void escape4hstore(const char *src, std::string& dst);
+void escape4hstore(const char *src, std::string& dst, const bool escape);
 
 public:
     std::string get_column_name() {return "hstore";}

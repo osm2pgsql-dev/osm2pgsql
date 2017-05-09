@@ -96,8 +96,6 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
-
     void generate_nodes_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);
     void generate_ways_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);
     void generate_rels_table_queries(const options_t &options, middle_pgsql_t::table_desc &table);

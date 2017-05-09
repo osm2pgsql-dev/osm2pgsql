@@ -8,12 +8,12 @@ inline const char * hstore_tags_storage_t::decode_upto(const char *src, char *ds
 {
     while (*src == ' ')
         src++;
-    int quoted = (*src == '"');
+    bool quoted = (*src == '"');
     if (quoted)
         src++;
 
     while (quoted ? (*src != '"')
-                  : (*src != ',' && *src != '}' && *src != ':')) {
+                  : (*src != ',' && *src != '\t' && *src != '\n')) {
         if (*src == '\\') {
             switch (src[1]) {
             case 'n':
@@ -48,25 +48,41 @@ inline const char * hstore_tags_storage_t::decode_upto(const char *src, char *ds
 
 // TODO! copypasted from table.cpp. Extract to orginal lib.
 //create an escaped version of the string for hstore table insert
-void hstore_tags_storage_t::escape4hstore(const char *src, std::string& dst)
+// Additional \\ generated because COPY syntax.
+void hstore_tags_storage_t::escape4hstore(const char *src, std::string& dst,const bool escape)
 {
     dst.push_back('"');
     for (size_t i = 0; i < strlen(src); ++i) {
         switch (src[i]) {
             case '\\':
-                dst.append("\\\\\\\\");
+                if (escape) {
+                    dst.append("\\\\");
+                }
+                dst.append("\\\\");
                 break;
             case '"':
-                dst.append("\\\\\"");
+                if (escape) {
+                    dst.append("\\");
+                }
+                dst.append("\\\"");
                 break;
             case '\t':
-                dst.append("\\\t");
+                if (escape) {
+                    dst.append("\\");
+                }
+                dst.append("\\t");
                 break;
             case '\r':
-                dst.append("\\\r");
+                if (escape) {
+                    dst.append("\\");
+                }
+                dst.append("\\r");
                 break;
             case '\n':
-                dst.append("\\\n");
+                if (escape) {
+                    dst.append("\\");
+                }
+                dst.append("\\n");
                 break;
             default:
                 dst.push_back(src[i]);
@@ -84,6 +100,10 @@ void hstore_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder
     char val[1024];
 
     while (strlen(string)) {
+        if (*string!='"') {
+            string++;
+            continue;
+        }
         string = decode_upto(string, key);
         // Find start of the next string
         while (*++string!='"') {}
@@ -102,20 +122,18 @@ std::string hstore_tags_storage_t::encode_tags(osmium::OSMObject const &obj, boo
 {
     std::string result;// = "'";
     for (auto const &it : obj.tags()) {
-        //result += (fmt("%1%=>%2%,") % escape_string(it.key(), escape) % escape_string(it.value(), escape)).str();
-        escape4hstore(it.key(), result);
+        escape4hstore(it.key(), result, escape);
         result += "=>";
-        escape4hstore(it.value(), result);
+        escape4hstore(it.value(), result, escape);
         result += ',';
     }
     if (attrs) {
         taglist_t extra;
         extra.add_attributes(obj);
         for (auto const &it : extra) {
-            //result += (fmt("%1%=>%2%,") % it.key % escape_string(it.value, escape)).str();
-            escape4hstore(it.key.c_str(), result);
+            escape4hstore(it.key.c_str(), result, escape);
             result += "=>";
-            escape4hstore(it.value.c_str(), result);
+            escape4hstore(it.value.c_str(), result, escape);
             result += ',';
         }
     }
