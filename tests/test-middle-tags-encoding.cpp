@@ -1,6 +1,7 @@
 #include<iostream>
 
 #include "middle/hstore_tags_storage_t.hpp"
+#include "middle/jsonb_tags_storage_t.hpp"
 
 void assert_equal(uint64_t actual, uint64_t expected) {
   if (actual != expected) {
@@ -23,9 +24,8 @@ void assert_true(bool actual) {
   }
 }
 
-void check_hstore_tags_encoding(std::string const & key, std::string const & val, std::string const & result)
+void check_tags_encoding(tags_storage_t const & encoder, std::string const & key, std::string const & val, std::string const & result)
 {
-    hstore_tags_storage_t encoder;
     osmium::memory::Buffer buffer(1024, osmium::memory::Buffer::auto_grow::yes);
     osmium::builder::WayBuilder builder(buffer);
     osmium::builder::TagListBuilder tl_builder(buffer, &builder);
@@ -35,9 +35,8 @@ void check_hstore_tags_encoding(std::string const & key, std::string const & val
     assert_equal(encoder.encode_tags(way, false, true), result);
 }
 
-void check_hstore_tags_parsing(std::string const & input, std::string const & key, std::string const & val)
+void check_tags_parsing(tags_storage_t const & encoder, std::string const & input, std::string const & key, std::string const & val)
 {
-    hstore_tags_storage_t encoder;
     osmium::memory::Buffer buffer(1024, osmium::memory::Buffer::auto_grow::yes);
     osmium::builder::WayBuilder builder(buffer);
     osmium::builder::TagListBuilder tl_builder(buffer, &builder);
@@ -65,8 +64,8 @@ void test_hstore_tags_storage() {
     }
 
     // Check escaping
-    check_hstore_tags_encoding("name with \"", "\"strange\"", "\"name with \\\\\"\"=>\"\\\\\"strange\\\\\"\" ");
-    check_hstore_tags_encoding("some\tformatting\nin tag", "true\rway", "\"some\\\\tformatting\\\\nin tag\"=>\"true\\\\rway\" ");
+    check_tags_encoding(encoder, "name with \"", "\"strange\"", "\"name with \\\\\"\"=>\"\\\\\"strange\\\\\"\" ");
+    check_tags_encoding(encoder, "some\tformatting\nin tag", "true\rway", "\"some\\\\tformatting\\\\nin tag\"=>\"true\\\\rway\" ");
 
     // Check parsing
     {
@@ -80,14 +79,50 @@ void test_hstore_tags_storage() {
         assert_true(way.tags().has_tag("a", "b"));
         assert_true(way.tags().has_tag("c", "d"));
     }
-    //Check escaping
-    check_hstore_tags_parsing("\"name with \\\"\"=>\"\\\"strange\\\"\"", "name with \"", "\"strange\"");
-    check_hstore_tags_parsing("\"some\\\tformatting\\\nin tag\"=>\"true\\\rway\" ", "some\tformatting\nin tag", "true\rway");
-    check_hstore_tags_parsing("\"test\"=>\"true\\\\slash\" ", "test", "true\\slash");
+    check_tags_parsing(encoder, "\"name with \\\"\"=>\"\\\"strange\\\"\"", "name with \"", "\"strange\"");
+    check_tags_parsing(encoder, "\"some\\\tformatting\\\nin tag\"=>\"true\\\rway\" ", "some\tformatting\nin tag", "true\rway");
+    check_tags_parsing(encoder, "\"test\"=>\"true\\\\slash\" ", "test", "true\\slash");
+}
+
+void test_jsonb_tags_storage() {
+    jsonb_tags_storage_t encoder;
+    assert_equal(encoder.get_column_name(), "jsonb");
+
+    // Check simple case with several tags
+    {
+        osmium::memory::Buffer buffer(1024, osmium::memory::Buffer::auto_grow::yes);
+        osmium::builder::WayBuilder builder(buffer);
+        osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+        tl_builder.add_tag("a", "b");
+        tl_builder.add_tag("c", "d");
+        buffer.commit();
+        auto &way = buffer.get<osmium::Way>(0);
+        assert_equal(encoder.encode_tags(way, false, false), "{\"a\":\"b\",\"c\":\"d\"}");
+    }
+
+    // Check escaping
+    check_tags_encoding(encoder, "name with \"", "\"strange\"", "{\"name with \\\\\"\":\"\\\\\"strange\\\\\"\"}");
+    check_tags_encoding(encoder, "some\tformatting\nin tag", "true\rway", "{\"some\\\\tformatting\\\\nin tag\":\"true\\\\rway\"}");
+    // Check parsing
+    {
+        osmium::memory::Buffer buffer(1024, osmium::memory::Buffer::auto_grow::yes);
+        osmium::builder::WayBuilder builder(buffer);
+        osmium::builder::TagListBuilder tl_builder(buffer, &builder);
+        encoder.pgsql_parse_tags("{\"a\": \"b\", \"c\": \"d\"}", tl_builder);
+        buffer.commit();
+        auto &way = buffer.get<osmium::Way>(0);
+        assert_equal(way.tags().size(), 2);
+        assert_true(way.tags().has_tag("a", "b"));
+        assert_true(way.tags().has_tag("c", "d"));
+    }
+    check_tags_parsing(encoder, "{\"name with \\\"\": \"\\\"strange\\\"\"}", "name with \"", "\"strange\"");
+    check_tags_parsing(encoder, "{\"some\\\tformatting\\\nin tag\": \"true\\\rway\"}", "some\tformatting\nin tag", "true\rway");
+    check_tags_parsing(encoder, "{\"test\": \"true\\\\slash\"}", "test", "true\\slash");
 }
 
 int main() {
     test_hstore_tags_storage();
+    test_jsonb_tags_storage();
     return 0;
 }
 

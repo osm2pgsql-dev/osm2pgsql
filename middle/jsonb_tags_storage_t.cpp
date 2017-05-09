@@ -6,7 +6,7 @@ typedef boost::format fmt;
 
 // Decodes a portion of an jsonb literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
-inline const char * jsonb_tags_storage_t::decode_upto(const char *src, char *dst)
+inline const char * jsonb_tags_storage_t::decode_upto(const char *src, char *dst) const
 {
     while (*src == ' ')
         src++;
@@ -39,7 +39,7 @@ inline const char * jsonb_tags_storage_t::decode_upto(const char *src, char *dst
 }
 
 
-std::string jsonb_tags_storage_t::escape_string(std::string const &in, bool escape)
+std::string jsonb_tags_storage_t::escape_string(std::string const &in, bool escape) const
 {
     std::string result;
     for (char const c : in) {
@@ -78,7 +78,7 @@ std::string jsonb_tags_storage_t::escape_string(std::string const &in, bool esca
 }
 
 
-void jsonb_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder){
+void jsonb_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder) const{
     if (*string++ != '{')
         return;
 
@@ -100,11 +100,11 @@ void jsonb_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder:
 
 
 // escape means we return '\N' for copy mode, otherwise we return just nullptr
-std::string jsonb_tags_storage_t::encode_tags(osmium::OSMObject const &obj, bool attrs, bool escape)
+std::string jsonb_tags_storage_t::encode_tags(osmium::OSMObject const &obj, bool attrs, bool escape) const
 {
     std::string result = "{";
     for (auto const &it : obj.tags()) {
-        result += (fmt("\"%1%\": \"%2%\",") % escape_string(it.key(), escape) % escape_string(it.value(), escape)).str();
+        result += (fmt("\"%1%\":\"%2%\",") % escape_string(it.key(), escape) % escape_string(it.value(), escape)).str();
     }
     if (attrs) {
         taglist_t extra;
