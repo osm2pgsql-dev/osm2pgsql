@@ -20,7 +20,8 @@ struct options_t;
 /**
  * object which stores OSM node/ways/relations from the input file
  */
-struct middle_query_t {
+struct middle_query_t
+{
     virtual ~middle_query_t() {}
 
     /**
@@ -64,7 +65,8 @@ struct middle_query_t {
      *
      * \return true if the relation was retrieved
      */
-    virtual bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
+    virtual bool relations_get(osmid_t id,
+                               osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member
@@ -78,7 +80,8 @@ struct middle_query_t {
 /**
  * A specialized middle backend which is persistent, and supports updates
  */
-struct middle_t : public middle_query_t {
+struct middle_t : public middle_query_t
+{
     static std::shared_ptr<middle_t> create_middle(bool slim);
 
     virtual ~middle_t() {}
@@ -93,7 +96,8 @@ struct middle_t : public middle_query_t {
     virtual void ways_set(osmium::Way const &way) = 0;
     virtual void relations_set(osmium::Relation const &rel) = 0;
 
-    struct pending_processor {
+    struct pending_processor
+    {
         virtual ~pending_processor() {}
         virtual void enqueue_ways(osmid_t id) = 0;
         virtual void process_ways() = 0;
@@ -101,15 +105,16 @@ struct middle_t : public middle_query_t {
         virtual void process_relations() = 0;
     };
 
-    virtual void iterate_ways(pending_processor& pf) = 0;
-    virtual void iterate_relations(pending_processor& pf) = 0;
+    virtual void iterate_ways(pending_processor &pf) = 0;
+    virtual void iterate_relations(pending_processor &pf) = 0;
 
     virtual size_t pending_count() const = 0;
 
-    const options_t* out_options;
+    const options_t *out_options;
 };
 
-struct slim_middle_t : public middle_t {
+struct slim_middle_t : public middle_t
+{
     virtual ~slim_middle_t() {}
 
     virtual void nodes_delete(osmid_t id) = 0;

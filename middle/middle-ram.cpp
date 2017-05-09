@@ -63,7 +63,7 @@ size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     return count;
 }
 
-void middle_ram_t::iterate_relations(pending_processor& pf)
+void middle_ram_t::iterate_relations(pending_processor &pf)
 {
     //TODO: just dont do anything
 
@@ -75,12 +75,9 @@ void middle_ram_t::iterate_relations(pending_processor& pf)
     pf.process_relations();
 }
 
-size_t middle_ram_t::pending_count() const
-{
-    return 0;
-}
+size_t middle_ram_t::pending_count() const { return 0; }
 
-void middle_ram_t::iterate_ways(middle_t::pending_processor& pf)
+void middle_ram_t::iterate_ways(middle_t::pending_processor &pf)
 {
     //let the outputs enqueue everything they have the non slim middle
     //has nothing of its own to enqueue as it doesnt have pending anything
@@ -90,15 +87,9 @@ void middle_ram_t::iterate_ways(middle_t::pending_processor& pf)
     pf.process_ways();
 }
 
-void middle_ram_t::release_relations()
-{
-    rels.clear();
-}
+void middle_ram_t::release_relations() { rels.clear(); }
 
-void middle_ram_t::release_ways()
-{
-    ways.clear();
-}
+void middle_ram_t::release_ways() { ways.clear(); }
 
 bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
@@ -113,7 +104,8 @@ bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     }
 
     using namespace osmium::builder::attr;
-    osmium::builder::add_way(buffer, _id(id), _tags(ele->tags), _nodes(ele->ndids));
+    osmium::builder::add_way(buffer, _id(id), _tags(ele->tags),
+                             _nodes(ele->ndids));
 
     return true;
 }
@@ -135,7 +127,8 @@ size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
     return count;
 }
 
-bool middle_ram_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
+bool middle_ram_t::relations_get(osmid_t id,
+                                 osmium::memory::Buffer &buffer) const
 {
     auto const *ele = rels.get(id);
 
@@ -144,21 +137,16 @@ bool middle_ram_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) con
     }
 
     using namespace osmium::builder::attr;
-    osmium::builder::add_relation(buffer, _id(id), _members(ele->members.for_builder()),
+    osmium::builder::add_relation(buffer, _id(id),
+                                  _members(ele->members.for_builder()),
                                   _tags(ele->tags));
 
     return true;
 }
 
-void middle_ram_t::analyze(void)
-{
-    /* No need */
-}
+void middle_ram_t::analyze(void) { /* No need */ }
 
-void middle_ram_t::end(void)
-{
-    /* No need */
-}
+void middle_ram_t::end(void) { /* No need */ }
 
 void middle_ram_t::start(const options_t *out_options_)
 {
@@ -175,15 +163,15 @@ void middle_ram_t::stop(void)
     release_relations();
 }
 
-void middle_ram_t::commit(void) {
-}
+void middle_ram_t::commit(void) {}
 
-middle_ram_t::middle_ram_t():
-    ways(), rels(), cache(), simulate_ways_deleted(false)
+middle_ram_t::middle_ram_t()
+: ways(), rels(), cache(), simulate_ways_deleted(false)
 {
 }
 
-middle_ram_t::~middle_ram_t() {
+middle_ram_t::~middle_ram_t()
+{
     //instance.reset();
 }
 
@@ -207,9 +195,10 @@ void no_delete(const middle_ram_t *)
     // So yeah, this is a hack...
 }
 
-}
+} // namespace
 
-std::shared_ptr<const middle_query_t> middle_ram_t::get_instance() const {
+std::shared_ptr<const middle_query_t> middle_ram_t::get_instance() const
+{
     //shallow copy here because readonly access is thread safe
     return std::shared_ptr<const middle_query_t>(this, no_delete);
 }

@@ -32,9 +32,9 @@ using namespace std;
 
 #include <libpq-fe.h>
 
-#include "middle-pgsql.hpp"
-#include "jsonb_tags_storage_t.hpp"
 #include "hstore_tags_storage_t.hpp"
+#include "jsonb_tags_storage_t.hpp"
+#include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
 #include "options.hpp"
@@ -51,7 +51,6 @@ enum table_id
     t_way,
     t_rel
 };
-
 
 std::string escape_string(std::string const &in, bool escape)
 {
@@ -98,29 +97,33 @@ middle_pgsql_t::table_desc::table_desc()
 
 namespace {
 
-inline const char *decode_upto( const char *src, char *dst )
+inline const char *decode_upto(const char *src, char *dst)
 {
-  int quoted = (*src == '"');
-  if( quoted ) src++;
+    int quoted = (*src == '"');
+    if (quoted)
+        src++;
 
-  while( quoted ? (*src != '"') : (*src != ',' && *src != '}') )
-  {
-    if( *src == '\\' )
-    {
-      switch( src[1] )
-      {
-        case 'n': *dst++ = '\n'; break;
-        case 't': *dst++ = '\t'; break;
-        default: *dst++ = src[1]; break;
-      }
-      src+=2;
+    while (quoted ? (*src != '"') : (*src != ',' && *src != '}')) {
+        if (*src == '\\') {
+            switch (src[1]) {
+            case 'n':
+                *dst++ = '\n';
+                break;
+            case 't':
+                *dst++ = '\t';
+                break;
+            default:
+                *dst++ = src[1];
+                break;
+            }
+            src += 2;
+        } else
+            *dst++ = *src++;
     }
-    else
-      *dst++ = *src++;
-  }
-  if( quoted ) src++;
-  *dst = 0;
-  return src;
+    if (quoted)
+        src++;
+    *dst = 0;
+    return src;
 }
 
 void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
@@ -391,7 +394,8 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
         copy_buffer += "\\N";
     } else {
         paramValues[2] = paramValues[0] + copy_buffer.size();
-        copy_buffer += tags_storage->encode_tags(way, out_options->extra_attributes, copy);
+        copy_buffer +=
+            tags_storage->encode_tags(way, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -491,8 +495,10 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
                     pgsql_parse_nodes(PQgetvalue(res.get(), j, 1), buffer,
                                       builder);
-                    osmium::builder::TagListBuilder tl_builder(buffer, &builder);
-                    tags_storage->pgsql_parse_tags(PQgetvalue(res.get(), j, 2), tl_builder);
+                    osmium::builder::TagListBuilder tl_builder(buffer,
+                                                               &builder);
+                    tags_storage->pgsql_parse_tags(PQgetvalue(res.get(), j, 2),
+                                                   tl_builder);
                 }
 
                 buffer.commit();
@@ -627,7 +633,8 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
         copy_buffer += "\\N";
     } else {
         paramValues[5] = paramValues[0] + copy_buffer.size();
-        copy_buffer += tags_storage->encode_tags(rel, out_options->extra_attributes, copy);
+        copy_buffer +=
+            tags_storage->encode_tags(rel, out_options->extra_attributes, copy);
     }
 
     if (copy) {
@@ -814,8 +821,8 @@ std::string get_logging_str(const options_t &options)
     }
 }
 
-void middle_pgsql_t::generate_rels_table_queries(const options_t &options,
-                                 middle_pgsql_t::table_desc &table)
+void middle_pgsql_t::generate_rels_table_queries(
+    const options_t &options, middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_rels") % options.prefix).str();
     table.start = "BEGIN;";
@@ -823,7 +830,8 @@ void middle_pgsql_t::generate_rels_table_queries(const options_t &options,
         (fmt("CREATE %1% TABLE %2%_rels(id %3% PRIMARY KEY %4%, way_off int2, "
              "rel_off int2, parts %3% [], members text[], tags %5%) %6%;") %
          get_logging_str(options) % options.prefix % POSTGRES_OSMID_TYPE %
-         get_tablespace_index_str(options) % tags_storage->get_column_name() % get_tablespace_str(options))
+         get_tablespace_index_str(options) % tags_storage->get_column_name() %
+         get_tablespace_str(options))
             .str();
     table.prepare =
         (fmt("PREPARE insert_rel (%1%, int2, int2, %1%[], text[], %3%) AS INSERT INTO %2%_rels VALUES ($1,$2,$3,$4,$5,$6);\n\
@@ -848,8 +856,8 @@ void middle_pgsql_t::generate_rels_table_queries(const options_t &options,
                               .str();
 }
 
-void middle_pgsql_t::generate_ways_table_queries(const options_t &options,
-                                 middle_pgsql_t::table_desc &table)
+void middle_pgsql_t::generate_ways_table_queries(
+    const options_t &options, middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_ways") % options.prefix).str();
     table.start = "BEGIN;";
@@ -857,7 +865,8 @@ void middle_pgsql_t::generate_ways_table_queries(const options_t &options,
         (fmt("CREATE %1% TABLE %2%_ways (id %3% PRIMARY KEY %4%, nodes %3% [] "
              "not null, tags %5%) %6%;") %
          get_logging_str(options) % options.prefix % POSTGRES_OSMID_TYPE %
-         get_tablespace_index_str(options) % tags_storage->get_column_name() % get_tablespace_str(options))
+         get_tablespace_index_str(options) % tags_storage->get_column_name() %
+         get_tablespace_str(options))
             .str();
     table.prepare =
         (fmt("PREPARE Insert_way (%1%, %1%[], %3%) AS INSERT INTO %2%_ways VALUES ($1,$2,$3);\
@@ -881,8 +890,8 @@ void middle_pgsql_t::generate_ways_table_queries(const options_t &options,
                               .str();
 }
 
-void middle_pgsql_t::generate_nodes_table_queries(const options_t &options,
-                                  middle_pgsql_t::table_desc &table)
+void middle_pgsql_t::generate_nodes_table_queries(
+    const options_t &options, middle_pgsql_t::table_desc &table)
 {
     table.name = (fmt("%1%_nodes") % options.prefix).str();
     table.start = "BEGIN;";
@@ -1078,7 +1087,8 @@ void middle_pgsql_t::stop(void)
 
 middle_pgsql_t::middle_pgsql_t()
 : num_tables(0), node_table(nullptr), way_table(nullptr), rel_table(nullptr),
-  append(false), mark_pending(true), build_indexes(true), tags_storage(new hstore_tags_storage_t())
+  append(false), mark_pending(true), build_indexes(true),
+  tags_storage(new hstore_tags_storage_t())
 {
     tables.resize(3);
     // set up the rest of the variables from the tables.

@@ -4,7 +4,8 @@
 
 // Decodes a portion of a hstore literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
-inline const char * hstore_tags_storage_t::decode_upto(const char *src, char *dst) const
+inline const char *hstore_tags_storage_t::decode_upto(const char *src,
+                                                      char *dst) const
 {
     while (*src == ' ')
         src++;
@@ -45,54 +46,56 @@ inline const char * hstore_tags_storage_t::decode_upto(const char *src, char *ds
     return src;
 }
 
-
 // TODO! copypasted from table.cpp. Extract to orginal lib.
 //create an escaped version of the string for hstore table insert
 // Additional \\ generated because COPY syntax.
-void hstore_tags_storage_t::escape4hstore(const char *src, std::string& dst,const bool escape) const
+void hstore_tags_storage_t::escape4hstore(const char *src, std::string &dst,
+                                          const bool escape) const
 {
     dst.push_back('"');
     for (size_t i = 0; i < strlen(src); ++i) {
         switch (src[i]) {
-            case '\\':
-                if (escape) {
-                    dst.append("\\\\");
-                }
+        case '\\':
+            if (escape) {
                 dst.append("\\\\");
-                break;
-            case '"':
-                if (escape) {
-                    dst.append("\\");
-                }
-                dst.append("\\\"");
-                break;
-            case '\t':
-                if (escape) {
-                    dst.append("\\");
-                }
-                dst.append("\\t");
-                break;
-            case '\r':
-                if (escape) {
-                    dst.append("\\");
-                }
-                dst.append("\\r");
-                break;
-            case '\n':
-                if (escape) {
-                    dst.append("\\");
-                }
-                dst.append("\\n");
-                break;
-            default:
-                dst.push_back(src[i]);
-                break;
+            }
+            dst.append("\\\\");
+            break;
+        case '"':
+            if (escape) {
+                dst.append("\\");
+            }
+            dst.append("\\\"");
+            break;
+        case '\t':
+            if (escape) {
+                dst.append("\\");
+            }
+            dst.append("\\t");
+            break;
+        case '\r':
+            if (escape) {
+                dst.append("\\");
+            }
+            dst.append("\\r");
+            break;
+        case '\n':
+            if (escape) {
+                dst.append("\\");
+            }
+            dst.append("\\n");
+            break;
+        default:
+            dst.push_back(src[i]);
+            break;
         }
     }
     dst.push_back('"');
 }
 
-void hstore_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder::TagListBuilder & builder) const {
+void hstore_tags_storage_t::pgsql_parse_tags(
+    const char *string, osmium::builder::TagListBuilder &builder) const
+{
     if (*string != '"')
         return;
 
@@ -100,13 +103,14 @@ void hstore_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder
     char val[1024];
 
     while (strlen(string)) {
-        if (*string!='"') {
+        if (*string != '"') {
             string++;
             continue;
         }
         string = decode_upto(string, key);
         // Find start of the next string
-        while (*++string!='"') {}
+        while (*++string != '"') {
+        }
         string = decode_upto(string, val);
         builder.add_tag(key, val);
         // String points to the comma or end */
@@ -117,10 +121,10 @@ void hstore_tags_storage_t::pgsql_parse_tags(const char *string, osmium::builder
 }
 
 // escape means we return '\N' for copy mode, otherwise we return just nullptr
-std::string hstore_tags_storage_t::encode_tags(osmium::OSMObject const &obj, bool attrs,
-                                       bool escape) const
+std::string hstore_tags_storage_t::encode_tags(osmium::OSMObject const &obj,
+                                               bool attrs, bool escape) const
 {
-    std::string result;// = "'";
+    std::string result; // = "'";
     for (auto const &it : obj.tags()) {
         escape4hstore(it.key(), result, escape);
         result += "=>";
