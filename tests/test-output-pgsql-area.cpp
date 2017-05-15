@@ -3,7 +3,7 @@
 Test the area reprojection functionality of osm2pgsql 
 
 The idea behind that functionality is to populate the way_area
-column with the area that a polygoun would have in EPSG:3857, 
+column with the area that a polygoun would have in EPSG:900913, 
 rather than the area it actually has in the coordinate system
 used for importing.
 

@@ -13,7 +13,7 @@
 #include <osmium/geom/projection.hpp>
 #include <osmium/osm/location.hpp>
 
-enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 3857 };
+enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 900913 };
 
 class reprojection : public boost::noncopyable
 {
@@ -27,7 +27,7 @@ public:
     virtual osmium::geom::Coordinates reproject(osmium::Location loc) const = 0;
 
     /**
-     * Converts coordinates from target projection to tile projection (EPSG:3857)
+     * Converts coordinates from target projection to tile projection (EPSG:900913)
      *
      * Do not confuse with coords_to_tile which does *not* calculate coordinates in the
      * tile projection, but tile coordinates.

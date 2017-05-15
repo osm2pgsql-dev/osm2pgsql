@@ -125,7 +125,7 @@ namespace osmium {
          *
          * If this Projection is initialized with the constructor taking
          * an integer with the epsg code 4326, no projection is done. If it
-         * is initialized with epsg code 3857 the Osmium-internal
+         * is initialized with epsg code 900913 the Osmium-internal
          * implementation of the Mercator projection is used, otherwise this
          * falls back to using the proj.4 library. Note that this "magic" does
          * not work if you use any of the constructors taking a string.
@@ -160,7 +160,7 @@ namespace osmium {
             Coordinates operator()(osmium::Location location) const {
                 if (m_epsg == 4326) {
                     return Coordinates{location.lon(), location.lat()};
-                } else if (m_epsg == 3857) {
+                } else if (m_epsg == 900913) {
                     return Coordinates{detail::lon_to_x(location.lon()),
                                        detail::lat_to_y(location.lat())};
                 }

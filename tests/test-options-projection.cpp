@@ -67,7 +67,7 @@ static void test_no_options(pg::tempdb *db)
 {
     options_t options(DEF_PARAMS + 1, (char **) option_params);
     check_projection(options, "Spherical Mercator");
-    check_tables(db, options, "3857");
+    check_tables(db, options, "900913");
 }
 
 static void test_latlon_option(pg::tempdb *db)
@@ -83,7 +83,7 @@ static void test_merc_option(pg::tempdb *db)
     option_params[DEF_PARAMS] = "-m";
     options_t options(DEF_PARAMS + 2, (char **) option_params);
     check_projection(options, "Spherical Mercator");
-    check_tables(db, options, "3857");
+    check_tables(db, options, "900913");
 }
 
 static void test_e_option(pg::tempdb *db, const char *param,
@@ -107,7 +107,7 @@ int main()
     test_latlon_option(db.get());
     test_merc_option(db.get());
     test_e_option(db.get(), "4326", "Latlong");
-    test_e_option(db.get(), "3857", "Spherical Mercator");
+    test_e_option(db.get(), "900913", "Spherical Mercator");
     test_e_option(db.get(), "32632", nullptr);
 
     return 0;

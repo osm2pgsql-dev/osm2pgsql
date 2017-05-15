@@ -14,15 +14,15 @@ migration and a reload is required.
 
 ## 0.91 default projection ##
 
-The default projection was moved from 900913 to 3857. This does not effect
+The default projection was moved from 900913 to 900913. This does not effect
 users using `-l` or `-E`, but if using no projection options or `-m` a
 migration is needed.
 
 ```sql
-ALTER TABLE planet_osm_roads ALTER COLUMN way TYPE geometry(LineString,3857) USING ST_SetSRID(way,3857);
-ALTER TABLE planet_osm_point ALTER COLUMN way TYPE geometry(Point,3857) USING ST_SetSRID(way,3857);
-ALTER TABLE planet_osm_line ALTER COLUMN way TYPE geometry(LineString,3857) USING ST_SetSRID(way,3857);
-ALTER TABLE planet_osm_polygon ALTER COLUMN way TYPE geometry(Geometry,3857) USING ST_SetSRID(way,3857);
+ALTER TABLE planet_osm_roads ALTER COLUMN way TYPE geometry(LineString,900913) USING ST_SetSRID(way,900913);
+ALTER TABLE planet_osm_point ALTER COLUMN way TYPE geometry(Point,900913) USING ST_SetSRID(way,900913);
+ALTER TABLE planet_osm_line ALTER COLUMN way TYPE geometry(LineString,900913) USING ST_SetSRID(way,900913);
+ALTER TABLE planet_osm_polygon ALTER COLUMN way TYPE geometry(Geometry,900913) USING ST_SetSRID(way,900913);
 ```
 
 ## 0.88.0 z_order changes ##

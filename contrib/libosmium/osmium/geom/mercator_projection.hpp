@@ -46,15 +46,15 @@ namespace osmium {
 
         namespace detail {
 
-            constexpr double earth_radius_for_epsg3857 = 6378137.0;
-            constexpr double max_coordinate_epsg3857 = 20037508.34;
+            constexpr double earth_radius_for_epsg900913 = 6378137.0;
+            constexpr double max_coordinate_epsg900913 = 20037508.34;
 
             constexpr inline double lon_to_x(double lon) {
-                return earth_radius_for_epsg3857 * deg_to_rad(lon);
+                return earth_radius_for_epsg900913 * deg_to_rad(lon);
             }
 
             inline double lat_to_y_with_tan(double lat) { // not constexpr because math functions aren't
-                return earth_radius_for_epsg3857 * std::log(std::tan(osmium::geom::PI/4 + deg_to_rad(lat)/2));
+                return earth_radius_for_epsg900913 * std::log(std::tan(osmium::geom::PI/4 + deg_to_rad(lat)/2));
             }
 
 #ifdef OSMIUM_USE_SLOW_MERCATOR_PROJECTION
@@ -71,7 +71,7 @@ namespace osmium {
                     return lat_to_y_with_tan(lat);
                 }
 
-                return earth_radius_for_epsg3857 *
+                return earth_radius_for_epsg900913 *
                     ((((((((((-3.1112583378460085319e-23  * lat +
                                2.0465852743943268009e-19) * lat +
                                6.4905282018672673884e-18) * lat +
@@ -97,18 +97,18 @@ namespace osmium {
 #endif
 
             constexpr inline double x_to_lon(double x) {
-                return rad_to_deg(x) / earth_radius_for_epsg3857;
+                return rad_to_deg(x) / earth_radius_for_epsg900913;
             }
 
             inline double y_to_lat(double y) { // not constexpr because math functions aren't
-                return rad_to_deg(2 * std::atan(std::exp(y / earth_radius_for_epsg3857)) - osmium::geom::PI/2);
+                return rad_to_deg(2 * std::atan(std::exp(y / earth_radius_for_epsg900913)) - osmium::geom::PI/2);
             }
 
         } // namespace detail
 
         /**
          * The maximum latitude that can be projected with the Web Mercator
-         * (EPSG:3857) projection.
+         * (EPSG:900913) projection.
          */
         constexpr double MERCATOR_MAX_LAT = 85.0511288;
 
@@ -132,7 +132,7 @@ namespace osmium {
 
         /**
          * Functor that does projection from WGS84 (EPSG:4326) to "Web
-         * Mercator" (EPSG:3857)
+         * Mercator" (EPSG:900913)
          */
         class MercatorProjection {
 
@@ -143,7 +143,7 @@ namespace osmium {
             }
 
             int epsg() const noexcept {
-                return 3857;
+                return 900913;
             }
 
             std::string proj_string() const {
