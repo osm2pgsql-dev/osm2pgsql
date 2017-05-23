@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">
+<pkgmetadata>
+  <maintainer type="person">
+    <email>andrew.aladev@hiqo-solutions.com</email>
+    <name>Andrew Aladev</name>
+  </maintainer>
+  <longdescription>
+    OpenStreetMap data to PostgreSQL converter.
+  </longdescription>
+  <use>
+    <flag name="internal-libosmium">Use the bundled libosmium.</flag>
+    <flag name="lua">Build with lua support.</flag>
+    <flag name="test">Build test suite.</flag>
+  </use>
+</pkgmetadata>
