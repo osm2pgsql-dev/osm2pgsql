@@ -132,11 +132,6 @@ public:
         m_multigeometry_size_offset = header(m_data, wkb_multi_line, true);
     }
 
-    void multilinestring_line_finish(size_t num_points)
-    {
-        set_size(m_geometry_size_offset, num_points);
-    }
-
     std::string multilinestring_finish(size_t num_lines)
     {
         set_size(m_multigeometry_size_offset, num_lines);
@@ -182,11 +177,6 @@ public:
     void multipolygon_start()
     {
         m_multigeometry_size_offset = header(m_data, wkb_multi_polygon, true);
-    }
-
-    void multipolygon_polygon_finish(size_t num_rings)
-    {
-        set_size(m_geometry_size_offset, num_rings);
     }
 
     std::string multipolygon_finish(size_t num_polygons)
