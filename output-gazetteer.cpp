@@ -159,6 +159,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
             places.emplace_back(k, v);
         } else if (strcmp(k, "aeroway") == 0 ||
                    strcmp(k, "amenity") == 0 ||
+                   strcmp(k, "club") == 0 ||
                    strcmp(k, "boundary") == 0 ||
                    strcmp(k, "bridge") == 0 ||
                    strcmp(k, "craft") == 0 ||
