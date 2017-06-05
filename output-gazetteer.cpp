@@ -561,7 +561,7 @@ int output_gazetteer_t::start()
         std::string sql =
             "CREATE TABLE place ("
             "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL,"
-            "  osm_type \"char\" NOT NULL,"
+            "  osm_type char(1) NOT NULL,"
             "  class TEXT NOT NULL,"
             "  type TEXT NOT NULL,"
             "  name HSTORE,"
