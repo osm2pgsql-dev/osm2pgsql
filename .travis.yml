@@ -23,10 +23,10 @@ matrix:
       env: CXXFLAGS="-pedantic -Werror"
     - os: linux
       compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
     - os: osx
       compiler: clang
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
 before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
       brew install lua;
