@@ -132,6 +132,40 @@ void test_outputs()
     }
 }
 
+void test_parsing_tile_expiry_zoom_levels()
+{
+    const char *a1[] = {
+        "osm2pgsql",     "-e",
+        "8--12",         "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a1), a1, "Invalid maximum zoom level given for tile expiry");
+
+    const char *a2[] = {
+        "osm2pgsql",     "-e",
+        "-8-12",         "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a2), a2,
+               "Missing argument for option -e. Zoom levels must be positive.");
+
+    const char *a3[] = {"osm2pgsql", "-e", "--style", "default.style",
+                        "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a3), a3,
+               "Missing argument for option -e. Zoom levels must be positive.");
+
+    const char *a4[] = {
+        "osm2pgsql",     "-e",
+        "a-8",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a4), a4, "Missing zoom level for tile expiry.");
+
+    const char *a5[] = {
+        "osm2pgsql",     "-e",
+        "6:8",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a5), a5, "Minimum and maximum zoom level for tile expiry "
+                            "must be separated by '-'.");
+}
+
 int get_random_proj(std::vector<std::string>& args)
 {
     int proj = rand() % 3;
@@ -290,6 +324,8 @@ int main(int argc, char *argv[])
     run_test("test_middles", test_middles);
     run_test("test_outputs", test_outputs);
     run_test("test_random_perms", test_random_perms);
+    run_test("test_parsing_tile_expiry_zoom_levels",
+             test_parsing_tile_expiry_zoom_levels);
 
     //passed
     return 0;

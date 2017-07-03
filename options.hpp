@@ -55,8 +55,9 @@ public:
     boost::optional<std::string> tblsmain_data; ///< Pg Tablespace to store main tables (no default TABLESPACE)
     boost::optional<std::string> tblsslim_data; ///< Pg Tablespace to store slim tables (no default TABLESPACE)
     std::string style; ///< style file to use
-    int expire_tiles_zoom; ///< Zoom level for tile expiry list
-    int expire_tiles_zoom_min; ///< Minimum zoom level for tile expiry list
+    uint32_t expire_tiles_zoom = 0; ///< Zoom level for tile expiry list
+    uint32_t expire_tiles_zoom_min =
+        0;                        ///< Minimum zoom level for tile expiry list
     double expire_tiles_max_bbox; ///< Max bbox size in either dimension to expire full bbox for a polygon
     std::string expire_tiles_filename; ///< File name to output expired tiles list to
     int hstore_mode; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column

@@ -267,7 +267,7 @@ options_t::options_t()
   slim(false), cache(800), tblsmain_index(boost::none),
   tblsslim_index(boost::none), tblsmain_data(boost::none),
   tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-  expire_tiles_zoom(-1), expire_tiles_zoom_min(-1),
+  expire_tiles_zoom(0), expire_tiles_zoom_min(0),
   expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
   hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
   hstore_columns(), keep_coastlines(false), parallel_indexing(true),
@@ -298,7 +298,6 @@ options_t::~options_t()
 
 options_t::options_t(int argc, char *argv[]): options_t()
 {
-    const char *temparg;
     int c;
 
     //keep going while there are args left to handle
@@ -377,12 +376,37 @@ options_t::options_t(int argc, char *argv[]): options_t()
             tblsmain_index = optarg;
             break;
         case 'e':
-            expire_tiles_zoom_min = atoi(optarg);
-            temparg = strchr(optarg, '-');
-            if (temparg)
-                expire_tiles_zoom = atoi(temparg + 1);
-            if (expire_tiles_zoom < expire_tiles_zoom_min)
+            if (!optarg || optarg[0] == '-') {
+                throw std::runtime_error("Missing argument for option -e. Zoom "
+                                         "levels must be positive.\n");
+            }
+            char *next_char;
+            expire_tiles_zoom_min =
+                static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
+            if (expire_tiles_zoom_min == 0) {
+                throw std::runtime_error(
+                    "Missing zoom level for tile expiry.\n");
+            }
+            // The first character after the number is ignored because that is the separating hyphen.
+            if (*next_char == '-') {
+                ++next_char;
+                // Second number must not be negative because zoom levels must be positive.
+                if (next_char && *next_char != '-' && isdigit(*next_char)) {
+                    char *after_maxzoom;
+                    expire_tiles_zoom = static_cast<uint32_t>(
+                        std::strtoul(next_char, &after_maxzoom, 10));
+                } else {
+                    throw std::runtime_error(
+                        "Invalid maximum zoom level given for tile expiry.\n");
+                }
+            } else {
+                throw std::runtime_error("Minimum and maximum zoom level for "
+                                         "tile expiry must be separated by "
+                                         "'-'.\n");
+            }
+            if (expire_tiles_zoom < expire_tiles_zoom_min) {
                 expire_tiles_zoom = expire_tiles_zoom_min;
+            }
             break;
         case 'o':
             expire_tiles_filename = optarg;
@@ -548,5 +572,18 @@ void options_t::check_options()
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
         fprintf(stderr, "!! mode using parameter -s.\n");
+    }
+
+    // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
+    if (expire_tiles_zoom_min >= 32) {
+        expire_tiles_zoom_min = 31;
+        fprintf(stderr, "WARNING: mimimum zoom level for tile expiry is too "
+                        "large and has been set to 31.\n\n");
+    }
+
+    if (expire_tiles_zoom >= 32) {
+        expire_tiles_zoom = 31;
+        fprintf(stderr, "WARNING: maximum zoom level for tile expiry is too "
+                        "large and has been set to 31.\n\n");
     }
 }

@@ -179,7 +179,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
 void output_multi_t::stop()
 {
     m_table->stop();
-    if (m_options.expire_tiles_zoom_min >= 0) {
+    if (m_options.expire_tiles_zoom_min > 0) {
         m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                     m_options.expire_tiles_zoom_min);
     }

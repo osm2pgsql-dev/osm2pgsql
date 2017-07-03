@@ -261,7 +261,7 @@ void output_pgsql_t::stop()
       }
     }
 
-    if (m_options.expire_tiles_zoom_min >= 0) {
+    if (m_options.expire_tiles_zoom_min > 0) {
         expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                   m_options.expire_tiles_zoom_min);
     }
