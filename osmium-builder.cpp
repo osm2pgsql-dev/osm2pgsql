@@ -103,6 +103,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
                     // the next iteration.
                     if (this_pt == ipoint) {
                         dist = 0;
+                        m_writer.linestring_finish(0);
                         m_writer.linestring_start();
                         curlen = 0;
                     } else {
@@ -120,8 +121,9 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
         prev_pt = this_pt;
     }
 
+    auto wkb = m_writer.linestring_finish(curlen);
     if (curlen > 1) {
-        ret.push_back(m_writer.linestring_finish(curlen));
+        ret.push_back(wkb);
     }
 
     return ret;
@@ -394,8 +396,9 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
             }
         }
 
+        auto wkb = m_writer.polygon_finish(num_rings);
         if (num_rings > 0) {
-            ret.push_back(m_writer.polygon_finish(num_rings));
+            ret.push_back(wkb);
         }
 
     } catch (osmium::geometry_error) { /* ignored */
