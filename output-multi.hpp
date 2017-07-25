@@ -83,6 +83,7 @@ protected:
     expire_tiles m_expire;
     relation_helper m_relation_helper;
     osmium::memory::Buffer buffer;
+    geom::osmium_builder_t m_builder;
     bool m_way_area;
 };
 

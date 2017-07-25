@@ -35,6 +35,7 @@ output_multi_t::output_multi_t(const std::string &name,
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_builder(m_options.projection, m_options.enable_multi),
   m_way_area(m_export_list->has_column(m_osm_type, "way_area"))
 {
 }
@@ -52,6 +53,7 @@ output_multi_t::output_multi_t(const output_multi_t &other)
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  m_builder(m_options.projection, m_options.enable_multi),
   m_way_area(other.m_way_area)
 {
 }
@@ -286,7 +288,7 @@ int output_multi_t::process_node(osmium::Node const &node)
                                               outtags, true);
     if (!filter) {
         // grab its geom
-        auto geom = m_processor->process_node(node.location());
+        auto geom = m_processor->process_node(node.location(), &m_builder);
         if (!geom.empty()) {
             m_expire.from_wkb(geom.c_str(), node.id());
             copy_node_to_table(node.id(), geom, outtags);
@@ -314,7 +316,7 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
         *way, 0, 0, *m_export_list.get(), outtags, true);
     if (!filter) {
         m_mid->nodes_get_list(&(way->nodes()));
-        auto geom = m_processor->process_way(*way);
+        auto geom = m_processor->process_way(*way, &m_builder);
         if (!geom.empty()) {
             copy_to_table(way->id(), geom, outtags);
         }
@@ -331,7 +333,7 @@ int output_multi_t::process_way(osmium::Way *way) {
         if (m_mid->nodes_get_list(&(way->nodes())) < 1)
             return 0;
         //grab its geom
-        auto geom = m_processor->process_way(*way);
+        auto geom = m_processor->process_way(*way, &m_builder);
 
         if (!geom.empty()) {
             //if we are also interested in relations we need to mark
@@ -391,8 +393,8 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         if (!filter)
         {
             m_relation_helper.add_way_locations((middle_t *)m_mid);
-            auto geoms =
-                m_processor->process_relation(rel, m_relation_helper.data);
+            auto geoms = m_processor->process_relation(
+                rel, m_relation_helper.data, &m_builder);
             for (const auto geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
             }

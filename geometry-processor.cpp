@@ -22,8 +22,7 @@ std::shared_ptr<geometry_processor> geometry_processor::create(const std::string
         ptr = std::make_shared<processor_line>(options->projection);
     }
     else if (type == "polygon") {
-        ptr = std::make_shared<processor_polygon>(options->projection,
-                                                  options->enable_multi);
+        ptr = std::make_shared<processor_polygon>(options->projection);
     }
     else {
         throw std::runtime_error((boost::format("Unable to construct geometry processor "
@@ -57,19 +56,22 @@ bool geometry_processor::interests(unsigned int interested) const {
 }
 
 geometry_processor::wkb_t
-geometry_processor::process_node(osmium::Location const &)
+geometry_processor::process_node(osmium::Location const &,
+                                 geom::osmium_builder_t *)
 {
     return wkb_t();
 }
 
-geometry_processor::wkb_t geometry_processor::process_way(osmium::Way const &)
+geometry_processor::wkb_t
+geometry_processor::process_way(osmium::Way const &, geom::osmium_builder_t *)
 {
     return wkb_t();
 }
 
 geometry_processor::wkbs_t
 geometry_processor::process_relation(osmium::Relation const &,
-                                     osmium::memory::Buffer const &)
+                                     osmium::memory::Buffer const &,
+                                     geom::osmium_builder_t *)
 {
     return wkbs_t();
 }
