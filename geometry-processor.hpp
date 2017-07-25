@@ -47,18 +47,21 @@ struct geometry_processor {
 
     // process a node, optionally returning a WKB string describing
     // geometry to be inserted into the table.
-    virtual wkb_t process_node(osmium::Location const &loc);
+    virtual wkb_t process_node(osmium::Location const &loc,
+                               geom::osmium_builder_t *builder);
 
     // process a way
     // position data and optionally returning WKB-encoded geometry
     // for insertion into the table.
-    virtual wkb_t process_way(osmium::Way const &way);
+    virtual wkb_t process_way(osmium::Way const &way,
+                              geom::osmium_builder_t *builder);
 
     // process a way, taking a middle query object to get way and
     // node position data. optionally returns an array of WKB-encoded geometry
     // for insertion into the table.
     virtual wkbs_t process_relation(osmium::Relation const &rel,
-                                    osmium::memory::Buffer const &ways);
+                                    osmium::memory::Buffer const &ways,
+                                    geom::osmium_builder_t *builder);
 
     // returns the SRID of the output geometry.
     int srid() const;

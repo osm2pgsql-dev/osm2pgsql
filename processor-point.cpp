@@ -6,13 +6,13 @@
 #include "util.hpp"
 
 processor_point::processor_point(std::shared_ptr<reprojection> const &proj)
-: geometry_processor(proj->target_srs(), "POINT", interest_node),
-  m_builder(proj, false)
+: geometry_processor(proj->target_srs(), "POINT", interest_node)
 {
 }
 
 geometry_processor::wkb_t
-processor_point::process_node(osmium::Location const &loc)
+processor_point::process_node(osmium::Location const &loc,
+                              geom::osmium_builder_t *builder)
 {
-    return m_builder.get_wkb_node(loc);
+    return builder->get_wkb_node(loc);
 }
