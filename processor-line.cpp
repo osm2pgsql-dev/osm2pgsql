@@ -9,7 +9,7 @@ processor_line::processor_line(std::shared_ptr<reprojection> const &proj)
 
 geometry_processor::wkb_t processor_line::process_way(osmium::Way const &way)
 {
-    auto wkbs = m_builder.get_wkb_line(way.nodes(), false);
+    auto wkbs = m_builder.get_wkb_line(way.nodes(), 1000000);
 
     return wkbs.empty() ? wkb_t() : wkbs[0];
 }
@@ -18,6 +18,5 @@ geometry_processor::wkbs_t
 processor_line::process_relation(osmium::Relation const &,
                                  osmium::memory::Buffer const &ways)
 {
-    // XXX are multilines really acceptable?
-    return m_builder.get_wkb_multiline(ways, false);
+    return m_builder.get_wkb_multiline(ways, 1000000);
 }

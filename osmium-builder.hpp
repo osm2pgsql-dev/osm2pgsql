@@ -27,12 +27,12 @@ public:
     }
 
     wkb_t get_wkb_node(osmium::Location const &loc) const;
-    wkbs_t get_wkb_line(osmium::WayNodeList const &way, bool do_split);
+    wkbs_t get_wkb_line(osmium::WayNodeList const &way, double split_at);
     wkb_t get_wkb_polygon(osmium::Way const &way);
 
     wkbs_t get_wkb_multipolygon(osmium::Relation const &rel,
                                 osmium::memory::Buffer const &ways);
-    wkbs_t get_wkb_multiline(osmium::memory::Buffer const &ways, bool split);
+    wkbs_t get_wkb_multiline(osmium::memory::Buffer const &ways, double split_at);
 
 private:
     wkb_t create_multipolygon(osmium::Area const &area);

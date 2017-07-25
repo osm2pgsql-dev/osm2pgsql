@@ -92,7 +92,8 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
     } else {
-        for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), true)) {
+        double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
+        for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
             expire.from_wkb(wkb.c_str(), way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
             if (roads) {
@@ -374,7 +375,8 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
   // Needs to be done before the polygon treatment below because
   // for boundaries the way_area tag may be added.
   if (!make_polygon) {
-      auto wkbs = m_builder.get_wkb_multiline(buffer, true);
+      double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
+      auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
       for (auto const &wkb : wkbs) {
           expire.from_wkb(wkb.c_str(), -rel.id());
           m_tables[t_line]->write_row(-rel.id(), outtags, wkb);

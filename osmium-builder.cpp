@@ -54,11 +54,11 @@ osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
 }
 
 osmium_builder_t::wkbs_t
-osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, bool do_split)
+osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, double split_at)
 {
     wkbs_t ret;
 
-    double const split_at = m_proj->target_latlon() ? 1 : 100 * 1000;
+    bool do_split = split_at > 0.0;
 
     double dist = 0;
     osmium::geom::Coordinates prev_pt;
@@ -169,7 +169,7 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
 
 osmium_builder_t::wkbs_t
 osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
-                                    bool do_split)
+                                    double split_at)
 {
     // make a list of all endpoints
     using endpoint_t = std::tuple<osmium::object_id_type, size_t, bool>;
@@ -260,7 +260,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
         // found a line end, create the wkbs
         m_buffer.commit();
         auto linewkbs =
-            get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), do_split);
+            get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), split_at);
         std::move(linewkbs.begin(), linewkbs.end(),
                   std::inserter(ret, ret.end()));
     }
@@ -307,13 +307,13 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
             // found a line end, create the wkbs
             m_buffer.commit();
             auto linewkbs =
-                get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), do_split);
+                get_wkb_line(m_buffer.get<osmium::WayNodeList>(0), split_at);
             std::move(linewkbs.begin(), linewkbs.end(),
                       std::inserter(ret, ret.end()));
         }
     }
 
-    if (!do_split && !ret.empty()) {
+    if (split_at <= 0.0 && !ret.empty()) {
         auto num_lines = ret.size();
         m_writer.multilinestring_start();
         for (auto const &line : ret) {

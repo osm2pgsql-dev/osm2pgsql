@@ -641,7 +641,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             geom = m_builder.get_wkb_polygon(*way);
         }
         if (geom.empty()) {
-            auto wkbs = m_builder.get_wkb_line(way->nodes(), false);
+            auto wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
             if (wkbs.empty()) {
                 return 0;
             }
@@ -699,7 +699,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     }
 
     auto geoms = is_waterway
-                     ? m_builder.get_wkb_multiline(osmium_buffer, false)
+                     ? m_builder.get_wkb_multiline(osmium_buffer, 0.0)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
     if (!geoms.empty()) {
