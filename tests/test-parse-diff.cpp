@@ -6,7 +6,7 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "tests/mockups.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"

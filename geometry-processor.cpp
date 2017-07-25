@@ -2,7 +2,7 @@
 #include "processor-line.hpp"
 #include "processor-point.hpp"
 #include "processor-polygon.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"
 

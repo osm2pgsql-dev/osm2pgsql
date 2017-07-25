@@ -28,7 +28,7 @@
 #include "reprojection.hpp"
 #include "options.hpp"
 #include "parse-osmium.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "output.hpp"
 #include "osmdata.hpp"
 #include "util.hpp"

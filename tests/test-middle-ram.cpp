@@ -8,7 +8,7 @@
 #include "osmtypes.hpp"
 #include "output-null.hpp"
 #include "options.hpp"
-#include "middle-ram.hpp"
+#include "middle/middle-ram.hpp"
 
 #include "tests/middle-tests.hpp"
 

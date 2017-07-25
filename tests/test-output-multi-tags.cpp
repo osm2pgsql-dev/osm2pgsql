@@ -8,7 +8,7 @@
 #include <memory>
 
 #include "osmtypes.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "output-multi.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"

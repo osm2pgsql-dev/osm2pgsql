@@ -27,7 +27,7 @@
 #include <boost/format.hpp>
 
 #include "expire-tiles.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "node-ram-cache.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
