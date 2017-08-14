@@ -58,7 +58,7 @@ class table_t
                 }
             private:
                 wkb_reader(pg_result_t &&result)
-                : m_result(std::move(result)), m_count(PQntuples(result.get())),
+                : m_result(std::move(result)), m_count(PQntuples(m_result.get())),
                   m_current(0)
                 {}
 
