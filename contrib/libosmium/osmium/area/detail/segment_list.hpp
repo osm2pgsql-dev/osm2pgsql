@@ -49,6 +49,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/location.hpp>
 #include <osmium/osm/node_ref.hpp>
 #include <osmium/osm/relation.hpp>
+#include <osmium/osm/types.hpp>
 #include <osmium/osm/way.hpp>
 
 namespace osmium {
@@ -90,9 +91,11 @@ namespace osmium {
                 static role_type parse_role(const char* role) noexcept {
                     if (role[0] == '\0') {
                         return role_type::empty;
-                    } else if (!std::strcmp(role, "outer")) {
+                    }
+                    if (!std::strcmp(role, "outer")) {
                         return role_type::outer;
-                    } else if (!std::strcmp(role, "inner")) {
+                    }
+                    if (!std::strcmp(role, "inner")) {
                         return role_type::inner;
                     }
                     return role_type::unknown;
@@ -101,17 +104,16 @@ namespace osmium {
                 /**
                  * Calculate the number of segments in all the ways together.
                  */
-                static size_t get_num_segments(const std::vector<const osmium::Way*>& members) noexcept {
-                    return std::accumulate(members.cbegin(), members.cend(), static_cast<size_t>(0), [](size_t sum, const osmium::Way* way) {
+                static std::size_t get_num_segments(const std::vector<const osmium::Way*>& members) noexcept {
+                    return std::accumulate(members.cbegin(), members.cend(), static_cast<std::size_t>(0), [](std::size_t sum, const osmium::Way* way) {
                         if (way->nodes().empty()) {
                             return sum;
-                        } else {
-                            return sum + way->nodes().size() - 1;
                         }
+                        return sum + way->nodes().size() - 1;
                     });
                 }
 
-                uint32_t extract_segments_from_way_impl(osmium::area::ProblemReporter* problem_reporter, uint64_t& duplicate_nodes, const osmium::Way& way, role_type role) {
+                uint32_t extract_segments_from_way_impl(ProblemReporter* problem_reporter, uint64_t& duplicate_nodes, const osmium::Way& way, role_type role) {
                     uint32_t invalid_locations = 0;
 
                     osmium::NodeRef previous_nr;
@@ -155,7 +157,7 @@ namespace osmium {
                 SegmentList& operator=(SegmentList&&) = delete;
 
                 /// The number of segments in the list.
-                size_t size() const noexcept {
+                std::size_t size() const noexcept {
                     return m_segments.size();
                 }
 
@@ -175,12 +177,12 @@ namespace osmium {
                     return m_segments.back();
                 }
 
-                const NodeRefSegment& operator[](size_t n) const noexcept {
+                const NodeRefSegment& operator[](std::size_t n) const noexcept {
                     assert(n < m_segments.size());
                     return m_segments[n];
                 }
 
-                NodeRefSegment& operator[](size_t n) noexcept {
+                NodeRefSegment& operator[](std::size_t n) noexcept {
                     assert(n < m_segments.size());
                     return m_segments[n];
                 }
@@ -221,7 +223,7 @@ namespace osmium {
                  * same node or different nodes with same location) are
                  * removed after reporting the duplicate node.
                  */
-                uint32_t extract_segments_from_way(osmium::area::ProblemReporter* problem_reporter, uint64_t& duplicate_nodes, const osmium::Way& way) {
+                uint32_t extract_segments_from_way(ProblemReporter* problem_reporter, uint64_t& duplicate_nodes, const osmium::Way& way) {
                     if (way.nodes().empty()) {
                         return 0;
                     }
@@ -233,14 +235,14 @@ namespace osmium {
                  * Extract all segments from all ways that make up this
                  * multipolygon relation and add them to the list.
                  */
-                uint32_t extract_segments_from_ways(osmium::area::ProblemReporter* problem_reporter,
+                uint32_t extract_segments_from_ways(ProblemReporter* problem_reporter,
                                                     uint64_t& duplicate_nodes,
                                                     uint64_t& duplicate_ways,
                                                     const osmium::Relation& relation,
                                                     const std::vector<const osmium::Way*>& members) {
-                    assert(relation.members().size() >= members.size());
+                    assert(relation.cmembers().size() >= members.size());
 
-                    const size_t num_segments = get_num_segments(members);
+                    const std::size_t num_segments = get_num_segments(members);
                     if (problem_reporter) {
                         problem_reporter->set_nodes(num_segments);
                     }
@@ -271,9 +273,7 @@ namespace osmium {
                  * same segment. So if there are three, for instance, two will
                  * be removed and one will be left.
                  */
-                uint32_t erase_duplicate_segments(osmium::area::ProblemReporter* problem_reporter) {
-                    uint32_t duplicate_segments = 0;
-
+                void erase_duplicate_segments(ProblemReporter* problem_reporter, uint64_t& duplicate_segments, uint64_t& overlapping_segments) {
                     while (true) {
                         auto it = std::adjacent_find(m_segments.begin(), m_segments.end());
                         if (it == m_segments.end()) {
@@ -296,10 +296,16 @@ namespace osmium {
                                 problem_reporter->report_duplicate_segment(it->first(), it->second());
                             }
                         }
+
+                        if (it+2 != m_segments.end() && *it == *(it+2)) {
+                            ++overlapping_segments;
+                            if (problem_reporter) {
+                                problem_reporter->report_overlapping_segment(it->first(), it->second());
+                            }
+                        }
+
                         m_segments.erase(it, it+2);
                     }
-
-                    return duplicate_segments;
                 }
 
                 /**
@@ -309,14 +315,14 @@ namespace osmium {
                  *                         reported to this object.
                  * @returns true if there are intersections.
                  */
-                uint32_t find_intersections(osmium::area::ProblemReporter* problem_reporter) const {
+                uint32_t find_intersections(ProblemReporter* problem_reporter) const {
                     if (m_segments.empty()) {
                         return 0;
                     }
 
                     uint32_t found_intersections = 0;
 
-                    for (auto it1 = m_segments.cbegin(); it1 != m_segments.cend()-1; ++it1) {
+                    for (auto it1 = m_segments.cbegin(); it1 != m_segments.cend() - 1; ++it1) {
                         const NodeRefSegment& s1 = *it1;
                         for (auto it2 = it1+1; it2 != m_segments.end(); ++it2) {
                             const NodeRefSegment& s2 = *it2;
@@ -328,7 +334,7 @@ namespace osmium {
                             }
 
                             if (y_range_overlap(s1, s2)) {
-                                osmium::Location intersection = calculate_intersection(s1, s2);
+                                osmium::Location intersection{calculate_intersection(s1, s2)};
                                 if (intersection) {
                                     ++found_intersections;
                                     if (m_debug) {

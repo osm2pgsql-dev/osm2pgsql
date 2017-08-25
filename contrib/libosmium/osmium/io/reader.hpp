@@ -61,6 +61,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/header.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
+#include <osmium/thread/pool.hpp>
 #include <osmium/thread/util.hpp>
 #include <osmium/util/config.hpp>
 
@@ -70,13 +71,13 @@ namespace osmium {
 
         namespace detail {
 
-            inline size_t get_input_queue_size() noexcept {
-                const size_t n = osmium::config::get_max_queue_size("INPUT", 20);
+            inline std::size_t get_input_queue_size() noexcept {
+                const std::size_t n = osmium::config::get_max_queue_size("INPUT", 20);
                 return n > 2 ? n : 2;
             }
 
-            inline size_t get_osmdata_queue_size() noexcept {
-                const size_t n = osmium::config::get_max_queue_size("OSMDATA", 20);
+            inline std::size_t get_osmdata_queue_size() noexcept {
+                const std::size_t n = osmium::config::get_max_queue_size("OSMDATA", 20);
                 return n > 2 ? n : 2;
             }
 
@@ -91,6 +92,8 @@ namespace osmium {
         class Reader {
 
             osmium::io::File m_file;
+
+            osmium::thread::Pool* m_pool = nullptr;
 
             detail::ParserFactory::create_parser_type m_creator;
 
@@ -117,10 +120,14 @@ namespace osmium {
 
             osmium::thread::thread_handler m_thread;
 
-            size_t m_file_size;
+            std::size_t m_file_size;
 
             osmium::osm_entity_bits::type m_read_which_entities = osmium::osm_entity_bits::all;
             osmium::io::read_meta m_read_metadata = osmium::io::read_meta::yes;
+
+            void set_option(osmium::thread::Pool& pool) noexcept {
+                m_pool = &pool;
+            }
 
             void set_option(osmium::osm_entity_bits::type value) noexcept {
                 m_read_which_entities = value;
@@ -131,14 +138,16 @@ namespace osmium {
             }
 
             // This function will run in a separate thread.
-            static void parser_thread(const detail::ParserFactory::create_parser_type& creator,
+            static void parser_thread(osmium::thread::Pool& pool,
+                                      const detail::ParserFactory::create_parser_type& creator,
                                       detail::future_string_queue_type& input_queue,
                                       detail::future_buffer_queue_type& osmdata_queue,
                                       std::promise<osmium::io::Header>&& header_promise,
                                       osmium::osm_entity_bits::type read_which_entities,
                                       osmium::io::read_meta read_metadata) {
-                std::promise<osmium::io::Header> promise = std::move(header_promise);
+                std::promise<osmium::io::Header> promise{std::move(header_promise)};
                 osmium::io::detail::parser_arguments args = {
+                    pool,
                     input_queue,
                     osmdata_queue,
                     promise,
@@ -206,16 +215,15 @@ namespace osmium {
              * @throws std::system_error if a system call fails.
              */
             static int open_input_file_or_url(const std::string& filename, int* childpid) {
-                std::string protocol = filename.substr(0, filename.find_first_of(':'));
+                const std::string protocol{filename.substr(0, filename.find_first_of(':'))};
                 if (protocol == "http" || protocol == "https" || protocol == "ftp" || protocol == "file") {
 #ifndef _WIN32
                     return execute("curl", filename, childpid);
 #else
                     throw io_error{"Reading OSM files from the network currently not supported on Windows."};
 #endif
-                } else {
-                    return osmium::io::detail::open_for_reading(filename);
                 }
+                return osmium::io::detail::open_for_reading(filename);
             }
 
         public:
@@ -264,9 +272,13 @@ namespace osmium {
                     (set_option(args), 0)...
                 };
 
+                if (!m_pool) {
+                    m_pool = &thread::Pool::default_instance();
+                }
+
                 std::promise<osmium::io::Header> header_promise;
                 m_header_future = header_promise.get_future();
-                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(m_creator), std::ref(m_input_queue), std::ref(m_osmdata_queue), std::move(header_promise), m_read_which_entities, m_read_metadata};
+                m_thread = osmium::thread::thread_handler{parser_thread, std::ref(*m_pool), std::ref(m_creator), std::ref(m_input_queue), std::ref(m_osmdata_queue), std::move(header_promise), m_read_which_entities, m_read_metadata};
             }
 
             template <typename... TArgs>
@@ -408,7 +420,7 @@ namespace osmium {
              * Get the size of the input file. Returns 0 if the file size
              * is not available (for instance when reading from stdin).
              */
-            size_t file_size() const noexcept {
+            std::size_t file_size() const noexcept {
                 return m_file_size;
             }
 
@@ -426,7 +438,7 @@ namespace osmium {
              * object you are reading. Depending on the file type it might
              * do an expensive system call.
              */
-            size_t offset() const noexcept {
+            std::size_t offset() const noexcept {
                 return m_decompressor->offset();
             }
 
@@ -442,10 +454,10 @@ namespace osmium {
          */
         template <typename... TArgs>
         osmium::memory::Buffer read_file(TArgs&&... args) {
-            osmium::memory::Buffer buffer(1024*1024, osmium::memory::Buffer::auto_grow::yes);
+            osmium::memory::Buffer buffer{1024 * 1024, osmium::memory::Buffer::auto_grow::yes};
 
-            Reader reader(std::forward<TArgs>(args)...);
-            while (osmium::memory::Buffer read_buffer = reader.read()) {
+            Reader reader{std::forward<TArgs>(args)...};
+            while (auto read_buffer = reader.read()) {
                 buffer.add_buffer(read_buffer);
                 buffer.commit();
             }

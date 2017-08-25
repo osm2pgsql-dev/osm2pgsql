@@ -51,7 +51,7 @@ namespace osmium {
             /**
              * Optional pointer to problem reporter.
              */
-            osmium::area::ProblemReporter* problem_reporter = nullptr;
+            ProblemReporter* problem_reporter = nullptr;
 
             /**
              * Debug level. If this is greater than zero, debug messages will
@@ -90,7 +90,9 @@ namespace osmium {
 
             /**
              * Create areas for (multi)polygons where the tags are on the
-             * outer way(s).
+             * outer way(s). This is ignored by the area::Assembler which
+             * doesn't support old-style multipolygons any more. Use the
+             * area::AssemblerLegacy if you need this.
              *
              * If this is set to false, those areas will simply be discarded.
              */
@@ -128,7 +130,7 @@ namespace osmium {
              * Constructor
              * @deprecated Use default constructor and set values afterwards.
              */
-            explicit AssemblerConfig(osmium::area::ProblemReporter* pr, bool d = false) :
+            explicit AssemblerConfig(ProblemReporter* pr, bool d = false) :
                 problem_reporter(pr),
                 debug_level(d) {
             }

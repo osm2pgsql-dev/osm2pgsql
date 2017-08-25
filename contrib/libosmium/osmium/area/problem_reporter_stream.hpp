@@ -85,6 +85,12 @@ namespace osmium {
                        << " node_id2=" << nr2.ref() << " location2=" << nr2.location() << "\n";
             }
 
+            void report_overlapping_segment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2) override {
+                header("overlapping segment");
+                *m_out << "node_id1=" << nr1.ref() << " location1=" << nr1.location()
+                       << " node_id2=" << nr2.ref() << " location2=" << nr2.location() << "\n";
+            }
+
             void report_ring_not_closed(const osmium::NodeRef& nr, const osmium::Way* way = nullptr) override {
                 header("ring not closed");
                 *m_out << "node_id=" << nr.ref() << " location=" << nr.location();

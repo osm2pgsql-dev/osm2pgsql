@@ -48,6 +48,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/header.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
+#include <osmium/thread/pool.hpp>
 
 namespace osmium {
 
@@ -56,6 +57,7 @@ namespace osmium {
         namespace detail {
 
             struct parser_arguments {
+                osmium::thread::Pool& pool;
                 future_string_queue_type& input_queue;
                 future_buffer_queue_type& output_queue;
                 std::promise<osmium::io::Header>& header_promise;
@@ -65,6 +67,7 @@ namespace osmium {
 
             class Parser {
 
+                osmium::thread::Pool& m_pool;
                 future_buffer_queue_type& m_output_queue;
                 std::promise<osmium::io::Header>& m_header_promise;
                 queue_wrapper<std::string> m_input_queue;
@@ -74,12 +77,8 @@ namespace osmium {
 
             protected:
 
-                std::string get_input() {
-                    return m_input_queue.pop();
-                }
-
-                bool input_done() const {
-                    return m_input_queue.has_reached_end_of_data();
+                osmium::thread::Pool& get_pool() {
+                    return m_pool;
                 }
 
                 osmium::osm_entity_bits::type read_types() const noexcept {
@@ -121,7 +120,8 @@ namespace osmium {
 
             public:
 
-                Parser(parser_arguments& args) :
+                explicit Parser(parser_arguments& args) :
+                    m_pool(args.pool),
                     m_output_queue(args.output_queue),
                     m_header_promise(args.header_promise),
                     m_input_queue(args.input_queue),
@@ -139,6 +139,14 @@ namespace osmium {
                 virtual ~Parser() noexcept = default;
 
                 virtual void run() = 0;
+
+                std::string get_input() {
+                    return m_input_queue.pop();
+                }
+
+                bool input_done() const {
+                    return m_input_queue.has_reached_end_of_data();
+                }
 
                 void parse() {
                     try {

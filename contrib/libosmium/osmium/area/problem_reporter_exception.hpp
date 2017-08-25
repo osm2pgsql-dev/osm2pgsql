@@ -84,6 +84,12 @@ namespace osmium {
                 throw std::runtime_error{m_sstream.str()};
             }
 
+            void report_overlapping_segment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2) override {
+                m_sstream.str("");
+                ProblemReporterStream::report_overlapping_segment(nr1, nr2);
+                throw std::runtime_error{m_sstream.str()};
+            }
+
             void report_ring_not_closed(const osmium::NodeRef& nr, const osmium::Way* way = nullptr) override {
                 m_sstream.str("");
                 ProblemReporterStream::report_ring_not_closed(nr, way);

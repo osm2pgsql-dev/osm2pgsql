@@ -53,6 +53,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/header.hpp>
 #include <osmium/io/writer_options.hpp>
 #include <osmium/memory/buffer.hpp>
+#include <osmium/thread/pool.hpp>
 #include <osmium/thread/util.hpp>
 #include <osmium/util/config.hpp>
 #include <osmium/version.hpp>
@@ -169,7 +170,12 @@ namespace osmium {
                 osmium::io::Header header;
                 overwrite allow_overwrite = overwrite::no;
                 fsync sync = fsync::no;
+                osmium::thread::Pool* pool = nullptr;
             };
+
+            static void set_option(options_type& options, osmium::thread::Pool& pool) {
+                options.pool = &pool;
+            }
 
             static void set_option(options_type& options, const osmium::io::Header& header) {
                 options.header = header;
@@ -223,7 +229,7 @@ namespace osmium {
             explicit Writer(const osmium::io::File& file, TArgs&&... args) :
                 m_file(file.check()),
                 m_output_queue(detail::get_output_queue_size(), "raw_output"),
-                m_output(osmium::io::detail::OutputFormatFactory::instance().create_output(m_file, m_output_queue)),
+                m_output(nullptr),
                 m_buffer(),
                 m_buffer_size(default_buffer_size),
                 m_write_future(),
@@ -235,6 +241,12 @@ namespace osmium {
                 (void)std::initializer_list<int>{
                     (set_option(options, args), 0)...
                 };
+
+                if (!options.pool) {
+                    options.pool = &thread::Pool::default_instance();
+                }
+
+                m_output = osmium::io::detail::OutputFormatFactory::instance().create_output(*options.pool, m_file, m_output_queue);
 
                 if (options.header.get("generator") == "") {
                     options.header.set("generator", "libosmium/" LIBOSMIUM_VERSION_STRING);

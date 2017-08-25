@@ -83,7 +83,7 @@ namespace osmium {
 
                     try {
                         while (true) {
-                            std::string data = m_queue.pop();
+                            const std::string data{m_queue.pop()};
                             if (at_end_of_data(data)) {
                                 break;
                             }

@@ -158,6 +158,10 @@ namespace osmium {
                 write_line("duplicate_segment", nr1.ref(), nr2.ref(), nr1.location(), nr2.location());
             }
 
+            void report_overlapping_segment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2) override {
+                write_line("overlapping_segment", nr1.ref(), nr2.ref(), nr1.location(), nr2.location());
+            }
+
             void report_ring_not_closed(const osmium::NodeRef& nr, const osmium::Way* way = nullptr) override {
                 write_point("ring_not_closed", nr.ref(), way ? way->id() : 0, nr.location());
             }

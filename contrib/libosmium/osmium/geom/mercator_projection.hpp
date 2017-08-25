@@ -138,6 +138,9 @@ namespace osmium {
 
         public:
 
+            MercatorProjection() {
+            }
+
             Coordinates operator()(osmium::Location location) const {
                 return Coordinates{detail::lon_to_x(location.lon()), detail::lat_to_y(location.lat())};
             }

@@ -144,6 +144,18 @@ namespace osmium {
             }
 
             /**
+             * Report a duplicate segments. Two or more segments are directly
+             * on top of each other. This can be a problem, if there is a
+             * spike for instance, or it could be okay, if there are touching
+             * inner rings.
+             *
+             * @param nr1  NodeRef of one end of the segment.
+             * @param nr2  NodeRef of the other end of the segment.
+             */
+            virtual void report_overlapping_segment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2) {
+            }
+
+            /**
              * Report an open ring.
              *
              * @param nr   NodeRef of one end of the ring.
