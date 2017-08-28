@@ -116,7 +116,7 @@ namespace osmium {
          *
          * Complexity: Constant.
          */
-        size_t size() const noexcept {
+        std::size_t size() const noexcept {
             return m_objects.size();
         }
 
@@ -126,19 +126,19 @@ namespace osmium {
         }
 
         iterator begin() {
-            return iterator{m_objects.begin()};
+            return {m_objects.begin()};
         }
 
         iterator end() {
-            return iterator{m_objects.end()};
+            return {m_objects.end()};
         }
 
         const_iterator cbegin() const {
-            return const_iterator{m_objects.cbegin()};
+            return {m_objects.cbegin()};
         }
 
         const_iterator cend() const {
-            return const_iterator{m_objects.cend()};
+            return {m_objects.cend()};
         }
 
     }; // class ObjectPointerCollection

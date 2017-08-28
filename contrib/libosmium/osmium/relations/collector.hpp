@@ -250,7 +250,7 @@ namespace osmium {
              * this is for instance used to only keep members of type way and
              * ignore all others.
              */
-            bool keep_member(const osmium::relations::RelationMeta& /*relation_meta*/, const osmium::RelationMember& /*member*/) const {
+            bool keep_member(const RelationMeta& /*relation_meta*/, const osmium::RelationMember& /*member*/) const {
                 return true;
             }
 
@@ -419,7 +419,7 @@ namespace osmium {
                 return true;
             }
 
-            void clear_member_metas(const osmium::relations::RelationMeta& relation_meta) {
+            void clear_member_metas(const RelationMeta& relation_meta) {
                 const osmium::Relation& relation = get_relation(relation_meta);
                 for (const auto& member : relation.members()) {
                     if (member.ref() != 0) {
@@ -539,9 +539,8 @@ namespace osmium {
                 assert(!range.empty());
                 if (range.begin()->is_available()) {
                     return std::make_pair(true, range.begin()->buffer_offset());
-                } else {
-                    return std::make_pair(false, 0);
                 }
+                return std::make_pair(false, 0);
             }
 
             template <typename TIter>

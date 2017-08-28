@@ -35,10 +35,14 @@ DEALINGS IN THE SOFTWARE.
 
 #include <algorithm>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
+#include <osmium/osm/item_type.hpp>
 #include <osmium/osm/relation.hpp>
 #include <osmium/osm/types.hpp>
 
@@ -125,11 +129,11 @@ namespace osmium {
                     return m_map.empty();
                 }
 
-                size_t size() const noexcept {
+                std::size_t size() const noexcept {
                     return m_map.size();
                 }
 
-                void reserve(size_t size) {
+                void reserve(std::size_t size) {
                     m_map.reserve(size);
                 }
 
@@ -172,7 +176,7 @@ namespace osmium {
 
             map_type m_map;
 
-            RelationsMapIndex(map_type&& map) :
+            explicit RelationsMapIndex(map_type&& map) :
                 m_map(std::move(map)) {
             }
 
@@ -246,7 +250,7 @@ namespace osmium {
              *
              * Complexity: Constant.
              */
-            size_t size() const noexcept {
+            std::size_t size() const noexcept {
                 return m_map.size();
             }
 
@@ -288,7 +292,7 @@ namespace osmium {
              *
              * Complexity: Constant.
              */
-            size_t size() const noexcept {
+            std::size_t size() const noexcept {
                 return m_member_to_parent.size();
             }
 
@@ -355,7 +359,7 @@ namespace osmium {
              *
              * Complexity: Constant.
              */
-            size_t size() const noexcept {
+            std::size_t size() const noexcept {
                 assert(m_valid && "You can't use the RelationsMap any more after calling build_index()");
                 return m_map.size();
             }

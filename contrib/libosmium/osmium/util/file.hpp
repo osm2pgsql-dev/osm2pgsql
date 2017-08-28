@@ -47,6 +47,7 @@ DEALINGS IN THE SOFTWARE.
 #  endif
 # include <io.h>
 # include <windows.h>
+# include <crtdbg.h>
 #endif
 
 #ifndef _MSC_VER
@@ -59,6 +60,44 @@ namespace osmium {
 
     namespace util {
 
+#ifdef _MSC_VER
+        namespace detail {
+
+            // Disable parameter validation on Windows and reenable it
+            // automatically when scope closes.
+            // https://docs.microsoft.com/en-us/cpp/c-runtime-library/parameter-validation
+            class disable_invalid_parameter_handler {
+
+                static void invalid_parameter_handler(
+                        const wchar_t* expression,
+                        const wchar_t* function,
+                        const wchar_t* file,
+                        unsigned int line,
+                        uintptr_t pReserved
+                        ) {
+                    // do nothing
+                }
+
+                _invalid_parameter_handler old_handler;
+                int old_report_mode;
+
+            public:
+
+                disable_invalid_parameter_handler() :
+                    old_handler(_set_thread_local_invalid_parameter_handler(invalid_parameter_handler)),
+                    old_report_mode(_CrtSetReportMode(_CRT_ASSERT, 0)) {
+                }
+
+                ~disable_invalid_parameter_handler() {
+                    _CrtSetReportMode(_CRT_ASSERT, old_report_mode);
+                    _set_thread_local_invalid_parameter_handler(old_handler);
+                }
+
+            }; // class disable_invalid_parameter_handler
+
+        }
+#endif
+
         /**
          * Get file size.
          * This is a small wrapper around a system call.
@@ -67,22 +106,23 @@ namespace osmium {
          * @returns file size
          * @throws std::system_error If system call failed
          */
-        inline size_t file_size(int fd) {
+        inline std::size_t file_size(int fd) {
 #ifdef _MSC_VER
             // Windows implementation
+            detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/dfbc2kec.aspx
             const auto size = ::_filelengthi64(fd);
-            if (size == -1L) {
+            if (size < 0) {
                 throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
-            return size_t(size);
+            return static_cast<std::size_t>(size);
 #else
             // Unix implementation
             struct stat s;
             if (::fstat(fd, &s) != 0) {
                 throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
-            return size_t(s.st_size);
+            return static_cast<std::size_t>(s.st_size);
 #endif
         }
 
@@ -93,8 +133,9 @@ namespace osmium {
          * @param name File name
          * @returns file size
          * @throws std::system_error If system call failed
+         * @pre name must not be nullptr
          */
-        inline size_t file_size(const char* name) {
+        inline std::size_t file_size(const char* name) {
 #ifdef _MSC_VER
             // Windows implementation
             // https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx
@@ -109,7 +150,7 @@ namespace osmium {
                 throw std::system_error{errno, std::system_category(), std::string{"Could not get file size of file '"} + name + "'"};
             }
 #endif
-            return size_t(s.st_size);
+            return static_cast<std::size_t>(s.st_size);
         }
 
         /**
@@ -120,7 +161,7 @@ namespace osmium {
          * @returns file size
          * @throws std::system_error If system call failed
          */
-        inline size_t file_size(const std::string& name) {
+        inline std::size_t file_size(const std::string& name) {
             return file_size(name.c_str());
         }
 
@@ -132,8 +173,9 @@ namespace osmium {
          * @param new_size New size
          * @throws std::system_error If ftruncate(2) call failed
          */
-        inline void resize_file(int fd, size_t new_size) {
+        inline void resize_file(int fd, std::size_t new_size) {
 #ifdef _WIN32
+            detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/whx354w1.aspx
             if (::_chsize_s(fd, static_cast_with_assert<__int64>(new_size)) != 0) {
 #else
@@ -146,7 +188,7 @@ namespace osmium {
         /**
          * Get the page size for this system.
          */
-        inline size_t get_pagesize() {
+        inline std::size_t get_pagesize() {
 #ifdef _WIN32
             // Windows implementation
             SYSTEM_INFO si;
@@ -154,7 +196,7 @@ namespace osmium {
             return si.dwPageSize;
 #else
             // Unix implementation
-            return size_t(::sysconf(_SC_PAGESIZE));
+            return static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
 #endif
         }
 
@@ -164,17 +206,18 @@ namespace osmium {
          * @param fd Open file descriptor.
          * @returns File offset or 0 if it is not available.
          */
-        inline size_t file_offset(int fd) {
+        inline std::size_t file_offset(int fd) {
 #ifdef _MSC_VER
+            detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/1yee101t.aspx
-            auto offset = _lseeki64(fd, 0, SEEK_CUR);
+            const auto offset = _lseeki64(fd, 0, SEEK_CUR);
 #else
-            auto offset = ::lseek(fd, 0, SEEK_CUR);
+            const auto offset = ::lseek(fd, 0, SEEK_CUR);
 #endif
             if (offset == -1) {
                 return 0;
             }
-            return size_t(offset);
+            return static_cast<std::size_t>(offset);
         }
 
         /**
@@ -182,6 +225,7 @@ namespace osmium {
          */
         inline bool isatty(int fd) {
 #ifdef _MSC_VER
+            detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/f4s0ddew.aspx
             return _isatty(fd) != 0;
 #else

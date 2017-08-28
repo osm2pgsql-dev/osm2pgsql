@@ -40,13 +40,14 @@ namespace osmium {
     namespace io {
 
         enum class file_format {
-            unknown = 0,
-            xml     = 1,
-            pbf     = 2,
-            opl     = 3,
-            json    = 4,
-            o5m     = 5,
-            debug   = 6
+            unknown   = 0,
+            xml       = 1,
+            pbf       = 2,
+            opl       = 3,
+            json      = 4,
+            o5m       = 5,
+            debug     = 6,
+            blackhole = 7
         };
 
         enum class read_meta {
@@ -68,6 +69,8 @@ namespace osmium {
                     return "O5M";
                 case file_format::debug:
                     return "DEBUG";
+                case file_format::blackhole:
+                    return "BLACKHOLE";
                 default: // file_format::unknown
                     break;
             }

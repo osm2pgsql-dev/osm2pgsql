@@ -33,12 +33,13 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <osmium/area/assembler_config.hpp>
 #include <osmium/area/detail/basic_assembler.hpp>
+#include <osmium/area/detail/segment_list.hpp>
+#include <osmium/area/stats.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
-#include <osmium/osm/item_type.hpp>
 #include <osmium/osm/relation.hpp>
-#include <osmium/osm/types.hpp>
 #include <osmium/osm/way.hpp>
 
 namespace osmium {

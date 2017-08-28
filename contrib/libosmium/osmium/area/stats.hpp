@@ -64,6 +64,7 @@ namespace osmium {
             uint64_t nodes = 0; ///< Number of nodes in the area
             uint64_t open_rings = 0; ///< Number of open rings in the area
             uint64_t outer_rings = 0; ///< Number of outer rings in the area
+            uint64_t overlapping_segments = 0; ///< Three or more segments with same end points
             uint64_t short_ways = 0; ///< Number of ways with less than two nodes
             uint64_t single_way_in_mp_relation = 0; ///< Multipolygon relation containing a single way
             uint64_t touching_rings = 0; ///< Rings touching in a node

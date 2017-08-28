@@ -627,7 +627,7 @@ namespace osmium {
 
             public:
 
-                XMLParser(parser_arguments& args) :
+                explicit XMLParser(parser_arguments& args) :
                     Parser(args),
                     m_context(context::root),
                     m_last_context(context::root),
