@@ -116,12 +116,13 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     return filter;
 }
 
-unsigned lua_tagtransform_t::filter_rel_member_tags(
-    taglist_t const &rel_tags, multitaglist_t const &members_tags,
+bool lua_tagtransform_t::filter_rel_member_tags(
+    taglist_t const &rel_tags, osmium::memory::Buffer const &members,
     rolelist_t const &member_roles, int *member_superseded, int *make_boundary,
     int *make_polygon, int *roads, export_list const &, taglist_t &out_tags,
     bool)
 {
+    size_t num_members = member_roles.size();
     lua_getglobal(L, m_rel_mem_func.c_str());
 
     lua_newtable(L); /* relations key value table */
@@ -135,12 +136,12 @@ unsigned lua_tagtransform_t::filter_rel_member_tags(
     lua_newtable(L); /* member tags table */
 
     int idx = 1;
-    for (const auto &member_tags : members_tags) {
+    for (auto const &w : members.select<osmium::Way>()) {
         lua_pushnumber(L, idx++);
         lua_newtable(L); /* member key value table */
-        for (const auto &member_tag : member_tags) {
-            lua_pushstring(L, member_tag.key.c_str());
-            lua_pushstring(L, member_tag.value.c_str());
+        for (auto const &member_tag : w.tags()) {
+            lua_pushstring(L, member_tag.key());
+            lua_pushstring(L, member_tag.value());
             lua_rawset(L, -3);
         }
         lua_rawset(L, -3);
@@ -148,13 +149,13 @@ unsigned lua_tagtransform_t::filter_rel_member_tags(
 
     lua_newtable(L); /* member roles table */
 
-    for (size_t i = 0; i < member_roles.size(); i++) {
+    for (size_t i = 0; i < num_members; ++i) {
         lua_pushnumber(L, i + 1);
         lua_pushstring(L, member_roles[i]);
         lua_rawset(L, -3);
     }
 
-    lua_pushnumber(L, member_roles.size());
+    lua_pushnumber(L, num_members);
 
     if (lua_pcall(L, 4, 6, 0)) {
         fprintf(
@@ -173,7 +174,7 @@ unsigned lua_tagtransform_t::filter_rel_member_tags(
     lua_pop(L, 1);
 
     lua_pushnil(L);
-    for (size_t i = 0; i < members_tags.size(); i++) {
+    for (size_t i = 0; i < num_members; ++i) {
         if (lua_next(L, -2)) {
             member_superseded[i] = (int)lua_tointeger(L, -1);
             lua_pop(L, 1);
@@ -193,7 +194,7 @@ unsigned lua_tagtransform_t::filter_rel_member_tags(
     }
     lua_pop(L, 1);
 
-    unsigned filter = (unsigned)lua_tointeger(L, -1);
+    bool filter = lua_tointeger(L, -1);
 
     lua_pop(L, 1);
 

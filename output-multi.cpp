@@ -368,28 +368,19 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         if (m_relation_helper.set(rel, (middle_t *)m_mid) < 1)
             return 0;
 
-        //filter the tags on each member because we got them from the middle
-        //and since the middle is no longer tied to the output it no longer
-        //shares any kind of tag transform and therefore has all original tags
-        //so we filter here because each individual outputs cares about different tags
-        int roads;
-        multitaglist_t filtered =
-            m_relation_helper.get_filtered_tags(m_tagtransform.get(),
-                                                *m_export_list.get());
-
-        //do the members of this relation have anything interesting to us
         //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
         //normally this wouldnt work but we tell the tag transform to allow typeless relations
         //this is needed because the type can get stripped off by the rel_tag filter above
         //if the export list did not include the type tag.
         //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
         //all this trickery
+        int roads;
         int make_boundary, make_polygon;
         taglist_t outtags;
-        filter = m_tagtransform->filter_rel_member_tags(rel_outtags, filtered, m_relation_helper.roles,
-                                                        &m_relation_helper.superseded.front(),
-                                                        &make_boundary, &make_polygon, &roads,
-                                                        *m_export_list.get(), outtags, true);
+        filter = m_tagtransform->filter_rel_member_tags(
+            rel_outtags, m_relation_helper.data, m_relation_helper.roles,
+            &m_relation_helper.superseded.front(), &make_boundary,
+            &make_polygon, &roads, *m_export_list.get(), outtags, true);
         if (!filter)
         {
             m_relation_helper.add_way_locations((middle_t *)m_mid);

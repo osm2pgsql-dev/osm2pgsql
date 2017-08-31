@@ -19,14 +19,13 @@ public:
                      export_list const &exlist, taglist_t &out_tags,
                      bool strict = false) override;
 
-    unsigned filter_rel_member_tags(taglist_t const &rel_tags,
-                                    multitaglist_t const &member_tags,
-                                    rolelist_t const &member_roles,
-                                    int *member_superseded, int *make_boundary,
-                                    int *make_polygon, int *roads,
-                                    export_list const &exlist,
-                                    taglist_t &out_tags,
-                                    bool allow_typeless = false) override;
+    bool filter_rel_member_tags(taglist_t const &rel_tags,
+                                osmium::memory::Buffer const &members,
+                                rolelist_t const &member_roles,
+                                int *member_superseded, int *make_boundary,
+                                int *make_polygon, int *roads,
+                                export_list const &exlist, taglist_t &out_tags,
+                                bool allow_typeless = false) override;
 
 private:
     void check_lua_function_exists(std::string const &func_name);

@@ -261,7 +261,8 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
         -- Count the number of polygon tags of the object
         for i,k in ipairs(polygon_keys) do
             if keyvalues[k] then
-                polytagcount = polytagcount + 1
+                polytagcount = 1
+                break
             end
         end
         -- If there are no polygon tags, add tags from all outer elements to the multipolygon itself
@@ -272,6 +273,19 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
                         keyvalues[k] = v
                     end
                 end
+            end
+
+            f, keyvalues = filter_tags_generic(keyvalues, 1)
+            -- check again if there are still polygon tags left
+            polytagcount = 0
+            for i,k in ipairs(polygon_keys) do
+                if keyvalues[k] then
+                    polytagcount = 1
+                    break
+                end
+            end
+            if polytagcount == 0 then
+                filter = 1
             end
         end
         -- For any member of the multipolygon, set membersuperseded to 1 (i.e. don't deal with it as area as well),
