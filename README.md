@@ -65,12 +65,17 @@ sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
 On a Fedora system, use
 
 ```sh
-sudo yum install cmake gcc-c++ boost-devel expat-devel zlib-devel bzip2-devel \
-  postgresql-devel proj-devel proj-epsg lua-devel
+sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
-dependencies like on Fedora.
+dependencies with:
+
+```sh
+sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+```
 
 On a FreeBSD system, use
 
