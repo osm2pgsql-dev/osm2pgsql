@@ -218,7 +218,32 @@ void table_t::stop()
 
         fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
 
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) COLLATE \"C\"") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
+        if (srid == "4326") {
+            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
+               Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                     "  SELECT * FROM %1%\n"
+                     "    ORDER BY ST_GeoHash(way,10)\n"
+                     "    COLLATE \"C\"") %
+                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
+                    .str());
+        } else {
+            /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
+               and these need to be filtered. Also, a transformation is needed for geohashing. */
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                     "  SELECT * FROM %1%\n"
+                     "    WHERE ST_IsValid(way)\n"
+                     // clang-format off
+                     "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
+                     // clang-format on
+                     "    COLLATE \"C\"") %
+                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
+                    .str());
+        }
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
@@ -235,6 +260,30 @@ void table_t::stop()
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
                 (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            if (srid != "4326") {
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
+                         "RETURNS TRIGGER AS $$\n"
+                         "BEGIN\n"
+                         "  IF ST_IsValid(NEW.way) THEN \n"
+                         "    RETURN NEW;\n"
+                         "  END IF;\n"
+                         "  RETURN NULL;\n"
+                         "END;"
+                         "$$ LANGUAGE plpgsql;") %
+                     name)
+                        .str());
+
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE TRIGGER %1%_osm2pgsql_valid BEFORE INSERT OR UPDATE\n"
+                         "  ON %1%\n"
+                         "    FOR EACH ROW EXECUTE PROCEDURE %1%_osm2pgsql_valid();") %
+                     name)
+                        .str());
+            }
+            //pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD CHECK (ST_IsValid(way));") % name).str());
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
