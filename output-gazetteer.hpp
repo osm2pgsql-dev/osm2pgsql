@@ -138,7 +138,7 @@ public:
 
     output_gazetteer_t(const output_gazetteer_t &other)
     : output_t(other.m_mid, other.m_options), Connection(NULL),
-      ConnectionDelete(NULL), ConnectionError(NULL), copy_active(false), places(options_),
+      ConnectionDelete(NULL), ConnectionError(NULL), copy_active(false), places(other.m_options),
       m_builder(other.m_options.projection, true), single_fmt(other.single_fmt),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
