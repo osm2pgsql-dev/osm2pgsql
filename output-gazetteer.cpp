@@ -294,7 +294,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
     }
 
     // skip some tags, if they don't have a proper name (ref doesn't count)
-    if (!isnamed) {
+    if (!m_options.keep_unnamed && !isnamed) {
         if (!places.empty())
             places.erase(std::remove_if(places.begin(), places.end(),
                                         UnnamedPredicate()),
@@ -314,7 +314,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
             places.emplace_back(place->key(), place->value());
     }
 
-    if (isnamed && places.empty()) {
+    if (m_options.keep_unnamed || (isnamed && places.empty())) {
         if (junction)
             places.emplace_back(junction->key(), junction->value());
         else if (landuse)
