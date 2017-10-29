@@ -11,6 +11,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <osmium/geom/mercator_projection.hpp>
+
 #include "reprojection.hpp"
 
 /** must match expire.tiles.c */
@@ -20,14 +22,16 @@ namespace {
 
 void latlon2merc(double *lat, double *lon)
 {
-    if (*lat > 85.07)
-        *lat = 85.07;
-    else if (*lat < -85.07)
-        *lat = -85.07;
+    if (*lat > 89.99) {
+        *lat = 89.99;
+    } else if (*lat < -89.99) {
+        *lat = -89.99;
+    }
 
     using namespace osmium::geom;
-    *lon = (*lon) * EARTH_CIRCUMFERENCE / 360.0;
-    *lat = log(tan(PI/4.0 + deg_to_rad(*lat) / 2.0)) * EARTH_CIRCUMFERENCE/(PI*2);
+    auto coord = lonlat_to_mercator(Coordinates(*lon, *lat));
+    *lon = coord.x;
+    *lat = coord.y;
 }
 
 class latlon_reprojection_t : public reprojection
@@ -53,9 +57,6 @@ class merc_reprojection_t : public reprojection
 public:
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
-        /* The latitude co-ordinate is clipped at slightly larger than the 3857 'world'
-         * extent of +-85.0511 degrees to ensure that the points appear just outside the
-         * edge of the map. */
         double lat = loc.lat_without_check();
         double lon = loc.lon_without_check();
 
