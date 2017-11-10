@@ -27,8 +27,8 @@ release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql
 As administrator:
 1. Unzip the archive into `C:\Program Files (x86)`
 2. Run `rename "C:\Program Files (x86)\osm2pgsql-bin" osm2pgsql`
-2. Run `mkdir C:\libs\share`
-3. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`
+3. Run `mkdir C:\libs\share`
+4. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`
 
 ## Building ##
 
