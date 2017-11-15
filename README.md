@@ -18,17 +18,18 @@ Nominatim, or general analysis.
 
 ## Installing ##
 
-Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/).
+**Linux**: Most distributions include osm2pgsql.
 
-Unoffical builds for Windows are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts. The latest
-release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0).
+ **macOS**: osm2pgsql is available with [Homebrew](http://brew.sh/).
 
-The latest source code is available in the osm2pgsql git repository on GitHub
-and can be downloaded as follows:
-
-```sh
-$ git clone git://github.com/openstreetmap/osm2pgsql.git
-```
+**Windows**: Unoffical builds are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history). The latest
+release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0).    
+As administrator:
+1. Unzip the archive into `C:\Program Files (x86)`
+2. Run `rename "C:\Program Files (x86)\osm2pgsql-bin" osm2pgsql`
+3. Run `mkdir C:\libs\share`
+4. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`    
+   _Note:_ Instead of 3 and 4 above you may add `C:\Program Files (x86)\osm2pgsql` to the `PATH`
 
 ## Building ##
 
