@@ -28,7 +28,8 @@ As administrator:
 1. Unzip the archive into `C:\Program Files (x86)`
 2. Run `rename "C:\Program Files (x86)\osm2pgsql-bin" osm2pgsql`
 3. Run `mkdir C:\libs\share`
-4. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`
+4. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`    
+   _Note:_ Instead of 3 and 4 above you may add `C:\Program Files (x86)\osm2pgsql` to the `PATH`
 
 ## Building ##
 
