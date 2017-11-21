@@ -61,6 +61,7 @@ public:
     double expire_tiles_max_bbox; ///< Max bbox size in either dimension to expire full bbox for a polygon
     std::string expire_tiles_filename; ///< File name to output expired tiles list to
     int hstore_mode; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column
+    bool jsonb_mode; ///< use jsonb columns in the slim mode (only for postgresql 9.4 and higher)
     bool enable_hstore_index; ///< add an index on the hstore column
     bool enable_multi; ///< Output multi-geometries intead of several simple geometries
     std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column

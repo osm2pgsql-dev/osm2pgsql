@@ -1,9 +1,9 @@
 /**
 
-Test the area reprojection functionality of osm2pgsql 
+Test the area reprojection functionality of osm2pgsql
 
 The idea behind that functionality is to populate the way_area
-column with the area that a polygoun would have in EPSG:3857, 
+column with the area that a polygoun would have in EPSG:3857,
 rather than the area it actually has in the coordinate system
 used for importing.
 
@@ -19,11 +19,11 @@ used for importing.
 
 #include "osmtypes.hpp"
 #include "osmdata.hpp"
-#include "middle.hpp"
+#include "middle/middle.hpp"
 #include "output-pgsql.hpp"
 #include "options.hpp"
-#include "middle-pgsql.hpp"
-#include "middle-ram.hpp"
+#include "middle/middle-pgsql.hpp"
+#include "middle/middle-ram.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>

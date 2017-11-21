@@ -10,6 +10,7 @@ set(TESTS
   test-middle-flat.cpp
   test-middle-pgsql.cpp
   test-middle-ram.cpp
+  test-middle-tags-encoding.cpp
   test-options-database.cpp
   test-options-parse.cpp
   test-options-projection.cpp

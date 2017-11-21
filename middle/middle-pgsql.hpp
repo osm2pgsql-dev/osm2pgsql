@@ -9,14 +9,17 @@
 #ifndef MIDDLE_PGSQL_H
 #define MIDDLE_PGSQL_H
 
-#include "middle.hpp"
-#include "node-ram-cache.hpp"
-#include "node-persistent-cache.hpp"
 #include "id-tracker.hpp"
+#include "middle.hpp"
+#include "node-persistent-cache.hpp"
+#include "node-ram-cache.hpp"
 #include <memory>
 #include <vector>
 
-struct middle_pgsql_t : public slim_middle_t {
+class tags_storage_t;
+
+struct middle_pgsql_t : public slim_middle_t
+{
     middle_pgsql_t();
     virtual ~middle_pgsql_t();
 
@@ -39,54 +42,48 @@ struct middle_pgsql_t : public slim_middle_t {
     void ways_delete(osmid_t id) override;
     void way_changed(osmid_t id) override;
 
-    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    bool relations_get(osmid_t id,
+                       osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel) override;
     void relations_delete(osmid_t id) override;
     void relation_changed(osmid_t id) override;
 
-    void iterate_ways(middle_t::pending_processor& pf) override;
-    void iterate_relations(pending_processor& pf) override;
+    void iterate_ways(middle_t::pending_processor &pf) override;
+    void iterate_relations(pending_processor &pf) override;
 
     size_t pending_count() const override;
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    struct table_desc {
-        table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL,
-                   const char *create_ = NULL,
-                   const char *create_index_ = NULL,
-                   const char *prepare_ = NULL,
-                   const char *prepare_intarray_ = NULL,
-                   const char *copy_ = NULL,
-                   const char *analyze_ = NULL,
-                   const char *stop_ = NULL,
-                   const char *array_indexes_ = NULL);
+    struct table_desc
+    {
+        table_desc();
 
-        const char *name;
-        const char *start;
-        const char *create;
-        const char *create_index;
-        const char *prepare;
-        const char *prepare_intarray;
-        const char *copy;
-        const char *analyze;
-        const char *stop;
-        const char *array_indexes;
+        std::string name;
+        std::string start;
+        std::string create;
+        std::string create_index;
+        std::string prepare;
+        std::string prepare_intarray;
+        std::string copy;
+        std::string analyze;
+        std::string stop;
+        std::string array_indexes;
 
-        int copyMode;    /* True if we are in copy mode */
-        int transactionMode;    /* True if we are in an extended transaction */
+        int copyMode;        /* True if we are in copy mode */
+        int transactionMode; /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
     };
 
     std::shared_ptr<const middle_query_t> get_instance() const override;
+
 private:
     void pgsql_stop_one(table_desc *table);
 
     /**
      * Sets up sql_conn for the table
      */
-    void connect(table_desc& table);
+    void connect(table_desc &table);
     void local_nodes_set(osmium::Node const &node);
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);
@@ -103,13 +100,19 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_string(std::string const &in, bool escape);
-    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
+    void generate_nodes_table_queries(const options_t &options,
+                                      middle_pgsql_t::table_desc &table);
+    void generate_ways_table_queries(const options_t &options,
+                                     middle_pgsql_t::table_desc &table);
+    void generate_rels_table_queries(const options_t &options,
+                                     middle_pgsql_t::table_desc &table);
 
     void buffer_correct_params(char const **param, size_t size);
 
     bool build_indexes;
     std::string copy_buffer;
+
+    tags_storage_t *tags_storage;
 };
 
 #endif

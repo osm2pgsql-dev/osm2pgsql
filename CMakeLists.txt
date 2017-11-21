@@ -153,9 +153,11 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
   geometry-processor.cpp
   id-tracker.cpp
-  middle-pgsql.cpp
-  middle-ram.cpp
-  middle.cpp
+  middle/hstore_tags_storage_t.cpp
+  middle/jsonb_tags_storage_t.cpp
+  middle/middle-pgsql.cpp
+  middle/middle-ram.cpp
+  middle/middle.cpp
   node-persistent-cache.cpp
   node-ram-cache.cpp
   options.cpp
@@ -182,9 +184,12 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.hpp
   geometry-processor.hpp
   id-tracker.hpp
-  middle-pgsql.hpp
-  middle-ram.hpp
-  middle.hpp
+  middle/hstore_tags_storage_t.hpp
+  middle/jsonb_tags_storage_t.hpp
+  middle/tags_storage_t.hpp
+  middle/middle-pgsql.hpp
+  middle/middle-ram.hpp
+  middle/middle.hpp
   node-persistent-cache.hpp
   node-ram-cache.hpp
   options.hpp

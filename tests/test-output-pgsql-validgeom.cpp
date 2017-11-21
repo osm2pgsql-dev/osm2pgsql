@@ -11,8 +11,8 @@
 #include "osmdata.hpp"
 #include "output-pgsql.hpp"
 #include "options.hpp"
-#include "middle-pgsql.hpp"
-#include "middle-ram.hpp"
+#include "middle/middle-pgsql.hpp"
+#include "middle/middle-ram.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>
