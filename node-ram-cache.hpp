@@ -35,14 +35,14 @@ public:
     ramNodeBlock() : nodes(nullptr), block_offset(-1), _used(0) {}
 
     void reset_used() { _used = 0; }
-    void inc_used() { _used += 2; }
-    int used() const { return _used >> 1; }
+    void inc_used() { _used += 1; }
+    int used() const { return _used; }
 
     osmium::Location *nodes;
     int32_t block_offset;
 
 private:
-    int32_t _used; // 0-bit indicates dirty
+    int32_t _used;
 };
 
 struct node_ram_cache : public boost::noncopyable
