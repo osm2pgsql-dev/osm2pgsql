@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #include <osmium/geom/coordinates.hpp>
@@ -348,10 +349,11 @@ private:
     template <typename T>
     T read_data()
     {
-        auto *data = reinterpret_cast<T const *>(m_wkb + m_pos);
+        T data;
+        memcpy(&data, m_wkb + m_pos, sizeof(T));
         m_pos += sizeof(T);
 
-        return *data;
+        return data;
     }
 
     char const *m_wkb;
