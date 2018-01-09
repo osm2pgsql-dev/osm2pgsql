@@ -132,6 +132,40 @@ void test_outputs()
     }
 }
 
+void test_parsing_tile_expiry_zoom_levels()
+{
+    const char *a1[] = {
+        "osm2pgsql",     "-e",
+        "8--12",         "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a1), a1, "Invalid maximum zoom level given for tile expiry");
+
+    const char *a2[] = {
+        "osm2pgsql",     "-e",
+        "-8-12",         "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a2), a2,
+               "Missing argument for option -e. Zoom levels must be positive.");
+
+    const char *a3[] = {"osm2pgsql", "-e", "--style", "default.style",
+                        "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a3), a3,
+               "Missing argument for option -e. Zoom levels must be positive.");
+
+    const char *a4[] = {
+        "osm2pgsql",     "-e",
+        "a-8",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a4), a4, "Missing zoom level for tile expiry.");
+
+    const char *a5[] = {
+        "osm2pgsql",     "-e",
+        "6:8",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a5), a5, "Minimum and maximum zoom level for tile expiry "
+                            "must be separated by '-'.");
+}
+
 int get_random_proj(std::vector<std::string>& args)
 {
     int proj = rand() % 3;
@@ -215,7 +249,9 @@ void test_random_perms()
         args.push_back(style);
 
         add_arg_and_val_or_not("--cache", args, options.cache, rand() % 800);
-        add_arg_and_val_or_not("--database", args, options.database_options.db.c_str(), get_random_string(6));
+        if (options.database_options.db) {
+            add_arg_and_val_or_not("--database", args, options.database_options.db->c_str(), get_random_string(6));
+        }
         if (options.database_options.username) {
             add_arg_and_val_or_not("--username", args, options.database_options.username->c_str(), get_random_string(6));
         }
@@ -265,7 +301,6 @@ void test_random_perms()
         add_arg_or_not("--extra-attributes", args, options.extra_attributes);
         add_arg_or_not("--multi-geometry", args, options.enable_multi);
         add_arg_or_not("--keep-coastlines", args, options.keep_coastlines);
-        add_arg_or_not("--exclude-invalid-polygon", args, options.excludepoly);
 
         //add the input file
         args.push_back("tests/liechtenstein-2013-08-03.osm.pbf");
@@ -289,6 +324,8 @@ int main(int argc, char *argv[])
     run_test("test_middles", test_middles);
     run_test("test_outputs", test_outputs);
     run_test("test_random_perms", test_random_perms);
+    run_test("test_parsing_tile_expiry_zoom_levels",
+             test_parsing_tile_expiry_zoom_levels);
 
     //passed
     return 0;

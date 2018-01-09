@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,8 +34,10 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <cassert>
+#include <cstddef>
 #include <iterator>
 #include <type_traits>
+#include <utility>
 
 #include <osmium/osm/diff_object.hpp>
 
@@ -49,7 +51,7 @@ namespace osmium {
      * underlying OSMObjects.
      */
     template <typename TBasicIterator>
-    class DiffIterator : public std::iterator<std::input_iterator_tag, const osmium::DiffObject> {
+    class DiffIterator {
 
         static_assert(std::is_base_of<osmium::OSMObject, typename TBasicIterator::value_type>::value, "TBasicIterator::value_type must derive from osmium::OSMObject");
 
@@ -64,8 +66,8 @@ namespace osmium {
         void set_diff() const noexcept {
             assert(m_curr != m_end);
 
-            bool use_curr_for_prev =                    m_prev->type() != m_curr->type() || m_prev->id() != m_curr->id();
-            bool use_curr_for_next = m_next == m_end || m_next->type() != m_curr->type() || m_next->id() != m_curr->id();
+            const bool use_curr_for_prev =                    m_prev->type() != m_curr->type() || m_prev->id() != m_curr->id();
+            const bool use_curr_for_next = m_next == m_end || m_next->type() != m_curr->type() || m_next->id() != m_curr->id();
 
             m_diff = std::move(osmium::DiffObject{
                 *(use_curr_for_prev ? m_curr : m_prev),
@@ -75,6 +77,12 @@ namespace osmium {
         }
 
     public:
+
+        using iterator_category = std::input_iterator_tag;
+        using value_type        = const osmium::DiffObject;
+        using difference_type   = std::ptrdiff_t;
+        using pointer           = value_type*;
+        using reference         = value_type&;
 
         DiffIterator(TBasicIterator begin, TBasicIterator end) :
             m_prev(begin),
@@ -96,7 +104,7 @@ namespace osmium {
         }
 
         DiffIterator operator++(int) {
-            DiffIterator tmp(*this);
+            DiffIterator tmp{*this};
             operator++();
             return tmp;
         }

@@ -1,4 +1,4 @@
-.TH OSM2PGSQL 1 "February 27, 2016"
+.TH OSM2PGSQL 1 "February 5, 2017"
 .\" Please adjust this date whenever revising the manpage.
 .SH NAME
 osm2pgsql \- Openstreetmap data to PostgreSQL converter.
@@ -53,8 +53,7 @@ Remove existing data from the database. This is the
 default if \fB\-\-append\fR is not specified.
 .TP
 \fB\-d\fR|\-\-database name
-The name of the PostgreSQL database to connect
-to (default: gis).
+The name of the PostgreSQL database to connect to.
 .TP
 \fB\-i\fR|\-\-tablespace\-index tablespacename
 Store all indices in a separate PostgreSQL tablespace named by this parameter.
@@ -195,10 +194,11 @@ assumption that post-processed Coastline Checker shape files will be used.
 OpenStreetMap data is defined in terms of nodes, ways and relations and not in
 terms of actual geometric features. Osm2pgsql therefore tries to build postgis
 geometries out of this data representation. However not all ways and relations
-correspond to valid postgis geometries (e.g. self intersecting polygons). By
-default osm2pgsql tries to automatically fix these geometries using ST_Buffer(0)
-around the invalid polygons. With this option, invalid polygons are instead
-simply dropped from the database.
+correspond to valid PostGIS geometries (e.g. self intersecting polygons). By
+default osm2pgsql tries to fix these geometries using buffer(0) around the
+invalid polygons. With this option, invalid polygons are instead simply dropped
+from the database. Even without this option, all polygons in the database should
+be valid.
 .TP
 \fB\  \fR\-\-unlogged
 Use postgresql's unlogged tables for storing data. This requires PostgreSQL 9.1
@@ -228,7 +228,7 @@ planet requires about 100GB in PostgreSQL, the same data is stored in only ~16GB
 the flat\-nodes mode. This can also increase the speed of applying diff files. This option
 activates the flat\-nodes mode and specifies the location of the database file. It is a
 single large > 16GB file. This mode is only recommended for full planet imports
-as it doesn't work well with small extracts. The default is disabled.
+as it doesn't work well with small imports. The default is disabled.
 .TP
 \fB\-h\fR|\-\-help
 Help information.

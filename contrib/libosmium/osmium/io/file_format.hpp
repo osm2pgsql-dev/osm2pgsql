@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -40,22 +40,23 @@ namespace osmium {
     namespace io {
 
         enum class file_format {
-            unknown = 0,
-            xml     = 1,
-            pbf     = 2,
-            opl     = 3,
-            json    = 4,
-            o5m     = 5,
-            debug   = 6
+            unknown   = 0,
+            xml       = 1,
+            pbf       = 2,
+            opl       = 3,
+            json      = 4,
+            o5m       = 5,
+            debug     = 6,
+            blackhole = 7
         };
 
-// avoid g++ false positive
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
+        enum class read_meta {
+            no  = 0,
+            yes = 1
+        };
+
         inline const char* as_string(file_format format) {
             switch (format) {
-                case file_format::unknown:
-                    return "unknown";
                 case file_format::xml:
                     return "XML";
                 case file_format::pbf:
@@ -68,9 +69,13 @@ namespace osmium {
                     return "O5M";
                 case file_format::debug:
                     return "DEBUG";
+                case file_format::blackhole:
+                    return "BLACKHOLE";
+                default: // file_format::unknown
+                    break;
             }
+            return "unknown";
         }
-#pragma GCC diagnostic pop
 
         template <typename TChar, typename TTraits>
         inline std::basic_ostream<TChar, TTraits>& operator<<(std::basic_ostream<TChar, TTraits>& out, const file_format format) {

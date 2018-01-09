@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -48,13 +48,13 @@ namespace osmium {
 
             DiffHandler() = default;
 
-            void node(const osmium::DiffNode&) const {
+            void node(const osmium::DiffNode&) const noexcept {
             }
 
-            void way(const osmium::DiffWay&) const {
+            void way(const osmium::DiffWay&) const noexcept {
             }
 
-            void relation(const osmium::DiffRelation&) const {
+            void relation(const osmium::DiffRelation&) const noexcept {
             }
 
         }; // class DiffHandler

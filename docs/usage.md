@@ -29,7 +29,7 @@ that only impact performance.
   ``--slim`` mode, this is just node positions while in non-slim it has to
   store information about ways and relations too. The maximum RAM it is useful
   to set this to in slim mode is 8 bytes * number of nodes / efficiency, where
-  efficiency ranges from 50% on small extracts to 80% for a planet.
+  efficiency ranges from 50% on small imports to 80% for a planet.
 
 * ``--number-processes`` sets the number of processes to use. This should
   typically be set to the number of CPU threads, but gains in speed are minimal
@@ -45,8 +45,8 @@ that only impact performance.
 ## Database options ##
 
 osm2pgsql supports standard options for how to connect to PostgreSQL. If left
-unset, it will attempt to connect to the ``gis`` database using a unix socket.
-Most usage only requires setting ``--database``.
+unset, it will attempt to connect to the default database (usually the username)
+using a unix socket. Most usage only requires setting ``--database``.
 
 ``--tablespace`` options allow the location of main and slim tables and indexes
 to be set to different tablespaces independently, typically on machines with
@@ -144,6 +144,3 @@ reimporting the database, at the cost of a
 
 * ``--keep-coastlines`` disables a hard-coded rule that would otherwise
   discard ``natural=coastline`` ways.
-
-* ``--exclude-invalid-polygon`` prevents osm2pgsql from attempting to form
-  valid polygons from invalid ones and just rejects the invalid ones.

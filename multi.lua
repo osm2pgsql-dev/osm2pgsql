@@ -218,9 +218,9 @@ function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount, t
   --mark each way of the relation to tell the caller if its going
   --to be used in the relation or by itself as its own standalone way
   --we start by assuming each way will not be used as part of the relation
-  membersuperseeded = {}
+  membersuperseded = {}
   for i = 1, membercount do
-    membersuperseeded[i] = 0
+    membersuperseded[i] = 0
   end
 
   --remember the type on the relation and erase it from the tags
@@ -249,23 +249,23 @@ function generic_rel_members (f, keyvals, keyvaluemembers, roles, membercount, t
     end
     if filter == 1 then
       tags =  t(keyvals)
-      return filter, tags, membersuperseeded, boundary, polygon, roads
+      return filter, tags, membersuperseded, boundary, polygon, roads
     end
 
     --for each tag of each member if the relation have the tag or has a non matching value for it
-    --then we say the member will not be used in the relation and is there for not superseeded
+    --then we say the member will not be used in the relation and is there for not superseded
     --ie it is kept as a standalone way
     for i = 1,membercount do
-      superseeded = 1
+      superseded = 1
       for k,v in pairs(keyvaluemembers[i]) do
         if ((keyvals[k] == nil) or (keyvals[k] ~= v)) then
-          superseeded = 0;
+          superseded = 0;
           break
         end
       end
-      membersuperseeded[i] = superseeded
+      membersuperseded[i] = superseded
     end
   end
   tags =  t(keyvals)
-  return filter, tags, membersuperseeded, boundary, polygon, roads
+  return filter, tags, membersuperseded, boundary, polygon, roads
 end

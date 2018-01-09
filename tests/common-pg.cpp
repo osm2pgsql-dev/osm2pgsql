@@ -1,9 +1,11 @@
 #include "common-pg.hpp"
 
+#include <iostream>
 #include <sstream>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <unistd.h>
 #include <memory>
 
@@ -82,8 +84,9 @@ tempdb::tempdb()
     : m_postgres_conn(conn::connect("dbname=postgres"))
 {
     result_ptr res = nullptr;
+    // osm2pgsql doesn't require a db name, but subsequent uses of database_options.db.get() in this file assume one is set
     database_options.db = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
-    m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
+    m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db.get());
     //tests can be run concurrently which means that this query can collide with other similar ones
     //so we implement a simple retry here to get around the case that they do collide if we dont
     //we often fail due to both trying to access template1 at the same time
@@ -92,7 +95,7 @@ tempdb::tempdb()
     while(status != PGRES_COMMAND_OK && retries++ < 20)
     {
         sleep(1);
-        res = m_postgres_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % database_options.db);
+        res = m_postgres_conn->exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % database_options.db.get());
         status = PQresultStatus(res->get());
     }
     if (PQresultStatus(res->get()) != PGRES_COMMAND_OK) {
@@ -215,7 +218,7 @@ void tempdb::assert_has_table(const std::string &table_name) {
 tempdb::~tempdb() {
     m_conn.reset(); // close the connection to the db
     if (m_postgres_conn) {
-        m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db);
+        m_postgres_conn->exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % database_options.db.get());
     }
 }
 

@@ -77,7 +77,7 @@ void test_regression_simple() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test);
+    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);
@@ -88,17 +88,17 @@ void test_regression_simple() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3231, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(1696.04, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 1101");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 1101");
 
-    db->check_number(311.21, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(311.21, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(143.81, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(311.289, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(311.289, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
     db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=3857;POINT(1062645.12 5972593.4)'::geometry, 0.1)");
@@ -126,11 +126,10 @@ void test_latlong() {
     options.style = "default.style";
 
     options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
-    options.scale = (options.projection->target_latlon()) ? 10000000 : 100;
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test);
+    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);
@@ -141,17 +140,17 @@ void test_latlong() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3298, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3229, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count(374, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 
     // Check size of lines
-    db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
-    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 44822682");
+    db->check_number(0.0105343, "SELECT ST_Length(way) FROM osm2pgsql_test_line WHERE osm_id = 1101");
+    db->check_number(1151.26, "SELECT ST_Length(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_line WHERE osm_id = 1101");
 
-    db->check_number(1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
-    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 157261342");
+    db->check_number(1.70718e-08, "SELECT way_area FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(1.70718e-08, "SELECT ST_Area(way) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
+    db->check_number(143.845, "SELECT ST_Area(ST_Transform(way,4326)::geography) FROM osm2pgsql_test_polygon WHERE osm_id = 3265");
 
     // Check a point's location
     db->check_count(1, "SELECT count(*) FROM osm2pgsql_test_point WHERE ST_DWithin(way, 'SRID=4326;POINT(9.5459035 47.1866494)'::geometry, 0.00001)");
@@ -183,7 +182,7 @@ void test_area_way_simple() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test);
+    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
 
     testing::parse("tests/test_output_pgsql_way_area.osm", "xml",
                    options, &osmdata);
@@ -222,7 +221,7 @@ void test_route_rel() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_ram.get(), options);
 
-    osmdata_t osmdata(mid_ram, out_test);
+    osmdata_t osmdata(mid_ram, out_test, options.projection);
 
     testing::parse("tests/test_output_pgsql_route_rel.osm", "xml",
                    options, &osmdata);
@@ -267,7 +266,7 @@ void test_clone() {
     //std::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
     std::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get());
 
-    osmdata_t osmdata(mid_pgsql, out_clone);
+    osmdata_t osmdata(mid_pgsql, out_clone, options.projection);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);
@@ -278,9 +277,9 @@ void test_clone() {
     db->assert_has_table("osm2pgsql_test_roads");
 
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
-    db->check_count(3300, "SELECT count(*) FROM osm2pgsql_test_line");
+    db->check_count(3231, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4128, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4127, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 } // anonymous namespace

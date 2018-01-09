@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,7 +33,7 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <cstddef>
+#include <type_traits>
 #include <utility>
 
 namespace osmium {
@@ -43,31 +43,32 @@ namespace osmium {
 
         using iterator = It;
 
-        iterator_range(P&& p) :
+        explicit iterator_range(P&& p) noexcept :
             P(std::forward<P>(p)) {
         }
 
-        It begin() {
+        It begin() const noexcept {
             return this->first;
         }
 
-        It end() {
+        It end() const noexcept {
             return this->second;
         }
 
-        It begin() const {
-            return this->first;
-        }
-
-        It end() const {
-            return this->second;
-        }
-
-        size_t empty() const {
+        bool empty() const noexcept {
             return begin() == end();
         }
 
-    };
+    }; // struct iterator_range
+
+    /**
+     * Helper function to create iterator_range from std::pair.
+     */
+    template <typename P, typename It = typename P::first_type>
+    inline iterator_range<It> make_range(P&& p) noexcept {
+        static_assert(std::is_same<P, std::pair<It, It>>::value, "make_range needs pair of iterators as argument");
+        return iterator_range<It>{std::forward<P>(p)};
+    }
 
 } // namespace osmium
 

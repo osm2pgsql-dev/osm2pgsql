@@ -13,28 +13,38 @@ enum column_flags {
   FLAG_NOCACHE = 4,   /* Optimisation: don't bother remembering this one */
   FLAG_DELETE = 8,    /* These tags should be simply deleted on sight */
   FLAG_NOCOLUMN = 16, /* objects without column but should be listed in database hstore column */
-  FLAG_PHSTORE = 17   /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
+  FLAG_PHSTORE = 17,  /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
+  FLAG_INT_TYPE = 32, /* column value should be converted to integer */
+  FLAG_REAL_TYPE = 64 /* column value should be converted to double */
 };
 
 struct taginfo {
     taginfo();
     taginfo(const taginfo &);
 
+    ColumnType column_type() const {
+        if (flags & FLAG_INT_TYPE) {
+            return COLUMN_TYPE_INT;
+        }
+        if (flags & FLAG_REAL_TYPE) {
+            return COLUMN_TYPE_REAL;
+        }
+        return COLUMN_TYPE_TEXT;
+    }
+
     std::string name, type;
-    int flags;
+    unsigned flags;
 };
 
 struct export_list {
-    export_list();
+    void add(osmium::item_type id, const taginfo &info);
+    std::vector<taginfo> &get(osmium::item_type id);
+    const std::vector<taginfo> &get(osmium::item_type id) const;
 
-    void add(enum OsmType id, const taginfo &info);
-    std::vector<taginfo> &get(enum OsmType id);
-    const std::vector<taginfo> &get(enum OsmType id) const;
+    columns_t normal_columns(osmium::item_type id) const;
+    bool has_column(osmium::item_type id, char const *name) const;
 
-    std::vector<std::pair<std::string, std::string> > normal_columns(enum OsmType id) const;
-
-    int num_tables;
-    std::vector<std::vector<taginfo> > exportList; /* Indexed by enum OsmType */
+    std::vector<std::vector<taginfo> > exportList; /* Indexed osmium nwr index */
 };
 
 /* Parse a comma or whitespace delimited list of tags to apply to

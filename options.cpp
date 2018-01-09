@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:B:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -61,7 +61,6 @@ namespace
         {"drop", 0, 0, 206},
         {"unlogged", 0, 0, 207},
         {"flat-nodes",1,0,209},
-        {"exclude-invalid-polygon",0,0,210},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
         {0, 0, 0, 0}
@@ -102,8 +101,7 @@ namespace
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
     \n\
     Database options:\n\
-       -d|--database    The name of the PostgreSQL database to connect\n\
-                        to (default: gis).\n\
+       -d|--database    The name of the PostgreSQL database to connect to.\n\
        -U|--username    PostgreSQL user name (specify passsword in PGPASS\n\
                         environment variable or use -W).\n\
        -W|--password    Force password prompt.\n\
@@ -147,7 +145,7 @@ namespace
                         dense: caching strategy optimised for full planet import\n\
                         chunk: caching strategy optimised for non-contiguous \n\
                             memory allocation\n\
-                        sparse: caching strategy optimised for small extracts\n\
+                        sparse: caching strategy optimised for small imports\n\
                         optimized: automatically combines dense and sparse \n\
                             strategies for optimal storage efficiency. This may\n\
                             us twice as much virtual memory, but no more physical \n\
@@ -204,7 +202,6 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
-          --exclude-invalid-polygon   do not import polygons with invalid geometries.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
@@ -221,8 +218,8 @@ namespace
             printf("    <flat nodes> is a location where a 19GB file can be saved.\n");
             printf("\n");
             printf("A typical command to update a database imported with the above command is\n");
-            printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wx - \\\n");
-            printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> \n", name);
+            printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc - \\\n");
+            printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -r xml -\n", name);
             printf("where\n");
             printf("    <flat nodes> is the same location as above.\n");
             printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
@@ -234,7 +231,7 @@ namespace
 } // anonymous namespace
 
 database_options_t::database_options_t():
-    db("gis"), username(boost::none), host(boost::none),
+    db(boost::none), username(boost::none), host(boost::none),
     password(boost::none), port(boost::none)
 {
 
@@ -244,8 +241,10 @@ std::string database_options_t::conninfo() const
 {
     std::ostringstream out;
 
-    out << "dbname='" << db << "'";
-
+    out << "fallback_application_name='osm2pgsql'";
+    if (db) {
+        out << " dbname='" << *db << "'";
+    }
     if (username) {
         out << " user='" << *username << "'";
     }
@@ -262,22 +261,29 @@ std::string database_options_t::conninfo() const
     return out.str();
 }
 
-options_t::options_t():
-    prefix("planet_osm"), scale(DEFAULT_SCALE), projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false), slim(false),
-    cache(800), tblsmain_index(boost::none), tblsslim_index(boost::none), tblsmain_data(boost::none), tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
-    expire_tiles_zoom(-1), expire_tiles_zoom_min(-1), expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
-    hstore_mode(HSTORE_NONE), enable_hstore_index(false),
-    enable_multi(false), hstore_columns(), keep_coastlines(false), parallel_indexing(true),
-    #ifdef __amd64__
-    alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
-    #else
-    alloc_chunkwise(ALLOC_SPARSE),
-    #endif
-    droptemp(false),  unlogged(false), hstore_match_only(false), flat_node_cache_enabled(false), excludepoly(false), reproject_area(false), flat_node_file(boost::none),
-    tag_transform_script(boost::none), tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
-    tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-    create(false), long_usage_bool(false), pass_prompt(false),  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-    extra_attributes(false), verbose(false)
+options_t::options_t()
+: prefix("planet_osm"),
+  projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false),
+  slim(false), cache(800), tblsmain_index(boost::none),
+  tblsslim_index(boost::none), tblsmain_data(boost::none),
+  tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
+  expire_tiles_zoom(0), expire_tiles_zoom_min(0),
+  expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
+  hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
+  hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+#ifdef __amd64__
+  alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
+#else
+  alloc_chunkwise(ALLOC_SPARSE),
+#endif
+  droptemp(false), unlogged(false), hstore_match_only(false),
+  flat_node_cache_enabled(false), reproject_area(false),
+  flat_node_file(boost::none), tag_transform_script(boost::none),
+  tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
+  tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
+  create(false), long_usage_bool(false), pass_prompt(false),
+  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
+  extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -292,7 +298,6 @@ options_t::~options_t()
 
 options_t::options_t(int argc, char *argv[]): options_t()
 {
-    const char *temparg;
     int c;
 
     //keep going while there are args left to handle
@@ -371,12 +376,37 @@ options_t::options_t(int argc, char *argv[]): options_t()
             tblsmain_index = optarg;
             break;
         case 'e':
-            expire_tiles_zoom_min = atoi(optarg);
-            temparg = strchr(optarg, '-');
-            if (temparg)
-                expire_tiles_zoom = atoi(temparg + 1);
-            if (expire_tiles_zoom < expire_tiles_zoom_min)
+            if (!optarg || optarg[0] == '-') {
+                throw std::runtime_error("Missing argument for option -e. Zoom "
+                                         "levels must be positive.\n");
+            }
+            char *next_char;
+            expire_tiles_zoom_min =
+                static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
+            if (expire_tiles_zoom_min == 0) {
+                throw std::runtime_error(
+                    "Missing zoom level for tile expiry.\n");
+            }
+            // The first character after the number is ignored because that is the separating hyphen.
+            if (*next_char == '-') {
+                ++next_char;
+                // Second number must not be negative because zoom levels must be positive.
+                if (next_char && *next_char != '-' && isdigit(*next_char)) {
+                    char *after_maxzoom;
+                    expire_tiles_zoom = static_cast<uint32_t>(
+                        std::strtoul(next_char, &after_maxzoom, 10));
+                } else {
+                    throw std::runtime_error(
+                        "Invalid maximum zoom level given for tile expiry.\n");
+                }
+            } else {
+                throw std::runtime_error("Minimum and maximum zoom level for "
+                                         "tile expiry must be separated by "
+                                         "'-'.\n");
+            }
+            if (expire_tiles_zoom < expire_tiles_zoom_min) {
                 expire_tiles_zoom = expire_tiles_zoom_min;
+            }
             break;
         case 'o':
             expire_tiles_filename = optarg;
@@ -446,9 +476,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
             flat_node_cache_enabled = true;
             flat_node_file = optarg;
             break;
-        case 210:
-            excludepoly = true;
-            break;
         case 211:
             enable_hstore_index = true;
             break;
@@ -495,11 +522,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
             database_options.password = std::string(prompt);
         }
     }
-
-
-    //NOTE: this is hugely important if you set it inappropriately and are are caching nodes
-    //you could get overflow when working with larger coordinates (mercator) and larger scales
-    scale = (projection->target_latlon()) ? 10000000 : 100;
 }
 
 void options_t::check_options()
@@ -516,7 +538,7 @@ void options_t::check_options()
         throw std::runtime_error("--drop only makes sense with --slim.\n");
     }
 
-    if (unlogged && !create) {
+    if (unlogged && append) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
         unlogged = false;
     }
@@ -550,5 +572,18 @@ void options_t::check_options()
         fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
         fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
         fprintf(stderr, "!! mode using parameter -s.\n");
+    }
+
+    // zoom level 31 is the technical limit because we use 32-bit integers for the x and y index of a tile ID
+    if (expire_tiles_zoom_min >= 32) {
+        expire_tiles_zoom_min = 31;
+        fprintf(stderr, "WARNING: minimum zoom level for tile expiry is too "
+                        "large and has been set to 31.\n\n");
+    }
+
+    if (expire_tiles_zoom >= 32) {
+        expire_tiles_zoom = 31;
+        fprintf(stderr, "WARNING: maximum zoom level for tile expiry is too "
+                        "large and has been set to 31.\n\n");
     }
 }

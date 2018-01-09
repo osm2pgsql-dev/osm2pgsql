@@ -1,6 +1,6 @@
 set(PACKAGE osm2pgsql)
 set(PACKAGE_NAME osm2pgsql)
-set(PACKAGE_VERSION 0.91.0-dev)
+set(PACKAGE_VERSION 0.95.0-dev)
 
 cmake_minimum_required(VERSION 2.8.7)
 
@@ -23,7 +23,7 @@ if (NOT WIN32 AND NOT APPLE)
 endif()
 
 # Just in case user installed RPMs from http://yum.postgresql.org/
-list(APPEND PostgreSQL_ADDITIONAL_SEARCH_PATHS /usr/pgsql-9.3 /usr/pgsql-9.4 /usr/pgsql-9.5)
+list(APPEND CMAKE_PREFIX_PATH /usr/pgsql-9.3 /usr/pgsql-9.4 /usr/pgsql-9.5 /usr/pgsql-9.6)
 
 if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
   message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
@@ -71,17 +71,6 @@ if (WIN32)
   set(HAVE_LIBGEN_H FALSE)
 endif()
 
-CHECK_FUNCTION_EXISTS(lseek64 HAVE_LSEEK64)
-CHECK_FUNCTION_EXISTS(posix_fallocate HAVE_POSIX_FALLOCATE)
-CHECK_FUNCTION_EXISTS(posix_fadvise HAVE_POSIX_FADVISE)
-CHECK_FUNCTION_EXISTS(sync_file_range HAVE_SYNC_FILE_RANGE)
-
-CHECK_TYPE_SIZE("off_t" SIZEOF_OFF_T)
-
-if (NOT WIN32 AND NOT APPLE AND NOT HAVE_LSEEK64 AND NOT SIZEOF_OFF_T EQUAL 8)
-  message(FATAL_ERROR "Flat nodes cache requires a 64 bit capable seek")
-endif()
-
 #############################################################
 # Find necessary libraries
 #############################################################
@@ -92,18 +81,13 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium REQUIRED COMPONENTS io geos proj)
+find_package(Osmium REQUIRED COMPONENTS io proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
 
 if (WITH_LUA)
   find_package(Lua REQUIRED)
   include_directories(${LUA_INCLUDE_DIR})
   set(HAVE_LUA 1)
-endif()
-
-if (MSVC)
-  # Boost thread needs extra libraries
-  set(BOOST_EXTRA date_time chrono)
 endif()
 
 if (NOT Boost_ADDITIONAL_VERSIONS)
@@ -167,7 +151,6 @@ endif()
 
 set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
-  geometry-builder.cpp
   geometry-processor.cpp
   id-tracker.cpp
   middle-pgsql.cpp
@@ -177,6 +160,7 @@ set(osm2pgsql_lib_SOURCES
   node-ram-cache.cpp
   options.cpp
   osmdata.cpp
+  osmium-builder.cpp
   output-gazetteer.cpp
   output-multi.cpp
   output-null.cpp
@@ -192,10 +176,10 @@ set(osm2pgsql_lib_SOURCES
   table.cpp
   taginfo.cpp
   tagtransform.cpp
+  tagtransform-c.cpp
   util.cpp
   wildcmp.cpp
   expire-tiles.hpp
-  geometry-builder.hpp
   geometry-processor.hpp
   id-tracker.hpp
   middle-pgsql.hpp
@@ -205,6 +189,7 @@ set(osm2pgsql_lib_SOURCES
   node-ram-cache.hpp
   options.hpp
   osmdata.hpp
+  osmium-builder.hpp
   osmtypes.hpp
   output-gazetteer.hpp
   output-multi.hpp
@@ -224,7 +209,12 @@ set(osm2pgsql_lib_SOURCES
   tagtransform.hpp
   util.hpp
   wildcmp.hpp
+  wkb.hpp
 )
+
+if (LUA_FOUND)
+  list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
+endif()
 
 add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})
 set_target_properties(osm2pgsql_lib PROPERTIES OUTPUT_NAME osm2pgsql)

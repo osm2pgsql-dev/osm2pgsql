@@ -49,25 +49,25 @@ void expect_conninfo(const database_options_t &db, const std::string &expect) {
  */
 void test_conninfo() {
     database_options_t db;
-    expect_conninfo(db, "dbname='gis'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql'");
     db.db = "foo";
-    expect_conninfo(db, "dbname='foo'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' dbname='foo'");
 
     db = database_options_t();
     db.username = "bar";
-    expect_conninfo(db, "dbname='gis' user='bar'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' user='bar'");
 
     db = database_options_t();
     db.password = "bar";
-    expect_conninfo(db, "dbname='gis' password='bar'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' password='bar'");
 
     db = database_options_t();
     db.host = "bar";
-    expect_conninfo(db, "dbname='gis' host='bar'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' host='bar'");
 
     db = database_options_t();
     db.port = "bar";
-    expect_conninfo(db, "dbname='gis' port='bar'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' port='bar'");
 
     db = database_options_t();
     db.db = "foo";
@@ -75,7 +75,7 @@ void test_conninfo() {
     db.password = "baz";
     db.host = "bzz";
     db.port = "123";
-    expect_conninfo(db, "dbname='foo' user='bar' password='baz' host='bzz' port='123'");
+    expect_conninfo(db, "fallback_application_name='osm2pgsql' dbname='foo' user='bar' password='baz' host='bzz' port='123'");
 }
 
 } // anonymous namespace

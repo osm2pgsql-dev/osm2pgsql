@@ -1,13 +1,15 @@
-#include "table.hpp"
-#include "options.hpp"
-#include "util.hpp"
-
 #include <exception>
 #include <algorithm>
 #include <cstring>
 #include <cstdio>
 #include <utility>
 #include <time.h>
+
+#include "options.hpp"
+#include "table.hpp"
+#include "taginfo.hpp"
+#include "util.hpp"
+#include "wkb.hpp"
 
 using std::string;
 typedef boost::format fmt;
@@ -31,7 +33,6 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 
     //we use these a lot, so instead of constantly allocating them we predefine these
     single_fmt = fmt("%1%");
-    point_fmt = fmt("POINT(%.15g %.15g)");
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
 }
 
@@ -39,7 +40,7 @@ table_t::table_t(const table_t& other):
     conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
     append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
-    table_space_index(other.table_space_index), single_fmt(other.single_fmt), point_fmt(other.point_fmt), del_fmt(other.del_fmt)
+    table_space_index(other.table_space_index), single_fmt(other.single_fmt), del_fmt(other.del_fmt)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -107,7 +108,7 @@ void table_t::start()
     //we are making a new table
     if (!append)
     {
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1%") % name).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE IF EXISTS %1% CASCADE") % name).str());
     }
 
     /* These _tmp tables can be left behind if we run out of disk space */
@@ -123,8 +124,9 @@ void table_t::start()
         string sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") % name % POSTGRES_OSMID_TYPE).str();
 
         //first with the regular columns
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-            sql += (fmt("\"%1%\" %2%,") % column->first % column->second).str();
+        for (auto const &column : columns) {
+            sql += (fmt("\"%1%\" %2%,") % column.name % column.type_name).str();
+        }
 
         //then with the hstore columns
         for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
@@ -159,16 +161,16 @@ void table_t::start()
     }//appending
     else {
         //check the columns against those in the existing table
-        std::shared_ptr<PGresult> res = pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK, (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
-        for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        {
-            if(PQfnumber(res.get(), ('"' + column->first + '"').c_str()) < 0)
-            {
+        auto res =
+            pgsql_exec_simple(sql_conn, PGRES_TUPLES_OK,
+                              (fmt("SELECT * FROM %1% LIMIT 0") % name).str());
+        for (auto const &column :  columns) {
+            if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
 #if 0
                 throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%1%\"\n") % info.name).str());
 #else
-                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column->first % name).str().c_str());
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column->first % column->second).str());
+                fprintf(stderr, "%s", (fmt("Adding new column \"%1%\" to \"%2%\"\n") % column.name % name).str().c_str());
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") % name % column.name % column.type_name).str());
 #endif
             }
             //Note: we do not verify the type or delete unused columns
@@ -185,8 +187,9 @@ void table_t::start()
     //generate column list for COPY
     string cols = "osm_id,";
     //first with the regular columns
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-        cols += (fmt("\"%1%\",") % column->first).str();
+    for (auto const &column : columns) {
+        cols += (fmt("\"%1%\",") % column.name).str();
+    }
 
     //then with the hstore columns
     for(hstores_t::const_iterator hcolumn = hstore_columns.begin(); hcolumn != hstore_columns.end(); ++hcolumn)
@@ -215,7 +218,32 @@ void table_t::stop()
 
         fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
 
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE TABLE %1%_tmp %2% AS SELECT * FROM %1% ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10) COLLATE \"C\"") % name % (table_space ? "TABLESPACE " + table_space.get() : "")).str());
+        if (srid == "4326") {
+            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
+               Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                     "  SELECT * FROM %1%\n"
+                     "    ORDER BY ST_GeoHash(way,10)\n"
+                     "    COLLATE \"C\"") %
+                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
+                    .str());
+        } else {
+            /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
+               and these need to be filtered. Also, a transformation is needed for geohashing. */
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                     "  SELECT * FROM %1%\n"
+                     "    WHERE ST_IsValid(way)\n"
+                     // clang-format off
+                     "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
+                     // clang-format on
+                     "    COLLATE \"C\"") %
+                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
+                    .str());
+        }
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
@@ -232,6 +260,30 @@ void table_t::stop()
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
                 (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            if (srid != "4326") {
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
+                         "RETURNS TRIGGER AS $$\n"
+                         "BEGIN\n"
+                         "  IF ST_IsValid(NEW.way) THEN \n"
+                         "    RETURN NEW;\n"
+                         "  END IF;\n"
+                         "  RETURN NULL;\n"
+                         "END;"
+                         "$$ LANGUAGE plpgsql;") %
+                     name)
+                        .str());
+
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE TRIGGER %1%_osm2pgsql_valid BEFORE INSERT OR UPDATE\n"
+                         "  ON %1%\n"
+                         "    FOR EACH ROW EXECUTE PROCEDURE %1%_osm2pgsql_valid();") %
+                     name)
+                        .str());
+            }
+            //pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD CHECK (ST_IsValid(way));") % name).str());
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
@@ -246,7 +298,6 @@ void table_t::stop()
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("GRANT SELECT ON %1% TO PUBLIC") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
         time(&end);
         fprintf(stderr, "All indexes on %s created in %ds\n", name.c_str(), (int)(end - start));
@@ -258,7 +309,6 @@ void table_t::stop()
 
 void table_t::stop_copy()
 {
-    PGresult* res;
     int stop;
 
     //we werent copying anyway
@@ -277,19 +327,11 @@ void table_t::stop_copy()
        throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
 
     //get the result
-    res = PQgetResult(sql_conn);
-    if (PQresultStatus(res) != PGRES_COMMAND_OK)
-    {
-        PQclear(res);
+    pg_result_t res(PQgetResult(sql_conn));
+    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") % name % PQerrorMessage(sql_conn)).str());
     }
-    PQclear(res);
     copyMode = false;
-}
-
-void table_t::write_node(const osmid_t id, const taglist_t &tags, double lat, double lon)
-{
-    write_row(id, tags, (point_fmt % lon % lat).str());
 }
 
 void table_t::delete_row(const osmid_t id)
@@ -298,7 +340,7 @@ void table_t::delete_row(const osmid_t id)
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (del_fmt % name % id).str());
 }
 
-void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::string &geom)
+void table_t::write_row(osmid_t id, taglist_t const &tags, std::string const &geom)
 {
     //add the osm id
     buffer.append((single_fmt % id).str());
@@ -311,7 +353,7 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
         used.assign(tags.size(), false);
 
     //get the regular columns' values
-    write_columns(tags, buffer, hstore_mode == HSTORE_NORM?&used:nullptr);
+    write_columns(tags, buffer, hstore_mode == HSTORE_NORM ? &used : nullptr);
 
     //get the hstore columns' values
     write_hstore_columns(tags, buffer);
@@ -320,25 +362,20 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
     if (hstore_mode != HSTORE_NONE)
         write_tags_column(tags, buffer, used);
 
-    //give the geometry an srid
-    buffer.append("SRID=");
-    buffer.append(srid);
-    buffer.push_back(';');
-    //add the geometry
-    buffer.append(geom);
+    //add the geometry - encoding it to hex along the way
+    ewkb::writer_t::write_as_hex(buffer, geom);
+
     //we need \n because we are copying from stdin
     buffer.push_back('\n');
 
     //tell the db we are copying if for some reason we arent already
-    if (!copyMode)
-    {
+    if (!copyMode) {
         pgsql_exec_simple(sql_conn, PGRES_COPY_IN, copystr);
         copyMode = true;
     }
 
     //send all the data to postgres
-    if(buffer.length() > BUFFER_SEND_SIZE)
-    {
+    if (buffer.length() > BUFFER_SEND_SIZE) {
         pgsql_CopyData(name.c_str(), sql_conn, buffer);
         buffer.clear();
     }
@@ -347,12 +384,10 @@ void table_t::write_row(const osmid_t id, const taglist_t &tags, const std::stri
 void table_t::write_columns(const taglist_t &tags, string& values, std::vector<bool> *used)
 {
     //for each column
-    for(columns_t::const_iterator column = columns.begin(); column != columns.end(); ++column)
-    {
+    for (auto const &column : columns) {
         int idx;
-        if ((idx = tags.indexof(column->first)) >= 0)
-        {
-            escape_type(tags[idx].value, column->second, values);
+        if ((idx = tags.indexof(column.name)) >= 0) {
+            escape_type(tags[idx].value, column.type, values);
             //remember we already used this one so we cant use again later in the hstore column
             if (used)
                 (*used)[idx] = true;
@@ -459,53 +494,60 @@ void table_t::escape4hstore(const char *src, string& dst)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const string &value, const string &type, string& dst) {
+void table_t::escape_type(const string &value, ColumnType type, string& dst) {
 
-    // For integers we take the first number, or the average if it's a-b
-    if (type == "int4") {
-        int from, to;
-        int items = sscanf(value.c_str(), "%d-%d", &from, &to);
-        if (items == 1)
-            dst.append((single_fmt % from).str());
-        else if (items == 2)
-            dst.append((single_fmt % ((from + to) / 2)).str());
-        else
-            dst.append("\\N");
-    }
-        /* try to "repair" real values as follows:
-         * assume "," to be a decimal mark which need to be replaced by "."
-         * like int4 take the first number, or the average if it's a-b
-         * assume SI unit (meters)
-         * convert feet to meters (1 foot = 0.3048 meters)
-         * reject anything else
-         */
-    else if (type == "real")
-    {
-        string escaped(value);
-        std::replace(escaped.begin(), escaped.end(), ',', '.');
-
-        float from, to;
-        int items = sscanf(escaped.c_str(), "%f-%f", &from, &to);
-        if (items == 1)
-        {
-            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
-                from *= 0.3048;
-            dst.append((single_fmt % from).str());
-        }
-        else if (items == 2)
-        {
-            if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0)
+    switch (type) {
+        case COLUMN_TYPE_INT:
             {
-                from *= 0.3048;
-                to *= 0.3048;
+                // For integers we take the first number, or the average if it's a-b
+                long from, to;
+                int items = sscanf(value.c_str(), "%ld-%ld", &from, &to);
+                if (items == 1) {
+                    dst.append((single_fmt % from).str());
+                } else if (items == 2) {
+                    dst.append((single_fmt % ((from + to) / 2)).str());
+                } else {
+                    dst.append("\\N");
+                }
+                break;
             }
-            dst.append((single_fmt % ((from + to) / 2)).str());
-        }
-        else
-            dst.append("\\N");
-    }//just a string
-    else
-        escape(value, dst);
+        case COLUMN_TYPE_REAL:
+            /* try to "repair" real values as follows:
+             * assume "," to be a decimal mark which need to be replaced by "."
+             * like int4 take the first number, or the average if it's a-b
+             * assume SI unit (meters)
+             * convert feet to meters (1 foot = 0.3048 meters)
+             * reject anything else
+             */
+            {
+                string escaped(value);
+                std::replace(escaped.begin(), escaped.end(), ',', '.');
+
+                double from, to;
+                int items = sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
+                if (items == 1) {
+                    if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                        from *= 0.3048;
+                    }
+                    dst.append((single_fmt % from).str());
+                }
+                else if (items == 2) {
+                    if (escaped.size() > 1 && escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                        from *= 0.3048;
+                        to *= 0.3048;
+                    }
+                    dst.append((single_fmt % ((from + to) / 2)).str());
+                }
+                else {
+                    dst.append("\\N");
+                }
+                break;
+            }
+        case COLUMN_TYPE_TEXT:
+            //just a string
+            escape(value, dst);
+            break;
+    }
 }
 
 table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
@@ -520,6 +562,8 @@ table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 
     //the prepared statement get_wkb will behave differently depending on the sql_conn
     //each table has its own sql_connection with the get_way referring to the appropriate table
-    PGresult* res = pgsql_execPrepared(sql_conn, "get_wkb", 1, (const char * const *)paramValues, PGRES_TUPLES_OK);
-    return wkb_reader(res);
+    auto res =
+        pgsql_execPrepared(sql_conn, "get_wkb", 1,
+                           (const char *const *)paramValues, PGRES_TUPLES_OK);
+    return wkb_reader(std::move(res));
 }

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,30 +33,25 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <sstream>
 #include <string>
-#include <thread>
 #include <type_traits>
+#include <utility>
 
 #include <protozero/pbf_message.hpp>
+#include <protozero/types.hpp>
 
 #include <osmium/io/detail/input_format.hpp>
 #include <osmium/io/detail/pbf.hpp> // IWYU pragma: export
 #include <osmium/io/detail/pbf_decoder.hpp>
 #include <osmium/io/detail/protobuf_tags.hpp>
-#include <osmium/io/error.hpp>
-#include <osmium/io/file.hpp>
 #include <osmium/io/file_format.hpp>
-#include <osmium/osm.hpp>
+#include <osmium/io/header.hpp>
 #include <osmium/osm/entity_bits.hpp>
-#include <osmium/osm/object.hpp>
-#include <osmium/osm/timestamp.hpp>
 #include <osmium/thread/pool.hpp>
 #include <osmium/thread/util.hpp>
 #include <osmium/util/config.hpp>
@@ -80,14 +75,14 @@ namespace osmium {
                  */
                 std::string read_from_input_queue(size_t size) {
                     while (m_input_buffer.size() < size) {
-                        std::string new_data = get_input();
+                        const std::string new_data{get_input()};
                         if (input_done()) {
-                            throw osmium::pbf_error("truncated data (EOF encountered)");
+                            throw osmium::pbf_error{"truncated data (EOF encountered)"};
                         }
                         m_input_buffer += new_data;
                     }
 
-                    std::string output { m_input_buffer.substr(size) };
+                    std::string output{m_input_buffer.substr(size)};
                     m_input_buffer.resize(size);
 
                     using std::swap;
@@ -104,15 +99,15 @@ namespace osmium {
                     uint32_t size_in_network_byte_order;
 
                     try {
-                        const std::string input_data = read_from_input_queue(sizeof(size_in_network_byte_order));
+                        const std::string input_data{read_from_input_queue(sizeof(size_in_network_byte_order))};
                         size_in_network_byte_order = *reinterpret_cast<const uint32_t*>(input_data.data());
-                    } catch (osmium::pbf_error&) {
+                    } catch (const osmium::pbf_error&) {
                         return 0; // EOF
                     }
 
                     const uint32_t size = ntohl(size_in_network_byte_order);
                     if (size > static_cast<uint32_t>(max_blob_header_size)) {
-                        throw osmium::pbf_error("invalid BlobHeader size (> max_blob_header_size)");
+                        throw osmium::pbf_error{"invalid BlobHeader size (> max_blob_header_size)"};
                     }
 
                     return size;
@@ -123,13 +118,13 @@ namespace osmium {
                  * type. Return the size of the following Blob.
                  */
                 size_t decode_blob_header(protozero::pbf_message<FileFormat::BlobHeader>&& pbf_blob_header, const char* expected_type) {
-                    std::pair<const char*, size_t> blob_header_type;
+                    protozero::data_view blob_header_type;
                     size_t blob_header_datasize = 0;
 
                     while (pbf_blob_header.next()) {
                         switch (pbf_blob_header.tag()) {
                             case FileFormat::BlobHeader::required_string_type:
-                                blob_header_type = pbf_blob_header.get_data();
+                                blob_header_type = pbf_blob_header.get_view();
                                 break;
                             case FileFormat::BlobHeader::required_int32_datasize:
                                 blob_header_datasize = pbf_blob_header.get_int32();
@@ -140,11 +135,11 @@ namespace osmium {
                     }
 
                     if (blob_header_datasize == 0) {
-                        throw osmium::pbf_error("PBF format error: BlobHeader.datasize missing or zero.");
+                        throw osmium::pbf_error{"PBF format error: BlobHeader.datasize missing or zero."};
                     }
 
-                    if (strncmp(expected_type, blob_header_type.first, blob_header_type.second)) {
-                        throw osmium::pbf_error("blob does not have expected type (OSMHeader in first blob, OSMData in following blobs)");
+                    if (std::strncmp(expected_type, blob_header_type.data(), blob_header_type.size())) {
+                        throw osmium::pbf_error{"blob does not have expected type (OSMHeader in first blob, OSMData in following blobs)"};
                     }
 
                     return blob_header_datasize;
@@ -158,35 +153,34 @@ namespace osmium {
                         return 0;
                     }
 
-                    const std::string blob_header = read_from_input_queue(size);
+                    const std::string blob_header{read_from_input_queue(size)};
 
                     return decode_blob_header(protozero::pbf_message<FileFormat::BlobHeader>(blob_header), expected_type);
                 }
 
                 std::string read_from_input_queue_with_check(size_t size) {
                     if (size > max_uncompressed_blob_size) {
-                        throw osmium::pbf_error(std::string("invalid blob size: " +
-                                                std::to_string(size)));
+                        throw osmium::pbf_error{std::string{"invalid blob size: "} +
+                                                std::to_string(size)};
                     }
                     return read_from_input_queue(size);
                 }
 
                 // Parse the header in the PBF OSMHeader blob.
                 void parse_header_blob() {
-                    osmium::io::Header header;
                     const auto size = check_type_and_get_blob_size("OSMHeader");
-                    header = decode_header(read_from_input_queue_with_check(size));
+                    osmium::io::Header header{decode_header(read_from_input_queue_with_check(size))};
                     set_header_value(header);
                 }
 
                 void parse_data_blobs() {
                     while (const auto size = check_type_and_get_blob_size("OSMData")) {
-                        std::string input_buffer = read_from_input_queue_with_check(size);
+                        std::string input_buffer{read_from_input_queue_with_check(size)};
 
-                        PBFDataBlobDecoder data_blob_parser{ std::move(input_buffer), read_types() };
+                        PBFDataBlobDecoder data_blob_parser{std::move(input_buffer), read_types(), read_metadata()};
 
                         if (osmium::config::use_pool_threads_for_pbf_parsing()) {
-                            send_to_output_queue(osmium::thread::Pool::instance().submit(std::move(data_blob_parser)));
+                            send_to_output_queue(get_pool().submit(std::move(data_blob_parser)));
                         } else {
                             send_to_output_queue(data_blob_parser());
                         }
@@ -195,11 +189,8 @@ namespace osmium {
 
             public:
 
-                PBFParser(future_string_queue_type& input_queue,
-                          future_buffer_queue_type& output_queue,
-                          std::promise<osmium::io::Header>& header_promise,
-                          osmium::osm_entity_bits::type read_types) :
-                    Parser(input_queue, output_queue, header_promise, read_types),
+                explicit PBFParser(parser_arguments& args) :
+                    Parser(args),
                     m_input_buffer() {
                 }
 
@@ -221,11 +212,8 @@ namespace osmium {
             // the variable is only a side-effect, it will never be used
             const bool registered_pbf_parser = ParserFactory::instance().register_parser(
                 file_format::pbf,
-                [](future_string_queue_type& input_queue,
-                    future_buffer_queue_type& output_queue,
-                    std::promise<osmium::io::Header>& header_promise,
-                    osmium::osm_entity_bits::type read_which_entities) {
-                    return std::unique_ptr<Parser>(new PBFParser(input_queue, output_queue, header_promise, read_which_entities));
+                [](parser_arguments& args) {
+                    return std::unique_ptr<Parser>(new PBFParser{args});
             });
 
             // dummy function to silence the unused variable warning from above

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,6 +33,8 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <cstddef>
+#include <cstring>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -48,36 +50,51 @@ namespace osmium {
 
         template <typename TKey>
         struct match_key {
-            bool operator()(const TKey& rule_key, const char* tag_key) {
+            bool operator()(const TKey& rule_key, const char* tag_key) const {
                 return rule_key == tag_key;
             }
         }; // struct match_key
 
+        template <>
+        struct match_key<std::string> {
+            bool operator()(const std::string& rule_key, const char* tag_key) const {
+                return !std::strcmp(rule_key.c_str(), tag_key);
+            }
+        }; // struct match_key
+
         struct match_key_prefix {
-            bool operator()(const std::string& rule_key, const char* tag_key) {
+            bool operator()(const std::string& rule_key, const char* tag_key) const {
                 return rule_key.compare(0, std::string::npos, tag_key, 0, rule_key.size()) == 0;
             }
         }; // struct match_key_prefix
 
         template <typename TValue>
         struct match_value {
-            bool operator()(const TValue& rule_value, const char* tag_value) {
+            bool operator()(const TValue& rule_value, const char* tag_value) const {
                 return rule_value == tag_value;
             }
         }; // struct match_value
 
         template <>
+        struct match_value<std::string> {
+            bool operator()(const std::string& rule_value, const char* tag_value) const {
+                return !std::strcmp(rule_value.c_str(), tag_value);
+            }
+        }; // struct match_value
+
+        template <>
         struct match_value<void> {
-            bool operator()(const bool, const char*) {
+            bool operator()(const bool, const char*) const noexcept {
                 return true;
             }
         }; // struct match_value<void>
 
+        /// @deprecated Use osmium::TagsFilter instead.
         template <typename TKey, typename TValue=void, typename TKeyComp=match_key<TKey>, typename TValueComp=match_value<TValue>>
         class Filter {
 
-            typedef TKey key_type;
-            typedef typename std::conditional<std::is_void<TValue>::value, bool, TValue>::type value_type;
+            using key_type   = TKey;
+            using value_type = typename std::conditional<std::is_void<TValue>::value, bool, TValue>::type;
 
             struct Rule {
                 key_type key;
@@ -106,10 +123,10 @@ namespace osmium {
 
         public:
 
-            typedef Filter<TKey, TValue, TKeyComp, TValueComp> filter_type;
-            typedef const osmium::Tag& argument_type;
-            typedef bool result_type;
-            typedef boost::filter_iterator<filter_type, osmium::TagList::const_iterator> iterator;
+            using filter_type   = Filter<TKey, TValue, TKeyComp, TValueComp>;
+            using argument_type = const osmium::Tag&;
+            using result_type   = bool;
+            using iterator      = boost::filter_iterator<filter_type, osmium::TagList::const_iterator>;
 
             explicit Filter(bool default_result = false) :
                 m_default_result(default_result) {
@@ -137,23 +154,32 @@ namespace osmium {
 
             /**
              * Return the number of rules in this filter.
+             *
+             * Complexity: Constant.
              */
-            size_t count() const {
-                return m_rules.count();
+            size_t count() const noexcept {
+                return m_rules.size();
             }
 
             /**
              * Is this filter empty, ie are there no rules defined?
+             *
+             * Complexity: Constant.
              */
-            bool empty() const {
+            bool empty() const noexcept {
                 return m_rules.empty();
             }
 
         }; // class Filter
 
-        typedef Filter<std::string, std::string> KeyValueFilter;
-        typedef Filter<std::string> KeyFilter;
-        typedef Filter<std::string, void, match_key_prefix> KeyPrefixFilter;
+        /// @deprecated Use osmium::TagsFilter instead.
+        using KeyValueFilter  = Filter<std::string, std::string>;
+
+        /// @deprecated Use osmium::TagsFilter instead.
+        using KeyFilter       = Filter<std::string>;
+
+        /// @deprecated Use osmium::TagsFilter instead.
+        using KeyPrefixFilter = Filter<std::string, void, match_key_prefix>;
 
     } // namespace tags
 

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -38,16 +38,17 @@ DEALINGS IN THE SOFTWARE.
 #include <future>
 #include <map>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <osmium/io/detail/queue_util.hpp>
+#include <osmium/io/error.hpp>
 #include <osmium/io/file.hpp>
 #include <osmium/io/file_format.hpp>
 #include <osmium/io/header.hpp>
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/entity_bits.hpp>
+#include <osmium/thread/pool.hpp>
 
 namespace osmium {
 
@@ -55,29 +56,40 @@ namespace osmium {
 
         namespace detail {
 
+            struct parser_arguments {
+                osmium::thread::Pool& pool;
+                future_string_queue_type& input_queue;
+                future_buffer_queue_type& output_queue;
+                std::promise<osmium::io::Header>& header_promise;
+                osmium::osm_entity_bits::type read_which_entities;
+                osmium::io::read_meta read_metadata;
+            };
+
             class Parser {
 
+                osmium::thread::Pool& m_pool;
                 future_buffer_queue_type& m_output_queue;
                 std::promise<osmium::io::Header>& m_header_promise;
                 queue_wrapper<std::string> m_input_queue;
-                osmium::osm_entity_bits::type m_read_types;
+                osmium::osm_entity_bits::type m_read_which_entities;
+                osmium::io::read_meta m_read_metadata;
                 bool m_header_is_done;
 
             protected:
 
-                std::string get_input() {
-                    return m_input_queue.pop();
+                osmium::thread::Pool& get_pool() {
+                    return m_pool;
                 }
 
-                bool input_done() const {
-                    return m_input_queue.has_reached_end_of_data();
+                osmium::osm_entity_bits::type read_types() const noexcept {
+                    return m_read_which_entities;
                 }
 
-                osmium::osm_entity_bits::type read_types() const {
-                    return m_read_types;
+                osmium::io::read_meta read_metadata() const noexcept {
+                    return m_read_metadata;
                 }
 
-                bool header_is_done() const {
+                bool header_is_done() const noexcept {
                     return m_header_is_done;
                 }
 
@@ -108,14 +120,13 @@ namespace osmium {
 
             public:
 
-                Parser(future_string_queue_type& input_queue,
-                       future_buffer_queue_type& output_queue,
-                       std::promise<osmium::io::Header>& header_promise,
-                       osmium::osm_entity_bits::type read_types) :
-                    m_output_queue(output_queue),
-                    m_header_promise(header_promise),
-                    m_input_queue(input_queue),
-                    m_read_types(read_types),
+                explicit Parser(parser_arguments& args) :
+                    m_pool(args.pool),
+                    m_output_queue(args.output_queue),
+                    m_header_promise(args.header_promise),
+                    m_input_queue(args.input_queue),
+                    m_read_which_entities(args.read_which_entities),
+                    m_read_metadata(args.read_metadata),
                     m_header_is_done(false) {
                 }
 
@@ -128,6 +139,14 @@ namespace osmium {
                 virtual ~Parser() noexcept = default;
 
                 virtual void run() = 0;
+
+                std::string get_input() {
+                    return m_input_queue.pop();
+                }
+
+                bool input_done() const {
+                    return m_input_queue.has_reached_end_of_data();
+                }
 
                 void parse() {
                     try {
@@ -154,18 +173,11 @@ namespace osmium {
 
             public:
 
-                typedef std::function<
-                            std::unique_ptr<Parser>(
-                                future_string_queue_type&,
-                                future_buffer_queue_type&,
-                                std::promise<osmium::io::Header>& header_promise,
-                                osmium::osm_entity_bits::type read_which_entities
-                            )
-                        > create_parser_type;
+                using create_parser_type = std::function<std::unique_ptr<Parser>(parser_arguments&)>;
 
             private:
 
-                typedef std::map<osmium::io::file_format, create_parser_type> map_type;
+                using map_type = std::map<osmium::io::file_format, create_parser_type>;
 
                 map_type m_callbacks;
 
@@ -180,22 +192,20 @@ namespace osmium {
                     return factory;
                 }
 
-                bool register_parser(osmium::io::file_format format, create_parser_type create_function) {
-                    if (! m_callbacks.insert(map_type::value_type(format, create_function)).second) {
-                        return false;
-                    }
-                    return true;
+                bool register_parser(osmium::io::file_format format, create_parser_type&& create_function) {
+                    const auto result = m_callbacks.emplace(format, std::forward<create_parser_type>(create_function));
+                    return result.second;
                 }
 
-                create_parser_type get_creator_function(const osmium::io::File& file) {
-                    auto it = m_callbacks.find(file.format());
+                create_parser_type get_creator_function(const osmium::io::File& file) const {
+                    const auto it = m_callbacks.find(file.format());
                     if (it == m_callbacks.end()) {
-                        throw unsupported_file_format_error(
-                                std::string("Can not open file '") +
+                        throw unsupported_file_format_error{
+                                std::string{"Can not open file '"} +
                                 file.filename() +
                                 "' with type '" +
                                 as_string(file.format()) +
-                                "'. No support for reading this format in this program.");
+                                "'. No support for reading this format in this program."};
                     }
                     return it->second;
                 }

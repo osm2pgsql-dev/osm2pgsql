@@ -3,15 +3,16 @@
 
 #include "geometry-processor.hpp"
 
-struct processor_line : public geometry_processor {
-    processor_line(int srid);
-    virtual ~processor_line();
+class processor_line : public geometry_processor
+{
+public:
+    processor_line(std::shared_ptr<reprojection> const &proj);
 
-    geometry_builder::pg_geom_t process_way(const nodelist_t &nodes);
-    geometry_builder::pg_geoms_t process_relation(const multinodelist_t &nodes);
-
-private:
-    geometry_builder builder;
+    wkb_t process_way(osmium::Way const &way,
+                      geom::osmium_builder_t *builder) override;
+    wkbs_t process_relation(osmium::Relation const &rel,
+                            osmium::memory::Buffer const &ways,
+                            geom::osmium_builder_t *builder) override;
 };
 
 #endif /* PROCESSOR_LINE_HPP */

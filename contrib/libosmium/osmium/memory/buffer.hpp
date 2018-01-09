@@ -1,11 +1,12 @@
 #ifndef OSMIUM_MEMORY_BUFFER_HPP
 #define OSMIUM_MEMORY_BUFFER_HPP
 
+#include <iostream>
 /*
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -58,7 +59,7 @@ namespace osmium {
     struct buffer_is_full : public std::runtime_error {
 
         buffer_is_full() :
-            std::runtime_error("Osmium buffer is full") {
+            std::runtime_error{"Osmium buffer is full"} {
         }
 
     }; // struct buffer_is_full
@@ -110,11 +111,23 @@ namespace osmium {
 
             std::unique_ptr<unsigned char[]> m_memory;
             unsigned char* m_data;
-            size_t m_capacity;
-            size_t m_written;
-            size_t m_committed;
-            auto_grow m_auto_grow {auto_grow::no};
+            std::size_t m_capacity;
+            std::size_t m_written;
+            std::size_t m_committed;
+#ifndef NDEBUG
+            uint8_t m_builder_count = 0;
+#endif
+            auto_grow m_auto_grow{auto_grow::no};
             std::function<void(Buffer&)> m_full;
+
+            static std::size_t calculate_capacity(std::size_t capacity) noexcept {
+                // The majority of all Nodes will fit into this size.
+                constexpr static const std::size_t min_capacity = 64;
+                if (capacity < min_capacity) {
+                    return min_capacity;
+                }
+                return padded_length(capacity);
+            }
 
         public:
 
@@ -144,14 +157,14 @@ namespace osmium {
              * @throws std::invalid_argument if the size isn't a multiple of
              *         the alignment.
              */
-            explicit Buffer(unsigned char* data, size_t size) :
+            explicit Buffer(unsigned char* data, std::size_t size) :
                 m_memory(),
                 m_data(data),
                 m_capacity(size),
                 m_written(size),
                 m_committed(size) {
                 if (size % align_bytes != 0) {
-                    throw std::invalid_argument("buffer size needs to be multiple of alignment");
+                    throw std::invalid_argument{"buffer size needs to be multiple of alignment"};
                 }
             }
 
@@ -164,19 +177,23 @@ namespace osmium {
              * @param committed The size of the initialized data. If this is 0, the buffer startes out empty.
              *
              * @throws std::invalid_argument if the capacity or committed isn't
-             *         a multiple of the alignment.
+             *         a multiple of the alignment or if committed is larger
+             *         than capacity.
              */
-            explicit Buffer(unsigned char* data, size_t capacity, size_t committed) :
+            explicit Buffer(unsigned char* data, std::size_t capacity, std::size_t committed) :
                 m_memory(),
                 m_data(data),
                 m_capacity(capacity),
                 m_written(committed),
                 m_committed(committed) {
                 if (capacity % align_bytes != 0) {
-                    throw std::invalid_argument("buffer capacity needs to be multiple of alignment");
+                    throw std::invalid_argument{"buffer capacity needs to be multiple of alignment"};
                 }
                 if (committed % align_bytes != 0) {
-                    throw std::invalid_argument("buffer parameter 'committed' needs to be multiple of alignment");
+                    throw std::invalid_argument{"buffer parameter 'committed' needs to be multiple of alignment"};
+                }
+                if (committed > capacity) {
+                    throw std::invalid_argument{"buffer parameter 'committed' can not be larger than capacity"};
                 }
             }
 
@@ -188,22 +205,17 @@ namespace osmium {
              * is destroyed.
              *
              * @param capacity The (initial) size of the memory for this buffer.
+             *        Actual capacity might be larger tue to alignment.
              * @param auto_grow Should this buffer automatically grow when it
              *        becomes to small?
-             *
-             * @throws std::invalid_argument if the capacity isn't a multiple
-             *         of the alignment.
              */
-            explicit Buffer(size_t capacity, auto_grow auto_grow = auto_grow::yes) :
-                m_memory(new unsigned char[capacity]),
+            explicit Buffer(std::size_t capacity, auto_grow auto_grow = auto_grow::yes) :
+                m_memory(new unsigned char[calculate_capacity(capacity)]),
                 m_data(m_memory.get()),
-                m_capacity(capacity),
+                m_capacity(calculate_capacity(capacity)),
                 m_written(0),
                 m_committed(0),
                 m_auto_grow(auto_grow) {
-                if (capacity % align_bytes != 0) {
-                    throw std::invalid_argument("buffer capacity needs to be multiple of alignment");
-                }
             }
 
             // buffers can not be copied
@@ -216,13 +228,28 @@ namespace osmium {
 
             ~Buffer() = default;
 
+#ifndef NDEBUG
+            void increment_builder_count() noexcept {
+                ++m_builder_count;
+            }
+
+            void decrement_builder_count() noexcept {
+                assert(m_builder_count > 0);
+                --m_builder_count;
+            }
+
+            uint8_t builder_count() const noexcept {
+                return m_builder_count;
+            }
+#endif
+
             /**
              * Return a pointer to data inside the buffer.
              *
              * @pre The buffer must be valid.
              */
             unsigned char* data() const noexcept {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return m_data;
             }
 
@@ -230,7 +257,7 @@ namespace osmium {
              * Returns the capacity of the buffer, ie how many bytes it can
              * contain. Always returns 0 on invalid buffers.
              */
-            size_t capacity() const noexcept {
+            std::size_t capacity() const noexcept {
                 return m_capacity;
             }
 
@@ -238,7 +265,7 @@ namespace osmium {
              * Returns the number of bytes already filled in this buffer.
              * Always returns 0 on invalid buffers.
              */
-            size_t committed() const noexcept {
+            std::size_t committed() const noexcept {
                 return m_committed;
             }
 
@@ -247,7 +274,7 @@ namespace osmium {
              * are not yet committed.
              * Always returns 0 on invalid buffers.
              */
-            size_t written() const noexcept {
+            std::size_t written() const noexcept {
                 return m_written;
             }
 
@@ -258,7 +285,7 @@ namespace osmium {
              * @pre The buffer must be valid.
              */
             bool is_aligned() const noexcept {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return (m_written % align_bytes == 0) && (m_committed % align_bytes == 0);
             }
 
@@ -275,24 +302,19 @@ namespace osmium {
              * Callback functionality will be removed in the future. Either
              * detect the buffer_is_full exception or use a buffer with
              * auto_grow::yes. If you want to avoid growing buffers, check
-             * that the used size of the buffer (committed()) is small enough
-             * compared to the capacity (for instance small than 90% of the
-             * capacity) before adding anything to the Buffer. If the buffer
-             * is initialized with auto_grow::yes, it will still grow in the
-             * rare case that a very large object will be added taking more
-             * than the difference between committed() and capacity().
+             * the CallbackBuffer class.
              */
-            OSMIUM_DEPRECATED void set_full_callback(std::function<void(Buffer&)> full) {
-                assert(m_data);
+            OSMIUM_DEPRECATED void set_full_callback(const std::function<void(Buffer&)>& full) {
+                assert(m_data && "This must be a valid buffer");
                 m_full = full;
             }
 
             /**
-             * Grow capacity of this buffer to the given size.
+             * Grow capacity of this buffer to the given size (which will be
+             * rounded up to the alignment needed).
              * This works only with internally memory-managed buffers.
              * If the given size is not larger than the current capacity,
              * nothing is done.
-             * Already written but not committed data is discarded.
              *
              * @pre The buffer must be valid.
              *
@@ -300,19 +322,15 @@ namespace osmium {
              *
              * @throws std::logic_error if the buffer doesn't use internal
              *         memory management.
-             * @throws std::invalid_argument if the size isn't a multiple
-             *         of the alignment.
              * @throws std::bad_alloc if there isn't enough memory available.
              */
-            void grow(size_t size) {
-                assert(m_data);
+            void grow(std::size_t size) {
+                assert(m_data && "This must be a valid buffer");
                 if (!m_memory) {
-                    throw std::logic_error("Can't grow Buffer if it doesn't use internal memory management.");
+                    throw std::logic_error{"Can't grow Buffer if it doesn't use internal memory management."};
                 }
+                size = calculate_capacity(size);
                 if (m_capacity < size) {
-                    if (size % align_bytes != 0) {
-                        throw std::invalid_argument("buffer capacity needs to be multiple of alignment");
-                    }
                     std::unique_ptr<unsigned char[]> memory(new unsigned char[size]);
                     std::copy_n(m_memory.get(), m_capacity, memory.get());
                     using std::swap;
@@ -325,18 +343,21 @@ namespace osmium {
             /**
              * Mark currently written bytes in the buffer as committed.
              *
-             * @pre The buffer must be valid and aligned properly (as indicated
+             * @pre The buffer must be valid.
+             * @pre The buffer must be aligned properly (as indicated
              *      by is_aligned().
+             * @pre No builder can be open on this buffer.
              *
              * @returns Number of committed bytes before this commit. Can be
              *          used as an offset into the buffer to get to the
              *          object being committed by this call.
              */
-            size_t commit() {
-                assert(m_data);
+            std::size_t commit() {
+                assert(m_data && "This must be a valid buffer");
+                assert(m_builder_count == 0 && "Make sure there are no Builder objects still in scope");
                 assert(is_aligned());
 
-                const size_t offset = m_committed;
+                const std::size_t offset = m_committed;
                 m_committed = m_written;
                 return offset;
             }
@@ -345,9 +366,11 @@ namespace osmium {
              * Roll back changes in buffer to last committed state.
              *
              * @pre The buffer must be valid.
+             * @pre No builder can be open on this buffer.
              */
             void rollback() {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
+                assert(m_builder_count == 0 && "Make sure there are no Builder objects still in scope");
                 m_written = m_committed;
             }
 
@@ -356,10 +379,13 @@ namespace osmium {
              *
              * No-op on an invalid buffer.
              *
+             * @pre No builder can be open on this buffer.
+             *
              * @returns Number of bytes in the buffer before it was cleared.
              */
-            size_t clear() {
-                const size_t committed = m_committed;
+            std::size_t clear() {
+                assert(m_builder_count == 0 && "Make sure there are no Builder objects still in scope");
+                const std::size_t committed = m_committed;
                 m_written = 0;
                 m_committed = 0;
                 return committed;
@@ -376,8 +402,8 @@ namespace osmium {
              *          buffer.
              */
             template <typename T>
-            T& get(const size_t offset) const {
-                assert(m_data);
+            T& get(const std::size_t offset) const {
+                assert(m_data && "This must be a valid buffer");
                 return *reinterpret_cast<T*>(&m_data[offset]);
             }
 
@@ -414,8 +440,8 @@ namespace osmium {
              * @throws osmium::buffer_is_full if the buffer is full there is
              *         no callback defined and the buffer isn't auto-growing.
              */
-            unsigned char* reserve_space(const size_t size) {
-                assert(m_data);
+            unsigned char* reserve_space(const std::size_t size) {
+                assert(m_data && "This must be a valid buffer");
                 // try to flush the buffer empty first.
                 if (m_written + size > m_capacity && m_full) {
                     m_full(*this);
@@ -424,13 +450,13 @@ namespace osmium {
                 if (m_written + size > m_capacity) {
                     if (m_memory && (m_auto_grow == auto_grow::yes)) {
                         // double buffer size until there is enough space
-                        size_t new_capacity = m_capacity * 2;
+                        std::size_t new_capacity = m_capacity * 2;
                         while (m_written + size > new_capacity) {
                             new_capacity *= 2;
                         }
                         grow(new_capacity);
                     } else {
-                        throw osmium::buffer_is_full();
+                        throw osmium::buffer_is_full{};
                     }
                 }
                 unsigned char* data = &m_data[m_written];
@@ -455,7 +481,7 @@ namespace osmium {
              */
             template <typename T>
             T& add_item(const T& item) {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 unsigned char* target = reserve_space(item.padded_size());
                 std::copy_n(reinterpret_cast<const unsigned char*>(&item), item.padded_size(), target);
                 return *reinterpret_cast<T*>(target);
@@ -465,6 +491,7 @@ namespace osmium {
              * Add committed contents of the given buffer to this buffer.
              *
              * @pre The buffer must be valid.
+             * @pre No builder can be open on this buffer.
              *
              * Note that you have to eventually call commit() to actually
              * commit this data.
@@ -472,7 +499,9 @@ namespace osmium {
              * @param buffer The source of the copy. Must be valid.
              */
             void add_buffer(const Buffer& buffer) {
-                assert(m_data && buffer);
+                assert(m_data && "This must be a valid buffer");
+                assert(buffer && "Buffer parameter must be a valid buffer");
+                assert(m_builder_count == 0 && "Make sure there are no Builder objects still in scope");
                 unsigned char* target = reserve_space(buffer.committed());
                 std::copy_n(buffer.data(), buffer.committed(), target);
             }
@@ -482,11 +511,13 @@ namespace osmium {
              * you can use std::back_inserter.
              *
              * @pre The buffer must be valid.
+             * @pre No builder can be open on this buffer.
              *
              * @param item The item to be added.
              */
             void push_back(const osmium::memory::Item& item) {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
+                assert(m_builder_count == 0 && "Make sure there are no Builder objects still in scope");
                 add_item(item);
                 commit();
             }
@@ -517,6 +548,16 @@ namespace osmium {
              */
             using const_iterator = t_const_iterator<osmium::OSMEntity>;
 
+            template <typename T>
+            ItemIteratorRange<T> select() {
+                return ItemIteratorRange<T>{m_data, m_data + m_committed};
+            }
+
+            template <typename T>
+            ItemIteratorRange<const T> select() const {
+                return ItemIteratorRange<const T>{m_data, m_data + m_committed};
+            }
+
             /**
              * Get iterator for iterating over all items of type T in the
              * buffer.
@@ -527,7 +568,7 @@ namespace osmium {
              */
             template <typename T>
             t_iterator<T> begin() {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return t_iterator<T>(m_data, m_data + m_committed);
             }
 
@@ -540,7 +581,7 @@ namespace osmium {
              * @returns Iterator to first OSMEntity in the buffer.
              */
             iterator begin() {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return iterator(m_data, m_data + m_committed);
             }
 
@@ -554,8 +595,8 @@ namespace osmium {
              *          in the buffer.
              */
             template <typename T>
-            t_iterator<T> get_iterator(size_t offset) {
-                assert(m_data);
+            t_iterator<T> get_iterator(std::size_t offset) {
+                assert(m_data && "This must be a valid buffer");
                 return t_iterator<T>(m_data + offset, m_data + m_committed);
             }
 
@@ -568,8 +609,8 @@ namespace osmium {
              * @returns Iterator to first OSMEntity after given offset in the
              *          buffer.
              */
-            iterator get_iterator(size_t offset) {
-                assert(m_data);
+            iterator get_iterator(std::size_t offset) {
+                assert(m_data && "This must be a valid buffer");
                 return iterator(m_data + offset, m_data + m_committed);
             }
 
@@ -583,7 +624,7 @@ namespace osmium {
              */
             template <typename T>
             t_iterator<T> end() {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return t_iterator<T>(m_data + m_committed, m_data + m_committed);
             }
 
@@ -596,40 +637,40 @@ namespace osmium {
              * @returns End iterator.
              */
             iterator end() {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return iterator(m_data + m_committed, m_data + m_committed);
             }
 
             template <typename T>
             t_const_iterator<T> cbegin() const {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return t_const_iterator<T>(m_data, m_data + m_committed);
             }
 
             const_iterator cbegin() const {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return const_iterator(m_data, m_data + m_committed);
             }
 
             template <typename T>
-            t_const_iterator<T> get_iterator(size_t offset) const {
-                assert(m_data);
+            t_const_iterator<T> get_iterator(std::size_t offset) const {
+                assert(m_data && "This must be a valid buffer");
                 return t_const_iterator<T>(m_data + offset, m_data + m_committed);
             }
 
-            const_iterator get_iterator(size_t offset) const {
-                assert(m_data);
+            const_iterator get_iterator(std::size_t offset) const {
+                assert(m_data && "This must be a valid buffer");
                 return const_iterator(m_data + offset, m_data + m_committed);
             }
 
             template <typename T>
             t_const_iterator<T> cend() const {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return t_const_iterator<T>(m_data + m_committed, m_data + m_committed);
             }
 
             const_iterator cend() const {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 return const_iterator(m_data + m_committed, m_data + m_committed);
             }
 
@@ -688,7 +729,7 @@ namespace osmium {
              */
             template <typename TCallbackClass>
             void purge_removed(TCallbackClass* callback) {
-                assert(m_data);
+                assert(m_data && "This must be a valid buffer");
                 if (begin() == end()) {
                     return;
                 }
@@ -702,8 +743,8 @@ namespace osmium {
                         if (it_read != it_write) {
                             assert(it_read.data() >= data());
                             assert(it_write.data() >= data());
-                            size_t old_offset = static_cast<size_t>(it_read.data() - data());
-                            size_t new_offset = static_cast<size_t>(it_write.data() - data());
+                            const auto old_offset = static_cast<std::size_t>(it_read.data() - data());
+                            const auto new_offset = static_cast<std::size_t>(it_write.data() - data());
                             callback->moving_in_buffer(old_offset, new_offset);
                             std::memmove(it_write.data(), it_read.data(), it_read->padded_size());
                         }
@@ -712,7 +753,7 @@ namespace osmium {
                 }
 
                 assert(it_write.data() >= data());
-                m_written = static_cast<size_t>(it_write.data() - data());
+                m_written = static_cast<std::size_t>(it_write.data() - data());
                 m_committed = m_written;
             }
 

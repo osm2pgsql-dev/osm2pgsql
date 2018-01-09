@@ -23,10 +23,12 @@ set(TESTS
   test-output-pgsql-area.cpp
   test-output-pgsql-schema.cpp
   test-output-pgsql-tablespace.cpp
+  test-output-pgsql-validgeom.cpp
   test-output-pgsql-z_order.cpp
   test-output-pgsql.cpp
   test-parse-diff.cpp
   test-parse-xml2.cpp
+  test-persistent-node-cache.cpp
   test-pgsql-escape.cpp
   test-wildcard-match.cpp
 )

@@ -38,6 +38,7 @@
 #include "tagtransform.hpp"
 #include "util.hpp"
 #include "wildcmp.hpp"
+#include "wkb.hpp"
 
 /* make the diagnostic information work with older versions of
  * boost - the function signature changed at version 1.54.
@@ -61,18 +62,6 @@ psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
 Workaround - output SRID=4326;<WKB>
 */
 
-int output_pgsql_t::pgsql_out_node(osmid_t id, const taglist_t &tags, double node_lat, double node_lon)
-{
-    taglist_t outtags;
-    if (m_tagtransform->filter_node_tags(tags, *m_export_list.get(), outtags))
-        return 1;
-
-    expire.from_bbox(node_lon, node_lat, node_lon, node_lat);
-    m_tables[t_point]->write_node(id, outtags, node_lat, node_lon);
-
-    return 0;
-}
-
 
 /*
 COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
@@ -82,126 +71,38 @@ E4C1421D5BF24D06053E7DF4940
 212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
 5BF5BB39597FCDF4940
 */
-int output_pgsql_t::pgsql_out_way(osmid_t id, taglist_t &outtags,
-                                  const nodelist_t &nodes,
-                                  int polygon, int roads)
+void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
+                                   bool polygon, bool roads)
 {
-     /* Split long ways after around 1 degree or 100km */
-    double split_at;
-    if (m_options.projection->target_latlon())
-        split_at = 1;
-    else
-        split_at = 100 * 1000;
-
-    char tmp[32];
-    auto wkbs = builder.get_wkb_split(nodes, polygon, split_at);
-    for (const auto& wkb: wkbs) {
-        /* FIXME: there should be a better way to detect polygons */
-        if (wkb.is_polygon()) {
-            expire.from_nodes_poly(nodes, id);
-            if ((wkb.area > 0.0) && m_enable_way_area) {
-                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
-                outtags.push_override(tag_t("way_area", tmp));
+    if (polygon && way.is_closed()) {
+        auto wkb = m_builder.get_wkb_polygon(way);
+        if (!wkb.empty()) {
+            expire.from_wkb(wkb.c_str(), way.id());
+            if (m_enable_way_area) {
+                char tmp[32];
+                auto const area =
+                    m_options.reproject_area
+                        ? ewkb::parser_t(wkb).get_area<reprojection>(
+                              m_options.projection.get())
+                        : ewkb::parser_t(wkb)
+                              .get_area<osmium::geom::IdentityProjection>();
+                snprintf(tmp, sizeof(tmp), "%g", area);
+                tags->push_override(tag_t("way_area", tmp));
             }
-            m_tables[t_poly]->write_row(id, outtags, wkb.geom);
-        } else {
-            expire.from_nodes_line(nodes);
-            m_tables[t_line]->write_row(id, outtags, wkb.geom);
-            if (roads)
-                m_tables[t_roads]->write_row(id, outtags, wkb.geom);
+            m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
-    }
+    } else {
+        double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
+        for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
+            expire.from_wkb(wkb.c_str(), way.id());
+            m_tables[t_line]->write_row(way.id(), *tags, wkb);
+            if (roads) {
+                m_tables[t_roads]->write_row(way.id(), *tags, wkb);
+            }
+        }
 
-    return 0;
+    }
 }
-
-int output_pgsql_t::pgsql_out_relation(osmid_t id, const taglist_t &rel_tags,
-                           const multinodelist_t &xnodes, const multitaglist_t & xtags,
-                           const idlist_t &xid, const rolelist_t &xrole,
-                           bool pending)
-{
-    if (xnodes.empty())
-        return 0;
-
-    int roads = 0;
-    int make_polygon = 0;
-    int make_boundary = 0;
-    double split_at;
-
-    std::vector<int> members_superseeded(xnodes.size(), 0);
-    taglist_t outtags;
-
-    //if its a route relation make_boundary and make_polygon will be false otherwise one or the other will be true
-    if (m_tagtransform->filter_rel_member_tags(rel_tags, xtags, xrole,
-              &(members_superseeded[0]), &make_boundary, &make_polygon, &roads,
-              *m_export_list.get(), outtags)) {
-        return 0;
-    }
-
-    /* Split long linear ways after around 1 degree or 100km (polygons not effected) */
-    if (m_options.projection->target_latlon())
-        split_at = 1;
-    else
-        split_at = 100 * 1000;
-
-    //this will either make lines or polygons (unless the lines arent a ring or are less than 3 pts) depending on the tag transform above
-    //TODO: pick one or the other based on which we expect to care about
-    auto wkbs  = builder.build_both(xnodes, make_polygon, m_options.enable_multi, split_at, id);
-
-    if (wkbs.empty()) {
-        return 0;
-    }
-
-    char tmp[32];
-    for (const auto& wkb: wkbs) {
-        expire.from_wkb(wkb.geom.c_str(), -id);
-        /* FIXME: there should be a better way to detect polygons */
-        if (wkb.is_polygon()) {
-            if ((wkb.area > 0.0) && m_enable_way_area) {
-                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
-                outtags.push_override(tag_t("way_area", tmp));
-            }
-            m_tables[t_poly]->write_row(-id, outtags, wkb.geom);
-        } else {
-            m_tables[t_line]->write_row(-id, outtags, wkb.geom);
-            if (roads)
-                m_tables[t_roads]->write_row(-id, outtags, wkb.geom);
-        }
-    }
-
-    /* Tagtransform will have marked those member ways of the relation that
-     * have fully been dealt with as part of the multi-polygon entry.
-     * Set them in the database as done and delete their entry to not
-     * have duplicates */
-    //dont do this when working with pending relations as its not needed
-    if (make_polygon) {
-        for (size_t i=0; i < xid.size(); i++) {
-            if (members_superseeded[i]) {
-                pgsql_delete_way_from_output(xid[i]);
-                if(!pending)
-                    ways_done_tracker->mark(xid[i]);
-            }
-        }
-    }
-
-    // If the tag transform said the polygon looked like a boundary we want to make that as well
-    // If we are making a boundary then also try adding any relations which form complete rings
-    // The linear variants will have already been processed above
-    if (make_boundary) {
-        wkbs = builder.build_polygons(xnodes, m_options.enable_multi, id);
-        for (const auto& wkb: wkbs) {
-            expire.from_wkb(wkb.geom.c_str(), -id);
-            if ((wkb.area > 0.0) && m_enable_way_area) {
-                snprintf(tmp, sizeof(tmp), "%g", wkb.area);
-                outtags.push_override(tag_t("way_area", tmp));
-            }
-            m_tables[t_poly]->write_row(-id, outtags, wkb.geom);
-        }
-    }
-
-    return 0;
-}
-
 
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
     osmid_t const prev = ways_pending_tracker.last_returned();
@@ -243,11 +144,9 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 }
 
 int output_pgsql_t::pending_way(osmid_t id, int exists) {
-    taglist_t tags_int;
-    nodelist_t nodes_int;
-
     // Try to fetch the way from the DB
-    if (m_mid->ways_get(id, tags_int, nodes_int)) {
+    buffer.clear();
+    if (m_mid->ways_get(id, buffer)) {
         /* If the flag says this object may exist already, delete it first */
         if (exists) {
             pgsql_delete_way_from_output(id);
@@ -263,9 +162,14 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
         taglist_t outtags;
         int polygon;
         int roads;
-        if (!m_tagtransform->filter_way_tags(tags_int, &polygon, &roads,
-                                            *m_export_list.get(), outtags)) {
-            return pgsql_out_way(id, outtags, nodes_int, polygon, roads);
+        auto &way = buffer.get<osmium::Way>(0);
+        if (!m_tagtransform->filter_tags(way, &polygon, &roads,
+                                         *m_export_list.get(), outtags)) {
+            auto nnodes = m_mid->nodes_get_list(&(way.nodes()));
+            if (nnodes > 1) {
+                pgsql_out_way(way, &outtags, polygon, roads);
+                return 1;
+            }
         }
     }
 
@@ -310,16 +214,22 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 }
 
 int output_pgsql_t::pending_relation(osmid_t id, int exists) {
-    taglist_t tags_int;
-    memberlist_t members_int;
-    int ret = 0;
-
     // Try to fetch the relation from the DB
-    if (m_mid->relations_get(id, members_int, tags_int)) {
-        ret = pgsql_process_relation(id, members_int, tags_int, exists, true);
+    // Note that we cannot use the global buffer here because
+    // we cannot keep a reference to the relation and an autogrow buffer
+    // might be relocated when more data is added.
+    rels_buffer.clear();
+    if (m_mid->relations_get(id, rels_buffer)) {
+        // If the flag says this object may exist already, delete it first.
+        if (exists) {
+            pgsql_delete_relation_from_output(id);
+        }
+
+        auto const &rel = rels_buffer.get<osmium::Relation>(0);
+        return pgsql_process_relation(rel, true);
     }
 
-    return ret;
+    return 0;
 }
 
 void output_pgsql_t::commit()
@@ -352,113 +262,167 @@ void output_pgsql_t::stop()
       }
     }
 
-    if (m_options.expire_tiles_zoom_min >= 0) {
+    if (m_options.expire_tiles_zoom_min > 0) {
         expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                   m_options.expire_tiles_zoom_min);
     }
 }
 
-int output_pgsql_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags)
+int output_pgsql_t::node_add(osmium::Node const &node)
 {
-  pgsql_out_node(id, tags, lat, lon);
+    taglist_t outtags;
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr,
+                                    *m_export_list.get(), outtags))
+        return 1;
 
-  return 0;
+    auto wkb = m_builder.get_wkb_node(node.location());
+    expire.from_wkb(wkb.c_str(), node.id());
+    m_tables[t_point]->write_row(node.id(), outtags, wkb);
+
+    return 0;
 }
 
-int output_pgsql_t::way_add(osmid_t id, const idlist_t &nds, const taglist_t &tags)
+int output_pgsql_t::way_add(osmium::Way *way)
 {
-  int polygon = 0;
-  int roads = 0;
-  taglist_t outtags;
+    int polygon = 0;
+    int roads = 0;
+    taglist_t outtags;
 
-  /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
-  auto filter = m_tagtransform->filter_way_tags(tags, &polygon, &roads,
-                                                *m_export_list.get(), outtags);
+    /* Check whether the way is: (1) Exportable, (2) Maybe a polygon */
+    auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads,
+                                              *m_export_list.get(), outtags);
 
-  /* If this isn't a polygon then it can not be part of a multipolygon
-     Hence only polygons are "pending" */
-  if (!filter && polygon) { ways_pending_tracker.mark(id); }
+    /* If this isn't a polygon then it can not be part of a multipolygon
+       Hence only polygons are "pending" */
+    if (!filter && polygon) { ways_pending_tracker.mark(way->id()); }
 
-  if( !polygon && !filter )
-  {
-    /* Get actual node data and generate output */
-    nodelist_t nodes;
-    m_mid->nodes_get_list(nodes, nds);
-    pgsql_out_way(id, outtags, nodes, polygon, roads);
-  }
-  return 0;
+    if( !polygon && !filter )
+    {
+        /* Get actual node data and generate output */
+        auto nnodes = m_mid->nodes_get_list(&(way->nodes()));
+        if (nnodes > 1) {
+            pgsql_out_way(*way, &outtags, polygon, roads);
+        }
+    }
+    return 0;
 }
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmid_t id, const memberlist_t &members,
-                                           const taglist_t &tags, int exists, bool pending)
+int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
+                                           bool pending)
 {
-  /* If the flag says this object may exist already, delete it first */
-  if(exists)
-      pgsql_delete_relation_from_output(id);
+    taglist_t prefiltered_tags;
+    if (m_tagtransform->filter_tags(rel, nullptr, nullptr, *m_export_list.get(),
+                                    prefiltered_tags)) {
+        return 1;
+    }
 
+    idlist_t xid2;
+    for (auto const &m : rel.members()) {
+        /* Need to handle more than just ways... */
+        if (m.type() == osmium::item_type::way) {
+            xid2.push_back(m.ref());
+        }
+    }
+
+    buffer.clear();
+    rolelist_t xrole;
+    auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
+
+    if (num_ways == 0)
+        return 0;
+
+  int roads = 0;
+  int make_polygon = 0;
+  int make_boundary = 0;
+  std::vector<int> members_superseded(num_ways, 0);
   taglist_t outtags;
 
-  if (m_tagtransform->filter_rel_tags(tags, *m_export_list.get(), outtags))
-      return 1;
-
-  idlist_t xid2;
-  multitaglist_t xtags2;
-  multinodelist_t xnodes;
-
-  for (memberlist_t::const_iterator it = members.begin(); it != members.end(); ++it)
-  {
-    /* Need to handle more than just ways... */
-    if (it->type == OSMTYPE_WAY)
-        xid2.push_back(it->id);
+  // If it's a route relation make_boundary and make_polygon will be false
+  // otherwise one or the other will be true.
+  if (m_tagtransform->filter_rel_member_tags(
+          prefiltered_tags, buffer, xrole, &(members_superseded[0]),
+          &make_boundary, &make_polygon, &roads, *m_export_list.get(),
+          outtags)) {
+      return 0;
   }
 
-  idlist_t xid;
-  m_mid->ways_get_list(xid2, xid, xtags2, xnodes);
-  int polygon = 0, roads = 0;
-  multitaglist_t xtags(xid.size(), taglist_t());
-  rolelist_t xrole(xid.size(), 0);
+  for (auto &w : buffer.select<osmium::Way>()) {
+      m_mid->nodes_get_list(&(w.nodes()));
+  }
 
-  for (size_t i = 0; i < xid.size(); i++) {
-      for (size_t j = i; j < members.size(); j++) {
-          if (members[j].id == xid[i]) {
-              //filter the tags on this member because we got it from the middle
-              //and since the middle is no longer tied to the output it no longer
-              //shares any kind of tag transform and therefore all original tags
-              //will come back and need to be filtered by individual outputs before
-              //using these ways
-              m_tagtransform->filter_way_tags(xtags2[i], &polygon, &roads,
-                                              *m_export_list.get(), xtags[i]);
-              //TODO: if the filter says that this member is now not interesting we
-              //should decrement the count and remove his nodes and tags etc. for
-              //now we'll just keep him with no tags so he will get filtered later
-              xrole[i] = &members[j].role;
-              break;
+  // linear features and boundaries
+  // Needs to be done before the polygon treatment below because
+  // for boundaries the way_area tag may be added.
+  if (!make_polygon) {
+      double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
+      auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
+      for (auto const &wkb : wkbs) {
+          expire.from_wkb(wkb.c_str(), -rel.id());
+          m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
+          if (roads)
+              m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
+      }
+  }
+
+  // multipolygons and boundaries
+  if (make_boundary || make_polygon) {
+      auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
+
+      char tmp[32];
+      for (auto const &wkb : wkbs) {
+          expire.from_wkb(wkb.c_str(), -rel.id());
+          if (m_enable_way_area) {
+              auto const area =
+                  m_options.reproject_area
+                      ? ewkb::parser_t(wkb).get_area<reprojection>(
+                            m_options.projection.get())
+                      : ewkb::parser_t(wkb)
+                            .get_area<osmium::geom::IdentityProjection>();
+              snprintf(tmp, sizeof(tmp), "%g", area);
+              outtags.push_override(tag_t("way_area", tmp));
+          }
+          m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
+      }
+
+      /* Tagtransform will have marked those member ways of the relation that
+         * have fully been dealt with as part of the multi-polygon entry.
+         * Set them in the database as done and delete their entry to not
+         * have duplicates */
+      if (make_polygon) {
+          size_t j = 0;
+          for (auto &w : buffer.select<osmium::Way>()) {
+              if (members_superseded[j]) {
+                  pgsql_delete_way_from_output(w.id());
+                  // When working with pending relations this is not needed.
+                  if (!pending) {
+                      ways_done_tracker->mark(w.id());
+                  }
+              }
+              ++j;
           }
       }
   }
 
-  /* At some point we might want to consider storing the retrieved data in the members, rather than as separate arrays */
-  pgsql_out_relation(id, outtags, xnodes, xtags, xid, xrole, pending);
-
   return 0;
 }
 
-int output_pgsql_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags)
+int output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
-  const std::string *type = tags.get("type");
+    char const *type = rel.tags()["type"];
 
-  /* Must have a type field or we ignore it */
-  if (!type)
-      return 0;
+    /* Must have a type field or we ignore it */
+    if (!type)
+        return 0;
 
-  /* Only a limited subset of type= is supported, ignore other */
-  if ( (*type != "route") && (*type != "multipolygon") && (*type != "boundary"))
-    return 0;
+    /* Only a limited subset of type= is supported, ignore other */
+    if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0
+        && strcmp(type, "boundary") != 0) {
+        return 0;
+    }
 
-
-  return pgsql_process_relation(id, members, tags, 0);
+    return pgsql_process_relation(rel, false);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
@@ -532,40 +496,39 @@ int output_pgsql_t::relation_delete(osmid_t osm_id)
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmid_t osm_id, double lat, double lon, const taglist_t &tags)
+int output_pgsql_t::node_modify(osmium::Node const &node)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
-    node_delete(osm_id);
-    node_add(osm_id, lat, lon, tags);
+    node_delete(node.id());
+    node_add(node);
     return 0;
 }
 
-int output_pgsql_t::way_modify(osmid_t osm_id, const idlist_t &nodes, const taglist_t &tags)
+int output_pgsql_t::way_modify(osmium::Way *way)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    way_delete(osm_id);
-    way_add(osm_id, nodes, tags);
+    way_delete(way->id());
+    way_add(way);
 
     return 0;
 }
 
-int output_pgsql_t::relation_modify(osmid_t osm_id, const memberlist_t &members, const taglist_t &tags)
+int output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
     if( !m_options.slim )
     {
         fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
         util::exit_nicely();
     }
-    relation_delete(osm_id);
-    relation_add(osm_id, members, tags);
+    relation_delete(rel.id());
+    relation_add(rel);
     return 0;
 }
 
@@ -587,21 +550,19 @@ std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_mid
     return std::shared_ptr<output_t>(clone);
 }
 
-output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
-    : output_t(mid, o),
-      expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-      ways_done_tracker(new id_tracker())
+output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
+: output_t(mid, o), m_builder(o.projection, o.enable_multi),
+  expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
+  ways_done_tracker(new id_tracker()),
+  buffer(32768, osmium::memory::Buffer::auto_grow::yes),
+  rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    reproj = m_options.projection;
-    builder.set_exclude_broken_polygon(m_options.excludepoly);
-    if (m_options.reproject_area) builder.set_reprojection(reproj.get());
-
     m_export_list.reset(new export_list());
 
     m_enable_way_area = read_style_file( m_options.style, m_export_list.get() );
 
     try {
-        m_tagtransform.reset(new tagtransform(&m_options));
+        m_tagtransform = tagtransform_t::make_tagtransform(&m_options);
     }
     catch(const std::runtime_error& e) {
         fprintf(stderr, "%s\n", e.what());
@@ -614,7 +575,9 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
     for (int i = 0; i < t_MAX; i++) {
 
         //figure out the columns this table needs
-        columns_t columns = m_export_list->normal_columns((i == t_point)?OSMTYPE_NODE:OSMTYPE_WAY);
+        columns_t columns = m_export_list->normal_columns((i == t_point)
+                            ? osmium::item_type::node
+                            : osmium::item_type::way);
 
         //figure out what name we are using for this and what type
         std::string name = m_options.prefix;
@@ -645,29 +608,29 @@ output_pgsql_t::output_pgsql_t(const middle_query_t* mid, const options_t &o)
         //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
         //options object because we want to make use of the table_t in output_mutli_t which could
         //have a different tablespace/hstores/etc per table
-        m_tables.push_back(std::shared_ptr<table_t>(
-            new table_t(
-                m_options.database_options.conninfo(), name, type, columns, m_options.hstore_columns,
-                reproj->target_srs(),
-                m_options.append, m_options.slim, m_options.droptemp, m_options.hstore_mode,
-                m_options.enable_hstore_index, m_options.tblsmain_data, m_options.tblsmain_index
-            )
-        ));
+        m_tables.push_back(std::shared_ptr<table_t>(new table_t(
+            m_options.database_options.conninfo(), name, type, columns,
+            m_options.hstore_columns, m_options.projection->target_srs(),
+            m_options.append, m_options.slim, m_options.droptemp,
+            m_options.hstore_mode, m_options.enable_hstore_index,
+            m_options.tblsmain_data, m_options.tblsmain_index)));
     }
 }
 
-output_pgsql_t::output_pgsql_t(const output_pgsql_t& other):
-    output_t(other.m_mid, other.m_options), m_tagtransform(new tagtransform(&m_options)), m_enable_way_area(other.m_enable_way_area),
-    m_export_list(new export_list(*other.m_export_list)),
-    expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
-           m_options.projection),
-    reproj(other.reproj),
-    //NOTE: we need to know which ways were used by relations so each thread
-    //must have a copy of the original marked done ways, its read only so its ok
-    ways_done_tracker(other.ways_done_tracker)
+output_pgsql_t::output_pgsql_t(const output_pgsql_t &other)
+: output_t(other.m_mid, other.m_options),
+  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
+  m_enable_way_area(other.m_enable_way_area),
+  m_export_list(new export_list(*other.m_export_list)),
+  m_builder(m_options.projection, other.m_options.enable_multi),
+  expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
+         m_options.projection),
+  //NOTE: we need to know which ways were used by relations so each thread
+  //must have a copy of the original marked done ways, its read only so its ok
+  ways_done_tracker(other.ways_done_tracker),
+  buffer(1024, osmium::memory::Buffer::auto_grow::yes),
+  rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    builder.set_exclude_broken_polygon(m_options.excludepoly);
-    if (m_options.reproject_area) builder.set_reprojection(reproj.get());
     for(std::vector<std::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
         //copy constructor will just connect to the already there table
         m_tables.push_back(std::shared_ptr<table_t>(new table_t(**t)));

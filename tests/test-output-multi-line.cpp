@@ -44,19 +44,19 @@ int main(int argc, char *argv[]) {
             geometry_processor::create("line", &options);
 
         export_list columns;
-        { taginfo info; info.name = "highway"; info.type = "text"; columns.add(OSMTYPE_WAY, info); }
+        { taginfo info; info.name = "highway"; info.type = "text"; columns.add(osmium::item_type::way, info); }
 
         // This actually uses the multi-backend with C transforms, not Lua transforms. This is unusual and doesn't reflect real practice
         auto out_test = std::make_shared<output_multi_t>("foobar_highways", processor, columns, mid_pgsql.get(), options);
 
-        osmdata_t osmdata(mid_pgsql, out_test);
+        osmdata_t osmdata(mid_pgsql, out_test, options.projection);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);
 
         // start a new connection to run tests on
         db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_highways'");
-        db->check_count(2752, "select count(*) from foobar_highways");
+        db->check_count(2753, "select count(*) from foobar_highways");
 
         //check that we have the right spread
         db->check_count(13, "select count(*) from foobar_highways where highway='bridleway'");
@@ -65,7 +65,7 @@ int main(int argc, char *argv[]) {
         db->check_count(249, "select count(*) from foobar_highways where highway='footway'");
         db->check_count(18, "select count(*) from foobar_highways where highway='living_street'");
         db->check_count(171, "select count(*) from foobar_highways where highway='path'");
-        db->check_count(5, "select count(*) from foobar_highways where highway='pedestrian'");
+        db->check_count(6, "select count(*) from foobar_highways where highway='pedestrian'");
         db->check_count(81, "select count(*) from foobar_highways where highway='primary'");
         db->check_count(842, "select count(*) from foobar_highways where highway='residential'");
         db->check_count(3, "select count(*) from foobar_highways where highway='road'");

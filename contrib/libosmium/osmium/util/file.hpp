@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -36,20 +36,22 @@ DEALINGS IN THE SOFTWARE.
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
+#include <string>
 #include <system_error>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #ifdef _WIN32
+#  ifndef WIN32_LEAN_AND_MEAN
+#   define WIN32_LEAN_AND_MEAN // Prevent winsock.h inclusion; avoid winsock2.h conflict
+#  endif
 # include <io.h>
 # include <windows.h>
+# include <crtdbg.h>
 #endif
 
 #ifndef _MSC_VER
 # include <unistd.h>
-#else
-// https://msdn.microsoft.com/en-us/library/whx354w1.aspx
-# define ftruncate _chsize_s
 #endif
 
 #include <osmium/util/cast.hpp>
@@ -57,6 +59,44 @@ DEALINGS IN THE SOFTWARE.
 namespace osmium {
 
     namespace util {
+
+#ifdef _MSC_VER
+        namespace detail {
+
+            // Disable parameter validation on Windows and reenable it
+            // automatically when scope closes.
+            // https://docs.microsoft.com/en-us/cpp/c-runtime-library/parameter-validation
+            class disable_invalid_parameter_handler {
+
+                static void invalid_parameter_handler(
+                        const wchar_t* expression,
+                        const wchar_t* function,
+                        const wchar_t* file,
+                        unsigned int line,
+                        uintptr_t pReserved
+                        ) {
+                    // do nothing
+                }
+
+                _invalid_parameter_handler old_handler;
+                int old_report_mode;
+
+            public:
+
+                disable_invalid_parameter_handler() :
+                    old_handler(_set_thread_local_invalid_parameter_handler(invalid_parameter_handler)),
+                    old_report_mode(_CrtSetReportMode(_CRT_ASSERT, 0)) {
+                }
+
+                ~disable_invalid_parameter_handler() {
+                    _CrtSetReportMode(_CRT_ASSERT, old_report_mode);
+                    _set_thread_local_invalid_parameter_handler(old_handler);
+                }
+
+            }; // class disable_invalid_parameter_handler
+
+        }
+#endif
 
         /**
          * Get file size.
@@ -66,23 +106,63 @@ namespace osmium {
          * @returns file size
          * @throws std::system_error If system call failed
          */
-        inline size_t file_size(int fd) {
+        inline std::size_t file_size(int fd) {
 #ifdef _MSC_VER
             // Windows implementation
+            detail::disable_invalid_parameter_handler diph;
             // https://msdn.microsoft.com/en-us/library/dfbc2kec.aspx
-            auto size = ::_filelengthi64(fd);
-            if (size == -1L) {
-                throw std::system_error(errno, std::system_category(), "_filelengthi64 failed");
+            const auto size = ::_filelengthi64(fd);
+            if (size < 0) {
+                throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
-            return size_t(size);
+            return static_cast<std::size_t>(size);
 #else
             // Unix implementation
             struct stat s;
             if (::fstat(fd, &s) != 0) {
-                throw std::system_error(errno, std::system_category(), "fstat failed");
+                throw std::system_error{errno, std::system_category(), "Could not get file size"};
             }
-            return size_t(s.st_size);
+            return static_cast<std::size_t>(s.st_size);
 #endif
+        }
+
+        /**
+         * Get file size.
+         * This is a small wrapper around a system call.
+         *
+         * @param name File name
+         * @returns file size
+         * @throws std::system_error If system call failed
+         * @pre name must not be nullptr
+         */
+        inline std::size_t file_size(const char* name) {
+#ifdef _MSC_VER
+            // Windows implementation
+            // https://msdn.microsoft.com/en-us/library/14h5k7ff.aspx
+            struct _stat64 s;
+            if (::_stati64(name, &s) != 0) {
+                throw std::system_error{errno, std::system_category(), std::string{"Could not get file size of file '"} + name + "'"};
+            }
+#else
+            // Unix implementation
+            struct stat s;
+            if (::stat(name, &s) != 0) {
+                throw std::system_error{errno, std::system_category(), std::string{"Could not get file size of file '"} + name + "'"};
+            }
+#endif
+            return static_cast<std::size_t>(s.st_size);
+        }
+
+        /**
+         * Get file size.
+         * This is a small wrapper around a system call.
+         *
+         * @param name File name
+         * @returns file size
+         * @throws std::system_error If system call failed
+         */
+        inline std::size_t file_size(const std::string& name) {
+            return file_size(name.c_str());
         }
 
         /**
@@ -93,16 +173,22 @@ namespace osmium {
          * @param new_size New size
          * @throws std::system_error If ftruncate(2) call failed
          */
-        inline void resize_file(int fd, size_t new_size) {
+        inline void resize_file(int fd, std::size_t new_size) {
+#ifdef _WIN32
+            detail::disable_invalid_parameter_handler diph;
+            // https://msdn.microsoft.com/en-us/library/whx354w1.aspx
+            if (::_chsize_s(fd, static_cast_with_assert<__int64>(new_size)) != 0) {
+#else
             if (::ftruncate(fd, static_cast_with_assert<off_t>(new_size)) != 0) {
-                throw std::system_error(errno, std::system_category(), "ftruncate failed");
+#endif
+                throw std::system_error{errno, std::system_category(), "Could not resize file"};
             }
         }
 
         /**
          * Get the page size for this system.
          */
-        inline size_t get_pagesize() {
+        inline std::size_t get_pagesize() {
 #ifdef _WIN32
             // Windows implementation
             SYSTEM_INFO si;
@@ -110,7 +196,40 @@ namespace osmium {
             return si.dwPageSize;
 #else
             // Unix implementation
-            return size_t(::sysconf(_SC_PAGESIZE));
+            return static_cast<std::size_t>(::sysconf(_SC_PAGESIZE));
+#endif
+        }
+
+        /**
+         * Get current offset into file.
+         *
+         * @param fd Open file descriptor.
+         * @returns File offset or 0 if it is not available.
+         */
+        inline std::size_t file_offset(int fd) {
+#ifdef _MSC_VER
+            detail::disable_invalid_parameter_handler diph;
+            // https://msdn.microsoft.com/en-us/library/1yee101t.aspx
+            const auto offset = _lseeki64(fd, 0, SEEK_CUR);
+#else
+            const auto offset = ::lseek(fd, 0, SEEK_CUR);
+#endif
+            if (offset == -1) {
+                return 0;
+            }
+            return static_cast<std::size_t>(offset);
+        }
+
+        /**
+         * Check whether the file descriptor refers to a TTY.
+         */
+        inline bool isatty(int fd) {
+#ifdef _MSC_VER
+            detail::disable_invalid_parameter_handler diph;
+            // https://msdn.microsoft.com/en-us/library/f4s0ddew.aspx
+            return _isatty(fd) != 0;
+#else
+            return ::isatty(fd) != 0;
 #endif
         }
 

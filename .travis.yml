@@ -8,8 +8,6 @@ addons:
     packages:
     - g++-4.8
     - libexpat1-dev
-    - libgeos-dev
-    - libgeos++-dev
     - libpq-dev
     - libbz2-dev
     - libproj-dev
@@ -25,10 +23,10 @@ matrix:
       env: CXXFLAGS="-pedantic -Werror"
     - os: linux
       compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
     - os: osx
       compiler: clang
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
 before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
       brew install lua;
@@ -44,7 +42,6 @@ install:
 before_script:
   - $CXX --version
   - xml2-config --version
-  - geos-config --version
   - proj | head -n1
   - lua -v
 script:

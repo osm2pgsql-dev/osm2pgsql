@@ -7,10 +7,13 @@
 #ifndef MIDDLE_H
 #define MIDDLE_H
 
-#include "osmtypes.hpp"
+#include <osmium/memory/buffer.hpp>
 
 #include <cstddef>
 #include <memory>
+
+#include "osmtypes.hpp"
+#include "reprojection.hpp"
 
 struct options_t;
 
@@ -20,25 +23,48 @@ struct options_t;
 struct middle_query_t {
     virtual ~middle_query_t() {}
 
-    virtual size_t nodes_get_list(nodelist_t &out, const idlist_t nds) const = 0;
+    /**
+     * Retrives node locations for the given node list.
+     *
+     * The locations are saved directly in the input list.
+     */
+    virtual size_t nodes_get_list(osmium::WayNodeList *nodes) const = 0;
 
     /**
-     * Retrives a single way from the ways storage.
+     * Retrives a single way from the ways storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the way to retrive
+     * \param buffer osmium buffer where to put the way
+     *
+     * The function does not retrieve the node locations.
+     *
      * \return true if the way was retrieved
-     * \param id id of the way to retrive
      */
-    virtual bool ways_get(osmid_t id, taglist_t &tags, nodelist_t &nodes) const = 0;
-
-    virtual size_t ways_get_list(const idlist_t &ids, idlist_t &way_ids,
-                              multitaglist_t &tags,
-                              multinodelist_t &nodes) const = 0;
+    virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /**
-     * Retrives a single relation from the relation storage.
-     * \return true if the relation was retrieved
-     * \param id id of the relation to retrive
+     * Retrives the way members of a relation and stores them in
+     * the given osmium buffer.
+     *
+     * \param      rel    Relation to get the members for.
+     * \param[out] roles  Roles for the ways that where retrived.
+     * \param[out] buffer Buffer where to store the members in.
      */
-    virtual bool relations_get(osmid_t id, memberlist_t &members, taglist_t &tags) const = 0;
+    virtual size_t
+    rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+                        osmium::memory::Buffer &buffer) const = 0;
+
+    /**
+     * Retrives a single relation from the relation storage
+     * and stores it in the given osmium buffer.
+     *
+     * \param id     id of the relation to retrive
+     * \param buffer osmium buffer where to put the relation
+     *
+     * \return true if the relation was retrieved
+     */
+    virtual bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member
@@ -63,9 +89,9 @@ struct middle_t : public middle_query_t {
     virtual void end(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual void nodes_set(osmid_t id, double lat, double lon, const taglist_t &tags) = 0;
-    virtual void ways_set(osmid_t id, const idlist_t &nds, const taglist_t &tags) = 0;
-    virtual void relations_set(osmid_t id, const memberlist_t &members, const taglist_t &tags) = 0;
+    virtual void nodes_set(osmium::Node const &node) = 0;
+    virtual void ways_set(osmium::Way const &way) = 0;
+    virtual void relations_set(osmium::Relation const &rel) = 0;
 
     struct pending_processor {
         virtual ~pending_processor() {}

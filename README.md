@@ -18,9 +18,12 @@ Nominatim, or general analysis.
 
 ## Installing ##
 
-Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/). Unoffical builds for Windows are built by [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts.
+Most Linux distributions include osm2pgsql. It is also available on macOS with [Homebrew](http://brew.sh/).
 
-The latest source code is available in the OSM git repository on github
+Unoffical builds for Windows are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history) but you need to find the right build artifacts. The latest
+release is [0.94.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.94.0).
+
+The latest source code is available in the osm2pgsql git repository on GitHub
 and can be downloaded as follows:
 
 ```sh
@@ -35,7 +38,6 @@ to configure and build itself and requires
 Required libraries are
 
 * [expat](http://www.libexpat.org/)
-* [geos](http://geos.osgeo.org/)
 * [proj](http://proj.osgeo.org/)
 * [bzip2](http://www.bzip.org/)
 * [zlib](http://www.zlib.net/)
@@ -57,25 +59,29 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev \
-  libbz2-dev libpq-dev libgeos-dev libgeos++-dev libproj-dev lua5.2 \
-  liblua5.2-dev
+  libbz2-dev libpq-dev libproj-dev lua5.2 liblua5.2-dev
 ```
 
 On a Fedora system, use
 
 ```sh
-sudo yum install cmake gcc-c++ boost-devel expat-devel zlib-devel bzip2-devel \
-  postgresql-devel geos-devel proj-devel proj-epsg lua-devel
+sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
-dependencies like on Fedora.
+dependencies with:
+
+```sh
+sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+```
 
 On a FreeBSD system, use
 
 ```sh
 pkg install devel/cmake devel/boost-libs textproc/expat2 \
-  databases/postgresql94-client graphics/geos graphics/proj lang/lua52
+  databases/postgresql94-client graphics/proj lang/lua52
 ```
 
 Once dependencies are installed, use CMake to build the Makefiles in a separate folder
@@ -110,7 +116,7 @@ cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
 
 ## Usage ##
 
-Osm2pgsql has one program, the executable itself, which has **44** command line
+Osm2pgsql has one program, the executable itself, which has **43** command line
 options.
 
 Before loading into a database, the database must be created and the PostGIS
@@ -141,14 +147,14 @@ osm2pgsql -c -d gis --slim -C <cache size> \
 ```
 where
 * ``<cache size>`` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
-* ``<flat nodes>`` is a location where a 24GiB file can be saved.
+* ``<flat nodes>`` is a location where a 36GiB+ file can be saved.
 
 Many different data files (e.g., .pbf) can be found at [planet.osm.org](http://planet.osm.org/).
 
 The databases from either of these commands can be used immediately by
 [Mapnik](http://mapnik.org/) for rendering maps with standard tools like
 [renderd/mod_tile](https://github.com/openstreetmap/mod_tile),
-[TileMill](https://www.mapbox.com/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
+[TileMill](https://tilemill-project.github.io/tilemill/), [Nik4](https://github.com/Zverik/Nik4),
 among others. It can also be used for [spatial analysis](docs/analysis.md) or
 [shapefile exports](docs/export.md).
 

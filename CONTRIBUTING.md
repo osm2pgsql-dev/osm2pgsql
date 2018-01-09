@@ -32,36 +32,24 @@ for easy bug fixes, or if a patch backporting a fix is provided.
 
 ## Code style
 
-The current codebase is a mix of styles, but new code should be written in the
+Code must be written in the
 [K&R 1TBS style](https://en.wikipedia.org/wiki/Indent_style#Variant:_1TBS) with
-4 spaces indentation. Tabs should never be used in the C++ code.
-
-e.g.
-
-```
-int main(int argc, char *argv[])
-{
-    ...
-    while (x == y) {
-        something();
-        somethingelse();
-
-        if (some_error) {
-            do_correct();
-        } else {
-            continue_as_usual();
-        }
-    }
-
-    finalthing();
-    ...
-}
-```
+4 spaces indentation. Tabs should never be used in the C++ code. Braces must
+always be used for code blocks, even one-liners.
 
 Names should use underscores, not camel case, with class/struct names ending in `_t`.
+Template parameters must use all upper case.
 
 Headers should be included in the order `config.h`, C++ standard library headers,
 C library headers, Boost headers, and last osm2pgsql files.
+
+There is a .clang-format configuration avialable and all code must be run through
+clang-format before submitting. You can use git-clang-format after staging all
+your changes:
+
+    git-clang-format --style=file *pp tests/*pp
+
+clang-format 3.8 or later is required.
 
 ## Documentation
 

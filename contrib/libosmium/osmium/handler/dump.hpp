@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -108,7 +108,7 @@ namespace osmium {
                        << (object.visible() ? "yes" : "no")
                        << "\n";
 
-                Dump dump(*m_out, m_with_size, m_prefix + "  ");
+                Dump dump{*m_out, m_with_size, m_prefix + "  "};
                 osmium::apply(object.cbegin(), object.cend(), dump);
             }
 
@@ -281,7 +281,7 @@ namespace osmium {
 
                 *m_out << "\n";
 
-                Dump dump(*m_out, m_with_size, m_prefix + "  ");
+                Dump dump{*m_out, m_with_size, m_prefix + "  "};
                 osmium::apply(changeset.cbegin(), changeset.cend(), dump);
             }
 

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,11 +33,11 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <time.h>
-
+#include <ctime>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <string>
 
 namespace osmium {
 
@@ -75,9 +75,9 @@ namespace osmium {
              */
             void start_line() {
                 if (m_newline) {
-                    time_t elapsed = runtime();
+                    const time_t elapsed = runtime();
 
-                    char old_fill = std::cerr.fill();
+                    const char old_fill = std::cerr.fill();
                     std::cerr << '[' << std::setw(2) << (elapsed / 60) << ':' << std::setw(2) << std::setfill('0') << (elapsed % 60) << "] ";
                     std::cerr.fill(old_fill);
 
@@ -88,7 +88,7 @@ namespace osmium {
         public:
 
             explicit VerboseOutput(bool verbose = false) noexcept :
-                m_start(time(NULL)),
+                m_start(time(nullptr)),
                 m_verbose(verbose),
                 m_newline(true) {
             }
@@ -101,7 +101,7 @@ namespace osmium {
             VerboseOutput& operator=(VerboseOutput&&) = default;
 
             time_t runtime() const noexcept {
-                return time(NULL) - m_start;
+                return time(nullptr) - m_start;
             }
 
             /// Get "verbose" setting.

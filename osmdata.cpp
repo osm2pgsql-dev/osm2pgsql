@@ -11,13 +11,18 @@
 #include "osmdata.hpp"
 #include "output.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::shared_ptr<output_t>& out_): mid(mid_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+                     std::shared_ptr<output_t> const &out_,
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), projection(proj)
 {
     outs.push_back(out_);
 }
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_, const std::vector<std::shared_ptr<output_t> > &outs_)
-    : mid(mid_), outs(outs_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+                     std::vector<std::shared_ptr<output_t> > const &outs_,
+                     std::shared_ptr<reprojection> proj)
+: mid(mid_), outs(outs_), projection(proj)
 {
     if (outs.empty()) {
         throw std::runtime_error("Must have at least one output, but none have "
@@ -29,86 +34,86 @@ osmdata_t::~osmdata_t()
 {
 }
 
-int osmdata_t::node_add(osmid_t id, double lat, double lon, const taglist_t &tags) {
-    mid->nodes_set(id, lat, lon, tags);
-
-    // guarantee that we use the same values as in the node cache
-    ramNode n(lon, lat);
+int osmdata_t::node_add(osmium::Node const &node)
+{
+    mid->nodes_set(node);
 
     int status = 0;
-    for (auto& out: outs) {
-        status |= out->node_add(id, n.lat(), n.lon(), tags);
+    for (auto &out : outs) {
+        status |= out->node_add(node);
     }
     return status;
 }
 
-int osmdata_t::way_add(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
-    mid->ways_set(id, nodes, tags);
+int osmdata_t::way_add(osmium::Way *way)
+{
+    mid->ways_set(*way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_add(id, nodes, tags);
+        status |= out->way_add(way);
     }
     return status;
 }
 
-int osmdata_t::relation_add(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
-    mid->relations_set(id, members, tags);
+int osmdata_t::relation_add(osmium::Relation const &rel)
+{
+    mid->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_add(id, members, tags);
+        status |= out->relation_add(rel);
     }
     return status;
 }
 
-int osmdata_t::node_modify(osmid_t id, double lat, double lon, const taglist_t &tags) {
+int osmdata_t::node_modify(osmium::Node const &node)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->nodes_delete(id);
-    slim->nodes_set(id, lat, lon, tags);
-
-    // guarantee that we use the same values as in the node cache
-    ramNode n(lon, lat);
+    slim->nodes_delete(node.id());
+    slim->nodes_set(node);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->node_modify(id, n.lat(), n.lon(), tags);
+        status |= out->node_modify(node);
     }
 
-    slim->node_changed(id);
+    slim->node_changed(node.id());
 
     return status;
 }
 
-int osmdata_t::way_modify(osmid_t id, const idlist_t &nodes, const taglist_t &tags) {
+int osmdata_t::way_modify(osmium::Way *way)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->ways_delete(id);
-    slim->ways_set(id, nodes, tags);
+    slim->ways_delete(way->id());
+    slim->ways_set(*way);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->way_modify(id, nodes, tags);
+        status |= out->way_modify(way);
     }
 
-    slim->way_changed(id);
+    slim->way_changed(way->id());
 
     return status;
 }
 
-int osmdata_t::relation_modify(osmid_t id, const memberlist_t &members, const taglist_t &tags) {
+int osmdata_t::relation_modify(osmium::Relation const &rel)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->relations_delete(id);
-    slim->relations_set(id, members, tags);
+    slim->relations_delete(rel.id());
+    slim->relations_set(rel);
 
     int status = 0;
     for (auto& out: outs) {
-        status |= out->relation_modify(id, members, tags);
+        status |= out->relation_modify(rel);
     }
 
-    slim->relation_changed(id);
+    slim->relation_changed(rel.id());
 
     return status;
 }
@@ -170,10 +175,6 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::pair<std::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
 
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
-#ifdef _MSC_VER
-	// Avoid problems when GEOS WKT-related methods switch the locale
-        _configthreadlocale(_ENABLE_PER_THREAD_LOCALE);
-#endif
         while (true) {
             //get the job off the queue synchronously
             pending_job_t job;
@@ -201,11 +202,18 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(std::shared_ptr<middle_query_t> mid, const output_vec_t& outs, size_t thread_count, size_t job_count, int append)
+    pending_threaded_processor(std::shared_ptr<middle_query_t> mid,
+                               const output_vec_t &outs, size_t thread_count,
+                               int append)
         //note that we cant hint to the stack how large it should be ahead of time
         //we could use a different datastructure like a deque or vector but then
         //the outputs the enqueue jobs would need the version check for the push(_back) method
-        : outs(outs), ids_queued(0), append(append), queue(), ids_done(0) {
+        : outs(outs),
+          ids_queued(0),
+          append(append),
+          queue(),
+          ids_done(0)
+    {
 
         //clone all the things we need
         clones.reserve(thread_count);
@@ -373,19 +381,18 @@ void osmdata_t::stop() {
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
      */
-    size_t pending_count = mid->pending_count();
     mid->commit();
     for (auto& out: outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
-        pending_count += out->pending_count();
     }
 
     // should be the same for all outputs
     const bool append = outs[0]->get_options()->append;
 
     //threaded pending processing
-    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs, pending_count, append);
+    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs,
+                                   append);
 
     if (!outs.empty()) {
         //This stage takes ways which were processed earlier, but might be

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,11 +34,13 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <cassert>
+#include <cstddef>
+#include <exception>
+#include <functional>
 #include <future>
+#include <initializer_list>
 #include <memory>
-#include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 
 #include <osmium/io/compression.hpp>
@@ -51,11 +53,27 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/header.hpp>
 #include <osmium/io/writer_options.hpp>
 #include <osmium/memory/buffer.hpp>
+#include <osmium/thread/pool.hpp>
 #include <osmium/thread/util.hpp>
+#include <osmium/util/config.hpp>
+#include <osmium/version.hpp>
 
 namespace osmium {
 
+    namespace memory {
+        class Item;
+    } //namespace memory
+
     namespace io {
+
+        namespace detail {
+
+            inline size_t get_output_queue_size() noexcept {
+                size_t n = osmium::config::get_max_queue_size("OUTPUT", 20);
+                return n > 2 ? n : 2;
+            }
+
+        } // namespace detail
 
         /**
          * This is the user-facing interface for writing OSM files. Instantiate
@@ -152,7 +170,12 @@ namespace osmium {
                 osmium::io::Header header;
                 overwrite allow_overwrite = overwrite::no;
                 fsync sync = fsync::no;
+                osmium::thread::Pool* pool = nullptr;
             };
+
+            static void set_option(options_type& options, osmium::thread::Pool& pool) {
+                options.pool = &pool;
+            }
 
             static void set_option(options_type& options, const osmium::io::Header& header) {
                 options.header = header;
@@ -164,6 +187,17 @@ namespace osmium {
 
             static void set_option(options_type& options, fsync value) {
                 options.sync = value;
+            }
+
+            void do_close() {
+                if (m_status == status::okay) {
+                    ensure_cleanup([&](){
+                        do_write(std::move(m_buffer));
+                        m_output->write_end();
+                        m_status = status::closed;
+                        detail::add_end_of_data_to_queue(m_output_queue);
+                    });
+                }
             }
 
         public:
@@ -194,8 +228,8 @@ namespace osmium {
             template <typename... TArgs>
             explicit Writer(const osmium::io::File& file, TArgs&&... args) :
                 m_file(file.check()),
-                m_output_queue(20, "raw_output"), // XXX
-                m_output(osmium::io::detail::OutputFormatFactory::instance().create_output(m_file, m_output_queue)),
+                m_output_queue(detail::get_output_queue_size(), "raw_output"),
+                m_output(nullptr),
                 m_buffer(),
                 m_buffer_size(default_buffer_size),
                 m_write_future(),
@@ -207,6 +241,16 @@ namespace osmium {
                 (void)std::initializer_list<int>{
                     (set_option(options, args), 0)...
                 };
+
+                if (!options.pool) {
+                    options.pool = &thread::Pool::default_instance();
+                }
+
+                m_output = osmium::io::detail::OutputFormatFactory::instance().create_output(*options.pool, m_file, m_output_queue);
+
+                if (options.header.get("generator") == "") {
+                    options.header.set("generator", "libosmium/" LIBOSMIUM_VERSION_STRING);
+                }
 
                 std::unique_ptr<osmium::io::Compressor> compressor =
                     CompressionFactory::instance().create_compressor(file.compression(),
@@ -224,12 +268,12 @@ namespace osmium {
 
             template <typename... TArgs>
             explicit Writer(const std::string& filename, TArgs&&... args) :
-                Writer(osmium::io::File(filename), std::forward<TArgs>(args)...) {
+                Writer(osmium::io::File{filename}, std::forward<TArgs>(args)...) {
             }
 
             template <typename... TArgs>
             explicit Writer(const char* filename, TArgs&&... args) :
-                Writer(osmium::io::File(filename), std::forward<TArgs>(args)...) {
+                Writer(osmium::io::File{filename}, std::forward<TArgs>(args)...) {
             }
 
             Writer(const Writer&) = delete;
@@ -240,7 +284,7 @@ namespace osmium {
 
             ~Writer() noexcept {
                 try {
-                    close();
+                    do_close();
                 } catch (...) {
                     // Ignore any exceptions because destructor must not throw.
                 }
@@ -304,7 +348,7 @@ namespace osmium {
                     }
                     try {
                         m_buffer.push_back(item);
-                    } catch (osmium::buffer_is_full&) {
+                    } catch (const osmium::buffer_is_full&) {
                         do_flush();
                         m_buffer.push_back(item);
                     }
@@ -321,14 +365,7 @@ namespace osmium {
              * @throws Some form of osmium::io_error when there is a problem.
              */
             void close() {
-                if (m_status == status::okay) {
-                    ensure_cleanup([&](){
-                        do_write(std::move(m_buffer));
-                        m_output->write_end();
-                        m_status = status::closed;
-                        detail::add_end_of_data_to_queue(m_output_queue);
-                    });
-                }
+                do_close();
 
                 if (m_write_future.valid()) {
                     m_write_future.get();

@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -54,6 +54,10 @@ namespace osmium {
     } // namespace index
 
 } // namespace osmium
+
+#ifdef OSMIUM_WANT_NODE_LOCATION_MAPS
+    REGISTER_MAP(osmium::unsigned_object_id_type, osmium::Location, osmium::index::map::DenseMmapArray, dense_mmap_array)
+#endif
 
 #endif // __linux__
 

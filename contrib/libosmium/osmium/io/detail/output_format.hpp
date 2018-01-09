@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -33,19 +33,20 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <osmium/handler.hpp>
 #include <osmium/io/detail/queue_util.hpp>
-#include <osmium/io/detail/string_util.hpp>
+#include <osmium/io/error.hpp>
 #include <osmium/io/file.hpp>
 #include <osmium/io/file_format.hpp>
 #include <osmium/memory/buffer.hpp>
+#include <osmium/thread/pool.hpp>
 
 namespace osmium {
 
@@ -70,9 +71,28 @@ namespace osmium {
                     m_out(std::make_shared<std::string>()) {
                 }
 
-                template <typename... TArgs>
-                void output_formatted(const char* format, TArgs&&... args) {
-                    append_printf_formatted_string(*m_out, format, std::forward<TArgs>(args)...);
+                // Simple function to convert integer to string. This is much
+                // faster than using sprintf, but could be further optimized.
+                // See https://github.com/miloyip/itoa-benchmark .
+                void output_int(int64_t value) {
+                    if (value < 0) {
+                        *m_out += '-';
+                        value = -value;
+                    }
+
+                    char temp[20];
+                    char *t = temp;
+                    do {
+                        *t++ = char(value % 10) + '0';
+                        value /= 10;
+                    } while (value > 0);
+
+                    const auto old_size = m_out->size();
+                    m_out->resize(old_size + (t - temp));
+                    char* data = &(*m_out)[old_size];
+                    do {
+                        *data++ += *--t;
+                    } while (t != temp);
                 }
 
             }; // class OutputBlock;
@@ -88,6 +108,7 @@ namespace osmium {
 
             protected:
 
+                osmium::thread::Pool& m_pool;
                 future_string_queue_type& m_output_queue;
 
                 /**
@@ -100,7 +121,8 @@ namespace osmium {
 
             public:
 
-                explicit OutputFormat(future_string_queue_type& output_queue) :
+                OutputFormat(osmium::thread::Pool& pool, future_string_queue_type& output_queue) :
+                    m_pool(pool),
                     m_output_queue(output_queue) {
                 }
 
@@ -133,11 +155,11 @@ namespace osmium {
 
             public:
 
-                typedef std::function<osmium::io::detail::OutputFormat*(const osmium::io::File&, future_string_queue_type&)> create_output_type;
+                using create_output_type = std::function<osmium::io::detail::OutputFormat*(osmium::thread::Pool&, const osmium::io::File&, future_string_queue_type&)>;
 
             private:
 
-                typedef std::map<osmium::io::file_format, create_output_type> map_type;
+                using map_type = std::map<osmium::io::file_format, create_output_type>;
 
                 map_type m_callbacks;
 
@@ -159,21 +181,51 @@ namespace osmium {
                     return true;
                 }
 
-                std::unique_ptr<osmium::io::detail::OutputFormat> create_output(const osmium::io::File& file, future_string_queue_type& output_queue) {
-                    auto it = m_callbacks.find(file.format());
+                std::unique_ptr<osmium::io::detail::OutputFormat> create_output(osmium::thread::Pool& pool, const osmium::io::File& file, future_string_queue_type& output_queue) {
+                    const auto it = m_callbacks.find(file.format());
                     if (it != m_callbacks.end()) {
-                        return std::unique_ptr<osmium::io::detail::OutputFormat>((it->second)(file, output_queue));
+                        return std::unique_ptr<osmium::io::detail::OutputFormat>((it->second)(pool, file, output_queue));
                     }
 
-                    throw unsupported_file_format_error(
-                                std::string("Can not open file '") +
+                    throw unsupported_file_format_error{
+                                std::string{"Can not open file '"} +
                                 file.filename() +
                                 "' with type '" +
                                 as_string(file.format()) +
-                                "'. No support for writing this format in this program.");
+                                "'. No support for writing this format in this program."};
                 }
 
             }; // class OutputFormatFactory
+
+            class BlackholeOutputFormat : public osmium::io::detail::OutputFormat {
+
+            public:
+
+                BlackholeOutputFormat(osmium::thread::Pool& pool, const osmium::io::File& /*file*/, future_string_queue_type& output_queue) :
+                    OutputFormat(pool, output_queue) {
+                }
+
+                BlackholeOutputFormat(const BlackholeOutputFormat&) = delete;
+                BlackholeOutputFormat& operator=(const BlackholeOutputFormat&) = delete;
+
+                ~BlackholeOutputFormat() noexcept final = default;
+
+                void write_buffer(osmium::memory::Buffer&& /*buffer*/) final {
+                }
+
+            }; // class BlackholeOutputFormat
+
+            // we want the register_output_format() function to run, setting
+            // the variable is only a side-effect, it will never be used
+            const bool registered_blackhole_output = osmium::io::detail::OutputFormatFactory::instance().register_output_format(osmium::io::file_format::blackhole,
+                [](osmium::thread::Pool& pool, const osmium::io::File& file, future_string_queue_type& output_queue) {
+                    return new osmium::io::detail::BlackholeOutputFormat(pool, file, output_queue);
+            });
+
+            // dummy function to silence the unused variable warning from above
+            inline bool get_registered_blackhole_output() noexcept {
+                return registered_blackhole_output;
+            }
 
         } // namespace detail
 

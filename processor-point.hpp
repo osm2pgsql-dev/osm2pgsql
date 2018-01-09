@@ -3,11 +3,13 @@
 
 #include "geometry-processor.hpp"
 
-struct processor_point : public geometry_processor {
-    processor_point(int srid);
-    virtual ~processor_point();
+class processor_point : public geometry_processor
+{
+public:
+    processor_point(std::shared_ptr<reprojection> const &proj);
 
-    geometry_builder::pg_geom_t process_node(double lat, double lon);
+    wkb_t process_node(osmium::Location const &loc,
+                       geom::osmium_builder_t *builder) override;
 };
 
 #endif /* PROCESSOR_POINT_HPP */

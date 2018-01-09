@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -34,7 +34,6 @@ DEALINGS IN THE SOFTWARE.
 */
 
 #include <cstddef>
-#include <stdexcept>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -43,7 +42,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/file_format.hpp>
 #include <osmium/io/file_compression.hpp>
 #include <osmium/util/options.hpp>
-#include <osmium/util/compatibility.hpp>
 
 namespace osmium {
 
@@ -115,7 +113,7 @@ namespace osmium {
                 }
 
                 // if filename is a URL, default to XML format
-                std::string protocol = m_filename.substr(0, m_filename.find_first_of(':'));
+                const std::string protocol{m_filename.substr(0, m_filename.find_first_of(':'))};
                 if (protocol == "http" || protocol == "https") {
                     m_file_format = file_format::xml;
                 }
@@ -174,11 +172,11 @@ namespace osmium {
                 }
 
                 for (auto& option : options) {
-                    size_t pos = option.find_first_of('=');
+                    const size_t pos = option.find_first_of('=');
                     if (pos == std::string::npos) {
                         set(option, true);
                     } else {
-                        std::string value = option.substr(pos+1);
+                        std::string value{option.substr(pos+1)};
                         option.erase(pos);
                         set(option, value);
                     }
@@ -194,7 +192,9 @@ namespace osmium {
             void detect_format_from_suffix(const std::string& name) {
                 std::vector<std::string> suffixes = detail::split(name, '.');
 
-                if (suffixes.empty()) return;
+                if (suffixes.empty()) {
+                    return;
+                }
 
                 // if the last suffix is one of a known set of compressions,
                 // set that compression
@@ -206,7 +206,9 @@ namespace osmium {
                     suffixes.pop_back();
                 }
 
-                if (suffixes.empty()) return;
+                if (suffixes.empty()) {
+                    return;
+                }
 
                 // if the last suffix is one of a known set of formats,
                 // set that format
@@ -233,19 +235,30 @@ namespace osmium {
                 } else if (suffixes.back() == "debug") {
                     m_file_format = file_format::debug;
                     suffixes.pop_back();
+                } else if (suffixes.back() == "blackhole") {
+                    m_file_format = file_format::blackhole;
+                    suffixes.pop_back();
                 }
 
-                if (suffixes.empty()) return;
+                if (suffixes.empty()) {
+                    return;
+                }
 
                 if (suffixes.back() == "osm") {
-                    if (m_file_format == file_format::unknown) m_file_format = file_format::xml;
+                    if (m_file_format == file_format::unknown) {
+                        m_file_format = file_format::xml;
+                    }
                     suffixes.pop_back();
                 } else if (suffixes.back() == "osh") {
-                    if (m_file_format == file_format::unknown) m_file_format = file_format::xml;
+                    if (m_file_format == file_format::unknown) {
+                        m_file_format = file_format::xml;
+                    }
                     m_has_multiple_object_versions = true;
                     suffixes.pop_back();
                 } else if (suffixes.back() == "osc") {
-                    if (m_file_format == file_format::unknown) m_file_format = file_format::xml;
+                    if (m_file_format == file_format::unknown) {
+                        m_file_format = file_format::xml;
+                    }
                     m_has_multiple_object_versions = true;
                     set("xml_change_format", true);
                     suffixes.pop_back();
@@ -260,7 +273,7 @@ namespace osmium {
              */
             const File& check() const {
                 if (m_file_format == file_format::unknown) {
-                    std::string msg = "Could not detect file format";
+                    std::string msg{"Could not detect file format"};
                     if (!m_format_string.empty())  {
                         msg += " from format string '";
                         msg += m_format_string;
@@ -274,7 +287,7 @@ namespace osmium {
                         msg += "'";
                     }
                     msg += ".";
-                    throw io_error(msg);
+                    throw io_error{msg};
                 }
                 return *this;
             }

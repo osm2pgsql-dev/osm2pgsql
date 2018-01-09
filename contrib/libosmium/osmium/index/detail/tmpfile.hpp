@@ -5,7 +5,7 @@
 
 This file is part of Osmium (http://osmcode.org/libosmium).
 
-Copyright 2013-2016 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2017 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -50,7 +50,7 @@ namespace osmium {
         inline int create_tmp_file() {
             FILE* file = ::tmpfile();
             if (!file) {
-                throw std::system_error(errno, std::system_category(), "tempfile failed");
+                throw std::system_error{errno, std::system_category(), "tempfile failed"};
             }
             return fileno(file);
         }

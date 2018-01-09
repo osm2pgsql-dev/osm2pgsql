@@ -35,7 +35,6 @@
 #include <osmium/handler.hpp>
 
 
-class reprojection;
 class osmdata_t;
 
 class parse_stats_t
@@ -73,9 +72,11 @@ class parse_stats_t
     };
 
 public:
+    parse_stats_t() : print_time(time(nullptr)) {}
+
     void update(const parse_stats_t &other);
     void print_summary() const;
-    void print_status() const;
+    void print_status();
 
     inline void add_node(osmid_t id)
     {
@@ -100,20 +101,21 @@ public:
 
 private:
     Counter node, way, rel;
+    time_t print_time;
 };
 
 
 class parse_osmium_t: public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(bool extra_attrs, const boost::optional<std::string> &bbox,
-                   const reprojection *proj, bool do_append, osmdata_t *osmdata);
+    parse_osmium_t(const boost::optional<std::string> &bbox,
+                   bool do_append, osmdata_t *osmdata);
 
     void stream_file(const std::string &filename, const std::string &fmt);
 
-    void node(osmium::Node& node);
+    void node(osmium::Node const &node);
     void way(osmium::Way& way);
-    void relation(osmium::Relation& rel);
+    void relation(osmium::Relation const &rel);
 
     parse_stats_t const &stats() const
     {
@@ -121,25 +123,12 @@ public:
     }
 
 private:
-    void convert_tags(const osmium::OSMObject &obj);
-    void convert_nodes(const osmium::NodeRefList &in_nodes);
-    void convert_members(const osmium::RelationMemberList &in_rels);
-
     osmium::Box parse_bbox(const boost::optional<std::string> &bbox);
 
     osmdata_t *m_data;
     bool m_append;
     boost::optional<osmium::Box> m_bbox;
-    bool m_attributes;
-    const reprojection *m_proj;
     parse_stats_t m_stats;
-
-    /* Since {node,way} elements are not nested we can guarantee that
-       elements are parsed sequentially and can therefore be cached.
-    */
-    taglist_t tags;
-    idlist_t nds;
-    memberlist_t members;
 };
 
 #endif
