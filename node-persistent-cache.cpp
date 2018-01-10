@@ -56,7 +56,8 @@ node_persistent_cache::node_persistent_cache(
                                  "of the flat node file was not set.");
     }
 
-    auto fname = options->flat_node_file->c_str();
+    fname = options->flat_node_file->c_str();
+    remove_file = options->droptemp;
     fprintf(stderr, "Mid: loading persistent node cache from %s\n", fname);
 
     m_fd = open(fname, O_RDWR | O_CREAT, 0644);
@@ -74,5 +75,20 @@ node_persistent_cache::~node_persistent_cache()
     m_index.reset();
     if (m_fd >= 0) {
         close(m_fd);
+    }
+}
+
+void node_persistent_cache::clean_up() {
+    // if we don't close the file, *NIX systems keep the inode and its blocks
+    // around
+    fprintf(stderr, "Mid: removing persistent node cache at %s\n", fname);
+
+    if (m_fd >= 0) {
+        close(m_fd);
+        m_fd = -1;
+    }
+
+    if (remove_file) {
+        unlink(fname);
     }
 }
