@@ -79,14 +79,18 @@ node_persistent_cache::~node_persistent_cache()
 }
 
 void node_persistent_cache::clean_up() {
-    // if we don't close the file, *NIX systems keep the inode and its blocks
-    // around
     fprintf(stderr, "Mid: removing persistent node cache at %s\n", fname);
 
+    // if we don't close the file, *NIX systems keep the inode and its blocks
+    // around
     if (m_fd >= 0) {
         close(m_fd);
         m_fd = -1;
     }
+
+    // but as the file is mmap'ed, we also have to release the shared_ptr
+    // which deletes the index_t, which unmmaps
+    m_index.reset();
 
     if (remove_file) {
         unlink(fname);
