@@ -22,6 +22,7 @@ public:
     void set(osmid_t id, osmium::Location const &coord);
     osmium::Location get(osmid_t id);
     size_t get_list(osmium::WayNodeList *nodes);
+    void clean_up();
 
 private:
     // Dense node cache for unsigned IDs only
@@ -32,6 +33,8 @@ private:
     std::shared_ptr<node_ram_cache> m_ram_cache;
     int m_fd;
     std::unique_ptr<index_t> m_index;
+    bool remove_file;
+    const char *fname;
 };
 
 #endif
