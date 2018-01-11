@@ -33,8 +33,8 @@ private:
     std::shared_ptr<node_ram_cache> m_ram_cache;
     int m_fd;
     std::unique_ptr<index_t> m_index;
-    bool remove_file;
-    const char *fname;
+    bool m_remove_file;
+    const char *m_fname;
 };
 
 #endif
