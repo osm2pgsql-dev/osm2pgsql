@@ -79,7 +79,6 @@ node_persistent_cache::~node_persistent_cache()
 }
 
 void node_persistent_cache::clean_up() {
-    fprintf(stderr, "Mid: removing persistent node cache at %s\n", fname);
 
     // if we don't close the file, *NIX systems keep the inode and its blocks
     // around
@@ -93,6 +92,7 @@ void node_persistent_cache::clean_up() {
     m_index.reset();
 
     if (m_remove_file) {
+        fprintf(stderr, "Mid: removing persistent node cache at %s\n", fname);
         unlink(m_fname);
     }
 }
