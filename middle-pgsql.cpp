@@ -1073,7 +1073,6 @@ void middle_pgsql_t::stop(void)
 {
     cache.reset();
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->clean_up();
         persistent_cache.reset();
     }
 
