@@ -58,11 +58,11 @@ node_persistent_cache::node_persistent_cache(
 
     m_fname = options->flat_node_file->c_str();
     m_remove_file = options->droptemp;
-    fprintf(stderr, "Mid: loading persistent node cache from %s\n", fname);
+    fprintf(stderr, "Mid: loading persistent node cache from %s\n", m_fname);
 
-    m_fd = open(fname, O_RDWR | O_CREAT, 0644);
+    m_fd = open(m_fname, O_RDWR | O_CREAT, 0644);
     if (m_fd < 0) {
-        fprintf(stderr, "Cannot open location cache file '%s': %s\n", fname,
+        fprintf(stderr, "Cannot open location cache file '%s': %s\n", m_fname,
                 std::strerror(errno));
         throw std::runtime_error("Unable to open flatnode file\n");
     }
@@ -78,7 +78,7 @@ node_persistent_cache::~node_persistent_cache()
     }
 
     if (m_remove_file) {
-        fprintf(stderr, "Mid: removing persistent node cache at %s\n", fname);
+        fprintf(stderr, "Mid: removing persistent node cache at %s\n", m_fname);
         unlink(m_fname);
     }
 }
