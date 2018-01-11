@@ -22,7 +22,6 @@ public:
     void set(osmid_t id, osmium::Location const &coord);
     osmium::Location get(osmid_t id);
     size_t get_list(osmium::WayNodeList *nodes);
-    void clean_up();
 
 private:
     // Dense node cache for unsigned IDs only
