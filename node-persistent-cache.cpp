@@ -56,8 +56,8 @@ node_persistent_cache::node_persistent_cache(
                                  "of the flat node file was not set.");
     }
 
-    fname = options->flat_node_file->c_str();
-    remove_file = options->droptemp;
+    m_fname = options->flat_node_file->c_str();
+    m_remove_file = options->droptemp;
     fprintf(stderr, "Mid: loading persistent node cache from %s\n", fname);
 
     m_fd = open(fname, O_RDWR | O_CREAT, 0644);
@@ -92,7 +92,7 @@ void node_persistent_cache::clean_up() {
     // which deletes the index_t, which unmmaps
     m_index.reset();
 
-    if (remove_file) {
-        unlink(fname);
+    if (m_remove_file) {
+        unlink(m_fname);
     }
 }
