@@ -155,6 +155,11 @@ void middle_ram_t::analyze(void)
     /* No need */
 }
 
+void middle_ram_t::drop(void)
+{
+    /* No need */
+}
+
 void middle_ram_t::end(void)
 {
     /* No need */

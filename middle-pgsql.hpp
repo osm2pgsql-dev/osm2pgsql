@@ -23,6 +23,7 @@ struct middle_pgsql_t : public slim_middle_t {
     void start(const options_t *out_options_) override;
     void stop(void) override;
     void analyze(void) override;
+    void drop(void) override;
     void end(void) override;
     void commit(void) override;
 

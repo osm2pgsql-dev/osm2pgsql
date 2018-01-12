@@ -408,7 +408,7 @@ void osmdata_t::stop() {
 
     if (outs[0]->get_options()->droptemp) {
         // if the temp tables are going to be dropped, we can stop them earlier.
-        mid->stop();
+        mid->drop();
     }
 
     // Clustering, index creation, and cleanup.
@@ -421,9 +421,7 @@ void osmdata_t::stop() {
     for (auto& out: outs) {
         futures.push_back(std::async(&output_t::stop, out.get()));
     }
-    if (!outs[0]->get_options()->droptemp) {
-        futures.push_back(std::async(&middle_t::stop, mid.get()));
-    }
+    futures.push_back(std::async(&middle_t::stop, mid.get()));
 
     for (auto& f: futures) {
       f.get();
