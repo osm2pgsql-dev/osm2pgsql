@@ -11,6 +11,7 @@ struct dummy_middle_t : public middle_t {
     void stop(void) override  { }
     void cleanup(void) { }
     void analyze(void) override  { }
+    void drop(void) override  { }
     void end(void) override  { }
     void commit(void) override  { }
 
@@ -48,6 +49,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void stop(void) override  { }
     void cleanup(void) { }
     void analyze(void) override  { }
+    void drop(void) override  { }
     void end(void) override  { }
     void commit(void) override  { }
 
