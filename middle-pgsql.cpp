@@ -1068,16 +1068,14 @@ void middle_pgsql_t::pgsql_stop_one(table_desc *table)
     fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
 }
 
-void middle_pgsql_t::drop(void)
+
+void middle_pgsql_t::stop(void)
 {
     cache.reset();
     if (out_options->flat_node_cache_enabled) {
         persistent_cache.reset();
     }
-}
 
-void middle_pgsql_t::stop(void)
-{
     std::vector<std::future<void>> futures;
     futures.reserve(num_tables);
 
