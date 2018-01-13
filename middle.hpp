@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <memory>
 
+#include <osmium/thread/pool.hpp>
+
 #include "osmtypes.hpp"
 #include "reprojection.hpp"
 
@@ -84,7 +86,7 @@ struct middle_t : public middle_query_t {
     virtual ~middle_t() {}
 
     virtual void start(const options_t *out_options_) = 0;
-    virtual void stop(void) = 0;
+    virtual void stop(osmium::thread::Pool &pool) = 0;
     virtual void analyze(void) = 0;
     virtual void end(void) = 0;
     virtual void commit(void) = 0;

@@ -178,9 +178,9 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     return ret;
 }
 
-void output_multi_t::stop()
+void output_multi_t::stop(osmium::thread::Pool *pool)
 {
-    m_table->stop();
+    pool->submit(std::bind(&table_t::stop, m_table.get()));
     if (m_options.expire_tiles_zoom_min > 0) {
         m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                     m_options.expire_tiles_zoom_min);

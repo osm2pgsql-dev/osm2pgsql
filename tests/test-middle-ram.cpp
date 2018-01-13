@@ -20,8 +20,9 @@ void run_tests(const options_t options, const std::string cache_type) {
     mid_ram.start(&options);
 
     if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with " + cache_type + " cache."); }
+    osmium::thread::Pool pool(1);
     mid_ram.commit();
-    mid_ram.stop();
+    mid_ram.stop(pool);
   }
   {
     middle_ram_t mid_ram;
@@ -30,8 +31,9 @@ void run_tests(const options_t options, const std::string cache_type) {
     mid_ram.start(&options);
 
     if (test_nodes_comprehensive_set(&mid_ram) != 0) { throw std::runtime_error("test_nodes_comprehensive_set failed with " + cache_type + " cache."); }
+    osmium::thread::Pool pool(1);
     mid_ram.commit();
-    mid_ram.stop();
+    mid_ram.stop(pool);
   }
   {
     middle_ram_t mid_ram;
@@ -40,8 +42,9 @@ void run_tests(const options_t options, const std::string cache_type) {
     mid_ram.start(&options);
 
     if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with " + cache_type + " cache."); }
+    osmium::thread::Pool pool(1);
     mid_ram.commit();
-    mid_ram.stop();
+    mid_ram.stop(pool);
   }
 }
 

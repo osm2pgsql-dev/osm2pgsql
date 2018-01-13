@@ -11,8 +11,7 @@ int output_null_t::start() {
     return 0;
 }
 
-void output_null_t::stop() {
-}
+void output_null_t::stop(osmium::thread::Pool *) {}
 
 void output_null_t::commit() {
 }

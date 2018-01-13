@@ -154,7 +154,7 @@ public:
     }
 
     int start() override;
-    void stop() override;
+    void stop(osmium::thread::Pool *pool) override;
     void commit() override {}
 
     void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) override {}

@@ -588,7 +588,7 @@ int output_gazetteer_t::start()
     return 0;
 }
 
-void output_gazetteer_t::stop()
+void output_gazetteer_t::stop(osmium::thread::Pool *)
 {
    /* Stop any active copy */
    stop_copy();

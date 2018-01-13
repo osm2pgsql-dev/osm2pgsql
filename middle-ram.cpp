@@ -167,7 +167,7 @@ void middle_ram_t::start(const options_t *out_options_)
         new node_ram_cache(out_options->alloc_chunkwise, out_options->cache));
 }
 
-void middle_ram_t::stop(void)
+void middle_ram_t::stop(osmium::thread::Pool &pool)
 {
     cache.reset(nullptr);
 

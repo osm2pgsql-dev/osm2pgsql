@@ -15,7 +15,7 @@ public:
     std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
 
     int start() override;
-    void stop() override;
+    void stop(osmium::thread::Pool *pool) override;
     void commit() override;
     void cleanup(void);
 

@@ -13,6 +13,7 @@
 #include <stack>
 
 #include <boost/noncopyable.hpp>
+#include <osmium/thread/pool.hpp>
 
 #include "options.hpp"
 
@@ -40,7 +41,7 @@ public:
     virtual std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const = 0;
 
     virtual int start() = 0;
-    virtual void stop() = 0;
+    virtual void stop(osmium::thread::Pool *pool) = 0;
     virtual void commit() = 0;
 
     virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
