@@ -23,7 +23,7 @@ Nominatim, or general analysis.
 **macOS**: osm2pgsql is available with [Homebrew](http://brew.sh/).
 
 **Windows**: Unoffical builds are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history). The latest
-release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0). Just unzip the archive into a directory of your choice. You may need Admnistrator permissions in order to unzip into `C:\Program Files (x86)`.
+release is [0.94.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.94.0). Just unzip the archive into a directory of your choice. You may need Admnistrator permissions in order to unzip into `C:\Program Files (x86)`.
 
 _Note:_ `osm2pgsql` expects the default style file at `C:/libs/share/osm2pgsql/default.style`. In order to avoid an error message use <code>--style <em>&lt;osm2pgsql directory&gt;</em>\default.style</code> or run the following commands once:
 * `mkdir C:\libs\share`
