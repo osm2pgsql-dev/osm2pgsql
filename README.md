@@ -20,18 +20,23 @@ Nominatim, or general analysis.
 
 **Linux**: Most distributions include osm2pgsql.
 
- **macOS**: osm2pgsql is available with [Homebrew](http://brew.sh/).
+**macOS**: osm2pgsql is available with [Homebrew](http://brew.sh/).
 
 **Windows**: Unoffical builds are available from [AppVeyor](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/history). The latest
-release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0).    
-As administrator:
-1. Unzip the archive into `C:\Program Files (x86)`
-2. Run `rename "C:\Program Files (x86)\osm2pgsql-bin" osm2pgsql`
-3. Run `mkdir C:\libs\share`
-4. Run `mklink /D C:\libs\share\osm2pgsql "C:\Program Files (x86)\osm2pgsql"`    
-   _Note:_ Instead of 3 and 4 above you may add `C:\Program Files (x86)\osm2pgsql` to the `PATH`
+release is [0.92.0](https://ci.appveyor.com/api/projects/openstreetmap/osm2pgsql/artifacts/osm2pgsql_Release.zip?tag=0.92.0). Just unzip the archive into a directory of your choice. You may need Admnistrator permissions in order to unzip into `C:\Program Files (x86)`.
+
+_Note:_ `osm2pgsql` expects the default style file at `C:/libs/share/osm2pgsql/default.style`. In order to avoid an error message use <code>--style <em>&lt;osm2pgsql directory&gt;</em>\default.style</code> or run the following commands once:
+* `mkdir C:\libs\share`
+* <code>mklink /D C:\libs\share\osm2pgsql "<em>&lt;osm2pgsql directory&gt;</em>"</code> 
 
 ## Building ##
+
+The latest source code is available in the osm2pgsql git repository on GitHub
+and can be downloaded as follows:
+
+```sh
+$ git clone git://github.com/openstreetmap/osm2pgsql.git
+```
 
 Osm2pgsql uses the cross-platform [CMake build system](https://cmake.org/)
 to configure and build itself and requires
