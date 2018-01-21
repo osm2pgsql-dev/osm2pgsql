@@ -390,20 +390,22 @@ void osmdata_t::stop() {
     // should be the same for all outputs
     const bool append = outs[0]->get_options()->append;
 
-    //threaded pending processing
-    pending_threaded_processor ptp(mid, outs, outs[0]->get_options()->num_procs,
-                                   append);
+    {
+        //threaded pending processing
+        pending_threaded_processor ptp(
+            mid, outs, outs[0]->get_options()->num_procs, append);
 
-    if (!outs.empty()) {
-        //This stage takes ways which were processed earlier, but might be
-        //involved in a multipolygon relation. They could also be ways that
-        //were modified in diff processing.
-        mid->iterate_ways( ptp );
+        if (!outs.empty()) {
+            //This stage takes ways which were processed earlier, but might be
+            //involved in a multipolygon relation. They could also be ways that
+            //were modified in diff processing.
+            mid->iterate_ways(ptp);
 
-        //This is like pending ways, except there aren't pending relations
-        //on import, only on update.
-        //TODO: Can we skip this on import?
-        mid->iterate_relations( ptp );
+            //This is like pending ways, except there aren't pending relations
+            //on import, only on update.
+            //TODO: Can we skip this on import?
+            mid->iterate_relations(ptp);
+        }
     }
 
     if (outs[0]->get_options()->droptemp) {
