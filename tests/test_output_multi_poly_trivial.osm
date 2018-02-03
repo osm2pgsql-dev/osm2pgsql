@@ -19,6 +19,7 @@ which contains both w1 and w2.
   <node id="7" lon="2" lat="1"/>
   <node id="8" lon="3" lat="1"/>
   <way id="1">
+    <tag k="building" v="yes" />
     <nd ref="1"/>
     <nd ref="2"/>
     <nd ref="6"/>
@@ -26,6 +27,7 @@ which contains both w1 and w2.
     <nd ref="1"/>
   </way>
   <way id="2">
+    <tag k="building" v="yes" />
     <nd ref="3"/>
     <nd ref="4"/>
     <nd ref="8"/>
@@ -33,6 +35,7 @@ which contains both w1 and w2.
     <nd ref="3"/>
   </way>
   <relation id="1">
+    <tag k="type" v="site" />
     <member type="way" ref="1" role=""/>
     <member type="way" ref="2" role=""/>
   </relation>
