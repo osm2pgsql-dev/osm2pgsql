@@ -38,8 +38,9 @@ void run_tests(options_t options, const std::string cache_type) {
 
     if (test_node_set(&mid_pgsql) != 0) { throw std::runtime_error("test_node_set failed."); }
 
+    osmium::thread::Pool pool(1);
     mid_pgsql.commit();
-    mid_pgsql.stop();
+    mid_pgsql.stop(pool);
   }
   {
     middle_pgsql_t mid_pgsql;
@@ -49,8 +50,9 @@ void run_tests(options_t options, const std::string cache_type) {
 
     if (test_nodes_comprehensive_set(&mid_pgsql) != 0) { throw std::runtime_error("test_nodes_comprehensive_set failed."); }
 
+    osmium::thread::Pool pool(1);
     mid_pgsql.commit();
-    mid_pgsql.stop();
+    mid_pgsql.stop(pool);
   }
   /* This should work, but doesn't. More tests are needed that look at updates
      without the complication of ways.

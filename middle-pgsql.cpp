@@ -24,7 +24,7 @@ using namespace std;
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <future>
+#include <functional>
 
 #include <boost/format.hpp>
 #include <osmium/memory/buffer.hpp>
@@ -1068,23 +1068,24 @@ void middle_pgsql_t::pgsql_stop_one(table_desc *table)
     fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
 }
 
-
-void middle_pgsql_t::stop(void)
+void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 {
     cache.reset();
     if (out_options->flat_node_cache_enabled) {
         persistent_cache.reset();
     }
 
-    std::vector<std::future<void>> futures;
-    futures.reserve(num_tables);
-
-    for (int i = 0; i < num_tables; ++i) {
-        futures.push_back(std::async(&middle_pgsql_t::pgsql_stop_one, this, &tables[i]));
-    }
-
-    for (auto &f : futures) {
-        f.get();
+    if (out_options->droptemp) {
+        // Dropping the tables is fast, so do it synchronously to guarantee
+        // that the space is freed before creating the other indices.
+        for (int i = 0; i < num_tables; ++i) {
+            pgsql_stop_one(&tables[i]);
+        }
+    } else {
+        for (int i = 0; i < num_tables; ++i) {
+            pool.submit(
+                std::bind(&middle_pgsql_t::pgsql_stop_one, this, &tables[i]));
+        }
     }
 }
 

@@ -6,6 +6,8 @@
 #include <utility>
 #include <vector>
 
+#include <osmium/thread/pool.hpp>
+
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
 #include "osmdata.hpp"
@@ -408,26 +410,34 @@ void osmdata_t::stop() {
         }
     }
 
-    if (outs[0]->get_options()->droptemp) {
-        // if the temp tables are going to be dropped, we can stop them earlier.
-        mid->stop();
-    }
 
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
+    {
+        auto *opts = outs[0]->get_options();
+        osmium::thread::Pool pool(opts->parallel_indexing ? opts->num_procs : 1,
+                                  512);
 
-    std::vector<std::future<void>> futures;
+        if (opts->droptemp) {
+            // When dropping middle tables, make sure they are gone before
+            // indexing starts.
+            mid->stop(pool);
+        }
 
-    // XXX we might get too many parallel processes here
-    //     use osmium worker pool instead
-    for (auto& out: outs) {
-        futures.push_back(std::async(&output_t::stop, out.get()));
-    }
-    if (!outs[0]->get_options()->droptemp) {
-        futures.push_back(std::async(&middle_t::stop, mid.get()));
-    }
+        for (auto &out : outs) {
+            out->stop(&pool);
+        }
 
-    for (auto& f: futures) {
-      f.get();
+        if (!opts->droptemp) {
+            // When keeping middle tables, there is quite a large index created
+            // which is better done after the output tables have been copied.
+            // Note that --disable-parallel-indexing needs to be used to really
+            // force the order.
+            mid->stop(pool);
+        }
+
+        // Waiting here for pool to execute all tasks.
+        // XXX If one of them has an error, all other will finish first,
+        //     which may take a long time.
     }
 }

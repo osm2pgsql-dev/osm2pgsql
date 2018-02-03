@@ -239,27 +239,11 @@ void output_pgsql_t::commit()
     }
 }
 
-void output_pgsql_t::stop()
+void output_pgsql_t::stop(osmium::thread::Pool *pool)
 {
-    if (m_options.parallel_indexing) {
-      std::vector<std::future<void>> outs;
-      outs.reserve(m_tables.size());
-
-      for (auto &t : m_tables) {
-          outs.push_back(std::async(std::launch::async, &table_t::stop, t));
-      }
-
-      // XXX If one of the stop functions throws an error, this collects all
-      //     the other threads first before exiting. That might take a very
-      //     long time if large indexes are created.
-      for (auto &f : outs) {
-        f.get();
-      }
-
-    } else {
-      for (const auto &t : m_tables) {
-        t->stop();
-      }
+    // attempt to stop tables in parallel
+    for (auto &t : m_tables) {
+        pool->submit(std::bind(&table_t::stop, t));
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {

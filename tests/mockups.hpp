@@ -8,7 +8,7 @@ struct dummy_middle_t : public middle_t {
     virtual ~dummy_middle_t() = default;
 
     void start(const options_t *) override { }
-    void stop(void) override  { }
+    void stop(osmium::thread::Pool &) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
     void end(void) override  { }
@@ -45,7 +45,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
     virtual ~dummy_slim_middle_t() = default;
 
     void start(const options_t *) override  { }
-    void stop(void) override  { }
+    void stop(osmium::thread::Pool &) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
     void end(void) override  { }
