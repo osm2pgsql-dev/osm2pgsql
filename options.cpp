@@ -96,7 +96,7 @@ namespace
                         required if you want to update with --append later.\n\
        -S|--style       Location of the style file. Defaults to\n");
         printf("\
-                        %s/default.style.\n", OSM2PGSQL_DATADIR);
+                        %s.\n", DEFAULT_STYLE);
         printf("%s", "\
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
        -F|--flat-nodes  Specifies the flat file to use to persistently store node \n\
@@ -267,7 +267,7 @@ options_t::options_t()
   projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false),
   slim(false), cache(800), tblsmain_index(boost::none),
   tblsslim_index(boost::none), tblsmain_data(boost::none),
-  tblsslim_data(boost::none), style(OSM2PGSQL_DATADIR "/default.style"),
+  tblsslim_data(boost::none), style(DEFAULT_STYLE),
   expire_tiles_zoom(0), expire_tiles_zoom_min(0),
   expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
   hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
