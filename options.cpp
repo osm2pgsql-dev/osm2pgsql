@@ -16,7 +16,7 @@
 
 namespace
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:V";
+    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
     const struct option long_options[] =
     {
         {"append",   0, 0, 'a'},
@@ -60,7 +60,7 @@ namespace
         {"number-processes", 1, 0, 205},
         {"drop", 0, 0, 206},
         {"unlogged", 0, 0, 207},
-        {"flat-nodes",1,0,209},
+        {"flat-nodes",1,0, 'F'},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
         {0, 0, 0, 0}
@@ -99,6 +99,10 @@ namespace
                         %s/default.style.\n", OSM2PGSQL_DATADIR);
         printf("%s", "\
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
+       -F|--flat-nodes  Specifies the flat file to use to persistently store node \n\
+                        information in slim mode instead of in PostgreSQL.\n\
+                        This file is a single > 40Gb large file. Only recommended\n\
+                        for full planet imports. Default is disabled.\n\
     \n\
     Database options:\n\
        -d|--database    The name of the PostgreSQL database to connect to.\n\
@@ -111,6 +115,7 @@ namespace
         if (verbose)
         {
             printf("%s", "\
+    \n\
     Hstore options:\n\
        -k|--hstore      Add tags without column to an additional hstore\n\
                         (key/value) column\n\
@@ -159,10 +164,6 @@ namespace
                         The default is \"sparse\"\n");
     #endif
         printf("%s", "\
-          --flat-nodes  Specifies the flat file to use to persistently store node \n\
-                        information in slim mode instead of in PostgreSQL.\n\
-                        This file is a single > 16Gb large file. Only recommended\n\
-                        for full planet imports. Default is disabled.\n\
     \n\
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
@@ -472,7 +473,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 207:
             unlogged = true;
             break;
-        case 209:
+        case 'F':
             flat_node_cache_enabled = true;
             flat_node_file = optarg;
             break;
