@@ -1,160 +1,115 @@
 environment:
   global:
-    DOWNLOADS_PATH: c:\downloads
-    LIBS_PATH: c:\libs
+    BZIP2_VER: 1.0.6
+    EXPAT_VER: 2.2.5
+    PROJ4_VER: 4.9.3
+    ZLIB_VER: 1.2.11
+    LUA_VER: 5.3.4
+    LUA_INCLUDE_DIR: C:\lua\include
+    LUA_LIBRARIES: C:\lua\lua53.lib
+    LUA_DLL: C:\lua\lua53.dll
+    WINGETOPT_VER: v0.95
+    GETOPT_INCLUDE_DIR: C:\wingetopt\src
+    GETOPT_LIBRARY: C:\wingetopt\build\wingetopt.lib
     BOOST_PATH: C:\Libraries\boost_1_63_0
-    TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL/9.6
+    POSTGRESQL_VER: 9.6.6
+    TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
+    POSTGIS_VER: 2.4.3
+    POSTGIS_URL: "https://winnie.postgis.net/download/windows/pg96/buildbot/postgis-pg96-binaries-2.4.3w64gcc48.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
   matrix:
     - platform: x86
-      configuration: Release
-      PostgreSQL_ROOT: C:\downloads\postgresql-9.4.7-1_x86\pgsql
-      PostgreSQL_INCLUDE_DIR: C:\downloads\postgresql-9.4.7-1_x86\pgsql\include
-      PostgreSQL_LIBRARY_DIR: C:\downloads\postgresql-9.4.7-1_x86\pgsql\lib
-      PostgreSQL_LIBRARY: C:\downloads\postgresql-9.4.7-1_x86\pgsql\lib\libpq.lib
+      vcvarsall_arg: x86
+      conda_path: C:\Miniconda36\Scripts
+      conda_library_path: C:\Miniconda36\envs\osm2pgsql\Library
+      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win32_dll14_lib.zip/download"
+      build_type: Release
     - platform: x64
-      configuration: Release
-      PostgreSQL_ROOT: C:\Progra~1\PostgreSQL/9.4
-      PostgreSQL_INCLUDE_DIR: C:\Progra~1\PostgreSQL\9.4\include
-      PostgreSQL_LIBRARY_DIR: C:\Progra~1\PostgreSQL\9.4\lib
-      PostgreSQL_LIBRARY: C:\Progra~1\PostgreSQL\9.4\lib\libpq.lib
+      vcvarsall_arg: amd64
+      conda_path: C:\Miniconda36-x64\Scripts
+      conda_library_path: C:\Miniconda36-x64\envs\osm2pgsql\Library
+      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win64_dll14_lib.zip/download"
+      build_type: Release
 
 os: Visual Studio 2015
 
 services:
   - postgresql96
 
-init:
-  - git config --global core.autocrlf input
-
 clone_folder: c:\osm2pgsql
 
 clone_depth: 1
 
+init:
+  - git config --global core.autocrlf input
+  - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
+
 install:
   - cd c:\
-  - if not exist downloads ( mkdir c:\downloads )
-  - if exist libs ( rmdir c:\libs /s /q )
-  - mkdir libs
-  - mkdir libs\bin
-  - mkdir libs\include
-  - mkdir libs\lib
-  - mkdir libs\share
-  - ps: |
-      if ($env:Platform -eq "x64") {
-        if (!(Test-Path "C:\downloads\expat-2.2.5_x64.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/expat/2.2.5/download/win-64/expat-2.2.5-vc14_0.tar.bz2", "C:\downloads\expat-2.2.5_x64.tar.bz2")}
-        if (!(Test-Path "C:\downloads\proj4-4.9.3_x64.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/proj4/4.9.3/download/win-64/proj4-4.9.3-vc14_5.tar.bz2", "C:\downloads\proj4-4.9.3_x64.tar.bz2")}
-        if (!(Test-Path "C:\downloads\bzip2-1.0.6_x64.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/bzip2/1.0.6/download/win-64/bzip2-1.0.6-vc14_1.tar.bz2", "C:\downloads\bzip2-1.0.6_x64.tar.bz2")}
-        if (!(Test-Path "C:\downloads\zlib-1.2.11_x64.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/zlib/1.2.11/download/win-64/zlib-1.2.11-vc14_0.tar.bz2", "C:\downloads\zlib-1.2.11_x64.tar.bz2")}
-        if (!(Test-Path "C:\downloads\lua-5.3.4_x64.zip")){(new-object net.webclient).DownloadFile("https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win64_dll14_lib.zip/download", "C:\downloads\lua-5.3.4_x64.zip")}
-        if (!(Test-Path "C:\downloads\wingetopt_x64.zip")){(new-object net.webclient).DownloadFile("https://github.com/alirdn/files-host/raw/master/osm2pgsql/wingetopt/wingetopt_Release_x64.zip", "C:\downloads\wingetopt_x64.zip")}
-      }
-  - ps: | 
-      if ($env:Platform -eq "x86") {
-        if (!(Test-Path "C:\downloads\expat-2.2.5_x86.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/expat/2.2.5/download/win-32/expat-2.2.5-vc14_0.tar.bz2", "C:\downloads\expat-2.2.5_x86.tar.bz2")}
-        if (!(Test-Path "C:\downloads\proj4-4.9.3_x86.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/proj4/4.9.3/download/win-32/proj4-4.9.3-vc14_5.tar.bz2", "C:\downloads\proj4-4.9.3_x86.tar.bz2")}
-        if (!(Test-Path "C:\downloads\bzip2-1.0.6_x86.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/bzip2/1.0.6/download/win-32/bzip2-1.0.6-vc14_1.tar.bz2", "C:\downloads\bzip2-1.0.6_x86.tar.bz2")}
-        if (!(Test-Path "C:\downloads\zlib-1.2.11_x86.tar.bz2")){(new-object net.webclient).DownloadFile("https://anaconda.org/conda-forge/zlib/1.2.11/download/win-32/zlib-1.2.11-vc14_0.tar.bz2", "C:\downloads\zlib-1.2.11_x86.tar.bz2")}
-        if (!(Test-Path "C:\downloads\lua-5.3.4_x86.zip")){(new-object net.webclient).DownloadFile("https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win32_dll14_lib.zip/download", "C:\downloads\lua-5.3.4_x86.zip")}
-        if (!(Test-Path "C:\downloads\wingetopt_x86.zip")){(new-object net.webclient).DownloadFile("https://github.com/alirdn/files-host/raw/master/osm2pgsql/wingetopt/wingetopt_Release_x86.zip", "C:\downloads\wingetopt_x86.zip")}
-        if (!(Test-Path "C:\downloads\postgresql-9.4.7-1_x86.zip")){(new-object net.webclient).DownloadFile("https://get.enterprisedb.com/postgresql/postgresql-9.4.7-1-windows-binaries.zip?ls=Crossover&type=Crossover", "C:\downloads\postgresql-9.4.7-1_x86.zip")}
-      }
-  - ps: if (!(Test-Path "C:\downloads\postgis-pg96-binaries-2.4.3_x64.zip")){(new-object net.webclient).DownloadFile("https://winnie.postgis.net/download/windows/pg96/buildbot/postgis-pg96-binaries-2.4.3w64gcc48.zip", "C:\downloads\postgis-pg96-binaries-2.4.3_x64.zip")}
-  - 7z x -y C:\downloads\expat-2.2.5_%PLATFORM%.tar.bz2 -oC:\downloads\ > $null
-  - 7z x -y C:\downloads\expat-2.2.5_%PLATFORM%.tar -oC:\downloads\expat-2.2.5_%PLATFORM% > $null
-  - copy /y /v C:\downloads\expat-2.2.5_%PLATFORM%\Library\bin\*.dll c:\libs\bin
-  - copy /y /v C:\downloads\expat-2.2.5_%PLATFORM%\Library\include\*.h c:\libs\include
-  - copy /y /v C:\downloads\expat-2.2.5_%PLATFORM%\Library\lib\expat.lib c:\libs\lib
-  - 7z x -y C:\downloads\proj4-4.9.3_%PLATFORM%.tar.bz2 -oC:\downloads\ > $null
-  - 7z x -y C:\downloads\proj4-4.9.3_%PLATFORM%.tar -oC:\downloads\proj4-4.9.3_%PLATFORM% > $null
-  - copy /y /v C:\downloads\proj4-4.9.3_%PLATFORM%\Library\bin\*.dll c:\libs\bin
-  - copy /y /v C:\downloads\proj4-4.9.3_%PLATFORM%\Library\include\*.h c:\libs\include
-  - copy /y /v C:\downloads\proj4-4.9.3_%PLATFORM%\Library\lib\proj.lib c:\libs\lib
-  - copy /y /v C:\downloads\proj4-4.9.3_%PLATFORM%\Library\share\epsg c:\libs\share
-  - 7z x -y C:\downloads\bzip2-1.0.6_%PLATFORM%.tar.bz2 -oC:\downloads\ > $null
-  - 7z x -y C:\downloads\bzip2-1.0.6_%PLATFORM%.tar -oC:\downloads\bzip2-1.0.6_%PLATFORM% > $null
-  - copy /y /v C:\downloads\bzip2-1.0.6_%PLATFORM%\Library\bin\libbz2.dll c:\libs\bin
-  - copy /y /v C:\downloads\bzip2-1.0.6_%PLATFORM%\Library\include\*.h c:\libs\include
-  - copy /y /v C:\downloads\bzip2-1.0.6_%PLATFORM%\Library\lib\bzip2.lib c:\libs\lib
-  - 7z x -y C:\downloads\zlib-1.2.11_%PLATFORM%.tar.bz2 -oC:\downloads\ > $null
-  - 7z x -y C:\downloads\zlib-1.2.11_%PLATFORM%.tar -oC:\downloads\zlib-1.2.11_%PLATFORM% > $null
-  - copy /y /v C:\downloads\zlib-1.2.11_%PLATFORM%\Library\bin\*.dll c:\libs\bin
-  - copy /y /v C:\downloads\zlib-1.2.11_%PLATFORM%\Library\include\*.h c:\libs\include
-  - copy /y /v C:\downloads\zlib-1.2.11_%PLATFORM%\Library\lib\z.lib c:\libs\lib
-  - 7z x -y C:\downloads\lua-5.3.4_%PLATFORM%.zip -oC:\downloads\lua-5.3.4_%PLATFORM% > $null
-  - copy /y C:\downloads\lua-5.3.4_%PLATFORM%\include\*.h c:\libs\include
-  - copy /y C:\downloads\lua-5.3.4_%PLATFORM%\*.dll c:\libs\bin
-  - copy /y C:\downloads\lua-5.3.4_%PLATFORM%\lua53.lib c:\libs\lib
-  - 7z x C:\downloads\wingetopt_%PLATFORM%.zip -oC:\downloads\wingetopt_%PLATFORM% > $null
-  - copy /y C:\downloads\wingetopt_%PLATFORM%\lib\wingetopt.lib c:\libs\lib
-  - copy /y C:\downloads\wingetopt_%PLATFORM%\include\getopt.h c:\libs\include
-  - if "%PLATFORM%" == "x86" (7z x C:\downloads\postgresql-9.4.7-1_x86.zip -oC:\downloads\postgresql-9.4.7-1_x86)
-  - 7z x C:\downloads\postgis-pg96-binaries-2.4.3_x64.zip -oC:\downloads\postgis-pg96-binaries-2.4.3_x64
-  - echo xcopy /e /y /q C:\downloads\postgis-pg96-binaries-2.4.3_x64 %TESTS_POSTGRESQL_ROOT%
-  - xcopy /e /y /q %C:\downloads\postgis-pg96-binaries-2.4.3_x64\postgis-pg96-binaries-2.4.3w64gcc48 "%TESTS_POSTGRESQL_ROOT%"
-  - echo Creating tablespace for tablespace test...
-  - mkdir temp
-  - cacls temp /T /E /G Users:F
-  - cacls temp /T /E /G "Network Service":F
-  - echo Installing psycopg2 Python module...
+  - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%PATH%;%conda_path%
+  - conda config --set always_yes yes
+  - conda create --name osm2pgsql
+  - activate osm2pgsql
+  - conda install bzip2=%BZIP2_VER% expat=%EXPAT_VER% proj4=%PROJ4_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
+  - ps: if (!(Test-Path "C:\lua_$env:platform.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_$env:platform.zip")}
+  - 7z x -y C:\lua_%platform%.zip -oC:\lua
+  - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
+  - 7z x C:\postgis.zip -oC:\postgis
+  - xcopy /e /y /q C:\postgis\postgis-pg96-binaries-2.4.3w64gcc48 %TESTS_POSTGRESQL_ROOT%
+  - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
   - pip install psycopg2
+
+before_build:
+  - cd C:\wingetopt
+  - mkdir build
+  - cd build
+  - cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%build_type%
+  - nmake
 
 build_script:
   - mkdir c:\osm2pgsql\build
   - cd c:\osm2pgsql\build
-  - echo Running cmake...
-  - ps: |
-      if ($env:Platform -eq "x86") {
-        $env:vcvar_arg = 'x86';
-      }
-  - ps: |
-      if ($env:Platform -eq "x64") {
-        $env:vcvar_arg = 'x86_amd64'; 
-      }
-  - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvar_arg%'
-  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_PATH% -DCMAKE_BUILD_TYPE=%configuration% -DCMAKE_INSTALL_PREFIX=%LIBS_PATH% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON -DPostgreSQL_INCLUDE_DIR=%PostgreSQL_INCLUDE_DIR% -DPostgreSQL_TYPE_INCLUDE_DIR=%PostgreSQL_INCLUDE_DIR% -DPostgreSQL_LIBRARY_DIR=%PostgreSQL_LIBRARY_DIR% -DPostgreSQL_LIBRARY=%PostgreSQL_LIBRARY%
+  - >
+    cmake .. -LA -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%build_type% -DBUILD_TESTS=ON
+    -DLUA_INCLUDE_DIR=%LUA_INCLUDE_DIR% -DLUA_LIBRARIES=%LUA_LIBRARIES% 
+    -DGETOPT_INCLUDE_DIR=%GETOPT_INCLUDE_DIR% -DGETOPT_LIBRARY=%GETOPT_LIBRARY%
+    -DBOOST_ROOT=%BOOST_PATH% -DBoost_USE_STATIC_LIBS=ON
   - nmake
+
+after_build:
   - mkdir osm2pgsql-bin
   - copy /y *.exe osm2pgsql-bin
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
-  - copy /y %LIBS_PATH%\bin\*.dll osm2pgsql-bin
-  - copy /y "%PostgreSQL_ROOT%\bin\libpq.dll" osm2pgsql-bin
-  - if "%PLATFORM%" == "x64" (copy /y "%PostgreSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin)
-  - if "%PLATFORM%" == "x86" (copy /y "%PostgreSQL_ROOT%\bin\intl.dll" osm2pgsql-bin)
-  - copy /y "%PostgreSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin
-  - copy /y "%PostgreSQL_ROOT%\bin\ssleay32.dll" osm2pgsql-bin
-  - 7z a c:\osm2pgsql\osm2pgsql_%configuration%_%PLATFORM%.zip osm2pgsql-bin -tzip
-  - 7z a c:\osm2pgsql\osm2pgsql_win_deps_%configuration%_%PLATFORM%.zip c:\libs -tzip
+  - copy /y %conda_library_path%\bin\libpq.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libeay32.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\ssleay32.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\zlib.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libbz2.dll osm2pgsql-bin
+  - copy /y %LUA_DLL% osm2pgsql-bin
+  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%platform%.zip osm2pgsql-bin -tzip
+
+before_test:
+  - cd c:\
+  - mkdir temp
+  - cacls temp /T /E /G Users:F
+  - cacls temp /T /E /G "Network Service":F
+  - |
+    psql -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/temp'"
+  - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
+  - set PROJ_LIB=%conda_library_path%\share
 
 test_script:
-  - |
-    "%TESTS_POSTGRESQL_ROOT%/bin/psql" -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/temp'"
-  - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
-  - set PROJ_LIB=c:\libs\share
   - cd c:\osm2pgsql\build
-#  - ctest -VV -L NoDB
+  #- ctest -VV -L NoDB
   - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
 artifacts:
-  - path: osm2pgsql_%configuration%_%PLATFORM%.zip
-    name: osm2pgsql_%configuration%_%PLATFORM%.zip
-  - path: osm2pgsql_win_deps_%configuration%_%PLATFORM%.zip
-    name: osm2pgsql_win_deps_%configuration%_%PLATFORM%.zip
+  - path: osm2pgsql_%build_type%_%platform%.zip
 
 cache:
-  - C:\downloads\expat-2.2.5_x64.tar.bz2 -> appveyor.yml
-  - C:\downloads\proj4-4.9.3_x64.tar.bz2 -> appveyor.yml
-  - C:\downloads\bzip2-1.0.6_x64.tar.bz2 -> appveyor.yml
-  - C:\downloads\zlib-1.2.11_x64.tar.bz2 -> appveyor.yml
-  - C:\downloads\lua-5.3.4_x64.zip -> appveyor.yml
-  - C:\downloads\expat-2.2.5_x86.tar.bz2 -> appveyor.yml
-  - C:\downloads\proj4-4.9.3_x86.tar.bz2 -> appveyor.yml
-  - C:\downloads\bzip2-1.0.6_x86.tar.bz2 -> appveyor.yml
-  - C:\downloads\zlib-1.2.11_x86.tar.bz2 -> appveyor.yml
-  - C:\downloads\lua-5.3.4_x86.zip -> appveyor.yml
-  - C:\downloads\wingetopt_x86.zip -> appveyor.yml
-  - C:\downloads\postgresql-9.4.7-1_x86.zip -> appveyor.yml
-  - C:\downloads\postgis-pg96-binaries-2.4.3_x64.zip -> appveyor.yml
+  - C:\lua_%platform%.zip -> appveyor.yml
+  - C:\postgis.zip -> appveyor.yml
