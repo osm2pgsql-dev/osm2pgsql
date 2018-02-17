@@ -1,86 +1,115 @@
 environment:
   global:
+    BZIP2_VER: 1.0.6
+    EXPAT_VER: 2.2.5
+    PROJ4_VER: 4.9.3
+    ZLIB_VER: 1.2.11
+    LUA_VER: 5.3.4
+    LUA_INCLUDE_DIR: C:\lua\include
+    LUA_LIBRARIES: C:\lua\lua53.lib
+    LUA_DLL: C:\lua\lua53.dll
+    WINGETOPT_VER: v0.95
+    GETOPT_INCLUDE_DIR: C:\wingetopt\src
+    GETOPT_LIBRARY: C:\wingetopt\build\wingetopt.lib
+    BOOST_PATH: C:\Libraries\boost_1_63_0
+    POSTGRESQL_VER: 9.6.6
+    TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
+    POSTGIS_VER: 2.4.2
+    POSTGIS_URL: "http://download.osgeo.org/postgis/windows/pg96/postgis-bundle-pg96-2.4.2x64.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
-    BOOST_ROOT: c:/libs/boost
-    PREFIX: c:\libs
-    PSQL_ROOT: C:/Program Files/PostgreSQL/9.4
-    CMAKE_PREFIX_PATH: c:\libs;C:\Program Files\PostgreSQL\9.4
-    POSTGIS_FILE: postgis-pg94-binaries-2.3.2w64gcc48
   matrix:
-  - configuration: Release
-
-# Operating system (build VM template)
+    - platform: x86
+      vcvarsall_arg: x86
+      conda_path: C:\Miniconda36\Scripts
+      conda_library_path: C:\Miniconda36\envs\osm2pgsql\Library
+      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win32_dll14_lib.zip/download"
+      build_type: Release
+    - platform: x64
+      vcvarsall_arg: amd64
+      conda_path: C:\Miniconda36-x64\Scripts
+      conda_library_path: C:\Miniconda36-x64\envs\osm2pgsql\Library
+      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win64_dll14_lib.zip/download"
+      build_type: Release
 
 os: Visual Studio 2015
 
-cache:
-  - C:\libs\%POSTGIS_FILE%.zip -> appveyor.yml
-  - C:\osm2pgsql_win_deps_release.7z -> appveyor.yml
-
 services:
-  - postgresql94 # enable when Postgis will be available
+  - postgresql96
 
-# scripts that are called at very beginning, before repo cloning
-init:
-  - git config --global core.autocrlf input
-
-# clone directory
 clone_folder: c:\osm2pgsql
 
 clone_depth: 1
 
-platform: x64
+init:
+  - git config --global core.autocrlf input
+  - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
 
 install:
-  # by default, all script lines are interpreted as batch
   - cd c:\
-  - if exist libs ( rmdir c:\libs /s /q )
-  - mkdir libs
-  - if not exist osm2pgsql_win_deps_release.7z ( curl -O https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/osm2pgsql_win_deps_release.7z )
-  - 7z x osm2pgsql_win_deps_release.7z | find ":"
-  - cd c:\libs
-  - echo Downloading and installing PostGIS:
-  - if not exist %POSTGIS_FILE%.zip ( curl -L -O -S -s https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/%POSTGIS_FILE%.zip )
-  - 7z x %POSTGIS_FILE%.zip
-  - echo xcopy /e /y /q %POSTGIS_FILE% %PSQL_ROOT%
-  - xcopy /e /y /q %POSTGIS_FILE% "%PSQL_ROOT%"
-  - echo Creating tablespace for tablespace test...
-  - mkdir temp
-  - cacls temp /T /E /G Users:F
-  - cacls temp /T /E /G "Network Service":F
-  - echo Installing psycopg2 Python module...
+  - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%PATH%;%conda_path%
+  - conda config --set always_yes yes
+  - conda create --name osm2pgsql
+  - activate osm2pgsql
+  - conda install bzip2=%BZIP2_VER% expat=%EXPAT_VER% proj4=%PROJ4_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
+  - ps: if (!(Test-Path "C:\lua_$env:platform.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_$env:platform.zip")}
+  - 7z x -y C:\lua_%platform%.zip -oC:\lua
+  - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
+  - 7z x C:\postgis.zip -oC:\postgis
+  - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.2x64 %TESTS_POSTGRESQL_ROOT%
+  - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
   - pip install psycopg2
+
+before_build:
+  - cd C:\wingetopt
+  - mkdir build
+  - cd build
+  - cmake .. -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%build_type%
+  - nmake
 
 build_script:
   - mkdir c:\osm2pgsql\build
   - cd c:\osm2pgsql\build
-  - echo Running cmake...
-  - call "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" amd64
-  - cmake .. -LA -G "NMake Makefiles" -DBOOST_ROOT=%BOOST_ROOT% -DCMAKE_BUILD_TYPE=%Configuration% -DCMAKE_INSTALL_PREFIX=%PREFIX% -DBoost_USE_STATIC_LIBS=ON -DBUILD_TESTS=ON
+  - >
+    cmake .. -LA -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%build_type% -DBUILD_TESTS=ON
+    -DLUA_INCLUDE_DIR=%LUA_INCLUDE_DIR% -DLUA_LIBRARIES=%LUA_LIBRARIES% 
+    -DGETOPT_INCLUDE_DIR=%GETOPT_INCLUDE_DIR% -DGETOPT_LIBRARY=%GETOPT_LIBRARY%
+    -DBOOST_ROOT=%BOOST_PATH% -DBoost_USE_STATIC_LIBS=ON
   - nmake
+
+after_build:
   - mkdir osm2pgsql-bin
   - copy /y *.exe osm2pgsql-bin
   - copy /y ..\*.style osm2pgsql-bin
   - copy /y ..\*.lua osm2pgsql-bin
-  - copy /y %PREFIX%\bin\*.dll osm2pgsql-bin
-  - copy /y "%PSQL_ROOT%\bin\libpq.dll" osm2pgsql-bin
-  - copy /y "%PSQL_ROOT%\bin\libintl-8.dll" osm2pgsql-bin
-  - copy /y "%PSQL_ROOT%\bin\libeay32.dll" osm2pgsql-bin
-  - copy /y "%PSQL_ROOT%\bin\ssleay32.dll" osm2pgsql-bin
-  - 7z a c:\osm2pgsql\osm2pgsql_%Configuration%.zip osm2pgsql-bin -tzip
+  - copy /y %conda_library_path%\bin\libpq.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libeay32.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\ssleay32.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\zlib.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
+  - copy /y %conda_library_path%\bin\libbz2.dll osm2pgsql-bin
+  - copy /y %LUA_DLL% osm2pgsql-bin
+  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%platform%.zip osm2pgsql-bin -tzip
+
+before_test:
+  - cd c:\
+  - mkdir temp
+  - cacls temp /T /E /G Users:F
+  - cacls temp /T /E /G "Network Service":F
+  - |
+    psql -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/temp'"
+  - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
+  - set PROJ_LIB=%conda_library_path%\share
 
 test_script:
-  - |
-    "%PSQL_ROOT%/bin/psql" -c "CREATE TABLESPACE tablespacetest LOCATION 'c:/libs/temp'"
-  - set PATH=c:\osm2pgsql\build\osm2pgsql-bin;%PATH%
-  - set PROJ_LIB=c:\libs\share
   - cd c:\osm2pgsql\build
-#  - ctest -VV -L NoDB
+  #- ctest -VV -L NoDB
   - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
-
 artifacts:
-  - path: osm2pgsql_Release.zip
-    name: osm2pgsql_Release.zip
+  - path: osm2pgsql_%build_type%_%platform%.zip
+
+cache:
+  - C:\lua_%platform%.zip -> appveyor.yml
+  - C:\postgis.zip -> appveyor.yml
