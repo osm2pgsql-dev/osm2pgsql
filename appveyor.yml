@@ -15,7 +15,7 @@ environment:
     POSTGRESQL_VER: 9.6.6
     TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
     POSTGIS_VER: 2.4.2
-    POSTGIS_URL: "http://download.osgeo.org/postgis/windows/pg96/postgis-bundle-pg96-2.4.2x64.zip"
+    POSTGIS_URL: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/postgis-bundle-pg96-2.4.3x64.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
   matrix:
@@ -23,13 +23,13 @@ environment:
       vcvarsall_arg: x86
       conda_path: C:\Miniconda36\Scripts
       conda_library_path: C:\Miniconda36\envs\osm2pgsql\Library
-      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win32_dll14_lib.zip/download"
+      lua_url: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip"
       build_type: Release
     - platform: x64
       vcvarsall_arg: amd64
       conda_path: C:\Miniconda36-x64\Scripts
       conda_library_path: C:\Miniconda36-x64\envs\osm2pgsql\Library
-      lua_url: "https://sourceforge.net/projects/luabinaries/files/5.3.4/Windows%20Libraries/Dynamic/lua-5.3.4_Win64_dll14_lib.zip/download"
+      lua_url: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip"
       build_type: Release
 
 os: Visual Studio 2015
@@ -56,7 +56,7 @@ install:
   - 7z x -y C:\lua_%platform%.zip -oC:\lua
   - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
   - 7z x C:\postgis.zip -oC:\postgis
-  - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.2x64 %TESTS_POSTGRESQL_ROOT%
+  - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.3x64 %TESTS_POSTGRESQL_ROOT%
   - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
   - pip install psycopg2
