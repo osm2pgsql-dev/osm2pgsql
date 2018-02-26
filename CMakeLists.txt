@@ -8,7 +8,11 @@ project(osm2pgsql)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(DATA_DIR \"${CMAKE_INSTALL_PREFIX}/share/osm2pgsql\")
+if (WIN32)
+    set(DEFAULT_STYLE "default.style" CACHE STRING "Default style used unless one is given on the command line")
+else()
+    set(DEFAULT_STYLE "${CMAKE_INSTALL_PREFIX}/share/osm2pgsql/default.style" CACHE STRING "Default style used unless one is given on the command line")
+endif()
 
 option(BUILD_TESTS "Build test suite" OFF)
 option(WITH_LUA    "Build with lua support" ON)
@@ -60,7 +64,7 @@ include (CheckIncludeFiles)
 include (CheckFunctionExists)
 include (CheckTypeSize)
 
-add_definitions( -DOSM2PGSQL_DATADIR=${DATA_DIR} )
+add_definitions( -DDEFAULT_STYLE=\"${DEFAULT_STYLE}\" )
 add_definitions( -DFIXED_POINT )
 
 CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
