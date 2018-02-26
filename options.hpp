@@ -65,6 +65,7 @@ public:
     bool enable_multi; ///< Output multi-geometries intead of several simple geometries
     std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column
     bool keep_coastlines;
+    bool keep_unnamed;
     bool parallel_indexing;
     int alloc_chunkwise;
     int num_procs;

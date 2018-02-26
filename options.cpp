@@ -53,6 +53,7 @@ namespace
         {"hstore-add-index",0,0,211},
         {"multi-geometry", 0, 0, 'G'},
         {"keep-coastlines", 0, 0, 'K'},
+	{"keep-unnamed", 0, 0, 215},
         {"input-reader", 1, 0, 'r'},
         {"version", 0, 0, 'V'},
         {"disable-parallel-indexing", 0, 0, 'I'},
@@ -203,6 +204,7 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
+          --keep-unnamed Keep unnamed features rather than filtering them out.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
@@ -271,7 +273,7 @@ options_t::options_t()
   expire_tiles_zoom(0), expire_tiles_zoom_min(0),
   expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
   hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
-  hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+  hstore_columns(), keep_coastlines(false), keep_unnamed(false), parallel_indexing(true),
 #ifdef __amd64__
   alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
 #else
@@ -327,6 +329,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'K':
             keep_coastlines = true;
+            break;
+        case 215:
+            keep_unnamed = true;
             break;
         case 'l':
             projection.reset(reprojection::create_projection(PROJ_LATLONG));
