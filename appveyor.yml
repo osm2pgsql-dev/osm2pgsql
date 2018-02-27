@@ -19,8 +19,8 @@ environment:
     PGUSER: postgres
     PGPASSWORD: Password12!
   matrix:
-    - platform: x86
-    - platform: x64
+    - arch: x86
+    - arch: x64
 
 os: Visual Studio 2015
 
@@ -33,13 +33,13 @@ clone_depth: 1
 
 init:
   - git config --global core.autocrlf input
-  - if "%platform%"=="x86" (
+  - if "%arch%"=="x86" (
       set vcvarsall_arg=x86&&
       set conda_path=C:\Miniconda36\Scripts&&
       set conda_library_path=C:\Miniconda36\envs\osm2pgsql\Library&&
       set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip&&
       set build_type=Release)
-  - if "%platform%"=="x64" (
+  - if "%arch%"=="x64" (
       set vcvarsall_arg=amd64&&
       set conda_path=C:\Miniconda36-x64\Scripts&&
       set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library&&
@@ -54,8 +54,8 @@ install:
   - conda create --name osm2pgsql
   - activate osm2pgsql
   - conda install bzip2=%BZIP2_VER% expat=%EXPAT_VER% proj4=%PROJ4_VER% zlib=%ZLIB_VER% postgresql=%POSTGRESQL_VER%
-  - ps: if (!(Test-Path "C:\lua_$env:platform.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_$env:platform.zip")}
-  - 7z x -y C:\lua_%platform%.zip -oC:\lua
+  - ps: if (!(Test-Path "C:\lua_$env:arch.zip")){(new-object net.webclient).DownloadFile($env:lua_url, "C:\lua_$env:arch.zip")}
+  - 7z x -y C:\lua_%arch%.zip -oC:\lua
   - ps: if (!(Test-Path "C:\postgis.zip")){(new-object net.webclient).DownloadFile($env:POSTGIS_URL, "C:\postgis.zip")}
   - 7z x C:\postgis.zip -oC:\postgis
   - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.3x64 %TESTS_POSTGRESQL_ROOT%
@@ -92,7 +92,7 @@ after_build:
   - copy /y %conda_library_path%\bin\expat.dll osm2pgsql-bin
   - copy /y %conda_library_path%\bin\libbz2.dll osm2pgsql-bin
   - copy /y %LUA_DLL% osm2pgsql-bin
-  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%platform%.zip osm2pgsql-bin -tzip
+  - 7z a c:\osm2pgsql\osm2pgsql_%build_type%_%arch%.zip osm2pgsql-bin -tzip
 
 before_test:
   - cd c:\
@@ -110,8 +110,8 @@ test_script:
   - ctest -VV -LE FlatNodes # enable when Postgis will be available
 
 artifacts:
-  - path: osm2pgsql_%build_type%_%platform%.zip
+  - path: osm2pgsql_%build_type%_%arch%.zip
 
 cache:
-  - C:\lua_%platform%.zip -> appveyor.yml
+  - C:\lua_%arch%.zip -> appveyor.yml
   - C:\postgis.zip -> appveyor.yml
