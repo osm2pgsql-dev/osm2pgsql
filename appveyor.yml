@@ -14,7 +14,7 @@ environment:
     BOOST_PATH: C:\Libraries\boost_1_63_0
     POSTGRESQL_VER: 9.6.6
     TESTS_POSTGRESQL_ROOT: C:\Progra~1\PostgreSQL\9.6
-    POSTGIS_VER: 2.4.2
+    POSTGIS_VER: 2.4.3
     POSTGIS_URL: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/postgis-bundle-pg96-2.4.3x64.zip"
     PGUSER: postgres
     PGPASSWORD: Password12!
