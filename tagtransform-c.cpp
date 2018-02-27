@@ -367,7 +367,7 @@ bool c_tagtransform_t::filter_rel_member_tags(
             // Copy the list identified outer way tags over to the relation
             // filtering for wanted tags on the way.
             bool filter;
-            int flags;
+            int flags = 0;
             for (const auto &poly_tag : poly_tags) {
                 if (check_key(infos, poly_tag.key.c_str(), &filter, &flags,
                               false)) {
