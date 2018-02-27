@@ -20,17 +20,7 @@ environment:
     PGPASSWORD: Password12!
   matrix:
     - platform: x86
-      vcvarsall_arg: x86
-      conda_path: C:\Miniconda36\Scripts
-      conda_library_path: C:\Miniconda36\envs\osm2pgsql\Library
-      lua_url: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip"
-      build_type: Release
     - platform: x64
-      vcvarsall_arg: amd64
-      conda_path: C:\Miniconda36-x64\Scripts
-      conda_library_path: C:\Miniconda36-x64\envs\osm2pgsql\Library
-      lua_url: "https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip"
-      build_type: Release
 
 os: Visual Studio 2015
 
@@ -43,11 +33,23 @@ clone_depth: 1
 
 init:
   - git config --global core.autocrlf input
+  - if "%platform%"=="x86" (
+      set vcvarsall_arg=x86&&
+      set conda_path=C:\Miniconda36\Scripts&&
+      set conda_library_path=C:\Miniconda36\envs\osm2pgsql\Library&&
+      set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip&&
+      set build_type=Release)
+  - if "%platform%"=="x64" (
+      set vcvarsall_arg=amd64&&
+      set conda_path=C:\Miniconda36-x64\Scripts&&
+      set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library&&
+      set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip&&
+      set build_type=Release)
   - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
 
 install:
-  - cd c:\
   - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%PATH%;%conda_path%
+  - cd c:\
   - conda config --set always_yes yes
   - conda create --name osm2pgsql
   - activate osm2pgsql
