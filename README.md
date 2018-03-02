@@ -44,6 +44,8 @@ Required libraries are
 * [Boost libraries](http://www.boost.org/), including system and filesystem
 * [PostgreSQL](http://www.postgresql.org/) client libraries
 * [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
+* [Python](https://python.org/) (only for running tests)
+* [Psycopg](http://initd.org/psycopg/) (only for running tests)
 
 It also requires access to a database server running
 [PostgreSQL](http://www.postgresql.org/) 9.1+ and [PostGIS](http://www.postgis.net/) 2.0+.

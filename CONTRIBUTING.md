@@ -68,7 +68,13 @@ actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
 ## Testing
 
 The code also comes with a suite of tests which can be run by
-executing ``make check``.
+executing ``ctest``.
+
+Regression tests require python and psycopg to be installed. On Ubuntu run:
+
+```sh
+sudo apt-get install python-psycopg2
+```
 
 Most of these tests depend on being able to set up a database and run osm2pgsql
 against it. You need to ensure that PostgreSQL is running and that your user is
