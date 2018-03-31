@@ -55,6 +55,7 @@ else()
 endif()
 
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
+option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 
 #############################################################
 # Detect available headers and set global compiler options
@@ -83,10 +84,14 @@ if (NOT EXTERNAL_LIBOSMIUM)
   set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium")
 endif()
 
+if (NOT EXTERNAL_PROTOZERO)
+  set(PROTZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium REQUIRED COMPONENTS io proj)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTZERO_INCLUDE_DIR})
 
 if (WITH_LUA)
   find_package(Lua REQUIRED)
