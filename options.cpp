@@ -167,6 +167,8 @@ namespace
     \n\
     Expiry options:\n\
        -e|--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.\n\
+                             Zoom levels must be larger than 0 and smaller\n\
+                             than 32.\n\
        -o|--expire-output filename  Output filename for expired tiles list.\n\
           --expire-bbox-size Max size for a polygon to expire the whole polygon,\n\
                              not just the boundary.\n\
@@ -378,15 +380,16 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'e':
             if (!optarg || optarg[0] == '-') {
-                throw std::runtime_error("Missing argument for option -e. Zoom "
+                throw std::runtime_error("Missing argument for option --expire-tiles. Zoom "
                                          "levels must be positive.\n");
             }
             char *next_char;
             expire_tiles_zoom_min =
                 static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
             if (expire_tiles_zoom_min == 0) {
-                throw std::runtime_error(
-                    "Missing zoom level for tile expiry.\n");
+                throw std::runtime_error("Bad argument for option --expire-tiles. "
+                                         "Minimum zoom level must be larger "
+                                         "than 0.\n");
             }
             // The first character after the number is ignored because that is the separating hyphen.
             if (*next_char == '-') {
@@ -396,17 +399,21 @@ options_t::options_t(int argc, char *argv[]): options_t()
                     char *after_maxzoom;
                     expire_tiles_zoom = static_cast<uint32_t>(
                         std::strtoul(next_char, &after_maxzoom, 10));
+                    if (expire_tiles_zoom == 0 || *after_maxzoom != '\0') {
+                        throw std::runtime_error("Invalid maximum zoom level "
+                                                 "given for tile expiry.\n");
+                    }
                 } else {
                     throw std::runtime_error(
                         "Invalid maximum zoom level given for tile expiry.\n");
                 }
+            } else if (*next_char == '\0') {
+                // end of string, no second zoom level given
+                expire_tiles_zoom = expire_tiles_zoom_min;
             } else {
                 throw std::runtime_error("Minimum and maximum zoom level for "
                                          "tile expiry must be separated by "
                                          "'-'.\n");
-            }
-            if (expire_tiles_zoom < expire_tiles_zoom_min) {
-                expire_tiles_zoom = expire_tiles_zoom_min;
             }
             break;
         case 'o':

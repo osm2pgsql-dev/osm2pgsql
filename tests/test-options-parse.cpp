@@ -136,6 +136,61 @@ void test_parsing_tile_expiry_zoom_levels()
 {
     const char *a1[] = {
         "osm2pgsql",     "-e",
+        "8-12",          "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    options_t options = options_t(len(a1), const_cast<char **>(a1));
+    if (options.expire_tiles_zoom_min != 8)
+        throw std::logic_error(
+            (boost::format("Expected expire_tiles_zoom_min 8 but got '%1%'") %
+             options.expire_tiles_zoom_min)
+                .str());
+    if (options.expire_tiles_zoom != 12)
+        throw std::logic_error(
+            (boost::format("Expected expire_tiles_zoom 12 but got '%1%'") %
+             options.expire_tiles_zoom_min)
+                .str());
+
+    const char *a2[] = {"osm2pgsql",
+                        "-e",
+                        "12",
+                        "--style",
+                        "default.style",
+                        "tests/liechtenstein-2013-08-03.osm.pbf"};
+    options = options_t(len(a2), const_cast<char **>(a2));
+    if (options.expire_tiles_zoom_min != 12)
+        throw std::logic_error(
+            (boost::format("Expected expire_tiles_zoom_min 12 but got '%1%'") %
+             options.expire_tiles_zoom_min)
+                .str());
+    if (options.expire_tiles_zoom != 12)
+        throw std::logic_error(
+            (boost::format("Expected expire_tiles_zoom 12 but got '%1%'") %
+             options.expire_tiles_zoom_min)
+                .str());
+
+    //  check if very high zoom levels are set back to still high but valid zoom levels
+    const char *a3[] = {
+        "osm2pgsql",     "-e",
+        "33-35",         "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    options = options_t(len(a3), const_cast<char **>(a3));
+    if (options.expire_tiles_zoom_min != 31)
+        throw std::logic_error((boost::format("Expected expire_tiles_zoom_min "
+                                              "set back to 31 but got '%1%'") %
+                                options.expire_tiles_zoom_min)
+                                   .str());
+    if (options.expire_tiles_zoom != 31)
+        throw std::logic_error(
+            (boost::format(
+                 "Expected expire_tiles_zoom set back to 31 but got '%1%'") %
+             options.expire_tiles_zoom_min)
+                .str());
+}
+
+void test_parsing_tile_expiry_zoom_levels_fails()
+{
+    const char *a1[] = {
+        "osm2pgsql",     "-e",
         "8--12",         "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a1), a1, "Invalid maximum zoom level given for tile expiry");
@@ -145,18 +200,18 @@ void test_parsing_tile_expiry_zoom_levels()
         "-8-12",         "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a2), a2,
-               "Missing argument for option -e. Zoom levels must be positive.");
+               "Missing argument for option --expire-tiles. Zoom levels must be positive.");
 
     const char *a3[] = {"osm2pgsql", "-e", "--style", "default.style",
                         "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a3), a3,
-               "Missing argument for option -e. Zoom levels must be positive.");
+               "Missing argument for option --expire-tiles. Zoom levels must be positive.");
 
     const char *a4[] = {
         "osm2pgsql",     "-e",
         "a-8",           "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    parse_fail(len(a4), a4, "Missing zoom level for tile expiry.");
+    parse_fail(len(a4), a4, "Bad argument for option --expire-tiles. Minimum zoom level must be larger than 0.");
 
     const char *a5[] = {
         "osm2pgsql",     "-e",
@@ -164,6 +219,58 @@ void test_parsing_tile_expiry_zoom_levels()
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a5), a5, "Minimum and maximum zoom level for tile expiry "
                             "must be separated by '-'.");
+
+    const char *a6[] = {
+        "osm2pgsql",     "-e",
+        "6-0",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a6), a6,
+               "Invalid maximum zoom level given for tile expiry.");
+
+    const char *a7[] = {
+        "osm2pgsql",     "-e",
+        "6-9a",          "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a7), a7,
+               "Invalid maximum zoom level given for tile expiry.");
+
+    const char *a8[] = {
+        "osm2pgsql",     "-e",
+        "0-8",           "--style",
+        "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a8), a8,
+               "Bad argument for option --expire-tiles. Minimum zoom level "
+               "must be larger than 0.");
+
+    const char *a9[] = {"osm2pgsql",
+                        "-e",
+                        "6-",
+                        "--style",
+                        "default.style",
+                        "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a9), a9,
+               "Invalid maximum zoom level given for tile "
+               "expiry.");
+
+    const char *a10[] = {"osm2pgsql",
+                         "-e",
+                         "-6",
+                         "--style",
+                         "default.style",
+                         "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a10), a10,
+               "Missing argument for option --expire-tiles. Zoom levels "
+               "must be positive.");
+
+    const char *a11[] = {"osm2pgsql",
+                         "-e",
+                         "0",
+                         "--style",
+                         "default.style",
+                         "tests/liechtenstein-2013-08-03.osm.pbf"};
+    parse_fail(len(a11), a11,
+               "Bad argument for option --expire-tiles. Minimum zoom level "
+               "must be larger than 0.");
 }
 
 int get_random_proj(std::vector<std::string>& args)
@@ -324,6 +431,8 @@ int main(int argc, char *argv[])
     run_test("test_middles", test_middles);
     run_test("test_outputs", test_outputs);
     run_test("test_random_perms", test_random_perms);
+    run_test("test_parsing_tile_expiry_zoom_levels_fails",
+             test_parsing_tile_expiry_zoom_levels_fails);
     run_test("test_parsing_tile_expiry_zoom_levels",
              test_parsing_tile_expiry_zoom_levels);
 
