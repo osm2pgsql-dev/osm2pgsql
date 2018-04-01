@@ -380,14 +380,14 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'e':
             if (!optarg || optarg[0] == '-') {
-                throw std::runtime_error("Missing argument for option -e. Zoom "
+                throw std::runtime_error("Missing argument for option --expire-tiles. Zoom "
                                          "levels must be positive.\n");
             }
             char *next_char;
             expire_tiles_zoom_min =
                 static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
             if (expire_tiles_zoom_min == 0) {
-                throw std::runtime_error("Missing zoom level for tile expiry. "
+                throw std::runtime_error("Bad argument for option --expire-tiles. "
                                          "Minimum zoom level must be larger "
                                          "than 0.\n");
             }
