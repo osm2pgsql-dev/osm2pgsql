@@ -200,18 +200,18 @@ void test_parsing_tile_expiry_zoom_levels_fails()
         "-8-12",         "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a2), a2,
-               "Missing argument for option -e. Zoom levels must be positive.");
+               "Missing argument for option --expire-tiles. Zoom levels must be positive.");
 
     const char *a3[] = {"osm2pgsql", "-e", "--style", "default.style",
                         "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a3), a3,
-               "Missing argument for option -e. Zoom levels must be positive.");
+               "Missing argument for option --expire-tiles. Zoom levels must be positive.");
 
     const char *a4[] = {
         "osm2pgsql",     "-e",
         "a-8",           "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
-    parse_fail(len(a4), a4, "Missing zoom level for tile expiry.");
+    parse_fail(len(a4), a4, "Bad argument for option --expire-tiles. Minimum zoom level must be larger than 0.");
 
     const char *a5[] = {
         "osm2pgsql",     "-e",
@@ -239,8 +239,8 @@ void test_parsing_tile_expiry_zoom_levels_fails()
         "0-8",           "--style",
         "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a8), a8,
-               "Missing zoom level for tile expiry. Minimum zoom "
-               "level must be larger than 0.");
+               "Bad argument for option --expire-tiles. Minimum zoom level "
+               "must be larger than 0.");
 
     const char *a9[] = {"osm2pgsql",
                         "-e",
@@ -259,7 +259,7 @@ void test_parsing_tile_expiry_zoom_levels_fails()
                          "default.style",
                          "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a10), a10,
-               "Missing argument for option -e. Zoom levels "
+               "Missing argument for option --expire-tiles. Zoom levels "
                "must be positive.");
 
     const char *a11[] = {"osm2pgsql",
@@ -269,8 +269,8 @@ void test_parsing_tile_expiry_zoom_levels_fails()
                          "default.style",
                          "tests/liechtenstein-2013-08-03.osm.pbf"};
     parse_fail(len(a11), a11,
-               "Missing zoom level for tile expiry. Minimum "
-               "zoom level must be larger than 0.");
+               "Bad argument for option --expire-tiles. Minimum zoom level "
+               "must be larger than 0.");
 }
 
 int get_random_proj(std::vector<std::string>& args)
