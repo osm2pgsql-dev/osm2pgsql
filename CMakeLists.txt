@@ -85,13 +85,13 @@ if (NOT EXTERNAL_LIBOSMIUM)
 endif()
 
 if (NOT EXTERNAL_PROTOZERO)
-  set(PROTZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
+  set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium REQUIRED COMPONENTS io proj)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTZERO_INCLUDE_DIR})
+find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR})
 
 if (WITH_LUA)
   find_package(Lua REQUIRED)

@@ -2,8 +2,8 @@
 #
 #  FindOsmium.cmake
 #
-#  Find the Libosmium headers and, optionally, several components needed for
-#  different Libosmium functions.
+#  Find the Libosmium headers and, optionally, several components needed
+#  for different Libosmium functions.
 #
 #----------------------------------------------------------------------
 #
@@ -18,8 +18,11 @@
 #
 #    Then add the following in your CMakeLists.txt:
 #
-#      find_package(Osmium REQUIRED COMPONENTS <XXX>)
+#      find_package(Osmium [version] REQUIRED COMPONENTS <XXX>)
 #      include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS})
+#
+#    The version number is optional. If it is not set, any version of
+#    libosmium will do.
 #
 #    For the <XXX> substitute a space separated list of one or more of the
 #    following components:
@@ -51,16 +54,30 @@
 #
 #----------------------------------------------------------------------
 
-# Look for the header file.
-find_path(OSMIUM_INCLUDE_DIR osmium/osm.hpp
-    PATH_SUFFIXES include
-    PATHS
+# This is the list of directories where we look for osmium includes.
+set(_osmium_include_path
         ../libosmium
         ~/Library/Frameworks
         /Library/Frameworks
         /opt/local # DarwinPorts
         /opt
 )
+
+# Look for the header file.
+find_path(OSMIUM_INCLUDE_DIR osmium/version.hpp
+    PATH_SUFFIXES include
+    PATHS ${_osmium_include_path}
+)
+
+# Check libosmium version number
+if(Osmium_FIND_VERSION)
+    file(STRINGS "${OSMIUM_INCLUDE_DIR}/osmium/version.hpp" _libosmium_version_define REGEX "#define LIBOSMIUM_VERSION_STRING")
+    if("${_libosmium_version_define}" MATCHES "#define LIBOSMIUM_VERSION_STRING \"([0-9.]+)\"")
+        set(_libosmium_version "${CMAKE_MATCH_1}")
+    else()
+        set(_libosmium_version "unknown")
+    endif()
+endif()
 
 set(OSMIUM_INCLUDE_DIRS "${OSMIUM_INCLUDE_DIR}")
 
@@ -94,18 +111,17 @@ endif()
 if(Osmium_USE_PBF)
     find_package(ZLIB)
     find_package(Threads)
+    find_package(Protozero 1.5.1)
 
-    list(APPEND OSMIUM_EXTRA_FIND_VARS ZLIB_FOUND Threads_FOUND)
-    if(ZLIB_FOUND AND Threads_FOUND)
+    list(APPEND OSMIUM_EXTRA_FIND_VARS ZLIB_FOUND Threads_FOUND PROTOZERO_INCLUDE_DIR)
+    if(ZLIB_FOUND AND Threads_FOUND AND PROTOZERO_FOUND)
         list(APPEND OSMIUM_PBF_LIBRARIES
             ${ZLIB_LIBRARIES}
             ${CMAKE_THREAD_LIBS_INIT}
         )
-        if(WIN32)
-            list(APPEND OSMIUM_PBF_LIBRARIES ws2_32)
-        endif()
         list(APPEND OSMIUM_INCLUDE_DIRS
             ${ZLIB_INCLUDE_DIR}
+            ${PROTOZERO_INCLUDE_DIR}
         )
     else()
         message(WARNING "Osmium: Can not find some libraries for PBF input/output, please install them or configure the paths.")
@@ -203,7 +219,7 @@ if(Osmium_USE_SPARSEHASH)
     if(SPARSEHASH_INCLUDE_DIR)
         # Find size of sparsetable::size_type. This does not work on older
         # CMake versions because they can do this check only in C, not in C++.
-        if (NOT CMAKE_VERSION VERSION_LESS 3.0)
+        if(NOT CMAKE_VERSION VERSION_LESS 3.0)
            include(CheckTypeSize)
            set(CMAKE_REQUIRED_INCLUDES ${SPARSEHASH_INCLUDE_DIR})
            set(CMAKE_EXTRA_INCLUDE_FILES "google/sparsetable")
@@ -253,14 +269,30 @@ endif()
 #  Check that all required libraries are available
 #
 #----------------------------------------------------------------------
-if (OSMIUM_EXTRA_FIND_VARS)
+if(OSMIUM_EXTRA_FIND_VARS)
     list(REMOVE_DUPLICATES OSMIUM_EXTRA_FIND_VARS)
 endif()
-# Handle the QUIETLY and REQUIRED arguments and set OSMIUM_FOUND to TRUE if
-# all listed variables are TRUE.
+# Handle the QUIETLY and REQUIRED arguments and the optional version check
+# and set OSMIUM_FOUND to TRUE if all listed variables are TRUE.
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(Osmium REQUIRED_VARS OSMIUM_INCLUDE_DIR ${OSMIUM_EXTRA_FIND_VARS})
+find_package_handle_standard_args(Osmium
+                                  REQUIRED_VARS OSMIUM_INCLUDE_DIR ${OSMIUM_EXTRA_FIND_VARS}
+                                  VERSION_VAR _libosmium_version)
 unset(OSMIUM_EXTRA_FIND_VARS)
+
+#----------------------------------------------------------------------
+#
+#  A function for setting the -pthread option in compilers/linkers
+#
+#----------------------------------------------------------------------
+function(set_pthread_on_target _target)
+    if(NOT MSVC)
+        set_target_properties(${_target} PROPERTIES COMPILE_FLAGS "-pthread")
+        if(NOT APPLE)
+            set_target_properties(${_target} PROPERTIES LINK_FLAGS "-pthread")
+        endif()
+    endif()
+endfunction()
 
 #----------------------------------------------------------------------
 #
@@ -284,6 +316,10 @@ if(MSVC)
     # default initialized. The new behaviour is correct and we don't support
     # old compilers anyway.
     add_definitions(-wd4351)
+
+    # Disable warning C4503: "decorated name length exceeded, name was truncated"
+    # there are more than 150 of generated names in libosmium longer than 4096 symbols supported in MSVC
+    add_definitions(-wd4503)
 
     add_definitions(-DNOMINMAX -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS)
 endif()
@@ -309,9 +345,10 @@ endif()
 set(OSMIUM_DRACONIC_CLANG_OPTIONS "-Wdocumentation -Wunused-exception-parameter -Wmissing-declarations -Weverything -Wno-c++98-compat -Wno-c++98-compat-pedantic -Wno-unused-macros -Wno-exit-time-destructors -Wno-global-constructors -Wno-padded -Wno-switch-enum -Wno-missing-prototypes -Wno-weak-vtables -Wno-cast-align -Wno-float-equal")
 
 if(Osmium_DEBUG)
-    message(STATUS "OSMIUM_XML_LIBRARIES=" ${OSMIUM_XML_LIBRARIES})
-    message(STATUS "OSMIUM_PBF_LIBRARIES=" ${OSMIUM_PBF_LIBRARIES})
-    message(STATUS "OSMIUM_IO_LIBRARIES=" ${OSMIUM_IO_LIBRARIES})
-    message(STATUS "OSMIUM_LIBRARIES=" ${OSMIUM_LIBRARIES})
-    message(STATUS "OSMIUM_INCLUDE_DIRS=" ${OSMIUM_INCLUDE_DIRS})
+    message(STATUS "OSMIUM_XML_LIBRARIES=${OSMIUM_XML_LIBRARIES}")
+    message(STATUS "OSMIUM_PBF_LIBRARIES=${OSMIUM_PBF_LIBRARIES}")
+    message(STATUS "OSMIUM_IO_LIBRARIES=${OSMIUM_IO_LIBRARIES}")
+    message(STATUS "OSMIUM_LIBRARIES=${OSMIUM_LIBRARIES}")
+    message(STATUS "OSMIUM_INCLUDE_DIRS=${OSMIUM_INCLUDE_DIRS}")
 endif()
+
