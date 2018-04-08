@@ -13,6 +13,7 @@ addons:
     - libproj-dev
     - lua5.2
     - liblua5.2-dev
+    - libluajit-5.1-dev
     - libboost1.55-dev
     - libboost-system1.55-dev
     - libboost-filesystem1.55-dev
@@ -20,13 +21,19 @@ matrix:
   include:
     - os: linux
       compiler: clang
-      env: CXXFLAGS="-pedantic -Werror"
+      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
     - os: linux
       compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
+    - os: linux
+      compiler: clang
+      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="ON"
+    - os: linux
+      compiler: gcc
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="ON"
     - os: osx
       compiler: clang
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"
+      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
 before_install:
   - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
       brew install lua;
@@ -46,7 +53,7 @@ before_script:
   - lua -v
 script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
