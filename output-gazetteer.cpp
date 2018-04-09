@@ -68,6 +68,7 @@ void place_tag_processor::process_tags(osmium::OSMObject const &o)
         if (boost::ends_with(k, "source")) {
             // ignore
         } else if (strcmp(k, "name:prefix") == 0 ||
+                   strcmp(k, "name:suffix") == 0 ||
                    strcmp(k, "name:botanical") == 0 ||
                    boost::ends_with(k, "wikidata")) {
             extratags.push_back(&item);
