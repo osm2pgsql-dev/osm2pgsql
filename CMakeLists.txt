@@ -15,7 +15,8 @@ else()
 endif()
 
 option(BUILD_TESTS "Build test suite" OFF)
-option(WITH_LUA    "Build with lua support" ON)
+option(WITH_LUA    "Build with Lua support" ON)
+option(WITH_LUAJIT "Build with LuaJIT support" OFF)
 
 if (NOT TESTING_TIMEOUT)
   set(TESTING_TIMEOUT 1200)
@@ -94,8 +95,14 @@ find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR})
 
 if (WITH_LUA)
-  find_package(Lua REQUIRED)
-  include_directories(${LUA_INCLUDE_DIR})
+  if (WITH_LUAJIT)
+    find_package(LuaJIT REQUIRED)
+    include_directories(${LUAJIT_INCLUDE_DIR})
+    set(HAVE_LUAJIT 1)
+  else()
+    find_package(Lua REQUIRED)
+    include_directories(${LUA_INCLUDE_DIR})
+  endif()
   set(HAVE_LUA 1)
 endif()
 
@@ -117,7 +124,9 @@ find_package(Threads)
 
 set (LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
 
-if (LUA_FOUND)
+if (LUAJIT_FOUND)
+  list(APPEND LIBS ${LUAJIT_LIBRARIES})
+elseif(LUA_FOUND)
   list(APPEND LIBS ${LUA_LIBRARIES})
 endif()
 
@@ -221,7 +230,7 @@ set(osm2pgsql_lib_SOURCES
   wkb.hpp
 )
 
-if (LUA_FOUND)
+if (LUA_FOUND OR LUAJIT_FOUND)
   list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
 endif()
 
