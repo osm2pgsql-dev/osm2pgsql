@@ -41,9 +41,13 @@ int osmdata_t::node_add(osmium::Node const &node)
     mid->nodes_set(node);
 
     int status = 0;
-    for (auto &out : outs) {
-        status |= out->node_add(node);
+
+    if (!node.tags().empty()) {
+        for (auto &out : outs) {
+            status |= out->node_add(node);
+        }
     }
+
     return status;
 }
 
@@ -52,9 +56,13 @@ int osmdata_t::way_add(osmium::Way *way)
     mid->ways_set(*way);
 
     int status = 0;
-    for (auto& out: outs) {
-        status |= out->way_add(way);
+
+    if (!way->tags().empty()) {
+        for (auto& out: outs) {
+            status |= out->way_add(way);
+        }
     }
+
     return status;
 }
 
@@ -63,9 +71,12 @@ int osmdata_t::relation_add(osmium::Relation const &rel)
     mid->relations_set(rel);
 
     int status = 0;
-    for (auto& out: outs) {
-        status |= out->relation_add(rel);
+    if (!rel.tags().empty()) {
+        for (auto& out: outs) {
+            status |= out->relation_add(rel);
+        }
     }
+
     return status;
 }
 

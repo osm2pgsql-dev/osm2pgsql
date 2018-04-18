@@ -93,11 +93,11 @@ int main(int argc, char *argv[]) {
 
   parser.stream_file(inputfile, "");
 
-  assert_equal(out_test->sum_ids,       73514L);
-  assert_equal(out_test->num_nodes,       353L);
-  assert_equal(out_test->num_ways,        140L);
+  assert_equal(out_test->sum_ids,        4728L);
+  assert_equal(out_test->num_nodes,         0L);
+  assert_equal(out_test->num_ways,         48L);
   assert_equal(out_test->num_relations,    40L);
-  assert_equal(out_test->num_nds,         495L);
+  assert_equal(out_test->num_nds,         186L);
   assert_equal(out_test->num_members,     146L);
 
   return 0;
