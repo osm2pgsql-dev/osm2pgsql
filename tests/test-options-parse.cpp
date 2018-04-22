@@ -132,6 +132,25 @@ void test_outputs()
     }
 }
 
+void test_lua_styles()
+{
+#ifdef HAVE_LUA  
+    const char* a1[] = {"osm2pgsql", "--tag-transform-script", "non_existing.lua", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    options_t options = options_t(len(a1), const_cast<char **>(a1));
+  
+    try
+    {
+        std::unique_ptr<tagtransform_t> tagtransform = tagtransform_t::make_tagtransform(&options);
+        throw std::logic_error("Expected 'No such file or directory'");
+    }
+    catch(const std::runtime_error& e)
+    {
+        if(!alg::icontains(e.what(), "No such file or directory"))
+            throw std::logic_error((boost::format("Expected 'No such file or directory' but instead got '%1%'") % e.what()).str());
+    }
+#endif
+}
+
 void test_parsing_tile_expiry_zoom_levels()
 {
     const char *a1[] = {
@@ -430,6 +449,7 @@ int main(int argc, char *argv[])
     run_test("test_incompatible_args", test_incompatible_args);
     run_test("test_middles", test_middles);
     run_test("test_outputs", test_outputs);
+    run_test("test_lua_styles", test_lua_styles);
     run_test("test_random_perms", test_random_perms);
     run_test("test_parsing_tile_expiry_zoom_levels_fails",
              test_parsing_tile_expiry_zoom_levels_fails);
