@@ -83,11 +83,12 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     lua_pushinteger(L, sz);
 
     if (lua_pcall(L, 2, (o.type() == osmium::item_type::way) ? 4 : 2, 0)) {
-        fprintf(stderr,
-                "Failed to execute lua function for basic tag processing: %s\n",
-                lua_tostring(L, -1));
         /* lua function failed */
-        return 1;
+        throw std::runtime_error(
+            (boost::format(
+                 "Failed to execute lua function for basic tag processing: %1%") %
+             lua_tostring(L, -1))
+                .str());
     }
 
     if (o.type() == osmium::item_type::way) {
@@ -105,6 +106,22 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     while (lua_next(L, -2) != 0) {
         const char *key = lua_tostring(L, -2);
         const char *value = lua_tostring(L, -1);
+        if (key == NULL) {
+           int ltype = lua_type(L, -2);
+           throw std::runtime_error(
+               (boost::format(
+                    "Basic tag processing returned NULL key. Possibly this is due an incorrect data type '%1%'.") %
+                lua_typename(L, ltype))
+                   .str());
+        }
+        if (value == NULL) {
+           int ltype = lua_type(L, -1);
+           throw std::runtime_error(
+               (boost::format(
+                    "Basic tag processing returned NULL value. Possibly this is due an incorrect data type '%1%'.") %
+                lua_typename(L, ltype))
+                   .str());
+        }
         out_tags.emplace_back(key, value);
         lua_pop(L, 1);
     }
@@ -158,12 +175,12 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     lua_pushnumber(L, num_members);
 
     if (lua_pcall(L, 4, 6, 0)) {
-        fprintf(
-            stderr,
-            "Failed to execute lua function for relation tag processing: %s\n",
-            lua_tostring(L, -1));
         /* lua function failed */
-        return 1;
+        throw std::runtime_error(
+            (boost::format(
+                 "Failed to execute lua function for relation tag processing: %1%") %
+             lua_tostring(L, -1))
+                .str());
     }
 
     *roads = (int)lua_tointeger(L, -1);
@@ -179,8 +196,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
             member_superseded[i] = (int)lua_tointeger(L, -1);
             lua_pop(L, 1);
         } else {
-            fprintf(stderr,
-                    "Failed to read member_superseded from lua function\n");
+            throw std::runtime_error("Failed to read member_superseded from lua function");
         }
     }
     lua_pop(L, 2);
