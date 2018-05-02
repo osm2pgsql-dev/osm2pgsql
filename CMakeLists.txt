@@ -1,6 +1,6 @@
 set(PACKAGE osm2pgsql)
 set(PACKAGE_NAME osm2pgsql)
-set(PACKAGE_VERSION 0.96.0-RC1)
+set(PACKAGE_VERSION 0.96.0)
 
 cmake_minimum_required(VERSION 2.8.7)
 
