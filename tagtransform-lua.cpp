@@ -21,8 +21,7 @@ lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
     luaL_openlibs(L);
     if (luaL_dofile(L, options->tag_transform_script->c_str())) {
         throw std::runtime_error(
-            (boost::format(
-                 "Lua tag transform style error: %1%") %
+            (boost::format("Lua tag transform style error: %1%") %
              lua_tostring(L, -1))
                 .str());
     }

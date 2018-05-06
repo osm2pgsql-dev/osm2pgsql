@@ -135,18 +135,22 @@ void test_outputs()
 void test_lua_styles()
 {
 #ifdef HAVE_LUA  
-    const char* a1[] = {"osm2pgsql", "--tag-transform-script", "non_existing.lua", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char *a1[] = {"osm2pgsql", "--tag-transform-script",
+                        "non_existing.lua",
+                        "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
-  
-    try
-    {
-        std::unique_ptr<tagtransform_t> tagtransform = tagtransform_t::make_tagtransform(&options);
+
+    try {
+        std::unique_ptr<tagtransform_t> tagtransform =
+            tagtransform_t::make_tagtransform(&options);
         throw std::logic_error("Expected 'No such file or directory'");
-    }
-    catch(const std::runtime_error& e)
-    {
-        if(!alg::icontains(e.what(), "No such file or directory"))
-            throw std::logic_error((boost::format("Expected 'No such file or directory' but instead got '%1%'") % e.what()).str());
+    } catch (const std::runtime_error &e) {
+        if (!alg::icontains(e.what(), "No such file or directory"))
+            throw std::logic_error(
+                (boost::format("Expected 'No such file or directory' but "
+                               "instead got '%1%'") %
+                 e.what())
+                    .str());
     }
 #endif
 }
