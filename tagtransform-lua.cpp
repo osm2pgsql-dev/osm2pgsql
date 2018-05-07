@@ -19,7 +19,12 @@ lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
   m_extra_attributes(options->extra_attributes)
 {
     luaL_openlibs(L);
-    luaL_dofile(L, options->tag_transform_script->c_str());
+    if (luaL_dofile(L, options->tag_transform_script->c_str())) {
+        throw std::runtime_error(
+            (boost::format("Lua tag transform style error: %1%") %
+             lua_tostring(L, -1))
+                .str());
+    }
 
     check_lua_function_exists(m_node_func);
     check_lua_function_exists(m_way_func);
