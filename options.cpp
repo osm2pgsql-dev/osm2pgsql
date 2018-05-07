@@ -13,6 +13,20 @@
 #include <sstream>
 #include <thread> // for number of threads
 #include <boost/format.hpp>
+#include <osmium/version.hpp>
+
+#ifdef HAVE_LUA
+extern "C" {
+#include <lua.h>
+}
+#endif
+
+#ifdef HAVE_LUAJIT
+extern "C" {
+#include <luajit.h>
+}
+#endif
+
 
 namespace
 {
@@ -494,6 +508,17 @@ options_t::options_t(int argc, char *argv[]): options_t()
             reproject_area = true;
             break;
         case 'V':
+            fprintf(stderr, "Compiled using the following library versions:\n");
+            fprintf(stderr, "Libosmium %s\n", LIBOSMIUM_VERSION_STRING);
+#ifdef HAVE_LUA
+            fprintf(stderr, "%s", LUA_RELEASE);
+#ifdef HAVE_LUAJIT
+            fprintf(stderr, " (%s)", LUAJIT_VERSION);
+#endif
+#else
+            fprintf(stderr, "Lua support not included");
+#endif
+            fprintf(stderr, "\n");
             exit (EXIT_SUCCESS);
             break;
         case '?':
