@@ -152,7 +152,7 @@ void table_t::start()
 
         //slim mode needs this to be able to delete from tables in pending
         if (slim && !drop_temp) {
-            sql = (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id)") % name).str();
+            sql = (fmt("CREATE INDEX ON %1% USING BTREE (osm_id)") % name).str();
             if (table_space_index)
                 sql += " TABLESPACE " + table_space_index.get();
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
@@ -250,7 +250,7 @@ void table_t::stop()
         fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
         // Use fillfactor 100 for un-updatable imports
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_index ON %1% USING GIST (way) %2% %3%") % name %
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") % name %
             (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
             (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
 
@@ -258,7 +258,7 @@ void table_t::stop()
         if (slim && !drop_temp)
         {
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_pkey ON %1% USING BTREE (osm_id) %2%") % name %
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") % name %
                 (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             if (srid != "4326") {
                 pgsql_exec_simple(
@@ -289,11 +289,11 @@ void table_t::stop()
         if (enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
             if (hstore_mode != HSTORE_NONE) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_tags_index ON %1% USING GIN (tags) %2%") % name %
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") % name %
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             }
             for(size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX %1%_hstore_%2%_index ON %1% USING GIN (\"%3%\") %4%") % name % i % hstore_columns[i] %
+                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") % name % i % hstore_columns[i] %
                     (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
             }
         }
