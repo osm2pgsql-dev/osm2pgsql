@@ -1,62 +1,506 @@
-language: cpp
-sudo: false
-addons:
-  apt:
-    sources:
-    - boost-latest
-    - ubuntu-toolchain-r-test
-    packages:
-    - g++-4.8
-    - libexpat1-dev
-    - libpq-dev
-    - libbz2-dev
-    - libproj-dev
-    - lua5.2
-    - liblua5.2-dev
-    - libluajit-5.1-dev
-    - libboost1.55-dev
-    - libboost-system1.55-dev
-    - libboost-filesystem1.55-dev
+git:
+  depth: 1
+
 matrix:
   include:
-    - os: linux
-      compiler: clang
-      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
-    - os: linux
-      compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
-    - os: linux
-      compiler: clang
-      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="ON"
-    - os: linux
-      compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="ON"
+
+# --------------------
+# OSX
+# --------------------
     - os: osx
+      sudo: false
+      language: cpp
       compiler: clang
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
-before_install:
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-      brew install lua;
-    fi
+      env: T=OSXsanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
+      before_install:
+#        - brew uninstall python mercurial postgis sfcgal cgal gdal
+#        - brew update
+#        - brew upgrade
+        - brew install lua;
+
+
+# --------------------
+# GCC4
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: clang
+      env: T=GCC4 CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC4sanitize
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc
+      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# CLANGLUAJIT
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: clang
+      env: T=CLANGLUAJIT CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="ON"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC4sanitize
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc
+      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="ON"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC6
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-6
+      env: T=GCC6 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-6
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-6;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-6;
+        fi
+
+# --------------------
+# GCC7
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-7
+      env: T=GCC7 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-7
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-7;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-7;
+        fi
+
+# --------------------
+# GCC7sanitize
+# --------------------
+
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-7
+      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-7
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-7;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-7;
+        fi
+
+# --------------------
+# GCC8
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-8
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-8;
+        fi
+
+# --------------------
+# GCC7Docker
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"  LUAJIT_OPTION="OFF"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+      after_failure:
+        - docker images
+
+# --------------------
+# GCC4DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+        - docker images
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC5DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+        - docker images
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC6DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+        - docker images
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC7DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}          
+        - docker images
+      after_failure:
+        - docker images
+
+# --------------------
+# GCC8DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        - sudo apt-get update
+        - sudo apt-get -y install docker-ce
+      before_script:
+        - docker version
+      script:
+        - |
+          docker build \
+          -f Dockerfile-test \
+          -t osm2pgsql-dev:${T} \
+          --build-arg gccver=${GCCVER} \
+          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
+          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
+          --build-arg arg_RUNTEST="${RUNTEST}" \
+          .
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
+        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+        - docker images
+      after_failure:
+        - docker images
+
+
+  allow_failures:
+    - os: linux
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUAJIT_OPTION="OFF"
+    - os: linux
+      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUAJIT_OPTION="OFF"
+
+    - os: linux
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+
 # update versions
-install:
-  - if [[ $CC == 'gcc' ]]; then
-      export CC=gcc-4.8;
-    fi
-  - if [[ $CXX == 'g++' ]]; then
-      export CXX=g++-4.8;
-    fi
+
 before_script:
   - $CXX --version
   - xml2-config --version
   - proj | head -n1
   - lua -v
+
 script:
   - mkdir build && cd build
   - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
+
 after_failure:
   - # rerun make, but verbosely
     make VERBOSE=1
