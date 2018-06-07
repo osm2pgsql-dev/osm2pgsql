@@ -1,0 +1,33 @@
+### minimum docker version = 17.05.0+
+
+ARG gccver=7
+FROM gcc:${gccver}
+
+# every stage has individual args! see https://github.com/moby/moby/issues/34129
+ARG gccver=7
+ENV GCCVER=${gccver}
+
+RUN    apt-get update \
+    && apt-get install -qq -y --fix-missing --no-install-recommends \
+        cmake \
+        libboost-dev \
+        libboost-filesystem-dev \
+        libboost-system-dev \
+        libbz2-dev \
+        libexpat1-dev \
+        liblua5.2-dev \
+        libluajit-5.1-dev \
+        libpq-dev \
+        libproj-dev \
+        lua5.2 \
+        make \
+        python-psycopg2 \
+        postgresql-client \
+        zlib1g-dev \
+      # for debugging
+        nano \
+        mc \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /openstreetmap/osm2pgsql/build
+

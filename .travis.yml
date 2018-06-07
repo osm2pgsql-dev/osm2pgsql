@@ -1,6 +1,9 @@
 git:
   depth: 1
 
+env:
+  DOCKER_COMPOSE_VERSION: 1.16.1
+
 matrix:
   include:
 
@@ -293,20 +296,14 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -323,21 +320,14 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
-        - docker images
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -355,21 +345,14 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
-        - docker images
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -383,25 +366,12 @@ matrix:
       sudo: required
       env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
       before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
+        - docker version
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
-        - docker images
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -419,21 +389,14 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}          
-        - docker images
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -450,21 +413,14 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
+        - chmod +x docker-compose
+        - sudo mv docker-compose /usr/local/bin
       before_script:
         - docker version
+        - docker-compose -v
       script:
-        - |
-          docker build \
-          -f Dockerfile-test \
-          -t osm2pgsql-dev:${T} \
-          --build-arg gccver=${GCCVER} \
-          --build-arg arg_OSM2PGSQL_CMPARAMS="-DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION" \
-          --build-arg arg_CXXFLAGS="${CXXFLAGS}" \
-          --build-arg arg_RUNTEST="${RUNTEST}" \
-          .
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  osm2pgsql -V
-        - docker run -it --rm --cap-add=SYS_PTRACE osm2pgsql-dev:${T}  ctest -VV ${RUNTEST}             
-        - docker images
+        - ./docker/travis_test.sh            
       after_failure:
         - docker images
 
