@@ -10,13 +10,106 @@ git:
 # RUNTEST="-L NoDB" or "#All"   ( the docker based ctest alway run .. just inject a parameter  )
 #
 # ----- cmake, make parameters ------
-# CXXFLAGS="-Werror" 
-# LUA_OPTION="ON" 
+# CXXFLAGS="-Werror"
+# LUA_OPTION="ON"
 # LUAJIT_OPTION="ON"
 #
 #
+
+
 matrix:
   include:
+
+# --------------------
+# run_gcc4simple
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=run_gcc4simple
+      script:
+        - sudo ./docker/run_gcc4simple.sh  # settings inside! 
+      after_failure:
+        - docker images
+
+# --------------------
+# run_gcc7dbtest
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=run_gcc7dbtest
+      script:
+        - sudo ./docker/run_gcc7dbtest.sh   # settings inside!
+      after_failure:
+        - docker images
+
+# --------------------
+# run_gcc7dbluajittest
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=run_gcc7dbluajittest
+      script:
+        - sudo ./docker/run_gcc7dbluajittest.sh   # settings inside!
+      after_failure:
+        - docker images
+
+
+
+# --------------------
+# GCC4DBtest
+# --------------------
+    - os: linux
+      sudo: required
+      language: cpp
+      compiler: clang
+      env:
+        - T=GCC4DBtest
+        - CXXFLAGS="-pedantic -Werror"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="OFF"
+        - RUNTEST="#All-test"
+        # same port,username,pw - as defined in the docker-compose.yml
+        - PGHOST=127.0.0.1
+        - PGPORT=25433
+        - PGUSER=osm
+        - PGDATABASE=osm
+        - PGPASSWORD=osm
+      services:
+      - docker
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - docker --version
+      - docker-compose up -d postgis
 
 # --------------------
 # OSX
@@ -303,11 +396,9 @@ matrix:
       sudo: required
       env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
-
-
 
 
 # --------------------
@@ -319,7 +410,7 @@ matrix:
       sudo: required
       env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
 
@@ -333,7 +424,7 @@ matrix:
       sudo: required
       env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
 
@@ -347,7 +438,7 @@ matrix:
       sudo: required
       env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
 
@@ -361,10 +452,9 @@ matrix:
       sudo: required
       env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
-
 
 # --------------------
 # GCC8DockerSanitize
@@ -375,16 +465,20 @@ matrix:
       sudo: required
       env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - sudo ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh
       after_failure:
         - docker images
 
-
-
+# Problems ....
   allow_failures:
 
     - os: linux
       env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+
+    - os: linux
+      env: T=run_gcc7dbtest
+    - os: linux
+      env: T=run_gcc7dbluajittest
 
     - os: linux
       env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
@@ -399,7 +493,7 @@ matrix:
 
 
 
-# general "script" - not run in docker test 
+# general "script" - not run in docker test
 script:
   - $CXX --version
   - xml2-config --version
