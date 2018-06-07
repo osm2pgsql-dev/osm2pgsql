@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Local .travis test --  see  ".travis.yml" file!
+
+
+#-- please don't leave empty ... just give a dummy flag!
 CXXFLAGS="-pedantic -Werror -fsanitize=address"
 #CXXFLAGS="-Ofast"
+
+#RUNTEST: !!! please don't leave empty, just give a dummy ..
 #RUNTEST="-L NoDB"
-RUNTEST="#"
-LUA_OPTION="OFF"
-LUAJIT_OPTION="OFF"
+RUNTEST="#All"
 
-docker-compose down
+LUA_OPTION="ON"
+LUAJIT_OPTION="ON"
 
-for GCCVER in  4 5 6 7 8 ; do
+# GCCVER = [4,5,6,7,8,7.1,7.2,7.3, ... ]  or any tags from here https://hub.docker.com/r/library/gcc/tags/
+for GCCVER in 4 5 6 7 8 ; do
   (
   export GCCVER
   export CXXFLAGS
@@ -21,19 +27,3 @@ for GCCVER in  4 5 6 7 8 ; do
   )
 done
 
-
-
-exit
-
-    echo "------------------------------------"
-    echo " ----  testing with gcc$GCCVER -----"
-    echo "------------------------------------"
-    ./docker/docker_build_gcc_image.sh
-    docker-compose run --rm osm2pgsql-dev ../docker/info.sh
-    docker-compose run \
-            -e RUNTEST="$RUNTEST" \
-            -e CXXFLAGS="$CXXFLAGS" \
-            -e LUA_OPTION="$LUA_OPTION" \
-            -e LUAJIT_OPTION="$LUAJIT_OPTION" \
-            --rm osm2pgsql-dev \
-            ../docker/build.sh

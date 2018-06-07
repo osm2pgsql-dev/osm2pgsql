@@ -24,7 +24,6 @@ RUN    apt-get update \
         python-psycopg2 \
         postgresql-client \
         zlib1g-dev \
-      # for debugging
         nano \
         mc \
     && rm -rf /var/lib/apt/lists/*

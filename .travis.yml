@@ -1,32 +1,22 @@
 git:
   depth: 1
 
+#
 # env parameters
-# T=GCCtest 
-# GCCVER="6" 
-# RUNTEST="-L NoDB" 
+# T=GCCtest    = unique id for test
+# GCCVER="6"   = [4,5,6,7,8,7.1,7.2,7.3, ... ]  or any tags from here https://hub.docker.com/r/library/gcc/tags/
+#
+#---- test parameters -------
+# RUNTEST="-L NoDB" or "#All"   ( the docker based ctest alway run .. just inject a parameter  )
+#
+# ----- cmake, make parameters ------
 # CXXFLAGS="-Werror" 
 # LUA_OPTION="ON" 
 # LUAJIT_OPTION="ON"
-
+#
+#
 matrix:
   include:
-
-# --------------------
-# GCCTEst
-# --------------------
-    - os: linux
-      language: generic
-      services: docker
-      sudo: required
-      env: T=GCCtest GCCVER="6" RUNTEST="#" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      script:
-        - sudo ./docker/travis_test.sh            
-      after_failure:
-        - docker images
-
-
-
 
 # --------------------
 # OSX
@@ -317,6 +307,9 @@ matrix:
       after_failure:
         - docker images
 
+
+
+
 # --------------------
 # GCC4DockerSanitize
 # --------------------
@@ -324,7 +317,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -338,7 +331,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -352,7 +345,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -366,7 +359,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -380,7 +373,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -392,23 +385,21 @@ matrix:
 
     - os: linux
       env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
-    - os: linux
-      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUA_OPTION="ON" LUAJIT_OPTION="OFF"
 
     - os: linux
-      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-
-# update versions
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
 
 
+
+# general "script" - not run in docker test 
 script:
   - $CXX --version
   - xml2-config --version
@@ -420,6 +411,7 @@ script:
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
 
+#general "after_failure" -  not run in docker
 after_failure:
   - # rerun make, but verbosely
     make VERBOSE=1
