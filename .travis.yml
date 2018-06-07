@@ -1,8 +1,13 @@
 git:
   depth: 1
 
-env:
-  - DOCKER_COMPOSE_VERSION=1.19.0
+# env parameters
+# T=GCCtest 
+# GCCVER="6" 
+# RUNTEST="-L NoDB" 
+# CXXFLAGS="-Werror" 
+# LUA_OPTION="ON" 
+# LUAJIT_OPTION="ON"
 
 matrix:
   include:
@@ -14,10 +19,8 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCCtest GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON" ALLOW_FAIL="ON"
+      env: T=GCCtest GCCVER="6" RUNTEST="#" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       script:
-        - docker version
-        - docker-compose -v
         - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
@@ -309,19 +312,8 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
-      before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
-        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-        - chmod +x docker-compose
-        - sudo mv docker-compose /usr/local/bin
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -333,18 +325,6 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
-        - sudo rm /usr/local/bin/docker-compose
-        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-        - chmod +x docker-compose
-        - sudo mv docker-compose /usr/local/bin
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -359,20 +339,8 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
-        - sudo rm /usr/local/bin/docker-compose
-        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-        - chmod +x docker-compose
-        - sudo mv docker-compose /usr/local/bin
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -385,11 +353,6 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      before_install:
-        - docker version
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
@@ -404,22 +367,11 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
-        - sudo rm /usr/local/bin/docker-compose
-        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-        - chmod +x docker-compose
-        - sudo mv docker-compose /usr/local/bin
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
+
 
 # --------------------
 # GCC8DockerSanitize
@@ -429,28 +381,15 @@ matrix:
       services: docker
       sudo: required
       env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
-      before_install:
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-        - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - sudo apt-get update
-        - sudo apt-get -y install docker-ce
-        - sudo rm /usr/local/bin/docker-compose
-        - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
-        - chmod +x docker-compose
-        - sudo mv docker-compose /usr/local/bin
-      before_script:
-        - docker version
-        - docker-compose -v
       script:
         - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
 
+
   allow_failures:
-    - os: linux
-      env: ALLOW_FAIL="ON"
-      
+
     - os: linux
       env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
     - os: linux

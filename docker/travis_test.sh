@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# check docker versions!
+docker version
+docker-compose -v
 
 # Travis Docker is sensitive - so "build" must exist!
 mkdir -p build
