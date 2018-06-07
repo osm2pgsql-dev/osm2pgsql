@@ -14,14 +14,10 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCCtest GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
-      before_install:
-        - docker version
-      before_script:
+      env: T=GCCtest GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON" ALLOW_FAIL="ON"
+      script:
         - docker version
         - docker-compose -v
-      script:
-        - mkdir -p build
         - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
@@ -36,7 +32,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: clang
-      env: T=OSXsanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
+      env: T=OSXsanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       before_install:
 #        - brew uninstall python mercurial postgis sfcgal cgal gdal
 #        - brew update
@@ -51,7 +47,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: clang
-      env: T=GCC4 CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      env: T=GCC4 CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -84,7 +80,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc
-      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
+      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -117,7 +113,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: clang
-      env: T=CLANGLUAJIT CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="ON"
+      env: T=CLANGLUAJIT CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       addons:
         apt:
           sources:
@@ -150,7 +146,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc
-      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="ON"
+      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       addons:
         apt:
           sources:
@@ -183,7 +179,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc-6
-      env: T=GCC6 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      env: T=GCC6 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -215,7 +211,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc-7
-      env: T=GCC7 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      env: T=GCC7 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -248,7 +244,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc-7
-      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUAJIT_OPTION="OFF"
+      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -280,7 +276,7 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc-8
-      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUAJIT_OPTION="OFF"
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       addons:
         apt:
           sources:
@@ -312,7 +308,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror"  LUAJIT_OPTION="OFF"
+      env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       before_install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -336,7 +332,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       before_install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -362,7 +358,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       before_install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -388,7 +384,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       before_install:
         - docker version
       before_script:
@@ -407,7 +403,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       before_install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -432,7 +428,7 @@ matrix:
       language: generic
       services: docker
       sudo: required
-      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
       before_install:
         - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
@@ -453,32 +449,34 @@ matrix:
 
   allow_failures:
     - os: linux
-      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUAJIT_OPTION="OFF"
+      env: ALLOW_FAIL="ON"
+      
     - os: linux
-      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUAJIT_OPTION="OFF"
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+    - os: linux
+      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUA_OPTION="ON" LUAJIT_OPTION="OFF"
 
     - os: linux
-      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
     - os: linux
-      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
 
 # update versions
 
-before_script:
+
+script:
   - $CXX --version
   - xml2-config --version
   - proj | head -n1
   - lua -v
-
-script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUA=$LUA_OPTION -DWITH_LUAJIT=$LUAJIT_OPTION
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi

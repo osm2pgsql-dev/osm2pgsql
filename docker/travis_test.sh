@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+
+# Travis Docker is sensitive - so "build" must exist!
+mkdir -p build
+
+# Down- any running process ( for example local testing  ) 
 docker-compose down
 
 echo "------------------------------------"
