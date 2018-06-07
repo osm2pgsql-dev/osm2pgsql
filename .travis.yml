@@ -2,10 +2,32 @@ git:
   depth: 1
 
 env:
-  DOCKER_COMPOSE_VERSION: 1.16.1
+  - DOCKER_COMPOSE_VERSION=1.19.0
 
 matrix:
   include:
+
+# --------------------
+# GCCTEst
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCCtest GCCVER="6" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address"  LUAJIT_OPTION="ON"
+      before_install:
+        - docker version
+      before_script:
+        - docker version
+        - docker-compose -v
+      script:
+        - mkdir -p build
+        - sudo ./docker/travis_test.sh            
+      after_failure:
+        - docker images
+
+
+
 
 # --------------------
 # OSX
@@ -320,6 +342,7 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - sudo rm /usr/local/bin/docker-compose
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
@@ -327,7 +350,7 @@ matrix:
         - docker version
         - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -345,6 +368,7 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - sudo rm /usr/local/bin/docker-compose
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
@@ -371,7 +395,7 @@ matrix:
         - docker version
         - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -389,6 +413,7 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - sudo rm /usr/local/bin/docker-compose
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
@@ -396,7 +421,7 @@ matrix:
         - docker version
         - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
@@ -413,6 +438,7 @@ matrix:
         - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
         - sudo apt-get update
         - sudo apt-get -y install docker-ce
+        - sudo rm /usr/local/bin/docker-compose
         - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
         - chmod +x docker-compose
         - sudo mv docker-compose /usr/local/bin
@@ -420,7 +446,7 @@ matrix:
         - docker version
         - docker-compose -v
       script:
-        - ./docker/travis_test.sh            
+        - sudo ./docker/travis_test.sh            
       after_failure:
         - docker images
 
