@@ -29,47 +29,158 @@ matrix:
       sudo: required
       env: T=run_gcc4simple
       script:
-        - sudo ./docker/run_gcc4simple.sh  # settings inside! 
+        - sudo ./docker/run_gcc4simple.sh  # settings inside!
       after_failure:
         - docker images
 
-# --------------------
-# run_gcc7dbtest
-# --------------------
-    - os: linux
-      language: generic
-      services: docker
-      sudo: required
-      env: T=run_gcc7dbtest
-      script:
-        - sudo ./docker/run_gcc7dbtest.sh   # settings inside!
-      after_failure:
-        - docker images
+################ Working uncommented ...
+###### --------------------
+###### run_gcc7dbtest
+###### --------------------
+#####    - os: linux
+#####      language: generic
+#####      services: docker
+#####      sudo: required
+#####      env: T=run_gcc7dbtest
+#####      script:
+#####        - sudo ./docker/run_gcc7dbtest.sh   # settings inside!
+#####      after_failure:
+#####        - docker images
+#####
+###### --------------------
+###### run_gcc7dbluajittest
+###### --------------------
+#####    - os: linux
+#####      language: generic
+#####      services: docker
+#####      sudo: required
+#####      env: T=run_gcc7dbluajittest
+#####      script:
+#####        - sudo ./docker/run_gcc7dbluajittest.sh   # settings inside!
+#####      after_failure:
+#####        - docker images
+
+
 
 # --------------------
-# run_gcc7dbluajittest
-# --------------------
-    - os: linux
-      language: generic
-      services: docker
-      sudo: required
-      env: T=run_gcc7dbluajittest
-      script:
-        - sudo ./docker/run_gcc7dbluajittest.sh   # settings inside!
-      after_failure:
-        - docker images
-
-
-
-# --------------------
-# GCC4DBtest
+# GCC4_fulltravisDBtest
 # --------------------
     - os: linux
       sudo: required
       language: cpp
       compiler: clang
       env:
-        - T=GCC4DBtest
+        - T=GCC4_fulltravisDBtest
+        - CXXFLAGS="-pedantic -Werror"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="OFF"
+        - RUNTEST="#All-test"
+      services:
+      - postgresql
+      addons:
+        postgresql: "9.6"
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
+
+
+# --------------------
+# GCC4_LUAJIT_fulltravisDBtest
+# --------------------
+    - os: linux
+      sudo: required
+      language: cpp
+      compiler: clang
+      env:
+        - T=GCC4_LUAJIT_fulltravisDBtest
+        - CXXFLAGS="-fsanitize=undefined -fsanitize=address -pedantic -Werror "
+        - LDFLAGS="-fsanitize=undefined -fsanitize=address"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="ON"
+        - RUNTEST="#All-test"
+      services:
+      - postgresql
+      addons:
+        postgresql: "9.6"
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
+
+
+
+# --------------------
+# GCC4DBDocker
+# --------------------
+    - os: linux
+      sudo: required
+      language: cpp
+      compiler: clang
+      env:
+        - T=GCC4DBDocker
         - CXXFLAGS="-pedantic -Werror"
         - LUA_OPTION="ON"
         - LUAJIT_OPTION="OFF"
@@ -118,11 +229,14 @@ matrix:
       sudo: false
       language: cpp
       compiler: clang
-      env: T=OSXsanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      sudo: required
+      env: T=OSXsanitize RUNTEST="-L NoDB" LDFLAGS="-fsanitize=undefined -fsanitize=address" CXXFLAGS="-pedantic -Werror -fsanitize=undefined -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
       before_install:
-#        - brew uninstall python mercurial postgis sfcgal cgal gdal
-#        - brew update
-#        - brew upgrade
+### you have to choose: -  faster test or updated system ?
+###---------------------------------------------------------
+        - brew uninstall python mercurial postgis sfcgal cgal gdal
+        - brew update
+        - brew upgrade
         - brew install lua;
 
 
@@ -166,14 +280,19 @@ matrix:
       sudo: false
       language: cpp
       compiler: gcc
-      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      env: T=GCC4sanitize RUNTEST="#All-test" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      services:
+      - postgresql
       addons:
+        postgresql: "9.6"
         apt:
           sources:
           - boost-latest
           - ubuntu-toolchain-r-test
           packages:
           - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
           - libexpat1-dev
           - libpq-dev
           - libbz2-dev
@@ -184,6 +303,9 @@ matrix:
           - libboost1.55-dev
           - libboost-system1.55-dev
           - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
       install:
       - if [[ $CC == 'gcc' ]]; then
           export CC=gcc-4.8;
@@ -191,6 +313,13 @@ matrix:
       - if [[ $CXX == 'g++' ]]; then
           export CXX=g++-4.8;
         fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
 
 # --------------------
 # CLANGLUAJIT
@@ -473,12 +602,23 @@ matrix:
   allow_failures:
 
     - os: linux
-      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      env:
+        - T=GCC4_LUAJIT_fulltravisDBtest
+        - CXXFLAGS="-fsanitize=undefined -fsanitize=address -pedantic -Werror "
+        - LDFLAGS="-fsanitize=undefined -fsanitize=address"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="ON"
+        - RUNTEST="#All-test"
 
     - os: linux
-      env: T=run_gcc7dbtest
-    - os: linux
-      env: T=run_gcc7dbluajittest
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+
+
+
+#    - os: linux
+#      env: T=run_gcc7dbtest
+#    - os: linux
+#      env: T=run_gcc7dbluajittest
 
     - os: linux
       env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
