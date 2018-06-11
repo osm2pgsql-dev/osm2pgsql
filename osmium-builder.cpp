@@ -401,7 +401,7 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
             ret.push_back(wkb);
         }
 
-    } catch (osmium::geometry_error) { /* ignored */
+    } catch (const osmium::geometry_error &) { /* ignored */
     }
 
     return ret;
