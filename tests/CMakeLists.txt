@@ -62,7 +62,7 @@ endforeach()
 set_property(TEST test-middle-flat PROPERTY LABELS FlatNodes)
 set_property(TEST test-output-pgsql PROPERTY LABELS FlatNodes)
 
-if (NOT LUA_FOUND)
+if (NOT HAVE_LUA)
   # these tests require LUA support
   set_tests_properties(test-output-multi-poly-trivial PROPERTIES WILL_FAIL on)
   set_tests_properties(test-output-multi-tags PROPERTIES WILL_FAIL on)
