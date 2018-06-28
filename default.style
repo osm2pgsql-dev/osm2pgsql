@@ -1,46 +1,48 @@
+# default.style
+#
 # This is the default osm2pgsql .style file that comes with osm2pgsql.
 #
-# A .style file has 4 columns that define how OSM objects end up in tables in
-# the database and what columns are created. It interacts with the command-line
-# hstore options.
+# A .style file has four columns that define how OSM objects end up in tables
+# in the database and what columns are created.  The file interacts with the
+# command-line hstore options.
 #
 # Columns
 # =======
 #
-# OsmType: This is either "node", "way" or "node,way" and indicates if this tag
-# applies to nodes, ways, or both.
+# OsmType: This is either "node", "way", or "node,way" and indicates whether
+# this tag applies to nodes, ways, or both.
 #
 # Tag: The tag
 #
-# DataType: The type of the column to be created. Normally "text"
+# DataType: The type (normally "text") of the column to be created.
 #
 # Flags: Flags that indicate what table the OSM object is moved into.
 #
-# There are 6 possible flags. These flags are used both to indicate if a column
-# should be created, and if ways with the tag are assumed to be areas. The area
-# assumptions can be overridden with an area=yes/no tag
+# There are 6 possible flags. These flags are used both to indicate whether
+# a column should be created, and whether ways with the tag are assumed to
+# be areas. The area assumptions can be overridden with an "area=yes/no" tag.
 #
-# polygon - Create a column for this tag, and objects with the tag are areas
+# polygon - Create a column for this tag; objects with the tag are areas.
 #
-# linear - Create a column for this tag
+# linear - Create a column for this tag.
 #
 # nocolumn - Override the above and don't create a column for the tag, but do
-# include objects with this tag
+# include objects with this tag.
 #
-# phstore - Same as polygon,nocolumn for backward compatibility
+# phstore - Same as "polygon,nocolumn", for backward compatibility.
 #
-# delete - Drop this tag completely and don't create a column for it. This also
-# prevents the tag from being added to hstore columns
+# delete - Drop this tag completely and don't create a column for it. This
+# also prevents the tag from being added to "hstore" columns.
 #
-# nocache - Deprecated and does nothing
+# nocache - Deprecated; does nothing.
 #
-# If an object has a tag that indicates it is an area or has area=yes/1,
-# osm2pgsql will try to turn it into an area. If it succeeds, it places it in
-# the polygon table. If it fails (e.g. not a closed way) it places it in the
-# line table.
+# If an object has a tag that indicates it is an area or has "area=yes/1",
+# osm2pgsql will try to turn it into an area. If this succeeds, osm2pgsql
+# places the object in the polygon table.  If this fails (e.g. the object
+# is not a closed way), osm2pgsql will place it in the line table.
 #
-# Nodes are never placed into the polygon or line table and are always placed in
-# the point table.
+# Nodes are never placed into the polygon or line table; they are always
+# placed in the point table.
 #
 # Hstore
 # ======
@@ -48,28 +50,28 @@
 # The options --hstore, --hstore-match-only, and --hstore-all interact with
 # the .style file.
 #
-# With --hstore any tags without a column will be added to the hstore column.
+# With --hstore, any tags without a column will be added to the hstore column.
 # This will also cause all objects to be kept.
 #
-# With --hstore-match-only the behavior for tags is the same, but objects are
-# only kept if they have a non-NULL value in one of the columns.
+# With --hstore-match-only, the behavior for tags is the same, but objects
+# are only kept if they have a non-NULL value in one of the columns.
 #
-# With --hstore-all all tags are added to the hstore column unless they appear
-# in the style file with a delete flag, causing duplication between the normal
-# columns and the hstore column.
+# With --hstore-all,  all tags are added to the hstore column unless they
+# appear in the style file with a delete flag, causing duplication between
+# the normal columns and the hstore column.
 #
 # Special database columns
 # ========================
 #
-# There are some special database columns that if present in the .style file
+# There are some special database columns that, if present in the .style file,
 # will be populated by osm2pgsql.
 #
-# These are
+# These are:
 #
 # z_order - datatype int4
 #
 # way_area - datatype real. The area of the way, in the units of the projection
-# (e.g. square mercator meters). Only applies to areas
+# (e.g. square mercator meters). This only applies to areas.
 #
 # osm_user - datatype text
 # osm_uid - datatype integer
@@ -77,156 +79,162 @@
 # osm_changeset - datatype integer
 # osm_timestamp - datatype timestamptz(0).
 # Used with the --extra-attributes option to include metadata in the database.
-# If importing with both --hstore and --extra-attributes the meta-data will
-# end up in the tags hstore column regardless of the style file.
+# If importing with both --hstore and --extra-attributes, the meta-data will
+# end up in the tags hstore column, regardless of the style file.
 
-# OsmType  Tag          DataType     Flags
-node,way   access       text         linear
-node,way   addr:housename      text  linear
-node,way   addr:housenumber    text  linear
-node,way   addr:interpolation  text  linear
-node,way   admin_level  text         linear
-node,way   aerialway    text         linear
-node,way   aeroway      text         polygon
-node,way   amenity      text         polygon
-node,way   area         text         polygon # hard coded support for area=1/yes => polygon is in osm2pgsql
-node,way   barrier      text         linear
-node,way   bicycle      text         linear
-node,way   brand        text         linear
-node,way   bridge       text         linear
-node,way   boundary     text         linear
-node,way   building     text         polygon
-node       capital      text         linear
-node,way   construction text         linear
-node,way   covered      text         linear
-node,way   culvert      text         linear
-node,way   cutting      text         linear
-node,way   denomination text         linear
-node,way   disused      text         linear
-node       ele          text         linear
-node,way   embankment   text         linear
-node,way   foot         text         linear
-node,way   generator:source    text  linear
-node,way   harbour      text         polygon
-node,way   highway      text         linear
-node,way   historic     text         polygon
-node,way   horse        text         linear
-node,way   intermittent text         linear
-node,way   junction     text         linear
-node,way   landuse      text         polygon
-node,way   layer        text         linear
-node,way   leisure      text         polygon
-node,way   lock         text         linear
-node,way   man_made     text         polygon
-node,way   military     text         polygon
-node,way   motorcar     text         linear
-node,way   name         text         linear
-node,way   natural      text         polygon  # natural=coastline tags are discarded by a hard coded rule in osm2pgsql
-node,way   office       text         polygon
-node,way   oneway       text         linear
-node,way   operator     text         linear
-node,way   place        text         polygon
-node,way   population   text         linear
-node,way   power        text         polygon
-node,way   power_source text         linear
-node,way   public_transport text     polygon
-node,way   railway      text         linear
-node,way   ref          text         linear
-node,way   religion     text         linear
-node,way   route        text         linear
-node,way   service      text         linear
-node,way   shop         text         polygon
-node,way   sport        text         polygon
-node,way   surface      text         linear
-node,way   toll         text         linear
-node,way   tourism      text         polygon
-node,way   tower:type   text         linear
-way        tracktype    text         linear
-node,way   tunnel       text         linear
-node,way   water        text         polygon
-node,way   waterway     text         polygon
-node,way   wetland      text         polygon
-node,way   width        text         linear
-node,way   wood         text         linear
-node,way   z_order      int4         linear # This is calculated during import
-way        way_area     real         linear # This is calculated during import
+# OsmType  Tag                DataType  Flags     Wiki page
+node,way   access                 text  linear    # Key:access
+node,way   addr:housename         text  linear    # Key:addr
+node,way   addr:housenumber       text  linear    # Key:addr
+node,way   addr:interpolation     text  linear    # Addresses#Using_interpolation
+node,way   admin_level            text  linear    # Tag:boundary%3Dadministrative
+node,way   aerialway              text  linear    # Key:aerialway
+node,way   aeroway                text  polygon   # Key:aeroway
+node,way   amenity                text  polygon   # Key:amenity
+# Hard-coded support for area=1/yes => polygon is in osm2pgsql.
+node,way   area                   text  polygon   # Key:area
+node,way   barrier                text  linear    # Key:barrier
+node,way   bicycle                text  linear    # Key:bicycle
+node,way   brand                  text  linear    # Key:brand
+node,way   bridge                 text  linear    # Key:bridge
+node,way   boundary               text  linear    # Key:boundary
+node,way   building               text  polygon   # Key:building
+node       capital                text  linear    # Key:capital
+node,way   construction           text  linear    # Key:construction
+node,way   covered                text  linear    # Key:covered
+node,way   culvert                text  linear    # Tag:tunnel%3Dculvert
+node,way   cutting                text  linear    # Key:cutting
+node,way   denomination           text  linear    # Key:denomination
+node,way   disused                text  linear    # Key:disused:
+node       ele                    text  linear    # Key:ele
+node,way   embankment             text  linear    # Key:embankment
+node,way   foot                   text  linear    # Key:foot
+node,way   generator:source       text  linear    # Key:generator:source
+node,way   harbour                text  polygon   # Key:harbour
+node,way   highway                text  linear    # Key:highway
+node,way   historic               text  polygon   # Key:historic
+node,way   horse                  text  linear    # Key:horse
+node,way   intermittent           text  linear    # Key:intermittent
+node,way   junction               text  linear    # Key:junction
+node,way   landuse                text  polygon   # Key:landuse
+node,way   layer                  text  linear    # Key:layer
+node,way   leisure                text  polygon   # Key:leisure
+node,way   lock                   text  linear    # Key:lock
+node,way   man_made               text  polygon   # Key:man_made
+node,way   military               text  polygon   # Key:military
+node,way   motorcar               text  linear    # Key:motorcar
+node,way   name                   text  linear    # Key:name
+# natural=coastline tags are discarded by a hard coded rule in osm2pgsql
+node,way   natural                text  polygon   # Key:natural
+node,way   office                 text  polygon   # Key:office
+node,way   oneway                 text  linear    # Key:oneway
+node,way   operator               text  linear    # Key:operator
+node,way   place                  text  polygon   # Key:place
+node,way   population             text  linear    # Key:population
+node,way   power                  text  polygon   # Key:power
+node,way   power_source           text  linear    # Key:power_source
+node,way   public_transport       text  polygon   # Key:public_transport
+node,way   railway                text  linear    # Key:railway
+node,way   ref                    text  linear    # Key:ref
+node,way   religion               text  linear    # Key:religion
+node,way   route                  text  linear    # Key:route
+node,way   service                text  linear    # Key:service
+node,way   shop                   text  polygon   # Key:shop
+node,way   sport                  text  polygon   # Key:sport
+node,way   surface                text  linear    # Key:surface
+node,way   toll                   text  linear    # Key:toll
+node,way   tourism                text  polygon   # Key:tourism
+node,way   tower:type             text  linear    # Key:tower:type
+way        tracktype              text  linear    # Key:tracktype
+node,way   tunnel                 text  linear    # Key:tunnel
+node,way   water                  text  polygon   # Key:water
+node,way   waterway               text  polygon   # Key:waterway
+node,way   wetland                text  polygon   # Key:wetland
+node,way   width                  text  linear    # Key:width
+node,way   wood                   text  linear    # Key:wood
+# z_order and way_area are calculated during import.
+node,way   z_order                int4  linear    # Layer
+way        way_area               real  linear    # Key:way_area
 
 # Area tags
+#
 # We don't make columns for these tags, but objects with them are areas.
 # Mainly for use with hstore
-way         abandoned:aeroway       text    polygon,nocolumn
-way         abandoned:amenity       text    polygon,nocolumn
-way         abandoned:building      text    polygon,nocolumn
-way         abandoned:landuse       text    polygon,nocolumn
-way         abandoned:power         text    polygon,nocolumn
-way         area:highway            text    polygon,nocolumn
+way        abandoned:aeroway      text  polygon,nocolumn  # Key:abandoned:
+way        abandoned:amenity      text  polygon,nocolumn  # Key:abandoned:
+way        abandoned:building     text  polygon,nocolumn  # Key:abandoned:
+way        abandoned:landuse      text  polygon,nocolumn  # Key:abandoned:
+way        abandoned:power        text  polygon,nocolumn  # Key:abandoned:
+way        area:highway           text  polygon,nocolumn  # Key:area:highway
 
 # Deleted tags
+#
 # These are tags that are generally regarded as useless for most rendering.
-# Most of them are from imports or intended as internal information for mappers
-# Some of them are automatically deleted by editors.
-# If you want some of them, perhaps for a debugging layer, just delete the lines.
+# Most of them are from imports or intended as internal information for
+# mappers. Some of them are automatically deleted by editors.
+# If you want to include some of these tags, perhaps for a debugging layer,
+# just delete the lines.
 
 # These tags are used by mappers to keep track of data.
 # They aren't very useful for rendering.
-node,way    note                    text    delete
-node,way    note:*                  text    delete
-node,way    source                  text    delete
-node,way    source_ref              text    delete
-node,way    source:*                text    delete
-node,way    attribution             text    delete
-node,way    comment                 text    delete
-node,way    fixme                   text    delete
+node,way    note                  text  delete    # Key:note
+node,way    note:*                text  delete    # Key:note
+node,way    source                text  delete    # Key:source
+node,way    source:*              text  delete    # Key:source
+node,way    source_ref            text  delete    # Key:source_ref
+node,way    attribution           text  delete    # Key:attribution
+node,way    comment               text  delete    # Key:comment
+node,way    fixme                 text  delete    # Key:fixme
 
-# Tags generally dropped by editors, not otherwise covered
-node,way    created_by              text    delete
-node,way    odbl                    text    delete
-node,way    odbl:note               text    delete
-node,way    SK53_bulk:load          text    delete
+# These tags are generally dropped by editors; not otherwise covered.
+node,way    created_by            text  delete    # Key:created_by
+node,way    odbl                  text  delete    # Open_Database_License
+node,way    odbl:note             text  delete    # Open_Database_License
+node,way    SK53_bulk:load        text  delete    # ?
 
 # Lots of import tags
 # TIGER (US)
-node,way    tiger:*                 text    delete
+node,way    tiger:*               text  delete    # Key:tiger
 
 # NHD (US)
-# NHD has been converted every way imaginable
-node,way    NHD:*                   text    delete
-node,way    nhd:*                   text    delete
+# NHD has been converted in every way imaginable.
+node,way    NHD:*                 text  delete    # National_Hydrography_Dataset
+node,way    nhd:*                 text  delete    # National_Hydrography_Dataset
 
 # GNIS (US)
-node,way    gnis:*                  text    delete
+node,way    gnis:*                text  delete    # USGS_GNIS
 
 # Geobase (CA)
-node,way    geobase:*               text    delete
+node,way    geobase:*             text  delete    # GeoBase_Import
 # NHN (CA)
-node,way    accuracy:meters         text    delete
-node,way    sub_sea:type            text    delete
-node,way    waterway:type           text    delete
+node,way    accuracy:meters       text  delete    # Automated_edits/pnorman
+node,way    sub_sea:type          text  delete    # Automated_edits/pnorman
+node,way    waterway:type         text  delete    # Automated_edits/pnorman
 
 # KSJ2 (JA)
-# See also note:ja and source_ref above
-node,way    KSJ2:*                  text    delete
+# See also note:ja and source_ref, above.
+node,way    KSJ2:*   text  delete  # Import/Catalogue/Japan_KSJ2_Import
 # Yahoo/ALPS (JA)
-node,way    yh:*                    text    delete
+node,way    yh:*                  text  delete    # Key:yh:STRUCTURE
 
 # osak (DK)
-node,way    osak:*                  text    delete
+node,way    osak:*                text  delete    # Key:osak
 
 # kms (DK)
-node,way    kms:*                   text    delete
+node,way    kms:*                 text  delete    # Key:kms
 
 # ngbe (ES)
-# See also note:es and source:file above
-node,way    ngbe:*                  text    delete
+# See also note:es and source:file, above.
+node,way    ngbe:*                text  delete    # NGBE
 
 # naptan (UK)
-node,way    naptan:*                text    delete
+node,way    naptan:*              text  delete    # NaPTAN
 
 # Corine (CLC) (Europe)
-node,way    CLC:*                   text    delete
+node,way    CLC:*                 text  delete    # Corine_Land_Cover
 
 # misc
-node,way    3dshapes:ggmodelk       text    delete
-node,way    AND_nosr_r              text    delete
-node,way    import                  text    delete
-node,way    it:fvg:*                text    delete
+node,way    3dshapes:ggmodelk     text  delete    # NL:3dShapes/Details
+node,way    AND_nosr_r            text  delete    # Key:AND_nosr_r
+node,way    import                text  delete    # Import
+node,way    it:fvg:*              text  delete    # IT:Contact
