@@ -16,9 +16,9 @@ public:
     bool filter_rel_member_tags(taglist_t const &rel_tags,
                                 osmium::memory::Buffer const &members,
                                 rolelist_t const &member_roles,
-                                int *member_superseded, int *make_boundary,
-                                int *make_polygon, int *roads,
-                                export_list const &exlist, taglist_t &out_tags,
+                                int *make_boundary, int *make_polygon,
+                                int *roads, export_list const &exlist,
+                                taglist_t &out_tags,
                                 bool allow_typeless = false) override;
 
 private:

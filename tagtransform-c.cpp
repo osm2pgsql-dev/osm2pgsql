@@ -206,9 +206,9 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool c_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &members,
-    rolelist_t const &member_roles, int *member_superseded, int *make_boundary,
-    int *make_polygon, int *roads, export_list const &exlist,
-    taglist_t &out_tags, bool allow_typeless)
+    rolelist_t const &member_roles, int *make_boundary, int *make_polygon,
+    int *roads, export_list const &exlist, taglist_t &out_tags,
+    bool allow_typeless)
 {
     auto const &infos = exlist.get(osmium::item_type::way);
     //if it has a relation figure out what kind it is
@@ -384,35 +384,6 @@ bool c_tagtransform_t::filter_rel_member_tags(
 
     if (out_tags.empty()) {
         return true;
-    }
-
-    /* If we are creating a multipolygon then we
-     mark each member so that we can skip them during iterate_ways
-     but only if the polygon-tags look the same as the outer ring */
-    if (make_polygon) {
-        size_t i = 0;
-        for (auto const &w : members.select<osmium::Way>()) {
-            member_superseded[i] = 1;
-            for (const auto &member_tag : w.tags()) {
-                auto const *v = out_tags.get(member_tag.key());
-                bool filt;
-                int flag;
-                if ((!v && check_key(infos, member_tag.key(), &filt, &flag, false))
-                     || (v && *v != member_tag.value())) {
-                    /* z_order and osm_ are automatically generated tags, so ignore them */
-                    if (strcmp(member_tag.key(), "z_order") &&
-                        strcmp(member_tag.key(), "osm_user") &&
-                        strcmp(member_tag.key(), "osm_version") &&
-                        strcmp(member_tag.key(), "osm_uid") &&
-                        strcmp(member_tag.key(), "osm_changeset") &&
-                        strcmp(member_tag.key(), "osm_timestamp")) {
-                        member_superseded[i] = 0;
-                        break;
-                    }
-                }
-            }
-            ++i;
-        }
     }
 
     add_z_order(out_tags, roads);

@@ -90,9 +90,6 @@ size_t relation_helper::set(osmium::Relation const &rel, middle_t const *mid)
     // get the nodes and roles of the ways
     auto num_ways = mid->rel_way_members_get(rel, &roles, data);
 
-    // mark the ends of each so whoever uses them will know where they end..
-    superseded.resize(num_ways);
-
     return num_ways;
 }
 
