@@ -43,6 +43,7 @@ private:
     std::shared_ptr<middle_t> mid;
     std::vector<std::shared_ptr<output_t> > outs;
     std::shared_ptr<reprojection> projection;
+    bool with_extra;
 };
 
 #endif

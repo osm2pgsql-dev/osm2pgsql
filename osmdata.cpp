@@ -19,6 +19,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
 : mid(mid_), projection(proj)
 {
     outs.push_back(out_);
+    with_extra = outs[0]->get_options()->extra_attributes;
 }
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
@@ -30,6 +31,8 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
         throw std::runtime_error("Must have at least one output, but none have "
                                  "been configured.");
     }
+
+    with_extra = outs[0]->get_options()->extra_attributes;
 }
 
 osmdata_t::~osmdata_t()
@@ -42,7 +45,7 @@ int osmdata_t::node_add(osmium::Node const &node)
 
     int status = 0;
 
-    if (!node.tags().empty()) {
+    if (with_extra || !node.tags().empty()) {
         for (auto &out : outs) {
             status |= out->node_add(node);
         }
@@ -57,7 +60,7 @@ int osmdata_t::way_add(osmium::Way *way)
 
     int status = 0;
 
-    if (!way->tags().empty()) {
+    if (with_extra || !way->tags().empty()) {
         for (auto& out: outs) {
             status |= out->way_add(way);
         }
@@ -71,7 +74,7 @@ int osmdata_t::relation_add(osmium::Relation const &rel)
     mid->relations_set(rel);
 
     int status = 0;
-    if (!rel.tags().empty()) {
+    if (with_extra || !rel.tags().empty()) {
         for (auto& out: outs) {
             status |= out->relation_add(rel);
         }
