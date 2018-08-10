@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -33,12 +33,11 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <utf8.h>
-
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -125,6 +124,65 @@ namespace osmium {
                 out.resize(old_size + size_t(len));
             }
 
+            inline uint8_t utf8_sequence_length(uint32_t first) noexcept {
+                if (first < 0x80u) {
+                    return 1u;
+                }
+
+                if ((first >> 5u) == 0x6u) {
+                    return 2u;
+                }
+
+                if ((first >> 4u) == 0xeu) {
+                    return 3u;
+                }
+
+                if ((first >> 3u) == 0x1eu) {
+                    return 4u;
+                }
+
+                return 0;
+            }
+
+            inline uint32_t next_utf8_codepoint(char const** begin, const char* end) {
+                auto it = reinterpret_cast<const uint8_t*>(*begin);
+                uint32_t cp = 0xffu & *it;
+                const auto length = utf8_sequence_length(cp);
+                if (length == 0) {
+                    throw std::runtime_error{"invalid Unicode codepoint"};
+                }
+                if (std::distance(it, reinterpret_cast<const uint8_t*>(end)) < length) {
+                    throw std::out_of_range{"incomplete Unicode codepoint"};
+                }
+                switch (length) {
+                    case 1:
+                        break;
+                    case 2:
+                        ++it;
+                        cp = ((cp << 6u) & 0x7ffu) + ((*it) & 0x3fu);
+                        break;
+                    case 3:
+                        ++it;
+                        cp = ((cp << 12u) & 0xffffu) + (((0xffu & *it) << 6u) & 0xfffu);
+                        ++it;
+                        cp += (*it) & 0x3fu;
+                        break;
+                    case 4:
+                        ++it;
+                        cp = ((cp << 18u) & 0x1fffffu) + (((0xffu & *it) << 12u) & 0x3ffffu);
+                        ++it;
+                        cp += ((0xffu & *it) << 6u) & 0xfffu;
+                        ++it;
+                        cp += (*it) & 0x3fu;
+                        break;
+                    default:
+                        break;
+                }
+                ++it;
+                *begin = reinterpret_cast<const char*>(it);
+                return cp;
+            }
+
             // Write out the value with exactly two hex digits.
             inline void append_2_hex_digits(std::string& out, uint32_t value, const char* const hex_digits) {
                 out += hex_digits[(value >> 4u) & 0xfu];
@@ -151,7 +209,7 @@ namespace osmium {
 
                 while (data != end) {
                     const char* last = data;
-                    const uint32_t c = utf8::next(data, end);
+                    const uint32_t c = next_utf8_codepoint(&data, end);
 
                     // This is a list of Unicode code points that we let
                     // through instead of escaping them. It is incomplete
@@ -201,7 +259,7 @@ namespace osmium {
 
                 while (data != end) {
                     const char* last = data;
-                    uint32_t c = utf8::next(data, end);
+                    uint32_t c = next_utf8_codepoint(&data, end);
 
                     // This is a list of Unicode code points that we let
                     // through instead of escaping them. It is incomplete
@@ -223,6 +281,27 @@ namespace osmium {
                         out.append(suffix);
                     }
                 }
+            }
+
+            template <typename TOutputIterator>
+            TOutputIterator append_codepoint_as_utf8(uint32_t cp, TOutputIterator out)
+            {
+                if (cp < 0x80ul) {
+                    *(out++) = static_cast<uint8_t>(cp);
+                } else if (cp < 0x800ul) {
+                    *(out++) = static_cast<uint8_t>( (cp >>  6u)          | 0xc0u);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
+                } else if (cp < 0x10000ul) {
+                    *(out++) = static_cast<uint8_t>( (cp >> 12u)          | 0xe0u);
+                    *(out++) = static_cast<uint8_t>(((cp >>  6u) & 0x3fu) | 0x80u);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
+                } else {
+                    *(out++) = static_cast<uint8_t>( (cp >> 18u)          | 0xf0u);
+                    *(out++) = static_cast<uint8_t>(((cp >> 12u) & 0x3fu) | 0x80u);
+                    *(out++) = static_cast<uint8_t>(((cp >>  6u) & 0x3fu) | 0x80u);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
+                }
+                return out;
             }
 
         } // namespace detail

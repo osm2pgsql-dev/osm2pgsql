@@ -184,11 +184,11 @@ public:
 
     ~const_fixed_iterator() noexcept = default;
 
-    value_type operator*() const {
+    value_type operator*() const noexcept {
         value_type result;
         std::memcpy(&result, m_data, sizeof(value_type));
 #if PROTOZERO_BYTE_ORDER != PROTOZERO_LITTLE_ENDIAN
-        detail::byteswap_inplace(&result);
+        byteswap_inplace(&result);
 #endif
         return result;
     }
@@ -302,6 +302,11 @@ public:
     using reference         = value_type&;
 
     static difference_type distance(const_varint_iterator begin, const_varint_iterator end) noexcept {
+        // The "distance" between default initialized const_varint_iterator's
+        // is always 0.
+        if (!begin.m_data) {
+            return 0;
+        }
         // We know that each varint contains exactly one byte with the most
         // significant bit not set. We can use this to quickly figure out
         // how many varints there are without actually decoding the varints.
@@ -326,16 +331,19 @@ public:
     ~const_varint_iterator() noexcept = default;
 
     value_type operator*() const {
+        protozero_assert(m_data);
         const char* d = m_data; // will be thrown away
         return static_cast<value_type>(decode_varint(&d, m_end));
     }
 
     const_varint_iterator& operator++() {
+        protozero_assert(m_data);
         skip_varint(&m_data, m_end);
         return *this;
     }
 
     const_varint_iterator operator++(int) {
+        protozero_assert(m_data);
         const const_varint_iterator tmp{*this};
         ++(*this);
         return tmp;
@@ -383,16 +391,19 @@ public:
     ~const_svarint_iterator() = default;
 
     value_type operator*() const {
+        protozero_assert(this->m_data);
         const char* d = this->m_data; // will be thrown away
         return static_cast<value_type>(decode_zigzag64(decode_varint(&d, this->m_end)));
     }
 
     const_svarint_iterator& operator++() {
+        protozero_assert(this->m_data);
         skip_varint(&this->m_data, this->m_end);
         return *this;
     }
 
     const_svarint_iterator operator++(int) {
+        protozero_assert(this->m_data);
         const const_svarint_iterator tmp{*this};
         ++(*this);
         return tmp;

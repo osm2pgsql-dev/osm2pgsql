@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -518,11 +518,11 @@ namespace osmium {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 
-inline bool osmium::MemoryMapping::is_valid() const noexcept {
+inline bool osmium::util::MemoryMapping::is_valid() const noexcept {
     return m_addr != MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 }
 
-inline void osmium::MemoryMapping::make_invalid() noexcept {
+inline void osmium::util::MemoryMapping::make_invalid() noexcept {
     m_addr = MAP_FAILED; // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
 }
 
@@ -533,14 +533,14 @@ inline void osmium::MemoryMapping::make_invalid() noexcept {
 # define MAP_ANONYMOUS MAP_ANON
 #endif
 
-inline int osmium::MemoryMapping::get_protection() const noexcept {
+inline int osmium::util::MemoryMapping::get_protection() const noexcept {
     if (m_mapping_mode == mapping_mode::readonly) {
         return PROT_READ;
     }
     return PROT_READ | PROT_WRITE; // NOLINT(hicpp-signed-bitwise)
 }
 
-inline int osmium::MemoryMapping::get_flags() const noexcept {
+inline int osmium::util::MemoryMapping::get_flags() const noexcept {
     if (m_fd == -1) {
         return MAP_PRIVATE | MAP_ANONYMOUS; // NOLINT(hicpp-signed-bitwise)
     }
@@ -550,7 +550,7 @@ inline int osmium::MemoryMapping::get_flags() const noexcept {
     return MAP_PRIVATE;
 }
 
-inline osmium::MemoryMapping::MemoryMapping(std::size_t size, mapping_mode mode, int fd, off_t offset) :
+inline osmium::util::MemoryMapping::MemoryMapping(std::size_t size, mapping_mode mode, int fd, off_t offset) :
     m_size(check_size(size)),
     m_offset(offset),
     m_fd(resize_fd(fd)),
@@ -562,7 +562,7 @@ inline osmium::MemoryMapping::MemoryMapping(std::size_t size, mapping_mode mode,
     }
 }
 
-inline osmium::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
+inline osmium::util::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
     m_size(other.m_size),
     m_offset(other.m_offset),
     m_fd(other.m_fd),
@@ -571,7 +571,7 @@ inline osmium::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
     other.make_invalid();
 }
 
-inline osmium::MemoryMapping& osmium::MemoryMapping::operator=(osmium::MemoryMapping&& other) noexcept {
+inline osmium::util::MemoryMapping& osmium::util::MemoryMapping::operator=(osmium::util::MemoryMapping&& other) noexcept {
     unmap();
     m_size         = other.m_size;
     m_offset       = other.m_offset;
@@ -582,7 +582,7 @@ inline osmium::MemoryMapping& osmium::MemoryMapping::operator=(osmium::MemoryMap
     return *this;
 }
 
-inline void osmium::MemoryMapping::unmap() {
+inline void osmium::util::MemoryMapping::unmap() {
     if (is_valid()) {
         if (::munmap(m_addr, m_size) != 0) {
             throw std::system_error{errno, std::system_category(), "munmap failed"};
@@ -591,7 +591,7 @@ inline void osmium::MemoryMapping::unmap() {
     }
 }
 
-inline void osmium::MemoryMapping::resize(std::size_t new_size) {
+inline void osmium::util::MemoryMapping::resize(std::size_t new_size) {
     assert(new_size > 0 && "can not resize to zero size");
     if (m_fd == -1) { // anonymous mapping
 #ifdef __linux__
@@ -641,7 +641,7 @@ namespace osmium {
 
 } // namespace osmium
 
-inline DWORD osmium::MemoryMapping::get_protection() const noexcept {
+inline DWORD osmium::util::MemoryMapping::get_protection() const noexcept {
     switch (m_mapping_mode) {
         case mapping_mode::readonly:
             return PAGE_READONLY;
@@ -653,7 +653,7 @@ inline DWORD osmium::MemoryMapping::get_protection() const noexcept {
     return PAGE_READWRITE;
 }
 
-inline DWORD osmium::MemoryMapping::get_flags() const noexcept {
+inline DWORD osmium::util::MemoryMapping::get_flags() const noexcept {
     switch (m_mapping_mode) {
         case mapping_mode::readonly:
             return FILE_MAP_READ;
@@ -665,14 +665,14 @@ inline DWORD osmium::MemoryMapping::get_flags() const noexcept {
     return FILE_MAP_WRITE;
 }
 
-inline HANDLE osmium::MemoryMapping::get_handle() const noexcept {
+inline HANDLE osmium::util::MemoryMapping::get_handle() const noexcept {
     if (m_fd == -1) {
         return INVALID_HANDLE_VALUE;
     }
     return reinterpret_cast<HANDLE>(_get_osfhandle(m_fd));
 }
 
-inline HANDLE osmium::MemoryMapping::create_file_mapping() const noexcept {
+inline HANDLE osmium::util::MemoryMapping::create_file_mapping() const noexcept {
     if (m_fd != -1) {
         _setmode(m_fd, _O_BINARY);
     }
@@ -684,7 +684,7 @@ inline HANDLE osmium::MemoryMapping::create_file_mapping() const noexcept {
                              nullptr);
 }
 
-inline void* osmium::MemoryMapping::map_view_of_file() const noexcept {
+inline void* osmium::util::MemoryMapping::map_view_of_file() const noexcept {
     return MapViewOfFile(m_handle,
                          get_flags(),
                          osmium::dword_hi(m_offset),
@@ -692,11 +692,11 @@ inline void* osmium::MemoryMapping::map_view_of_file() const noexcept {
                          m_size);
 }
 
-inline bool osmium::MemoryMapping::is_valid() const noexcept {
+inline bool osmium::util::MemoryMapping::is_valid() const noexcept {
     return m_addr != nullptr;
 }
 
-inline void osmium::MemoryMapping::make_invalid() noexcept {
+inline void osmium::util::MemoryMapping::make_invalid() noexcept {
     m_addr = nullptr;
 }
 
@@ -707,7 +707,7 @@ inline int last_error() noexcept {
     return static_cast<int>(GetLastError());
 }
 
-inline osmium::MemoryMapping::MemoryMapping(std::size_t size, MemoryMapping::mapping_mode mode, int fd, off_t offset) :
+inline osmium::util::MemoryMapping::MemoryMapping(std::size_t size, MemoryMapping::mapping_mode mode, int fd, off_t offset) :
     m_size(check_size(size)),
     m_offset(offset),
     m_fd(resize_fd(fd)),
@@ -725,7 +725,7 @@ inline osmium::MemoryMapping::MemoryMapping(std::size_t size, MemoryMapping::map
     }
 }
 
-inline osmium::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
+inline osmium::util::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
     m_size(other.m_size),
     m_offset(other.m_offset),
     m_fd(other.m_fd),
@@ -736,7 +736,7 @@ inline osmium::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcept :
     other.m_handle = nullptr;
 }
 
-inline osmium::MemoryMapping& osmium::MemoryMapping::operator=(osmium::MemoryMapping&& other) noexcept {
+inline osmium::util::MemoryMapping& osmium::util::MemoryMapping::operator=(osmium::util::MemoryMapping&& other) noexcept {
     unmap();
     m_size         = other.m_size;
     m_offset       = other.m_offset;
@@ -749,7 +749,7 @@ inline osmium::MemoryMapping& osmium::MemoryMapping::operator=(osmium::MemoryMap
     return *this;
 }
 
-inline void osmium::MemoryMapping::unmap() {
+inline void osmium::util::MemoryMapping::unmap() {
     if (is_valid()) {
         if (!UnmapViewOfFile(m_addr)) {
             throw std::system_error{last_error(), std::system_category(), "UnmapViewOfFile failed"};
@@ -765,7 +765,7 @@ inline void osmium::MemoryMapping::unmap() {
     }
 }
 
-inline void osmium::MemoryMapping::resize(std::size_t new_size) {
+inline void osmium::util::MemoryMapping::resize(std::size_t new_size) {
     unmap();
 
     m_size = new_size;

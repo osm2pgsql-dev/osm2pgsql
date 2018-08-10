@@ -80,7 +80,7 @@ class pbf_reader {
         skip_bytes(sizeof(T));
         std::memcpy(&result, data, sizeof(T));
 #if PROTOZERO_BYTE_ORDER != PROTOZERO_LITTLE_ENDIAN
-        detail::byteswap_inplace(&result);
+        byteswap_inplace(&result);
 #endif
         return result;
     }
@@ -98,7 +98,9 @@ class pbf_reader {
 
     template <typename T>
     T get_varint() {
-        return static_cast<T>(decode_varint(&m_data, m_end));
+        const auto val = static_cast<T>(decode_varint(&m_data, m_end));
+        assert(m_data <= m_end);
+        return val;
     }
 
     template <typename T>
@@ -469,6 +471,7 @@ public:
             default:
                 break;
         }
+        assert(m_data <= m_end);
     }
 
     ///@{

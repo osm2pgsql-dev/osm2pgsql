@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -316,6 +316,11 @@ namespace osmium {
         /// Get user name for this object.
         const char* user() const noexcept {
             return reinterpret_cast<const char*>(data() + sizeof_object());
+        }
+
+        /// Clear user name.
+        void clear_user() noexcept {
+            std::memset(data() + sizeof_object(), 0, user_size());
         }
 
         /// Get the list of tags for this object.

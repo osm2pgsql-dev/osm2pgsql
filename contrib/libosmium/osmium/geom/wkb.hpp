@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -35,7 +35,6 @@ DEALINGS IN THE SOFTWARE.
 
 #include <osmium/geom/coordinates.hpp>
 #include <osmium/geom/factory.hpp>
-#include <osmium/util/cast.hpp>
 #include <osmium/util/endian.hpp>
 
 #include <algorithm>

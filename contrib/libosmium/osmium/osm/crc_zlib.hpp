@@ -1,5 +1,5 @@
-#ifndef OSMIUM_OSM_ENTITY_HPP
-#define OSMIUM_OSM_ENTITY_HPP
+#ifndef OSMIUM_OSM_CRC_ZLIB_HPP
+#define OSMIUM_OSM_CRC_ZLIB_HPP
 
 /*
 
@@ -33,56 +33,45 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-#include <osmium/memory/item.hpp>
-#include <osmium/osm/entity_bits.hpp>
-#include <osmium/osm/item_type.hpp>
+#include <zlib.h>
+
+#include <cstddef>
 
 namespace osmium {
 
-    namespace detail {
-
-        template <typename TSubitem, typename TIter>
-        inline TSubitem& subitem_of_type(TIter it, const TIter& end) {
-            for (; it != end; ++it) {
-                if (TSubitem::is_compatible_to(it->type())) {
-                    return reinterpret_cast<TSubitem&>(*it);
-                }
-            }
-
-            // If no subitem of the TSubitem type was found,
-            // return a default constructed one.
-            static TSubitem subitem{};
-            return subitem;
-        }
-
-    } // namespace detail
-
     /**
-     * \brief OSMEntity is the abstract base class for the OSMObject and
-     *        Changeset classes.
+     * This class is used together with the CRC class to implement a CRC32
+     * checksum based on the implementation from zlib.
+     *
+     * Usage:
+     *
+     * @code
+     * osmium::CRC<osmium::CRC_zlib> crc32;
+     * const osmium::Node& node = ...;
+     * crc32.update(node);
+     * std::cout << crc32.checksum() << '\n';
+     * @endcode
      */
-    class OSMEntity : public osmium::memory::Item {
+    class CRC_zlib {
+
+        unsigned long m_crc32 = ::crc32(0, nullptr, 0); // NOLINT(google-runtime-int)
 
     public:
 
-        constexpr static bool is_compatible_to(osmium::item_type t) noexcept {
-            return t == osmium::item_type::node ||
-                   t == osmium::item_type::way ||
-                   t == osmium::item_type::relation ||
-                   t == osmium::item_type::area ||
-                   t == osmium::item_type::changeset;
+        void process_byte(const unsigned char byte) noexcept {
+            m_crc32 = ::crc32(m_crc32, &byte, 1u);
         }
 
-        explicit OSMEntity(osmium::memory::item_size_type size, osmium::item_type type) :
-            Item(size, type) {
+        void process_bytes(const void* buffer, std::size_t byte_count) noexcept {
+            m_crc32 = ::crc32(m_crc32, reinterpret_cast<const unsigned char *>(buffer), static_cast<unsigned int>(byte_count));
         }
 
-        bool type_is_in(osmium::osm_entity_bits::type entity_bits) const {
-            return (osm_entity_bits::from_item_type(type()) & entity_bits) != 0;
+        unsigned long checksum() const noexcept { // NOLINT(google-runtime-int)
+            return m_crc32;
         }
 
-    }; // class OSMEntity
+    }; // class CRC_zlib
 
 } // namespace osmium
 
-#endif // OSMIUM_OSM_ENTITY_HPP
+#endif // OSMIUM_OSM_CRC_ZLIB_HPP

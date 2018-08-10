@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -502,7 +502,7 @@ namespace osmium {
                 }
 
                 void decode_timestamp(const char* data, const char* const end) {
-                    const auto timestamp = osmium::Timestamp(zvarint(&data, end)).to_iso();
+                    const auto timestamp = osmium::Timestamp{zvarint(&data, end)}.to_iso();
                     m_header.set("o5m_timestamp", timestamp);
                     m_header.set("timestamp", timestamp);
                 }

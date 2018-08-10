@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -148,7 +148,7 @@ namespace osmium {
                     m_bzfile = nullptr;
                     if (m_file) {
                         if (do_fsync()) {
-                            osmium::io::detail::reliable_fsync(::fileno(m_file));
+                            osmium::io::detail::reliable_fsync(fileno(m_file));
                         }
                         if (fclose(m_file) != 0) {
                             throw std::system_error{errno, std::system_category(), "Close failed"};
