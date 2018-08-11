@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -223,15 +223,11 @@ namespace osmium {
     template <typename TChar, typename TTraits>
     inline std::basic_ostream<TChar, TTraits>& operator<<(std::basic_ostream<TChar, TTraits>& out, const osmium::Box& box) {
         if (box) {
-            out << '('
-                << box.bottom_left().lon()
-                << ','
-                << box.bottom_left().lat()
-                << ','
-                << box.top_right().lon()
-                << ','
-                << box.top_right().lat()
-                << ')';
+            out << '(';
+            box.bottom_left().as_string_without_check(std::ostream_iterator<char>(out));
+            out << ',';
+            box.top_right().as_string_without_check(std::ostream_iterator<char>(out));
+            out << ')';
         } else {
             out << "(undefined)";
         }

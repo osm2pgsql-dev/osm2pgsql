@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -44,6 +44,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/box.hpp>
 #include <osmium/osm/changeset.hpp>
 #include <osmium/osm/crc.hpp>
+#include <osmium/osm/crc_zlib.hpp>
 #include <osmium/osm/item_type.hpp>
 #include <osmium/osm/location.hpp>
 #include <osmium/osm/metadata_options.hpp>
@@ -58,8 +59,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/thread/pool.hpp>
 #include <osmium/util/minmax.hpp>
 #include <osmium/visitor.hpp>
-
-#include <boost/crc.hpp>
 
 #include <cinttypes>
 #include <cmath>
@@ -111,6 +110,8 @@ namespace osmium {
              * Writes out one buffer with OSM data in Debug format.
              */
             class DebugOutputBlock : public OutputBlock {
+
+                using crc_type = osmium::CRC_zlib;
 
                 debug_output_options m_options;
 
@@ -315,14 +316,14 @@ namespace osmium {
                 template <typename T>
                 void write_crc32(const T& object) {
                     write_fieldname("crc32");
-                    osmium::CRC<boost::crc_32_type> crc32;
+                    osmium::CRC<crc_type> crc32;
                     crc32.update(object);
                     output_formatted("    %x\n", crc32().checksum());
                 }
 
                 void write_crc32(const osmium::Changeset& object) {
                     write_fieldname("crc32");
-                    osmium::CRC<boost::crc_32_type> crc32;
+                    osmium::CRC<crc_type> crc32;
                     crc32.update(object);
                     output_formatted("      %x\n", crc32().checksum());
                 }

@@ -93,7 +93,7 @@ class pbf_writer {
         protozero_assert(m_pos == 0 && "you can't add fields to a parent pbf_writer if there is an existing pbf_writer for a submessage");
         protozero_assert(m_data);
 #if PROTOZERO_BYTE_ORDER != PROTOZERO_LITTLE_ENDIAN
-        detail::byteswap_inplace(&value);
+        byteswap_inplace(&value);
 #endif
         m_data->append(reinterpret_cast<const char*>(&value), sizeof(T));
     }

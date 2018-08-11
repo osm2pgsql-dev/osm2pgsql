@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -348,11 +348,12 @@ namespace osmium {
                         osmium::Location location;
                     };
 
-                    seg_loc sl[4];
-                    sl[0] = {0, s1.first().location() };
-                    sl[1] = {0, s1.second().location()};
-                    sl[2] = {1, s2.first().location() };
-                    sl[3] = {1, s2.second().location()};
+                    seg_loc sl[4] = {
+                        {0, s1.first().location() },
+                        {0, s1.second().location()},
+                        {1, s2.first().location() },
+                        {1, s2.second().location()},
+                    };
 
                     std::sort(sl, sl+4, [](const seg_loc& lhs, const seg_loc& rhs) {
                         return lhs.location < rhs.location;

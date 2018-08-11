@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -70,6 +70,8 @@ namespace osmium {
          *
          * @tparam TAssembler Multipolygon Assembler class.
          * @pre The Ids of all objects must be unique in the input data.
+         *
+         * @deprecated Use MultipolygonManager instead.
          */
         template <typename TAssembler>
         class MultipolygonCollector : public osmium::relations::Collector<MultipolygonCollector<TAssembler>, false, true, false> {

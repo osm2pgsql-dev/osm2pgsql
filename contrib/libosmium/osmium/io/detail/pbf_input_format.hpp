@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -96,21 +96,19 @@ namespace osmium {
                  * the length of the following BlobHeader.
                  */
                 uint32_t read_blob_header_size_from_file() {
-                    uint32_t size_in_network_byte_order;
+                    uint32_t size;
 
                     try {
-                        const std::string input_data{read_from_input_queue(sizeof(size_in_network_byte_order))};
-                        size_in_network_byte_order = *reinterpret_cast<const uint32_t*>(input_data.data());
+                        // size is encoded in network byte order
+                        const std::string input_data{read_from_input_queue(sizeof(size))};
+                        const char* d = input_data.data();
+                        size = (static_cast<uint32_t>(d[3])) |
+                               (static_cast<uint32_t>(d[2]) << 8u) |
+                               (static_cast<uint32_t>(d[1]) << 16u) |
+                               (static_cast<uint32_t>(d[0]) << 24u);
                     } catch (const osmium::pbf_error&) {
                         return 0; // EOF
                     }
-
-                    #ifndef _WIN32
-                    const uint32_t size = ntohl(size_in_network_byte_order);
-                    #else
-                    uint32_t size = size_in_network_byte_order;
-                    protozero::detail::byteswap_inplace(&size);
-                    #endif
 
                     if (size > static_cast<uint32_t>(max_blob_header_size)) {
                         throw osmium::pbf_error{"invalid BlobHeader size (> max_blob_header_size)"};

@@ -3,7 +3,7 @@
 
 /*
 
-This file is part of Osmium (http://osmcode.org/libosmium).
+This file is part of Osmium (https://osmcode.org/libosmium).
 
 Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
 
@@ -539,7 +539,7 @@ namespace osmium {
         template <>
         inline size_t hash<8>(const osmium::Location& location) noexcept {
             uint64_t h = location.x();
-            h <<= 32;
+            h <<= 32u;
             return static_cast<size_t>(h ^ static_cast<uint64_t>(location.y()));
         }
 
