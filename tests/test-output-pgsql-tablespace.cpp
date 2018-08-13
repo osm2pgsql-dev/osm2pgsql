@@ -91,7 +91,7 @@ void test_regression_simple() {
     db->check_count(1342, "SELECT count(*) FROM osm2pgsql_test_point");
     db->check_count(3231, "SELECT count(*) FROM osm2pgsql_test_line");
     db->check_count( 375, "SELECT count(*) FROM osm2pgsql_test_roads");
-    db->check_count(4136, "SELECT count(*) FROM osm2pgsql_test_polygon");
+    db->check_count(4130, "SELECT count(*) FROM osm2pgsql_test_polygon");
 }
 
 } // anonymous namespace

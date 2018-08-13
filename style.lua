@@ -236,10 +236,6 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
     linestring = 0 -- Will object be treated as linestring?
     polygon = 0    -- Will object be treated as polygon?
     roads = 0      -- Will object be added to planet_osm_roads?
-    membersuperseded = {}
-    for i = 1, membercount do
-        membersuperseded[i] = 0 -- Will member be ignored when handling areas?
-    end
 
     type = keyvalues["type"]
 
@@ -257,59 +253,18 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
     elseif (type == "multipolygon") then
         -- Treat as polygon
         polygon = 1
-        polytagcount = 0;
+        filter = 1
         -- Count the number of polygon tags of the object
         for i,k in ipairs(polygon_keys) do
             if keyvalues[k] then
-                polytagcount = 1
+                filter = 0
                 break
             end
-        end
-        -- If there are no polygon tags, add tags from all outer elements to the multipolygon itself
-        if (polytagcount == 0) then
-            for i = 1,membercount do
-                if (roles[i] == "outer") then
-                    for k,v in pairs(keyvaluemembers[i]) do
-                        keyvalues[k] = v
-                    end
-                end
-            end
-
-            f, keyvalues = filter_tags_generic(keyvalues, 1)
-            -- check again if there are still polygon tags left
-            polytagcount = 0
-            for i,k in ipairs(polygon_keys) do
-                if keyvalues[k] then
-                    polytagcount = 1
-                    break
-                end
-            end
-            if polytagcount == 0 then
-                filter = 1
-            end
-        end
-        -- For any member of the multipolygon, set membersuperseded to 1 (i.e. don't deal with it as area as well),
-        -- except when the member has a key/value combination such that
-        --   1) the key occurs in generic_keys
-        --   2) the key/value combination is not also a key/value combination of the multipolygon itself
-        for i = 1,membercount do
-            superseded = 1
-            for k,v in pairs(keyvaluemembers[i]) do
-                if ((keyvalues[k] == nil) or (keyvalues[k] ~= v)) then
-                    for j,k2 in ipairs(generic_keys) do
-                        if (k == k2) then
-                            superseded = 0;
-                            break
-                        end
-                    end
-                end
-            end
-            membersuperseded[i] = superseded
         end
     end
 
     -- Add z_order key/value combination and determine if the object should also be added to planet_osm_roads
     keyvalues, roads = add_z_order(keyvalues)
 
-    return filter, keyvalues, membersuperseded, linestring, polygon, roads
+    return filter, keyvalues, {}, linestring, polygon, roads
 end

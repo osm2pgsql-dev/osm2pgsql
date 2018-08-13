@@ -314,71 +314,16 @@ bool c_tagtransform_t::filter_rel_member_tags(
     } else if (is_multipolygon) {
         *make_polygon = 1;
 
-        // Check if the relation has any polygon-like tags. In that case
-        // we have a new-style polygon.
-        bool newstyle_mp = false;
+        // Check if any of the tags is polygon-like
+        int flags = 0;
+        bool filter = false;
         for (const auto &tag : out_tags) {
-            if (tag.key == "area") {
-                newstyle_mp = true;
-            } else {
-                for (const auto &info : infos) {
-                    if (info.name == tag.key) {
-                        newstyle_mp = info.flags & FLAG_POLYGON;
-                        break;
-                    }
-                }
-            }
-            if (newstyle_mp) {
-                break;
-            }
+            check_key(infos, tag.key.c_str(), &filter, &flags, false);
         }
 
-        // Old-style MP: copy the tags from the outer way(s). Only use tags
-        // that appear in all outer rings.
-        if (!newstyle_mp) {
-            taglist_t poly_tags;
-            bool first_outerway = true;
-            size_t i = 0;
-            for (auto const &w : members.select<osmium::Way>()) {
-                if (member_roles[i] && strcmp(member_roles[i], "inner") == 0)
-                    continue;
-
-                /* insert all tags of the first outerway to the potential list of copied tags. */
-                if (first_outerway) {
-                    for (auto const &tag : w.tags()) {
-                        poly_tags.emplace_back(tag.key(), tag.value());
-                    }
-                    first_outerway = false;
-                } else {
-                    /* Check if all of the tags in the list of potential tags are present on this way,
-                       otherwise remove from the list of potential tags. Tags need to be present on
-                       all outer ways to be copied over to the relation */
-                    auto it = poly_tags.begin();
-                    while (it != poly_tags.end()) {
-                        if (!w.tags().has_key(it->key.c_str()))
-                            /* This tag is not present on all member outer ways, so don't copy it over to relation */
-                            it = poly_tags.erase(it);
-                        else
-                            ++it;
-                    }
-                }
-                ++i;
-            }
-            // Copy the list identified outer way tags over to the relation
-            // filtering for wanted tags on the way.
-            bool filter;
-            int flags = 0;
-            for (const auto &poly_tag : poly_tags) {
-                if (check_key(infos, poly_tag.key.c_str(), &filter, &flags,
-                              false)) {
-                    out_tags.push_dedupe(poly_tag);
-                }
-            }
-
-            if (!(flags & FLAG_POLYGON)) {
-                out_tags.clear();
-                return true;
-            }
+        if (!(flags & FLAG_POLYGON)) {
+            out_tags.clear();
+            return true;
         }
     }
 
