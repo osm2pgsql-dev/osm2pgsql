@@ -1,11 +1,14 @@
 language: generic
 sudo: required
+
 git:
   depth: 1
+
 services:
   - postgresql
 
 addons_shortcuts:
+
   addons_clang38_pg92: &clang38_pg92
     postgresql: '9.2'
     apt:
@@ -14,22 +17,7 @@ addons_shortcuts:
                       'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-  addons_clang40_pg93: &clang40_pg93
-    postgresql: '9.3'
-    apt:
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
-      packages: ['clang-4.0', 'postgresql-9.3-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-  addons_clang50_pg94: &clang50_pg94
-    postgresql: '9.4'
-    apt:
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-5.0']
-      packages: ['clang-5.0', 'postgresql-9.4-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+
   addons_clang60_pg96: &clang60_pg96
     postgresql: '9.6'
     apt:
@@ -39,6 +27,7 @@ addons_shortcuts:
                       'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+
   addons_gcc48_pg96: &gcc48_pg96
     postgresql: '9.6'
     apt:
@@ -47,30 +36,8 @@ addons_shortcuts:
                       'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-  addons_gcc49_pg96: &gcc49_pg96
-    postgresql: '9.6'
-    apt:
-      sources: ["ubuntu-toolchain-r-test"]
-      packages: ['g++-4.9','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-  addons_gcc6_pg96: &gcc6_pg96
-    postgresql: '9.6'
-    apt:
-      sources: ["ubuntu-toolchain-r-test"]
-      packages: ['g++-6','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-  addons_gcc7_pg96: &gcc7_pg96
-    postgresql: '9.6'
-    apt:
-      sources: ["ubuntu-toolchain-r-test"]
-      packages: ['g++-7','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+
+
   addons_gcc8_pg96: &gcc8_pg96
     postgresql: '9.6'
     apt:
@@ -80,9 +47,7 @@ addons_shortcuts:
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
-
-
-# env: T="...."     //  unique test id, test name
+# env: T="...."     //  please set an unique test id (T="..")
 matrix:
   include:
   # ---- Linux + CLANG ---------------------------
@@ -94,46 +59,9 @@ matrix:
       addons: *clang38_pg92
 
     - os: linux
-      compiler: "clang-4.0"
-      env: T="clang40_pg93_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror"
-           CC=clang-4.0 CXX=clang++-4.0
-      addons: *clang40_pg93
-
-    - os: linux
-      compiler: "clang-5.0"
-      env: T="clang50_pg94_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror"
-           CC=clang-5.0 CXX=clang++-5.0
-      addons: *clang50_pg94
-
-    - os: linux
-      compiler: "clang-5.0"
-      env: T="clang50_pg94_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=clang-5.0 CXX=clang++-5.0
-      addons: *clang50_pg94
-
-    - os: linux
-      compiler: "clang-6.0"
-      env: T="clang60_pg96_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror"
-           CC=clang-6.0 CXX=clang++-6.0
-      addons: *clang60_pg96
-
-    - os: linux
-      compiler: "clang-6.0"
-      env: T="clang60_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=clang-6.0 CXX=clang++-6.0
-           ASAN_OPTIONS="verbosity=1:log_threads=1"
-           LSAN_OPTIONS="verbosity=1:log_threads=1"
-      addons: *clang60_pg96
-
-    - os: linux
       compiler: "clang-6.0"
       env: T="clang60_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
+           CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
            CC=clang-6.0 CXX=clang++-6.0
            ASAN_OPTIONS="verbosity=1:log_threads=1"
            LSAN_OPTIONS="verbosity=1:log_threads=1"
@@ -156,110 +84,27 @@ matrix:
   # ---- Linux + GCC ---------------------------
     - os: linux
       compiler: "gcc-4.8"
-      env: T="gcc48_pg96_asan_NoDB" RUNTEST="-L NoDB" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
+      env: T="gcc48_pg96_dbtest_luajit"  RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Werror"
            CC=gcc-4.8 CXX=g++-4.8
       addons: *gcc48_pg96
 
     - os: linux
-      compiler: "gcc-4.9"
-      env: T="gcc49_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=gcc-4.9 CXX=g++-4.9
-      addons: *gcc49_pg96
-
-    - os: linux
-      compiler: "gcc-4.9"
-      env: T="gcc49_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=gcc-4.9 CXX=g++-4.9
-      addons: *gcc49_pg96
-
-    - os: linux
-      compiler: gcc-6
-      env: T="gcc6_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=gcc-6 CXX=g++-6
-      addons: *gcc6_pg96
-
-    - os: linux
-      compiler: gcc-7
-      env: T="gcc7_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=gcc-7 CXX=g++-7
-      addons: *gcc7_pg96
-      ## NOW: not working:  gcc-7 + fsanitize=address
-
-    - os: linux
       compiler: gcc-8
       env: T="gcc8_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS=" -pedantic -Werror  "
            CC=gcc-8 CXX=g++-8
       addons: *gcc8_pg96
-
-    - os: linux
-      compiler: gcc-8
-      env: T="gcc8_pg96_dbtest_noCCXFLAGS" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CC=gcc-8 CXX=g++-8
-      addons: *gcc8_pg96
-
-    - os: linux
-      compiler: gcc-8
-      env: T="gcc8_pg96_dbtest_luajit_noCCXFLAGS" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CC=gcc-8 CXX=g++-8
-      addons: *gcc8_pg96
-
 
 
   allow_failures:
-# some problems..  need debugging... [gcc8, luajit, asan test cases]
-    - os: linux
-      env: T="clang50_pg94_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=clang-5.0 CXX=clang++-5.0
-
-    - os: linux
-      env: T="clang60_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=clang-6.0 CXX=clang++-6.0
-           ASAN_OPTIONS="verbosity=1:log_threads=1"
-           LSAN_OPTIONS="verbosity=1:log_threads=1"
-
     - os: linux
       env: T="clang60_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
+           CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
            CC=clang-6.0 CXX=clang++-6.0
            ASAN_OPTIONS="verbosity=1:log_threads=1"
            LSAN_OPTIONS="verbosity=1:log_threads=1"
 
-    - os: linux
-      env: T="gcc49_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=gcc-4.9 CXX=g++-4.9
-
-    - os: linux
-      env: T="gcc49_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address"
-           CC=gcc-4.9 CXX=g++-4.9
-
-    - os: linux
-      env: T="gcc6_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=gcc-6 CXX=g++-6
-
-    - os: linux
-      env: T="gcc7_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=gcc-7 CXX=g++-7
-
-    - os: linux
-      env: T="gcc8_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
-           CC=gcc-8 CXX=g++-8
-
-    - os: linux
-      env: T="gcc8_pg96_dbtest_luajit_noCCXFLAGS" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CC=gcc-8 CXX=g++-8
 
 before_install:
   - sudo mkdir -p /extra/pg/tablespacetest   # for the database test
