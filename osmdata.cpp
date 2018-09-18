@@ -217,6 +217,20 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
     }
 
+    static void print_stats(pending_queue_t &queue, std::mutex &mutex)
+    {
+        size_t queue_size;
+        do {
+            mutex.lock();
+            queue_size = queue.size();
+            mutex.unlock();
+
+            fprintf(stderr, "\rLeft to process: %zu...", queue_size);
+
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        } while (queue_size > 0);
+    }
+
     //starts up count threads and works on the queue
     pending_threaded_processor(std::shared_ptr<middle_query_t> mid,
                                const output_vec_t &outs, size_t thread_count,
@@ -275,8 +289,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
                                          std::ref(queue), std::ref(ids_done),
                                          std::ref(mutex), append, true));
         }
-
-        //TODO: print out partial progress
+        workers.push_back(std::async(std::launch::async, print_stats,
+                                     std::ref(queue), std::ref(mutex)));
 
         for (auto& w: workers) {
             try {
@@ -337,6 +351,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
                                          std::ref(queue), std::ref(ids_done),
                                          std::ref(mutex), append, false));
         }
+        workers.push_back(std::async(std::launch::async, print_stats,
+                                     std::ref(queue), std::ref(mutex)));
 
         for (auto& w: workers) {
             try {
