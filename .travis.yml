@@ -18,12 +18,15 @@ addons_shortcuts:
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
-  addons_clang60_pg96: &clang60_pg96
+  addons_clang7_pg96: &clang7_pg96
     postgresql: '9.6'
     apt:
       update: true
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
-      packages: ['clang-6.0','postgresql-9.6-postgis-2.3',
+      sources:
+        - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+          key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+        - ubuntu-toolchain-r-test
+      packages: ['clang-7','postgresql-9.6-postgis-2.3',
                       'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
@@ -59,13 +62,13 @@ matrix:
       addons: *clang38_pg92
 
     - os: linux
-      compiler: "clang-6.0"
-      env: T="clang60_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+      compiler: "clang-7"
+      env: T="clang7_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
-           CC=clang-6.0 CXX=clang++-6.0
+           CC=clang-7 CXX=clang++-7
            ASAN_OPTIONS="verbosity=1:log_threads=1"
            LSAN_OPTIONS="verbosity=1:log_threads=1"
-      addons: *clang60_pg96
+      addons: *clang7_pg96
 
   # ---- OSX + CLANG ---------------------------
 
@@ -99,9 +102,9 @@ matrix:
 
   allow_failures:
     - os: linux
-      env: T="clang60_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+      env: T="clang7_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
-           CC=clang-6.0 CXX=clang++-6.0
+           CC=clang-7 CXX=clang++-7
            ASAN_OPTIONS="verbosity=1:log_threads=1"
            LSAN_OPTIONS="verbosity=1:log_threads=1"
 
