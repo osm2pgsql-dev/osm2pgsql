@@ -1,0 +1,59 @@
+version: "2.1"
+
+# For testing!   Not for production!!!
+
+services:
+
+# docker-compose run --rm osm2pgsql-dev
+  osm2pgsql-dev:
+    image: "osm2pgsql-dev:gcc${GCCVER:-7}"    # docker gcc version : valid:   4,5,6,7,8
+
+    cap_add:
+    - SYS_PTRACE    # important for the -fsanitize=address testing !
+
+    links:
+    - postgis
+
+    volumes:
+    # This is your local drive !!!  be careful! 
+    # the current ./build dir will be deleted / overwritten! 
+    - .:/openstreetmap/osm2pgsql 
+
+    environment: 
+    # please do not modify here!             
+    - RUNTEST="${RUNTEST}"                 # for the ctest - example:"-L NoDB"
+    - CXXFLAGS="${CXXFLAGS:--Werror}"      # CXXFLAGS="-pedantic -Werror -fsanitize=address"
+    - LUA_OPTION="${LUA_OPTION:-ON}"       # cmake LUA  
+    - LUAJIT_OPTION="${LUAJIT_OPTION:-ON}" # cmake LUAJIT
+
+  # Database parameters - for test! 
+    - PGHOST=postgis
+    - PGUSER=osm
+    - PGDATABASE=osm
+    - PGPASSWORD=osm
+
+  postgis:
+    image: "mdillon/postgis:10-alpine" 
+       # Database docker image, you can change ! example: `9.5-alpine` )
+       # before changing!
+       # - `docker-compose down`   ( important ! )
+       # - remove the `./temp-pgdata` directory! ( important! )
+       
+       
+    volumes:
+    # creating tablespace when pg initialisation!  - only run 1x  
+    - ./docker/tablespace.sh:/docker-entrypoint-initdb.d/tablespace.sh
+
+    # local pg data 
+    - ./temp-pgdata/10-alpine:/var/lib/postgresql/data
+    
+    ports:
+    # local database port : 25433 , you can connect, and examine ! 
+    - 127.0.0.1:25433:5432    
+    
+    environment:
+    - POSTGRES_DB=osm
+    - POSTGRES_USER=osm
+    - POSTGRES_PASSWORD=osm
+    
+

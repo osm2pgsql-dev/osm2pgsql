@@ -1,62 +1,651 @@
-language: cpp
-sudo: false
-addons:
-  apt:
-    sources:
-    - boost-latest
-    - ubuntu-toolchain-r-test
-    packages:
-    - g++-4.8
-    - libexpat1-dev
-    - libpq-dev
-    - libbz2-dev
-    - libproj-dev
-    - lua5.2
-    - liblua5.2-dev
-    - libluajit-5.1-dev
-    - libboost1.55-dev
-    - libboost-system1.55-dev
-    - libboost-filesystem1.55-dev
+git:
+  depth: 1
+
+#
+# env parameters
+# T=GCCtest    = unique id for test
+# GCCVER="6"   = [4,5,6,7,8,7.1,7.2,7.3, ... ]  or any tags from here https://hub.docker.com/r/library/gcc/tags/
+#
+#---- test parameters -------
+# RUNTEST="-L NoDB" or "#All"   ( the docker based ctest alway run .. just inject a parameter  )
+#
+# ----- cmake, make parameters ------
+# CXXFLAGS="-Werror"
+# LUA_OPTION="ON"
+# LUAJIT_OPTION="ON"
+#
+#
+
+
 matrix:
   include:
+
+# --------------------
+# run_gcc4simple
+# --------------------
     - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=run_gcc4simple
+      script:
+        - sudo ./docker/run_gcc4simple.sh  # settings inside!
+      after_failure:
+        - docker images
+
+################ Working uncommented ...
+###### --------------------
+###### run_gcc7dbtest
+###### --------------------
+#####    - os: linux
+#####      language: generic
+#####      services: docker
+#####      sudo: required
+#####      env: T=run_gcc7dbtest
+#####      script:
+#####        - sudo ./docker/run_gcc7dbtest.sh   # settings inside!
+#####      after_failure:
+#####        - docker images
+#####
+###### --------------------
+###### run_gcc7dbluajittest
+###### --------------------
+#####    - os: linux
+#####      language: generic
+#####      services: docker
+#####      sudo: required
+#####      env: T=run_gcc7dbluajittest
+#####      script:
+#####        - sudo ./docker/run_gcc7dbluajittest.sh   # settings inside!
+#####      after_failure:
+#####        - docker images
+
+
+
+# --------------------
+# GCC4_fulltravisDBtest
+# --------------------
+    - os: linux
+      sudo: required
+      language: cpp
       compiler: clang
-      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="OFF"
+      env:
+        - T=GCC4_fulltravisDBtest
+        - CXXFLAGS="-pedantic -Werror"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="OFF"
+        - RUNTEST="#All-test"
+      services:
+      - postgresql
+      addons:
+        postgresql: "9.6"
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
+
+
+# --------------------
+# GCC4_LUAJIT_fulltravisDBtest
+# --------------------
     - os: linux
-      compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
-    - os: linux
+      sudo: required
+      language: cpp
       compiler: clang
-      env: CXXFLAGS="-pedantic -Werror" LUAJIT_OPTION="ON"
+      env:
+        - T=GCC4_LUAJIT_fulltravisDBtest
+        - CXXFLAGS="-fsanitize=undefined -fsanitize=address -pedantic -Werror "
+        - LDFLAGS="-fsanitize=undefined -fsanitize=address"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="ON"
+        - RUNTEST="#All-test"
+      services:
+      - postgresql
+      addons:
+        postgresql: "9.6"
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
+
+
+
+# --------------------
+# GCC4DBDocker
+# --------------------
     - os: linux
-      compiler: gcc
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="ON"
+      sudo: required
+      language: cpp
+      compiler: clang
+      env:
+        - T=GCC4DBDocker
+        - CXXFLAGS="-pedantic -Werror"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="OFF"
+        - RUNTEST="#All-test"
+        # same port,username,pw - as defined in the docker-compose.yml
+        - PGHOST=127.0.0.1
+        - PGPORT=25433
+        - PGUSER=osm
+        - PGDATABASE=osm
+        - PGPASSWORD=osm
+      services:
+      - docker
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - docker --version
+      - docker-compose up -d postgis
+
+# --------------------
+# OSX
+# --------------------
     - os: osx
+      sudo: false
+      language: cpp
       compiler: clang
-      env: RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUAJIT_OPTION="OFF"
-before_install:
-  - if [[ $TRAVIS_OS_NAME == 'osx' ]]; then
-      brew install lua;
-    fi
-# update versions
-install:
-  - if [[ $CC == 'gcc' ]]; then
-      export CC=gcc-4.8;
-    fi
-  - if [[ $CXX == 'g++' ]]; then
-      export CXX=g++-4.8;
-    fi
-before_script:
+      sudo: required
+      env: T=OSXsanitize RUNTEST="-L NoDB" LDFLAGS="-fsanitize=undefined -fsanitize=address" CXXFLAGS="-pedantic -Werror -fsanitize=undefined -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      before_install:
+### you have to choose: -  faster test or updated system ?
+###---------------------------------------------------------
+        - brew uninstall python mercurial postgis sfcgal cgal gdal
+        - brew update
+        - brew upgrade
+        - brew install lua;
+
+
+# --------------------
+# GCC4
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: clang
+      env: T=GCC4 CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC4sanitize
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc
+      env: T=GCC4sanitize RUNTEST="#All-test" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      services:
+      - postgresql
+      addons:
+        postgresql: "9.6"
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - postgresql-9.6-postgis-2.3
+          - python-psycopg2
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      before_install:
+      - sudo mkdir -p /extra/pg/tablespacetest
+      - sudo chown postgres:postgres /extra/pg/tablespacetest
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+      before_script:
+      - psql -U postgres -c "CREATE TABLESPACE tablespacetest LOCATION '/extra/pg/tablespacetest'"
+      - psql -U postgres -c "CREATE EXTENSION postgis"
+      - psql -U postgres -c "CREATE EXTENSION hstore"
+      - psql -U postgres -c "SELECT version(); "
+      - psql -U postgres -c "SELECT PostGIS_Full_Version();"
+
+
+# --------------------
+# CLANGLUAJIT
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: clang
+      env: T=CLANGLUAJIT CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC4sanitize
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc
+      env: T=GCC4sanitize RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      addons:
+        apt:
+          sources:
+          - boost-latest
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-4.8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-4.8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-4.8;
+        fi
+
+# --------------------
+# GCC6
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-6
+      env: T=GCC6 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-6
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-6;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-6;
+        fi
+
+# --------------------
+# GCC7
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-7
+      env: T=GCC7 RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-7
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-7;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-7;
+        fi
+
+# --------------------
+# GCC7sanitize
+# --------------------
+
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-7
+      env: T=GCC7sanitize RUNTEST="-L NoDB" CXXFLAGS=" -pedantic -Werror " LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-7
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-7;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-7;
+        fi
+
+# --------------------
+# GCC8
+# --------------------
+    - os: linux
+      sudo: false
+      language: cpp
+      compiler: gcc-8
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      addons:
+        apt:
+          sources:
+          - ubuntu-toolchain-r-test
+          packages:
+          - g++-8
+          - libexpat1-dev
+          - libpq-dev
+          - libbz2-dev
+          - libproj-dev
+          - lua5.2
+          - liblua5.2-dev
+          - libluajit-5.1-dev
+          - libboost1.55-dev
+          - libboost-system1.55-dev
+          - libboost-filesystem1.55-dev
+      install:
+      - if [[ $CC == 'gcc' ]]; then
+          export CC=gcc-8;
+        fi
+      - if [[ $CXX == 'g++' ]]; then
+          export CXX=g++-8;
+        fi
+
+# --------------------
+# GCC7Docker
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC7Docker GCCVER="7" RUNTEST="-L NoDB" CXXFLAGS="-pedantic -Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC4DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC5DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC6DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+
+# --------------------
+# GCC7DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+# --------------------
+# GCC8DockerSanitize
+# --------------------
+    - os: linux
+      language: generic
+      services: docker
+      sudo: required
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+      script:
+        - sudo ./docker/travis_test.sh
+      after_failure:
+        - docker images
+
+# Problems ....
+  allow_failures:
+
+    - os: linux
+      env:
+        - T=GCC4_LUAJIT_fulltravisDBtest
+        - CXXFLAGS="-fsanitize=undefined -fsanitize=address -pedantic -Werror "
+        - LDFLAGS="-fsanitize=undefined -fsanitize=address"
+        - LUA_OPTION="ON"
+        - LUAJIT_OPTION="ON"
+        - RUNTEST="#All-test"
+
+    - os: linux
+      env: T=GCC8 RUNTEST="-L NoDB" CXXFLAGS="-Werror" LUA_OPTION="ON" LUAJIT_OPTION="OFF"
+
+
+
+#    - os: linux
+#      env: T=run_gcc7dbtest
+#    - os: linux
+#      env: T=run_gcc7dbluajittest
+
+    - os: linux
+      env: T=GCC4DockerSanitize GCCVER="4" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC5DockerSanitize GCCVER="5" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC6DockerSanitize GCCVER="6" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC7DockerSanitize GCCVER="7" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+    - os: linux
+      env: T=GCC8DockerSanitize GCCVER="8" RUNTEST="#All" CXXFLAGS="-pedantic -Werror -fsanitize=address" LUA_OPTION="ON" LUAJIT_OPTION="ON"
+
+
+
+# general "script" - not run in docker test
+script:
   - $CXX --version
   - xml2-config --version
   - proj | head -n1
   - lua -v
-script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUA=$LUA_OPTION -DWITH_LUAJIT=$LUAJIT_OPTION
   - make -j2
   - echo "Running tests that does not require PostgreSQL server"
   - if [[ $RUNTEST ]]; then ctest -VV $RUNTEST; fi
+
+#general "after_failure" -  not run in docker
 after_failure:
   - # rerun make, but verbosely
     make VERBOSE=1
