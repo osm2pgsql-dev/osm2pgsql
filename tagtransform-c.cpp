@@ -160,7 +160,6 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
             if (o.type() == osmium::item_type::relation &&
                 strcmp("type", k) == 0) {
                 out_tags.emplace_back(k, v);
-                filter = false;
                 continue;
             }
             /* Allow named islands to appear as polygons */
@@ -210,7 +209,6 @@ bool c_tagtransform_t::filter_rel_member_tags(
     int *roads, export_list const &exlist, taglist_t &out_tags,
     bool allow_typeless)
 {
-    auto const &infos = exlist.get(osmium::item_type::way);
     //if it has a relation figure out what kind it is
     const std::string *type = rel_tags.get("type");
     bool is_route = false, is_boundary = false, is_multipolygon = false;
@@ -237,6 +235,10 @@ bool c_tagtransform_t::filter_rel_member_tags(
         //copy all other tags except for "type"
         if (rel_tag.key != "type")
             out_tags.push_dedupe(rel_tag);
+    }
+
+    if (out_tags.empty()) {
+        return true;
     }
 
     if (is_route) {
@@ -313,25 +315,9 @@ bool c_tagtransform_t::filter_rel_member_tags(
         *make_boundary = 1;
     } else if (is_multipolygon) {
         *make_polygon = 1;
-
-        // Check if any of the tags is polygon-like
-        int flags = 0;
-        bool filter = false;
-        for (const auto &tag : out_tags) {
-            check_key(infos, tag.key.c_str(), &filter, &flags, false);
-        }
-
-        if (!(flags & FLAG_POLYGON)) {
-            out_tags.clear();
-            return true;
-        }
-    }
-
-    if (out_tags.empty()) {
-        return true;
     }
 
     add_z_order(out_tags, roads);
 
-    return 0;
+    return false;
 }

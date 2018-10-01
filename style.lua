@@ -253,14 +253,6 @@ function filter_tags_relation_member (keyvalues, keyvaluemembers, roles, memberc
     elseif (type == "multipolygon") then
         -- Treat as polygon
         polygon = 1
-        filter = 1
-        -- Count the number of polygon tags of the object
-        for i,k in ipairs(polygon_keys) do
-            if keyvalues[k] then
-                filter = 0
-                break
-            end
-        end
     end
 
     -- Add z_order key/value combination and determine if the object should also be added to planet_osm_roads
