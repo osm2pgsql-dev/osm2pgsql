@@ -63,15 +63,12 @@ matrix:
 
     - os: linux
       compiler: "clang-7"
-      env: T="clang7_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
+      env: T="clang7_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Werror"
            CC=clang-7 CXX=clang++-7
-           ASAN_OPTIONS="verbosity=1:log_threads=1"
-           LSAN_OPTIONS="verbosity=1:log_threads=1"
       addons: *clang7_pg96
 
   # ---- OSX + CLANG ---------------------------
-
     - os: osx
       compiler: clang
       env: T="osx_clang_NoDB" RUNTEST="-L NoDB" LUAJIT_OPTION="OFF"
@@ -83,11 +80,10 @@ matrix:
         - proj | head -n1
         - lua -v
 
-
   # ---- Linux + GCC ---------------------------
     - os: linux
       compiler: "gcc-4.8"
-      env: T="gcc48_pg96_dbtest_luajit"  RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+      env: T="gcc48_pg96_dbtest"  RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Werror"
            CC=gcc-4.8 CXX=g++-4.8
       addons: *gcc48_pg96
@@ -95,18 +91,9 @@ matrix:
     - os: linux
       compiler: gcc-8
       env: T="gcc8_pg96_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
-           CXXFLAGS=" -pedantic -Werror  "
+           CXXFLAGS="-pedantic -Werror"
            CC=gcc-8 CXX=g++-8
       addons: *gcc8_pg96
-
-
-  allow_failures:
-    - os: linux
-      env: T="clang7_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
-           CC=clang-7 CXX=clang++-7
-           ASAN_OPTIONS="verbosity=1:log_threads=1"
-           LSAN_OPTIONS="verbosity=1:log_threads=1"
 
 
 before_install:
