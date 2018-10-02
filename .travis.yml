@@ -63,7 +63,7 @@ matrix:
 
     - os: linux
       compiler: "clang-7"
-      env: T="clang7_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+      env: T="clang7_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
            CC=clang-7 CXX=clang++-7
            ASAN_OPTIONS="verbosity=1:log_threads=1"
@@ -102,7 +102,7 @@ matrix:
 
   allow_failures:
     - os: linux
-      env: T="clang7_pg96_asan_dbtest_luajit" RUNTEST="#Dbtest" LUAJIT_OPTION="ON"
+      env: T="clang7_pg96_asan_dbtest" RUNTEST="#Dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Werror -fsanitize=address,undefined,integer "
            CC=clang-7 CXX=clang++-7
            ASAN_OPTIONS="verbosity=1:log_threads=1"
