@@ -73,8 +73,6 @@ struct middle_query_t {
      * \param way_id ID of the way to check
      */
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
-
-    virtual std::shared_ptr<const middle_query_t> get_instance() const = 0;
 };
 
 /**
@@ -107,6 +105,9 @@ struct middle_t : public middle_query_t {
     virtual void iterate_relations(pending_processor& pf) = 0;
 
     virtual size_t pending_count() const = 0;
+
+    virtual std::shared_ptr<middle_query_t>
+    get_query_instance(std::shared_ptr<middle_t> const &mid) const = 0;
 
     const options_t* out_options;
 };

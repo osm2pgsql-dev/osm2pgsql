@@ -198,18 +198,9 @@ idlist_t middle_ram_t::relations_using_way(osmid_t) const
         "report it at https://github.com/openstreetmap/osm2pgsql/issues");
 }
 
-namespace {
-
-void no_delete(const middle_ram_t *)
+std::shared_ptr<middle_query_t>
+middle_ram_t::get_query_instance(std::shared_ptr<middle_t> const &mid) const
 {
-    // boost::shared_ptr thinks we are going to delete
-    // the middle object, but we are not. Heh heh heh.
-    // So yeah, this is a hack...
-}
-
-}
-
-std::shared_ptr<const middle_query_t> middle_ram_t::get_instance() const {
-    //shallow copy here because readonly access is thread safe
-    return std::shared_ptr<const middle_query_t>(this, no_delete);
+    // No copy here because readonly access is thread safe.
+    return std::static_pointer_cast<middle_query_t>(mid);
 }
