@@ -27,6 +27,15 @@ tables which are used by the pgsql middle layer, not the backend:
 With the ``--flat-nodes`` option, the ``planet_osm_nodes`` information is
 instead stored in a binary file.
 
+**Note:** The names and structure of these additional tables, colloquially 
+referred to as "slim tables", are an *internal implemention detail* of
+osm2pgsql. While they do not usually change between releases of osm2pgsql,
+be advised that if you rely on the content or layout of these tables in
+your application, it is your responsibility to check whether your assumptions
+are still true in a newer version of osm2pgsql before updating. See
+https://github.com/openstreetmap/osm2pgsql/issues/230 for a discussion of
+the topic.
+
 ## Importing ##
 
 1. Runs a parser on the input file and processes the nodes, ways and relations.
