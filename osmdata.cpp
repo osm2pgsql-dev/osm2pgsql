@@ -188,7 +188,7 @@ namespace {
 
 struct pending_threaded_processor : public middle_t::pending_processor {
     typedef std::vector<std::shared_ptr<output_t>> output_vec_t;
-    typedef std::pair<std::shared_ptr<const middle_query_t>, output_vec_t> clone_t;
+    typedef std::pair<std::shared_ptr<middle_query_t>, output_vec_t> clone_t;
 
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
         while (true) {
@@ -232,7 +232,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
     //starts up count threads and works on the queue
-    pending_threaded_processor(std::shared_ptr<middle_query_t> mid,
+    pending_threaded_processor(std::shared_ptr<middle_t> mid,
                                const output_vec_t &outs, size_t thread_count,
                                int append)
         //note that we cant hint to the stack how large it should be ahead of time
@@ -249,7 +249,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         clones.reserve(thread_count);
         for (size_t i = 0; i < thread_count; ++i) {
             //clone the middle
-            std::shared_ptr<const middle_query_t> mid_clone = mid->get_instance();
+            auto mid_clone = mid->get_query_instance(mid);
 
             //clone the outs
             output_vec_t out_clones;

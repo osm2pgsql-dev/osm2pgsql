@@ -1167,32 +1167,40 @@ middle_pgsql_t::~middle_pgsql_t() {
 
 }
 
-std::shared_ptr<const middle_query_t> middle_pgsql_t::get_instance() const {
-    middle_pgsql_t* mid = new middle_pgsql_t();
-    mid->out_options = out_options;
-    mid->append = out_options->append;
-    mid->mark_pending = mark_pending;
+std::shared_ptr<middle_query_t>
+middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
+{
+    auto *src = dynamic_cast<middle_pgsql_t *>(from.get());
+    assert(src);
 
-    //NOTE: this is thread safe for use in pending async processing only because
-    //during that process they are only read from
-    mid->cache = cache;
-    mid->persistent_cache = persistent_cache;
+    // Return a copy of the original, as we need separate database connections.
+    std::unique_ptr<middle_pgsql_t> mid(new middle_pgsql_t());
+    mid->out_options = src->out_options;
+    mid->append = src->out_options->append;
+    mid->mark_pending = src->mark_pending;
 
-    // We use a connection per table to enable the use of COPY */
-    for(int i=0; i<num_tables; i++) {
+    // NOTE: this is thread safe for use in pending async processing only because
+    // during that process they are only read from
+    mid->cache = src->cache;
+    mid->persistent_cache = src->persistent_cache;
+
+    // We use a connection per table to enable the use of COPY
+    for (int i = 0; i < num_tables; i++) {
         mid->connect(mid->tables[i]);
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
-        if (tables[i].prepare) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare);
+        if (mid->tables[i].prepare) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s",
+                       mid->tables[i].prepare);
         }
 
-        if (append && tables[i].prepare_intarray) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", tables[i].prepare_intarray);
+        if (mid->append && mid->tables[i].prepare_intarray) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s",
+                       mid->tables[i].prepare_intarray);
         }
     }
 
-    return std::shared_ptr<const middle_query_t>(mid);
+    return std::shared_ptr<middle_query_t>(mid.release());
 }
 
 size_t middle_pgsql_t::pending_count() const {

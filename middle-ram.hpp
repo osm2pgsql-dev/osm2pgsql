@@ -115,7 +115,9 @@ struct middle_ram_t : public middle_t {
 
     size_t pending_count() const override;
 
-    std::shared_ptr<const middle_query_t> get_instance() const override;
+    std::shared_ptr<middle_query_t>
+    get_query_instance(std::shared_ptr<middle_t> const &mid) const override;
+
 private:
 
     void release_ways();

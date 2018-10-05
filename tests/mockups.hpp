@@ -35,9 +35,10 @@ struct dummy_middle_t : public middle_t {
 
     idlist_t relations_using_way(osmid_t) const override  { return idlist_t(); }
 
-    std::shared_ptr<const middle_query_t> get_instance() const override
+    std::shared_ptr<middle_query_t>
+    get_query_instance(std::shared_ptr<middle_t> const &mid) const override
     {
-        return std::shared_ptr<const middle_query_t>();
+        return std::shared_ptr<middle_query_t>();
     }
 };
 
@@ -72,7 +73,11 @@ struct dummy_slim_middle_t : public slim_middle_t {
 
     idlist_t relations_using_way(osmid_t) const override  { return idlist_t(); }
 
-    std::shared_ptr<const middle_query_t> get_instance() const override  {return std::shared_ptr<const middle_query_t>();}
+    std::shared_ptr<middle_query_t>
+    get_query_instance(std::shared_ptr<middle_t> const &mid) const override
+    {
+        return std::shared_ptr<middle_query_t>();
+    }
 
     void nodes_delete(osmid_t) override  {};
     void node_changed(osmid_t) override  {};
