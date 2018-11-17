@@ -364,9 +364,9 @@ void place_tag_processor::copy_out(osmium::OSMObject const &o,
         } else if (!names.empty()) {
             bool first = true;
             // operator will be ignored on anything but these classes
-            // (amenity for restaurant and fuel)
             bool shop = (place.key == "shop") ||
-                        (place.key == "amenity") ||
+                        ((place.key == "amenity")
+                         && (place.value == "restaurant" || place.value == "fuel")) ||
                         (place.key == "tourism");
             for (const auto entry: names) {
                 if (!shop && strcmp(entry->key(), "operator") == 0)
