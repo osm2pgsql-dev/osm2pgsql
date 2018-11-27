@@ -370,12 +370,12 @@ class BaseSlimTestCase(BaseTestCase):
 class BaseGazetteerTestCase(BaseTestCase):
 
     def setUpGeneric(self, parameters, file):
-        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Stests/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Sdefault.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Stests/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 

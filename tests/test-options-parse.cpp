@@ -96,7 +96,7 @@ void test_outputs()
         throw std::logic_error("Expected a pgsql output");
     }
 
-    const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "tests/gazetteer-test.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a2), const_cast<char **>(a2));
     mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
