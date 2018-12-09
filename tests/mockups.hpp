@@ -11,7 +11,6 @@ struct dummy_middle_t : public middle_t {
     void stop(osmium::thread::Pool &) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
-    void end(void) override  { }
     void commit(void) override  { }
 
     void nodes_set(osmium::Node const &) override {}
@@ -49,7 +48,6 @@ struct dummy_slim_middle_t : public slim_middle_t {
     void stop(osmium::thread::Pool &) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
-    void end(void) override  { }
     void commit(void) override  { }
 
     void nodes_set(osmium::Node const &) override {}
