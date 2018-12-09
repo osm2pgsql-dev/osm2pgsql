@@ -14,7 +14,6 @@
 #include "node-persistent-cache.hpp"
 #include "id-tracker.hpp"
 #include <memory>
-#include <vector>
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
@@ -84,6 +83,14 @@ struct middle_pgsql_t : public slim_middle_t {
     get_query_instance(std::shared_ptr<middle_t> const &mid) const override;
 
 private:
+    enum middle_tables
+    {
+        NODE_TABLE = 0,
+        WAY_TABLE,
+        REL_TABLE,
+        NUM_TABLES
+    };
+
     void pgsql_stop_one(table_desc *table);
 
     /**
@@ -94,9 +101,7 @@ private:
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);
 
-    std::vector<table_desc> tables;
-    int num_tables;
-    table_desc *node_table, *way_table, *rel_table;
+    table_desc tables[NUM_TABLES];
 
     bool append;
     bool mark_pending;
