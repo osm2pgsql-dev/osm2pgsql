@@ -63,12 +63,55 @@ middle_pgsql_t::table_desc::table_desc(const char *name_,
       prepare_intarray(prepare_intarray_),
       copy(copy_),
       analyze(analyze_),
-      stop(stop_),
+      commit(stop_),
       array_indexes(array_indexes_),
       copyMode(0),
       transactionMode(0),
       sql_conn(nullptr)
 {}
+
+void middle_pgsql_t::table_desc::end_copy()
+{
+    // Terminate any pending COPY */
+    if (copyMode) {
+        int stop = PQputCopyEnd(sql_conn, nullptr);
+        if (stop != 1) {
+            fprintf(stderr, "COPY_END for %s failed: %s\n", copy, PQerrorMessage(sql_conn));
+            util::exit_nicely();
+        }
+
+        pg_result_t res(PQgetResult(sql_conn));
+        if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
+            fprintf(stderr, "COPY_END for %s failed: %s\n", copy, PQerrorMessage(sql_conn));
+            util::exit_nicely();
+        }
+        copyMode = 0;
+    }
+}
+
+void middle_pgsql_t::table_desc::stop(bool droptemp, bool build_indexes)
+{
+    time_t start, end;
+
+    fprintf(stderr, "Stopping table: %s\n", name);
+
+    end_copy();
+
+    time(&start);
+    if (droptemp) {
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", name);
+    } else if (build_indexes && array_indexes) {
+        fprintf(stderr, "Building index on table: %s\n", name);
+        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", array_indexes);
+    }
+
+    PQfinish(sql_conn);
+    sql_conn = nullptr;
+    time(&end);
+
+    fprintf(stderr, "Stopped table: %s in %is\n", name, (int)(end - start));
+}
+
 
 namespace {
 // Decodes a portion of an array literal from postgres */
@@ -160,26 +203,6 @@ void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
     }
 }
 
-int pgsql_endCopy(middle_pgsql_t::table_desc *table)
-{
-    // Terminate any pending COPY */
-    if (table->copyMode) {
-        PGconn *sql_conn = table->sql_conn;
-        int stop = PQputCopyEnd(sql_conn, nullptr);
-        if (stop != 1) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
-            util::exit_nicely();
-        }
-
-        pg_result_t res(PQgetResult(sql_conn));
-        if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
-            fprintf(stderr, "COPY_END for %s failed: %s\n", table->copy, PQerrorMessage(sql_conn));
-            util::exit_nicely();
-        }
-        table->copyMode = 0;
-    }
-    return 0;
-}
 } // anonymous namespace
 
 
@@ -366,7 +389,7 @@ void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[NODE_TABLE]);
+    tables[NODE_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -392,8 +415,8 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[WAY_TABLE]);
-    pgsql_endCopy(&tables[REL_TABLE]);
+    tables[WAY_TABLE].end_copy();
+    tables[REL_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -570,7 +593,7 @@ void middle_pgsql_t::ways_delete(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[WAY_TABLE]);
+    tables[WAY_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -582,7 +605,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
 {
 
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[WAY_TABLE]);
+    tables[WAY_TABLE].end_copy();
 
     // enqueue the jobs
     osmid_t id;
@@ -602,7 +625,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[REL_TABLE]);
+    tables[REL_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -735,8 +758,8 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[WAY_TABLE]);
-    pgsql_endCopy(&tables[REL_TABLE]);
+    tables[WAY_TABLE].end_copy();
+    tables[REL_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -758,7 +781,7 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
 void middle_pgsql_t::iterate_relations(pending_processor& pf)
 {
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[REL_TABLE]);
+    tables[REL_TABLE].end_copy();
 
     // enqueue the jobs
     osmid_t id;
@@ -778,7 +801,7 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy(&tables[REL_TABLE]);
+    tables[REL_TABLE].end_copy();
 
     sprintf( buffer, "%" PRIdOSMID, osm_id );
     paramValues[0] = buffer;
@@ -927,7 +950,7 @@ void middle_pgsql_t::connect(table_desc& table) {
     set_prefix_and_tbls(out_options, &(table.prepare_intarray));
     set_prefix_and_tbls(out_options, &(table.copy));
     set_prefix_and_tbls(out_options, &(table.analyze));
-    set_prefix_and_tbls(out_options, &(table.stop));
+    set_prefix_and_tbls(out_options, &(table.commit));
     set_prefix_and_tbls(out_options, &(table.array_indexes));
 
     fprintf(stderr, "Setting up table: %s\n", table.name);
@@ -961,9 +984,6 @@ void middle_pgsql_t::start(const options_t *out_options_)
     }
 
     append = out_options->append;
-    // reset this on every start to avoid options from last run
-    // staying set for the second.
-    build_indexes = !append && !out_options->droptemp;
 
     cache.reset(new node_ram_cache(out_options->alloc_chunkwise | ALLOC_LOSSY,
                                    out_options->cache));
@@ -1031,9 +1051,9 @@ void middle_pgsql_t::start(const options_t *out_options_)
 void middle_pgsql_t::commit(void) {
     for (auto& table: tables) {
         PGconn *sql_conn = table.sql_conn;
-        pgsql_endCopy(&table);
-        if (table.stop && table.transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
+        table.end_copy();
+        if (table.commit && table.transactionMode) {
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.commit);
             table.transactionMode = 0;
         }
     }
@@ -1042,33 +1062,8 @@ void middle_pgsql_t::commit(void) {
 void middle_pgsql_t::flush()
 {
     for (auto &table : tables) {
-        pgsql_endCopy(&table);
+        table.end_copy();
     }
-}
-
-void middle_pgsql_t::pgsql_stop_one(table_desc *table)
-{
-    time_t start, end;
-
-    PGconn *sql_conn = table->sql_conn;
-
-    fprintf(stderr, "Stopping table: %s\n", table->name);
-    pgsql_endCopy(table);
-    time(&start);
-    if (out_options->droptemp)
-    {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", table->name);
-    }
-    else if (build_indexes && table->array_indexes)
-    {
-        fprintf(stderr, "Building index on table: %s\n", table->name);
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table->array_indexes);
-    }
-
-    PQfinish(sql_conn);
-    table->sql_conn = nullptr;
-    time(&end);
-    fprintf(stderr, "Stopped table: %s in %is\n", table->name, (int)(end - start));
 }
 
 void middle_pgsql_t::stop(osmium::thread::Pool &pool)
@@ -1082,17 +1077,18 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
         // Dropping the tables is fast, so do it synchronously to guarantee
         // that the space is freed before creating the other indices.
         for (auto &t : tables) {
-            pgsql_stop_one(&t);
+            t.stop(out_options->droptemp, !append);
         }
     } else {
         for (auto &t : tables) {
-            pool.submit(std::bind(&middle_pgsql_t::pgsql_stop_one, this, &t));
+            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop,
+                                  &t, out_options->droptemp, !append));
         }
     }
 }
 
 middle_pgsql_t::middle_pgsql_t()
-: append(false), mark_pending(true), build_indexes(true)
+: append(false), mark_pending(true)
 {
     // clang-format off
     /*table = t_node,*/

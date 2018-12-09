@@ -51,7 +51,8 @@ struct middle_pgsql_t : public slim_middle_t {
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    struct table_desc {
+    struct table_desc
+    {
         table_desc(const char *name_ = NULL,
                    const char *start_ = NULL,
                    const char *create_ = NULL,
@@ -71,12 +72,15 @@ struct middle_pgsql_t : public slim_middle_t {
         const char *prepare_intarray;
         const char *copy;
         const char *analyze;
-        const char *stop;
+        const char *commit;
         const char *array_indexes;
 
         int copyMode;    /* True if we are in copy mode */
         int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
+
+        void end_copy();
+        void stop(bool droptemp, bool build_indexes);
     };
 
     std::shared_ptr<middle_query_t>
@@ -90,8 +94,6 @@ private:
         REL_TABLE,
         NUM_TABLES
     };
-
-    void pgsql_stop_one(table_desc *table);
 
     /**
      * Sets up sql_conn for the table
@@ -116,7 +118,6 @@ private:
 
     void buffer_correct_params(char const **param, size_t size);
 
-    bool build_indexes;
     std::string copy_buffer;
 };
 
