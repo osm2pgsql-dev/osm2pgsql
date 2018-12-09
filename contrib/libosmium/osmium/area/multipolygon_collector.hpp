@@ -85,8 +85,13 @@ namespace osmium {
 
             area_stats m_stats;
 
-            static constexpr size_t initial_output_buffer_size = 1024 * 1024;
-            static constexpr size_t max_buffer_size_for_flush = 100 * 1024;
+            enum {
+                initial_output_buffer_size = 1024ul * 1024ul
+            };
+
+            enum {
+                max_buffer_size_for_flush = 100ul * 1024ul
+            };
 
             void flush_output_buffer() {
                 if (this->callback()) {

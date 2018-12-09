@@ -64,7 +64,9 @@ namespace osmium {
 
     namespace detail {
 
-        constexpr const int coordinate_precision = 10000000;
+        enum {
+            coordinate_precision = 10000000
+        };
 
         // Convert string with a floating point number into integer suitable
         // for use as coordinate in a Location.
@@ -272,16 +274,18 @@ namespace osmium {
      */
     class Location {
 
-        int32_t m_x;
-        int32_t m_y;
+        int32_t m_x; // NOLINT(modernize-use-default-member-init)
+        int32_t m_y; // NOLINT(modernize-use-default-member-init)
 
     public:
 
         // this value is used for a coordinate to mark it as undefined
         // MSVC doesn't declare std::numeric_limits<int32_t>::max() as
         // constexpr, so we hard code this for the time being.
-        // static constexpr int32_t undefined_coordinate = std::numeric_limits<int32_t>::max();
-        static constexpr int32_t undefined_coordinate = 2147483647;
+        // undefined_coordinate = std::numeric_limits<int32_t>::max();
+        enum {
+            undefined_coordinate = 2147483647
+        };
 
         static int32_t double_to_fix(const double c) noexcept {
             return static_cast<int32_t>(std::round(c * detail::coordinate_precision));

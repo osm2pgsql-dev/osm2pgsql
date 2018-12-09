@@ -72,7 +72,7 @@ namespace osmium {
 
                     try {
                         while (!m_done) {
-                            std::string data {m_decompressor.read()};
+                            std::string data{m_decompressor.read()};
                             if (at_end_of_data(data)) {
                                 break;
                             }

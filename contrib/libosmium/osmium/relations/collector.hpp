@@ -192,7 +192,9 @@ namespace osmium {
             using callback_func_type = std::function<void(osmium::memory::Buffer&&)>;
             callback_func_type m_callback;
 
-            static constexpr size_t initial_buffer_size = 1024 * 1024;
+            enum {
+                initial_buffer_size = 1024ul * 1024ul
+            };
 
             iterator_range<mm_iterator> find_member_meta(osmium::item_type type, osmium::object_id_type id) {
                 auto& mmv = member_meta(type);

@@ -53,7 +53,7 @@ namespace osmium {
         template <typename T>
         class mmap_vector_file : public mmap_vector_base<T> {
 
-            static std::size_t filesize(int fd) {
+            static std::size_t filesize(const int fd) {
                 const auto size = osmium::file_size(fd);
 
                 if (size % sizeof(T) != 0) {
@@ -71,10 +71,10 @@ namespace osmium {
                     osmium::detail::mmap_vector_size_increment) {
             }
 
-            explicit mmap_vector_file(int fd) :
+            explicit mmap_vector_file(const int fd) :
                 mmap_vector_base<T>(
                     fd,
-                    std::max(osmium::detail::mmap_vector_size_increment, filesize(fd)),
+                    std::max(static_cast<std::size_t>(mmap_vector_size_increment), filesize(fd)),
                     filesize(fd)) {
             }
 

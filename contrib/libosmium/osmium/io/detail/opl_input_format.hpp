@@ -100,18 +100,14 @@ namespace osmium {
 
             class OPLParser : public Parser {
 
-                osmium::memory::Buffer m_buffer{1024*1024};
+                enum {
+                    initial_buffer_size = 1024ul * 1024ul
+                };
+
+                osmium::memory::Buffer m_buffer{initial_buffer_size,
+                                                osmium::memory::Buffer::auto_grow::internal};
+
                 uint64_t m_line_count = 0;
-
-                void maybe_flush() {
-                    if (m_buffer.committed() > 800*1024) {
-                        osmium::memory::Buffer buffer{1024*1024};
-                        using std::swap;
-                        swap(m_buffer, buffer);
-                        send_to_output_queue(std::move(buffer));
-
-                    }
-                }
 
             public:
 
@@ -130,7 +126,10 @@ namespace osmium {
 
                 void parse_line(const char* data) {
                     if (opl_parse_line(m_line_count, data, m_buffer, read_types())) {
-                        maybe_flush();
+                        if (m_buffer.has_nested_buffers()) {
+                            std::unique_ptr<osmium::memory::Buffer> buffer_ptr{m_buffer.get_last_nested()};
+                            send_to_output_queue(std::move(*buffer_ptr));
+                        }
                     }
                     ++m_line_count;
                 }

@@ -80,7 +80,7 @@ namespace osmium {
             return endpos();
         }
 
-        unsigned const char* next() const {
+        const unsigned char* next() const {
             return endpos();
         }
 

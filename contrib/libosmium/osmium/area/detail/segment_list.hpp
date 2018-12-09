@@ -147,13 +147,13 @@ namespace osmium {
                     m_debug(debug) {
                 }
 
-                ~SegmentList() noexcept = default;
-
                 SegmentList(const SegmentList&) = delete;
                 SegmentList(SegmentList&&) = delete;
 
                 SegmentList& operator=(const SegmentList&) = delete;
                 SegmentList& operator=(SegmentList&&) = delete;
+
+                ~SegmentList() noexcept = default;
 
                 /// The number of segments in the list.
                 std::size_t size() const noexcept {
@@ -181,7 +181,7 @@ namespace osmium {
                     return m_segments[n];
                 }
 
-                NodeRefSegment& operator[](std::size_t n) noexcept {
+                NodeRefSegment& operator[](const std::size_t n) noexcept {
                     assert(n < m_segments.size());
                     return m_segments[n];
                 }
@@ -206,7 +206,7 @@ namespace osmium {
                  * Enable or disable debug output to stderr. This is used
                  * for debugging libosmium itself.
                  */
-                void enable_debug_output(bool debug = true) noexcept {
+                void enable_debug_output(const bool debug = true) noexcept {
                     m_debug = debug;
                 }
 

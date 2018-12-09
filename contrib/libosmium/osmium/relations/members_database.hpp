@@ -67,7 +67,9 @@ namespace osmium {
                  * Special value used for member_num to mark the element as
                  * removed.
                  */
-                static const size_t removed_value = std::numeric_limits<std::size_t>::max();
+                enum {
+                    removed_value = std::numeric_limits<std::size_t>::max()
+                };
 
                 /**
                  * Object ID of this relation member. Can be a node, way,

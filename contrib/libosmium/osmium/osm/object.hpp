@@ -366,6 +366,20 @@ namespace osmium {
         using iterator       = osmium::memory::CollectionIterator<Item>;
         using const_iterator = osmium::memory::CollectionIterator<const Item>;
 
+        /**
+         * Remove all tags from this object.
+         *
+         * (This will not change the size of the object, the tags are simply
+         * marked as removed.)
+         */
+        void remove_tags() noexcept {
+            for (auto& subitem : *this) {
+                if (subitem.type() == osmium::item_type::tag_list) {
+                    subitem.set_removed(true);
+                }
+            }
+        }
+
         iterator begin() {
             return iterator(subitems_position());
         }

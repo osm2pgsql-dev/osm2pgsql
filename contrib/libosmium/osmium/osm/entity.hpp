@@ -44,7 +44,7 @@ namespace osmium {
         template <typename TSubitem, typename TIter>
         inline TSubitem& subitem_of_type(TIter it, const TIter& end) {
             for (; it != end; ++it) {
-                if (TSubitem::is_compatible_to(it->type())) {
+                if (TSubitem::is_compatible_to(it->type()) && !it->removed()) {
                     return reinterpret_cast<TSubitem&>(*it);
                 }
             }

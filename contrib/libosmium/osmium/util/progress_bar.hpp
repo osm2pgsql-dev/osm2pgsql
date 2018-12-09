@@ -45,7 +45,9 @@ namespace osmium {
      */
     class ProgressBar {
 
-        static constexpr const std::size_t full_length = 70;
+        enum {
+            full_length = 70
+        };
 
         static const char* bar(std::size_t len = full_length) noexcept {
             assert(len <= full_length);

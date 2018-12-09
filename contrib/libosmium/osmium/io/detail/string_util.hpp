@@ -55,13 +55,13 @@ namespace osmium {
 
             template <typename... TArgs>
             inline int string_snprintf(std::string& out,
-                                       size_t old_size,
-                                       size_t max_size,
+                                       const std::size_t old_size,
+                                       const std::size_t max_size,
                                        const char* format,
                                        TArgs&&... args) {
                 out.resize(old_size + max_size);
 
-                return SNPRINTF(max_size ? const_cast<char*>(out.c_str()) + old_size : nullptr,
+                return SNPRINTF(max_size ? &out[old_size] : nullptr,
                                 max_size,
                                 format,
                                 std::forward<TArgs>(args)...);
@@ -81,8 +81,8 @@ namespace osmium {
              */
             template <typename... TArgs>
             inline void append_printf_formatted_string(std::string& out,
-                                                   const char* format,
-                                                   TArgs&&... args) {
+                                                       const char* format,
+                                                       TArgs&&... args) {
 
                 // First try to write string with the max_size, if that doesn't
                 // work snprintf will tell us how much space it needs. We
@@ -95,12 +95,12 @@ namespace osmium {
                 // pointer. So we have to take this into account.
 
 #ifndef _MSC_VER
-                static const size_t max_size = 100;
+                static const std::size_t max_size = 100;
 #else
-                static const size_t max_size = 0;
+                static const std::size_t max_size = 0;
 #endif
 
-                const size_t old_size = out.size();
+                const std::size_t old_size = out.size();
 
                 const int len = string_snprintf(out,
                                                 old_size,
@@ -109,19 +109,19 @@ namespace osmium {
                                                 std::forward<TArgs>(args)...);
                 assert(len > 0);
 
-                if (size_t(len) >= max_size) {
+                if (static_cast<std::size_t>(len) >= max_size) {
 #ifndef NDEBUG
                     const int len2 =
 #endif
                                      string_snprintf(out,
                                                      old_size,
-                                                     size_t(len) + 1,
+                                                     std::size_t(len) + 1,
                                                      format,
                                                      std::forward<TArgs>(args)...);
                     assert(len2 == len);
                 }
 
-                out.resize(old_size + size_t(len));
+                out.resize(old_size + static_cast<std::size_t>(len));
             }
 
             inline uint8_t utf8_sequence_length(uint32_t first) noexcept {

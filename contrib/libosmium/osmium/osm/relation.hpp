@@ -81,7 +81,7 @@ namespace osmium {
             return endpos();
         }
 
-        unsigned const char* next() const {
+        const unsigned char* next() const {
             if (full_member()) {
                 return endpos() + reinterpret_cast<const osmium::memory::Item*>(endpos())->byte_size();
             }

@@ -68,7 +68,7 @@ cmake:
 
 This will build the examples and tests. Call `ctest` to run the tests.
 
-For more detals see the
+For more details see the
 [Building Libosmium](https://osmcode.org/libosmium/manual.html#building-libosmium)
 chapter in the manual.
 
