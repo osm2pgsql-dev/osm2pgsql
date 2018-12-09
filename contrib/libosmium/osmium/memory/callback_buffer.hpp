@@ -76,8 +76,13 @@ namespace osmium {
 
         private:
 
-            static constexpr const std::size_t default_initial_buffer_size = 1024 * 1024;
-            static constexpr const std::size_t default_max_buffer_size     =  800 * 1024;
+            enum {
+                default_initial_buffer_size = 1024ul * 1024ul
+            };
+
+            enum {
+                default_max_buffer_size =  800ul * 1024ul
+            };
 
             osmium::memory::Buffer m_buffer;
             std::size_t m_initial_buffer_size;

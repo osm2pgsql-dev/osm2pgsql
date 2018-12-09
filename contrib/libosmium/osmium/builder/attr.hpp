@@ -764,7 +764,7 @@ namespace osmium {
             template <typename TBuilder, typename THandler, typename... TArgs>
             inline typename std::enable_if<is_handled_by<THandler, TArgs...>::value>::type
             add_list(osmium::builder::Builder& parent, const TArgs&... args) {
-                TBuilder builder(parent.buffer(), &parent);
+                TBuilder builder{parent.buffer(), &parent};
                 (void)std::initializer_list<int>{
                     (THandler::set_value(builder, args), 0)...
                 };
@@ -792,7 +792,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::any_node_handlers, TArgs...>::value, "Attribute not allowed in add_node()");
 
             {
-                NodeBuilder builder(buffer);
+                NodeBuilder builder{buffer};
 
                 detail::add_basic<detail::node_handler>(builder, args...);
                 detail::add_user(builder, args...);
@@ -815,7 +815,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::any_way_handlers, TArgs...>::value, "Attribute not allowed in add_way()");
 
             {
-                WayBuilder builder(buffer);
+                WayBuilder builder{buffer};
 
                 detail::add_basic<detail::object_handler>(builder, args...);
                 detail::add_user(builder, args...);
@@ -839,7 +839,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::any_relation_handlers, TArgs...>::value, "Attribute not allowed in add_relation()");
 
             {
-                RelationBuilder builder(buffer);
+                RelationBuilder builder{buffer};
 
                 detail::add_basic<detail::object_handler>(builder, args...);
                 detail::add_user(builder, args...);
@@ -863,7 +863,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::any_changeset_handlers, TArgs...>::value, "Attribute not allowed in add_changeset()");
 
             {
-                ChangesetBuilder builder(buffer);
+                ChangesetBuilder builder{buffer};
 
                 detail::add_basic<detail::changeset_handler>(builder, args...);
                 detail::add_user(builder, args...);
@@ -887,7 +887,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::any_area_handlers, TArgs...>::value, "Attribute not allowed in add_area()");
 
             {
-                AreaBuilder builder(buffer);
+                AreaBuilder builder{buffer};
 
                 detail::add_basic<detail::object_handler>(builder, args...);
                 detail::add_user(builder, args...);
@@ -914,7 +914,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::nodes_handler, TArgs...>::value, "Attribute not allowed in add_way_node_list()");
 
             {
-                WayNodeListBuilder builder(buffer);
+                WayNodeListBuilder builder{buffer};
                 (void)std::initializer_list<int>{
                     (detail::nodes_handler::set_value(builder, args), 0)...
                 };
@@ -936,7 +936,7 @@ namespace osmium {
             static_assert(detail::are_all_handled_by<detail::tags_handler, TArgs...>::value, "Attribute not allowed in add_tag_list()");
 
             {
-                TagListBuilder builder(buffer);
+                TagListBuilder builder{buffer};
                 (void)std::initializer_list<int>{
                     (detail::tags_handler::set_value(builder, args), 0)...
                 };

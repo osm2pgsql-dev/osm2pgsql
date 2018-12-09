@@ -68,8 +68,6 @@ namespace osmium {
                 detail::BasicAssembler(config) {
             }
 
-            ~GeomAssembler() noexcept = default;
-
             /**
              * Assemble an area from the given way.
              *

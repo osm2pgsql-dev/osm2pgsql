@@ -105,7 +105,7 @@ namespace osmium {
             }
 
             InputIterator operator++(int) {
-                InputIterator tmp(*this);
+                InputIterator tmp{*this};
                 operator++();
                 return tmp;
             }
@@ -167,7 +167,7 @@ namespace osmium {
         template <typename TItem, typename TSource>
         InputIteratorRange<TSource, TItem> make_input_iterator_range(TSource& source) {
             using it_type = InputIterator<TSource, TItem>;
-            return InputIteratorRange<TSource, TItem>(it_type{source}, it_type{});
+            return InputIteratorRange<TSource, TItem>{it_type{source}, it_type{}};
         }
 
     } // namespace io

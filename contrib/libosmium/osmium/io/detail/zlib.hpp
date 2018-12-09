@@ -71,7 +71,7 @@ namespace osmium {
                 std::string output(output_size, '\0');
 
                 const auto result = ::compress(
-                    reinterpret_cast<unsigned char*>(const_cast<char *>(output.data())),
+                    reinterpret_cast<unsigned char*>(&*output.begin()),
                     &output_size,
                     reinterpret_cast<const unsigned char*>(input.data()),
                     static_cast<unsigned long>(input.size()) // NOLINT(google-runtime-int)

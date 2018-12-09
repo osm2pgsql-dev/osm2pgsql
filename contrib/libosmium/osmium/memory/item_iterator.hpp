@@ -49,7 +49,7 @@ namespace osmium {
         namespace detail {
 
             template <typename T>
-            constexpr inline bool type_is_compatible(osmium::item_type t) noexcept {
+            constexpr inline bool type_is_compatible(const osmium::item_type t) noexcept {
                 return T::is_compatible_to(t);
             }
 
@@ -120,7 +120,7 @@ namespace osmium {
             }
 
             ItemIterator<TMember> operator++(int) noexcept {
-                ItemIterator<TMember> tmp(*this);
+                ItemIterator<TMember> tmp{*this};
                 operator++();
                 return tmp;
             }
@@ -223,7 +223,7 @@ namespace osmium {
              *
              * Complexity: Linear in the number of items.
              */
-            size_t size() const noexcept {
+            std::size_t size() const noexcept {
                 if (m_begin == m_end) {
                     return 0;
                 }

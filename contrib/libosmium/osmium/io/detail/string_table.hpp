@@ -231,7 +231,9 @@ namespace osmium {
                 // make sure it doesn't. If we had max_uncompressed_blob_size
                 // many entries, we are sure they would never fit into a PBF
                 // Blob.
-                static constexpr const int32_t max_entries = static_cast<int32_t>(max_uncompressed_blob_size);
+                enum {
+                    max_entries = static_cast<int32_t>(max_uncompressed_blob_size)
+                };
 
                 // There is one string table per PBF primitive block. Most of
                 // them are really small, because most blocks are full of nodes
@@ -240,7 +242,9 @@ namespace osmium {
                 // The chosen size is enough so that 99% of all string tables
                 // in typical OSM files will only need a single memory
                 // allocation.
-                static constexpr const size_t default_stringtable_chunk_size = 100 * 1024;
+                enum {
+                    default_stringtable_chunk_size = 100u * 1024u
+                };
 
                 StringStore m_strings;
                 std::unordered_map<const char*, int32_t, djb2_hash, str_equal> m_index;

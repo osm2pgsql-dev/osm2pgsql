@@ -62,17 +62,17 @@ namespace osmium {
 
                 // This value is based on benchmarks with a planet file and
                 // some smaller files.
-                enum constant_bits {
+                enum {
                     bits = 16
                 };
 
-                enum constant_block_size : uint64_t {
+                enum : uint64_t {
                     block_size = 1ull << bits
                 };
 
                 // Minimum number of entries in the sparse index before we
                 // are considering switching to a dense index.
-                enum constant_min_dense_entries : int64_t {
+                enum : int64_t {
                     min_dense_entries = 0xffffff
                 };
 
@@ -81,7 +81,7 @@ namespace osmium {
                 // the best memory efficiency (which we would get at a factor
                 // of 2) and the performance (dense index is much faster then
                 // the sparse index).
-                enum constant_density_factor {
+                enum {
                     density_factor = 3
                 };
 

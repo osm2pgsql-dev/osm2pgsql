@@ -95,30 +95,44 @@ namespace osmium {
 
         }; // class IdSet
 
-        template <typename T>
+        namespace detail {
+
+            // This value is a compromise. For node Ids it could be bigger
+            // which would mean less (but larger) memory allocations. For
+            // relations Ids it could be smaller, because they would all fit
+            // into a smaller allocation.
+            enum : std::size_t {
+                default_chunk_bits = 22u
+            };
+
+        } // namespace detail
+
+        template <typename T, std::size_t chunk_bits = detail::default_chunk_bits>
         class IdSetDense;
 
         /**
          * Const_iterator for iterating over a IdSetDense.
          */
-        template <typename T>
+        template <typename T, std::size_t chunk_bits>
         class IdSetDenseIterator {
 
             static_assert(std::is_unsigned<T>::value, "Needs unsigned type");
             static_assert(sizeof(T) >= 4, "Needs at least 32bit type");
 
-            const IdSetDense<T>* m_set;
+            using id_set = IdSetDense<T, chunk_bits>;
+
+            const id_set* m_set;
             T m_value;
             T m_last;
 
             void next() noexcept {
                 while (m_value != m_last && !m_set->get(m_value)) {
-                    const T cid = IdSetDense<T>::chunk_id(m_value);
+                    const T cid = id_set::chunk_id(m_value);
                     assert(cid < m_set->m_data.size());
                     if (!m_set->m_data[cid]) {
-                        m_value = (cid + 1) << (IdSetDense<T>::chunk_bits + 3);
+                        m_value = (cid + 1) << (chunk_bits + 3);
                     } else {
-                        const auto slot = m_set->m_data[cid][IdSetDense<T>::offset(m_value)];
+                        const auto slot = m_set->m_data[cid][id_set::offset(m_value)];
                         if (slot == 0) {
                             m_value += 8;
                             m_value &= ~0x7ull;
@@ -136,14 +150,14 @@ namespace osmium {
             using pointer           = value_type*;
             using reference         = value_type&;
 
-            IdSetDenseIterator(const IdSetDense<T>* set, T value, T last) noexcept :
+            IdSetDenseIterator(const id_set* set, T value, T last) noexcept :
                 m_set(set),
                 m_value(value),
                 m_last(last) {
                 next();
             }
 
-            IdSetDenseIterator<T>& operator++() noexcept {
+            IdSetDenseIterator& operator++() noexcept {
                 if (m_value != m_last) {
                     ++m_value;
                     next();
@@ -151,17 +165,17 @@ namespace osmium {
                 return *this;
             }
 
-            IdSetDenseIterator<T> operator++(int) noexcept {
-                IdSetDenseIterator<T> tmp{*this};
+            IdSetDenseIterator operator++(int) noexcept {
+                IdSetDenseIterator tmp{*this};
                 operator++();
                 return tmp;
             }
 
-            bool operator==(const IdSetDenseIterator<T>& rhs) const noexcept {
+            bool operator==(const IdSetDenseIterator& rhs) const noexcept {
                 return m_set == rhs.m_set && m_value == rhs.m_value;
             }
 
-            bool operator!=(const IdSetDenseIterator<T>& rhs) const noexcept {
+            bool operator!=(const IdSetDenseIterator& rhs) const noexcept {
                 return !(*this == rhs);
             }
 
@@ -179,20 +193,17 @@ namespace osmium {
          * and larger Id sets. If it is not used, no memory is allocated at
          * all.
          */
-        template <typename T>
+        template <typename T, std::size_t chunk_bits>
         class IdSetDense : public IdSet<T> {
 
             static_assert(std::is_unsigned<T>::value, "Needs unsigned type");
             static_assert(sizeof(T) >= 4, "Needs at least 32bit type");
 
-            friend class IdSetDenseIterator<T>;
+            friend class IdSetDenseIterator<T, chunk_bits>;
 
-            // This value is a compromise. For node Ids it could be bigger
-            // which would mean less (but larger) memory allocations. For
-            // relations Ids it could be smaller, because they would all fit
-            // into a smaller allocation.
-            constexpr static const std::size_t chunk_bits = 22u;
-            constexpr static const std::size_t chunk_size = 1u << chunk_bits;
+            enum : std::size_t {
+                chunk_size = 1u << chunk_bits
+            };
 
             std::vector<std::unique_ptr<unsigned char[]>> m_data;
             T m_size = 0;
@@ -230,7 +241,7 @@ namespace osmium {
 
         public:
 
-            using const_iterator = IdSetDenseIterator<T>;
+            using const_iterator = IdSetDenseIterator<T, chunk_bits>;
 
             IdSetDense() = default;
 
@@ -284,7 +295,7 @@ namespace osmium {
                 if (chunk_id(id) >= m_data.size()) {
                     return false;
                 }
-                auto* r = m_data[chunk_id(id)].get();
+                const auto* r = m_data[chunk_id(id)].get();
                 if (!r) {
                     return false;
                 }
@@ -317,11 +328,11 @@ namespace osmium {
                 return m_data.size() * chunk_size;
             }
 
-            IdSetDenseIterator<T> begin() const {
+            const_iterator begin() const {
                 return {this, 0, last()};
             }
 
-            IdSetDenseIterator<T> end() const {
+            const_iterator end() const {
                 return {this, last(), last()};
             }
 

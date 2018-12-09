@@ -126,7 +126,9 @@ namespace osmium {
 
             class XMLParser : public Parser {
 
-                static constexpr std::size_t buffer_size = 2 * 1000 * 1000;
+                enum {
+                    initial_buffer_size = 1024ul * 1024ul
+                };
 
                 enum class context {
                     osm,
@@ -152,7 +154,8 @@ namespace osmium {
 
                 osmium::io::Header m_header{};
 
-                osmium::memory::Buffer m_buffer;
+                osmium::memory::Buffer m_buffer{initial_buffer_size,
+                                                osmium::memory::Buffer::auto_grow::internal};
 
                 std::unique_ptr<osmium::builder::NodeBuilder>                m_node_builder{};
                 std::unique_ptr<osmium::builder::WayBuilder>                 m_way_builder{};
@@ -333,6 +336,8 @@ namespace osmium {
                             }
                         } else if (!std::strcmp(name, "generator")) {
                             m_header.set("generator", value);
+                        } else if (!std::strcmp(name, "upload")) {
+                            m_header.set("xml_josm_upload", value);
                         }
                         // ignore other attributes
                     });
@@ -696,19 +701,16 @@ namespace osmium {
                 }
 
                 void flush_buffer() {
-                    if (m_buffer.committed() > buffer_size / 10 * 9) {
-                        send_to_output_queue(std::move(m_buffer));
-                        osmium::memory::Buffer buffer{buffer_size};
-                        using std::swap;
-                        swap(m_buffer, buffer);
+                    if (m_buffer.has_nested_buffers()) {
+                        std::unique_ptr<osmium::memory::Buffer> buffer_ptr{m_buffer.get_last_nested()};
+                        send_to_output_queue(std::move(*buffer_ptr));
                     }
                 }
 
             public:
 
                 explicit XMLParser(parser_arguments& args) :
-                    Parser(args),
-                    m_buffer(buffer_size) {
+                    Parser(args) {
                 }
 
                 XMLParser(const XMLParser&) = delete;

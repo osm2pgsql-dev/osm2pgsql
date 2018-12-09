@@ -50,12 +50,6 @@ DEALINGS IN THE SOFTWARE.
 #include <tuple>
 #include <utility>
 
-#ifndef _MSC_VER
-# include <unistd.h>
-#else
-# include <io.h>
-#endif
-
 namespace osmium {
 
     namespace io {
@@ -66,13 +60,13 @@ namespace osmium {
 
         protected:
 
-            bool do_fsync() const {
+            bool do_fsync() const noexcept {
                 return m_fsync == fsync::yes;
             }
 
         public:
 
-            explicit Compressor(fsync sync) :
+            explicit Compressor(const fsync sync) noexcept :
                 m_fsync(sync) {
             }
 
@@ -97,7 +91,9 @@ namespace osmium {
 
         public:
 
-            static constexpr unsigned int input_buffer_size = 1024 * 1024;
+            enum {
+                input_buffer_size = 1024u * 1024u
+            };
 
             Decompressor() = default;
 
@@ -117,7 +113,7 @@ namespace osmium {
                 return m_file_size;
             }
 
-            void set_file_size(std::size_t size) noexcept {
+            void set_file_size(const std::size_t size) noexcept {
                 m_file_size = size;
             }
 
@@ -125,7 +121,7 @@ namespace osmium {
                 return m_offset;
             }
 
-            void set_offset(std::size_t offset) noexcept {
+            void set_offset(const std::size_t offset) noexcept {
                 m_offset = offset;
             }
 
@@ -158,7 +154,7 @@ namespace osmium {
 
             CompressionFactory() = default;
 
-            const callbacks_type& find_callbacks(osmium::io::file_compression compression) const {
+            const callbacks_type& find_callbacks(const osmium::io::file_compression compression) const {
                 const auto it = m_callbacks.find(compression);
 
                 if (it != m_callbacks.end()) {
@@ -201,19 +197,19 @@ namespace osmium {
             }
 
             template <typename... TArgs>
-            std::unique_ptr<osmium::io::Compressor> create_compressor(osmium::io::file_compression compression, TArgs&&... args) const {
+            std::unique_ptr<osmium::io::Compressor> create_compressor(const osmium::io::file_compression compression, TArgs&&... args) const {
                 const auto callbacks = find_callbacks(compression);
                 return std::unique_ptr<osmium::io::Compressor>(std::get<0>(callbacks)(std::forward<TArgs>(args)...));
             }
 
-            std::unique_ptr<osmium::io::Decompressor> create_decompressor(osmium::io::file_compression compression, int fd) const {
+            std::unique_ptr<osmium::io::Decompressor> create_decompressor(const osmium::io::file_compression compression, const int fd) const {
                 const auto callbacks = find_callbacks(compression);
                 auto p = std::unique_ptr<osmium::io::Decompressor>(std::get<1>(callbacks)(fd));
                 p->set_file_size(osmium::file_size(fd));
                 return p;
             }
 
-            std::unique_ptr<osmium::io::Decompressor> create_decompressor(osmium::io::file_compression compression, const char* buffer, std::size_t size) const {
+            std::unique_ptr<osmium::io::Decompressor> create_decompressor(const osmium::io::file_compression compression, const char* buffer, const std::size_t size) const {
                 const auto callbacks = find_callbacks(compression);
                 return std::unique_ptr<osmium::io::Decompressor>(std::get<2>(callbacks)(buffer, size));
             }
@@ -226,7 +222,7 @@ namespace osmium {
 
         public:
 
-            NoCompressor(int fd, fsync sync) :
+            NoCompressor(const int fd, const fsync sync) :
                 Compressor(sync),
                 m_fd(fd) {
             }
@@ -271,11 +267,11 @@ namespace osmium {
 
         public:
 
-            explicit NoDecompressor(int fd) :
+            explicit NoDecompressor(const int fd) :
                 m_fd(fd) {
             }
 
-            NoDecompressor(const char* buffer, std::size_t size) :
+            NoDecompressor(const char* buffer, const std::size_t size) :
                 m_buffer(buffer),
                 m_buffer_size(size) {
             }
@@ -305,7 +301,7 @@ namespace osmium {
                     }
                 } else {
                     buffer.resize(osmium::io::Decompressor::input_buffer_size);
-                    const auto nread = detail::reliable_read(m_fd, const_cast<char*>(buffer.data()), osmium::io::Decompressor::input_buffer_size);
+                    const auto nread = detail::reliable_read(m_fd, &*buffer.begin(), osmium::io::Decompressor::input_buffer_size);
                     buffer.resize(std::string::size_type(nread));
                 }
 
@@ -330,8 +326,8 @@ namespace osmium {
             // we want the register_compression() function to run, setting
             // the variable is only a side-effect, it will never be used
             const bool registered_no_compression = osmium::io::CompressionFactory::instance().register_compression(osmium::io::file_compression::none,
-                [](int fd, fsync sync) { return new osmium::io::NoCompressor{fd, sync}; },
-                [](int fd) { return new osmium::io::NoDecompressor{fd}; },
+                [](const int fd, const fsync sync) { return new osmium::io::NoCompressor{fd, sync}; },
+                [](const int fd) { return new osmium::io::NoDecompressor{fd}; },
                 [](const char* buffer, std::size_t size) { return new osmium::io::NoDecompressor{buffer, size}; }
             );
 

@@ -199,7 +199,9 @@ namespace osmium {
             }
 
             // Arbitrary limit how long integers can get
-            constexpr const int max_int_len = 16;
+            enum {
+                max_int_len = 16
+            };
 
             template <typename T>
             inline T opl_parse_int(const char** s) {

@@ -122,9 +122,13 @@ namespace osmium {
              * as well as Osmium implementation always
              * uses at most 8k entities in a block.
              */
-            constexpr int32_t max_entities_per_block = 8000;
+            enum {
+                max_entities_per_block = 8000
+            };
 
-            constexpr int location_granularity = 100;
+            enum {
+                location_granularity = 100
+            };
 
             /**
              * convert a double lat or lon value to an int, respecting the granularity
@@ -434,7 +438,9 @@ namespace osmium {
                  * enough space for the string table (which typically
                  * needs about 0.1 to 0.3% of the block size).
                  */
-                constexpr static std::size_t max_used_blob_size = max_uncompressed_blob_size * 95 / 100;
+                enum {
+                    max_used_blob_size = max_uncompressed_blob_size * 95u / 100u
+                };
 
                 bool can_add(OSMFormat::PrimitiveGroup type) const noexcept {
                     if (type != m_type) {

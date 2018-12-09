@@ -62,7 +62,9 @@ namespace osmium {
                 // element in the map (id + value + pointers to left, right,
                 // and parent plus some overhead for color of red-black-tree
                 // or similar).
-                static constexpr size_t element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4;
+                enum {
+                    element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4u
+                };
 
                 std::map<TId, TValue> m_elements;
 
