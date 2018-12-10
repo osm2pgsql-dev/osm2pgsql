@@ -819,20 +819,6 @@ void middle_pgsql_t::analyze(void)
     }
 }
 
-void middle_pgsql_t::end(void)
-{
-    for (auto& table: tables) {
-        PGconn *sql_conn = table.sql_conn;
-
-        // Commit transaction */
-        if (table.stop && table.transactionMode) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
-            table.transactionMode = 0;
-        }
-
-    }
-}
-
 /**
  * Helper to create SQL queries.
  *

@@ -87,7 +87,6 @@ struct middle_ram_t : public middle_t {
     void start(const options_t *out_options_) override;
     void stop(osmium::thread::Pool &pool) override;
     void analyze(void) override;
-    void end(void) override;
     void commit(void) override;
 
     void nodes_set(osmium::Node const &node) override;

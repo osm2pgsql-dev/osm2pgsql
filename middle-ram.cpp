@@ -155,11 +155,6 @@ void middle_ram_t::analyze(void)
     /* No need */
 }
 
-void middle_ram_t::end(void)
-{
-    /* No need */
-}
-
 void middle_ram_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
