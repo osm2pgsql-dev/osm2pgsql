@@ -21,8 +21,8 @@ struct middle_pgsql_t : public slim_middle_t {
 
     void start(const options_t *out_options_) override;
     void stop(osmium::thread::Pool &pool) override;
-    void analyze(void) override;
-    void commit(void) override;
+    void analyze() override;
+    void commit() override;
 
     void nodes_set(osmium::Node const &node) override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
@@ -54,33 +54,30 @@ struct middle_pgsql_t : public slim_middle_t {
     struct table_desc
     {
         table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL,
                    const char *create_ = NULL,
                    const char *create_index_ = NULL,
                    const char *prepare_ = NULL,
                    const char *prepare_intarray_ = NULL,
-                   const char *copy_ = NULL,
-                   const char *analyze_ = NULL,
-                   const char *stop_ = NULL,
                    const char *array_indexes_ = NULL);
 
         const char *name;
-        const char *start;
         const char *create;
         const char *create_index;
         const char *prepare;
         const char *prepare_intarray;
-        const char *copy;
-        const char *analyze;
-        const char *commit;
         const char *array_indexes;
 
         int copyMode;    /* True if we are in copy mode */
-        int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
 
+        void begin();
+        void begin_copy();
         void end_copy();
         void stop(bool droptemp, bool build_indexes);
+        void commit();
+
+    private:
+        int transactionMode; /* True if we are in an extended transaction */
     };
 
     std::shared_ptr<middle_query_t>
