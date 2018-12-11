@@ -41,10 +41,6 @@ using namespace std;
 #include "pgsql.hpp"
 #include "util.hpp"
 
-enum table_id {
-    t_node, t_way, t_rel
-} ;
-
 /**
  * Helper to create SQL queries.
  *
