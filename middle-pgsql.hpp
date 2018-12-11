@@ -17,7 +17,6 @@
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
-    virtual ~middle_pgsql_t();
 
     void start(const options_t *out_options_) override;
     void stop(osmium::thread::Pool &pool) override;
@@ -60,6 +59,8 @@ struct middle_pgsql_t : public slim_middle_t {
                    const char *prepare_intarray_ = NULL,
                    const char *array_indexes_ = NULL);
 
+        ~table_desc();
+
         const char *name;
         const char *create;
         const char *create_index;
@@ -70,6 +71,7 @@ struct middle_pgsql_t : public slim_middle_t {
         int copyMode;    /* True if we are in copy mode */
         struct pg_conn *sql_conn;
 
+        void connect(options_t const *options);
         void begin();
         void begin_copy();
         void end_copy();
@@ -95,7 +97,6 @@ private:
     /**
      * Sets up sql_conn for the table
      */
-    void connect(table_desc& table);
     void local_nodes_set(osmium::Node const &node);
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);

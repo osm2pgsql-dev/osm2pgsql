@@ -45,6 +45,94 @@ enum table_id {
     t_node, t_way, t_rel
 } ;
 
+/**
+ * Helper to create SQL queries.
+ *
+ * The input string is mangled as follows:
+ * %p replaced by the content of the "prefix" option
+ * %i replaced by the content of the "tblsslim_data" option
+ * %t replaced by the content of the "tblssslim_index" option
+ * %m replaced by "UNLOGGED" if the "unlogged" option is set
+ * other occurrences of the "%" char are treated normally.
+ * any occurrence of { or } will be ignored (not copied to output string);
+ * anything inside {} is only copied if it contained at least one of
+ * %p, %i, %t, %m that was not NULL.
+ *
+ * So, the input string
+ *    Hello{ dear %i}!
+ * will, if i is set to "John", translate to
+ *    Hello dear John!
+ * but if i is unset, translate to
+ *    Hello!
+ *
+ * This is used for constructing SQL queries with proper tablespace settings.
+ */
+static void set_prefix_and_tbls(options_t const *options, char const **string)
+{
+    char buffer[1024];
+    const char *source;
+    char *dest;
+    char *openbrace = nullptr;
+    int copied = 0;
+
+    if (*string == nullptr) {
+        return;
+    }
+    source = *string;
+    dest = buffer;
+
+    while (*source) {
+        if (*source == '{') {
+            openbrace = dest;
+            copied = 0;
+            source++;
+            continue;
+        } else if (*source == '}') {
+            if (!copied && openbrace)
+                dest = openbrace;
+            source++;
+            continue;
+        } else if (*source == '%') {
+            if (*(source + 1) == 'p') {
+                if (!options->prefix.empty()) {
+                    strcpy(dest, options->prefix.c_str());
+                    dest += strlen(options->prefix.c_str());
+                    copied = 1;
+                }
+                source += 2;
+                continue;
+            } else if (*(source + 1) == 't') {
+                if (options->tblsslim_data) {
+                    strcpy(dest, options->tblsslim_data->c_str());
+                    dest += strlen(options->tblsslim_data->c_str());
+                    copied = 1;
+                }
+                source += 2;
+                continue;
+            } else if (*(source + 1) == 'i') {
+                if (options->tblsslim_index) {
+                    strcpy(dest, options->tblsslim_index->c_str());
+                    dest += strlen(options->tblsslim_index->c_str());
+                    copied = 1;
+                }
+                source += 2;
+                continue;
+            } else if (*(source + 1) == 'm') {
+                if (options->unlogged) {
+                    strcpy(dest, "UNLOGGED");
+                    dest += 8;
+                    copied = 1;
+                }
+                source += 2;
+                continue;
+            }
+        }
+        *(dest++) = *(source++);
+    }
+    *dest = 0;
+    *string = strdup(buffer);
+}
+
 middle_pgsql_t::table_desc::table_desc(const char *name_, const char *create_,
                                        const char *create_index_,
                                        const char *prepare_,
@@ -54,6 +142,44 @@ middle_pgsql_t::table_desc::table_desc(const char *name_, const char *create_,
   prepare_intarray(prepare_intarray_), array_indexes(array_indexes_),
   copyMode(0), sql_conn(nullptr), transactionMode(0)
 {}
+
+void middle_pgsql_t::table_desc::connect(options_t const *options)
+{
+    set_prefix_and_tbls(options, &name);
+    set_prefix_and_tbls(options, &create);
+    set_prefix_and_tbls(options, &create_index);
+    set_prefix_and_tbls(options, &prepare);
+    set_prefix_and_tbls(options, &prepare_intarray);
+    set_prefix_and_tbls(options, &array_indexes);
+
+    fprintf(stderr, "Setting up table: %s\n", name);
+    sql_conn = PQconnectdb(options->database_options.conninfo().c_str());
+
+    // Check to see that the backend connection was successfully made, and if not, exit */
+    if (PQstatus(sql_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n",
+                PQerrorMessage(sql_conn));
+        util::exit_nicely();
+    }
+
+    /*
+     *
+     * To allow for parallelisation, the second phase (iterate_ways), cannot be run
+     * in an extended transaction and each update statement is its own transaction.
+     * Therefore commit rate of postgresql is very important to ensure high speed.
+     * If fsync is enabled to ensure safe transactions, the commit rate can be very low.
+     * To compensate for this, one can set the postgresql parameter synchronous_commit
+     * to off. This means an update statement returns to the client as success before the
+     * transaction is saved to disk via fsync, which in return allows to bunch up multiple
+     * transactions into a single fsync. This may result in some data loss in the case of a
+     * database crash. However, as we don't currently have the ability to restart a full osm2pgsql
+     * import session anyway, this is fine. Diff imports are also not effected, as the next
+     * diff import would simply deal with all pending ways that were not previously finished.
+     * This parameter does not effect safety from data corruption on the back-end.
+     */
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+    pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
+}
 
 void middle_pgsql_t::table_desc::begin_copy()
 {
@@ -118,6 +244,13 @@ void middle_pgsql_t::table_desc::commit()
     if (transactionMode) {
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "COMMIT");
         transactionMode = 0;
+    }
+}
+
+middle_pgsql_t::table_desc::~table_desc()
+{
+    if (sql_conn) {
+        PQfinish(sql_conn);
     }
 }
 
@@ -856,114 +989,6 @@ void middle_pgsql_t::analyze()
     }
 }
 
-/**
- * Helper to create SQL queries.
- *
- * The input string is mangled as follows:
- * %p replaced by the content of the "prefix" option
- * %i replaced by the content of the "tblsslim_data" option
- * %t replaced by the content of the "tblssslim_index" option
- * %m replaced by "UNLOGGED" if the "unlogged" option is set
- * other occurrences of the "%" char are treated normally.
- * any occurrence of { or } will be ignored (not copied to output string);
- * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
- *
- * So, the input string
- *    Hello{ dear %i}!
- * will, if i is set to "John", translate to
- *    Hello dear John!
- * but if i is unset, translate to
- *    Hello!
- *
- * This is used for constructing SQL queries with proper tablespace settings.
- */
-static void set_prefix_and_tbls(const struct options_t *options, const char **string)
-{
-    char buffer[1024];
-    const char *source;
-    char *dest;
-    char *openbrace = nullptr;
-    int copied = 0;
-
-    if (*string == nullptr) {
-        return;
-    }
-    source = *string;
-    dest = buffer;
-
-    while (*source) {
-        if (*source == '{') {
-            openbrace = dest;
-            copied = 0;
-            source++;
-            continue;
-        } else if (*source == '}') {
-            if (!copied && openbrace) dest = openbrace;
-            source++;
-            continue;
-        } else if (*source == '%') {
-            if (*(source+1) == 'p') {
-                if (!options->prefix.empty()) {
-                    strcpy(dest, options->prefix.c_str());
-                    dest += strlen(options->prefix.c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 't') {
-                if (options->tblsslim_data) {
-                    strcpy(dest, options->tblsslim_data->c_str());
-                    dest += strlen(options->tblsslim_data->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'i') {
-                if (options->tblsslim_index) {
-                    strcpy(dest, options->tblsslim_index->c_str());
-                    dest += strlen(options->tblsslim_index->c_str());
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            } else if (*(source+1) == 'm') {
-                if (options->unlogged) {
-                    strcpy(dest, "UNLOGGED");
-                    dest += 8;
-                    copied = 1;
-                }
-                source+=2;
-                continue;
-            }
-        }
-        *(dest++) = *(source++);
-    }
-    *dest = 0;
-    *string = strdup(buffer);
-}
-
-void middle_pgsql_t::connect(table_desc& table) {
-    PGconn *sql_conn;
-
-    set_prefix_and_tbls(out_options, &(table.name));
-    set_prefix_and_tbls(out_options, &(table.create));
-    set_prefix_and_tbls(out_options, &(table.create_index));
-    set_prefix_and_tbls(out_options, &(table.prepare));
-    set_prefix_and_tbls(out_options, &(table.prepare_intarray));
-    set_prefix_and_tbls(out_options, &(table.array_indexes));
-
-    fprintf(stderr, "Setting up table: %s\n", table.name);
-    sql_conn = PQconnectdb(out_options->database_options.conninfo().c_str());
-
-    // Check to see that the backend connection was successfully made, and if not, exit */
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(sql_conn));
-        util::exit_nicely();
-    }
-    table.sql_conn = sql_conn;
-}
-
 void middle_pgsql_t::start(const options_t *out_options_)
 {
     out_options = out_options_;
@@ -995,27 +1020,10 @@ void middle_pgsql_t::start(const options_t *out_options_)
     fprintf(stderr, "Mid: pgsql, cache=%d\n", out_options->cache);
 
     // We use a connection per table to enable the use of COPY */
-    for (auto& table: tables) {
-        connect(table);
+    for (auto &table : tables) {
+        table.connect(out_options);
         PGconn* sql_conn = table.sql_conn;
 
-        /*
-         * To allow for parallelisation, the second phase (iterate_ways), cannot be run
-         * in an extended transaction and each update statement is its own transaction.
-         * Therefore commit rate of postgresql is very important to ensure high speed.
-         * If fsync is enabled to ensure safe transactions, the commit rate can be very low.
-         * To compensate for this, one can set the postgresql parameter synchronous_commit
-         * to off. This means an update statement returns to the client as success before the
-         * transaction is saved to disk via fsync, which in return allows to bunch up multiple
-         * transactions into a single fsync. This may result in some data loss in the case of a
-         * database crash. However, as we don't currently have the ability to restart a full osm2pgsql
-         * import session anyway, this is fine. Diff imports are also not effected, as the next
-         * diff import would simply deal with all pending ways that were not previously finished.
-         * This parameter does not effect safety from data corruption on the back-end.
-         */
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
-
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
         if (dropcreate) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s CASCADE", table.name);
         }
@@ -1125,15 +1133,6 @@ middle_pgsql_t::middle_pgsql_t()
     // clang-format on
 }
 
-middle_pgsql_t::~middle_pgsql_t() {
-    for (auto &table : tables) {
-        if (table.sql_conn) {
-            PQfinish(table.sql_conn);
-        }
-    }
-
-}
-
 std::shared_ptr<middle_query_t>
 middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
 {
@@ -1153,7 +1152,7 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
 
     // We use a connection per table to enable the use of COPY
     for (int i = 0; i < NUM_TABLES; i++) {
-        mid->connect(mid->tables[i]);
+        mid->tables[i].connect(mid->out_options);
         PGconn* sql_conn = mid->tables[i].sql_conn;
 
         if (mid->tables[i].prepare) {
