@@ -311,7 +311,8 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     // get any remaining nodes from the DB
     buffer[buffer.size() - 1] = '}';
 
-    pgsql_endCopy(node_table);
+    // Nodes must have been written back at this point.
+    assert(node_table->copyMode == 0);
 
     PGconn *sql_conn = node_table->sql_conn;
 
@@ -462,8 +463,8 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     char const *paramValues[1];
     PGconn *sql_conn = way_table->sql_conn;
 
-    // Make sure we're out of copy mode */
-    pgsql_endCopy(way_table);
+    // Make sure we're out of copy mode
+    assert(way_table->copyMode == 0);
 
     char tmp[16];
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
@@ -511,7 +512,8 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     // replace last , with } to complete list of ids
     tmp2[tmp2.length() - 1] = '}'; 
 
-    pgsql_endCopy(way_table);
+    // Make sures all ways have been written back.
+    assert(way_table->copyMode == 0);
 
     PGconn *sql_conn = way_table->sql_conn;
 
@@ -696,8 +698,8 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
     PGconn *sql_conn = rel_table->sql_conn;
     taglist_t member_temp;
 
-    // Make sure we're out of copy mode */
-    pgsql_endCopy(rel_table);
+    // Make sure we're out of copy mode
+    assert(rel_table->copyMode == 0);
 
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
     paramValues[0] = tmp;
@@ -791,7 +793,7 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     char const *paramValues[1];
     char buffer[64];
     // Make sure we're out of copy mode */
-    pgsql_endCopy( rel_table );
+    assert(rel_table->copyMode == 0);
 
     sprintf(buffer, "%" PRIdOSMID, way_id);
     paramValues[0] = buffer;
@@ -1026,6 +1028,13 @@ void middle_pgsql_t::commit(void) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.stop);
             table.transactionMode = 0;
         }
+    }
+}
+
+void middle_pgsql_t::flush()
+{
+    for (auto &table : tables) {
+        pgsql_endCopy(&table);
     }
 }
 

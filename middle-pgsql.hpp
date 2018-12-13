@@ -43,6 +43,8 @@ struct middle_pgsql_t : public slim_middle_t {
     void relations_delete(osmid_t id) override;
     void relation_changed(osmid_t id) override;
 
+    void flush() override;
+
     void iterate_ways(middle_t::pending_processor& pf) override;
     void iterate_relations(pending_processor& pf) override;
 

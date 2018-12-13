@@ -180,6 +180,11 @@ void osmdata_t::start() {
     mid->start(outs[0]->get_options());
 }
 
+void osmdata_t::type_changed()
+{
+    mid->flush();
+}
+
 namespace {
 
 //TODO: have the main thread using the main middle to query the middle for batches of ways (configurable number)

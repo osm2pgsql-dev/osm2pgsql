@@ -92,6 +92,9 @@ struct middle_t : public middle_query_t {
     virtual void ways_set(osmium::Way const &way) = 0;
     virtual void relations_set(osmium::Relation const &rel) = 0;
 
+    /// Write all pending data to permanent storage.
+    virtual void flush() = 0;
+
     struct pending_processor {
         virtual ~pending_processor() {}
         virtual void enqueue_ways(osmid_t id) = 0;
