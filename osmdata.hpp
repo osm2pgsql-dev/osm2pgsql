@@ -14,7 +14,8 @@ class output_t;
 struct middle_t;
 class reprojection;
 
-class osmdata_t {
+class osmdata_t
+{
 public:
     osmdata_t(std::shared_ptr<middle_t> mid_,
               std::shared_ptr<output_t> const &out_,
@@ -25,6 +26,7 @@ public:
     ~osmdata_t();
 
     void start();
+    void type_changed();
     void stop();
 
     int node_add(osmium::Node const &node);

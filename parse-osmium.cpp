@@ -124,6 +124,7 @@ void parse_osmium_t::stream_file(const std::string &filename, const std::string 
 
     fprintf(stderr, "Using %s parser.\n", osmium::io::as_string(infile.format()));
 
+    m_type = osmium::item_type::node;
     osmium::io::Reader reader(infile);
     osmium::apply(reader, *this);
     reader.close();
@@ -131,6 +132,11 @@ void parse_osmium_t::stream_file(const std::string &filename, const std::string 
 
 void parse_osmium_t::node(osmium::Node const &node)
 {
+    if (m_type != osmium::item_type::node) {
+        m_type = osmium::item_type::node;
+        m_data->type_changed();
+    }
+
     if (node.deleted()) {
         m_data->node_delete(node.id());
     } else {
@@ -159,6 +165,11 @@ void parse_osmium_t::node(osmium::Node const &node)
 
 void parse_osmium_t::way(osmium::Way& way)
 {
+    if (m_type != osmium::item_type::way) {
+        m_type = osmium::item_type::way;
+        m_data->type_changed();
+    }
+
     if (way.deleted()) {
         m_data->way_delete(way.id());
     } else {
@@ -173,6 +184,11 @@ void parse_osmium_t::way(osmium::Way& way)
 
 void parse_osmium_t::relation(osmium::Relation const &rel)
 {
+    if (m_type != osmium::item_type::relation) {
+        m_type = osmium::item_type::relation;
+        m_data->type_changed();
+    }
+
     if (rel.deleted()) {
         m_data->relation_delete(rel.id());
     } else {

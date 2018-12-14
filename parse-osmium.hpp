@@ -129,6 +129,8 @@ private:
     bool m_append;
     boost::optional<osmium::Box> m_bbox;
     parse_stats_t m_stats;
+    // Current type being parsed.
+    osmium::item_type m_type;
 };
 
 #endif
