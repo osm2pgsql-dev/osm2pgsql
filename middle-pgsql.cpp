@@ -130,11 +130,10 @@ static void set_prefix_and_tbls(options_t const *options, char const **string)
 }
 
 middle_pgsql_t::table_desc::table_desc(const char *name_, const char *create_,
-                                       const char *create_index_,
                                        const char *prepare_,
                                        const char *prepare_intarray_,
                                        const char *array_indexes_)
-: name(name_), create(create_), create_index(create_index_), prepare(prepare_),
+: name(name_), create(create_), prepare(prepare_),
   prepare_intarray(prepare_intarray_), array_indexes(array_indexes_),
   copyMode(0), sql_conn(nullptr), transactionMode(0)
 {}
@@ -143,7 +142,6 @@ void middle_pgsql_t::table_desc::connect(options_t const *options)
 {
     set_prefix_and_tbls(options, &name);
     set_prefix_and_tbls(options, &create);
-    set_prefix_and_tbls(options, &create_index);
     set_prefix_and_tbls(options, &prepare);
     set_prefix_and_tbls(options, &prepare_intarray);
     set_prefix_and_tbls(options, &array_indexes);
@@ -1028,9 +1026,6 @@ void middle_pgsql_t::start(const options_t *out_options_)
 
         if (dropcreate && table.create) {
             pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create);
-            if (table.create_index) {
-              pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", table.create_index);
-            }
         }
         pgsql_exec(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
@@ -1089,7 +1084,6 @@ middle_pgsql_t::middle_pgsql_t()
     tables[NODE_TABLE] = table_desc(
             /*name*/ "%p_nodes",
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null) {TABLESPACE %t};\n",
-    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4) AS INSERT INTO %p_nodes VALUES ($1,$2,$3);\n"
                "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n",
@@ -1099,7 +1093,6 @@ middle_pgsql_t::middle_pgsql_t()
         /*table t_way,*/
             /*name*/ "%p_ways",
           /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
@@ -1114,7 +1107,6 @@ middle_pgsql_t::middle_pgsql_t()
         /*table = t_rel,*/
             /*name*/ "%p_rels",
           /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
-    /*create_index*/ nullptr,
          /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",

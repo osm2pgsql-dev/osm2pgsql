@@ -54,7 +54,6 @@ struct middle_pgsql_t : public slim_middle_t {
     {
         table_desc(const char *name_ = NULL,
                    const char *create_ = NULL,
-                   const char *create_index_ = NULL,
                    const char *prepare_ = NULL,
                    const char *prepare_intarray_ = NULL,
                    const char *array_indexes_ = NULL);
@@ -63,7 +62,6 @@ struct middle_pgsql_t : public slim_middle_t {
 
         const char *name;
         const char *create;
-        const char *create_index;
         const char *prepare;
         const char *prepare_intarray;
         const char *array_indexes;
