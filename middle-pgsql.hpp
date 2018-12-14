@@ -50,27 +50,26 @@ struct middle_pgsql_t : public slim_middle_t {
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    struct table_desc
+    class table_desc
     {
-        table_desc(const char *name_ = NULL,
-                   const char *create_ = NULL,
-                   const char *prepare_ = NULL,
-                   const char *prepare_intarray_ = NULL,
-                   const char *array_indexes_ = NULL);
+    public:
+        table_desc() : sql_conn(nullptr) {}
+        table_desc(char const *name, char const *create,
+                   char const *prepare = "", char const *prepare_intarray = "",
+                   char const *array_indexes = "");
 
         ~table_desc();
 
-        const char *name;
-        const char *create;
-        const char *prepare;
-        const char *prepare_intarray;
-        const char *array_indexes;
+        char const *name() const { return m_name.c_str(); }
+        void clear_array_indexes() { m_array_indexes.clear(); }
 
         int copyMode;    /* True if we are in copy mode */
         struct pg_conn *sql_conn;
 
         void connect(options_t const *options);
         void begin();
+        void prepare_queries(bool append);
+        void create();
         void begin_copy();
         void end_copy();
         void stop(bool droptemp, bool build_indexes);
@@ -78,6 +77,11 @@ struct middle_pgsql_t : public slim_middle_t {
 
     private:
         int transactionMode; /* True if we are in an extended transaction */
+        std::string m_name;
+        std::string m_create;
+        std::string m_prepare;
+        std::string m_prepare_intarray;
+        std::string m_array_indexes;
     };
 
     std::shared_ptr<middle_query_t>
