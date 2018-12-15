@@ -77,6 +77,9 @@ struct middle_pgsql_t : public slim_middle_t {
         pg_result_t
         exec_prepared(char const *stmt, char const *param,
                       ExecStatusType expect = PGRES_TUPLES_OK) const;
+        pg_result_t
+        exec_prepared(char const *stmt, osmid_t osm_id,
+                      ExecStatusType expect = PGRES_TUPLES_OK) const;
         void stop(bool droptemp, bool build_indexes);
         void commit();
 

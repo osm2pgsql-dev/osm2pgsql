@@ -225,6 +225,15 @@ middle_pgsql_t::table_desc::exec_prepared(char const *stmt, char const *param,
     return pgsql_execPrepared(sql_conn, stmt, 1, &param, expect);
 }
 
+pg_result_t
+middle_pgsql_t::table_desc::exec_prepared(char const *stmt, osmid_t osm_id,
+                                          ExecStatusType expect) const
+{
+    char buffer[64];
+    sprintf(buffer, "%" PRIdOSMID, osm_id);
+    return exec_prepared(stmt, buffer, expect);
+}
+
 void middle_pgsql_t::table_desc::stop(bool droptemp, bool build_indexes)
 {
     time_t start, end;
@@ -543,9 +552,7 @@ void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
     // Make sure we're out of copy mode */
     tables[NODE_TABLE].end_copy();
 
-    char buffer[64];
-    sprintf(buffer, "%" PRIdOSMID, osm_id);
-    tables[NODE_TABLE].exec_prepared("delete_node", buffer, PGRES_COMMAND_OK);
+    tables[NODE_TABLE].exec_prepared("delete_node", osm_id, PGRES_COMMAND_OK);
 }
 
 void middle_pgsql_t::nodes_delete(osmid_t osm_id)
@@ -568,7 +575,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     tables[REL_TABLE].end_copy();
 
     char buffer[64];
-    sprintf( buffer, "%" PRIdOSMID, osm_id );
+    sprintf(buffer, "%" PRIdOSMID, osm_id);
 
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
@@ -635,10 +642,8 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     // Make sure we're out of copy mode
     assert(tables[WAY_TABLE].copyMode == 0);
 
-    char tmp[16];
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
+    auto res = tables[WAY_TABLE].exec_prepared("get_way", id);
 
-    auto res = tables[WAY_TABLE].exec_prepared("get_way", tmp);
     if (PQntuples(res.get()) != 1) {
         return false;
     }
@@ -728,9 +733,7 @@ void middle_pgsql_t::ways_delete(osmid_t osm_id)
     // Make sure we're out of copy mode */
     tables[WAY_TABLE].end_copy();
 
-    char buffer[64];
-    sprintf( buffer, "%" PRIdOSMID, osm_id );
-    tables[WAY_TABLE].exec_prepared("delete_way", buffer, PGRES_COMMAND_OK);
+    tables[WAY_TABLE].exec_prepared("delete_way", osm_id, PGRES_COMMAND_OK);
 }
 
 void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
@@ -757,12 +760,9 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     // Make sure we're out of copy mode */
     tables[REL_TABLE].end_copy();
 
-    char buffer[64];
-    sprintf(buffer, "%" PRIdOSMID, osm_id);
-
     //keep track of whatever rels this way intersects
     //TODO: dont need to stop the copy above since we are only reading?
-    auto res = tables[REL_TABLE].exec_prepared("mark_rels_by_way", buffer);
+    auto res = tables[REL_TABLE].exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
         osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
@@ -852,10 +852,7 @@ bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) c
     // Make sure we're out of copy mode
     assert(tables[REL_TABLE].copyMode == 0);
 
-    char tmp[16];
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-
-    auto res = tables[REL_TABLE].exec_prepared("get_rel", tmp);
+    auto res = tables[REL_TABLE].exec_prepared("get_rel", id);
     // Fields are: members, tags, member_count */
 
     if (PQntuples(res.get()) != 1) {
@@ -918,13 +915,10 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     // Make sure we're out of copy mode */
     tables[REL_TABLE].end_copy();
 
-    char buffer[64];
-    sprintf( buffer, "%" PRIdOSMID, osm_id );
-
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
     //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
-    auto res = tables[REL_TABLE].exec_prepared("mark_rels", buffer);
+    auto res = tables[REL_TABLE].exec_prepared("mark_rels", osm_id);
     for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
         osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
@@ -937,10 +931,7 @@ idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
     // Make sure we're out of copy mode */
     assert(tables[REL_TABLE].copyMode == 0);
 
-    char buffer[64];
-    sprintf(buffer, "%" PRIdOSMID, way_id);
-
-    auto result = tables[REL_TABLE].exec_prepared("rels_using_way", buffer);
+    auto result = tables[REL_TABLE].exec_prepared("rels_using_way", way_id);
     const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
     rel_ids.resize((size_t) ntuples);
