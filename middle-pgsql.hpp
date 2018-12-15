@@ -9,11 +9,13 @@
 #ifndef MIDDLE_PGSQL_H
 #define MIDDLE_PGSQL_H
 
-#include "middle.hpp"
-#include "node-ram-cache.hpp"
-#include "node-persistent-cache.hpp"
-#include "id-tracker.hpp"
 #include <memory>
+
+#include "id-tracker.hpp"
+#include "middle.hpp"
+#include "node-persistent-cache.hpp"
+#include "node-ram-cache.hpp"
+#include "pgsql.hpp"
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
@@ -72,6 +74,9 @@ struct middle_pgsql_t : public slim_middle_t {
         void create();
         void begin_copy();
         void end_copy();
+        pg_result_t
+        exec_prepared(char const *stmt, char const *param,
+                      ExecStatusType expect = PGRES_TUPLES_OK) const;
         void stop(bool droptemp, bool build_indexes);
         void commit();
 
