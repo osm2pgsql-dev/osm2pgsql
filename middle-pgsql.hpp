@@ -9,20 +9,21 @@
 #ifndef MIDDLE_PGSQL_H
 #define MIDDLE_PGSQL_H
 
-#include "middle.hpp"
-#include "node-ram-cache.hpp"
-#include "node-persistent-cache.hpp"
-#include "id-tracker.hpp"
 #include <memory>
+
+#include "id-tracker.hpp"
+#include "middle.hpp"
+#include "node-persistent-cache.hpp"
+#include "node-ram-cache.hpp"
+#include "pgsql.hpp"
 
 struct middle_pgsql_t : public slim_middle_t {
     middle_pgsql_t();
-    virtual ~middle_pgsql_t();
 
     void start(const options_t *out_options_) override;
     void stop(osmium::thread::Pool &pool) override;
-    void analyze(void) override;
-    void commit(void) override;
+    void analyze() override;
+    void commit() override;
 
     void nodes_set(osmium::Node const &node) override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
@@ -51,32 +52,44 @@ struct middle_pgsql_t : public slim_middle_t {
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    struct table_desc {
-        table_desc(const char *name_ = NULL,
-                   const char *start_ = NULL,
-                   const char *create_ = NULL,
-                   const char *create_index_ = NULL,
-                   const char *prepare_ = NULL,
-                   const char *prepare_intarray_ = NULL,
-                   const char *copy_ = NULL,
-                   const char *analyze_ = NULL,
-                   const char *stop_ = NULL,
-                   const char *array_indexes_ = NULL);
+    class table_desc
+    {
+    public:
+        table_desc() : sql_conn(nullptr) {}
+        table_desc(char const *name, char const *create,
+                   char const *prepare = "", char const *prepare_intarray = "",
+                   char const *array_indexes = "");
 
-        const char *name;
-        const char *start;
-        const char *create;
-        const char *create_index;
-        const char *prepare;
-        const char *prepare_intarray;
-        const char *copy;
-        const char *analyze;
-        const char *stop;
-        const char *array_indexes;
+        ~table_desc();
+
+        char const *name() const { return m_name.c_str(); }
+        void clear_array_indexes() { m_array_indexes.clear(); }
 
         int copyMode;    /* True if we are in copy mode */
-        int transactionMode;    /* True if we are in an extended transaction */
         struct pg_conn *sql_conn;
+
+        void connect(options_t const *options);
+        void begin();
+        void prepare_queries(bool append);
+        void create();
+        void begin_copy();
+        void end_copy();
+        pg_result_t
+        exec_prepared(char const *stmt, char const *param,
+                      ExecStatusType expect = PGRES_TUPLES_OK) const;
+        pg_result_t
+        exec_prepared(char const *stmt, osmid_t osm_id,
+                      ExecStatusType expect = PGRES_TUPLES_OK) const;
+        void stop(bool droptemp, bool build_indexes);
+        void commit();
+
+    private:
+        int transactionMode; /* True if we are in an extended transaction */
+        std::string m_name;
+        std::string m_create;
+        std::string m_prepare;
+        std::string m_prepare_intarray;
+        std::string m_array_indexes;
     };
 
     std::shared_ptr<middle_query_t>
@@ -91,12 +104,9 @@ private:
         NUM_TABLES
     };
 
-    void pgsql_stop_one(table_desc *table);
-
     /**
      * Sets up sql_conn for the table
      */
-    void connect(table_desc& table);
     void local_nodes_set(osmium::Node const &node);
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);
@@ -116,7 +126,6 @@ private:
 
     void buffer_correct_params(char const **param, size_t size);
 
-    bool build_indexes;
     std::string copy_buffer;
 };
 
