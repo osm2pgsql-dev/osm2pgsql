@@ -991,10 +991,9 @@ void middle_pgsql_t::start(const options_t *out_options_)
     // We use a connection per table to enable the use of COPY */
     for (auto &table : tables) {
         table.connect(out_options);
-        PGconn* sql_conn = table.sql_conn;
 
         if (dropcreate) {
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK,
+            pgsql_exec(table.sql_conn, PGRES_COMMAND_OK,
                        "DROP TABLE IF EXISTS %s CASCADE", table.name());
         }
 
