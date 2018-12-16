@@ -1004,10 +1004,20 @@ void middle_pgsql_t::commit()
     }
 }
 
-void middle_pgsql_t::flush()
+void middle_pgsql_t::flush(osmium::item_type new_type)
 {
-    for (auto &table : tables) {
-        table.end_copy();
+    switch (new_type)
+    {
+        case osmium::item_type::way:
+            tables[NODE_TABLE].end_copy();
+            break;
+        case osmium::item_type::relation:
+            tables[NODE_TABLE].end_copy();
+            tables[WAY_TABLE].end_copy();
+            break;
+        default:
+            // nothing needed
+            break;
     }
 }
 

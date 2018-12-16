@@ -26,7 +26,7 @@ public:
     ~osmdata_t();
 
     void start();
-    void type_changed();
+    void type_changed(osmium::item_type new_type);
     void stop();
 
     int node_add(osmium::Node const &node);
