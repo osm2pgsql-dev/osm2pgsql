@@ -269,6 +269,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     bool address_point = false;
     bool interpolation = false;
     bool admin_boundary = false;
+    bool postcode_fallback = false;
 
     for (auto const &item : o.tags()) {
         char const *k = item.key();
@@ -346,6 +347,9 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 
         if ((flag & SF_POSTCODE) && !postcode) {
             postcode = v;
+            if (flag & SF_MAIN_FALLBACK) {
+                postcode_fallback = true;
+            }
         }
 
         if ((flag & SF_COUNTRY) && !country && std::strlen(v) == 2) {
@@ -377,7 +381,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     }
     if (address_point) {
         m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
-    } else if (postcode) {
+    } else if (postcode_fallback && postcode) {
         m_main.emplace_back("place", "postcode", SF_MAIN | SF_MAIN_FALLBACK);
     }
 }
