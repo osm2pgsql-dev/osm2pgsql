@@ -949,10 +949,9 @@ void middle_pgsql_t::analyze()
     }
 }
 
-void middle_pgsql_t::start(const options_t *out_options_)
+void middle_pgsql_t::start(const options_t *options)
 {
-    out_options = out_options_;
-    bool dropcreate = !out_options->append; ///< If tables need to be dropped and created anew
+    out_options = options;
 
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
@@ -983,13 +982,13 @@ void middle_pgsql_t::start(const options_t *out_options_)
     for (auto &table : tables) {
         table.connect(out_options);
 
-        if (dropcreate) {
+        if (!append) {
             pgsql_exec(table.sql_conn, PGRES_COMMAND_OK,
                        "DROP TABLE IF EXISTS %s CASCADE", table.name());
         }
 
         table.begin();
-        if (dropcreate) {
+        if (!append) {
             table.create();
         }
         table.prepare_queries(append);

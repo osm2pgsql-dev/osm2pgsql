@@ -5,7 +5,7 @@
 #include "output-multi.hpp"
 #include "taginfo_impl.hpp"
 
-#include <string.h>
+#include <cstring>
 #include <stdexcept>
 
 #include <boost/format.hpp>

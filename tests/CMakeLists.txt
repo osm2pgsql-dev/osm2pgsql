@@ -2,7 +2,6 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${ARGS})
 add_dependencies(check osm2pgsql)
 
 add_library(common-pg STATIC common-pg.cpp common-pg.hpp common-cleanup.cpp common-cleanup.hpp)
-add_library(middle-tests STATIC middle-tests.cpp middle-tests.hpp)
 
 set(TESTS
   test-expire-tiles.cpp
@@ -37,7 +36,7 @@ set(TESTS
 foreach (test ${TESTS})
   get_filename_component(test_name ${test} NAME_WE)
   add_executable(${test_name} ${test})
-  target_link_libraries(${test_name} osm2pgsql_lib common-pg middle-tests)
+  target_link_libraries(${test_name} osm2pgsql_lib common-pg)
   add_test(NAME ${test_name} COMMAND ${test_name}
     WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
   add_dependencies(check ${test_name})

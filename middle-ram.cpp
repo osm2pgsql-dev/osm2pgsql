@@ -40,12 +40,12 @@ void middle_ram_t::nodes_set(osmium::Node const &node)
 
 void middle_ram_t::ways_set(osmium::Way const &way)
 {
-    ways.set(way.id(), new ramWay(way, out_options->extra_attributes));
+    ways.set(way.id(), new ramWay(way, extra_attributes));
 }
 
 void middle_ram_t::relations_set(osmium::Relation const &rel)
 {
-    rels.set(rel.id(), new ramRel(rel, out_options->extra_attributes));
+    rels.set(rel.id(), new ramRel(rel, extra_attributes));
 }
 
 size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
@@ -155,11 +155,10 @@ void middle_ram_t::analyze(void)
     /* No need */
 }
 
-void middle_ram_t::start(const options_t *out_options_)
+void middle_ram_t::start(const options_t *options)
 {
-    out_options = out_options_;
-    cache.reset(
-        new node_ram_cache(out_options->alloc_chunkwise, out_options->cache));
+    extra_attributes = options->extra_attributes;
+    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache));
 }
 
 void middle_ram_t::stop(osmium::thread::Pool &pool)
@@ -196,6 +195,8 @@ idlist_t middle_ram_t::relations_using_way(osmid_t) const
 std::shared_ptr<middle_query_t>
 middle_ram_t::get_query_instance(std::shared_ptr<middle_t> const &mid) const
 {
+    auto me = std::dynamic_pointer_cast<middle_ram_t>(mid);
+    assert(me);
     // No copy here because readonly access is thread safe.
-    return std::static_pointer_cast<middle_query_t>(mid);
+    return std::static_pointer_cast<middle_query_t>(me);
 }

@@ -173,7 +173,6 @@ set(osm2pgsql_lib_SOURCES
   id-tracker.cpp
   middle-pgsql.cpp
   middle-ram.cpp
-  middle.cpp
   node-persistent-cache.cpp
   node-ram-cache.cpp
   options.cpp

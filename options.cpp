@@ -7,13 +7,13 @@
 #else
 #define basename /*SKIP IT*/
 #endif
-#include <stdio.h>
-#include <string.h>
-#include <stdexcept>
-#include <sstream>
-#include <thread> // for number of threads
 #include <boost/format.hpp>
+#include <cstdio>
+#include <cstring>
 #include <osmium/version.hpp>
+#include <sstream>
+#include <stdexcept>
+#include <thread> // for number of threads
 
 #ifdef HAVE_LUA
 extern "C" {

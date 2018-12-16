@@ -9,11 +9,11 @@
 #ifndef MIDDLE_RAM_H
 #define MIDDLE_RAM_H
 
+#include <array>
 #include <memory>
+#include <vector>
 
 #include "middle.hpp"
-#include <vector>
-#include <array>
 
 struct node_ram_cache;
 struct options_t;
@@ -80,11 +80,12 @@ public:
     }
 };
 
-struct middle_ram_t : public middle_t {
+struct middle_ram_t : public middle_t, public middle_query_t
+{
     middle_ram_t();
     virtual ~middle_ram_t();
 
-    void start(const options_t *out_options_) override;
+    void start(const options_t *options) override;
     void stop(osmium::thread::Pool &pool) override;
     void analyze(void) override;
     void commit(void) override;
@@ -152,6 +153,7 @@ private:
     elem_cache_t<ramRel, 10> rels;
 
     std::unique_ptr<node_ram_cache> cache;
+    bool extra_attributes;
 
     /* the previous behaviour of iterate_ways was to delete all ways as they
      * were being iterated. this doesn't work now that the output handles its

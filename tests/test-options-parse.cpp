@@ -69,18 +69,14 @@ void test_middles()
 {
     const char* a1[] = {"osm2pgsql", "--slim", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
-    std::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_pgsql_t *>(mid.get()) == nullptr)
-    {
-        throw std::logic_error("Using slim mode we expected a pgsql middle");
+    if (!options.slim) {
+        throw std::logic_error("Using slim mode expected");
     }
 
     const char* a2[] = {"osm2pgsql", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a2), const_cast<char **>(a2));
-    mid = middle_t::create_middle(options.slim);
-    if(dynamic_cast<middle_ram_t *>(mid.get()) == nullptr)
-    {
-        throw std::logic_error("Using without slim mode we expected a ram middle");
+    if (options.slim) {
+        throw std::logic_error("Using without slim mode expected");
     }
 }
 
@@ -88,7 +84,7 @@ void test_outputs()
 {
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
-    std::shared_ptr<middle_t> mid = middle_t::create_middle(options.slim);
+    auto mid = std::make_shared<middle_ram_t>();
     std::vector<std::shared_ptr<output_t> > outs = output_t::create_outputs(mid.get(), options);
     output_t* out = outs.front().get();
     if(dynamic_cast<output_pgsql_t *>(out) == nullptr)
@@ -98,7 +94,6 @@ void test_outputs()
 
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "tests/gazetteer-test.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a2), const_cast<char **>(a2));
-    mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
     if(dynamic_cast<output_gazetteer_t *>(out) == nullptr)
@@ -108,7 +103,6 @@ void test_outputs()
 
     const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a3), const_cast<char **>(a3));
-    mid = middle_t::create_middle(options.slim);
     outs = output_t::create_outputs(mid.get(), options);
     out = outs.front().get();
     if(dynamic_cast<output_null_t *>(out) == nullptr)
@@ -118,7 +112,6 @@ void test_outputs()
 
     const char* a4[] = {"osm2pgsql", "-O", "keine_richtige_ausgabe", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a4), const_cast<char **>(a4));
-    mid = middle_t::create_middle(options.slim);
     try
     {
         outs = output_t::create_outputs(mid.get(), options);

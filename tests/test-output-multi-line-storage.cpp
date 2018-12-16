@@ -7,11 +7,11 @@
 #include <stdexcept>
 #include <memory>
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "middle.hpp"
-#include "output-multi.hpp"
+#include "middle-pgsql.hpp"
 #include "options.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output-multi.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
         options.style = "tests/test_output_multi_line_trivial.style.json";
 
         //setup the middle
-        std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
+        auto middle = std::make_shared<middle_pgsql_t>();
 
         //setup the backend (output)
         std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
