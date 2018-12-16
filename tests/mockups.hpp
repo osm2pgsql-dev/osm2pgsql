@@ -9,7 +9,7 @@ struct dummy_middle_t : public middle_t {
 
     void start(const options_t *) override { }
     void stop(osmium::thread::Pool &) override {}
-    void flush() override {}
+    void flush(osmium::item_type) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
     void commit(void) override  { }
@@ -47,7 +47,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
 
     void start(const options_t *) override  { }
     void stop(osmium::thread::Pool &) override {}
-    void flush() override {}
+    void flush(osmium::item_type) override {}
     void cleanup(void) { }
     void analyze(void) override  { }
     void commit(void) override  { }

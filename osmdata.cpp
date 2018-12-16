@@ -180,9 +180,9 @@ void osmdata_t::start() {
     mid->start(outs[0]->get_options());
 }
 
-void osmdata_t::type_changed()
+void osmdata_t::type_changed(osmium::item_type new_type)
 {
-    mid->flush();
+    mid->flush(new_type);
 }
 
 namespace {
