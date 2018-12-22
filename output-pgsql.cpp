@@ -276,12 +276,7 @@ int output_pgsql_t::way_add(osmium::Way *way)
     auto filter = m_tagtransform->filter_tags(*way, &polygon, &roads,
                                               *m_export_list.get(), outtags);
 
-    /* If this isn't a polygon then it can not be part of a multipolygon
-       Hence only polygons are "pending" */
-    if (!filter && polygon) { ways_pending_tracker.mark(way->id()); }
-
-    if( !polygon && !filter )
-    {
+    if (!filter) {
         /* Get actual node data and generate output */
         auto nnodes = m_mid->nodes_get_list(&(way->nodes()));
         if (nnodes > 1) {
@@ -320,15 +315,13 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
   int roads = 0;
   int make_polygon = 0;
   int make_boundary = 0;
-  std::vector<int> members_superseded(num_ways, 0);
   taglist_t outtags;
 
   // If it's a route relation make_boundary and make_polygon will be false
   // otherwise one or the other will be true.
   if (m_tagtransform->filter_rel_member_tags(
-          prefiltered_tags, buffer, xrole, &(members_superseded[0]),
-          &make_boundary, &make_polygon, &roads, *m_export_list.get(),
-          outtags)) {
+          prefiltered_tags, buffer, xrole, &make_boundary, &make_polygon,
+          &roads, *m_export_list.get(), outtags)) {
       return 0;
   }
 
@@ -368,24 +361,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
               outtags.push_override(tag_t("way_area", tmp));
           }
           m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
-      }
-
-      /* Tagtransform will have marked those member ways of the relation that
-         * have fully been dealt with as part of the multi-polygon entry.
-         * Set them in the database as done and delete their entry to not
-         * have duplicates */
-      if (make_polygon) {
-          size_t j = 0;
-          for (auto &w : buffer.select<osmium::Way>()) {
-              if (members_superseded[j]) {
-                  pgsql_delete_way_from_output(w.id());
-                  // When working with pending relations this is not needed.
-                  if (!pending) {
-                      ways_done_tracker->mark(w.id());
-                  }
-              }
-              ++j;
-          }
       }
   }
 

@@ -140,9 +140,8 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool lua_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &members,
-    rolelist_t const &member_roles, int *member_superseded, int *make_boundary,
-    int *make_polygon, int *roads, export_list const &, taglist_t &out_tags,
-    bool)
+    rolelist_t const &member_roles, int *make_boundary, int *make_polygon,
+    int *roads, export_list const &, taglist_t &out_tags, bool)
 {
     size_t num_members = member_roles.size();
     lua_getglobal(L, m_rel_mem_func.c_str());
@@ -195,16 +194,8 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     *make_boundary = (int)lua_tointeger(L, -1);
     lua_pop(L, 1);
 
-    lua_pushnil(L);
-    for (size_t i = 0; i < num_members; ++i) {
-        if (lua_next(L, -2)) {
-            member_superseded[i] = (int)lua_tointeger(L, -1);
-            lua_pop(L, 1);
-        } else {
-            throw std::runtime_error("Failed to read member_superseded from lua function");
-        }
-    }
-    lua_pop(L, 2);
+    // obsolete member superseded is ignored.
+    lua_pop(L, 1);
 
     lua_pushnil(L);
     while (lua_next(L, -2) != 0) {

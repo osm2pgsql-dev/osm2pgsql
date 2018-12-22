@@ -368,19 +368,19 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
         if (m_relation_helper.set(rel, (middle_t *)m_mid) < 1)
             return 0;
 
-        //NOTE: make_polygon is preset here this is to force the tag matching/superseded stuff
+        //NOTE: make_polygon is preset here this is to force the tag matching
         //normally this wouldnt work but we tell the tag transform to allow typeless relations
         //this is needed because the type can get stripped off by the rel_tag filter above
         //if the export list did not include the type tag.
-        //TODO: find a less hacky way to do the matching/superseded and tag copying stuff without
+        //TODO: find a less hacky way to do the matching and tag copying stuff without
         //all this trickery
         int roads;
         int make_boundary, make_polygon;
         taglist_t outtags;
         filter = m_tagtransform->filter_rel_member_tags(
             rel_outtags, m_relation_helper.data, m_relation_helper.roles,
-            &m_relation_helper.superseded.front(), &make_boundary,
-            &make_polygon, &roads, *m_export_list.get(), outtags, true);
+            &make_boundary, &make_polygon, &roads, *m_export_list.get(),
+            outtags, true);
         if (!filter)
         {
             m_relation_helper.add_way_locations((middle_t *)m_mid);
@@ -388,23 +388,6 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
                 rel, m_relation_helper.data, &m_builder);
             for (const auto geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
-            }
-
-            //TODO: should this loop be inside the if above just in case?
-            //take a look at each member to see if its superseded (tags on it matched the tags on the relation)
-            size_t i = 0;
-            for (auto const &w : m_relation_helper.data.select<osmium::Way>()) {
-                //tags matched so we are keeping this one with this relation
-                if (m_relation_helper.superseded[i]) {
-                    //just in case it wasnt previously with this relation we get rid of them
-                    way_delete(w.id());
-                    //the other option is that we marked them pending in the way processing so here we mark them
-                    //done so when we go back over the pendings we can just skip it because its in the done list
-                    //TODO: dont do this when working with pending relations to avoid thread races
-                    if(!pending)
-                        ways_done_tracker->mark(w.id());
-                }
-                ++i;
             }
         }
     }

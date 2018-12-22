@@ -90,7 +90,6 @@ public:
     void add_way_locations(middle_t const *mid);
 
     rolelist_t roles;
-    std::vector<int> superseded;
     osmium::memory::Buffer data;
 };
 
