@@ -77,8 +77,20 @@ sudo apt-get install python-psycopg2
 ```
 
 Most of these tests depend on being able to set up a database and run osm2pgsql
-against it. You need to ensure that PostgreSQL is running and that your user is
-a superuser of that system. To do that, run:
+against it. This is most easily done using ``pg_virtualenv``. Just run
+
+```sh
+pg_virtualenv ctest
+```
+
+``pg_virtualenv`` creates a separate postgres server instance. The test databases
+are created in this instance and the complete server is destroyed after the
+tests are finished. ctest also calls appropriate fixtures that create the
+separate tablespace required for some tests.
+
+When running without ``pg_virtualenv``, you need to ensure that PostgreSQL is
+running and that your user is a superuser of that system. You also need to
+create an appropriate test tablespace manually. To do that, run:
 
 ```sh
 sudo -u postgres createuser -s $USER
@@ -93,9 +105,6 @@ by looking in the `test-suite.log`. If you find something which seems
 to be a bug, please check to see if it is a known issue at
 https://github.com/openstreetmap/osm2pgsql/issues and, if it's not
 already known, report it there.
-
-If running the tests in a virtual machine, allocate sufficient disk space for a
-20GB flat nodes file.
 
 ### Performance Testing
 

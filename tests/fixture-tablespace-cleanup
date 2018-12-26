@@ -1,0 +1,11 @@
+#!/bin/sh
+#
+# Remove any custom tablespaces we might have created.
+
+BASEDIR=`pwd`
+
+TBLDIR=${BASEDIR}/osm2pgsql-test-tablespace
+
+if find $TBLDIR -maxdepth 1 -mindepth 1 -type d -name 'PG*'; then
+  rm -r $TBLDIR/PG*
+fi
