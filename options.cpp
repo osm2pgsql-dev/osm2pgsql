@@ -230,9 +230,9 @@ namespace
             printf("    %s -c -d gis --slim -C <cache size> -k \\\n", name);
             printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
             printf("where\n");
-            printf("    <cache size> is 20000 on machines with 24GB or more RAM \n");
+            printf("    <cache size> is 50000 on machines with 64GB or more RAM \n");
             printf("      or about 75%% of memory in MB on machines with less\n");
-            printf("    <flat nodes> is a location where a 19GB file can be saved.\n");
+            printf("    <flat nodes> is a location where a 50+GB file can be saved.\n");
             printf("\n");
             printf("A typical command to update a database imported with the above command is\n");
             printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc - \\\n");
