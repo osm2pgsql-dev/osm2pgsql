@@ -179,6 +179,7 @@ set(osm2pgsql_lib_SOURCES
   options.cpp
   osmdata.cpp
   osmium-builder.cpp
+  gazetteer-style.cpp
   output-gazetteer.cpp
   output-multi.cpp
   output-null.cpp
@@ -209,6 +210,7 @@ set(osm2pgsql_lib_SOURCES
   osmdata.hpp
   osmium-builder.hpp
   osmtypes.hpp
+  gazetteer-style.hpp
   output-gazetteer.hpp
   output-multi.hpp
   output-null.hpp

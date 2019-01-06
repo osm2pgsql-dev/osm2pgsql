@@ -3,124 +3,16 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <vector>
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 #include <osmium/memory/buffer.hpp>
 
+#include "gazetteer-style.hpp"
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
 #include "pgsql.hpp"
 #include "util.hpp"
-
-/**
- * A private class to convert tags.
- */
-class place_tag_processor
-{
-public:
-    place_tag_processor()
-        : single_fmt("%1%\t")
-    {
-        places.reserve(4);
-        extratags.reserve(15);
-        address.reserve(10);
-    }
-
-    ~place_tag_processor() {}
-
-    void process_tags(osmium::OSMObject const &o);
-
-    bool has_data() const { return !places.empty(); }
-
-    bool has_place(const std::string &cls)
-    {
-        for (const auto& item: places) {
-            if (cls == item.key)
-                return true;
-        }
-
-        return false;
-    }
-
-    void copy_out(osmium::OSMObject const &o, const std::string &geom,
-                  std::string &buffer);
-
-    void clear();
-
-private:
-    void copy_opt_string(char const *val, std::string &buffer)
-    {
-        if (val) {
-            escape(val, buffer);
-            buffer += "\t";
-        } else {
-            buffer += "\\N\t";
-        }
-    }
-
-    std::string domain_name(const std::string &cls, osmium::TagList const &tags)
-    {
-        std::string ret;
-        bool hasname = false;
-
-        std::string prefix(cls + ":name");
-
-        for (const auto& item: tags) {
-            char const *k = item.key();
-            if (boost::starts_with(k, prefix)
-                && (k[prefix.length()] == '\0' || k[prefix.length()] == ':')) {
-                if (!hasname) {
-                    hasname = true;
-                } else {
-                    ret += ",";
-                }
-                ret += "\"";
-                escape_array_record(k + cls.length() + 1, ret);
-                ret += "\"=>\"";
-                escape_array_record(item.value(), ret);
-                ret += "\"";
-            }
-        }
-
-        return ret;
-    }
-
-
-    void escape_array_record(const std::string &in, std::string &out)
-    {
-        for (const char c: in) {
-            switch(c) {
-                case '\\':
-                    // Tripple escaping required: string escaping leaves us
-                    // with 4 backslashes, COPY then reduces it to two, which
-                    // are then interpreted as a single backslash by the hash
-                    // parsing code.
-                    out += "\\\\\\\\";
-                    break;
-                case '\n':
-                case '\r':
-                case '\t':
-                case '"':
-                    /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
-                           out += ' '; break;
-                default:   out += c; break;
-            }
-        }
-    }
-
-
-    std::vector<tag_t> places;
-    std::vector<osmium::Tag const *> names;
-    std::vector<osmium::Tag const *> extratags;
-    std::unordered_map<std::string, char const *> address;
-    int admin_level;
-
-    boost::format single_fmt;
-};
 
 
 class output_gazetteer_t : public output_t {
@@ -132,6 +24,7 @@ public:
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
+        m_style.load_style(options_.style);
     }
 
     output_gazetteer_t(const output_gazetteer_t &other)
@@ -239,7 +132,6 @@ private:
     void delete_unused_full(char osm_type, osmid_t osm_id)
     {
         if (m_options.append) {
-            places.clear();
             delete_place(osm_type, osm_id);
         }
     }
@@ -251,7 +143,7 @@ private:
     bool copy_active;
 
     std::string buffer;
-    place_tag_processor places;
+    gazetteer_style_t m_style;
 
     geom::osmium_builder_t m_builder;
 
