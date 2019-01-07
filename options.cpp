@@ -76,7 +76,7 @@ namespace
         {"flat-nodes", 1, 0, 'F'},
         {"tag-transform-script", 1, 0, 212},
         {"reproject-area", 0, 0, 213},
-        {"skip-optimizing", 0, 0, 214},
+        {"skip-optimizing", 0, 0, 215},
         {0, 0, 0, 0}};
 
     void short_usage(char *arg0)
@@ -300,8 +300,8 @@ options_t::options_t()
   tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
-  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  skip_optimizing(false), extra_attributes(false), verbose(false)
+  output_backend("pgsql"), input_reader("auto"), skip_optimizing(false),
+  bbox(boost::none), extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -508,7 +508,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 213:
             reproject_area = true;
             break;
-        case 214:
+        case 215:
             skip_optimizing = true;
             break;
         case 'V':
