@@ -77,6 +77,7 @@ namespace
         {"flat-nodes",1,0, 'F'},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
+        {"skip-optimizing",0,0,214},
         {0, 0, 0, 0}
     };
 
@@ -219,6 +220,8 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
+          --skip-optimizing   do not optimize DB after fresh import. We do not skip the primary\n\
+            	  		key on our tables.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
@@ -300,7 +303,7 @@ options_t::options_t()
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false)
+  extra_attributes(false), skip_optimizing(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -507,6 +510,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 213:
             reproject_area = true;
             break;
+        case 213:
+            options.skip_optimizing = 1;
+            break;
         case 'V':
             fprintf(stderr, "Compiled using the following library versions:\n");
             fprintf(stderr, "Libosmium %s\n", LIBOSMIUM_VERSION_STRING);
@@ -574,6 +580,10 @@ void options_t::check_options()
     if (unlogged && append) {
         fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
         unlogged = false;
+    }
+
+    if (enable_hstore_index && skip_optimizing) {
+    	throw std::runtime_error("Error: --hstore-add-index and --skip-optimizing are mutually exclusive.\n");
     }
 
     if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {

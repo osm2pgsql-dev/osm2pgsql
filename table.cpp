@@ -18,10 +18,10 @@ typedef boost::format fmt;
 
 
 table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
+    const int srid, const bool append, const bool skip_optimizing, const bool slim, const bool drop_temp, const int hstore_mode,
     const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
     conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
-    append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
+    append(append), skip_optimizing(skip_optimizing), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
     columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
 {
     //if we dont have any columns
@@ -38,7 +38,7 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
 
 table_t::table_t(const table_t& other):
     conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
-    append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
+    append(other.append), skip_optimizing(other.skip_optimizing), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
     columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
     table_space_index(other.table_space_index), single_fmt(other.single_fmt), del_fmt(other.del_fmt)
 {

@@ -570,7 +570,7 @@ output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
         m_tables.push_back(std::shared_ptr<table_t>(new table_t(
             m_options.database_options.conninfo(), name, type, columns,
             m_options.hstore_columns, m_options.projection->target_srs(),
-            m_options.append, m_options.slim, m_options.droptemp,
+            m_options.append,  m_options.skip_optimizing,  m_options.slim, m_options.droptemp,
             m_options.hstore_mode, m_options.enable_hstore_index,
             m_options.tblsmain_data, m_options.tblsmain_index)));
     }
