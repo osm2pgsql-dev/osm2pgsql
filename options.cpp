@@ -77,6 +77,7 @@ namespace
         {"tag-transform-script", 1, 0, 212},
         {"reproject-area", 0, 0, 213},
         {"skip-optimizing", 0, 0, 215},
+        {"skip-indexing", 0, 0, 216},
         {0, 0, 0, 0}};
 
     void short_usage(char *arg0)
@@ -218,8 +219,8 @@ namespace
        -K|--keep-coastlines Keep coastline data rather than filtering it out.\n\
                         By default natural=coastline tagged data will be discarded\n\
                         because renderers usually have shape files for them.\n\
-          --skip-optimizing   do not optimize DB after fresh import. We do not skip the primary\n\
-            	  		key on our tables.\n\
+          --skip-optimizing   Do not optimize DB after fresh import. \n\
+          --skip-indexing   Do not build any indexes after import.\n\
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
@@ -296,12 +297,13 @@ options_t::options_t()
 #endif
   droptemp(false), unlogged(false), hstore_match_only(false),
   flat_node_cache_enabled(false), reproject_area(false), skip_optimizing(false),
-  flat_node_file(boost::none), tag_transform_script(boost::none),
-  tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
-  tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-  create(false), long_usage_bool(false), pass_prompt(false),
-  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false)
+  skip_indexing(false), flat_node_file(boost::none),
+  tag_transform_script(boost::none), tag_transform_node_func(boost::none),
+  tag_transform_way_func(boost::none), tag_transform_rel_func(boost::none),
+  tag_transform_rel_mem_func(boost::none), create(false),
+  long_usage_bool(false), pass_prompt(false), output_backend("pgsql"),
+  input_reader("auto"), bbox(boost::none), extra_attributes(false),
+  verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -511,6 +513,9 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 215:
             skip_optimizing = true;
             break;
+        case 216:
+            skip_indexing = true;
+            break;
         case 'V':
             fprintf(stderr, "Compiled using the following library versions:\n");
             fprintf(stderr, "Libosmium %s\n", LIBOSMIUM_VERSION_STRING);
@@ -580,9 +585,9 @@ void options_t::check_options()
         unlogged = false;
     }
 
-    if (enable_hstore_index && skip_optimizing) {
+    if (enable_hstore_index && skip_indexing) {
         throw std::runtime_error("Error: --hstore-add-index and "
-                                 "--skip-optimizing are mutually exclusive.\n");
+                                 "--skip-indexing are mutually exclusive.\n");
     }
 
     if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {

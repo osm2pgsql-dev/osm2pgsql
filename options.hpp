@@ -74,6 +74,7 @@ public:
     bool flat_node_cache_enabled;
     bool reproject_area;
     bool skip_optimizing;
+    bool skip_indexing;
     boost::optional<std::string> flat_node_file;
     /**
      * these options allow you to control the name of the

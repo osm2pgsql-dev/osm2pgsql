@@ -19,15 +19,17 @@ typedef boost::format fmt;
 table_t::table_t(const string &conninfo, const string &name, const string &type,
                  const columns_t &columns, const hstores_t &hstore_columns,
                  const int srid, const bool append, const bool skip_optimizing,
-                 const bool slim, const bool drop_temp, const int hstore_mode,
+                 const bool skip_indexing, const bool slim,
+                 const bool drop_temp, const int hstore_mode,
                  const bool enable_hstore_index,
                  const boost::optional<string> &table_space,
                  const boost::optional<string> &table_space_index)
 : conninfo(conninfo), name(name), type(type), sql_conn(nullptr),
   copyMode(false), srid((fmt("%1%") % srid).str()), append(append),
-  skip_optimizing(skip_optimizing), slim(slim), drop_temp(drop_temp),
-  hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
-  columns(columns), hstore_columns(hstore_columns), table_space(table_space),
+  skip_optimizing(skip_optimizing), skip_indexing(skip_indexing), slim(slim),
+  drop_temp(drop_temp), hstore_mode(hstore_mode),
+  enable_hstore_index(enable_hstore_index), columns(columns),
+  hstore_columns(hstore_columns), table_space(table_space),
   table_space_index(table_space_index)
 {
     //if we dont have any columns
@@ -46,7 +48,8 @@ table_t::table_t(const table_t &other)
 : conninfo(other.conninfo), name(other.name), type(other.type),
   sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
   append(other.append), skip_optimizing(other.skip_optimizing),
-  slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode),
+  skip_indexing(other.skip_indexing), slim(other.slim),
+  drop_temp(other.drop_temp), hstore_mode(other.hstore_mode),
   enable_hstore_index(other.enable_hstore_index), columns(other.columns),
   hstore_columns(other.hstore_columns), copystr(other.copystr),
   table_space(other.table_space), table_space_index(other.table_space_index),
@@ -226,91 +229,128 @@ void table_t::stop()
         time_t start, end;
         time(&start);
 
-        fprintf(stderr, "Sorting data and creating indexes for %s\n", name.c_str());
-
-        if (srid == "4326") {
-            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
-               Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
-            pgsql_exec_simple(
-                sql_conn, PGRES_COMMAND_OK,
-                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
-                     "  SELECT * FROM %1%\n"
-                     "    ORDER BY ST_GeoHash(way,10)\n"
-                     "    COLLATE \"C\"") %
-                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
-                    .str());
-        } else {
-            /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
-               and these need to be filtered. Also, a transformation is needed for geohashing. */
-            pgsql_exec_simple(
-                sql_conn, PGRES_COMMAND_OK,
-                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
-                     "  SELECT * FROM %1%\n"
-                     "    WHERE ST_IsValid(way)\n"
-                     // clang-format off
-                     "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
-                     // clang-format on
-                     "    COLLATE \"C\"") %
-                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
-                    .str());
-        }
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
-        fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
-
-        // Use fillfactor 100 for un-updatable imports
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") % name %
-            (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
-            (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
-
-        /* slim mode needs this to be able to apply diffs */
-        if (slim && !drop_temp)
-        {
-            fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") % name %
-                (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
-            if (srid != "4326") {
+        fprintf(stderr, "Sorting data in %s\n", name.c_str());
+        if (!skip_optimizing) {
+            if (srid == "4326") {
+                /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
+                Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
                 pgsql_exec_simple(
                     sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
-                         "RETURNS TRIGGER AS $$\n"
-                         "BEGIN\n"
-                         "  IF ST_IsValid(NEW.way) THEN \n"
-                         "    RETURN NEW;\n"
-                         "  END IF;\n"
-                         "  RETURN NULL;\n"
-                         "END;"
-                         "$$ LANGUAGE plpgsql;") %
-                     name)
+                    (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                         "  SELECT * FROM %1%\n"
+                         "    ORDER BY ST_GeoHash(way,10)\n"
+                         "    COLLATE \"C\"") %
+                     name %
+                     (table_space ? "TABLESPACE " + table_space.get() : ""))
                         .str());
-
+            } else {
+                /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
+                and these need to be filtered. Also, a transformation is needed for geohashing. */
                 pgsql_exec_simple(
                     sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE TRIGGER %1%_osm2pgsql_valid BEFORE INSERT OR UPDATE\n"
-                         "  ON %1%\n"
-                         "    FOR EACH ROW EXECUTE PROCEDURE %1%_osm2pgsql_valid();") %
-                     name)
+                    (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                         "  SELECT * FROM %1%\n"
+                         "    WHERE ST_IsValid(way)\n"
+                         // clang-format off
+                        "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
+                         // clang-format on
+                         "    COLLATE \"C\"") %
+                     name %
+                     (table_space ? "TABLESPACE " + table_space.get() : ""))
                         .str());
             }
-            //pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD CHECK (ST_IsValid(way));") % name).str());
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                              (fmt("DROP TABLE %1%") % name).str());
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
+            fprintf(stderr, "Copying %s to cluster by geometry finished\n",
+                    name.c_str());
+        }
+
+        // Create a trigger that will skip importing invalid geometries while inserting diffs later.
+        // SRID=4326 invalidity is covered by Osmium library.
+        if (slim && !drop_temp && srid != "4326") {
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
+                     "RETURNS TRIGGER AS $$\n"
+                     "BEGIN\n"
+                     "  IF ST_IsValid(NEW.way) THEN \n"
+                     "    RETURN NEW;\n"
+                     "  END IF;\n"
+                     "  RETURN NULL;\n"
+                     "END;"
+                     "$$ LANGUAGE plpgsql;") %
+                 name)
+                    .str());
+
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                              (fmt("CREATE TRIGGER %1%_osm2pgsql_valid BEFORE "
+                                   "INSERT OR UPDATE\n"
+                                   "  ON %1%\n"
+                                   "    FOR EACH ROW EXECUTE PROCEDURE "
+                                   "%1%_osm2pgsql_valid();") %
+                               name)
+                                  .str());
+        }
+
+        if (!skip_indexing) {
+            fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
+
+            // Use fillfactor 100 for un-updatable imports
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") % name %
+                 (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
+                 (table_space_index ? "TABLESPACE " + table_space_index.get()
+                                    : ""))
+                    .str());
+
+            // slim mode needs osm_id index to be able to apply diffs
+            if (slim && !drop_temp) {
+                fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") %
+                     name %
+                     (table_space_index
+                          ? "TABLESPACE " + table_space_index.get()
+                          : ""))
+                        .str());
+            }
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
             if (hstore_mode != HSTORE_NONE) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") % name %
-                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") % name %
+                     (table_space_index
+                          ? "TABLESPACE " + table_space_index.get()
+                          : ""))
+                        .str());
             }
-            for(size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") % name % i % hstore_columns[i] %
-                    (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            for (size_t i = 0; i < hstore_columns.size(); ++i) {
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") % name %
+                     i % hstore_columns[i] %
+                     (table_space_index
+                          ? "TABLESPACE " + table_space_index.get()
+                          : ""))
+                        .str());
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ANALYZE %1%") % name).str());
+        fprintf(stderr, "Analyzing statistics on %s\n", name.c_str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                          (fmt("ANALYZE %1%") % name).str());
         time(&end);
-        fprintf(stderr, "All indexes on %s created in %ds\n", name.c_str(), (int)(end - start));
+        }
+        fprintf(stderr, "Post-import processing on %s finished in %ds\n",
+                name.c_str(), (int)(end - start));
     }
     teardown();
 
