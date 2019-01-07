@@ -224,8 +224,8 @@ void table_t::start()
 void table_t::stop()
 {
     stop_copy();
-    if (!append)
-    {
+    // Post-procrssing for initial import only.
+    if (!append) {
         time_t start, end;
         time(&start);
 
@@ -252,7 +252,7 @@ void table_t::stop()
                          "  SELECT * FROM %1%\n"
                          "    WHERE ST_IsValid(way)\n"
                          // clang-format off
-                        "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
+                         "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
                          // clang-format on
                          "    COLLATE \"C\"") %
                      name %
@@ -266,6 +266,14 @@ void table_t::stop()
                 (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
             fprintf(stderr, "Copying %s to cluster by geometry finished\n",
                     name.c_str());
+        } else {
+            // We haven't removed invalid geometries as we did not perform a COPY.
+            if (srid != "4326") {
+                pgsql_exec_simple(
+                    sql_conn, PGRES_COMMAND_OK,
+                    (fmt("DELETE FROM %1% WHERE NOT ST_IsValid(way)") % name)
+                        .str());
+            }
         }
 
         // Create a trigger that will skip importing invalid geometries while inserting diffs later.
@@ -319,36 +327,38 @@ void table_t::stop()
                           : ""))
                         .str());
             }
-        }
-        /* Create hstore index if selected */
-        if (enable_hstore_index) {
-            fprintf(stderr, "Creating hstore indexes on %s\n", name.c_str());
-            if (hstore_mode != HSTORE_NONE) {
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") % name %
-                     (table_space_index
-                          ? "TABLESPACE " + table_space_index.get()
-                          : ""))
-                        .str());
+            /* Create hstore index if selected */
+            if (enable_hstore_index) {
+                fprintf(stderr, "Creating hstore indexes on %s\n",
+                        name.c_str());
+                if (hstore_mode != HSTORE_NONE) {
+                    pgsql_exec_simple(
+                        sql_conn, PGRES_COMMAND_OK,
+                        (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") %
+                         name %
+                         (table_space_index
+                              ? "TABLESPACE " + table_space_index.get()
+                              : ""))
+                            .str());
+                }
+                for (size_t i = 0; i < hstore_columns.size(); ++i) {
+                    pgsql_exec_simple(
+                        sql_conn, PGRES_COMMAND_OK,
+                        (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") %
+                         name % i % hstore_columns[i] %
+                         (table_space_index
+                              ? "TABLESPACE " + table_space_index.get()
+                              : ""))
+                            .str());
+                }
             }
-            for (size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") % name %
-                     i % hstore_columns[i] %
-                     (table_space_index
-                          ? "TABLESPACE " + table_space_index.get()
-                          : ""))
-                        .str());
-            }
+            fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
         }
-        fprintf(stderr, "Creating indexes on %s finished\n", name.c_str());
         fprintf(stderr, "Analyzing statistics on %s\n", name.c_str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
                           (fmt("ANALYZE %1%") % name).str());
         time(&end);
-        }
+
         fprintf(stderr, "Post-import processing on %s finished in %ds\n",
                 name.c_str(), (int)(end - start));
     }
