@@ -301,7 +301,7 @@ options_t::options_t()
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), skip_optimizing(false), verbose(false)
+  skip_optimizing(false), extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
@@ -508,8 +508,8 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 213:
             reproject_area = true;
             break;
-        case 213:
-            options.skip_optimizing = 1;
+        case 214:
+            skip_optimizing = true;
             break;
         case 'V':
             fprintf(stderr, "Compiled using the following library versions:\n");
