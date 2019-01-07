@@ -19,9 +19,14 @@ typedef std::vector<std::string> hstores_t;
 class table_t
 {
     public:
-        table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
-                const bool append, const bool skip_optimizing, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
-                const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
+        table_t(const std::string &conninfo, const std::string &name,
+                const std::string &type, const columns_t &columns,
+                const hstores_t &hstore_columns, const int srid,
+                const bool append, const bool skip_optimizing, const bool slim,
+                const bool droptemp, const int hstore_mode,
+                const bool enable_hstore_index,
+                const boost::optional<std::string> &table_space,
+                const boost::optional<std::string> &table_space_index);
         table_t(const table_t& other);
         ~table_t();
 

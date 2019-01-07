@@ -31,40 +31,39 @@ extern "C" {
 namespace
 {
     const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
-    const struct option long_options[] =
-    {
-        {"append",   0, 0, 'a'},
-        {"bbox",     1, 0, 'b'},
-        {"create",   0, 0, 'c'},
+    const struct option long_options[] = {
+        {"append", 0, 0, 'a'},
+        {"bbox", 1, 0, 'b'},
+        {"create", 0, 0, 'c'},
         {"database", 1, 0, 'd'},
-        {"latlong",  0, 0, 'l'},
-        {"verbose",  0, 0, 'v'},
-        {"slim",     0, 0, 's'},
-        {"prefix",   1, 0, 'p'},
-        {"proj",     1, 0, 'E'},
-        {"merc",     0, 0, 'm'},
-        {"cache",    1, 0, 'C'},
+        {"latlong", 0, 0, 'l'},
+        {"verbose", 0, 0, 'v'},
+        {"slim", 0, 0, 's'},
+        {"prefix", 1, 0, 'p'},
+        {"proj", 1, 0, 'E'},
+        {"merc", 0, 0, 'm'},
+        {"cache", 1, 0, 'C'},
         {"username", 1, 0, 'U'},
         {"password", 0, 0, 'W'},
-        {"host",     1, 0, 'H'},
-        {"port",     1, 0, 'P'},
+        {"host", 1, 0, 'H'},
+        {"port", 1, 0, 'P'},
         {"tablespace-index", 1, 0, 'i'},
         {"tablespace-slim-data", 1, 0, 200},
         {"tablespace-slim-index", 1, 0, 201},
         {"tablespace-main-data", 1, 0, 202},
         {"tablespace-main-index", 1, 0, 203},
-        {"help",     0, 0, 'h'},
-        {"style",    1, 0, 'S'},
+        {"help", 0, 0, 'h'},
+        {"style", 1, 0, 'S'},
         {"expire-tiles", 1, 0, 'e'},
         {"expire-output", 1, 0, 'o'},
         {"expire-bbox-size", 1, 0, 214},
-        {"output",   1, 0, 'O'},
+        {"output", 1, 0, 'O'},
         {"extra-attributes", 0, 0, 'x'},
         {"hstore", 0, 0, 'k'},
         {"hstore-all", 0, 0, 'j'},
         {"hstore-column", 1, 0, 'z'},
         {"hstore-match-only", 0, 0, 208},
-        {"hstore-add-index",0,0,211},
+        {"hstore-add-index", 0, 0, 211},
         {"multi-geometry", 0, 0, 'G'},
         {"keep-coastlines", 0, 0, 'K'},
         {"input-reader", 1, 0, 'r'},
@@ -74,12 +73,11 @@ namespace
         {"number-processes", 1, 0, 205},
         {"drop", 0, 0, 206},
         {"unlogged", 0, 0, 207},
-        {"flat-nodes",1,0, 'F'},
-        {"tag-transform-script",1,0,212},
-        {"reproject-area",0,0,213},
-        {"skip-optimizing",0,0,214},
-        {0, 0, 0, 0}
-    };
+        {"flat-nodes", 1, 0, 'F'},
+        {"tag-transform-script", 1, 0, 212},
+        {"reproject-area", 0, 0, 213},
+        {"skip-optimizing", 0, 0, 214},
+        {0, 0, 0, 0}};
 
     void short_usage(char *arg0)
     {
@@ -286,11 +284,11 @@ options_t::options_t()
   projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false),
   slim(false), cache(800), tblsmain_index(boost::none),
   tblsslim_index(boost::none), tblsmain_data(boost::none),
-  tblsslim_data(boost::none), style(DEFAULT_STYLE),
-  expire_tiles_zoom(0), expire_tiles_zoom_min(0),
-  expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
-  hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
-  hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+  tblsslim_data(boost::none), style(DEFAULT_STYLE), expire_tiles_zoom(0),
+  expire_tiles_zoom_min(0), expire_tiles_max_bbox(20000.0),
+  expire_tiles_filename("dirty_tiles"), hstore_mode(HSTORE_NONE),
+  enable_hstore_index(false), enable_multi(false), hstore_columns(),
+  keep_coastlines(false), parallel_indexing(true),
 #ifdef __amd64__
   alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
 #else
@@ -583,7 +581,8 @@ void options_t::check_options()
     }
 
     if (enable_hstore_index && skip_optimizing) {
-    	throw std::runtime_error("Error: --hstore-add-index and --skip-optimizing are mutually exclusive.\n");
+        throw std::runtime_error("Error: --hstore-add-index and "
+                                 "--skip-optimizing are mutually exclusive.\n");
     }
 
     if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {
