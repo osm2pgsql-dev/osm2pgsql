@@ -295,13 +295,13 @@ options_t::options_t()
   alloc_chunkwise(ALLOC_SPARSE),
 #endif
   droptemp(false), unlogged(false), hstore_match_only(false),
-  flat_node_cache_enabled(false), reproject_area(false),
+  flat_node_cache_enabled(false), reproject_area(false), skip_optimizing(false),
   flat_node_file(boost::none), tag_transform_script(boost::none),
   tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
   tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
   create(false), long_usage_bool(false), pass_prompt(false),
-  output_backend("pgsql"), input_reader("auto"), skip_optimizing(false),
-  bbox(boost::none), extra_attributes(false), verbose(false)
+  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
+  extra_attributes(false), verbose(false)
 {
     num_procs = std::thread::hardware_concurrency();
     if (num_procs < 1) {
