@@ -20,10 +20,10 @@
 struct options_t;
 
 /**
- * object which stores OSM node/ways/relations from the input file
+ * Infterface for returning information about raw OSM input data from a cache.
  */
 struct middle_query_t {
-    virtual ~middle_query_t() {}
+    virtual ~middle_query_t() = 0;
 
     /**
      * Retrives node locations for the given node list.
@@ -75,15 +75,16 @@ struct middle_query_t {
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 };
 
+inline middle_query_t::~middle_query_t() = default;
+
 /**
- * A specialized middle backend which is persistent, and supports updates
+ * Interface for storing raw OSM data in an intermediate cache.
  */
-struct middle_t : public middle_query_t {
-    static std::shared_ptr<middle_t> create_middle(bool slim);
+struct middle_t
+{
+    virtual ~middle_t() = 0;
 
-    virtual ~middle_t() {}
-
-    virtual void start(const options_t *out_options_) = 0;
+    virtual void start(options_t const *out_options) = 0;
     virtual void stop(osmium::thread::Pool &pool) = 0;
     virtual void analyze(void) = 0;
     virtual void commit(void) = 0;
@@ -110,12 +111,16 @@ struct middle_t : public middle_query_t {
 
     virtual std::shared_ptr<middle_query_t>
     get_query_instance(std::shared_ptr<middle_t> const &mid) const = 0;
-
-    const options_t* out_options;
 };
 
+inline middle_t::~middle_t() = default;
+
+/**
+ * Extended interface for permanent caching of raw OSM data.
+ * It also allows updates.
+ */
 struct slim_middle_t : public middle_t {
-    virtual ~slim_middle_t() {}
+    virtual ~slim_middle_t() = 0;
 
     virtual void nodes_delete(osmid_t id) = 0;
     virtual void node_changed(osmid_t id) = 0;
@@ -126,5 +131,7 @@ struct slim_middle_t : public middle_t {
     virtual void relations_delete(osmid_t id) = 0;
     virtual void relation_changed(osmid_t id) = 0;
 };
+
+inline slim_middle_t::~slim_middle_t() = default;
 
 #endif

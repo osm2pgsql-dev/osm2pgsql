@@ -24,13 +24,14 @@
 */
 
 #include "config.h"
-#include "osmtypes.hpp"
-#include "reprojection.hpp"
+#include "middle-pgsql.hpp"
+#include "middle-ram.hpp"
 #include "options.hpp"
-#include "parse-osmium.hpp"
-#include "middle.hpp"
-#include "output.hpp"
 #include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output.hpp"
+#include "parse-osmium.hpp"
+#include "reprojection.hpp"
 #include "util.hpp"
 
 #include <time.h>
@@ -53,11 +54,19 @@ int main(int argc, char *argv[])
         if(options.long_usage_bool)
             return 0;
 
-        //setup the middle
-        std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
+        //setup the middle and backend (output)
+        std::shared_ptr<middle_t> middle;
+        std::vector<std::shared_ptr<output_t>> outputs;
 
-        //setup the backend (output)
-        std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
+        if (options.slim) {
+            auto mid = std::make_shared<middle_pgsql_t>();
+            outputs = output_t::create_outputs(mid.get(), options);
+            middle = std::static_pointer_cast<middle_t>(mid);
+        } else {
+            auto mid = std::make_shared<middle_ram_t>();
+            outputs = output_t::create_outputs(mid.get(), options);
+            middle = std::static_pointer_cast<middle_t>(mid);
+        }
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs, options.projection);

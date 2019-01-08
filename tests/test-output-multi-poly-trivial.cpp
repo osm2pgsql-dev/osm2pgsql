@@ -7,11 +7,11 @@
 #include <stdexcept>
 #include <memory>
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "middle.hpp"
-#include "output-multi.hpp"
+#include "middle-pgsql.hpp"
 #include "options.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output-multi.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>
@@ -19,13 +19,12 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 #include "tests/common.hpp"
 
 void run_osm2pgsql(options_t &options) {
   //setup the middle
-  std::shared_ptr<middle_t> middle = middle_t::create_middle(options.slim);
+  auto middle = std::make_shared<middle_pgsql_t>();
 
   //setup the backend (output)
   std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);

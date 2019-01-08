@@ -17,7 +17,8 @@
 #include "node-ram-cache.hpp"
 #include "pgsql.hpp"
 
-struct middle_pgsql_t : public slim_middle_t {
+struct middle_pgsql_t : public slim_middle_t, public middle_query_t
+{
     middle_pgsql_t();
 
     void start(const options_t *out_options_) override;
@@ -115,6 +116,7 @@ private:
 
     bool append;
     bool mark_pending;
+    options_t const *out_options;
 
     std::shared_ptr<node_ram_cache> cache;
     std::shared_ptr<node_persistent_cache> persistent_cache;

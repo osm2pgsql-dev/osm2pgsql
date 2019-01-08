@@ -12,40 +12,35 @@
 
 #include "tests/middle-tests.hpp"
 
-void run_tests(const options_t options, const std::string cache_type) {
-  {
-    middle_ram_t mid_ram;
-    output_null_t out_test(&mid_ram, options);
+void run_tests(const options_t options, const std::string cache_type)
+{
+    {
+        test_middle_helper<middle_ram_t> t(options);
 
-    mid_ram.start(&options);
+        if (t.test_node_set() != 0) {
+            throw std::runtime_error("test_node_set failed with " + cache_type +
+                                     " cache.");
+        }
+    }
 
-    if (test_node_set(&mid_ram) != 0) { throw std::runtime_error("test_node_set failed with " + cache_type + " cache."); }
-    osmium::thread::Pool pool(1);
-    mid_ram.commit();
-    mid_ram.stop(pool);
-  }
-  {
-    middle_ram_t mid_ram;
-    output_null_t out_test(&mid_ram, options);
+    {
+        test_middle_helper<middle_ram_t> t(options);
 
-    mid_ram.start(&options);
+        if (t.test_nodes_comprehensive_set() != 0) {
+            throw std::runtime_error(
+                "test_nodes_comprehensive_set failed with " + cache_type +
+                " cache.");
+        }
+    }
 
-    if (test_nodes_comprehensive_set(&mid_ram) != 0) { throw std::runtime_error("test_nodes_comprehensive_set failed with " + cache_type + " cache."); }
-    osmium::thread::Pool pool(1);
-    mid_ram.commit();
-    mid_ram.stop(pool);
-  }
-  {
-    middle_ram_t mid_ram;
-    output_null_t out_test(&mid_ram, options);
+    {
+        test_middle_helper<middle_ram_t> t(options);
 
-    mid_ram.start(&options);
-
-    if (test_way_set(&mid_ram) != 0) { throw std::runtime_error("test_way_set failed with " + cache_type + " cache."); }
-    osmium::thread::Pool pool(1);
-    mid_ram.commit();
-    mid_ram.stop(pool);
-  }
+        if (t.test_way_set() != 0) {
+            throw std::runtime_error("test_way_set failed with " + cache_type +
+                                     " cache.");
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {

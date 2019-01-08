@@ -20,7 +20,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-#include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 #include "tests/common-cleanup.hpp"
 #include "tests/common.hpp"
