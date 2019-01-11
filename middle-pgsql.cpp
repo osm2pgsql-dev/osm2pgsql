@@ -6,14 +6,8 @@
  * emit the final geometry-enabled output formats
 */
 
-#include "config.h"
-
 #ifdef _WIN32
 using namespace std;
-#endif
-
-#ifdef _MSC_VER
-#define alloca _alloca
 #endif
 
 #include <stdexcept>
