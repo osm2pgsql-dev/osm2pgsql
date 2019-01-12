@@ -6,6 +6,6 @@ BASEDIR=`pwd`
 
 TBLDIR=${BASEDIR}/osm2pgsql-test-tablespace
 
-if find $TBLDIR -maxdepth 1 -mindepth 1 -type d -name 'PG*'; then
-  rm -r $TBLDIR/PG*
+if [ -d "$TBLDIR" ]; then
+    find $TBLDIR -maxdepth 1 -mindepth 1 -type d -name 'PG*' -delete
 fi

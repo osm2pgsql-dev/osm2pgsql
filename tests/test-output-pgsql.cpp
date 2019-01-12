@@ -76,7 +76,7 @@ void test_regression_simple() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
+    osmdata_t osmdata(mid_pgsql, out_test);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);
@@ -128,7 +128,7 @@ void test_latlong() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
+    osmdata_t osmdata(mid_pgsql, out_test);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);
@@ -181,7 +181,7 @@ void test_area_way_simple() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
 
-    osmdata_t osmdata(mid_pgsql, out_test, options.projection);
+    osmdata_t osmdata(mid_pgsql, out_test);
 
     testing::parse("tests/test_output_pgsql_way_area.osm", "xml",
                    options, &osmdata);
@@ -220,7 +220,7 @@ void test_route_rel() {
 
     auto out_test = std::make_shared<output_pgsql_t>(mid_ram.get(), options);
 
-    osmdata_t osmdata(mid_ram, out_test, options.projection);
+    osmdata_t osmdata(mid_ram, out_test);
 
     testing::parse("tests/test_output_pgsql_route_rel.osm", "xml",
                    options, &osmdata);
@@ -265,7 +265,7 @@ void test_clone() {
     //std::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
     std::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get());
 
-    osmdata_t osmdata(mid_pgsql, out_clone, options.projection);
+    osmdata_t osmdata(mid_pgsql, out_clone);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);

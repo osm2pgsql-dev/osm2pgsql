@@ -14,18 +14,16 @@
 #include "output.hpp"
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
-                     std::shared_ptr<output_t> const &out_,
-                     std::shared_ptr<reprojection> proj)
-: mid(mid_), projection(proj)
+                     std::shared_ptr<output_t> const &out_)
+: mid(mid_)
 {
     outs.push_back(out_);
     with_extra = outs[0]->get_options()->extra_attributes;
 }
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
-                     std::vector<std::shared_ptr<output_t> > const &outs_,
-                     std::shared_ptr<reprojection> proj)
-: mid(mid_), outs(outs_), projection(proj)
+                     std::vector<std::shared_ptr<output_t>> const &outs_)
+: mid(mid_), outs(outs_)
 {
     if (outs.empty()) {
         throw std::runtime_error("Must have at least one output, but none have "
@@ -33,10 +31,6 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
     }
 
     with_extra = outs[0]->get_options()->extra_attributes;
-}
-
-osmdata_t::~osmdata_t()
-{
 }
 
 int osmdata_t::node_add(osmium::Node const &node)

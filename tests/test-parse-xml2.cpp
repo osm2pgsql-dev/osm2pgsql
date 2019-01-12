@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
   options.projection = projection;
 
   auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test, options.projection);
+  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test);
 
   boost::optional<std::string> bbox;
   parse_osmium_t parser(bbox, false, &osmdata);
