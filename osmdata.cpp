@@ -419,12 +419,12 @@ void osmdata_t::stop() {
     }
 
     // should be the same for all outputs
-    const bool append = outs[0]->get_options()->append;
+    auto *opts = outs[0]->get_options();
 
     {
         //threaded pending processing
-        pending_threaded_processor ptp(
-            mid, outs, outs[0]->get_options()->num_procs, append);
+        pending_threaded_processor ptp(mid, outs, opts->num_procs,
+                                       opts->append);
 
         if (!outs.empty()) {
             //This stage takes ways which were processed earlier, but might be
@@ -443,7 +443,6 @@ void osmdata_t::stop() {
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
     {
-        auto *opts = outs[0]->get_options();
         osmium::thread::Pool pool(opts->parallel_indexing ? opts->num_procs : 1,
                                   512);
 
