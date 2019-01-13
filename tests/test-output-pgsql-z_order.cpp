@@ -64,19 +64,14 @@ void test_z_order() {
     std::string proc_name("test-output-pgsql-z_order"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
-
-    osmdata_t osmdata(mid_pgsql, out_test);
-
-    testing::parse("tests/test_output_pgsql_z_order.osm", "xml",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_pgsql_t>(
+        options, "tests/test_output_pgsql_z_order.osm", "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

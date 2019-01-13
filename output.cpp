@@ -25,9 +25,11 @@ void override_if(T &t, const std::string &key, const pt::ptree &conf) {
     }
 }
 
-std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
-                             const middle_query_t *mid,
-                             const options_t &options) {
+std::shared_ptr<output_t>
+parse_multi_single(pt::ptree const &conf,
+                   std::shared_ptr<middle_query_t> const &mid,
+                   options_t const &options)
+{
     options_t new_opts = options;
 
     std::string name = conf.get<std::string>("name");
@@ -81,26 +83,32 @@ std::shared_ptr<output_t> parse_multi_single(const pt::ptree &conf,
     return std::make_shared<output_multi_t>(name, processor, columns, mid, new_opts);
 }
 
-std::vector<std::shared_ptr<output_t> > parse_multi_config(const middle_query_t *mid, const options_t &options) {
+std::vector<std::shared_ptr<output_t>>
+parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
+                   options_t const &options)
+{
     std::vector<std::shared_ptr<output_t> > outputs;
 
-    if (!options.style.empty()) {
-        const std::string file_name(options.style);
+    if (options.style.empty()) {
+        throw std::runtime_error("Style file is required for `multi' backend, "
+                                 "but was not specified.");
+    }
 
-        try {
-            pt::ptree conf;
-            pt::read_json(file_name, conf);
+    const std::string file_name(options.style);
 
-            for (const pt::ptree::value_type &val: conf) {
-                outputs.push_back(parse_multi_single(val.second, mid, options));
-            }
+    try {
+        pt::ptree conf;
+        pt::read_json(file_name, conf);
 
-        } catch (const std::exception &e) {
-            throw std::runtime_error((boost::format("Unable to parse multi config file `%1%': %2%")
-                                      % file_name % e.what()).str());
+        for (const pt::ptree::value_type &val : conf) {
+            outputs.push_back(parse_multi_single(val.second, mid, options));
         }
-    } else {
-        throw std::runtime_error("Style file is required for `multi' backend, but was not specified.");
+
+    } catch (const std::exception &e) {
+        throw std::runtime_error(
+            (boost::format("Unable to parse multi config file `%1%': %2%") %
+             file_name % e.what())
+                .str());
     }
 
     return outputs;
@@ -108,7 +116,10 @@ std::vector<std::shared_ptr<output_t> > parse_multi_config(const middle_query_t 
 
 } // anonymous namespace
 
-std::vector<std::shared_ptr<output_t> > output_t::create_outputs(const middle_query_t *mid, const options_t &options) {
+std::vector<std::shared_ptr<output_t>>
+output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
+                         options_t const &options)
+{
     std::vector<std::shared_ptr<output_t> > outputs;
 
     if (options.output_backend == "pgsql") {
@@ -130,8 +141,9 @@ std::vector<std::shared_ptr<output_t> > output_t::create_outputs(const middle_qu
     return outputs;
 }
 
-output_t::output_t(const middle_query_t *mid_, const options_t &options_)
-: m_mid(mid_), m_options(options_)
+output_t::output_t(std::shared_ptr<middle_query_t> const &mid,
+                   options_t const &options)
+: m_mid(mid), m_options(options)
 {}
 
 output_t::~output_t() = default;

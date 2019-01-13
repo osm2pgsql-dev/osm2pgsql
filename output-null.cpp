@@ -62,17 +62,22 @@ int output_null_t::relation_modify(osmium::Relation const &) {
   return 0;
 }
 
-std::shared_ptr<output_t> output_null_t::clone(const middle_query_t* cloned_middle) const {
-    output_null_t *clone = new output_null_t(*this);
-    clone->m_mid = cloned_middle;
-    return std::shared_ptr<output_t>(clone);
+std::shared_ptr<output_t>
+output_null_t::clone(std::shared_ptr<middle_query_t> const &mid) const
+{
+    return std::shared_ptr<output_t>(new output_null_t(this, mid));
 }
 
-output_null_t::output_null_t(const middle_query_t* mid_, const options_t &options_): output_t(mid_, options_) {
+output_null_t::output_null_t(std::shared_ptr<middle_query_t> const &mid,
+                             options_t const &options)
+: output_t(mid, options)
+{
 }
 
-output_null_t::output_null_t(const output_null_t& other): output_t(other.m_mid, other.m_options) {
+output_null_t::output_null_t(output_null_t const *other,
+                             std::shared_ptr<middle_query_t> const &mid)
+: output_t(mid, other->m_options)
+{
 }
 
-output_null_t::~output_null_t() {
-}
+output_null_t::~output_null_t() = default;

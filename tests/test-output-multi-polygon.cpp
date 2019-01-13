@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.database_options = db->database_options;
         options.num_procs = 1;
@@ -44,11 +43,20 @@ int main(int argc, char *argv[]) {
         std::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
 
         export_list columns;
-        { taginfo info; info.name = "building"; info.type = "text"; columns.add(osmium::item_type::way, info); }
+        {
+            taginfo info;
+            info.name = "building";
+            info.type = "text";
+            columns.add(osmium::item_type::way, info);
+        }
 
-        auto out_test = std::make_shared<output_multi_t>("foobar_buildings", processor, columns, mid_pgsql.get(), options);
+        auto mid_pgsql = std::make_shared<middle_pgsql_t>();
+        auto out_test = std::make_shared<output_multi_t>(
+            "foobar_buildings", processor, columns,
+            std::static_pointer_cast<middle_query_t>(mid_pgsql), options);
 
-        osmdata_t osmdata(mid_pgsql, out_test);
+        osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql),
+                          out_test);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

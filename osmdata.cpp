@@ -253,7 +253,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
             //clone the outs
             output_vec_t out_clones;
             for (const auto& out: outs) {
-                out_clones.push_back(out->clone(mid_clone.get()));
+                out_clones.push_back(out->clone(mid_clone));
             }
 
             //keep the clones for a specific thread to use

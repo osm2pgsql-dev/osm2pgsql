@@ -39,10 +39,10 @@ struct test_output_t : public output_null_t
     virtual ~test_output_t() {}
 
     std::shared_ptr<output_t>
-    clone(const middle_query_t *cloned_middle) const override
+    clone(std::shared_ptr<middle_query_t> const &mid) const override
     {
         test_output_t *clone = new test_output_t(*this);
-        clone->m_mid = cloned_middle;
+        clone->m_mid = mid;
         return std::shared_ptr<output_t>(clone);
     }
 

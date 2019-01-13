@@ -14,36 +14,38 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
-
-class output_gazetteer_t : public output_t {
-public:
-    output_gazetteer_t(const middle_query_t *mid_, const options_t &options_)
-    : output_t(mid_, options_), Connection(NULL), ConnectionDelete(NULL),
-      ConnectionError(NULL), copy_active(false),
-      m_builder(options_.projection, true), single_fmt("%1%"),
-      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
-    {
-        buffer.reserve(PLACE_BUFFER_SIZE);
-        m_style.load_style(options_.style);
-    }
-
-    output_gazetteer_t(const output_gazetteer_t &other)
-    : output_t(other.m_mid, other.m_options), Connection(NULL),
+class output_gazetteer_t : public output_t
+{
+    output_gazetteer_t(output_gazetteer_t const *other,
+                       std::shared_ptr<middle_query_t> const &cloned_mid)
+    : output_t(cloned_mid, other->m_options), Connection(NULL),
       ConnectionDelete(NULL), ConnectionError(NULL), copy_active(false),
-      m_builder(other.m_options.projection, true), single_fmt(other.single_fmt),
+      m_builder(other->m_options.projection, true),
+      single_fmt(other->single_fmt),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         buffer.reserve(PLACE_BUFFER_SIZE);
         connect();
     }
 
+public:
+    output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
+                       options_t const &options)
+    : output_t(mid, options), Connection(NULL), ConnectionDelete(NULL),
+      ConnectionError(NULL), copy_active(false),
+      m_builder(options.projection, true), single_fmt("%1%"),
+      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
+    {
+        buffer.reserve(PLACE_BUFFER_SIZE);
+        m_style.load_style(options.style);
+    }
+
     virtual ~output_gazetteer_t() {}
 
-    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override
+    std::shared_ptr<output_t>
+    clone(std::shared_ptr<middle_query_t> const &mid) const override
     {
-        output_gazetteer_t *clone = new output_gazetteer_t(*this);
-        clone->m_mid = cloned_middle;
-        return std::shared_ptr<output_t>(clone);
+        return std::shared_ptr<output_t>(new output_gazetteer_t(this, mid));
     }
 
     int start() override;

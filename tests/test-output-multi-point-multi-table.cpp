@@ -34,7 +34,6 @@ int main(int argc, char *argv[]) {
     }
 
     try {
-        std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
         options_t options;
         options.database_options = db->database_options;
         options.num_procs = 1;
@@ -42,8 +41,14 @@ int main(int argc, char *argv[]) {
         options.slim = true;
 
         export_list columns;
-        { taginfo info; info.name = "amenity"; info.type = "text"; columns.add(osmium::item_type::node, info); }
+        {
+            taginfo info;
+            info.name = "amenity";
+            info.type = "text";
+            columns.add(osmium::item_type::node, info);
+        }
 
+        auto mid_pgsql = std::make_shared<middle_pgsql_t>();
         std::vector<std::shared_ptr<output_t> > outputs;
 
         // let's make lots of tables!
@@ -53,12 +58,15 @@ int main(int argc, char *argv[]) {
             std::shared_ptr<geometry_processor> processor =
                 geometry_processor::create("point", &options);
 
-            auto out_test = std::make_shared<output_multi_t>(name, processor, columns, mid_pgsql.get(), options);
+            auto out_test = std::make_shared<output_multi_t>(
+                name, processor, columns,
+                std::static_pointer_cast<middle_query_t>(mid_pgsql), options);
 
             outputs.push_back(out_test);
         }
 
-        osmdata_t osmdata(mid_pgsql, outputs);
+        osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql),
+                          outputs);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

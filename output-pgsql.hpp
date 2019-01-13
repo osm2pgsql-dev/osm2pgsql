@@ -17,16 +17,20 @@
 #include <memory>
 
 class output_pgsql_t : public output_t {
+    output_pgsql_t(output_pgsql_t const *other,
+                   std::shared_ptr<middle_query_t> const &mid);
+
 public:
     enum table_id {
         t_point = 0, t_line, t_poly, t_roads, t_MAX
     };
 
-    output_pgsql_t(const middle_query_t* mid_, const options_t &options_);
+    output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
+                   options_t const &options);
     virtual ~output_pgsql_t();
-    output_pgsql_t(const output_pgsql_t& other);
 
-    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
+    std::shared_ptr<output_t>
+    clone(std::shared_ptr<middle_query_t> const &mid) const override;
 
     int start() override;
     void stop(osmium::thread::Pool *pool) override;

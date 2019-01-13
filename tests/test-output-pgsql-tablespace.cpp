@@ -65,7 +65,6 @@ void test_regression_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -76,12 +75,8 @@ void test_regression_simple() {
     options.tblsslim_index = "tablespacetest";
     options.tblsslim_data = "tablespacetest";
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
-
-    osmdata_t osmdata(mid_pgsql, out_test);
-
-    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_pgsql_t>(
+        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

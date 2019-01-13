@@ -502,14 +502,14 @@ int output_pgsql_t::start()
     return 0;
 }
 
-std::shared_ptr<output_t> output_pgsql_t::clone(const middle_query_t* cloned_middle) const
+std::shared_ptr<output_t>
+output_pgsql_t::clone(std::shared_ptr<middle_query_t> const &mid) const
 {
-    auto *clone = new output_pgsql_t(*this);
-    clone->m_mid = cloned_middle;
-    return std::shared_ptr<output_t>(clone);
+    return std::shared_ptr<output_t>(new output_pgsql_t(this, mid));
 }
 
-output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
+output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
+                               options_t const &o)
 : output_t(mid, o), m_builder(o.projection, o.enable_multi),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   ways_done_tracker(new id_tracker()),
@@ -576,23 +576,24 @@ output_pgsql_t::output_pgsql_t(const middle_query_t *mid, const options_t &o)
     }
 }
 
-output_pgsql_t::output_pgsql_t(const output_pgsql_t &other)
-: output_t(other.m_mid, other.m_options),
+output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
+                               std::shared_ptr<middle_query_t> const &mid)
+: output_t(mid, other->m_options),
   m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
-  m_enable_way_area(other.m_enable_way_area),
-  m_export_list(new export_list(*other.m_export_list)),
-  m_builder(m_options.projection, other.m_options.enable_multi),
+  m_enable_way_area(other->m_enable_way_area),
+  m_export_list(new export_list(*other->m_export_list)),
+  m_builder(m_options.projection, other->m_options.enable_multi),
   expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
          m_options.projection),
   //NOTE: we need to know which ways were used by relations so each thread
   //must have a copy of the original marked done ways, its read only so its ok
-  ways_done_tracker(other.ways_done_tracker),
+  ways_done_tracker(other->ways_done_tracker),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    for(std::vector<std::shared_ptr<table_t> >::const_iterator t = other.m_tables.begin(); t != other.m_tables.end(); ++t) {
+    for (auto const &t : other->m_tables) {
         //copy constructor will just connect to the already there table
-        m_tables.push_back(std::shared_ptr<table_t>(new table_t(**t)));
+        m_tables.push_back(std::shared_ptr<table_t>(new table_t(*t.get())));
     }
 }
 
