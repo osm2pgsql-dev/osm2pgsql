@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         }
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs, options.projection);
+        osmdata_t osmdata(middle, outputs);
 
         fprintf(stderr, "Using projection SRS %d (%s)\n",
                 options.projection->target_srs(),

@@ -74,7 +74,7 @@ matrix:
       env: T="osx_clang_NoDB" LUAJIT_OPTION="OFF" TEST_NODB=1
            CXXFLAGS="-pedantic -Werror"
       before_install:
-        - brew install lua;
+        - brew install lua; brew install lua
       before_script:
         - xml2-config --version
         - proj | head -n1

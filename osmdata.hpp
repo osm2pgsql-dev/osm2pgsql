@@ -18,12 +18,9 @@ class osmdata_t
 {
 public:
     osmdata_t(std::shared_ptr<middle_t> mid_,
-              std::shared_ptr<output_t> const &out_,
-              std::shared_ptr<reprojection> proj);
+              std::shared_ptr<output_t> const &out_);
     osmdata_t(std::shared_ptr<middle_t> mid_,
-              std::vector<std::shared_ptr<output_t> > const &outs_,
-              std::shared_ptr<reprojection> proj);
-    ~osmdata_t();
+              std::vector<std::shared_ptr<output_t>> const &outs_);
 
     void start();
     void type_changed(osmium::item_type new_type);
@@ -44,7 +41,6 @@ public:
 private:
     std::shared_ptr<middle_t> mid;
     std::vector<std::shared_ptr<output_t> > outs;
-    std::shared_ptr<reprojection> projection;
     bool with_extra;
 };
 
