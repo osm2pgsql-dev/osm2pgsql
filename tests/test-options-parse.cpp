@@ -84,7 +84,8 @@ void test_outputs()
 {
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
-    std::shared_ptr<middle_query_t> mid(new middle_ram_t());
+    auto middle_ram = std::make_shared<middle_ram_t>(&options);
+    auto mid = middle_ram->get_query_instance(middle_ram);
     auto outs = output_t::create_outputs(mid, options);
     output_t* out = outs.front().get();
     if(dynamic_cast<output_pgsql_t *>(out) == nullptr)

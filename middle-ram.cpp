@@ -155,11 +155,7 @@ void middle_ram_t::analyze(void)
     /* No need */
 }
 
-void middle_ram_t::start(const options_t *options)
-{
-    extra_attributes = options->extra_attributes;
-    cache.reset(new node_ram_cache(options->alloc_chunkwise, options->cache));
-}
+void middle_ram_t::start() {}
 
 void middle_ram_t::stop(osmium::thread::Pool &pool)
 {
@@ -172,8 +168,10 @@ void middle_ram_t::stop(osmium::thread::Pool &pool)
 void middle_ram_t::commit(void) {
 }
 
-middle_ram_t::middle_ram_t():
-    ways(), rels(), cache(), simulate_ways_deleted(false)
+middle_ram_t::middle_ram_t(options_t const *options)
+: ways(), rels(),
+  cache(new node_ram_cache(options->alloc_chunkwise, options->cache)),
+  extra_attributes(options->extra_attributes), simulate_ways_deleted(false)
 {
 }
 

@@ -17,29 +17,54 @@
 #include "node-ram-cache.hpp"
 #include "pgsql.hpp"
 
-struct middle_pgsql_t : public slim_middle_t, public middle_query_t
+class middle_query_pgsql_t : public middle_query_t
 {
-    middle_pgsql_t();
+public:
+    middle_query_pgsql_t(
+        char const *conninfo, std::shared_ptr<node_ram_cache> const &cache,
+        std::shared_ptr<node_persistent_cache> const &persistent_cache);
+    ~middle_query_pgsql_t();
 
-    void start(const options_t *out_options_) override;
+    size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
+
+    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
+                               osmium::memory::Buffer &buffer) const override;
+
+    idlist_t relations_using_way(osmid_t way_id) const override;
+    bool relations_get(osmid_t id,
+                       osmium::memory::Buffer &buffer) const override;
+
+    void exec_sql(std::string const &sql_cmd) const;
+
+private:
+    size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
+
+    pg_result_t exec_prepared(char const *stmt, char const *param) const;
+    pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
+
+    struct pg_conn *m_sql_conn;
+    std::shared_ptr<node_ram_cache> m_cache;
+    std::shared_ptr<node_persistent_cache> m_persistent_cache;
+};
+
+struct middle_pgsql_t : public slim_middle_t
+{
+    middle_pgsql_t(options_t const *options);
+
+    void start() override;
     void stop(osmium::thread::Pool &pool) override;
     void analyze() override;
     void commit() override;
 
     void nodes_set(osmium::Node const &node) override;
-    size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
     void nodes_delete(osmid_t id) override;
     void node_changed(osmid_t id) override;
 
     void ways_set(osmium::Way const &way) override;
-    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
-    size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
-                               osmium::memory::Buffer &buffer) const override;
-
     void ways_delete(osmid_t id) override;
     void way_changed(osmid_t id) override;
 
-    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel) override;
     void relations_delete(osmid_t id) override;
     void relation_changed(osmid_t id) override;
@@ -51,13 +76,12 @@ struct middle_pgsql_t : public slim_middle_t, public middle_query_t
 
     size_t pending_count() const override;
 
-    idlist_t relations_using_way(osmid_t way_id) const override;
-
     class table_desc
     {
     public:
         table_desc() : sql_conn(nullptr) {}
-        table_desc(char const *name, char const *create,
+        table_desc(options_t const *options, char const *name,
+                   char const *create, char const *prepare_query,
                    char const *prepare = "", char const *prepare_intarray = "",
                    char const *array_indexes = "");
 
@@ -68,8 +92,9 @@ struct middle_pgsql_t : public slim_middle_t, public middle_query_t
 
         int copyMode;    /* True if we are in copy mode */
         struct pg_conn *sql_conn;
+        std::string m_prepare_query;
 
-        void connect(options_t const *options);
+        void connect(char const *conninfo);
         void begin();
         void prepare_queries(bool append);
         void create();
@@ -109,7 +134,6 @@ private:
      * Sets up sql_conn for the table
      */
     void local_nodes_set(osmium::Node const &node);
-    size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
     void local_nodes_delete(osmid_t osm_id);
 
     table_desc tables[NUM_TABLES];

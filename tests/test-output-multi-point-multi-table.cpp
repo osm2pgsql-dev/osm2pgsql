@@ -48,7 +48,10 @@ int main(int argc, char *argv[]) {
             columns.add(osmium::item_type::node, info);
         }
 
-        auto mid_pgsql = std::make_shared<middle_pgsql_t>();
+        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+        mid_pgsql->start();
+        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
+
         std::vector<std::shared_ptr<output_t> > outputs;
 
         // let's make lots of tables!
@@ -59,14 +62,12 @@ int main(int argc, char *argv[]) {
                 geometry_processor::create("point", &options);
 
             auto out_test = std::make_shared<output_multi_t>(
-                name, processor, columns,
-                std::static_pointer_cast<middle_query_t>(mid_pgsql), options);
+                name, processor, columns, midq, options);
 
             outputs.push_back(out_test);
         }
 
-        osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql),
-                          outputs);
+        osmdata_t osmdata(mid_pgsql, outputs);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

@@ -82,10 +82,10 @@ public:
 
 struct middle_ram_t : public middle_t, public middle_query_t
 {
-    middle_ram_t();
+    middle_ram_t(options_t const *options);
     virtual ~middle_ram_t();
 
-    void start(const options_t *options) override;
+    void start() override;
     void stop(osmium::thread::Pool &pool) override;
     void analyze(void) override;
     void commit(void) override;

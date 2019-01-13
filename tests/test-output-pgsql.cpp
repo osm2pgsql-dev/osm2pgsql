@@ -238,14 +238,12 @@ void test_clone() {
     options.slim = true;
     options.style = "default.style";
 
-    auto mid_pgsql = std::make_shared<middle_pgsql_t>();
-    output_pgsql_t out_test(std::static_pointer_cast<middle_query_t>(mid_pgsql),
-                            options);
+    auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
+    mid_pgsql->start();
+    output_pgsql_t out_test(mid_pgsql->get_query_instance(mid_pgsql), options);
 
-    //TODO: make the middle testable too
-    //std::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
     std::shared_ptr<output_t> out_clone =
-        out_test.clone(std::static_pointer_cast<middle_query_t>(mid_pgsql));
+        out_test.clone(mid_pgsql->get_query_instance(mid_pgsql));
 
     osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql), out_clone);
 

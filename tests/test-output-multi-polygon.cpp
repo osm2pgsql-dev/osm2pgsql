@@ -50,13 +50,14 @@ int main(int argc, char *argv[]) {
             columns.add(osmium::item_type::way, info);
         }
 
-        auto mid_pgsql = std::make_shared<middle_pgsql_t>();
-        auto out_test = std::make_shared<output_multi_t>(
-            "foobar_buildings", processor, columns,
-            std::static_pointer_cast<middle_query_t>(mid_pgsql), options);
+        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+        mid_pgsql->start();
+        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
 
-        osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql),
-                          out_test);
+        auto out_test = std::make_shared<output_multi_t>(
+            "foobar_buildings", processor, columns, midq, options);
+
+        osmdata_t osmdata(mid_pgsql, out_test);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

@@ -121,25 +121,28 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
     string->assign(buffer);
 }
 
-middle_pgsql_t::table_desc::table_desc(char const *name, char const *create,
+middle_pgsql_t::table_desc::table_desc(options_t const *options,
+                                       char const *name, char const *create,
+                                       char const *prepare_query,
                                        char const *prepare,
                                        char const *prepare_intarray,
                                        char const *array_indexes)
-: copyMode(0), sql_conn(nullptr), transactionMode(0), m_name(name),
-  m_create(create), m_prepare(prepare), m_prepare_intarray(prepare_intarray),
-  m_array_indexes(array_indexes)
-{}
-
-void middle_pgsql_t::table_desc::connect(options_t const *options)
+: copyMode(0), sql_conn(nullptr), m_prepare_query(prepare_query),
+  transactionMode(0), m_name(name), m_create(create), m_prepare(prepare),
+  m_prepare_intarray(prepare_intarray), m_array_indexes(array_indexes)
 {
     set_prefix_and_tbls(options, &m_name);
     set_prefix_and_tbls(options, &m_create);
+    set_prefix_and_tbls(options, &m_prepare_query);
     set_prefix_and_tbls(options, &m_prepare);
     set_prefix_and_tbls(options, &m_prepare_intarray);
     set_prefix_and_tbls(options, &m_array_indexes);
+}
 
+void middle_pgsql_t::table_desc::connect(char const *conninfo)
+{
     fprintf(stderr, "Setting up table: %s\n", name());
-    sql_conn = PQconnectdb(options->database_options.conninfo().c_str());
+    sql_conn = PQconnectdb(conninfo);
 
     // Check to see that the backend connection was successfully made, and if not, exit */
     if (PQstatus(sql_conn) != CONNECTION_OK) {
@@ -226,6 +229,25 @@ middle_pgsql_t::table_desc::exec_prepared(char const *stmt, osmid_t osm_id,
     char buffer[64];
     sprintf(buffer, "%" PRIdOSMID, osm_id);
     return exec_prepared(stmt, buffer, expect);
+}
+
+pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
+                                                char const *param) const
+{
+    return pgsql_execPrepared(m_sql_conn, stmt, 1, &param, PGRES_TUPLES_OK);
+}
+
+pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
+                                                osmid_t osm_id) const
+{
+    char buffer[64];
+    sprintf(buffer, "%" PRIdOSMID, osm_id);
+    return exec_prepared(stmt, buffer);
+}
+
+void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
+{
+    pgsql_exec(m_sql_conn, PGRES_COMMAND_OK, "%s", sql_cmd.c_str());
 }
 
 void middle_pgsql_t::table_desc::stop(bool droptemp, bool build_indexes)
@@ -468,7 +490,8 @@ void middle_pgsql_t::local_nodes_set(osmium::Node const &node)
     }
 }
 
-size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
+size_t
+middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
     std::string buffer("{");
@@ -477,7 +500,7 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     // at the same time build a list for querying missing nodes from DB
     size_t pos = 0;
     for (auto &n : *nodes) {
-        auto loc = cache->get(n.ref());
+        auto loc = m_cache->get(n.ref());
         if (loc.valid()) {
             n.set_location(loc);
             ++count;
@@ -496,10 +519,7 @@ size_t middle_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     buffer[buffer.size() - 1] = '}';
 
     // Nodes must have been written back at this point.
-    assert(tables[NODE_TABLE].copyMode == 0);
-
-    auto res =
-        tables[NODE_TABLE].exec_prepared("get_node_list", buffer.c_str());
+    auto res = exec_prepared("get_node_list", buffer.c_str());
     auto countPG = PQntuples(res.get());
 
     std::unordered_map<osmid_t, osmium::Location> locs;
@@ -534,11 +554,10 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node)
     }
 }
 
-size_t middle_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
+size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
-    return (out_options->flat_node_cache_enabled)
-        ? persistent_cache->get_list(nodes)
-        : local_nodes_get_list(nodes);
+    return m_persistent_cache ? m_persistent_cache->get_list(nodes)
+                              : local_nodes_get_list(nodes);
 }
 
 void middle_pgsql_t::local_nodes_delete(osmid_t osm_id)
@@ -631,12 +650,11 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
     }
 }
 
-bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
+bool middle_query_pgsql_t::ways_get(osmid_t id,
+                                    osmium::memory::Buffer &buffer) const
 {
     // Make sure we're out of copy mode
-    assert(tables[WAY_TABLE].copyMode == 0);
-
-    auto res = tables[WAY_TABLE].exec_prepared("get_way", id);
+    auto res = exec_prepared("get_way", id);
 
     if (PQntuples(res.get()) != 1) {
         return false;
@@ -655,9 +673,10 @@ bool middle_pgsql_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
     return true;
 }
 
-size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
-                                           rolelist_t *roles,
-                                           osmium::memory::Buffer &buffer) const
+size_t
+middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
+                                          rolelist_t *roles,
+                                          osmium::memory::Buffer &buffer) const
 {
     char tmp[16];
 
@@ -677,9 +696,7 @@ size_t middle_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     tmp2[tmp2.length() - 1] = '}';
 
     // Make sures all ways have been written back.
-    assert(tables[WAY_TABLE].copyMode == 0);
-
-    auto res = tables[WAY_TABLE].exec_prepared("get_way_list", tmp2.c_str());
+    auto res = exec_prepared("get_way_list", tmp2.c_str());
     int countPG = PQntuples(res.get());
 
     idlist_t wayidspg;
@@ -841,14 +858,13 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
     }
 }
 
-bool middle_pgsql_t::relations_get(osmid_t id, osmium::memory::Buffer &buffer) const
+bool middle_query_pgsql_t::relations_get(osmid_t id,
+                                         osmium::memory::Buffer &buffer) const
 {
-    // Make sure we're out of copy mode
-    assert(tables[REL_TABLE].copyMode == 0);
-
-    auto res = tables[REL_TABLE].exec_prepared("get_rel", id);
+    // Make sure relation table is out of copy mode
+    auto res = exec_prepared("get_rel", id);
     // Fields are: members, tags, member_count */
-
+    //
     if (PQntuples(res.get()) != 1) {
         return false;
     }
@@ -920,12 +936,10 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     }
 }
 
-idlist_t middle_pgsql_t::relations_using_way(osmid_t way_id) const
+idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 {
-    // Make sure we're out of copy mode */
-    assert(tables[REL_TABLE].copyMode == 0);
-
-    auto result = tables[REL_TABLE].exec_prepared("rels_using_way", way_id);
+    // Make sure relation table is out of copy mode */
+    auto result = exec_prepared("rels_using_way", way_id);
     const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
     rel_ids.resize((size_t) ntuples);
@@ -943,10 +957,29 @@ void middle_pgsql_t::analyze()
     }
 }
 
-void middle_pgsql_t::start(const options_t *options)
+middle_query_pgsql_t::middle_query_pgsql_t(
+    char const *conninfo, std::shared_ptr<node_ram_cache> const &cache,
+    std::shared_ptr<node_persistent_cache> const &persistent_cache)
+: m_sql_conn(PQconnectdb(conninfo)), m_cache(cache),
+  m_persistent_cache(persistent_cache)
 {
-    out_options = options;
+    // Check to see that the backend connection was successfully made, and if not, exit */
+    if (PQstatus(m_sql_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n",
+                PQerrorMessage(m_sql_conn));
+        util::exit_nicely();
+    }
+}
 
+middle_query_pgsql_t::~middle_query_pgsql_t()
+{
+    if (m_sql_conn) {
+        PQfinish(m_sql_conn);
+    }
+}
+
+void middle_pgsql_t::start()
+{
     ways_pending_tracker.reset(new id_tracker());
     rels_pending_tracker.reset(new id_tracker());
 
@@ -961,20 +994,9 @@ void middle_pgsql_t::start(const options_t *options)
         mark_pending = false;
     }
 
-    append = out_options->append;
-
-    cache.reset(new node_ram_cache(out_options->alloc_chunkwise | ALLOC_LOSSY,
-                                   out_options->cache));
-
-    if (out_options->flat_node_cache_enabled) {
-        persistent_cache.reset(new node_persistent_cache(out_options, cache));
-    }
-
-    fprintf(stderr, "Mid: pgsql, cache=%d\n", out_options->cache);
-
     // We use a connection per table to enable the use of COPY */
     for (auto &table : tables) {
-        table.connect(out_options);
+        table.connect(out_options->database_options.conninfo().c_str());
 
         if (!append) {
             pgsql_exec(table.sql_conn, PGRES_COMMAND_OK,
@@ -985,6 +1007,8 @@ void middle_pgsql_t::start(const options_t *options)
         if (!append) {
             table.create();
         }
+        table.commit();
+        table.begin();
         table.prepare_queries(append);
         table.begin_copy();
     }
@@ -1003,10 +1027,16 @@ void middle_pgsql_t::flush(osmium::item_type new_type)
     {
         case osmium::item_type::way:
             tables[NODE_TABLE].end_copy();
+            tables[NODE_TABLE].commit();
+            tables[NODE_TABLE].begin();
             break;
         case osmium::item_type::relation:
             tables[NODE_TABLE].end_copy();
+            tables[NODE_TABLE].commit();
             tables[WAY_TABLE].end_copy();
+            tables[WAY_TABLE].commit();
+            tables[NODE_TABLE].begin();
+            tables[WAY_TABLE].begin();
             break;
         default:
             // nothing needed
@@ -1035,25 +1065,35 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
     }
 }
 
-middle_pgsql_t::middle_pgsql_t()
-: append(false), mark_pending(true)
+middle_pgsql_t::middle_pgsql_t(options_t const *options)
+: append(options->append), mark_pending(true), out_options(options),
+  cache(new node_ram_cache(options->alloc_chunkwise | ALLOC_LOSSY,
+                           options->cache))
 {
+    if (options->flat_node_cache_enabled) {
+        persistent_cache.reset(new node_persistent_cache(options, cache));
+    }
+
+    fprintf(stderr, "Mid: pgsql, cache=%d\n", options->cache);
+
     // clang-format off
     /*table = t_node,*/
-    tables[NODE_TABLE] = table_desc(
+    tables[NODE_TABLE] = table_desc(options,
             /*name*/ "%p_nodes",
           /*create*/ "CREATE %m TABLE %p_nodes (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 not null, lon int4 not null) {TABLESPACE %t};\n",
+         /*prepare_query */
+               "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n",
          /*prepare*/ "PREPARE insert_node (" POSTGRES_OSMID_TYPE ", int4, int4) AS INSERT INTO %p_nodes VALUES ($1,$2,$3);\n"
-               "PREPARE get_node_list(" POSTGRES_OSMID_TYPE "[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
                "PREPARE delete_node (" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_nodes WHERE id = $1;\n"
                          );
-    tables[WAY_TABLE] = table_desc(
+    tables[WAY_TABLE] = table_desc(options,
         /*table t_way,*/
             /*name*/ "%p_ways",
           /*create*/ "CREATE %m TABLE %p_ways (id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes " POSTGRES_OSMID_TYPE "[] not null, tags text[]) {TABLESPACE %t};\n",
-         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
+         /*prepare_query */
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
-               "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n"
+               "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n",
+         /*prepare*/ "PREPARE insert_way (" POSTGRES_OSMID_TYPE ", " POSTGRES_OSMID_TYPE "[], text[]) AS INSERT INTO %p_ways VALUES ($1,$2,$3);\n"
                "PREPARE delete_way(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_ways WHERE id = $1;\n",
 /*prepare_intarray*/
                "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
@@ -1061,15 +1101,16 @@ middle_pgsql_t::middle_pgsql_t()
 
    /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          );
-    tables[REL_TABLE] = table_desc(
+    tables[REL_TABLE] = table_desc(options, 
         /*table = t_rel,*/
             /*name*/ "%p_rels",
           /*create*/ "CREATE %m TABLE %p_rels(id " POSTGRES_OSMID_TYPE " PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts " POSTGRES_OSMID_TYPE "[], members text[], tags text[]) {TABLESPACE %t};\n",
-         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
+         /*prepare_query */
                "PREPARE get_rel (" POSTGRES_OSMID_TYPE ") AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
+                "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n",
+         /*prepare*/ "PREPARE insert_rel (" POSTGRES_OSMID_TYPE ", int2, int2, " POSTGRES_OSMID_TYPE "[], text[], text[]) AS INSERT INTO %p_rels VALUES ($1,$2,$3,$4,$5,$6);\n"
                "PREPARE delete_rel(" POSTGRES_OSMID_TYPE ") AS DELETE FROM %p_rels WHERE id = $1;\n",
 /*prepare_intarray*/
-                "PREPARE rels_using_way(" POSTGRES_OSMID_TYPE ") AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
                 "PREPARE mark_rels_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
                 "PREPARE mark_rels_by_way(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
                 "PREPARE mark_rels(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n",
@@ -1085,21 +1126,15 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
     auto *src = dynamic_cast<middle_pgsql_t *>(from.get());
     assert(src);
 
-    // Return a copy of the original, as we need separate database connections.
-    std::unique_ptr<middle_pgsql_t> mid(new middle_pgsql_t());
-    mid->out_options = src->out_options;
-    mid->append = src->out_options->append;
-    mid->mark_pending = src->mark_pending;
-
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
-    mid->cache = src->cache;
-    mid->persistent_cache = src->persistent_cache;
+    std::unique_ptr<middle_query_pgsql_t> mid(new middle_query_pgsql_t(
+        src->out_options->database_options.conninfo().c_str(), src->cache,
+        src->persistent_cache));
 
     // We use a connection per table to enable the use of COPY
     for (int i = 0; i < NUM_TABLES; i++) {
-        mid->tables[i].connect(mid->out_options);
-        mid->tables[i].prepare_queries(mid->append);
+        mid->exec_sql(src->tables[i].m_prepare_query);
     }
 
     return std::shared_ptr<middle_query_t>(mid.release());

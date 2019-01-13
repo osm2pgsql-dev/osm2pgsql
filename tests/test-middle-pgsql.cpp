@@ -38,14 +38,16 @@ void run_tests(options_t options, const std::string cache_type) {
   }
 
   {
-      test_middle_helper<middle_pgsql_t> t(options);
+      // First make sure we have an empty table.
+      { test_middle_helper<middle_pgsql_t> t(options); }
 
-      t.commit_and_stop();
-
-      // Switch to append mode because this tests updates
+      // Then switch to append mode because this tests updates.
       options.append = true;
       options.create = false;
-      t.start(&options);
+
+      test_middle_helper<middle_pgsql_t> t(options);
+
+      t.commit();
 
       if (t.test_way_set() != 0) {
           throw std::runtime_error("test_way_set failed.");
