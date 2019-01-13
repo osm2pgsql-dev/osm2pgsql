@@ -66,7 +66,6 @@ void test_regression_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -74,12 +73,8 @@ void test_regression_simple() {
     options.slim = true;
     options.style = "default.style";
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
-
-    osmdata_t osmdata(mid_pgsql, out_test);
-
-    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_pgsql_t>(
+        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -116,7 +111,6 @@ void test_latlong() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -126,12 +120,8 @@ void test_latlong() {
 
     options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
-
-    osmdata_t osmdata(mid_pgsql, out_test);
-
-    testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_pgsql_t>(
+        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -169,7 +159,6 @@ void test_area_way_simple() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -179,12 +168,8 @@ void test_area_way_simple() {
     options.flat_node_cache_enabled = true;
     options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_pgsql.get(), options);
-
-    osmdata_t osmdata(mid_pgsql, out_test);
-
-    testing::parse("tests/test_output_pgsql_way_area.osm", "xml",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_pgsql_t>(
+        options, "tests/test_output_pgsql_way_area.osm", "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -210,7 +195,6 @@ void test_route_rel() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_ram_t> mid_ram(new middle_ram_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -218,12 +202,8 @@ void test_route_rel() {
     options.slim = false;
     options.style = "default.style";
 
-    auto out_test = std::make_shared<output_pgsql_t>(mid_ram.get(), options);
-
-    osmdata_t osmdata(mid_ram, out_test);
-
-    testing::parse("tests/test_output_pgsql_route_rel.osm", "xml",
-                   options, &osmdata);
+    testing::run_osm2pgsql<middle_ram_t>(
+        options, "tests/test_output_pgsql_route_rel.osm", "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -251,7 +231,6 @@ void test_clone() {
     std::string proc_name("test-output-pgsql"), input_file("-");
     char *argv[] = { &proc_name[0], &input_file[0], nullptr };
 
-    std::shared_ptr<middle_pgsql_t> mid_pgsql(new middle_pgsql_t());
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
@@ -259,13 +238,16 @@ void test_clone() {
     options.slim = true;
     options.style = "default.style";
 
-    output_pgsql_t out_test(mid_pgsql.get(), options);
+    auto mid_pgsql = std::make_shared<middle_pgsql_t>();
+    output_pgsql_t out_test(std::static_pointer_cast<middle_query_t>(mid_pgsql),
+                            options);
 
     //TODO: make the middle testable too
     //std::shared_ptr<middle_t> mid_clone = mid_pgsql->get_instance();
-    std::shared_ptr<output_t> out_clone = out_test.clone(mid_pgsql.get());
+    std::shared_ptr<output_t> out_clone =
+        out_test.clone(std::static_pointer_cast<middle_query_t>(mid_pgsql));
 
-    osmdata_t osmdata(mid_pgsql, out_clone);
+    osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql), out_clone);
 
     testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                    options, &osmdata);

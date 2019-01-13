@@ -44,17 +44,8 @@ int main(int argc, char *argv[]) {
         options.output_backend = "multi";
         options.style = "tests/test_output_multi_tags.json";
 
-        //setup the middle
-        auto middle = std::make_shared<middle_pgsql_t>();
-
-        //setup the backend (output)
-        std::vector<std::shared_ptr<output_t> > outputs = output_t::create_outputs(middle.get(), options);
-
-        //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
-
-        testing::parse("tests/test_output_multi_tags.osm", "xml",
-                       options, &osmdata);
+        testing::run_osm2pgsql<middle_pgsql_t>(
+            options, "tests/test_output_multi_tags.osm", "xml");
 
         // Check we got the right tables
         db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_1'");

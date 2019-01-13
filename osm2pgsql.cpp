@@ -60,11 +60,13 @@ int main(int argc, char *argv[])
 
         if (options.slim) {
             auto mid = std::make_shared<middle_pgsql_t>();
-            outputs = output_t::create_outputs(mid.get(), options);
+            outputs = output_t::create_outputs(
+                std::static_pointer_cast<middle_query_t>(mid), options);
             middle = std::static_pointer_cast<middle_t>(mid);
         } else {
             auto mid = std::make_shared<middle_ram_t>();
-            outputs = output_t::create_outputs(mid.get(), options);
+            outputs = output_t::create_outputs(
+                std::static_pointer_cast<middle_query_t>(mid), options);
             middle = std::static_pointer_cast<middle_t>(mid);
         }
 

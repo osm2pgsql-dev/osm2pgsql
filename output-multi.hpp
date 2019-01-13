@@ -23,16 +23,21 @@ struct export_list;
 struct middle_query_t;
 struct options_t;
 
-class output_multi_t : public output_t {
+class output_multi_t : public output_t
+{
+    output_multi_t(output_multi_t const *other,
+                   std::shared_ptr<middle_query_t> const &mid);
+
 public:
-    output_multi_t(const std::string &name,
+    output_multi_t(std::string const &name,
                    std::shared_ptr<geometry_processor> processor_,
-                   const export_list &export_list_,
-                   const middle_query_t* mid_, const options_t &options_);
-    output_multi_t(const output_multi_t& other);
+                   export_list const &export_list_,
+                   std::shared_ptr<middle_query_t> const &mid,
+                   options_t const &options);
     virtual ~output_multi_t();
 
-    std::shared_ptr<output_t> clone(const middle_query_t* cloned_middle) const override;
+    std::shared_ptr<output_t>
+    clone(std::shared_ptr<middle_query_t> const &mid) const override;
 
     int start() override;
     void stop(osmium::thread::Pool *pool) override;

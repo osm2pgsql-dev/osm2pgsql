@@ -84,8 +84,8 @@ void test_outputs()
 {
     const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
-    auto mid = std::make_shared<middle_ram_t>();
-    std::vector<std::shared_ptr<output_t> > outs = output_t::create_outputs(mid.get(), options);
+    std::shared_ptr<middle_query_t> mid(new middle_ram_t());
+    auto outs = output_t::create_outputs(mid, options);
     output_t* out = outs.front().get();
     if(dynamic_cast<output_pgsql_t *>(out) == nullptr)
     {
@@ -94,7 +94,7 @@ void test_outputs()
 
     const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "tests/gazetteer-test.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a2), const_cast<char **>(a2));
-    outs = output_t::create_outputs(mid.get(), options);
+    outs = output_t::create_outputs(mid, options);
     out = outs.front().get();
     if(dynamic_cast<output_gazetteer_t *>(out) == nullptr)
     {
@@ -103,7 +103,7 @@ void test_outputs()
 
     const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a3), const_cast<char **>(a3));
-    outs = output_t::create_outputs(mid.get(), options);
+    outs = output_t::create_outputs(mid, options);
     out = outs.front().get();
     if(dynamic_cast<output_null_t *>(out) == nullptr)
     {
@@ -114,7 +114,7 @@ void test_outputs()
     options = options_t(len(a4), const_cast<char **>(a4));
     try
     {
-        outs = output_t::create_outputs(mid.get(), options);
+        outs = output_t::create_outputs(mid, options);
         out = outs.front().get();
         throw std::logic_error("Expected 'not recognised'");
     }

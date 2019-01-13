@@ -1,6 +1,7 @@
 #ifndef TESTS_MIDDLE_TEST_HPP
 #define TESTS_MIDDLE_TEST_HPP
 
+#include <memory>
 #include <vector>
 
 #include "middle.hpp"
@@ -35,22 +36,22 @@ class test_middle_helper
 
 public:
     test_middle_helper(options_t const &options)
-    : m_output(&m_mid, options),
+    : m_mid(std::make_shared<MID>()), m_output(m_mid, options),
       m_buffer(4096, osmium::memory::Buffer::auto_grow::yes),
       m_proj(reprojection::create_projection(PROJ_LATLONG))
     {
-        m_mid.start(&options);
+        m_mid->start(&options);
     }
 
     ~test_middle_helper() { commit_and_stop(); }
 
-    void start(options_t const *options) { m_mid.start(options); }
+    void start(options_t const *options) { m_mid->start(options); }
 
     void commit_and_stop()
     {
         osmium::thread::Pool pool(1);
-        m_mid.commit();
-        m_mid.stop(pool);
+        m_mid->commit();
+        m_mid->stop(pool);
     }
 
     // tests that a single node can be set and retrieved. returns 0 on success.
@@ -63,10 +64,10 @@ public:
         auto &way = m_buffer.get<osmium::Way>(way_with_nodes({node.id()}));
 
         // set the node
-        m_mid.nodes_set(node);
+        m_mid->nodes_set(node);
 
         // get it back
-        if (m_mid.nodes_get_list(&(way.nodes())) != way.nodes().size()) {
+        if (m_mid->nodes_get_list(&(way.nodes())) != way.nodes().size()) {
             std::cerr << "ERROR: Unable to get node list.\n";
             return 1;
         }
@@ -123,13 +124,13 @@ public:
 
         for (auto pos : expected_nodes) {
             auto const &node = m_buffer.get<osmium::Node>(pos);
-            m_mid.nodes_set(node);
+            m_mid->nodes_set(node);
             ids.push_back(node.id());
         }
 
         auto &way = m_buffer.get<osmium::Way>(way_with_nodes(ids));
 
-        if (m_mid.nodes_get_list(&(way.nodes())) != ids.size()) {
+        if (m_mid->nodes_get_list(&(way.nodes())) != ids.size()) {
             std::cerr << "ERROR: Unable to get node list.\n";
             return 1;
         }
@@ -161,7 +162,7 @@ public:
             nds.push_back(i);
             nodes.push_back(add_node(i, lat, lon));
             auto const &node = m_buffer.get<osmium::Node>(nodes.back());
-            m_mid.nodes_set(node);
+            m_mid->nodes_set(node);
         }
 
         // set the way
@@ -170,11 +171,11 @@ public:
             auto pos =
                 osmium::builder::add_way(m_buffer, _id(way_id), _nodes(nds));
             auto const &way = m_buffer.get<osmium::Way>(pos);
-            m_mid.ways_set(way);
+            m_mid->ways_set(way);
         }
 
         // commit the setup data
-        m_mid.commit();
+        m_mid->commit();
 
         // get it back
         osmium::memory::Buffer relbuf(4096,
@@ -190,7 +191,7 @@ public:
 
         auto buf_pos = m_buffer.committed();
         rolelist_t roles;
-        size_t way_count = m_mid.rel_way_members_get(rel, &roles, m_buffer);
+        size_t way_count = m_mid->rel_way_members_get(rel, &roles, m_buffer);
         if (way_count != 1) {
             std::cerr << "ERROR: Unable to get way list.\n";
             return 1;
@@ -221,7 +222,7 @@ public:
                       << ", but got back " << way.id() << " from middle.\n";
             return 1;
         }
-        m_mid.nodes_get_list(&(way.nodes()));
+        m_mid->nodes_get_list(&(way.nodes()));
         for (size_t i = 0; i < nds.size(); ++i) {
             if (way.nodes()[i].location().lon() != lon) {
                 std::cerr << "ERROR: Way node should have lon=" << lon
@@ -241,18 +242,18 @@ public:
 
         // the way we just inserted should not be pending
         test_pending_processor tpp;
-        m_mid.iterate_ways(tpp);
-        if (m_mid.pending_count() != 0) {
+        m_mid->iterate_ways(tpp);
+        if (m_mid->pending_count() != 0) {
             std::cerr << "ERROR: Was expecting no pending ways, but got "
-                      << m_mid.pending_count() << " from middle.\n";
+                      << m_mid->pending_count() << " from middle.\n";
             return 1;
         }
 
         // some middles don't support changing the nodes - they
         // don't have diff update ability. here, we will just
         // skip the test for that.
-        if (dynamic_cast<slim_middle_t *>(&m_mid)) {
-            slim_middle_t *slim = dynamic_cast<slim_middle_t *>(&m_mid);
+        if (dynamic_cast<slim_middle_t *>(m_mid.get())) {
+            slim_middle_t *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
 
             // finally, try touching a node on a non-pending way. that should
             // make it become pending. we just checked that the way is not
@@ -307,7 +308,7 @@ private:
 
     static constexpr double test_lat(osmid_t id) { return 1 + 1e-5 * id; }
 
-    MID m_mid;
+    std::shared_ptr<MID> m_mid;
     output_null_t m_output;
 
     // simple osmium buffer to store all the objects in

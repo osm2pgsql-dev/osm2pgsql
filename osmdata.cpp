@@ -186,8 +186,7 @@ namespace {
 //since the fetching from middle should be faster than the processing in each backend.
 
 struct pending_threaded_processor : public middle_t::pending_processor {
-    typedef std::vector<std::shared_ptr<output_t>> output_vec_t;
-    typedef std::pair<std::shared_ptr<middle_query_t>, output_vec_t> clone_t;
+    using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
     static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
         while (true) {
@@ -253,11 +252,11 @@ struct pending_threaded_processor : public middle_t::pending_processor {
             //clone the outs
             output_vec_t out_clones;
             for (const auto& out: outs) {
-                out_clones.push_back(out->clone(mid_clone.get()));
+                out_clones.push_back(out->clone(mid_clone));
             }
 
             //keep the clones for a specific thread to use
-            clones.push_back(clone_t(mid_clone, out_clones));
+            clones.push_back(out_clones);
         }
     }
 
@@ -282,11 +281,10 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
-        for (size_t i = 0; i < clones.size(); ++i) {
-            workers.push_back(std::async(std::launch::async,
-                                         do_jobs, std::cref(clones[i].second),
-                                         std::ref(queue), std::ref(ids_done),
-                                         std::ref(mutex), append, true));
+        for (auto const &clone : clones) {
+            workers.push_back(std::async(
+                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
+                std::ref(ids_done), std::ref(mutex), append, true));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -315,10 +313,12 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //collect all the new rels that became pending from each
         //output in each thread back to their respective main outputs
-        for (const auto& clone: clones) {
+        for (auto const &clone : clones) {
             //for each clone/original output
-            for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
-                original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
+            for (output_vec_t::const_iterator original_output = outs.begin(),
+                                              clone_output = clone.begin();
+                 original_output != outs.end() && clone_output != clone.end();
+                 ++original_output, ++clone_output) {
                 //done copying ways for now
                 clone_output->get()->commit();
                 //merge the pending from this threads copy of output back
@@ -344,11 +344,10 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
-        for (size_t i = 0; i < clones.size(); ++i) {
-            workers.push_back(std::async(std::launch::async,
-                                         do_jobs, std::cref(clones[i].second),
-                                         std::ref(queue), std::ref(ids_done),
-                                         std::ref(mutex), append, false));
+        for (auto const &clone : clones) {
+            workers.push_back(std::async(
+                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
+                std::ref(ids_done), std::ref(mutex), append, false));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -376,10 +375,12 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         ids_done = 0;
 
         //collect all expiry tree informations together into one
-        for (const auto& clone: clones) {
+        for (auto const &clone : clones) {
             //for each clone/original output
-            for(output_vec_t::const_iterator original_output = outs.begin(), clone_output = clone.second.begin();
-                original_output != outs.end() && clone_output != clone.second.end(); ++original_output, ++clone_output) {
+            for (output_vec_t::const_iterator original_output = outs.begin(),
+                                              clone_output = clone.begin();
+                 original_output != outs.end() && clone_output != clone.end();
+                 ++original_output, ++clone_output) {
                 //done copying rels for now
                 clone_output->get()->commit();
                 //merge the expire tree from this threads copy of output back
@@ -389,8 +390,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     }
 
 private:
-    //middle and output copies
-    std::vector<clone_t> clones;
+    // output copies, one vector per thread
+    std::vector<output_vec_t> clones;
     output_vec_t outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //how many jobs do we have in the queue to start with
     size_t ids_queued;

@@ -11,12 +11,12 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
-output_multi_t::output_multi_t(const std::string &name,
+output_multi_t::output_multi_t(std::string const &name,
                                std::shared_ptr<geometry_processor> processor_,
-                               const struct export_list &export_list_,
-                               const middle_query_t *mid_,
-                               const options_t &options_)
-: output_t(mid_, options_),
+                               export_list const &export_list_,
+                               std::shared_ptr<middle_query_t> const &mid,
+                               options_t const &options)
+: output_t(mid, options),
   m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
   m_export_list(new export_list(export_list_)), m_processor(processor_),
   m_proj(m_options.projection),
@@ -40,31 +40,31 @@ output_multi_t::output_multi_t(const std::string &name,
 {
 }
 
-output_multi_t::output_multi_t(const output_multi_t &other)
-: output_t(other.m_mid, other.m_options),
+output_multi_t::output_multi_t(output_multi_t const *other,
+                               std::shared_ptr<middle_query_t> const &mid)
+: output_t(mid, other->m_options),
   m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
-  m_export_list(new export_list(*other.m_export_list)),
-  m_processor(other.m_processor), m_proj(other.m_proj),
-  m_osm_type(other.m_osm_type), m_table(new table_t(*other.m_table)),
+  m_export_list(new export_list(*other->m_export_list)),
+  m_processor(other->m_processor), m_proj(other->m_proj),
+  m_osm_type(other->m_osm_type), m_table(new table_t(*other->m_table)),
   // NOTE: we need to know which ways were used by relations so each thread
   // must have a copy of the original marked done ways, its read only so its
   // ok
-  ways_done_tracker(other.ways_done_tracker),
+  ways_done_tracker(other->ways_done_tracker),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_builder(m_options.projection, m_options.enable_multi),
-  m_way_area(other.m_way_area)
+  m_way_area(other->m_way_area)
 {
 }
 
 output_multi_t::~output_multi_t() = default;
 
-std::shared_ptr<output_t> output_multi_t::clone(const middle_query_t* cloned_middle) const
+std::shared_ptr<output_t>
+output_multi_t::clone(std::shared_ptr<middle_query_t> const &mid) const
 {
-    auto *clone = new output_multi_t(*this);
-    clone->m_mid = cloned_middle;
-    return std::shared_ptr<output_t>(clone);
+    return std::shared_ptr<output_t>(new output_multi_t(this, mid));
 }
 
 int output_multi_t::start() {
@@ -365,7 +365,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
-        if (m_relation_helper.set(rel, m_mid) < 1)
+        if (m_relation_helper.set(rel, m_mid.get()) < 1)
             return 0;
 
         //NOTE: make_polygon is preset here this is to force the tag matching
@@ -383,7 +383,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel,
             outtags, true);
         if (!filter)
         {
-            m_relation_helper.add_way_locations(m_mid);
+            m_relation_helper.add_way_locations(m_mid.get());
             auto geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
             for (const auto geom : geoms) {
