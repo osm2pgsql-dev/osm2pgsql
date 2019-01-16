@@ -422,7 +422,13 @@ void osmdata_t::stop() {
     // should be the same for all outputs
     auto *opts = outs[0]->get_options();
 
-    {
+    // are there any objects left pending?
+    bool has_pending = mid->pending_count() > 0;
+    for (auto const &out : outs) {
+        has_pending |= out->pending_count() > 0;
+    }
+
+    if (has_pending) {
         //threaded pending processing
         pending_threaded_processor ptp(mid, outs, opts->num_procs,
                                        opts->append);
