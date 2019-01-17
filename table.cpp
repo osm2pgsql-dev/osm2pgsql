@@ -231,7 +231,10 @@ void table_t::stop()
                     .str());
         } else {
             /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
-               and these need to be filtered. Also, a transformation is needed for geohashing. */
+               and these need to be filtered. Also, a transformation is needed for geohashing.
+               Notices are expected and ignored because they mean nothing aboud the validity of the geom
+               in OSM. */
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
             pgsql_exec_simple(
                 sql_conn, PGRES_COMMAND_OK,
                 (fmt("CREATE TABLE %1%_tmp %2% AS\n"
@@ -243,6 +246,7 @@ void table_t::stop()
                      "    COLLATE \"C\"") %
                  name % (table_space ? "TABLESPACE " + table_space.get() : ""))
                     .str());
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
         }
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("DROP TABLE %1%") % name).str());
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % name).str());
