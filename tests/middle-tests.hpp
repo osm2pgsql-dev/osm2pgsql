@@ -36,23 +36,23 @@ class test_middle_helper
 
 public:
     test_middle_helper(options_t const &options)
-    : m_mid(std::make_shared<MID>()), m_output(m_mid, options),
+    : m_mid(std::make_shared<MID>(&options)),
       m_buffer(4096, osmium::memory::Buffer::auto_grow::yes),
       m_proj(reprojection::create_projection(PROJ_LATLONG))
     {
-        m_mid->start(&options);
+        m_mid->start();
+        m_mid_q = m_mid->get_query_instance(m_mid);
+        m_output.reset(new output_null_t(m_mid_q, options));
     }
 
-    ~test_middle_helper() { commit_and_stop(); }
-
-    void start(options_t const *options) { m_mid->start(options); }
-
-    void commit_and_stop()
+    ~test_middle_helper()
     {
         osmium::thread::Pool pool(1);
         m_mid->commit();
         m_mid->stop(pool);
     }
+
+    void commit() { m_mid->commit(); }
 
     // tests that a single node can be set and retrieved. returns 0 on success.
     int test_node_set()
@@ -65,9 +65,10 @@ public:
 
         // set the node
         m_mid->nodes_set(node);
+        m_mid->flush(osmium::item_type::way);
 
         // get it back
-        if (m_mid->nodes_get_list(&(way.nodes())) != way.nodes().size()) {
+        if (m_mid_q->nodes_get_list(&(way.nodes())) != way.nodes().size()) {
             std::cerr << "ERROR: Unable to get node list.\n";
             return 1;
         }
@@ -128,9 +129,11 @@ public:
             ids.push_back(node.id());
         }
 
+        m_mid->flush(osmium::item_type::way);
+
         auto &way = m_buffer.get<osmium::Way>(way_with_nodes(ids));
 
-        if (m_mid->nodes_get_list(&(way.nodes())) != ids.size()) {
+        if (m_mid_q->nodes_get_list(&(way.nodes())) != ids.size()) {
             std::cerr << "ERROR: Unable to get node list.\n";
             return 1;
         }
@@ -191,7 +194,7 @@ public:
 
         auto buf_pos = m_buffer.committed();
         rolelist_t roles;
-        size_t way_count = m_mid->rel_way_members_get(rel, &roles, m_buffer);
+        size_t way_count = m_mid_q->rel_way_members_get(rel, &roles, m_buffer);
         if (way_count != 1) {
             std::cerr << "ERROR: Unable to get way list.\n";
             return 1;
@@ -222,7 +225,7 @@ public:
                       << ", but got back " << way.id() << " from middle.\n";
             return 1;
         }
-        m_mid->nodes_get_list(&(way.nodes()));
+        m_mid_q->nodes_get_list(&(way.nodes()));
         for (size_t i = 0; i < nds.size(); ++i) {
             if (way.nodes()[i].location().lon() != lon) {
                 std::cerr << "ERROR: Way node should have lon=" << lon
@@ -309,7 +312,8 @@ private:
     static constexpr double test_lat(osmid_t id) { return 1 + 1e-5 * id; }
 
     std::shared_ptr<MID> m_mid;
-    output_null_t m_output;
+    std::shared_ptr<middle_query_t> m_mid_q;
+    std::unique_ptr<output_null_t> m_output;
 
     // simple osmium buffer to store all the objects in
     osmium::memory::Buffer m_buffer;

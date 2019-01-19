@@ -56,20 +56,17 @@ int main(int argc, char *argv[])
 
         //setup the middle and backend (output)
         std::shared_ptr<middle_t> middle;
-        std::vector<std::shared_ptr<output_t>> outputs;
 
         if (options.slim) {
-            auto mid = std::make_shared<middle_pgsql_t>();
-            outputs = output_t::create_outputs(
-                std::static_pointer_cast<middle_query_t>(mid), options);
-            middle = std::static_pointer_cast<middle_t>(mid);
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
         } else {
-            auto mid = std::make_shared<middle_ram_t>();
-            outputs = output_t::create_outputs(
-                std::static_pointer_cast<middle_query_t>(mid), options);
-            middle = std::static_pointer_cast<middle_t>(mid);
+            middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
         }
 
+        middle->start();
+
+        auto outputs = output_t::create_outputs(
+            middle->get_query_instance(middle), options);
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
 

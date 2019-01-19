@@ -17,8 +17,6 @@
 #include "osmtypes.hpp"
 #include "reprojection.hpp"
 
-struct options_t;
-
 /**
  * Infterface for returning information about raw OSM input data from a cache.
  */
@@ -84,7 +82,7 @@ struct middle_t
 {
     virtual ~middle_t() = 0;
 
-    virtual void start(options_t const *out_options) = 0;
+    virtual void start() = 0;
     virtual void stop(osmium::thread::Pool &pool) = 0;
     virtual void analyze(void) = 0;
     virtual void commit(void) = 0;

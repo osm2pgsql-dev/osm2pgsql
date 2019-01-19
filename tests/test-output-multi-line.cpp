@@ -50,14 +50,14 @@ int main(int argc, char *argv[]) {
             columns.add(osmium::item_type::way, info);
         }
 
-        auto mid_pgsql = std::make_shared<middle_pgsql_t>();
+        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+        mid_pgsql->start();
+        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
         // This actually uses the multi-backend with C transforms, not Lua transforms. This is unusual and doesn't reflect real practice
         auto out_test = std::make_shared<output_multi_t>(
-            "foobar_highways", processor, columns,
-            std::static_pointer_cast<middle_query_t>(mid_pgsql), options);
+            "foobar_highways", processor, columns, midq, options);
 
-        osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql),
-                          out_test);
+        osmdata_t osmdata(mid_pgsql, out_test);
 
         testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
                        options, &osmdata);

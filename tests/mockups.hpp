@@ -7,7 +7,7 @@
 struct dummy_middle_t : public middle_t {
     virtual ~dummy_middle_t() = default;
 
-    void start(const options_t *) override { }
+    void start() override {}
     void stop(osmium::thread::Pool &) override {}
     void flush(osmium::item_type) override {}
     void cleanup(void) { }
@@ -26,7 +26,7 @@ struct dummy_middle_t : public middle_t {
     virtual size_t pending_count() const override  { return 0; }
 
     std::shared_ptr<middle_query_t>
-    get_query_instance(std::shared_ptr<middle_t> const &mid) const override
+    get_query_instance(std::shared_ptr<middle_t> const &) const override
     {
         return std::shared_ptr<middle_query_t>();
     }
@@ -35,7 +35,7 @@ struct dummy_middle_t : public middle_t {
 struct dummy_slim_middle_t : public slim_middle_t {
     virtual ~dummy_slim_middle_t() = default;
 
-    void start(const options_t *) override  { }
+    void start() override {}
     void stop(osmium::thread::Pool &) override {}
     void flush(osmium::item_type) override {}
     void cleanup(void) { }
@@ -54,7 +54,7 @@ struct dummy_slim_middle_t : public slim_middle_t {
     size_t pending_count() const override  { return 0; }
 
     std::shared_ptr<middle_query_t>
-    get_query_instance(std::shared_ptr<middle_t> const &mid) const override
+    get_query_instance(std::shared_ptr<middle_t> const &) const override
     {
         return std::shared_ptr<middle_query_t>();
     }
