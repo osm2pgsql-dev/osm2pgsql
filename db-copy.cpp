@@ -1,6 +1,7 @@
 #include <boost/format.hpp>
 #include <cassert>
 #include <cstdio>
+#include <future>
 #include <thread>
 
 #include "db-copy.hpp"
@@ -22,7 +23,7 @@ db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
     });
 }
 
-void db_copy_thread_t::add_buffer(std::unique_ptr<db_copy_buffer_t> &&buffer)
+void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
 {
     std::unique_lock<std::mutex> lock(m_queue_mutex);
     m_worker_queue.push_back(std::move(buffer));
@@ -30,7 +31,7 @@ void db_copy_thread_t::add_buffer(std::unique_ptr<db_copy_buffer_t> &&buffer)
 
 void db_copy_thread_t::finish()
 {
-    add_buffer(std::unique_ptr<db_copy_buffer_t>());
+    add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_finish_t()));
     m_worker.join();
 }
 
@@ -38,8 +39,9 @@ void db_copy_thread_t::worker_thread()
 {
     connect();
 
-    for (;;) {
-        std::unique_ptr<db_copy_buffer_t> item;
+    bool done = false;
+    while (!done) {
+        std::unique_ptr<db_cmd_t> item;
         {
             std::unique_lock<std::mutex> lock(m_queue_mutex);
             if (m_worker_queue.empty()) {
@@ -51,19 +53,26 @@ void db_copy_thread_t::worker_thread()
             m_worker_queue.pop_front();
         }
 
-        if (!item)
-            break;
-
-        if (item->is_copy_buffer())
-            write_to_db(std::move(item));
-        else
-            execute_sql(item->buffer);
+        switch (item->type) {
+            case db_cmd_t::Cmd_copy:
+                write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
+                break;
+            case db_cmd_t::Cmd_sql:
+                execute_sql(static_cast<db_cmd_sql_t *>(item.get())->buffer);
+                break;
+            case db_cmd_t::Cmd_sync:
+                static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
+                break;
+            case db_cmd_t::Cmd_finish:
+                done = true;
+                break;
+        }
     }
 
     if (m_inflight)
         finish_copy();
 
-    commit();
+    disconnect();
 }
 
 void db_copy_thread_t::connect()
@@ -80,8 +89,6 @@ void db_copy_thread_t::connect()
     // Let commits happen faster by delaying when they actually occur.
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK,
                       "SET synchronous_commit TO off;");
-    // Wrap everything into one huge transaction. XXX is that a good idea?
-    pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, "BEGIN");
 }
 
 void db_copy_thread_t::execute_sql(std::string const &sql_cmd)
@@ -92,34 +99,30 @@ void db_copy_thread_t::execute_sql(std::string const &sql_cmd)
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql_cmd.c_str());
 }
 
-void db_copy_thread_t::commit()
+void db_copy_thread_t::disconnect()
 {
     if (!m_conn)
         return;
-
-    fprintf(stderr, "Committing transactions\n");
-    pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, "COMMIT");
 
     PQfinish(m_conn);
     m_conn = nullptr;
 }
 
-void db_copy_thread_t::write_to_db(std::unique_ptr<db_copy_buffer_t> &&buffer)
+void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
     if (!buffer->deletables.empty() ||
-        (m_inflight && !buffer->target->same_copy_target(*m_inflight->target)))
+        (m_inflight && !buffer->target->same_copy_target(*m_inflight.get())))
         finish_copy();
 
     if (!buffer->deletables.empty())
-        delete_rows(buffer.get());
+        delete_rows(buffer);
 
-    start_copy(std::move(buffer));
+    start_copy(buffer->target);
 
-    pgsql_CopyData(m_inflight->target->name.c_str(), m_conn,
-                   m_inflight->buffer);
+    pgsql_CopyData(buffer->target->name.c_str(), m_conn, buffer->buffer);
 }
 
-void db_copy_thread_t::delete_rows(db_copy_buffer_t *buffer)
+void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
 {
     assert(!m_inflight);
 
@@ -139,37 +142,39 @@ void db_copy_thread_t::delete_rows(db_copy_buffer_t *buffer)
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
 }
 
-void db_copy_thread_t::start_copy(std::unique_ptr<db_copy_buffer_t> &&buffer)
+void db_copy_thread_t::start_copy(std::shared_ptr<db_target_descr_t> const &target)
 {
-    if (!m_inflight) {
-        std::string copystr = "COPY ";
-        copystr.reserve(buffer->target->name.size() +
-                        buffer->target->rows.size() + 14);
-        copystr += buffer->target->name;
-        if (!buffer->target->rows.empty()) {
-            copystr += '(';
-            copystr += buffer->target->rows;
-            copystr += ')';
-        }
-        copystr += " FROM STDIN";
-        pgsql_exec_simple(m_conn, PGRES_COPY_IN, copystr);
-    }
+    if (m_inflight)
+        return;
 
-    m_inflight = std::move(buffer);
+    assert(m_inflight.get() == target.get());
+
+    std::string copystr = "COPY ";
+    copystr.reserve(target->name.size() + target->rows.size() + 14);
+    copystr += target->name;
+    if (!target->rows.empty()) {
+        copystr += '(';
+        copystr += target->rows;
+        copystr += ')';
+    }
+    copystr += " FROM STDIN";
+    pgsql_exec_simple(m_conn, PGRES_COPY_IN, copystr);
+
+    m_inflight = target;
 }
 
 void db_copy_thread_t::finish_copy()
 {
     if (PQputCopyEnd(m_conn, nullptr) != 1)
         throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->target->name %
+                                  m_inflight->name %
                                   PQerrorMessage(m_conn))
                                      .str());
 
     pg_result_t res(PQgetResult(m_conn));
     if (PQresultStatus(res.get()) != PGRES_COMMAND_OK)
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->target->name %
+                                  m_inflight->name %
                                   PQerrorMessage(m_conn))
                                      .str());
 
@@ -187,7 +192,7 @@ void db_copy_mgr_t::new_line(std::shared_ptr<db_target_descr_t> const &table)
             m_processor->add_buffer(std::move(m_current));
         }
 
-        m_current.reset(new db_copy_buffer_t(table));
+        m_current.reset(new db_cmd_copy_t(table));
     }
 }
 
@@ -205,6 +210,32 @@ void db_copy_mgr_t::exec_sql(std::string const &sql_cmd)
     }
 
     // and add SQL command
-    m_current.reset(new db_copy_buffer_t(sql_cmd));
-    m_processor->add_buffer(std::move(m_current));
+    m_processor->add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sql_t(sql_cmd)));
 }
+
+void db_copy_mgr_t::sync()
+{
+    std::promise<void> barrier;
+    std::future<void> sync = barrier.get_future();
+    m_processor->add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
+    sync.wait();
+}
+
+void db_copy_mgr_t::finish_line()
+{
+    assert(m_current);
+
+    auto &buf = m_current->buffer;
+    assert(!buf.empty());
+
+    // Expect that a column has been written last which ended in a '\t'.
+    // Replace it with the row delimiter '\n'.
+    auto sz = buf.size();
+    assert(buf[sz - 1] == '\t');
+    buf[sz - 1] = '\n';
+
+    if (sz > db_cmd_copy_t::Max_buf_size - 100) {
+        m_processor->add_buffer(std::move(m_current));
+    }
+}
+
