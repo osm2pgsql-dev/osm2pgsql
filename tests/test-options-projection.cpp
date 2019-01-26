@@ -43,9 +43,10 @@ static void check_tables(pg::tempdb *db, options_t &options,
                         const std::string &expected)
 {
     options.database_options = db->database_options;
+    options.slim = false;
 
-    testing::run_osm2pgsql<middle_ram_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->check_string(expected, "select find_srid('public', 'planet_osm_roads', 'way')");
 }

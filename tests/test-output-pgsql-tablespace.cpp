@@ -75,8 +75,8 @@ void test_regression_simple() {
     options.tblsslim_index = "tablespacetest";
     options.tblsslim_data = "tablespacetest";
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

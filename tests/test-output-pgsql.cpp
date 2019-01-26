@@ -73,8 +73,8 @@ void test_regression_simple() {
     options.slim = true;
     options.style = "default.style";
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -120,8 +120,8 @@ void test_latlong() {
 
     options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -168,8 +168,8 @@ void test_area_way_simple() {
     options.flat_node_cache_enabled = true;
     options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/test_output_pgsql_way_area.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_way_area.osm",
+                           "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -202,8 +202,8 @@ void test_route_rel() {
     options.slim = false;
     options.style = "default.style";
 
-    testing::run_osm2pgsql<middle_ram_t>(
-        options, "tests/test_output_pgsql_route_rel.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_route_rel.osm",
+                           "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");

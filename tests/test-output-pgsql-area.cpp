@@ -63,6 +63,7 @@ void test_area_base(bool latlon, bool reproj, double expect_area_poly, double ex
     options_t options;
     options.database_options = db->database_options;
     options.num_procs = 1;
+    options.slim = true;
     options.style = "default.style";
     options.prefix = "osm2pgsql_test";
     if (latlon) {
@@ -72,8 +73,7 @@ void test_area_base(bool latlon, bool reproj, double expect_area_poly, double ex
         options.reproject_area = true;
     }
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/test_output_pgsql_area.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_area.osm", "xml");
 
     db->check_count(2, "SELECT COUNT(*) FROM osm2pgsql_test_polygon");
     db->check_number(expect_area_poly, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");

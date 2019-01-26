@@ -55,15 +55,12 @@ int main(int argc, char *argv[])
         if(options.long_usage_bool)
             return 0;
 
-        // the thread responsible for copying data to the DB
-        auto copy_thread = std::make_shared<db_copy_thread_t>(
-                             options.database_options.conninfo());
-
         //setup the middle and backend (output)
         std::shared_ptr<middle_t> middle;
 
         if (options.slim) {
-            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(copy_thread, &options));
+            // middle gets its own copy-in thread
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
         } else {
             middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
         }
@@ -105,9 +102,6 @@ int main(int argc, char *argv[])
 
         //show stats
         stats.print_summary();
-
-        // XXX currently not used for pending ways and relations, so finish up
-        copy_thread->finish();
 
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();

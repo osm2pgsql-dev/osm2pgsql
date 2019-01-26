@@ -54,8 +54,7 @@ int main(int argc, char *argv[]) {
         options.slim = 1;
         options.append = false;
 
-        testing::run_osm2pgsql<middle_pgsql_t>(
-            options, "tests/hstore-match-only.osm", "xml");
+        testing::run_osm2pgsql(options, "tests/hstore-match-only.osm", "xml");
 
         // tables should not contain any tag columns
         db->check_count(4, "select count(column_name) from information_schema.columns where table_name='osm2pgsql_test_point'");

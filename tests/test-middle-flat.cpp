@@ -25,49 +25,47 @@
 
 void run_tests(options_t options)
 {
-    options.append = false;
-    options.create = true;
-    options.flat_node_cache_enabled = true;
-    // flat nodes truncates the file each time it's started, so we can reuse the same file
-    options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
+  options.append = false;
+  options.create = true;
+  options.flat_node_cache_enabled = true;
+  // flat nodes truncates the file each time it's started, so we can reuse the same file
+  options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
-    {
-        test_middle_helper<middle_pgsql_t> t(options);
+  {
+      test_middle_helper t(options);
 
-        if (t.test_node_set() != 0) {
-            throw std::runtime_error("test_node_set failed.");
-        }
-    }
+      if (t.test_node_set() != 0) {
+          throw std::runtime_error("test_node_set failed.");
+      }
+  }
 
-    {
-        test_middle_helper<middle_pgsql_t> t(options);
+  {
+      test_middle_helper t(options);
 
-        if (t.test_nodes_comprehensive_set() != 0) {
-            throw std::runtime_error("test_nodes_comprehensive_set failed.");
-        }
-    }
+      if (t.test_nodes_comprehensive_set() != 0) {
+          throw std::runtime_error("test_nodes_comprehensive_set failed.");
+      }
+  }
 
-    /* This should work, but doesn't. More tests are needed that look at updates
+  /* This should work, but doesn't. More tests are needed that look at updates
      without the complication of ways.
   */
-    {
-        // First make sure we have an empty table.
-        {
-            test_middle_helper<middle_pgsql_t> t(options);
-        }
+  {
+      // First make sure we have an empty table.
+      {
+          test_middle_helper t(options);
+      }
 
         // Switch to append mode because this tests updates
         options.append = true;
         options.create = false;
 
-        test_middle_helper<middle_pgsql_t> t(options);
-
-        t.commit();
+        test_middle_helper t(options);
 
         if (t.test_way_set() != 0) {
             throw std::runtime_error("test_way_set failed.");
         }
-    }
+  }
 }
 int main(int argc, char *argv[]) {
     (void)argc;

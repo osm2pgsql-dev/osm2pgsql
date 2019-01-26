@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         options.output_backend = "multi";
         options.style = "tests/test_output_multi_line_trivial.style.json";
 
-        testing::run_osm2pgsql<middle_pgsql_t>(
+        testing::run_osm2pgsql(
             options, "tests/test_output_multi_line_storage.osm", "xml");
 
         db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_line'");

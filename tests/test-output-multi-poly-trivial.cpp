@@ -34,8 +34,8 @@ void check_output_poly_trivial(bool enable_multi, std::shared_ptr<pg::tempdb> db
   options.output_backend = "multi";
   options.style = "tests/test_output_multi_poly_trivial.style.json";
 
-  testing::run_osm2pgsql<middle_pgsql_t>(
-      options, "tests/test_output_multi_poly_trivial.osm", "xml");
+  testing::run_osm2pgsql(options, "tests/test_output_multi_poly_trivial.osm",
+                         "xml");
 
   // expect that the table exists
   db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_poly'");

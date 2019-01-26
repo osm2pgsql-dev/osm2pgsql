@@ -51,8 +51,7 @@ private:
 
 struct middle_pgsql_t : public slim_middle_t
 {
-    middle_pgsql_t(std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                   options_t const *options);
+    middle_pgsql_t(options_t const *options);
 
     void start() override;
     void stop(osmium::thread::Pool &pool) override;
@@ -90,7 +89,7 @@ struct middle_pgsql_t : public slim_middle_t
         char const *name() const { return m_copy_target->name.c_str(); }
         void clear_array_indexes() { m_array_indexes.clear(); }
 
-        void stop(char const *conninfo, bool droptemp, bool build_indexes);
+        void stop(std::string conninfo, bool droptemp, bool build_indexes);
 
         std::string m_create;
         std::string m_prepare_query;
@@ -127,6 +126,8 @@ private:
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
     struct pg_conn *m_query_conn;
+    // middle keeps its own thread for writing to the database.
+    std::shared_ptr<db_copy_thread_t> m_copy_thread;
     db_copy_mgr_t m_db_copy;
 };
 

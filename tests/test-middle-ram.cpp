@@ -15,7 +15,7 @@
 void run_tests(const options_t options, const std::string cache_type)
 {
     {
-        test_middle_helper<middle_ram_t> t(options);
+        test_middle_helper t(options);
 
         if (t.test_node_set() != 0) {
             throw std::runtime_error("test_node_set failed with " + cache_type +
@@ -24,7 +24,7 @@ void run_tests(const options_t options, const std::string cache_type)
     }
 
     {
-        test_middle_helper<middle_ram_t> t(options);
+        test_middle_helper t(options);
 
         if (t.test_nodes_comprehensive_set() != 0) {
             throw std::runtime_error(
@@ -34,7 +34,7 @@ void run_tests(const options_t options, const std::string cache_type)
     }
 
     {
-        test_middle_helper<middle_ram_t> t(options);
+        test_middle_helper t(options);
 
         if (t.test_way_set() != 0) {
             throw std::runtime_error("test_way_set failed with " + cache_type +
@@ -49,6 +49,7 @@ int main(int argc, char *argv[]) {
     try {
         options_t options;
         options.cache = 1; // Non-zero cache is needed to test
+        options.slim = false;
 
         options.alloc_chunkwise =
             ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized

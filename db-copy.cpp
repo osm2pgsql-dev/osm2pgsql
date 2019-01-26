@@ -23,16 +23,32 @@ db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
     });
 }
 
+db_copy_thread_t::~db_copy_thread_t() { finish(); }
+
 void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
 {
+    assert(m_worker.joinable()); // thread must not have been finished
     std::unique_lock<std::mutex> lock(m_queue_mutex);
     m_worker_queue.push_back(std::move(buffer));
+    m_queue_cond.notify_one();
+}
+
+void db_copy_thread_t::sync_and_wait()
+{
+    std::promise<void> barrier;
+    std::future<void> sync = barrier.get_future();
+    add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
+    sync.wait();
 }
 
 void db_copy_thread_t::finish()
 {
-    add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_finish_t()));
-    m_worker.join();
+    if (m_worker.joinable()) {
+        finish_copy();
+
+        add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_finish_t()));
+        m_worker.join();
+    }
 }
 
 void db_copy_thread_t::worker_thread()
@@ -61,6 +77,7 @@ void db_copy_thread_t::worker_thread()
                 execute_sql(static_cast<db_cmd_sql_t *>(item.get())->buffer);
                 break;
             case db_cmd_t::Cmd_sync:
+                finish_copy();
                 static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
                 break;
             case db_cmd_t::Cmd_finish:
@@ -69,8 +86,7 @@ void db_copy_thread_t::worker_thread()
         }
     }
 
-    if (m_inflight)
-        finish_copy();
+    finish_copy();
 
     disconnect();
 }
@@ -93,8 +109,7 @@ void db_copy_thread_t::connect()
 
 void db_copy_thread_t::execute_sql(std::string const &sql_cmd)
 {
-    if (m_inflight)
-        finish_copy();
+    finish_copy();
 
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql_cmd.c_str());
 }
@@ -117,7 +132,8 @@ void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
     if (!buffer->deletables.empty())
         delete_rows(buffer);
 
-    start_copy(buffer->target);
+    if (!m_inflight)
+        start_copy(buffer->target);
 
     pgsql_CopyData(buffer->target->name.c_str(), m_conn, buffer->buffer);
 }
@@ -130,24 +146,21 @@ void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
     sql.reserve(buffer->target->name.size() + buffer->deletables.size() * 15 +
                 30);
     sql += buffer->target->name;
-    sql += "WHERE ";
+    sql += " WHERE ";
     sql += buffer->target->id;
     sql += " IN (";
     for (auto id : buffer->deletables) {
         sql += std::to_string(id);
         sql += ',';
     }
-    sql += ')';
+    sql[sql.size() - 1] = ')';
 
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
 }
 
 void db_copy_thread_t::start_copy(std::shared_ptr<db_target_descr_t> const &target)
 {
-    if (m_inflight)
-        return;
-
-    assert(m_inflight.get() == target.get());
+    m_inflight = target;
 
     std::string copystr = "COPY ";
     copystr.reserve(target->name.size() + target->rows.size() + 14);
@@ -165,6 +178,9 @@ void db_copy_thread_t::start_copy(std::shared_ptr<db_target_descr_t> const &targ
 
 void db_copy_thread_t::finish_copy()
 {
+    if (!m_inflight)
+        return;
+
     if (PQputCopyEnd(m_conn, nullptr) != 1)
         throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") %
                                   m_inflight->name %
@@ -215,10 +231,12 @@ void db_copy_mgr_t::exec_sql(std::string const &sql_cmd)
 
 void db_copy_mgr_t::sync()
 {
-    std::promise<void> barrier;
-    std::future<void> sync = barrier.get_future();
-    m_processor->add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
-    sync.wait();
+    // finish any ongoing copy operations
+    if (m_current) {
+        m_processor->add_buffer(std::move(m_current));
+    }
+
+    m_processor->sync_and_wait();
 }
 
 void db_copy_mgr_t::finish_line()

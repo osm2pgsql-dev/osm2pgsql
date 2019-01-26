@@ -3,6 +3,7 @@
 
 #include <condition_variable>
 #include <deque>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -108,11 +109,17 @@ class db_copy_thread_t
 {
 public:
     db_copy_thread_t(std::string const &conninfo);
+    ~db_copy_thread_t();
 
     /**
      * Add another command for the worker.
      */
     void add_buffer(std::unique_ptr<db_cmd_t> &&buffer);
+
+    /**
+     * Send sync command and wait for the notification.
+     */
+    void sync_and_wait();
 
     /**
      * Finish the copy process.
@@ -166,21 +173,82 @@ public:
      */
     void finish_line();
 
-    /**
-     * Add a column entry of simple type.
-     */
+    template <typename T, typename ...ARGS>
+    void add_columns(T value, ARGS&&... args)
+    {
+        add_column(value);
+        add_columns(args...);
+    }
+
+    template <typename T>
+    void add_columns(T value)
+    {
+        add_column(value);
+    }
+
+    /// Add a column entry of simple type.
     template <typename T>
     void add_column(T value)
     {
-        auto s = std::to_string(value);
-        add_column<>(s);
+        add_value(value);
+        m_current->buffer += '\t';
     }
 
-    template <>
-    void add_column(std::string const &s)
+    /// Add an empty column.
+    void add_null_column() { m_current->buffer += "\\N\t"; }
+
+    /// Start an array column.
+    void new_array() { m_current->buffer += "{"; }
+
+    /// Add a single value to an array column
+    template <typename T>
+    void add_array_elem(T value)
+    {
+        add_value(value);
+        m_current->buffer += ',';
+    }
+
+    void add_array_elem(std::string const &s) { add_array_elem(s.c_str()); }
+
+    void add_array_elem(char const *s)
     {
         assert(m_current);
-        m_current->buffer += s;
+        m_current->buffer += '"';
+        for (char const *c = s; *c; ++c) {
+            switch (*c) {
+                case '"':
+                    m_current->buffer += "\\\\\"";
+                    break;
+                case '\\':
+                    m_current->buffer += "\\\\\\\\";
+                    break;
+                case '\n':
+                    m_current->buffer += "\\n";
+                    break;
+                case '\r':
+                    m_current->buffer += "\\r";
+                    break;
+                case '\t':
+                    m_current->buffer += "\\t";
+                    break;
+                default:
+                    m_current->buffer += *c;
+                    break;
+            }
+        }
+
+        m_current->buffer += "\",";
+    }
+
+    /// Finish an array column.
+    void finish_array()
+    {
+        auto idx = m_current->buffer.size() - 1;
+        if (m_current->buffer[idx] == '{')
+            m_current->buffer += '}';
+        else
+            m_current->buffer[idx] = '}';
+        m_current->buffer += '\t';
     }
 
     /**
@@ -207,6 +275,42 @@ public:
     void sync();
 
 private:
+    template <typename T>
+    void add_value(T value)
+    {
+        assert(m_current);
+        m_current->buffer += std::to_string(value);
+    }
+
+    void add_value(std::string const &s) { add_value(s.c_str()); }
+
+    void add_value(char const *s)
+    {
+        assert(m_current);
+        for (char const *c = s; *c; ++c) {
+            switch (*c) {
+                case '"':
+                    m_current->buffer += "\\\"";
+                    break;
+                case '\\':
+                    m_current->buffer += "\\\\";
+                    break;
+                case '\n':
+                    m_current->buffer += "\\n";
+                    break;
+                case '\r':
+                    m_current->buffer += "\\r";
+                    break;
+                case '\t':
+                    m_current->buffer += "\\t";
+                    break;
+                default:
+                    m_current->buffer += *c;
+                    break;
+            }
+        }
+    }
+
     std::shared_ptr<db_copy_thread_t> m_processor;
     std::unique_ptr<db_cmd_copy_t> m_current;
     unsigned m_last_line;

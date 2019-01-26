@@ -67,11 +67,12 @@ void test_z_order() {
     options_t options = options_t(2, argv);
     options.database_options = db->database_options;
     options.num_procs = 1;
+    options.slim = true;
     options.prefix = "osm2pgsql_test";
     options.style = "default.style";
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/test_output_pgsql_validgeom.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_validgeom.osm",
+                           "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
