@@ -15,6 +15,7 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
+
 class output_gazetteer_t : public output_t
 {
     output_gazetteer_t(output_gazetteer_t const *other,
@@ -37,6 +38,7 @@ public:
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);
+        m_style.set_metadata(options.extra_attributes);
     }
 
     virtual ~output_gazetteer_t();

@@ -42,6 +42,7 @@ void gazetteer_style_t::clear()
     m_main.clear();
     m_names.clear();
     m_extra.clear();
+    m_metadata.clear();
     m_address.clear();
     m_operator = nullptr;
     m_admin_level = MAX_ADMINLEVEL;
@@ -70,6 +71,11 @@ void gazetteer_style_t::load_style(std::string const &filename)
             }
         }
     }
+}
+
+void gazetteer_style_t::set_metadata(const bool enabled)
+{
+    m_metadata_enabled = enabled;
 }
 
 gazetteer_style_t::flag_t gazetteer_style_t::parse_flags(std::string const &str)
@@ -349,6 +355,45 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     } else if (postcode_fallback && postcode) {
         m_main.emplace_back("place", "postcode", SF_MAIN | SF_MAIN_FALLBACK);
     }
+
+    // add metadata fields as tags if enabled
+    if (m_metadata_enabled) {
+        if (o.version()) {
+            add_metadata_field_num<osmium::object_version_type>("osm_version", o.version());
+        }
+        if (o.uid()) {
+            add_metadata_field_num<osmium::user_id_type>("osm_uid", o.uid());
+        }
+
+        if (o.user() && *(o.user()) != '\0') {
+            std::string username = o.user();
+            add_metadata_field("osm_user", std::move(username));
+        }
+
+        if (o.changeset()) {
+            add_metadata_field_num<osmium::changeset_id_type>("osm_changeset", o.changeset());
+        }
+
+        if (o.timestamp()) {
+            add_metadata_field("osm_timestamp", std::move(o.timestamp().to_iso()));
+        }
+    }
+}
+
+void gazetteer_style_t::add_metadata_field(const std::string&& field, const std::string&& value) {
+    // We have to work with std::string, not char* because metadata fields converted to char*
+    // would require an allocation on heap and a cleanup at the end.
+    flag_t flag = find_flag(field.c_str(), value.c_str());
+    if (flag & SF_EXTRA) {
+        m_metadata.emplace_back(std::move(field), std::move(value));
+    }
+}
+
+template <typename T>
+void gazetteer_style_t::add_metadata_field_num(const std::string&& field, const T value) {
+    // This method is not linked to from outside this class. Therefore, it can stay in the source file.
+    std::string value_str = std::to_string(value);
+    add_metadata_field(std::move(field), std::move(value_str));
 }
 
 void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
@@ -456,11 +501,14 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
         buffer.finish_hash();
     }
     // extra tags
-    if (m_extra.empty()) {
+    if (m_extra.empty() && m_metadata.empty()) {
         buffer.add_null_column();
     } else {
         buffer.new_hash();
         for (auto const &entry : m_extra) {
+            buffer.add_hash_elem(entry.first, entry.second);
+        }
+        for (auto const &entry : m_metadata) {
             buffer.add_hash_elem(entry.first, entry.second);
         }
         buffer.finish_hash();
