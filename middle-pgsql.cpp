@@ -595,6 +595,7 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
         for (auto const &m : rel.members()) {
             m_db_copy.add_array_elem(osmium::item_type_to_char(m.type()) +
                                      std::to_string(m.ref()));
+            m_db_copy.add_array_elem(m.role());
         }
         m_db_copy.finish_array();
     }
