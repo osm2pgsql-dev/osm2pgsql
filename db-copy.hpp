@@ -44,7 +44,6 @@ public:
     enum cmd_t
     {
         Cmd_copy, ///< Copy buffer content into given target.
-        Cmd_sql,  ///< Execute buffer content as SQL command.
         Cmd_sync, ///< Synchronize with parent.
         Cmd_finish
     };
@@ -73,18 +72,6 @@ struct db_cmd_copy_t : public db_cmd_t
     {
         buffer.reserve(Max_buf_size);
     }
-};
-
-struct db_cmd_sql_t : public db_cmd_t
-{
-    /// actual copy buffer
-    std::string buffer;
-
-    explicit db_cmd_sql_t(std::string const &sql_command)
-    : db_cmd_t(db_cmd_t::Cmd_sql), buffer(sql_command)
-    {
-    }
-
 };
 
 struct db_cmd_sync_t : public db_cmd_t
@@ -135,7 +122,6 @@ private:
     void connect();
     void disconnect();
 
-    void execute_sql(std::string const &sql_cmd);
     void write_to_db(db_cmd_copy_t *buffer);
     void start_copy(std::shared_ptr<db_target_descr_t> const &target);
     void finish_copy();
@@ -258,14 +244,6 @@ public:
      * following the delete_id() are inserted.
      */
     void delete_id(osmid_t osm_id);
-
-    /**
-     * Run an SQL statement.
-     *
-     * The statement is run in order. That means any previously submitted
-     * copyblocks are finished first.
-     */
-    void exec_sql(std::string const &sql_cmd);
 
     /**
      * Synchronize with worker.

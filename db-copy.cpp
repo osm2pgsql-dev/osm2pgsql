@@ -73,9 +73,6 @@ void db_copy_thread_t::worker_thread()
             case db_cmd_t::Cmd_copy:
                 write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
                 break;
-            case db_cmd_t::Cmd_sql:
-                execute_sql(static_cast<db_cmd_sql_t *>(item.get())->buffer);
-                break;
             case db_cmd_t::Cmd_sync:
                 finish_copy();
                 static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
@@ -105,13 +102,6 @@ void db_copy_thread_t::connect()
     // Let commits happen faster by delaying when they actually occur.
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK,
                       "SET synchronous_commit TO off;");
-}
-
-void db_copy_thread_t::execute_sql(std::string const &sql_cmd)
-{
-    finish_copy();
-
-    pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql_cmd.c_str());
 }
 
 void db_copy_thread_t::disconnect()
@@ -216,17 +206,6 @@ void db_copy_mgr_t::delete_id(osmid_t osm_id)
 {
     assert(m_current);
     m_current->deletables.push_back(osm_id);
-}
-
-void db_copy_mgr_t::exec_sql(std::string const &sql_cmd)
-{
-    // finish any ongoing copy operations
-    if (m_current) {
-        m_processor->add_buffer(std::move(m_current));
-    }
-
-    // and add SQL command
-    m_processor->add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sql_t(sql_cmd)));
 }
 
 void db_copy_mgr_t::sync()
