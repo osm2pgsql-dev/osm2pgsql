@@ -8,6 +8,8 @@
 
 #include <boost/format.hpp>
 
+#include "db-copy.hpp"
+
 class gazetteer_style_t
 {
     using flag_t = uint16_t;
@@ -59,7 +61,7 @@ public:
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
     void copy_out(osmium::OSMObject const &o, std::string const &geom,
-                  std::string &buffer);
+                  db_copy_mgr_t &buffer);
     bool has_place(std::string const &cls) const;
 
     bool has_data() const { return !m_main.empty(); }
@@ -70,7 +72,7 @@ private:
     flag_t parse_flags(std::string const &str);
     flag_t find_flag(char const *k, char const *v) const;
     bool copy_out_maintag(pmaintag_t const &tag, osmium::OSMObject const &o,
-                          std::string const &geom, std::string &buffer);
+                          std::string const &geom, db_copy_mgr_t &buffer);
     void clear();
 
     // Style data.
@@ -94,8 +96,6 @@ private:
     int m_admin_level;
     /// True if there is an actual name to the object (not a ref).
     bool m_is_named;
-
-    boost::format m_single_fmt{"%1%\t"};
 };
 
 #endif

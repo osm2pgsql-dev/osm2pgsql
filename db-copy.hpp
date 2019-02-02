@@ -33,6 +33,12 @@ struct db_target_descr_t
     {
         return (this == &other) || (name == other.name && rows == other.rows);
     }
+
+    db_target_descr_t() = default;
+    db_target_descr_t(char const *n, char const *i, char const *r = "")
+    : name(n), rows(r), id(i)
+    {
+    }
 };
 
 /**
@@ -200,29 +206,7 @@ public:
     {
         assert(m_current);
         m_current->buffer += '"';
-        for (char const *c = s; *c; ++c) {
-            switch (*c) {
-                case '"':
-                    m_current->buffer += "\\\\\"";
-                    break;
-                case '\\':
-                    m_current->buffer += "\\\\\\\\";
-                    break;
-                case '\n':
-                    m_current->buffer += "\\n";
-                    break;
-                case '\r':
-                    m_current->buffer += "\\r";
-                    break;
-                case '\t':
-                    m_current->buffer += "\\t";
-                    break;
-                default:
-                    m_current->buffer += *c;
-                    break;
-            }
-        }
-
+        add_escaped_string(s);
         m_current->buffer += "\",";
     }
 
@@ -234,6 +218,44 @@ public:
             m_current->buffer += '}';
         else
             m_current->buffer[idx] = '}';
+        m_current->buffer += '\t';
+    }
+
+    /// Start a hash column.
+    void new_hash() { /* nothing */}
+
+    void add_hash_elem(std::string const &k, std::string const &v)
+    {
+        add_hash_elem(k.c_str(), v.c_str());
+    }
+
+    void add_hash_elem(char const *k, char const *v)
+    {
+        m_current->buffer += '"';
+        add_escaped_string(k);
+        m_current->buffer += "\"=>\"";
+        add_escaped_string(v);
+        m_current->buffer += "\",";
+    }
+
+    void finish_hash()
+    {
+        auto idx = m_current->buffer.size() - 1;
+        if (!m_current->buffer.empty() && m_current->buffer[idx] == ',') {
+            m_current->buffer[idx] = '\t';
+        } else {
+            m_current->buffer += '\t';
+        }
+    }
+
+    void add_hex_geom(std::string const &wkb)
+    {
+        char const *lookup_hex = "0123456789ABCDEF";
+
+        for (char c : wkb) {
+            m_current->buffer += lookup_hex[(c >> 4) & 0xf];
+            m_current->buffer += lookup_hex[c & 0xf];
+        }
         m_current->buffer += '\t';
     }
 
@@ -256,7 +278,6 @@ private:
     template <typename T>
     void add_value(T value)
     {
-        assert(m_current);
         m_current->buffer += std::to_string(value);
     }
 
@@ -285,6 +306,32 @@ private:
                 default:
                     m_current->buffer += *c;
                     break;
+            }
+        }
+    }
+
+    void add_escaped_string(char const *s)
+    {
+        for (char const *c = s; *c; ++c) {
+            switch (*c) {
+            case '"':
+                m_current->buffer += "\\\\\"";
+                break;
+            case '\\':
+                m_current->buffer += "\\\\\\\\";
+                break;
+            case '\n':
+                m_current->buffer += "\\n";
+                break;
+            case '\r':
+                m_current->buffer += "\\r";
+                break;
+            case '\t':
+                m_current->buffer += "\\t";
+                break;
+            default:
+                m_current->buffer += *c;
+                break;
             }
         }
     }
