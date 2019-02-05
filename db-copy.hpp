@@ -291,6 +291,41 @@ public:
     }
 
     /**
+     * Add a key/value pair to a hash column without escaping.
+     *
+     * Key and value must be strings and will NOT be appropriately escaped.
+     * A separator for the next pair is added at the end.
+     */
+    void add_hash_elem_noescape(char const *k, char const *v)
+    {
+        m_current->buffer += '"';
+        m_current->buffer += k;
+        m_current->buffer += "\"=>\"";
+        m_current->buffer += v;
+        m_current->buffer += "\",";
+    }
+
+    /**
+     * Add a key (unescaped) and a numeric value to a hash column.
+     *
+     * Key must be string and come from a safe source because it will NOT be
+     * escaped! The value should be convertible using std::to_string.
+     * A separator for the next pair is added at the end.
+     *
+     * This method is suitable to insert safe input, e.g. numeric OSM metadata
+     * (eg. uid) but not unsafe input like user names.
+     */
+    template <typename T>
+    void add_hstore_num_noescape(char const *k, T const value)
+    {
+        m_current->buffer += '"';
+        m_current->buffer += k;
+        m_current->buffer += "\"=>\"";
+        m_current->buffer += std::to_string(value);
+        m_current->buffer += "\",";
+    }
+
+    /**
      * Close a hash previously started with new_hash().
      *
      * The hash may be empty. If elements were present, the separator

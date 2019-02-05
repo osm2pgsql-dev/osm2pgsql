@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <boost/format.hpp>
+#include <osmium/osm/metadata_options.hpp>
 
 #include "db-copy.hpp"
 
@@ -14,7 +15,6 @@ class gazetteer_style_t
 {
     using flag_t = uint16_t;
     using ptag_t = std::pair<char const *, char const *>;
-    using ptag_str_t = std::pair<const std::string, const std::string>;
     using pmaintag_t = std::tuple<char const *, char const *, flag_t>;
 
     enum style_flags
@@ -67,17 +67,14 @@ public:
 
     bool has_data() const { return !m_main.empty(); }
 
-    void set_metadata(const bool enabled);
-
 private:
+    bool add_metadata_style_entry(std::string const &key,
+                                  std::string const &value);
     void add_style_entry(std::string const &key, std::string const &value,
                          flag_t flags);
     flag_t parse_flags(std::string const &str);
     flag_t find_flag(char const *k, char const *v) const;
-    void add_metadata_field(const std::string&& field, const std::string&& value);
 
-    template <typename T>
-    void add_metadata_field_num(const std::string&& field, const T value);
     bool copy_out_maintag(pmaintag_t const &tag, osmium::OSMObject const &o,
                           std::string const &geom, db_copy_mgr_t &buffer);
     void clear();
@@ -95,8 +92,6 @@ private:
     std::vector<ptag_t> m_names;
     /// extratags to include
     std::vector<ptag_t> m_extra;
-    /// metadata fields to include
-    std::vector<ptag_str_t> m_metadata;
     /// addresstags to include
     std::vector<ptag_t> m_address;
     /// value of operator tag
@@ -106,8 +101,8 @@ private:
     /// True if there is an actual name to the object (not a ref).
     bool m_is_named;
 
-    /// enable writing of metadata as tags (osm_version, osm_timestamp, osm_uid, osm_user, osm_changeset)
-    bool m_metadata_enabled {false};
+    /// which metadata fields of the OSM objects should be written to the output
+    osmium::metadata_options m_metadata_fields{"none"};
 
     boost::format m_single_fmt{"%1%\t"};
 };

@@ -38,7 +38,6 @@ public:
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);
-        m_style.set_metadata(options.extra_attributes);
     }
 
     virtual ~output_gazetteer_t();
