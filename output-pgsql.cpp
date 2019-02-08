@@ -243,7 +243,7 @@ void output_pgsql_t::stop(osmium::thread::Pool *pool)
 {
     // attempt to stop tables in parallel
     for (auto &t : m_tables) {
-        pool->submit(std::bind(&table_t::stop, t));
+        pool->submit(std::bind(&table_t::stop, t.get()));
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
@@ -492,10 +492,9 @@ int output_pgsql_t::relation_modify(osmium::Relation const &rel)
 
 int output_pgsql_t::start()
 {
-    for(std::vector<std::shared_ptr<table_t> >::iterator table = m_tables.begin(); table != m_tables.end(); ++table)
-    {
+    for (auto &t : m_tables) {
         //setup the table in postgres
-        table->get()->start();
+        t->start();
     }
 
     return 0;
@@ -529,7 +528,6 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     }
 
     //for each table
-    m_tables.reserve(t_MAX);
     for (int i = 0; i < t_MAX; i++) {
 
         //figure out the columns this table needs
@@ -566,12 +564,12 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
         //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
         //options object because we want to make use of the table_t in output_mutli_t which could
         //have a different tablespace/hstores/etc per table
-        m_tables.push_back(std::shared_ptr<table_t>(new table_t(
+        m_tables[i].reset(new table_t(
             m_options.database_options.conninfo(), name, type, columns,
             m_options.hstore_columns, m_options.projection->target_srs(),
             m_options.append, m_options.slim, m_options.droptemp,
             m_options.hstore_mode, m_options.enable_hstore_index,
-            m_options.tblsmain_data, m_options.tblsmain_index)));
+            m_options.tblsmain_data, m_options.tblsmain_index));
     }
 }
 
@@ -590,9 +588,9 @@ output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
-    for (auto const &t : other->m_tables) {
+    for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
-        m_tables.push_back(std::shared_ptr<table_t>(new table_t(*t.get())));
+        m_tables[i].reset(new table_t(*(other->m_tables[i].get())));
     }
 }
 
