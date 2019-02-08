@@ -13,13 +13,12 @@
 
 output_multi_t::output_multi_t(std::string const &name,
                                std::shared_ptr<geometry_processor> processor_,
-                               export_list const &export_list_,
+                               export_list const &export_list,
                                std::shared_ptr<middle_query_t> const &mid,
                                options_t const &options)
 : output_t(mid, options),
-  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
-  m_export_list(new export_list(export_list_)), m_processor(processor_),
-  m_proj(m_options.projection),
+  m_tagtransform(tagtransform_t::make_tagtransform(&m_options, export_list)),
+  m_processor(processor_), m_proj(m_options.projection),
   // TODO: we could in fact have something that is interested in nodes and
   // ways..
   m_osm_type(m_processor->interests(geometry_processor::interest_node)
@@ -27,7 +26,7 @@ output_multi_t::output_multi_t(std::string const &name,
                  : osmium::item_type::way),
   m_table(new table_t(
       m_options.database_options.conninfo(), name, m_processor->column_type(),
-      m_export_list->normal_columns(m_osm_type), m_options.hstore_columns,
+      export_list.normal_columns(m_osm_type), m_options.hstore_columns,
       m_processor->srid(), m_options.append, m_options.slim, m_options.droptemp,
       m_options.hstore_mode, m_options.enable_hstore_index,
       m_options.tblsmain_data, m_options.tblsmain_index)),
@@ -36,15 +35,14 @@ output_multi_t::output_multi_t(std::string const &name,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_builder(m_options.projection, m_options.enable_multi),
-  m_way_area(m_export_list->has_column(m_osm_type, "way_area"))
+  m_way_area(export_list.has_column(m_osm_type, "way_area"))
 {
 }
 
 output_multi_t::output_multi_t(output_multi_t const *other,
                                std::shared_ptr<middle_query_t> const &mid)
 : output_t(mid, other->m_options),
-  m_tagtransform(tagtransform_t::make_tagtransform(&m_options)),
-  m_export_list(new export_list(*other->m_export_list)),
+  m_tagtransform(other->m_tagtransform->clone()),
   m_processor(other->m_processor), m_proj(other->m_proj),
   m_osm_type(other->m_osm_type), m_table(new table_t(*other->m_table)),
   // NOTE: we need to know which ways were used by relations so each thread
@@ -284,8 +282,7 @@ int output_multi_t::process_node(osmium::Node const &node)
 {
     // check if we are keeping this node
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(node, 0, 0, *m_export_list.get(),
-                                              outtags, true);
+    auto filter = m_tagtransform->filter_tags(node, 0, 0, outtags, true);
     if (!filter) {
         // grab its geom
         auto geom = m_processor->process_node(node.location(), &m_builder);
@@ -312,8 +309,8 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 
     //check if we are keeping this way
     taglist_t outtags;
-    unsigned int filter = m_tagtransform->filter_tags(
-        *way, 0, 0, *m_export_list.get(), outtags, true);
+    unsigned int filter =
+        m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
     if (!filter) {
         m_mid->nodes_get_list(&(way->nodes()));
         auto geom = m_processor->process_way(*way, &m_builder);
@@ -327,7 +324,7 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 int output_multi_t::process_way(osmium::Way *way) {
     //check if we are keeping this way
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(*way, 0, 0, *m_export_list.get(), outtags, true);
+    auto filter = m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
     if (!filter) {
         //get the geom from the middle
         if (m_mid->nodes_get_list(&(way->nodes())) < 1)
@@ -358,8 +355,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 
     //does this relation have anything interesting to us
     taglist_t rel_outtags;
-    auto filter = m_tagtransform->filter_tags(rel, 0, 0, *m_export_list.get(),
-                                              rel_outtags, true);
+    auto filter = m_tagtransform->filter_tags(rel, 0, 0, rel_outtags, true);
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
@@ -377,8 +373,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
         taglist_t outtags;
         filter = m_tagtransform->filter_rel_member_tags(
             rel_outtags, m_relation_helper.data, m_relation_helper.roles,
-            &make_boundary, &make_polygon, &roads, *m_export_list.get(),
-            outtags, true);
+            &make_boundary, &make_polygon, &roads, outtags, true);
         if (!filter)
         {
             m_relation_helper.add_way_locations(m_mid.get());

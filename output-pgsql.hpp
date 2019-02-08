@@ -73,8 +73,6 @@ protected:
 
     std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
-    std::unique_ptr<export_list> m_export_list;
-
     geom::osmium_builder_t m_builder;
     expire_tiles expire;
 
