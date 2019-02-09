@@ -264,6 +264,8 @@ void test_clone() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     // remove flat nodes file  on exit - it's 20GB and bad manners to
     // leave that lying around on the filesystem.
     cleanup::file flat_nodes_file(FLAT_NODES_FILE_NAME);

@@ -80,27 +80,30 @@ void assert_equal(uint64_t actual, uint64_t expected) {
 }
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
 
-  std::string inputfile = "tests/test_multipolygon.osm";
+    std::string inputfile = "tests/test_multipolygon.osm";
 
-  options_t options;
-  std::shared_ptr<reprojection> projection(reprojection::create_projection(PROJ_SPHERE_MERC));
-  options.projection = projection;
+    options_t options;
+    std::shared_ptr<reprojection> projection(
+        reprojection::create_projection(PROJ_SPHERE_MERC));
+    options.projection = projection;
 
-  auto out_test = std::make_shared<test_output_t>(options);
-  osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test);
+    auto out_test = std::make_shared<test_output_t>(options);
+    osmdata_t osmdata(std::make_shared<dummy_middle_t>(), out_test);
 
-  boost::optional<std::string> bbox;
-  parse_osmium_t parser(bbox, false, &osmdata);
+    boost::optional<std::string> bbox;
+    parse_osmium_t parser(bbox, false, &osmdata);
 
-  parser.stream_file(inputfile, "");
+    parser.stream_file(inputfile, "");
 
-  assert_equal(out_test->sum_ids,        4728L);
-  assert_equal(out_test->num_nodes,         0L);
-  assert_equal(out_test->num_ways,         48L);
-  assert_equal(out_test->num_relations,    40L);
-  assert_equal(out_test->num_nds,         186L);
-  assert_equal(out_test->num_members,     146L);
+    assert_equal(out_test->sum_ids, 4728L);
+    assert_equal(out_test->num_nodes, 0L);
+    assert_equal(out_test->num_ways, 48L);
+    assert_equal(out_test->num_relations, 40L);
+    assert_equal(out_test->num_nds, 186L);
+    assert_equal(out_test->num_members, 146L);
 
-  return 0;
+    return 0;
 }

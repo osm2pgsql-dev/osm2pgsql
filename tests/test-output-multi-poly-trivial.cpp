@@ -64,6 +64,8 @@ void check_output_poly_trivial(bool enable_multi, std::shared_ptr<pg::tempdb> db
 }
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     std::shared_ptr<pg::tempdb> db;
 
     try {

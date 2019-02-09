@@ -81,6 +81,8 @@ void test_conninfo() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     RUN_TEST(test_conninfo);
 
     return 0;

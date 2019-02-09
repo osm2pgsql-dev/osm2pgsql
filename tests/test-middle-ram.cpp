@@ -44,21 +44,25 @@ void run_tests(const options_t options, const std::string cache_type)
 }
 
 int main(int argc, char *argv[]) {
-  try {
-    options_t options;
-    options.cache = 1; // Non-zero cache is needed to test
+    (void)argc;
+    (void)argv;
+    try {
+        options_t options;
+        options.cache = 1; // Non-zero cache is needed to test
 
-    options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
-    run_tests(options, "optimized");
+        options.alloc_chunkwise =
+            ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
+        run_tests(options, "optimized");
 
-    options.alloc_chunkwise = ALLOC_SPARSE;
-    run_tests(options, "sparse");
+        options.alloc_chunkwise = ALLOC_SPARSE;
+        run_tests(options, "sparse");
 
-    options.alloc_chunkwise = ALLOC_DENSE;
-    run_tests(options, "dense");
+        options.alloc_chunkwise = ALLOC_DENSE;
+        run_tests(options, "dense");
 
-    options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK; // what you get with chunk
-    run_tests(options, "chunk");
+        options.alloc_chunkwise =
+            ALLOC_DENSE | ALLOC_DENSE_CHUNK; // what you get with chunk
+        run_tests(options, "chunk");
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;

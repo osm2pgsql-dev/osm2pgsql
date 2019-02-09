@@ -92,6 +92,8 @@ void test_regression_simple() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     RUN_TEST(test_regression_simple);
 
     return 0;

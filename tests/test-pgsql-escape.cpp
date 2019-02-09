@@ -11,6 +11,8 @@ void test_escape(const char *in, const char *out) {
 }
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     std::string sql;
     test_escape("farmland", "farmland");
     test_escape("", "");

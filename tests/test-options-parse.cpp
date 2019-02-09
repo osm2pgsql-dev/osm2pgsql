@@ -290,156 +290,10 @@ void test_parsing_tile_expiry_zoom_levels_fails()
                "must be larger than 0.");
 }
 
-int get_random_proj(std::vector<std::string>& args)
-{
-    int proj = rand() % 3;
-    switch(proj)
-    {
-        case 1:
-            args.push_back("-l");
-            return PROJ_LATLONG;
-        case 2:
-            args.push_back("-m");
-            return PROJ_SPHERE_MERC;
-    }
-
-    args.push_back("--proj");
-    //nice contiguous block of valid epsgs here randomly use one of those..
-    proj = (rand() % (2962 - 2308)) + 2308;
-    args.push_back((boost::format("%1%") % proj).str());
-    return proj;
-}
-
-std::string get_random_string(const int length)
-{
-    std::string charset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890");
-    std::string result;
-    result.resize(length);
-
-    for (int i = 0; i < length; i++)
-        result[i] = charset[rand() % charset.length()];
-
-    return result;
-}
-
-template<typename T>
-void add_arg_or_not(const char* arg, std::vector<std::string>& args, T& option)
-{
-    if(rand() % 2)
-    {
-        args.push_back(arg);
-        option = 1;
-    }
-    else
-        option = 0;
-}
-
-void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, int option, const int val)
-{
-    if(rand() % 2)
-    {
-        args.push_back(arg);
-        args.push_back((boost::format("%1%") % val).str());
-        option = val;
-    }
-}
-
-void add_arg_and_val_or_not(const char* arg, std::vector<std::string>& args, const char *option, std::string val)
-{
-    if(rand() % 2)
-    {
-        args.push_back(arg);
-        args.push_back(val);
-        option = val.c_str();
-    }
-}
-
-void test_random_perms()
-{
-
-    for(int i = 0; i < 5; ++i)
-    {
-        options_t options;
-        std::vector<std::string> args;
-        args.push_back("osm2pgsql");
-
-        //pick a projection
-        options.projection.reset(reprojection::create_projection(get_random_proj(args)));
-
-        //pick a style file
-        std::string style = get_random_string(15);
-        options.style = style.c_str();
-        args.push_back("--style");
-        args.push_back(style);
-
-        add_arg_and_val_or_not("--cache", args, options.cache, rand() % 800);
-        if (options.database_options.db) {
-            add_arg_and_val_or_not("--database", args, options.database_options.db->c_str(), get_random_string(6));
-        }
-        if (options.database_options.username) {
-            add_arg_and_val_or_not("--username", args, options.database_options.username->c_str(), get_random_string(6));
-        }
-        if (options.database_options.host) {
-            add_arg_and_val_or_not("--host", args, options.database_options.host->c_str(), get_random_string(6));
-        }
-        //add_arg_and_val_or_not("--port", args, options.port, rand() % 9999);
-
-        //--hstore-match-only
-        //--hstore-column   Add an additional hstore (key/value) column containing all tags that start with the specified string, eg --hstore-column "name:" will produce an extra hstore column that contains all name:xx tags
-
-        add_arg_or_not("--hstore-add-index", args, options.enable_hstore_index);
-
-        //--tablespace-index    The name of the PostgreSQL tablespace where all indexes will be created. The following options allow more fine-grained control:
-        //      --tablespace-main-data    tablespace for main tables
-        //      --tablespace-main-index   tablespace for main table indexes
-        //      --tablespace-slim-data    tablespace for slim mode tables
-        //      --tablespace-slim-index   tablespace for slim mode indexes
-        //                    (if unset, use db's default; -i is equivalent to setting
-        //                    --tablespace-main-index and --tablespace-slim-index)
-
-        add_arg_and_val_or_not("--number-processes", args, options.num_procs, rand() % 12);
-
-        //add_arg_or_not("--disable-parallel-indexing", args, options.parallel_indexing);
-
-        add_arg_or_not("--unlogged", args, options.unlogged);
-
-        //--cache-strategy  Specifies the method used to cache nodes in ram. Available options are: dense chunk sparse optimized
-
-        if (options.flat_node_file) {
-            add_arg_and_val_or_not("--flat-nodes", args, options.flat_node_file->c_str(), get_random_string(15));
-        }
-
-        //--expire-tiles [min_zoom-]max_zoom    Create a tile expiry list.
-
-        add_arg_and_val_or_not("--expire-output", args, options.expire_tiles_filename.c_str(), get_random_string(15));
-
-        //--bbox        Apply a bounding box filter on the imported data Must be specified as: minlon,minlat,maxlon,maxlat e.g. --bbox -0.5,51.25,0.5,51.75
-
-        add_arg_and_val_or_not("--prefix", args, options.prefix.c_str(), get_random_string(15));
-
-        //--input-reader    Input frontend. auto, o5m, xml, pbf
-
-        if (options.tag_transform_script) {
-            add_arg_and_val_or_not("--tag-transform-script", args, options.tag_transform_script->c_str(), get_random_string(15));
-        }
-        add_arg_or_not("--extra-attributes", args, options.extra_attributes);
-        add_arg_or_not("--multi-geometry", args, options.enable_multi);
-        add_arg_or_not("--keep-coastlines", args, options.keep_coastlines);
-
-        //add the input file
-        args.push_back("tests/liechtenstein-2013-08-03.osm.pbf");
-
-        const char** argv = new const char*[args.size() + 1];
-        argv[args.size()] = nullptr;
-        for(std::vector<std::string>::const_iterator arg = args.begin(); arg != args.end(); ++arg)
-            argv[arg - args.begin()] = arg->c_str();
-        options_t((int) args.size(), const_cast<char **>(argv));
-        delete[] argv;
-    }
-}
-
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
     srand(0);
 
     //try each test if any fail we will exit
@@ -448,7 +302,6 @@ int main(int argc, char *argv[])
     run_test("test_middles", test_middles);
     run_test("test_outputs", test_outputs);
     run_test("test_lua_styles", test_lua_styles);
-    run_test("test_random_perms", test_random_perms);
     run_test("test_parsing_tile_expiry_zoom_levels_fails",
              test_parsing_tile_expiry_zoom_levels_fails);
     run_test("test_parsing_tile_expiry_zoom_levels",

@@ -86,6 +86,8 @@ void test_z_order() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     RUN_TEST(test_z_order);
 
     return 0;

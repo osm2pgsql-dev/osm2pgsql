@@ -18,47 +18,52 @@
 #include "tests/middle-tests.hpp"
 #include "tests/common-pg.hpp"
 
-void run_tests(options_t options, const std::string cache_type) {
-  options.append = false;
-  options.create = true;
-  {
-      test_middle_helper<middle_pgsql_t> t(options);
+static void run_tests(options_t options)
+{
+    options.append = false;
+    options.create = true;
+    {
+        test_middle_helper<middle_pgsql_t> t(options);
 
-      if (t.test_node_set() != 0) {
-          throw std::runtime_error("test_node_set failed.");
-      }
-  }
+        if (t.test_node_set() != 0) {
+            throw std::runtime_error("test_node_set failed.");
+        }
+    }
 
-  {
-      test_middle_helper<middle_pgsql_t> t(options);
+    {
+        test_middle_helper<middle_pgsql_t> t(options);
 
-      if (t.test_nodes_comprehensive_set() != 0) {
-          throw std::runtime_error("test_nodes_comprehensive_set failed.");
-      }
-  }
+        if (t.test_nodes_comprehensive_set() != 0) {
+            throw std::runtime_error("test_nodes_comprehensive_set failed.");
+        }
+    }
 
-  {
-      // First make sure we have an empty table.
-      { test_middle_helper<middle_pgsql_t> t(options); }
+    {
+        // First make sure we have an empty table.
+        {
+            test_middle_helper<middle_pgsql_t> t(options);
+        }
 
-      // Then switch to append mode because this tests updates.
-      options.append = true;
-      options.create = false;
+        // Then switch to append mode because this tests updates.
+        options.append = true;
+        options.create = false;
 
-      test_middle_helper<middle_pgsql_t> t(options);
+        test_middle_helper<middle_pgsql_t> t(options);
 
-      t.commit();
+        t.commit();
 
-      if (t.test_way_set() != 0) {
-          throw std::runtime_error("test_way_set failed.");
-      }
-  }
+        if (t.test_way_set() != 0) {
+            throw std::runtime_error("test_way_set failed.");
+        }
+    }
 }
 int main(int argc, char *argv[]) {
-  std::unique_ptr<pg::tempdb> db;
+    (void)argc;
+    (void)argv;
+    std::unique_ptr<pg::tempdb> db;
 
-  try {
-    db.reset(new pg::tempdb);
+    try {
+        db.reset(new pg::tempdb);
   } catch (const std::exception &e) {
     std::cerr << "Unable to setup database: " << e.what() << "\n";
     return 77; // <-- code to skip this test.
@@ -73,15 +78,15 @@ int main(int argc, char *argv[]) {
     options.slim = true;
 
     options.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE; // what you get with optimized
-    run_tests(options, "optimized");
+    run_tests(options);
     options.alloc_chunkwise = ALLOC_SPARSE;
-    run_tests(options, "sparse");
+    run_tests(options);
 
     options.alloc_chunkwise = ALLOC_DENSE;
-    run_tests(options, "dense");
+    run_tests(options);
 
     options.alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK; // what you get with chunk
-    run_tests(options, "chunk");
+    run_tests(options);
   } catch (const std::exception &e) {
     std::cerr << "ERROR: " << e.what() << std::endl;
     return 1;

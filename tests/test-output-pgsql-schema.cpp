@@ -99,6 +99,8 @@ void test_other_output_schema() {
 } // anonymous namespace
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     RUN_TEST(test_other_output_schema);
 
     return 0;

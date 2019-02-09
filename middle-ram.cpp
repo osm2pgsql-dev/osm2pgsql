@@ -157,7 +157,7 @@ void middle_ram_t::analyze(void)
 
 void middle_ram_t::start() {}
 
-void middle_ram_t::stop(osmium::thread::Pool &pool)
+void middle_ram_t::stop(osmium::thread::Pool &)
 {
     cache.reset(nullptr);
 

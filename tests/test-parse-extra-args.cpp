@@ -85,6 +85,8 @@ void assert_equal(uint64_t actual, uint64_t expected)
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
 
     std::string inputfile = "tests/test_multipolygon.osm";
 

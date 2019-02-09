@@ -24,6 +24,8 @@
 #include "tests/common.hpp"
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     std::unique_ptr<pg::tempdb> db;
 
     try {
