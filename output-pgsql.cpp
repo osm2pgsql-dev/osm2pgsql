@@ -226,7 +226,7 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists) {
         }
 
         auto const &rel = rels_buffer.get<osmium::Relation>(0);
-        return pgsql_process_relation(rel, true);
+        return pgsql_process_relation(rel);
     }
 
     return 0;
@@ -288,8 +288,7 @@ int output_pgsql_t::way_add(osmium::Way *way)
 
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel,
-                                           bool pending)
+int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
     taglist_t prefiltered_tags;
     if (m_tagtransform->filter_tags(rel, nullptr, nullptr, *m_export_list.get(),
@@ -381,7 +380,7 @@ int output_pgsql_t::relation_add(osmium::Relation const &rel)
         return 0;
     }
 
-    return pgsql_process_relation(rel, false);
+    return pgsql_process_relation(rel);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to

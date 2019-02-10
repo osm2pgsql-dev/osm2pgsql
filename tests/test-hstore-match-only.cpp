@@ -32,6 +32,8 @@ The tags of inteest are specified in hstore-match-only.style
 #include "tests/common-pg.hpp"
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     std::unique_ptr<pg::tempdb> db;
 
     try {

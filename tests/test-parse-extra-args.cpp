@@ -59,7 +59,6 @@ struct test_output_t : public output_null_t
         assert(way->id() > 0);
         sum_ids += (unsigned)way->id();
         num_ways += 1;
-        assert(way->nodes().size() >= 0);
         num_nds += uint64_t(way->nodes().size());
         return 0;
     }
@@ -69,7 +68,6 @@ struct test_output_t : public output_null_t
         assert(rel.id() > 0);
         sum_ids += (unsigned)rel.id();
         num_relations += 1;
-        assert(rel.members().size() >= 0);
         num_members += uint64_t(rel.members().size());
         return 0;
     }
@@ -85,6 +83,8 @@ void assert_equal(uint64_t actual, uint64_t expected)
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
 
     std::string inputfile = "tests/test_multipolygon.osm";
 

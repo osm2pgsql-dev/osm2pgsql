@@ -95,6 +95,8 @@ void test_area_latlon_with_reprojection() {
 }
 
 int main(int argc, char *argv[]) {
+    (void)argc;
+    (void)argv;
     RUN_TEST(test_area_latlon);
     RUN_TEST(test_area_classic);
     RUN_TEST(test_area_latlon_with_reprojection);

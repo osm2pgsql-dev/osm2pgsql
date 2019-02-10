@@ -442,6 +442,8 @@ void test_expire_merge_complete() {
 
 int main(int argc, char *argv[])
 {
+    (void)argc;
+    (void)argv;
     srand(0);
 
     //try each test if any fail we will exit

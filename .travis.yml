@@ -57,14 +57,14 @@ matrix:
     - os: linux
       compiler: "clang-3.8"
       env: T="clang38_pg92_dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-3.8 CXX=clang++-3.8
       addons: *clang38_pg92
 
     - os: linux
       compiler: "clang-7"
       env: T="clang7_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-7 CXX=clang++-7
       addons: *clang7_pg96
 
@@ -72,7 +72,7 @@ matrix:
     - os: osx
       compiler: clang
       env: T="osx_clang_NoDB" LUAJIT_OPTION="OFF" TEST_NODB=1
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
       before_install:
         - brew install lua; brew install lua
       before_script:
@@ -84,14 +84,14 @@ matrix:
     - os: linux
       compiler: "gcc-4.8"
       env: T="gcc48_pg96_dbtest" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-4.8 CXX=g++-4.8
       addons: *gcc48_pg96
 
     - os: linux
       compiler: gcc-8
       env: T="gcc8_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-8 CXX=g++-8
       addons: *gcc8_pg96
 

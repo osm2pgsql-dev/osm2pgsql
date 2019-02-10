@@ -43,21 +43,20 @@ struct test_output_t : public dummy_output_t {
         return std::shared_ptr<output_t>(clone);
     }
 
-    int node_add(osmium::Node const &n) override
+    int node_add(osmium::Node const &) override
     {
-        assert(n.id() > 0);
         ++node.added;
         return 0;
     }
 
-    int way_add(osmium::Way *w) override {
-        assert(w->id() > 0);
+    int way_add(osmium::Way *) override
+    {
         ++way.added;
         return 0;
     }
 
-    int relation_add(osmium::Relation const &r) override {
-        assert(r.id() > 0);
+    int relation_add(osmium::Relation const &) override
+    {
         ++rel.added;
         return 0;
     }

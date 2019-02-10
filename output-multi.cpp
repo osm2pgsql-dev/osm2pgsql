@@ -172,7 +172,7 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
     buffer.clear();
     if (m_mid->relations_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = process_relation(rel, exists, true);
+        ret = process_relation(rel, exists);
     }
 
     return ret;
@@ -350,9 +350,7 @@ int output_multi_t::process_way(osmium::Way *way) {
     return 0;
 }
 
-
-int output_multi_t::process_relation(osmium::Relation const &rel,
-                                     bool exists, bool pending)
+int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 {
     //if it may exist already, delete it first
     if(exists)
