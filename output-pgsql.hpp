@@ -13,7 +13,7 @@
 #include "table.hpp"
 #include "tagtransform.hpp"
 
-#include <vector>
+#include <array>
 #include <memory>
 
 class output_pgsql_t : public output_t {
@@ -71,9 +71,7 @@ protected:
     //enable output of a generated way_area tag to either hstore or its own column
     int m_enable_way_area;
 
-    std::vector<std::shared_ptr<table_t> > m_tables;
-
-    std::unique_ptr<export_list> m_export_list;
+    std::array<std::unique_ptr<table_t>, t_MAX> m_tables;
 
     geom::osmium_builder_t m_builder;
     expire_tiles expire;

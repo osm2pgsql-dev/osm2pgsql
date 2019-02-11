@@ -79,9 +79,16 @@ void add_z_order(taglist_t &tags, int *roads)
 
 } // anonymous namespace
 
-c_tagtransform_t::c_tagtransform_t(options_t const *options)
-: m_options(options)
+c_tagtransform_t::c_tagtransform_t(options_t const *options,
+                                   export_list const &exlist)
+: m_options(options), m_export_list(exlist)
 {
+}
+
+std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
+{
+    return std::unique_ptr<tagtransform_t>(
+        new c_tagtransform_t(m_options, m_export_list));
 }
 
 bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
@@ -134,8 +141,7 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
 }
 
 bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
-                                   int *roads, export_list const &exlist,
-                                   taglist_t &out_tags, bool strict)
+                                   int *roads, taglist_t &out_tags, bool strict)
 {
     //assume we dont like this set of tags
     bool filter = true;
@@ -147,7 +153,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     if (o.type() == osmium::item_type::relation) {
         export_type = osmium::item_type::way;
     }
-    const std::vector<taginfo> &infos = exlist.get(export_type);
+    const std::vector<taginfo> &infos = m_export_list.get(export_type);
 
     /* We used to only go far enough to determine if it's a polygon or not,
        but now we go through and filter stuff we don't need
@@ -205,8 +211,8 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool c_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &,
-    rolelist_t const &, int *make_boundary, int *make_polygon, int *roads,
-    export_list const &, taglist_t &out_tags, bool allow_typeless)
+    rolelist_t const &, int *make_boundary, int *make_polygon,
+    int *roads, taglist_t &out_tags, bool allow_typeless)
 {
     //if it has a relation figure out what kind it is
     const std::string *type = rel_tags.get("type");

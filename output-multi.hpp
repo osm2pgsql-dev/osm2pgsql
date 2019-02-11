@@ -31,7 +31,7 @@ class output_multi_t : public output_t
 public:
     output_multi_t(std::string const &name,
                    std::shared_ptr<geometry_processor> processor_,
-                   export_list const &export_list_,
+                   export_list const &export_list,
                    std::shared_ptr<middle_query_t> const &mid,
                    options_t const &options);
     virtual ~output_multi_t();
@@ -78,7 +78,6 @@ protected:
                        taglist_t &tags);
 
     std::unique_ptr<tagtransform_t> m_tagtransform;
-    std::unique_ptr<export_list> m_export_list;
     std::shared_ptr<geometry_processor> m_processor;
     std::shared_ptr<reprojection> m_proj;
     osmium::item_type const m_osm_type;

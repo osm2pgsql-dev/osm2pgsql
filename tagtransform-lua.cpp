@@ -9,17 +9,24 @@ extern "C" {
 #include "tagtransform-lua.hpp"
 
 lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
-: L(luaL_newstate()), m_node_func(options->tag_transform_node_func.get_value_or(
-                          "filter_tags_node")),
+: m_node_func(
+      options->tag_transform_node_func.get_value_or("filter_tags_node")),
   m_way_func(options->tag_transform_way_func.get_value_or("filter_tags_way")),
   m_rel_func(
       options->tag_transform_rel_func.get_value_or("filter_basic_tags_rel")),
   m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or(
       "filter_tags_relation_member")),
+  m_lua_file(options->tag_transform_script.get()),
   m_extra_attributes(options->extra_attributes)
 {
+    open_style();
+}
+
+void lua_tagtransform_t::open_style()
+{
+    L = luaL_newstate();
     luaL_openlibs(L);
-    if (luaL_dofile(L, options->tag_transform_script->c_str())) {
+    if (luaL_dofile(L, m_lua_file.c_str())) {
         throw std::runtime_error(
             (boost::format("Lua tag transform style error: %1%") %
              lua_tostring(L, -1))
@@ -33,6 +40,14 @@ lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
 }
 
 lua_tagtransform_t::~lua_tagtransform_t() { lua_close(L); }
+
+std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
+{
+    auto c = std::unique_ptr<lua_tagtransform_t>(new lua_tagtransform_t(*this));
+    c->open_style();
+
+    return std::unique_ptr<tagtransform_t>(c.release());
+}
 
 void lua_tagtransform_t::check_lua_function_exists(const std::string &func_name)
 {
@@ -48,8 +63,7 @@ void lua_tagtransform_t::check_lua_function_exists(const std::string &func_name)
 }
 
 bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
-                                     int *roads, export_list const &,
-                                     taglist_t &out_tags, bool)
+                                     int *roads, taglist_t &out_tags, bool)
 {
     switch (o.type()) {
     case osmium::item_type::node:
@@ -141,7 +155,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 bool lua_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &members,
     rolelist_t const &member_roles, int *make_boundary, int *make_polygon,
-    int *roads, export_list const &, taglist_t &out_tags, bool)
+    int *roads, taglist_t &out_tags, bool)
 {
     size_t num_members = member_roles.size();
     lua_getglobal(L, m_rel_mem_func.c_str());

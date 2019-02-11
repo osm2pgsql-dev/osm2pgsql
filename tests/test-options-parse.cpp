@@ -4,6 +4,7 @@
 #include "output-pgsql.hpp"
 #include "output-gazetteer.hpp"
 #include "output-null.hpp"
+#include "taginfo_impl.hpp"
 
 #include <stdio.h>
 #include <string.h>
@@ -135,8 +136,9 @@ void test_lua_styles()
     options_t options = options_t(len(a1), const_cast<char **>(a1));
 
     try {
+        export_list exlist;
         std::unique_ptr<tagtransform_t> tagtransform =
-            tagtransform_t::make_tagtransform(&options);
+            tagtransform_t::make_tagtransform(&options, exlist);
         throw std::logic_error("Expected 'No such file or directory'");
     } catch (const std::runtime_error &e) {
         if (!alg::icontains(e.what(), "No such file or directory"))

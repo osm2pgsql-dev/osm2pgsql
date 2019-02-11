@@ -8,7 +8,8 @@
 #endif
 
 std::unique_ptr<tagtransform_t>
-tagtransform_t::make_tagtransform(options_t const *options)
+tagtransform_t::make_tagtransform(options_t const *options,
+                                  export_list const &exlist)
 {
     if (options->tag_transform_script) {
 #ifdef HAVE_LUA
@@ -24,7 +25,8 @@ tagtransform_t::make_tagtransform(options_t const *options)
     }
 
     fprintf(stderr, "Using built-in tag processing pipeline\n");
-    return std::unique_ptr<tagtransform_t>(new c_tagtransform_t(options));
+    return std::unique_ptr<tagtransform_t>(
+        new c_tagtransform_t(options, exlist));
 }
 
 tagtransform_t::~tagtransform_t() = default;
