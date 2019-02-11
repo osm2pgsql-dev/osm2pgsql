@@ -22,7 +22,6 @@
 #include <unistd.h>
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/bind.hpp>
 #include <boost/exception_ptr.hpp>
 #include <boost/format.hpp>
 
@@ -242,7 +241,10 @@ void output_pgsql_t::stop(osmium::thread::Pool *pool)
 {
     // attempt to stop tables in parallel
     for (auto &t : m_tables) {
-        pool->submit(std::bind(&table_t::stop, t.get()));
+        pool->submit([&]() {
+            t->stop(m_options.slim & !m_options.droptemp,
+                    m_options.enable_hstore_index, m_options.tblsmain_index);
+        });
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
@@ -490,7 +492,8 @@ int output_pgsql_t::start()
 {
     for (auto &t : m_tables) {
         //setup the table in postgres
-        t->start();
+        t->start(m_options.database_options.conninfo(),
+                 m_options.tblsmain_data);
     }
 
     return 0;
@@ -517,7 +520,7 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
     m_tagtransform = tagtransform_t::make_tagtransform(&m_options, exlist);
 
     //for each table
-    for (int i = 0; i < t_MAX; i++) {
+    for (size_t i = 0; i < t_MAX; i++) {
 
         //figure out the columns this table needs
         columns_t columns = exlist.normal_columns(
@@ -549,15 +552,10 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                 util::exit_nicely();
         }
 
-        //tremble in awe of this massive constructor! seriously we are trying to avoid passing an
-        //options object because we want to make use of the table_t in output_mutli_t which could
-        //have a different tablespace/hstores/etc per table
-        m_tables[i].reset(new table_t(
-            m_options.database_options.conninfo(), name, type, columns,
-            m_options.hstore_columns, m_options.projection->target_srs(),
-            m_options.append, m_options.slim, m_options.droptemp,
-            m_options.hstore_mode, m_options.enable_hstore_index,
-            m_options.tblsmain_data, m_options.tblsmain_index));
+        m_tables[i].reset(new table_t(name, type, columns,
+                                      m_options.hstore_columns,
+                                      m_options.projection->target_srs(),
+                                      m_options.append, m_options.hstore_mode));
     }
 }
 
