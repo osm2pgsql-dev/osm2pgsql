@@ -16,13 +16,12 @@ typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 
-
-table_t::table_t(const string& conninfo, const string& name, const string& type, const columns_t& columns, const hstores_t& hstore_columns,
-    const int srid, const bool append, const bool slim, const bool drop_temp, const int hstore_mode,
-    const bool enable_hstore_index, const boost::optional<string>& table_space, const boost::optional<string>& table_space_index) :
-    conninfo(conninfo), name(name), type(type), sql_conn(nullptr), copyMode(false), srid((fmt("%1%") % srid).str()),
-    append(append), slim(slim), drop_temp(drop_temp), hstore_mode(hstore_mode), enable_hstore_index(enable_hstore_index),
-    columns(columns), hstore_columns(hstore_columns), table_space(table_space), table_space_index(table_space_index)
+table_t::table_t(string const &name, string const &type,
+                 columns_t const &columns, hstores_t const &hstore_columns,
+                 int const srid, bool const append, int const hstore_mode)
+: name(name), type(type), sql_conn(nullptr), copyMode(false),
+  srid((fmt("%1%") % srid).str()), append(append), hstore_mode(hstore_mode),
+  columns(columns), hstore_columns(hstore_columns)
 {
     //if we dont have any columns
     if(columns.size() == 0 && hstore_mode != HSTORE_ALL)
@@ -36,11 +35,13 @@ table_t::table_t(const string& conninfo, const string& name, const string& type,
     del_fmt = fmt("DELETE FROM %1% WHERE osm_id = %2%");
 }
 
-table_t::table_t(const table_t& other):
-    conninfo(other.conninfo), name(other.name), type(other.type), sql_conn(nullptr), copyMode(false), buffer(), srid(other.srid),
-    append(other.append), slim(other.slim), drop_temp(other.drop_temp), hstore_mode(other.hstore_mode), enable_hstore_index(other.enable_hstore_index),
-    columns(other.columns), hstore_columns(other.hstore_columns), copystr(other.copystr), table_space(other.table_space),
-    table_space_index(other.table_space_index), single_fmt(other.single_fmt), del_fmt(other.del_fmt)
+table_t::table_t(table_t const &other)
+: m_conninfo(other.m_conninfo), name(other.name), type(other.type),
+  sql_conn(nullptr), copyMode(false), srid(other.srid), append(other.append),
+  hstore_mode(other.hstore_mode), columns(other.columns),
+  hstore_columns(other.hstore_columns), copystr(other.copystr),
+  m_table_space(other.m_table_space), single_fmt(other.single_fmt),
+  del_fmt(other.del_fmt)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -89,7 +90,7 @@ void table_t::commit()
 void table_t::connect()
 {
     //connect
-    PGconn* _conn = PQconnectdb(conninfo.c_str());
+    PGconn *_conn = PQconnectdb(m_conninfo.c_str());
     if (PQstatus(_conn) != CONNECTION_OK)
         throw std::runtime_error((fmt("Connection to database failed: %1%\n") % PQerrorMessage(_conn)).str());
     sql_conn = _conn;
@@ -97,10 +98,14 @@ void table_t::connect()
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
 }
 
-void table_t::start()
+void table_t::start(std::string const &conninfo,
+                    boost::optional<std::string> const &table_space)
 {
     if(sql_conn)
         throw std::runtime_error(name + " cannot start, its already started");
+
+    m_conninfo = conninfo;
+    m_table_space = table_space ? " TABLESPACE " + table_space.get() : "";
 
     connect();
     fprintf(stderr, "Setting up table: %s\n", name.c_str());
@@ -144,20 +149,10 @@ void table_t::start()
         // doesn't need to be RESET on these tables
         sql += " WITH ( autovacuum_enabled = FALSE )";
         //add the main table space
-        if (table_space)
-            sql += " TABLESPACE " + table_space.get();
+        sql += m_table_space;
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-
-        //slim mode needs this to be able to delete from tables in pending
-        if (slim && !drop_temp) {
-            sql = (fmt("CREATE INDEX ON %1% USING BTREE (osm_id)") % name).str();
-            if (table_space_index)
-                sql += " TABLESPACE " + table_space_index.get();
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-        }
-
     }//appending
     else {
         //check the columns against those in the existing table
@@ -208,7 +203,8 @@ void table_t::start()
     copyMode = true;
 }
 
-void table_t::stop()
+void table_t::stop(bool updateable, bool enable_hstore_index,
+                   boost::optional<std::string> const &table_space_index)
 {
     stop_copy();
     if (!append)
@@ -221,14 +217,13 @@ void table_t::stop()
         if (srid == "4326") {
             /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
                Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
-            pgsql_exec_simple(
-                sql_conn, PGRES_COMMAND_OK,
-                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
-                     "  SELECT * FROM %1%\n"
-                     "    ORDER BY ST_GeoHash(way,10)\n"
-                     "    COLLATE \"C\"") %
-                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
-                    .str());
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                              (fmt("CREATE TABLE %1%_tmp %2% AS\n"
+                                   "  SELECT * FROM %1%\n"
+                                   "    ORDER BY ST_GeoHash(way,10)\n"
+                                   "    COLLATE \"C\"") %
+                               name % m_table_space)
+                                  .str());
         } else {
             /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
                and these need to be filtered. Also, a transformation is needed for geohashing.
@@ -244,7 +239,7 @@ void table_t::stop()
                      "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
                      // clang-format on
                      "    COLLATE \"C\"") %
-                 name % (table_space ? "TABLESPACE " + table_space.get() : ""))
+                 name % m_table_space)
                     .str());
             pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
         }
@@ -253,17 +248,23 @@ void table_t::stop()
         fprintf(stderr, "Copying %s to cluster by geometry finished\n", name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n", name.c_str());
 
+        std::string tblspc_sql =
+            table_space_index ? "TABLESPACE " + table_space_index.get() : "";
         // Use fillfactor 100 for un-updatable imports
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") % name %
-            (slim && !drop_temp ? "" : "WITH (FILLFACTOR=100)") %
-            (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                          (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") %
+                           name % (updateable ? "" : "WITH (FILLFACTOR=100)") %
+                           tblspc_sql)
+                              .str());
 
         /* slim mode needs this to be able to apply diffs */
-        if (slim && !drop_temp)
-        {
+        if (updateable) {
             fprintf(stderr, "Creating osm_id index on %s\n", name.c_str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") % name %
-                (table_space_index ? "TABLESPACE " + table_space_index.get() : "")).str());
+            pgsql_exec_simple(
+                sql_conn, PGRES_COMMAND_OK,
+                (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") % name %
+                 tblspc_sql)
+                    .str());
             if (srid != "4326") {
                 pgsql_exec_simple(
                     sql_conn, PGRES_COMMAND_OK,

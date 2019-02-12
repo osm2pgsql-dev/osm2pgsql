@@ -24,12 +24,10 @@ output_multi_t::output_multi_t(std::string const &name,
   m_osm_type(m_processor->interests(geometry_processor::interest_node)
                  ? osmium::item_type::node
                  : osmium::item_type::way),
-  m_table(new table_t(
-      m_options.database_options.conninfo(), name, m_processor->column_type(),
-      export_list.normal_columns(m_osm_type), m_options.hstore_columns,
-      m_processor->srid(), m_options.append, m_options.slim, m_options.droptemp,
-      m_options.hstore_mode, m_options.enable_hstore_index,
-      m_options.tblsmain_data, m_options.tblsmain_index)),
+  m_table(new table_t(name, m_processor->column_type(),
+                      export_list.normal_columns(m_osm_type),
+                      m_options.hstore_columns, m_processor->srid(),
+                      m_options.append, m_options.hstore_mode)),
   ways_done_tracker(new id_tracker()),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
@@ -66,7 +64,8 @@ output_multi_t::clone(std::shared_ptr<middle_query_t> const &mid) const
 }
 
 int output_multi_t::start() {
-    m_table->start();
+    m_table->start(m_options.database_options.conninfo(),
+                   m_options.tblsmain_data);
     return 0;
 }
 
@@ -178,7 +177,10 @@ int output_multi_t::pending_relation(osmid_t id, int exists) {
 
 void output_multi_t::stop(osmium::thread::Pool *pool)
 {
-    pool->submit(std::bind(&table_t::stop, m_table.get()));
+    pool->submit([this]() {
+        m_table->stop(m_options.slim & !m_options.droptemp,
+                      m_options.enable_hstore_index, m_options.tblsmain_index);
+    });
     if (m_options.expire_tiles_zoom_min > 0) {
         m_expire.output_and_destroy(m_options.expire_tiles_filename.c_str(),
                                     m_options.expire_tiles_zoom_min);

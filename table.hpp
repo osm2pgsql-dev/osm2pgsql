@@ -19,14 +19,16 @@ typedef std::vector<std::string> hstores_t;
 class table_t
 {
     public:
-        table_t(const std::string& conninfo, const std::string& name, const std::string& type, const columns_t& columns, const hstores_t& hstore_columns, const int srid,
-                const bool append, const bool slim, const bool droptemp, const int hstore_mode, const bool enable_hstore_index,
-                const boost::optional<std::string>& table_space, const boost::optional<std::string>& table_space_index);
+        table_t(std::string const &name, std::string const &type,
+                columns_t const &columns, hstores_t const &hstore_columns,
+                const int srid, const bool append, const int hstore_mode);
         table_t(const table_t& other);
         ~table_t();
 
-        void start();
-        void stop();
+        void start(std::string const &conninfo,
+                   boost::optional<std::string> const &table_space);
+        void stop(bool updateable, bool enable_hstore_index,
+                  boost::optional<std::string> const &table_space_index);
 
         void begin();
         void commit();
@@ -81,7 +83,7 @@ class table_t
         void escape4hstore(const char *src, std::string& dst);
         void escape_type(const std::string &value, ColumnType flags, std::string& dst);
 
-        std::string conninfo;
+        std::string m_conninfo;
         std::string name;
         std::string type;
         pg_conn *sql_conn;
@@ -89,15 +91,11 @@ class table_t
         std::string buffer;
         std::string srid;
         bool append;
-        bool slim;
-        bool drop_temp;
         int hstore_mode;
-        bool enable_hstore_index;
         columns_t columns;
         hstores_t hstore_columns;
         std::string copystr;
-        boost::optional<std::string> table_space;
-        boost::optional<std::string> table_space_index;
+        std::string m_table_space;
 
         boost::format single_fmt, del_fmt;
 };

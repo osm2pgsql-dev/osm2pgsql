@@ -9,7 +9,6 @@
 #include <stdexcept>
 
 #include <boost/format.hpp>
-#include <boost/functional/hash.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
