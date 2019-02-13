@@ -16,7 +16,7 @@ endif()
 
 option(BUILD_TESTS "Build test suite" OFF)
 option(WITH_LUA    "Build with Lua support" ON)
-option(WITH_LUAJIT "Build with LuaJIT support" OFF)
+option(WITH_LUAJIT "Build with LuaJIT support" ON)
 
 if (NOT TESTING_TIMEOUT)
   set(TESTING_TIMEOUT 1200)

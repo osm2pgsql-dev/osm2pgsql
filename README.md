@@ -44,7 +44,8 @@ Required libraries are
 * [zlib](http://www.zlib.net/)
 * [Boost libraries](http://www.boost.org/), including system and filesystem
 * [PostgreSQL](http://www.postgresql.org/) client libraries
-* [Lua](http://www.lua.org/) (Optional, used for [Lua tag transforms](docs/lua.md))
+* [Lua](http://www.lua.org/) (Required by default, used for [Lua tag transforms](docs/lua.md))
+* [LuaJIT](http://www.lua.org/) (Required by default)
 * [Python](https://python.org/) (only for running tests)
 * [Psycopg](http://initd.org/psycopg/) (only for running tests)
 
@@ -62,14 +63,14 @@ On a Debian or Ubuntu system, this can be done with:
 ```sh
 sudo apt-get install make cmake g++ libboost-dev libboost-system-dev \
   libboost-filesystem-dev libexpat1-dev zlib1g-dev \
-  libbz2-dev libpq-dev libproj-dev lua5.2 liblua5.2-dev
+  libbz2-dev libpq-dev libproj-dev lua5.1 liblua5.1-dev luajit
 ```
 
 On a Fedora system, use
 
 ```sh
 sudo dnf install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel luajit
 ```
 
 On RedHat / CentOS first run `sudo yum install epel-release` then install
@@ -77,14 +78,14 @@ dependencies with:
 
 ```sh
 sudo yum install cmake make gcc-c++ boost-devel expat-devel zlib-devel \
-  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel
+  bzip2-devel postgresql-devel proj-devel proj-epsg lua-devel luajit
 ```
 
 On a FreeBSD system, use
 
 ```sh
 pkg install devel/cmake devel/boost-libs textproc/expat2 \
-  databases/postgresql94-client graphics/proj lang/lua52
+  databases/postgresql94-client graphics/proj lang/lua52 lang/luajit
 ```
 
 Once dependencies are installed, use CMake to build the Makefiles in a separate folder
@@ -115,6 +116,11 @@ You can change that behavior by using additional options like following:
 
 ```sh
 cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON
+```
+
+The Lua and LuaJIT dependencies can be disabled with
+```sh
+cmake .. -D WITH_LUAJIT=OFF WITH_LUA=OFF
 ```
 
 ## Usage ##
