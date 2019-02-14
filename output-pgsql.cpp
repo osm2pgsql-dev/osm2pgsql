@@ -499,14 +499,17 @@ int output_pgsql_t::start()
     return 0;
 }
 
-std::shared_ptr<output_t>
-output_pgsql_t::clone(std::shared_ptr<middle_query_t> const &mid) const
+std::shared_ptr<output_t> output_pgsql_t::clone(
+    std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::shared_ptr<output_t>(new output_pgsql_t(this, mid));
+    return std::shared_ptr<output_t>(
+        new output_pgsql_t(this, mid, copy_thread));
 }
 
-output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
-                               options_t const &o)
+output_pgsql_t::output_pgsql_t(
+    std::shared_ptr<middle_query_t> const &mid, options_t const &o,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection, o.enable_multi),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   ways_done_tracker(new id_tracker()),
@@ -552,15 +555,16 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                 util::exit_nicely();
         }
 
-        m_tables[i].reset(new table_t(name, type, columns,
-                                      m_options.hstore_columns,
-                                      m_options.projection->target_srs(),
-                                      m_options.append, m_options.hstore_mode));
+        m_tables[i].reset(
+            new table_t(name, type, columns, m_options.hstore_columns,
+                        m_options.projection->target_srs(), m_options.append,
+                        m_options.hstore_mode, copy_thread));
     }
 }
 
-output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
-                               std::shared_ptr<middle_query_t> const &mid)
+output_pgsql_t::output_pgsql_t(
+    output_pgsql_t const *other, std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
@@ -575,12 +579,12 @@ output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
 {
     for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
-        m_tables[i].reset(new table_t(*(other->m_tables[i].get())));
+        m_tables[i].reset(
+            new table_t(*(other->m_tables[i].get()), copy_thread));
     }
 }
 
-output_pgsql_t::~output_pgsql_t() {
-}
+output_pgsql_t::~output_pgsql_t() = default;
 
 size_t output_pgsql_t::pending_count() const {
     return ways_pending_tracker.size() + rels_pending_tracker.size();

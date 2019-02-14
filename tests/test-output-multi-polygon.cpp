@@ -57,7 +57,9 @@ int main(int argc, char *argv[]) {
         auto midq = mid_pgsql->get_query_instance(mid_pgsql);
 
         auto out_test = std::make_shared<output_multi_t>(
-            "foobar_buildings", processor, columns, midq, options);
+            "foobar_buildings", processor, columns, midq, options,
+            std::make_shared<db_copy_thread_t>(
+                options.database_options.conninfo()));
 
         osmdata_t osmdata(mid_pgsql, out_test);
 

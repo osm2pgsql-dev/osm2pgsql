@@ -7,12 +7,13 @@
 #include <stdexcept>
 #include <memory>
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "output-pgsql.hpp"
-#include "options.hpp"
+#include "db-copy.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
+#include "options.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output-pgsql.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>
@@ -240,10 +241,13 @@ void test_clone() {
 
     auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
     mid_pgsql->start();
-    output_pgsql_t out_test(mid_pgsql->get_query_instance(mid_pgsql), options);
+    auto ct =
+        std::make_shared<db_copy_thread_t>(db->database_options.conninfo());
+    output_pgsql_t out_test(mid_pgsql->get_query_instance(mid_pgsql), options,
+                            ct);
 
     std::shared_ptr<output_t> out_clone =
-        out_test.clone(mid_pgsql->get_query_instance(mid_pgsql));
+        out_test.clone(mid_pgsql->get_query_instance(mid_pgsql), ct);
 
     osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql), out_clone);
 

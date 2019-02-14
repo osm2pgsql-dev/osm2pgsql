@@ -5,6 +5,7 @@
 #include "middle-ram.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
+#include "output.hpp"
 #include "parse-osmium.hpp"
 
 namespace testing {

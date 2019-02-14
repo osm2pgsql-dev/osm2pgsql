@@ -1,9 +1,6 @@
 #include "osmtypes.hpp"
 #include "output-null.hpp"
 
-struct middle_query_t;
-struct options_t;
-
 void output_null_t::cleanup() {
 }
 
@@ -63,20 +60,15 @@ int output_null_t::relation_modify(osmium::Relation const &) {
 }
 
 std::shared_ptr<output_t>
-output_null_t::clone(std::shared_ptr<middle_query_t> const &mid) const
+output_null_t::clone(std::shared_ptr<middle_query_t> const &mid,
+                     std::shared_ptr<db_copy_thread_t> const &) const
 {
-    return std::shared_ptr<output_t>(new output_null_t(this, mid));
+    return std::shared_ptr<output_t>(new output_null_t(mid, m_options));
 }
 
 output_null_t::output_null_t(std::shared_ptr<middle_query_t> const &mid,
                              options_t const &options)
 : output_t(mid, options)
-{
-}
-
-output_null_t::output_null_t(output_null_t const *other,
-                             std::shared_ptr<middle_query_t> const &mid)
-: output_t(mid, other->m_options)
 {
 }
 

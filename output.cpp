@@ -1,8 +1,9 @@
 #include "output.hpp"
-#include "output-pgsql.hpp"
+#include "db-copy.hpp"
 #include "output-gazetteer.hpp"
-#include "output-null.hpp"
 #include "output-multi.hpp"
+#include "output-null.hpp"
+#include "output-pgsql.hpp"
 #include "taginfo_impl.hpp"
 
 #include <cstring>
@@ -27,7 +28,8 @@ void override_if(T &t, const std::string &key, const pt::ptree &conf) {
 std::shared_ptr<output_t>
 parse_multi_single(pt::ptree const &conf,
                    std::shared_ptr<middle_query_t> const &mid,
-                   options_t const &options)
+                   options_t const &options,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread)
 {
     options_t new_opts = options;
 
@@ -79,12 +81,14 @@ parse_multi_single(pt::ptree const &conf,
         columns.add(osm_type, info);
     }
 
-    return std::make_shared<output_multi_t>(name, processor, columns, mid, new_opts);
+    return std::make_shared<output_multi_t>(name, processor, columns, mid,
+                                            new_opts, copy_thread);
 }
 
 std::vector<std::shared_ptr<output_t>>
 parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
-                   options_t const &options)
+                   options_t const &options,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread)
 {
     std::vector<std::shared_ptr<output_t> > outputs;
 
@@ -100,7 +104,8 @@ parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
         pt::read_json(file_name, conf);
 
         for (const pt::ptree::value_type &val : conf) {
-            outputs.push_back(parse_multi_single(val.second, mid, options));
+            outputs.push_back(
+                parse_multi_single(val.second, mid, options, copy_thread));
         }
 
     } catch (const std::exception &e) {
@@ -120,18 +125,22 @@ output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
                          options_t const &options)
 {
     std::vector<std::shared_ptr<output_t> > outputs;
+    auto copy_thread =
+        std::make_shared<db_copy_thread_t>(options.database_options.conninfo());
 
     if (options.output_backend == "pgsql") {
-        outputs.push_back(std::make_shared<output_pgsql_t>(mid, options));
+        outputs.push_back(
+            std::make_shared<output_pgsql_t>(mid, options, copy_thread));
 
     } else if (options.output_backend == "gazetteer") {
-        outputs.push_back(std::make_shared<output_gazetteer_t>(mid, options));
+        outputs.push_back(
+            std::make_shared<output_gazetteer_t>(mid, options, copy_thread));
 
     } else if (options.output_backend == "null") {
         outputs.push_back(std::make_shared<output_null_t>(mid, options));
 
     } else if (options.output_backend == "multi") {
-        outputs = parse_multi_config(mid, options);
+        outputs = parse_multi_config(mid, options, copy_thread);
 
     } else {
         throw std::runtime_error((boost::format("Output backend `%1%' not recognised. Should be one of [pgsql, gazetteer, null, multi].\n") % options.output_backend).str());

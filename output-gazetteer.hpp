@@ -18,10 +18,9 @@
 class output_gazetteer_t : public output_t
 {
     output_gazetteer_t(output_gazetteer_t const *other,
-                       std::shared_ptr<middle_query_t> const &cloned_mid)
-    : output_t(cloned_mid, other->m_options),
-      m_copy(std::make_shared<db_copy_thread_t>(
-          other->m_options.database_options.conninfo())),
+                       std::shared_ptr<middle_query_t> const &cloned_mid,
+                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
+    : output_t(cloned_mid, other->m_options), m_copy(copy_thread),
       m_conn(nullptr), m_builder(other->m_options.projection, true),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
@@ -31,10 +30,10 @@ class output_gazetteer_t : public output_t
 
 public:
     output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
-                       options_t const &options)
-    : output_t(mid, options), m_copy(std::make_shared<db_copy_thread_t>(
-                                  options.database_options.conninfo())),
-      m_conn(nullptr), m_builder(options.projection, true),
+                       options_t const &options,
+                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
+    : output_t(mid, options), m_copy(copy_thread), m_conn(nullptr),
+      m_builder(options.projection, true),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);
@@ -43,9 +42,11 @@ public:
     virtual ~output_gazetteer_t();
 
     std::shared_ptr<output_t>
-    clone(std::shared_ptr<middle_query_t> const &mid) const override
+    clone(std::shared_ptr<middle_query_t> const &mid,
+          std::shared_ptr<db_copy_thread_t> const &copy_thread) const override
     {
-        return std::shared_ptr<output_t>(new output_gazetteer_t(this, mid));
+        return std::shared_ptr<output_t>(
+            new output_gazetteer_t(this, mid, copy_thread));
     }
 
     int start() override;

@@ -6,6 +6,7 @@
 #ifndef OUTPUT_PGSQL_H
 #define OUTPUT_PGSQL_H
 
+#include "db-copy.hpp"
 #include "expire-tiles.hpp"
 #include "id-tracker.hpp"
 #include "osmium-builder.hpp"
@@ -18,7 +19,8 @@
 
 class output_pgsql_t : public output_t {
     output_pgsql_t(output_pgsql_t const *other,
-                   std::shared_ptr<middle_query_t> const &mid);
+                   std::shared_ptr<middle_query_t> const &mid,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
 public:
     enum table_id {
@@ -26,11 +28,13 @@ public:
     };
 
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
-                   options_t const &options);
+                   options_t const &options,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
     virtual ~output_pgsql_t();
 
     std::shared_ptr<output_t>
-    clone(std::shared_ptr<middle_query_t> const &mid) const override;
+    clone(std::shared_ptr<middle_query_t> const &mid,
+          std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
     int start() override;
     void stop(osmium::thread::Pool *pool) override;

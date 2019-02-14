@@ -1,8 +1,9 @@
 #ifndef TABLE_H
 #define TABLE_H
 
-#include "pgsql.hpp"
+#include "db-copy.hpp"
 #include "osmtypes.hpp"
+#include "pgsql.hpp"
 #include "taginfo.hpp"
 
 #include <cstddef>
@@ -12,7 +13,6 @@
 #include <memory>
 
 #include <boost/optional.hpp>
-#include <boost/format.hpp>
 
 typedef std::vector<std::string> hstores_t;
 
@@ -21,8 +21,10 @@ class table_t
     public:
         table_t(std::string const &name, std::string const &type,
                 columns_t const &columns, hstores_t const &hstore_columns,
-                const int srid, const bool append, const int hstore_mode);
-        table_t(const table_t& other);
+                const int srid, const bool append, const int hstore_mode,
+                std::shared_ptr<db_copy_thread_t> const &copy_thread);
+        table_t(const table_t &other,
+                std::shared_ptr<db_copy_thread_t> const &copy_thread);
         ~table_t();
 
         void start(std::string const &conninfo,
@@ -30,13 +32,10 @@ class table_t
         void stop(bool updateable, bool enable_hstore_index,
                   boost::optional<std::string> const &table_space_index);
 
-        void begin();
         void commit();
 
         void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
         void delete_row(const osmid_t id);
-
-        std::string const& get_name();
 
         //interface from retrieving well known binary geometry from the table
         class wkb_reader
@@ -72,32 +71,29 @@ class table_t
 
     protected:
         void connect();
-        void stop_copy();
         void teardown();
 
-        void write_columns(const taglist_t &tags, std::string& values, std::vector<bool> *used);
-        void write_tags_column(const taglist_t &tags, std::string& values,
-                               const std::vector<bool> &used);
-        void write_hstore_columns(const taglist_t &tags, std::string& values);
+        void write_columns(taglist_t const &tags, std::vector<bool> *used);
+        void write_tags_column(taglist_t const &tags,
+                               std::vector<bool> const &used);
+        void write_hstore_columns(taglist_t const &tags);
 
-        void escape4hstore(const char *src, std::string& dst);
-        void escape_type(const std::string &value, ColumnType flags, std::string& dst);
+        void escape_type(std::string const &value, ColumnType flags);
+
+        void generate_copy_column_list();
 
         std::string m_conninfo;
-        std::string name;
+        std::shared_ptr<db_target_descr_t> m_target;
         std::string type;
         pg_conn *sql_conn;
-        bool copyMode;
-        std::string buffer;
         std::string srid;
         bool append;
         int hstore_mode;
         columns_t columns;
         hstores_t hstore_columns;
-        std::string copystr;
         std::string m_table_space;
 
-        boost::format single_fmt, del_fmt;
+        db_copy_mgr_t m_copy;
 };
 
 #endif
