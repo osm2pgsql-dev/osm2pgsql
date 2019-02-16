@@ -7,22 +7,6 @@
 #include <memory>
 #include <boost/format.hpp>
 
-void escape(const std::string &src, std::string &dst)
-{
-    for (const char c: src) {
-        switch(c) {
-            case '\\':  dst.append("\\\\"); break;
-            //case 8:   dst.append("\\\b"); break;
-            //case 12:  dst.append("\\\f"); break;
-            case '\n':  dst.append("\\\n"); break;
-            case '\r':  dst.append("\\\r"); break;
-            case '\t':  dst.append("\\\t"); break;
-            //case 11:  dst.append("\\\v"); break;
-            default:    dst.push_back(c); break;
-        }
-    }
-}
-
 pg_result_t pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect,
                               const std::string &sql)
 {

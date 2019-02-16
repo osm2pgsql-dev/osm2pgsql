@@ -34,5 +34,4 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 #endif
 ;
 
-void escape(const std::string &src, std::string& dst);
 #endif

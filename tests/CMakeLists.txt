@@ -29,7 +29,6 @@ set(TESTS
   test-parse-extra-args.cpp
   test-parse-xml2.cpp
   test-persistent-node-cache.cpp
-  test-pgsql-escape.cpp
   test-wildcard-match.cpp
 )
 
@@ -51,7 +50,6 @@ set(TEST_NODB
  test-options-parse
  test-parse-diff
  test-parse-xml2
- test-pgsql-escape
  test-wildcard-match
 )
 

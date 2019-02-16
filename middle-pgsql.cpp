@@ -291,7 +291,6 @@ void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
 } // anonymous namespace
 
 
-// escape means we return '\N' for copy mode, otherwise we return just nullptr
 void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
 {
     if (obj.tags().empty() && !attrs) {
