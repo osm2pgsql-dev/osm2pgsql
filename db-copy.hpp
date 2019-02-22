@@ -54,6 +54,8 @@ public:
         Cmd_finish
     };
 
+    virtual ~db_cmd_t() = default;
+
     cmd_t type;
 
 protected:
