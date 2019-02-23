@@ -347,7 +347,6 @@ private:
 
     std::shared_ptr<db_copy_thread_t> m_processor;
     std::unique_ptr<db_cmd_copy_t> m_current;
-    unsigned m_last_line;
 };
 
 #endif

@@ -770,7 +770,7 @@ void middle_pgsql_t::commit()
     }
 }
 
-void middle_pgsql_t::flush(osmium::item_type new_type)
+void middle_pgsql_t::flush(osmium::item_type)
 {
     m_db_copy.sync();
 }

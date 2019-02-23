@@ -188,7 +188,7 @@ void db_copy_thread_t::finish_copy()
 }
 
 db_copy_mgr_t::db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
-: m_processor(processor), m_last_line(0)
+: m_processor(processor)
 {}
 
 void db_copy_mgr_t::new_line(std::shared_ptr<db_target_descr_t> const &table)
