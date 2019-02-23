@@ -122,7 +122,7 @@ TEMPLATE_TEST_CASE("middle import", "", ::testing::options::slim_default,
 
         REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
         for (osmid_t i = 1; i <= 10; ++i) {
-            CHECK(way.nodes()[i - 1].ref() == i);
+            CHECK(way.nodes()[(size_t)i - 1].ref() == i);
         }
 
         // other ways are not retrievable

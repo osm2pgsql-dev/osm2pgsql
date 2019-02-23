@@ -3,6 +3,7 @@ set (TESTS
     test-db-copy-mgr.cpp
     test-middle.cpp
     test-output-gazetteer.cpp
+    test-ram-cache.cpp
     test-wildcard-match.cpp
 )
 
