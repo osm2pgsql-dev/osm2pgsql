@@ -47,7 +47,6 @@ set(TEST_NODB
  test-expire-tiles
  test-middle-ram
  test-options-database
- test-options-parse
  test-parse-diff
  test-parse-xml2
  test-wildcard-match
