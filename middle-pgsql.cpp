@@ -152,14 +152,14 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 osmid_t osm_id) const
 {
     char buffer[64];
-    sprintf(buffer, "%" PRIdOSMID, osm_id);
+    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
     return exec_prepared(stmt, buffer);
 }
 
 pg_result_t middle_pgsql_t::exec_prepared(char const *stmt, osmid_t osm_id) const
 {
     char buffer[64];
-    sprintf(buffer, "%" PRIdOSMID, osm_id);
+    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
     auto bptr = const_cast<char const *>(buffer);
     return pgsql_execPrepared(m_query_conn, stmt, 1, &bptr, PGRES_TUPLES_OK);
 }

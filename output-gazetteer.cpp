@@ -23,7 +23,7 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
     }
 
     char id[64];
-    sprintf(id, "%" PRIdOSMID, osm_id);
+    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
     char const *params[2] = {osm_type, id};
 
     auto res = pgsql_execPrepared(m_conn, "get_classes", 2, params,
@@ -53,7 +53,7 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
 void output_gazetteer_t::delete_place(char const *osm_type, osmid_t osm_id)
 {
     char id[64];
-    sprintf(id, "%" PRIdOSMID, osm_id);
+    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
     char const *params[2] = {osm_type, id};
 
     pgsql_execPrepared(m_conn, "delete_place", 2, params, PGRES_COMMAND_OK);
