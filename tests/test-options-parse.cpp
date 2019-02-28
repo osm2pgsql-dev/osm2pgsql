@@ -14,6 +14,8 @@
 #include <boost/format.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include "tests/common-pg.hpp"
+
 namespace alg = boost::algorithm;
 
 #define len(x) sizeof(x)/sizeof(x[0])
@@ -83,7 +85,8 @@ void test_middles()
 
 void test_outputs()
 {
-    const char* a1[] = {"osm2pgsql", "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    pg::tempdb db;
+    const char* a1[] = {"osm2pgsql", "-d", db.database_options.db->c_str(), "-O", "pgsql", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options_t options = options_t(len(a1), const_cast<char **>(a1));
     auto middle_ram = std::make_shared<middle_ram_t>(&options);
     auto mid = middle_ram->get_query_instance(middle_ram);
@@ -94,7 +97,7 @@ void test_outputs()
         throw std::logic_error("Expected a pgsql output");
     }
 
-    const char* a2[] = {"osm2pgsql", "-O", "gazetteer", "--style", "tests/gazetteer-test.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a2[] = {"osm2pgsql", "-d", db.database_options.db->c_str(), "-O", "gazetteer", "--style", "tests/gazetteer-test.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a2), const_cast<char **>(a2));
     outs = output_t::create_outputs(mid, options);
     out = outs.front().get();
@@ -103,7 +106,7 @@ void test_outputs()
         throw std::logic_error("Expected a gazetteer output");
     }
 
-    const char* a3[] = {"osm2pgsql", "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a3[] = {"osm2pgsql", "-d", db.database_options.db->c_str(), "-O", "null", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a3), const_cast<char **>(a3));
     outs = output_t::create_outputs(mid, options);
     out = outs.front().get();
@@ -112,7 +115,7 @@ void test_outputs()
         throw std::logic_error("Expected a null output");
     }
 
-    const char* a4[] = {"osm2pgsql", "-O", "keine_richtige_ausgabe", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
+    const char* a4[] = {"osm2pgsql", "-d", db.database_options.db->c_str(), "-O", "keine_richtige_ausgabe", "--style", "default.style", "tests/liechtenstein-2013-08-03.osm.pbf"};
     options = options_t(len(a4), const_cast<char **>(a4));
     try
     {
