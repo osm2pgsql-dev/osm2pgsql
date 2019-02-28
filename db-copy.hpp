@@ -157,16 +157,25 @@ public:
 
     /**
      * Start a new table row.
+     *
+     * Also starts a new buffer if either the table is not the same as
+     * the table of currently buffered data or no buffer is pending.
      */
     void new_line(std::shared_ptr<db_target_descr_t> const &table);
 
     /**
      * Finish a table row.
      *
-     * Adds the row delimiter to the buffer.
+     * Adds the row delimiter to the buffer. If the buffer is at capacity
+     * it will be forwarded to the copy thread.
      */
     void finish_line();
 
+    /**
+     * Add many simple columns.
+     *
+     * See add_column().
+     */
     template <typename T, typename ...ARGS>
     void add_columns(T value, ARGS&&... args)
     {
@@ -180,7 +189,12 @@ public:
         add_column(value);
     }
 
-    /// Add a column entry of simple type.
+    /**
+     * Add a column entry of simple type.
+     *
+     * Writes the column with the escaping apporpriate for the type and
+     * a column delimiter.
+     */
     template <typename T>
     void add_column(T value)
     {
@@ -188,13 +202,28 @@ public:
         m_current->buffer += '\t';
     }
 
-    /// Add an empty column.
+    /**
+     * Add an empty column.
+     *
+     * Adds a NULL value for the column.
+     */
     void add_null_column() { m_current->buffer += "\\N\t"; }
 
-    /// Start an array column.
+    /**
+     * Start an array column.
+     *
+     * An array is a list of simple elements of the same type.
+     *
+     * Must be finished with a call to finish_array().
+     */
     void new_array() { m_current->buffer += "{"; }
 
-    /// Add a single value to an array column
+    /**
+     * Add a single value to an array column.
+     *
+     * Adds the value in the format appropriate for an array and a value
+     * separator.
+     */
     template <typename T>
     void add_array_elem(T value)
     {
@@ -212,7 +241,12 @@ public:
         m_current->buffer += "\",";
     }
 
-    /// Finish an array column.
+    /**
+     * Finish an array column previously started with new_array().
+     *
+     * The array may be empty. If it does contain elements, the separator after
+     * the final element is replaced with the closing array bracket.
+     */
     void finish_array()
     {
         auto idx = m_current->buffer.size() - 1;
@@ -223,7 +257,17 @@ public:
         m_current->buffer += '\t';
     }
 
-    /// Start a hash column.
+    /**
+     * Start a hash column.
+     *
+     * A hash column contains a list of key/value pairs. May be represented
+     * by a hstore or json in Postgresql.
+     *
+     * currently a hstore column is written which does not have any start
+     * markers.
+     *
+     * Must be closed with a finish_hash() call.
+     */
     void new_hash() { /* nothing */}
 
     void add_hash_elem(std::string const &k, std::string const &v)
@@ -231,6 +275,12 @@ public:
         add_hash_elem(k.c_str(), v.c_str());
     }
 
+    /**
+     * Add a key/value pair to a hash column.
+     *
+     * Key and value must be strings and will be appropriately escaped.
+     * A separator for the next pair is added at the end.
+     */
     void add_hash_elem(char const *k, char const *v)
     {
         m_current->buffer += '"';
@@ -240,6 +290,12 @@ public:
         m_current->buffer += "\",";
     }
 
+    /**
+     * Close a hash previously started with new_hash().
+     *
+     * The hash may be empty. If elements were present, the separator
+     * of the final element is overwritten with the closing \t.
+     */
     void finish_hash()
     {
         auto idx = m_current->buffer.size() - 1;
@@ -250,6 +306,11 @@ public:
         }
     }
 
+    /**
+     * Add a column with the given WKB geometry in WKB hex format.
+     *
+     * The geometry is converted on-the-fly from WKB binary to WKB hex.
+     */
     void add_hex_geom(std::string const &wkb)
     {
         char const *lookup_hex = "0123456789ABCDEF";
