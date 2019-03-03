@@ -7,12 +7,13 @@
 #include <stdexcept>
 #include <memory>
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "output-pgsql.hpp"
-#include "options.hpp"
+#include "db-copy.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
+#include "options.hpp"
+#include "osmdata.hpp"
+#include "osmtypes.hpp"
+#include "output-pgsql.hpp"
 #include "taginfo_impl.hpp"
 
 #include <sys/types.h>
@@ -73,8 +74,8 @@ void test_regression_simple() {
     options.slim = true;
     options.style = "default.style";
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -120,8 +121,8 @@ void test_latlong() {
 
     options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/liechtenstein-2013-08-03.osm.pbf", "pbf");
+    testing::run_osm2pgsql(options, "tests/liechtenstein-2013-08-03.osm.pbf",
+                           "pbf");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -168,8 +169,8 @@ void test_area_way_simple() {
     options.flat_node_cache_enabled = true;
     options.flat_node_file = boost::optional<std::string>(FLAT_NODES_FILE_NAME);
 
-    testing::run_osm2pgsql<middle_pgsql_t>(
-        options, "tests/test_output_pgsql_way_area.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_way_area.osm",
+                           "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -202,8 +203,8 @@ void test_route_rel() {
     options.slim = false;
     options.style = "default.style";
 
-    testing::run_osm2pgsql<middle_ram_t>(
-        options, "tests/test_output_pgsql_route_rel.osm", "xml");
+    testing::run_osm2pgsql(options, "tests/test_output_pgsql_route_rel.osm",
+                           "xml");
 
     db->assert_has_table("osm2pgsql_test_point");
     db->assert_has_table("osm2pgsql_test_line");
@@ -240,10 +241,13 @@ void test_clone() {
 
     auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
     mid_pgsql->start();
-    output_pgsql_t out_test(mid_pgsql->get_query_instance(mid_pgsql), options);
+    auto ct =
+        std::make_shared<db_copy_thread_t>(db->database_options.conninfo());
+    output_pgsql_t out_test(mid_pgsql->get_query_instance(mid_pgsql), options,
+                            ct);
 
     std::shared_ptr<output_t> out_clone =
-        out_test.clone(mid_pgsql->get_query_instance(mid_pgsql));
+        out_test.clone(mid_pgsql->get_query_instance(mid_pgsql), ct);
 
     osmdata_t osmdata(std::static_pointer_cast<middle_t>(mid_pgsql), out_clone);
 

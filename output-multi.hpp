@@ -26,18 +26,21 @@ struct options_t;
 class output_multi_t : public output_t
 {
     output_multi_t(output_multi_t const *other,
-                   std::shared_ptr<middle_query_t> const &mid);
+                   std::shared_ptr<middle_query_t> const &mid,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
 public:
     output_multi_t(std::string const &name,
                    std::shared_ptr<geometry_processor> processor_,
                    export_list const &export_list,
                    std::shared_ptr<middle_query_t> const &mid,
-                   options_t const &options);
+                   options_t const &options,
+                   std::shared_ptr<db_copy_thread_t> const &copy_thread);
     virtual ~output_multi_t();
 
     std::shared_ptr<output_t>
-    clone(std::shared_ptr<middle_query_t> const &mid) const override;
+    clone(std::shared_ptr<middle_query_t> const &mid,
+          std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
     int start() override;
     void stop(osmium::thread::Pool *pool) override;

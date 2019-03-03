@@ -36,7 +36,8 @@ struct test_output_t : public dummy_output_t {
     virtual ~test_output_t() = default;
 
     std::shared_ptr<output_t>
-    clone(std::shared_ptr<middle_query_t> const &mid) const override
+    clone(std::shared_ptr<middle_query_t> const &mid,
+          std::shared_ptr<db_copy_thread_t> const &) const override
     {
         test_output_t *clone = new test_output_t(m_options);
         clone->m_mid = mid;

@@ -24,6 +24,7 @@
 */
 
 #include "config.h"
+#include "db-copy.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
@@ -58,6 +59,7 @@ int main(int argc, char *argv[])
         std::shared_ptr<middle_t> middle;
 
         if (options.slim) {
+            // middle gets its own copy-in thread
             middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
         } else {
             middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));

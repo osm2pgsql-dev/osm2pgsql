@@ -19,6 +19,7 @@
 struct expire_tiles;
 struct id_tracker;
 struct middle_query_t;
+class db_copy_thread_t;
 
 struct pending_job_t {
     osmid_t osm_id;
@@ -42,7 +43,8 @@ public:
     virtual ~output_t();
 
     virtual std::shared_ptr<output_t>
-    clone(std::shared_ptr<middle_query_t> const &mid) const = 0;
+    clone(std::shared_ptr<middle_query_t> const &mid,
+          std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
 
     virtual int start() = 0;
     virtual void stop(osmium::thread::Pool *pool) = 0;

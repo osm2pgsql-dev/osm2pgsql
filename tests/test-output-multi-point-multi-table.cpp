@@ -64,7 +64,9 @@ int main(int argc, char *argv[]) {
                 geometry_processor::create("point", &options);
 
             auto out_test = std::make_shared<output_multi_t>(
-                name, processor, columns, midq, options);
+                name, processor, columns, midq, options,
+                std::make_shared<db_copy_thread_t>(
+                    options.database_options.conninfo()));
 
             outputs.push_back(out_test);
         }

@@ -11,6 +11,7 @@
 
 #include <memory>
 
+#include "db-copy.hpp"
 #include "id-tracker.hpp"
 #include "middle.hpp"
 #include "node-persistent-cache.hpp"
@@ -79,43 +80,23 @@ struct middle_pgsql_t : public slim_middle_t
     class table_desc
     {
     public:
-        table_desc() : sql_conn(nullptr) {}
+        table_desc() {}
         table_desc(options_t const *options, char const *name,
                    char const *create, char const *prepare_query,
-                   char const *prepare = "", char const *prepare_intarray = "",
+                   char const *prepare_intarray = "",
                    char const *array_indexes = "");
 
-        ~table_desc();
-
-        char const *name() const { return m_name.c_str(); }
+        char const *name() const { return m_copy_target->name.c_str(); }
         void clear_array_indexes() { m_array_indexes.clear(); }
 
-        int copyMode;    /* True if we are in copy mode */
-        struct pg_conn *sql_conn;
-        std::string m_prepare_query;
+        void stop(std::string conninfo, bool droptemp, bool build_indexes);
 
-        void connect(char const *conninfo);
-        void begin();
-        void prepare_queries(bool append);
-        void create();
-        void begin_copy();
-        void end_copy();
-        pg_result_t
-        exec_prepared(char const *stmt, char const *param,
-                      ExecStatusType expect = PGRES_TUPLES_OK) const;
-        pg_result_t
-        exec_prepared(char const *stmt, osmid_t osm_id,
-                      ExecStatusType expect = PGRES_TUPLES_OK) const;
-        void stop(bool droptemp, bool build_indexes);
-        void commit();
-
-    private:
-        int transactionMode; /* True if we are in an extended transaction */
-        std::string m_name;
         std::string m_create;
-        std::string m_prepare;
+        std::string m_prepare_query;
         std::string m_prepare_intarray;
         std::string m_array_indexes;
+
+        std::shared_ptr<db_target_descr_t> m_copy_target;
     };
 
     std::shared_ptr<middle_query_t>
@@ -130,11 +111,8 @@ private:
         NUM_TABLES
     };
 
-    /**
-     * Sets up sql_conn for the table
-     */
-    void local_nodes_set(osmium::Node const &node);
-    void local_nodes_delete(osmid_t osm_id);
+    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
+    pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
 
     table_desc tables[NUM_TABLES];
 
@@ -147,12 +125,10 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    void buffer_store_string(std::string const &in, bool escape);
-    void buffer_store_tags(osmium::OSMObject const &obj, bool attrs, bool escape);
-
-    void buffer_correct_params(char const **param, size_t size);
-
-    std::string copy_buffer;
+    struct pg_conn *m_query_conn;
+    // middle keeps its own thread for writing to the database.
+    std::shared_ptr<db_copy_thread_t> m_copy_thread;
+    db_copy_mgr_t m_db_copy;
 };
 
 #endif

@@ -13,64 +13,29 @@ enum : int
     MAX_ADMINLEVEL = 15
 };
 
-namespace {
-void escape_array_record(char const *in, std::string &out)
+static std::vector<osmium::Tag const *>
+domain_names(char const *cls, osmium::TagList const &tags)
 {
-    for (char const *c = in; *c; ++c) {
-        switch (*c) {
-        case '\\':
-            // Tripple escaping required: string escaping leaves us
-            // with 4 backslashes, COPY then reduces it to two, which
-            // are then interpreted as a single backslash by the hash
-            // parsing code.
-            out += "\\\\\\\\";
-            break;
-        case '\n':
-        case '\r':
-        case '\t':
-        case '"':
-            /* This is a bit naughty - we know that nominatim ignored these characters so just drop them now for simplicity */
-            out += ' ';
-            break;
-        default:
-            out += *c;
-            break;
-        }
-    }
-}
+    std::vector<osmium::Tag const *> ret;
 
-std::string domain_name(char const *cls, osmium::TagList const &tags)
-{
-    std::string ret;
-    bool hasname = false;
-
-    std::string prefix(cls);
-    auto clen = prefix.length() + 1;
-    prefix += ":name";
+    std::string const prefix = cls + std::string(":name");
     auto plen = prefix.length();
 
     for (auto const &item : tags) {
         char const *k = item.key();
         if (prefix.compare(0, plen, k) == 0 &&
             (k[plen] == '\0' || k[plen] == ':')) {
-            if (!hasname) {
-                hasname = true;
-            } else {
-                ret += ",";
-            }
-            ret += "\"";
-            escape_array_record(k + clen, ret);
-            ret += "\"=>\"";
-            escape_array_record(item.value(), ret);
-            ret += "\"";
+            ret.push_back(&item);
         }
     }
 
     return ret;
 }
-}
 
 namespace pt = boost::property_tree;
+
+static auto place_table =
+    std::make_shared<db_target_descr_t>("place", "place_id");
 
 void gazetteer_style_t::clear()
 {
@@ -387,7 +352,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 }
 
 void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
-                                 std::string const &geom, std::string &buffer)
+                                 std::string const &geom, db_copy_mgr_t &buffer)
 {
     bool any = false;
     for (auto const &main : m_main) {
@@ -409,104 +374,101 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
 bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
                                          osmium::OSMObject const &o,
                                          std::string const &geom,
-                                         std::string &buffer)
+                                         db_copy_mgr_t &buffer)
 {
-    std::string name;
+    std::vector<osmium::Tag const *> domain_name;
     if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
-        name = domain_name(std::get<0>(tag), o.tags());
-        if (name.empty())
+        domain_name = domain_names(std::get<0>(tag), o.tags());
+        if (domain_name.empty())
             return false;
     }
 
     if (std::get<2>(tag) & SF_MAIN_NAMED) {
-        if (name.empty() && !m_is_named) {
+        if (domain_name.empty() && !m_is_named) {
             return false;
         }
     }
 
-    // osm_type
-    buffer += (char)toupper(osmium::item_type_to_char(o.type()));
-    buffer += '\t';
+    buffer.new_line(place_table);
     // osm_id
-    buffer += (m_single_fmt % o.id()).str();
+    buffer.add_column(o.id());
+    // osm_type
+    char const osm_type[2] = { (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
+    buffer.add_column(osm_type);
     // class
-    escape(std::get<0>(tag), buffer);
-    buffer += '\t';
+    buffer.add_column(std::get<0>(tag));
     // type
-    escape(std::get<1>(tag), buffer);
-    buffer += '\t';
+    buffer.add_column(std::get<1>(tag));
     // names
-    if (!name.empty()) {
-        buffer += name;
-        buffer += '\t';
+    if (!domain_name.empty()) {
+        auto prefix_len = strlen(std::get<0>(tag)) + 1; // class name and ':'
+        buffer.new_hash();
+        for (auto *t : domain_name) {
+            buffer.add_hash_elem(t->key() + prefix_len, t->value());
+        }
+        buffer.finish_hash();
     } else {
         bool first = true;
         // operator will be ignored on anything but these classes
         if (m_operator && (std::get<2>(tag) & SF_MAIN_OPERATOR)) {
-            buffer += "\"operator\"=>\"";
-            escape_array_record(m_operator, buffer);
-            buffer += "\"";
+            buffer.new_hash();
+            buffer.add_hash_elem("operator", m_operator);
             first = false;
         }
         for (auto const &entry : m_names) {
             if (first) {
+                buffer.new_hash();
                 first = false;
-            } else {
-                buffer += ',';
             }
 
-            buffer += "\"";
-            escape_array_record(entry.first, buffer);
-            buffer += "\"=>\"";
-            escape_array_record(entry.second, buffer);
-            buffer += "\"";
+            buffer.add_hash_elem(entry.first, entry.second);
         }
 
-        buffer += first ? "\\N\t" : "\t";
+        if (first) {
+            buffer.add_null_column();
+        } else {
+            buffer.finish_hash();
+        }
     }
     // admin_level
-    buffer += (m_single_fmt % m_admin_level).str();
+    buffer.add_column(m_admin_level);
     // address
     if (m_address.empty()) {
-        buffer += "\\N\t";
+        buffer.add_null_column();
     } else {
+        buffer.new_hash();
         for (auto const &a : m_address) {
-            buffer += "\"";
-            escape_array_record(a.first, buffer);
-            buffer += "\"=>\"";
             if (strcmp(a.first, "tiger:county") == 0) {
+                std::string term;
                 auto *end = strchr(a.second, ',');
                 if (end) {
                     auto len = (std::string::size_type)(end - a.second);
-                    escape_array_record(std::string(a.second, len).c_str(),
-                                        buffer);
+                    term = std::string(a.second, len);
                 } else {
-                    escape_array_record(a.second, buffer);
+                    term = a.second;
                 }
-                buffer += " county";
+                term += " county";
+                buffer.add_hash_elem(a.first, term);
             } else {
-                escape_array_record(a.second, buffer);
+                buffer.add_hash_elem(a.first, a.second);
             }
-            buffer += "\",";
         }
-        buffer[buffer.length() - 1] = '\t';
+        buffer.finish_hash();
     }
     // extra tags
     if (m_extra.empty()) {
-        buffer += "\\N\t";
+        buffer.add_null_column();
     } else {
+        buffer.new_hash();
         for (auto const &entry : m_extra) {
-            buffer += "\"";
-            escape_array_record(entry.first, buffer);
-            buffer += "\"=>\"";
-            escape_array_record(entry.second, buffer);
-            buffer += "\",";
+            buffer.add_hash_elem(entry.first, entry.second);
         }
-        buffer[buffer.length() - 1] = '\t';
+        buffer.finish_hash();
     }
     // add the geometry - encoding it to hex along the way
-    ewkb::writer_t::write_as_hex(buffer, geom);
-    buffer += '\n';
+    buffer.add_hex_geom(geom);
+
+    buffer.finish_line();
 
     return true;
 }

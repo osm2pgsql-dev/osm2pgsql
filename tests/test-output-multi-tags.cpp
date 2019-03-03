@@ -46,8 +46,8 @@ int main(int argc, char *argv[]) {
         options.output_backend = "multi";
         options.style = "tests/test_output_multi_tags.json";
 
-        testing::run_osm2pgsql<middle_pgsql_t>(
-            options, "tests/test_output_multi_tags.osm", "xml");
+        testing::run_osm2pgsql(options, "tests/test_output_multi_tags.osm",
+                               "xml");
 
         // Check we got the right tables
         db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_points_1'");

@@ -8,6 +8,7 @@
 
 #include <osmium/thread/pool.hpp>
 
+#include "db-copy.hpp"
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
 #include "osmdata.hpp"
@@ -247,11 +248,13 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         for (size_t i = 0; i < thread_count; ++i) {
             //clone the middle
             auto mid_clone = mid->get_query_instance(mid);
+            auto copy_thread = std::make_shared<db_copy_thread_t>(
+                outs[0]->get_options()->database_options.conninfo());
 
             //clone the outs
             output_vec_t out_clones;
             for (const auto& out: outs) {
-                out_clones.push_back(out->clone(mid_clone));
+                out_clones.push_back(out->clone(mid_clone, copy_thread));
             }
 
             //keep the clones for a specific thread to use

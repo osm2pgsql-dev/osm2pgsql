@@ -168,9 +168,15 @@ int read_style_file( const std::string &filename, export_list *exlist )
     temp.flags = parse_tag_flags(flags, lineno);
 
     // check for special data types, by default everything is handled as text
-    auto const typ = tagtypes.find(temp.type);
-    if (typ != tagtypes.end()) {
-        temp.flags |= typ->second;
+    //
+    // Ignore the special way_area column. It is of type real but we don't really
+    // want to convert it back and forth between string and real later. The code
+    // will provide a string suitable for the database already.
+    if (temp.name != "way_area") {
+        auto const typ = tagtypes.find(temp.type);
+        if (typ != tagtypes.end()) {
+            temp.flags |= typ->second;
+        }
     }
 
     if ((temp.flags != FLAG_DELETE) &&

@@ -21,10 +21,6 @@
 #include <ctime>
 #include <unistd.h>
 
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/exception_ptr.hpp>
-#include <boost/format.hpp>
-
 #include "expire-tiles.hpp"
 #include "middle.hpp"
 #include "node-ram-cache.hpp"
@@ -39,37 +35,6 @@
 #include "wildcmp.hpp"
 #include "wkb.hpp"
 
-/* make the diagnostic information work with older versions of
- * boost - the function signature changed at version 1.54.
- */
-#if BOOST_VERSION >= 105400
-#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e), true)
-#else
-#define BOOST_DIAGNOSTIC_INFO(e) boost::diagnostic_information((e))
-#endif
-
-/* example from: pg_dump -F p -t planet_osm gis
-COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, building, bridge, layer, way) FROM stdin;
-17959841        \N      \N      \N      \N      \N      \N      \N      bus_stop        \N      \N      \N      \N      \N      \N    -\N      0101000020E610000030CCA462B6C3D4BF92998C9B38E04940
-17401934        The Horn        \N      \N      \N      \N      \N      \N      \N      \N      pub     \N      \N      \N      \N    -\N      0101000020E6100000C12FC937140FD5BFB4D2F4FB0CE04940
-...
-
-mine - 01 01000000 48424298424242424242424256427364
-psql - 01 01000020 E6100000 30CCA462B6C3D4BF92998C9B38E04940
-       01 01000020 E6100000 48424298424242424242424256427364
-0x2000_0000 = hasSRID, following 4 bytes = srid, not supported by geos WKBWriter
-Workaround - output SRID=4326;<WKB>
-*/
-
-
-/*
-COPY planet_osm (osm_id, name, place, landuse, leisure, "natural", man_made, waterway, highway, railway, amenity, tourism, learning, bu
-ilding, bridge, layer, way) FROM stdin;
-198497  Bedford Road    \N      \N      \N      \N      \N      \N      residential     \N      \N      \N      \N      \N      \N    \N       0102000020E610000004000000452BF702B342D5BF1C60E63BF8DF49406B9C4D470037D5BF5471E316F3DF4940DFA815A6EF35D5BF9AE95E27F5DF4940B41EB
-E4C1421D5BF24D06053E7DF4940
-212696  Oswald Road     \N      \N      \N      \N      \N      \N      minor   \N      \N      \N      \N      \N      \N      \N    0102000020E610000004000000467D923B6C22D5BFA359D93EE4DF4940B3976DA7AD11D5BF84BBB376DBDF4940997FF44D9A06D5BF4223D8B8FEDF49404D158C4AEA04D
-5BF5BB39597FCDF4940
-*/
 void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                                    bool polygon, bool roads)
 {
@@ -499,14 +464,17 @@ int output_pgsql_t::start()
     return 0;
 }
 
-std::shared_ptr<output_t>
-output_pgsql_t::clone(std::shared_ptr<middle_query_t> const &mid) const
+std::shared_ptr<output_t> output_pgsql_t::clone(
+    std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::shared_ptr<output_t>(new output_pgsql_t(this, mid));
+    return std::shared_ptr<output_t>(
+        new output_pgsql_t(this, mid, copy_thread));
 }
 
-output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
-                               options_t const &o)
+output_pgsql_t::output_pgsql_t(
+    std::shared_ptr<middle_query_t> const &mid, options_t const &o,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection, o.enable_multi),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   ways_done_tracker(new id_tracker()),
@@ -552,15 +520,16 @@ output_pgsql_t::output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
                 util::exit_nicely();
         }
 
-        m_tables[i].reset(new table_t(name, type, columns,
-                                      m_options.hstore_columns,
-                                      m_options.projection->target_srs(),
-                                      m_options.append, m_options.hstore_mode));
+        m_tables[i].reset(
+            new table_t(name, type, columns, m_options.hstore_columns,
+                        m_options.projection->target_srs(), m_options.append,
+                        m_options.hstore_mode, copy_thread));
     }
 }
 
-output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
-                               std::shared_ptr<middle_query_t> const &mid)
+output_pgsql_t::output_pgsql_t(
+    output_pgsql_t const *other, std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
@@ -575,12 +544,12 @@ output_pgsql_t::output_pgsql_t(output_pgsql_t const *other,
 {
     for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
-        m_tables[i].reset(new table_t(*(other->m_tables[i].get())));
+        m_tables[i].reset(
+            new table_t(*(other->m_tables[i].get()), copy_thread));
     }
 }
 
-output_pgsql_t::~output_pgsql_t() {
-}
+output_pgsql_t::~output_pgsql_t() = default;
 
 size_t output_pgsql_t::pending_count() const {
     return ways_pending_tracker.size() + rels_pending_tracker.size();

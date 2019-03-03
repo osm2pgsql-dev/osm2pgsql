@@ -14,6 +14,8 @@
 #include <cerrno>
 #include <string>
 
+#include <boost/format.hpp>
+
 #include "expire-tiles.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"

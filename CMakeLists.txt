@@ -168,6 +168,7 @@ if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)
 endif()
 
 set(osm2pgsql_lib_SOURCES
+  db-copy.cpp
   expire-tiles.cpp
   geometry-processor.cpp
   id-tracker.cpp
@@ -197,6 +198,7 @@ set(osm2pgsql_lib_SOURCES
   tagtransform-c.cpp
   util.cpp
   wildcmp.cpp
+  db-copy.hpp
   expire-tiles.hpp
   geometry-processor.hpp
   id-tracker.hpp

@@ -1,8 +1,11 @@
 #ifndef TEST_COMMON_HPP
 #define TEST_COMMON_HPP
 
+#include "middle-pgsql.hpp"
+#include "middle-ram.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
+#include "output.hpp"
 #include "parse-osmium.hpp"
 
 namespace testing {
@@ -17,12 +20,18 @@ namespace testing {
         osmdata->stop();
     }
 
-    template <typename MID>
     void run_osm2pgsql(options_t &options, char const *test_file,
                        char const *file_format)
     {
         //setup the middle
-        std::shared_ptr<middle_t> middle(new MID(&options));
+        std::shared_ptr<middle_t> middle;
+
+        if (options.slim) {
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
+        } else {
+            middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
+        }
+
         middle->start();
 
         //setup the backend (output)

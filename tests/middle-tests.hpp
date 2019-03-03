@@ -4,7 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include "middle.hpp"
+#include "middle-pgsql.hpp"
+#include "middle-ram.hpp"
 #include "options.hpp"
 #include "output-null.hpp"
 #include "reprojection.hpp"
@@ -12,7 +13,6 @@
 #include <osmium/builder/attr.hpp>
 #include <osmium/memory/buffer.hpp>
 
-template <typename MID>
 class test_middle_helper
 {
     enum
@@ -36,10 +36,14 @@ class test_middle_helper
 
 public:
     test_middle_helper(options_t const &options)
-    : m_mid(std::make_shared<MID>(&options)),
-      m_buffer(4096, osmium::memory::Buffer::auto_grow::yes),
+    : m_buffer(4096, osmium::memory::Buffer::auto_grow::yes),
       m_proj(reprojection::create_projection(PROJ_LATLONG))
     {
+        if (options.slim) {
+            m_mid = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
+        } else {
+            m_mid = std::shared_ptr<middle_t>(new middle_ram_t(&options));
+        }
         m_mid->start();
         m_mid_q = m_mid->get_query_instance(m_mid);
         m_output.reset(new output_null_t(m_mid_q, options));
@@ -47,12 +51,8 @@ public:
 
     ~test_middle_helper()
     {
-        osmium::thread::Pool pool(1);
         m_mid->commit();
-        m_mid->stop(pool);
     }
-
-    void commit() { m_mid->commit(); }
 
     // tests that a single node can be set and retrieved. returns 0 on success.
     int test_node_set()
@@ -167,6 +167,7 @@ public:
             auto const &node = m_buffer.get<osmium::Node>(nodes.back());
             m_mid->nodes_set(node);
         }
+        m_mid->flush(osmium::item_type::node);
 
         // set the way
         {
@@ -177,8 +178,7 @@ public:
             m_mid->ways_set(way);
         }
 
-        // commit the setup data
-        m_mid->commit();
+        m_mid->flush(osmium::item_type::way);
 
         // get it back
         osmium::memory::Buffer relbuf(4096,
@@ -311,7 +311,7 @@ private:
 
     static constexpr double test_lat(osmid_t id) { return 1 + 1e-5 * id; }
 
-    std::shared_ptr<MID> m_mid;
+    std::shared_ptr<middle_t> m_mid;
     std::shared_ptr<middle_query_t> m_mid_q;
     std::unique_ptr<output_null_t> m_output;
 

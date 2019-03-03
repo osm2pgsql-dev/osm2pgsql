@@ -20,42 +20,41 @@
 
 static void run_tests(options_t options)
 {
-    options.append = false;
-    options.create = true;
-    {
-        test_middle_helper<middle_pgsql_t> t(options);
+  options.append = false;
+  options.create = true;
+  options.slim = true;
+  {
+      test_middle_helper t(options);
 
-        if (t.test_node_set() != 0) {
-            throw std::runtime_error("test_node_set failed.");
-        }
-    }
+      if (t.test_node_set() != 0) {
+          throw std::runtime_error("test_node_set failed.");
+      }
+  }
 
-    {
-        test_middle_helper<middle_pgsql_t> t(options);
+  {
+      test_middle_helper t(options);
 
-        if (t.test_nodes_comprehensive_set() != 0) {
-            throw std::runtime_error("test_nodes_comprehensive_set failed.");
-        }
-    }
+      if (t.test_nodes_comprehensive_set() != 0) {
+          throw std::runtime_error("test_nodes_comprehensive_set failed.");
+      }
+  }
 
-    {
-        // First make sure we have an empty table.
-        {
-            test_middle_helper<middle_pgsql_t> t(options);
-        }
+  {
+      // First make sure we have an empty table.
+      {
+          test_middle_helper t(options);
+      }
 
-        // Then switch to append mode because this tests updates.
-        options.append = true;
-        options.create = false;
+      // Then switch to append mode because this tests updates.
+      options.append = true;
+      options.create = false;
 
-        test_middle_helper<middle_pgsql_t> t(options);
+      test_middle_helper t(options);
 
-        t.commit();
-
-        if (t.test_way_set() != 0) {
-            throw std::runtime_error("test_way_set failed.");
-        }
-    }
+      if (t.test_way_set() != 0) {
+          throw std::runtime_error("test_way_set failed.");
+      }
+  }
 }
 int main(int argc, char *argv[]) {
     (void)argc;

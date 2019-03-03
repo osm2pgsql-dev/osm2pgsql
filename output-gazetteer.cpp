@@ -13,128 +13,75 @@
 #include <iostream>
 #include <memory>
 
-void output_gazetteer_t::stop_copy(void)
+void output_gazetteer_t::delete_unused_classes(char const *osm_type,
+                                               osmid_t osm_id)
 {
-    /* Do we have a copy active? */
-    if (!copy_active) return;
-
-    if (buffer.length() > 0)
-    {
-        pgsql_CopyData("place", Connection, buffer);
-        buffer.clear();
-    }
-
-    /* Terminate the copy */
-    if (PQputCopyEnd(Connection, nullptr) != 1)
-    {
-        std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
-        util::exit_nicely();
-    }
-
-    /* Check the result */
-    pg_result_t res(PQgetResult(Connection));
-    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
-        std::cerr << "COPY_END for place failed: " << PQerrorMessage(Connection) << "\n";
-        util::exit_nicely();
-    }
-
-    /* We no longer have an active copy */
-    copy_active = false;
-}
-
-
-
-void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id) {
-    char tmp2[2];
-    tmp2[0] = osm_type; tmp2[1] = '\0';
-    char const *paramValues[2];
-    paramValues[0] = tmp2;
-    paramValues[1] = (single_fmt % osm_id).str().c_str();
-    auto res = pgsql_execPrepared(ConnectionDelete, "get_classes", 2,
-                                  paramValues, PGRES_TUPLES_OK);
-
-    int sz = PQntuples(res.get());
-    if (sz > 0 && !m_style.has_data()) {
+    if (!m_style.has_data()) {
         /* unconditional delete of all places */
         delete_place(osm_type, osm_id);
-    } else {
-        std::string clslist;
-        for (int i = 0; i < sz; i++) {
-            std::string cls(PQgetvalue(res.get(), i, 0));
-            if (!m_style.has_place(cls)) {
-                clslist.reserve(clslist.length() + cls.length() + 3);
-                if (!clslist.empty())
-                    clslist += ',';
-                clslist += '\'';
-                clslist += cls;
-                clslist += '\'';
-            }
+        return;
+    }
+
+    char id[64];
+    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
+    char const *params[2] = {osm_type, id};
+
+    auto res = pgsql_execPrepared(m_conn, "get_classes", 2, params,
+                                  PGRES_TUPLES_OK);
+    int sz = PQntuples(res.get());
+
+    std::string clslist;
+    for (int i = 0; i < sz; i++) {
+        std::string cls(PQgetvalue(res.get(), i, 0));
+        if (!m_style.has_place(cls)) {
+            clslist += '\'';
+            clslist += cls;
+            clslist += "\',";
         }
+    }
 
-
-        if (!clslist.empty()) {
-           /* Stop any active copy */
-           stop_copy();
-
-           /* Delete all places for this object */
-           pgsql_exec(Connection, PGRES_COMMAND_OK,
-                      "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %"
-                       PRIdOSMID " and class = any(ARRAY[%s])",
-                      osm_type, osm_id, clslist.c_str());
-        }
+    if (!clslist.empty()) {
+        clslist[clslist.size() - 1] = '\0';
+        // Delete places where classes have disappeared for this object.
+        pgsql_exec(m_conn, PGRES_COMMAND_OK,
+                "DELETE FROM place WHERE osm_type = '%s' AND osm_id = %"
+                PRIdOSMID " and class = any(ARRAY[%s])",
+                osm_type, osm_id, clslist.c_str());
     }
 }
 
-
-void output_gazetteer_t::delete_place(char osm_type, osmid_t osm_id)
+void output_gazetteer_t::delete_place(char const *osm_type, osmid_t osm_id)
 {
-   /* Stop any active copy */
-   stop_copy();
+    char id[64];
+    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
+    char const *params[2] = {osm_type, id};
 
-   /* Delete all places for this object */
-   pgsql_exec(Connection, PGRES_COMMAND_OK, "DELETE FROM place WHERE osm_type = '%c' AND osm_id = %" PRIdOSMID, osm_type, osm_id);
-
-   return;
+    pgsql_execPrepared(m_conn, "delete_place", 2, params, PGRES_COMMAND_OK);
 }
 
-int output_gazetteer_t::connect() {
-    /* Connection to the database */
-    Connection = PQconnectdb(m_options.database_options.conninfo().c_str());
+void output_gazetteer_t::connect()
+{
+    m_conn = PQconnectdb(m_options.database_options.conninfo().c_str());
 
     /* Check to see that the backend connection was successfully made */
-    if (PQstatus(Connection) != CONNECTION_OK) {
-       std::cerr << "Connection to database failed: " << PQerrorMessage(Connection) << "\n";
-       return 1;
+    if (PQstatus(m_conn) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n",
+                PQerrorMessage(m_conn));
+        throw std::runtime_error("Connecting to database");
     }
-
-    if (m_options.append) {
-        ConnectionDelete = PQconnectdb(m_options.database_options.conninfo().c_str());
-        if (PQstatus(ConnectionDelete) != CONNECTION_OK)
-        {
-            std::cerr << "Connection to database failed: " << PQerrorMessage(ConnectionDelete) << "\n";
-            return 1;
-        }
-
-        pgsql_exec(ConnectionDelete, PGRES_COMMAND_OK, "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") AS SELECT class FROM place WHERE osm_type = $1 and osm_id = $2");
-    }
-    return 0;
 }
 
 int output_gazetteer_t::start()
 {
     int srid = m_options.projection->target_srs();
 
-    if (connect()) {
-        util::exit_nicely();
-    }
-
-    /* Start a transaction */
-    pgsql_exec(Connection, PGRES_COMMAND_OK, "BEGIN");
+    connect();
 
     /* (Re)create the table unless we are appending */
     if (!m_options.append) {
         /* Drop any existing table */
-        pgsql_exec(Connection, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS place CASCADE");
+        pgsql_exec(m_conn, PGRES_COMMAND_OK,
+                   "DROP TABLE IF EXISTS place CASCADE");
 
         /* Create the new table */
 
@@ -155,49 +102,51 @@ int output_gazetteer_t::start()
             sql += " TABLESPACE " + m_options.tblsmain_data.get();
         }
 
-        pgsql_exec_simple(Connection, PGRES_COMMAND_OK, sql);
+        pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
 
         std::string index_sql =
             "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
         if (m_options.tblsmain_index) {
             index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
         }
-        pgsql_exec_simple(Connection, PGRES_COMMAND_OK, index_sql);
+        pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, index_sql);
     }
+
+    prepare_query_conn();
 
     return 0;
 }
 
-void output_gazetteer_t::stop(osmium::thread::Pool *)
+void output_gazetteer_t::prepare_query_conn() const
 {
-   /* Stop any active copy */
-   stop_copy();
-
-   /* Commit transaction */
-   pgsql_exec(Connection, PGRES_COMMAND_OK, "COMMIT");
-
-
-   PQfinish(Connection);
-   if (ConnectionDelete)
-       PQfinish(ConnectionDelete);
-   if (ConnectionError)
-       PQfinish(ConnectionError);
-
-   return;
+    pgsql_exec(m_conn, PGRES_COMMAND_OK,
+           "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") "
+           "AS SELECT class FROM place "
+           "WHERE osm_type = $1 and osm_id = $2");
+    pgsql_exec(m_conn, PGRES_COMMAND_OK,
+           "PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
+           "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
 }
+
+output_gazetteer_t::~output_gazetteer_t()
+{
+    if (m_conn)
+        PQfinish(m_conn);
+}
+
+void output_gazetteer_t::commit() { m_copy.sync(); }
 
 int output_gazetteer_t::process_node(osmium::Node const &node)
 {
     m_style.process_tags(node);
 
     if (m_options.append)
-        delete_unused_classes('N', node.id());
+        delete_unused_classes("N", node.id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
         auto wkb = m_builder.get_wkb_node(node.location());
-        m_style.copy_out(node, wkb, buffer);
-        flush_place_buffer();
+        m_style.copy_out(node, wkb, m_copy);
     }
 
     return 0;
@@ -208,7 +157,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
     m_style.process_tags(*way);
 
     if (m_options.append)
-        delete_unused_classes('W', way->id());
+        delete_unused_classes("W", way->id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
@@ -229,8 +178,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             geom = wkbs[0];
         }
 
-        m_style.copy_out(*way, geom, buffer);
-        flush_place_buffer();
+        m_style.copy_out(*way, geom, m_copy);
     }
 
     return 0;
@@ -241,7 +189,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     auto const &tags = rel.tags();
     char const *type = tags["type"];
     if (!type) {
-        delete_unused_full('R', rel.id());
+        delete_unused_full("R", rel.id());
         return 0;
     }
 
@@ -250,14 +198,14 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     if (strcmp(type, "associatedStreet") == 0
         || !(strcmp(type, "boundary") == 0
              || strcmp(type, "multipolygon") == 0 || is_waterway)) {
-        delete_unused_full('R', rel.id());
+        delete_unused_full("R", rel.id());
         return 0;
     }
 
     m_style.process_tags(rel);
 
     if (m_options.append)
-        delete_unused_classes('R', rel.id());
+        delete_unused_classes("R", rel.id());
 
     /* Are we interested in this item? */
     if (!m_style.has_data())
@@ -268,8 +216,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     auto num_ways = m_mid->rel_way_members_get(rel, nullptr, osmium_buffer);
 
     if (num_ways == 0) {
-        delete_unused_full('R', rel.id());
-
+        delete_unused_full("R", rel.id());
         return 0;
     }
 
@@ -282,8 +229,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
     if (!geoms.empty()) {
-        m_style.copy_out(rel, geoms[0], buffer);
-        flush_place_buffer();
+        m_style.copy_out(rel, geoms[0], m_copy);
     }
 
     return 0;

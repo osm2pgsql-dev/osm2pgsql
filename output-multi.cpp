@@ -11,11 +11,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <vector>
 
-output_multi_t::output_multi_t(std::string const &name,
-                               std::shared_ptr<geometry_processor> processor_,
-                               export_list const &export_list,
-                               std::shared_ptr<middle_query_t> const &mid,
-                               options_t const &options)
+output_multi_t::output_multi_t(
+    std::string const &name, std::shared_ptr<geometry_processor> processor_,
+    export_list const &export_list, std::shared_ptr<middle_query_t> const &mid,
+    options_t const &options,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, options),
   m_tagtransform(tagtransform_t::make_tagtransform(&m_options, export_list)),
   m_processor(processor_), m_proj(m_options.projection),
@@ -27,7 +27,7 @@ output_multi_t::output_multi_t(std::string const &name,
   m_table(new table_t(name, m_processor->column_type(),
                       export_list.normal_columns(m_osm_type),
                       m_options.hstore_columns, m_processor->srid(),
-                      m_options.append, m_options.hstore_mode)),
+                      m_options.append, m_options.hstore_mode, copy_thread)),
   ways_done_tracker(new id_tracker()),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
@@ -37,12 +37,14 @@ output_multi_t::output_multi_t(std::string const &name,
 {
 }
 
-output_multi_t::output_multi_t(output_multi_t const *other,
-                               std::shared_ptr<middle_query_t> const &mid)
+output_multi_t::output_multi_t(
+    output_multi_t const *other, std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
   m_processor(other->m_processor), m_proj(other->m_proj),
-  m_osm_type(other->m_osm_type), m_table(new table_t(*other->m_table)),
+  m_osm_type(other->m_osm_type),
+  m_table(new table_t(*other->m_table, copy_thread)),
   // NOTE: we need to know which ways were used by relations so each thread
   // must have a copy of the original marked done ways, its read only so its
   // ok
@@ -57,10 +59,12 @@ output_multi_t::output_multi_t(output_multi_t const *other,
 
 output_multi_t::~output_multi_t() = default;
 
-std::shared_ptr<output_t>
-output_multi_t::clone(std::shared_ptr<middle_query_t> const &mid) const
+std::shared_ptr<output_t> output_multi_t::clone(
+    std::shared_ptr<middle_query_t> const &mid,
+    std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::shared_ptr<output_t>(new output_multi_t(this, mid));
+    return std::shared_ptr<output_t>(
+        new output_multi_t(this, mid, copy_thread));
 }
 
 int output_multi_t::start() {

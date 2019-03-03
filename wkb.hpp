@@ -76,16 +76,6 @@ class writer_t
     }
 
 public:
-    inline static void write_as_hex(std::string &out, std::string const &wkb)
-    {
-        static char const *lookup_hex = "0123456789ABCDEF";
-
-        for (char c : wkb) {
-            out += lookup_hex[(c >> 4) & 0xf];
-            out += lookup_hex[c & 0xf];
-        }
-    }
-
     explicit writer_t(int srid) : m_srid(srid) {}
 
     void add_sub_geometry(std::string const &part) { m_data.append(part); }
