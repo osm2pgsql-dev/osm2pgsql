@@ -227,7 +227,7 @@ public:
      * doesn't have to be empty. The pbf_writer will just append data.
      */
     explicit pbf_writer(std::string& data) noexcept :
-        m_data(&data) {
+        m_data{&data} {
     }
 
     /**
@@ -247,8 +247,8 @@ public:
      *        a few very specific cases.
      */
     pbf_writer(pbf_writer& parent_writer, pbf_tag_type tag, std::size_t size=0) :
-        m_data(parent_writer.m_data),
-        m_parent_writer(&parent_writer) {
+        m_data{parent_writer.m_data},
+        m_parent_writer{&parent_writer} {
         m_parent_writer->open_submessage(tag, size);
     }
 
@@ -263,10 +263,10 @@ public:
      * be invalid.
      */
     pbf_writer(pbf_writer&& other) noexcept :
-        m_data(other.m_data),
-        m_parent_writer(other.m_parent_writer),
-        m_rollback_pos(other.m_rollback_pos),
-        m_pos(other.m_pos) {
+        m_data{other.m_data},
+        m_parent_writer{other.m_parent_writer},
+        m_rollback_pos{other.m_rollback_pos},
+        m_pos{other.m_pos} {
         other.m_data = nullptr;
         other.m_parent_writer = nullptr;
         other.m_rollback_pos = 0;
@@ -786,6 +786,35 @@ public:
     }
 
     /**
+     * Add a "repeated packed" fixed-size field to data. The following
+     * fixed-size fields are available:
+     *
+     * uint32_t -> repeated packed fixed32
+     * int32_t  -> repeated packed sfixed32
+     * uint64_t -> repeated packed fixed64
+     * int64_t  -> repeated packed sfixed64
+     * double   -> repeated packed double
+     * float    -> repeated packed float
+     *
+     * @tparam ValueType One of the following types: (u)int32/64_t, double, float.
+     * @tparam InputIterator A type satisfying the InputIterator concept.
+     * @param tag Tag (field number) of the field
+     * @param first Iterator pointing to the beginning of the data
+     * @param last Iterator pointing one past the end of data
+     */
+    template <typename ValueType, typename InputIterator>
+    void add_packed_fixed(pbf_tag_type tag, InputIterator first, InputIterator last) {
+        static_assert(std::is_same<ValueType, uint32_t>::value ||
+                      std::is_same<ValueType, int32_t>::value ||
+                      std::is_same<ValueType, int64_t>::value ||
+                      std::is_same<ValueType, uint64_t>::value ||
+                      std::is_same<ValueType, double>::value ||
+                      std::is_same<ValueType, float>::value, "Only some types are allowed");
+        add_packed_fixed<ValueType, InputIterator>(tag, first, last,
+            typename std::iterator_traits<InputIterator>::iterator_category{});
+    }
+
+    /**
      * Add "repeated packed fixed32" field to data.
      *
      * @tparam InputIterator A type satisfying the InputIterator concept.
@@ -797,7 +826,7 @@ public:
     template <typename InputIterator>
     void add_packed_fixed32(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<uint32_t, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     /**
@@ -812,7 +841,7 @@ public:
     template <typename InputIterator>
     void add_packed_sfixed32(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<int32_t, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     /**
@@ -827,7 +856,7 @@ public:
     template <typename InputIterator>
     void add_packed_fixed64(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<uint64_t, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     /**
@@ -842,7 +871,7 @@ public:
     template <typename InputIterator>
     void add_packed_sfixed64(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<int64_t, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     /**
@@ -857,7 +886,7 @@ public:
     template <typename InputIterator>
     void add_packed_float(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<float, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     /**
@@ -872,7 +901,7 @@ public:
     template <typename InputIterator>
     void add_packed_double(pbf_tag_type tag, InputIterator first, InputIterator last) {
         add_packed_fixed<double, InputIterator>(tag, first, last,
-            typename std::iterator_traits<InputIterator>::iterator_category());
+            typename std::iterator_traits<InputIterator>::iterator_category{});
     }
 
     ///@}
@@ -912,11 +941,11 @@ namespace detail {
         packed_field() = default;
 
         packed_field(pbf_writer& parent_writer, pbf_tag_type tag) :
-            m_writer(parent_writer, tag) {
+            m_writer{parent_writer, tag} {
         }
 
         packed_field(pbf_writer& parent_writer, pbf_tag_type tag, std::size_t size) :
-            m_writer(parent_writer, tag, size) {
+            m_writer{parent_writer, tag, size} {
         }
 
         ~packed_field() noexcept = default;
@@ -941,17 +970,17 @@ namespace detail {
     public:
 
         packed_field_fixed() :
-            packed_field() {
+            packed_field{} {
         }
 
         template <typename P>
         packed_field_fixed(pbf_writer& parent_writer, P tag) :
-            packed_field(parent_writer, static_cast<pbf_tag_type>(tag)) {
+            packed_field{parent_writer, static_cast<pbf_tag_type>(tag)} {
         }
 
         template <typename P>
         packed_field_fixed(pbf_writer& parent_writer, P tag, std::size_t size) :
-            packed_field(parent_writer, static_cast<pbf_tag_type>(tag), size * sizeof(T)) {
+            packed_field{parent_writer, static_cast<pbf_tag_type>(tag), size * sizeof(T)} {
         }
 
         void add_element(T value) {
@@ -966,12 +995,12 @@ namespace detail {
     public:
 
         packed_field_varint() :
-            packed_field() {
+            packed_field{} {
         }
 
         template <typename P>
         packed_field_varint(pbf_writer& parent_writer, P tag) :
-            packed_field(parent_writer, static_cast<pbf_tag_type>(tag)) {
+            packed_field{parent_writer, static_cast<pbf_tag_type>(tag)} {
         }
 
         void add_element(T value) {
@@ -986,12 +1015,12 @@ namespace detail {
     public:
 
         packed_field_svarint() :
-            packed_field() {
+            packed_field{} {
         }
 
         template <typename P>
         packed_field_svarint(pbf_writer& parent_writer, P tag) :
-            packed_field(parent_writer, static_cast<pbf_tag_type>(tag)) {
+            packed_field{parent_writer, static_cast<pbf_tag_type>(tag)} {
         }
 
         void add_element(T value) {

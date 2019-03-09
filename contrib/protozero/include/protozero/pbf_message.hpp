@@ -78,7 +78,7 @@ public:
      */
     template <typename... Args>
     pbf_message(Args&&... args) noexcept : // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-        pbf_reader(std::forward<Args>(args)...) {
+        pbf_reader{std::forward<Args>(args)...} {
     }
 
     /**

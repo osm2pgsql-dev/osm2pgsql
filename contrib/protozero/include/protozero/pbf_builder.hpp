@@ -55,7 +55,7 @@ public:
      * doesn't have to be empty. The pbf_message object will just append data.
      */
     explicit pbf_builder(std::string& data) noexcept :
-        pbf_writer(data) {
+        pbf_writer{data} {
     }
 
     /**
@@ -67,7 +67,7 @@ public:
      */
     template <typename P>
     pbf_builder(pbf_writer& parent_writer, P tag) noexcept :
-        pbf_writer(parent_writer, pbf_tag_type(tag)) {
+        pbf_writer{parent_writer, pbf_tag_type(tag)} {
     }
 
 /// @cond INTERNAL
