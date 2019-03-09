@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -95,7 +95,7 @@ namespace osmium {
                     result = *str - '0';
                     ++str;
                 } else {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
 
                 // optional additional digits before decimal point
@@ -106,13 +106,13 @@ namespace osmium {
                 }
 
                 if (max_digits == 0) {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
             } else {
                 // need at least one digit after decimal dot if there was no
                 // digit before decimal dot
                 if (*(str + 1) < '0' || *(str + 1) > '9') {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
             }
 
@@ -133,7 +133,7 @@ namespace osmium {
                 }
 
                 if (max_digits == 0) {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
             }
 
@@ -155,7 +155,7 @@ namespace osmium {
                     eresult = *str - '0';
                     ++str;
                 } else {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
 
                 // optional additional digits in exponent
@@ -167,7 +167,7 @@ namespace osmium {
                 }
 
                 if (max_digits == 0) {
-                    goto error;
+                    throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
                 }
 
                 scale += eresult * esign;
@@ -187,15 +187,11 @@ namespace osmium {
 
             if (result > std::numeric_limits<int32_t>::max() ||
                 result < std::numeric_limits<int32_t>::min()) {
-                goto error;
+                throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
             }
 
             *data = str;
             return static_cast<int32_t>(result);
-
-        error:
-
-            throw invalid_location{std::string{"wrong format for coordinate: '"} + full + "'"};
         }
 
         // Convert integer as used by location for coordinates into a string.

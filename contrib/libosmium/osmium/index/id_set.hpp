@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -216,7 +216,7 @@ namespace osmium {
                 return (id >> 3u) & ((1u << chunk_bits) - 1u);
             }
 
-            static unsigned char bitmask(T id) noexcept {
+            static unsigned int bitmask(T id) noexcept {
                 return 1u << (id & 0x7u);
             }
 
