@@ -592,7 +592,14 @@ void options_t::check_options()
     }
 
     if (cache == 0) {
-        fprintf(stderr, "WARNING: ram cache is disabled. This will likely slow down processing a lot.\n\n");
+        if (!slim) {
+            throw std::runtime_error(
+                "Ram node cache can only be disable in slim mode.\n");
+        }
+        if (!flat_node_cache_enabled) {
+            fprintf(stderr, "WARNING: ram cache is disabled. This will likely "
+                            "slow down processing a lot.\n\n");
+        }
     }
 
     if (num_procs < 1) {
