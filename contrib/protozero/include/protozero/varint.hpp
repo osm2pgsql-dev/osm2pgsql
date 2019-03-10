@@ -39,22 +39,22 @@ namespace detail {
         if (iend - begin >= max_varint_length) {  // fast path
             do {
                 int64_t b;
-                b = *p++; val  = uint64_t((b & 0x7fu)       ); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) <<  7u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 14u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 21u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 28u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 35u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 42u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 49u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x7fu) << 56u); if (b >= 0) { break; }
-                b = *p++; val |= uint64_t((b & 0x01u) << 63u); if (b >= 0) { break; }
+                b = *p++; val  = ((uint64_t(b) & 0x7fu)       ); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) <<  7u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 14u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 21u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 28u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 35u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 42u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 49u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x7fu) << 56u); if (b >= 0) { break; }
+                b = *p++; val |= ((uint64_t(b) & 0x01u) << 63u); if (b >= 0) { break; }
                 throw varint_too_long_exception{};
             } while (false);
         } else {
             unsigned int shift = 0;
             while (p != iend && *p < 0) {
-                val |= uint64_t(*p++ & 0x7fu) << shift;
+                val |= (uint64_t(*p++) & 0x7fu) << shift;
                 shift += 7;
             }
             if (p == iend) {
@@ -88,7 +88,7 @@ namespace detail {
  */
 inline uint64_t decode_varint(const char** data, const char* end) {
     // If this is a one-byte varint, decode it here.
-    if (end != *data && ((**data & 0x80u) == 0)) {
+    if (end != *data && ((static_cast<uint64_t>(**data) & 0x80u) == 0)) {
         const auto val = static_cast<uint64_t>(**data);
         ++(*data);
         return val;
@@ -118,7 +118,7 @@ inline void skip_varint(const char** data, const char* end) {
         ++p;
     }
 
-    if (p >= begin + max_varint_length) {
+    if (p - begin >= max_varint_length) {
         throw varint_too_long_exception{};
     }
 
@@ -156,31 +156,48 @@ inline int write_varint(T data, uint64_t value) {
 }
 
 /**
+ * Get the length of the varint the specified value would produce.
+ *
+ * @param value The integer to be encoded.
+ * @returns the number of bytes the varint would have if we created it.
+ */
+inline int length_of_varint(uint64_t value) noexcept {
+    int n = 1;
+
+    while (value >= 0x80u) {
+        value >>= 7u;
+        ++n;
+    }
+
+    return n;
+}
+
+/**
  * ZigZag encodes a 32 bit integer.
  */
 inline constexpr uint32_t encode_zigzag32(int32_t value) noexcept {
-    return (static_cast<uint32_t>(value) << 1u) ^ (static_cast<uint32_t>(value >> 31u));
+    return (static_cast<uint32_t>(value) << 1u) ^ static_cast<uint32_t>(-static_cast<int32_t>(static_cast<uint32_t>(value) >> 31u));
 }
 
 /**
  * ZigZag encodes a 64 bit integer.
  */
 inline constexpr uint64_t encode_zigzag64(int64_t value) noexcept {
-    return (static_cast<uint64_t>(value) << 1u) ^ (static_cast<uint64_t>(value >> 63u));
+    return (static_cast<uint64_t>(value) << 1u) ^ static_cast<uint64_t>(-static_cast<int64_t>(static_cast<uint64_t>(value) >> 63u));
 }
 
 /**
  * Decodes a 32 bit ZigZag-encoded integer.
  */
 inline constexpr int32_t decode_zigzag32(uint32_t value) noexcept {
-    return static_cast<int32_t>(value >> 1u) ^ -static_cast<int32_t>(value & 1u);
+    return static_cast<int32_t>((value >> 1u) ^ static_cast<uint32_t>(-static_cast<int32_t>(value & 1u)));
 }
 
 /**
  * Decodes a 64 bit ZigZag-encoded integer.
  */
 inline constexpr int64_t decode_zigzag64(uint64_t value) noexcept {
-    return static_cast<int64_t>(value >> 1u) ^ -static_cast<int64_t>(value & 1u);
+    return static_cast<int64_t>((value >> 1u) ^ static_cast<uint64_t>(-static_cast<int64_t>(value & 1u)));
 }
 
 } // end namespace protozero

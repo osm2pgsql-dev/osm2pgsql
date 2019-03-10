@@ -99,7 +99,6 @@ class pbf_reader {
     template <typename T>
     T get_varint() {
         const auto val = static_cast<T>(decode_varint(&m_data, m_end));
-        assert(m_data <= m_end);
         return val;
     }
 
@@ -114,7 +113,7 @@ class pbf_reader {
     }
 
     void skip_bytes(pbf_length_type len) {
-        if (m_data + len > m_end) {
+        if (m_end - m_data < static_cast<ptrdiff_t>(len)) {
             throw end_of_buffer_exception{};
         }
         m_data += len;
@@ -153,8 +152,8 @@ public:
      * @post There is no current field.
      */
     explicit pbf_reader(const data_view& view) noexcept
-        : m_data(view.data()),
-          m_end(view.data() + view.size()) {
+        : m_data{view.data()},
+          m_end{view.data() + view.size()} {
     }
 
     /**
@@ -168,8 +167,8 @@ public:
      * @post There is no current field.
      */
     pbf_reader(const char* data, std::size_t size) noexcept
-        : m_data(data),
-          m_end(data + size) {
+        : m_data{data},
+          m_end{data + size} {
     }
 
 #ifndef PROTOZERO_STRICT_API
@@ -185,8 +184,8 @@ public:
      * @deprecated Use one of the other constructors.
      */
     explicit pbf_reader(const std::pair<const char*, std::size_t>& data) noexcept
-        : m_data(data.first),
-          m_end(data.first + data.second) {
+        : m_data{data.first},
+          m_end{data.first + data.second} {
     }
 #endif
 
@@ -201,8 +200,8 @@ public:
      * @post There is no current field.
      */
     explicit pbf_reader(const std::string& data) noexcept
-        : m_data(data.data()),
-          m_end(data.data() + data.size()) {
+        : m_data{data.data()},
+          m_end{data.data() + data.size()} {
     }
 
     /**
@@ -244,7 +243,14 @@ public:
      * read.
      */
     operator bool() const noexcept { // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-        return m_data < m_end;
+        return m_data != m_end;
+    }
+
+    /**
+     * Get a view of the not yet read data.
+     */
+    data_view data() const noexcept {
+        return {m_data, static_cast<std::size_t>(m_end - m_data)};
     }
 
     /**
@@ -471,7 +477,6 @@ public:
             default:
                 break;
         }
-        assert(m_data <= m_end);
     }
 
     ///@{

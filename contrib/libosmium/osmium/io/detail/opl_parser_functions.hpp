@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -158,7 +158,7 @@ namespace osmium {
                         *data = s;
                         return;
                     }
-                    value <<= 4;
+                    value <<= 4u;
                     if (*s >= '0' && *s <= '9') {
                         value += *s - '0';
                     } else if (*s >= 'a' && *s <= 'f') {

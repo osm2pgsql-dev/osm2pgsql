@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -60,7 +60,7 @@ namespace osmium {
          *
          * Usage for anonymous mapping:
          * @code
-         * MemoryMapping mapping(1024);          // create anonymous mapping with size
+         * MemoryMapping mapping{1024};          // create anonymous mapping with size
          * auto ptr = mapping.get_addr<char*>(); // get pointer to memory
          * mapping.unmap();                      // release mapping by calling unmap() (or at end of scope)
          * @endcode
@@ -69,7 +69,7 @@ namespace osmium {
          * @code
          * int fd = ::open(...);
          * {
-         *     MemoryMapping mapping(1024, MemoryMapping::mapping_mode::write_shared, fd, offset);
+         *     MemoryMapping mapping{1024, MemoryMapping::mapping_mode::write_shared, fd, offset};
          *     // use mapping
          * }
          * ::close(fd);
@@ -278,14 +278,11 @@ namespace osmium {
             /**
              * Get the address of the mapping as any pointer type you like.
              *
-             * @throws std::runtime_error if the mapping is invalid
+             * @pre is_valid()
              */
             template <typename T = void>
-            T* get_addr() const {
-                if (is_valid()) {
-                    return reinterpret_cast<T*>(m_addr);
-                }
-                throw std::runtime_error{"invalid memory mapping"};
+            T* get_addr() const noexcept {
+                return reinterpret_cast<T*>(m_addr);
             }
 
         }; // class MemoryMapping
@@ -295,7 +292,7 @@ namespace osmium {
          *
          * Usage for anonymous mapping:
          * @code
-         * AnonymousMemoryMapping mapping(1024); // create anonymous mapping with size
+         * AnonymousMemoryMapping mapping{1024}; // create anonymous mapping with size
          * auto ptr = mapping.get_addr<char*>(); // get pointer to memory
          * mapping.unmap();                      // release mapping by calling unmap() (or at end of scope)
          * @endcode
@@ -454,34 +451,54 @@ namespace osmium {
             /**
              * Get the address of the beginning of the mapping.
              *
-             * @throws std::runtime_error if the mapping is invalid
+             * @pre is_valid()
              */
-            T* begin() {
+            T* begin() noexcept {
                 return m_mapping.get_addr<T>();
             }
 
             /**
              * Get the address one past the end of the mapping.
              *
-             * @throws std::runtime_error if the mapping is invalid
+             * @pre is_valid()
              */
-            T* end() {
+            T* end() noexcept {
                 return m_mapping.get_addr<T>() + size();
             }
 
-            const T* cbegin() const {
+            /**
+             * Get the address of the beginning of the mapping.
+             *
+             * @pre is_valid()
+             */
+            const T* cbegin() const noexcept {
                 return m_mapping.get_addr<T>();
             }
 
-            const T* cend() const {
+            /**
+             * Get the address one past the end of the mapping.
+             *
+             * @pre is_valid()
+             */
+            const T* cend() const noexcept {
                 return m_mapping.get_addr<T>() + size();
             }
 
-            const T* begin() const {
+            /**
+             * Get the address of the beginning of the mapping.
+             *
+             * @pre is_valid()
+             */
+            const T* begin() const noexcept {
                 return m_mapping.get_addr<T>();
             }
 
-            const T* end() const {
+            /**
+             * Get the address one past the end of the mapping.
+             *
+             * @pre is_valid()
+             */
+            const T* end() const noexcept {
                 return m_mapping.get_addr<T>() + size();
             }
 
@@ -572,7 +589,12 @@ inline osmium::util::MemoryMapping::MemoryMapping(MemoryMapping&& other) noexcep
 }
 
 inline osmium::util::MemoryMapping& osmium::util::MemoryMapping::operator=(osmium::util::MemoryMapping&& other) noexcept {
-    unmap();
+    try {
+        unmap();
+    } catch (const std::system_error&) {
+        // Ignore unmap error. It should never happen anyway and we can't do
+        // anything about it here.
+    }
     m_size         = other.m_size;
     m_offset       = other.m_offset;
     m_fd           = other.m_fd;

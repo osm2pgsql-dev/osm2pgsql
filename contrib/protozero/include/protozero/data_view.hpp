@@ -55,8 +55,8 @@ public:
      * @param length Length of the data.
      */
     constexpr data_view(const char* ptr, std::size_t length) noexcept
-        : m_data(ptr),
-          m_size(length) {
+        : m_data{ptr},
+          m_size{length} {
     }
 
     /**
@@ -65,8 +65,8 @@ public:
      * @param str String with the data.
      */
     data_view(const std::string& str) noexcept // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-        : m_data(str.data()),
-          m_size(str.size()) {
+        : m_data{str.data()},
+          m_size{str.size()} {
     }
 
     /**
@@ -75,8 +75,8 @@ public:
      * @param ptr Pointer to the data.
      */
     data_view(const char* ptr) noexcept // NOLINT(google-explicit-constructor, hicpp-explicit-conversions)
-        : m_data(ptr),
-          m_size(std::strlen(ptr)) {
+        : m_data{ptr},
+          m_size{std::strlen(ptr)} {
     }
 
     /**

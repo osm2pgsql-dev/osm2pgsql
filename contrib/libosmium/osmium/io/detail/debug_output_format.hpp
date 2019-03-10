@@ -5,7 +5,7 @@
 
 This file is part of Osmium (https://osmcode.org/libosmium).
 
-Copyright 2013-2018 Jochen Topf <jochen@topf.org> and others (see README).
+Copyright 2013-2019 Jochen Topf <jochen@topf.org> and others (see README).
 
 Boost Software License - Version 1.0 - August 17th, 2003
 
@@ -197,7 +197,12 @@ namespace osmium {
 
                 void write_counter(int width, int n) {
                     write_color(color_white);
+#pragma GCC diagnostic push
+#if !defined(__clang__) && defined(__GNUC__) && (__GNUC__ > 7)
+#pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
                     output_formatted("    %0*d: ", width, n++);
+#pragma GCC diagnostic pop
                     write_color(color_reset);
                 }
 
