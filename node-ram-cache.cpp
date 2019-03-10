@@ -316,6 +316,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
   cacheSize((int64_t)cacheSizeMB * 1024 * 1024), storedNodes(0), totalNodes(0),
   nodesCacheHits(0), nodesCacheLookups(0), warn_node_order(0)
 {
+    if (cacheSize == 0)
+        return;
+
     blockCache = 0;
     blockCachePos = 0;
     /* How much we can fit, and make sure it's odd */
@@ -388,6 +391,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
 
 node_ram_cache::~node_ram_cache()
 {
+    if (cacheSize == 0)
+        return;
+
     fprintf(stderr, "node cache: stored: %" PRIdOSMID
                     "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
                     "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
@@ -417,6 +423,9 @@ node_ram_cache::~node_ram_cache()
 
 void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
 {
+    if (cacheSize == 0)
+        return;
+
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32)) {
         fprintf(stderr, "\nAbsolute node IDs must not be larger than %" PRId64
@@ -447,6 +456,9 @@ void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
 osmium::Location node_ram_cache::get(osmid_t id)
 {
     osmium::Location coord;
+
+    if (cacheSize == 0)
+        return coord;
 
     if (allocStrategy & ALLOC_DENSE) {
         coord = get_dense(id);
