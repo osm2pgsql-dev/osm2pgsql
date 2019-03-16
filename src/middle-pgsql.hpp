@@ -22,9 +22,9 @@ class middle_query_pgsql_t : public middle_query_t
 {
 public:
     middle_query_pgsql_t(
-        char const *conninfo, std::shared_ptr<node_ram_cache> const &cache,
+        std::string const &conninfo,
+        std::shared_ptr<node_ram_cache> const &cache,
         std::shared_ptr<node_persistent_cache> const &persistent_cache);
-    ~middle_query_pgsql_t();
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
@@ -44,7 +44,7 @@ private:
     pg_result_t exec_prepared(char const *stmt, char const *param) const;
     pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
 
-    struct pg_conn *m_sql_conn;
+    pg_conn_t m_sql_conn;
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 };
@@ -125,7 +125,7 @@ private:
 
     std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
 
-    struct pg_conn *m_query_conn;
+    std::unique_ptr<pg_conn_t> m_query_conn;
     // middle keeps its own thread for writing to the database.
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
     db_copy_mgr_t m_db_copy;

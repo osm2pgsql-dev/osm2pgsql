@@ -6,6 +6,7 @@
 /* Current middle and output-pgsql do a lot of things similarly, this should
  * be used to abstract to commonalities */
 
+#include <boost/format.hpp>
 #include <cstring>
 #include <libpq-fe.h>
 #include <memory>
@@ -18,22 +19,64 @@ struct pg_result_deleter_t
 
 typedef std::unique_ptr<PGresult, pg_result_deleter_t> pg_result_t;
 
-pg_result_t pgsql_execPrepared(PGconn *sql_conn, const char *stmtName,
-                               int nParams, const char *const *paramValues,
-                               ExecStatusType expect);
-void pgsql_CopyData(const char *context, PGconn *sql_conn,
-                    std::string const &sql);
+/**
+ * Simple postgres connection.
+ *
+ * The connection is automatically closed when the object is destroyed.
+ */
+class pg_conn_t
+{
+public:
+    pg_conn_t(std::string const &connection);
 
-pg_result_t pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect,
-                              std::string const &sql);
-pg_result_t pgsql_exec_simple(PGconn *sql_conn, ExecStatusType expect,
-                              const char *sql);
+    pg_conn_t(pg_conn_t const &) = delete;
+    pg_conn_t &operator=(const pg_conn_t &) = delete;
 
-int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt,
-               ...)
-#ifndef _MSC_VER
-    __attribute__((format(printf, 3, 4)))
-#endif
-    ;
+    ~pg_conn_t();
+
+    pg_result_t exec_prepared(char const *stmtName, int nParams,
+                              const char *const *paramValues,
+                              ExecStatusType expect = PGRES_TUPLES_OK) const;
+    void copy_data(std::string const &sql, std::string const &context) const;
+    void end_copy(std::string const &context) const;
+
+    pg_result_t query(ExecStatusType expect, std::string const &sql) const;
+
+    template <typename... ARGS>
+    pg_result_t query(ExecStatusType expect, std::string const &fmt,
+                      ARGS &&... args) const
+    {
+        boost::format formatter(fmt);
+        format_sql(formatter, args...);
+        return query(expect, fmt, formatter.str());
+    }
+
+    void exec(char const *sql) const;
+
+    template <typename... ARGS>
+    void exec(char const *fmt, ARGS &&... args) const
+    {
+        boost::format formatter(fmt);
+        format_sql(formatter, args...);
+
+        exec(formatter.str().c_str());
+    }
+
+private:
+    template <typename T, typename... ARGS>
+    void format_sql(boost::format &fmt, T arg, ARGS &&... args) const
+    {
+        fmt % arg;
+        format_sql(fmt, args...);
+    }
+
+    template <typename T>
+    void format_sql(boost::format &fmt, T arg) const
+    {
+        fmt % arg;
+    }
+
+    PGconn *m_conn;
+};
 
 #endif // OSM2PGSQL_PGSQL_HPP

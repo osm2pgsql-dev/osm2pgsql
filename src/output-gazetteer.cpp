@@ -26,8 +26,7 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
     snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
     char const *params[2] = {osm_type, id};
 
-    auto res =
-        pgsql_execPrepared(m_conn, "get_classes", 2, params, PGRES_TUPLES_OK);
+    auto res = m_conn->exec_prepared("get_classes", 2, params, PGRES_TUPLES_OK);
     int sz = PQntuples(res.get());
 
     std::string clslist;
@@ -43,11 +42,9 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
     if (!clslist.empty()) {
         clslist[clslist.size() - 1] = '\0';
         // Delete places where classes have disappeared for this object.
-        pgsql_exec(
-            m_conn, PGRES_COMMAND_OK,
-            "DELETE FROM place WHERE osm_type = '%s' AND osm_id = %" PRIdOSMID
-            " and class = any(ARRAY[%s])",
-            osm_type, osm_id, clslist.c_str());
+        m_conn->exec("DELETE FROM place WHERE osm_type = '%1%' "
+                         "AND osm_id = %2% and class = any(ARRAY[%3%])",
+                         osm_type, osm_id, clslist);
     }
 }
 
@@ -57,19 +54,12 @@ void output_gazetteer_t::delete_place(char const *osm_type, osmid_t osm_id)
     snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
     char const *params[2] = {osm_type, id};
 
-    pgsql_execPrepared(m_conn, "delete_place", 2, params, PGRES_COMMAND_OK);
+    m_conn->exec_prepared("delete_place", 2, params, PGRES_COMMAND_OK);
 }
 
 void output_gazetteer_t::connect()
 {
-    m_conn = PQconnectdb(m_options.database_options.conninfo().c_str());
-
-    /* Check to see that the backend connection was successfully made */
-    if (PQstatus(m_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n",
-                PQerrorMessage(m_conn));
-        throw std::runtime_error("Connecting to database");
-    }
+    m_conn.reset(new pg_conn_t(m_options.database_options.conninfo()));
 }
 
 int output_gazetteer_t::start()
@@ -81,8 +71,7 @@ int output_gazetteer_t::start()
     /* (Re)create the table unless we are appending */
     if (!m_options.append) {
         /* Drop any existing table */
-        pgsql_exec(m_conn, PGRES_COMMAND_OK,
-                   "DROP TABLE IF EXISTS place CASCADE");
+        m_conn->exec("DROP TABLE IF EXISTS place CASCADE");
 
         /* Create the new table */
 
@@ -103,14 +92,14 @@ int output_gazetteer_t::start()
             sql += " TABLESPACE " + m_options.tblsmain_data.get();
         }
 
-        pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
+        m_conn->exec(sql.c_str());
 
         std::string index_sql =
             "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
         if (m_options.tblsmain_index) {
             index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
         }
-        pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, index_sql);
+        m_conn->exec(index_sql.c_str());
     }
 
     prepare_query_conn();
@@ -120,20 +109,12 @@ int output_gazetteer_t::start()
 
 void output_gazetteer_t::prepare_query_conn() const
 {
-    pgsql_exec(m_conn, PGRES_COMMAND_OK,
-               "PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-               "AS SELECT class FROM place "
-               "WHERE osm_type = $1 and osm_id = $2");
-    pgsql_exec(m_conn, PGRES_COMMAND_OK,
-               "PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-               "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
-}
-
-output_gazetteer_t::~output_gazetteer_t()
-{
-    if (m_conn) {
-        PQfinish(m_conn);
-    }
+    m_conn->exec("PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") "
+                     "AS SELECT class FROM place "
+                     "WHERE osm_type = $1 and osm_id = $2");
+    m_conn->exec(
+        "PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
+        "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
 }
 
 void output_gazetteer_t::commit() { m_copy.sync(); }
