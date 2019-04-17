@@ -47,6 +47,7 @@ table_t::table_t(table_t const &other,
     // this would be premature.
     if (other.sql_conn) {
         connect();
+        prepare();
     }
 }
 
@@ -171,6 +172,11 @@ void table_t::start(std::string const &conninfo,
         //TODO: change the type of the geometry column if needed - this can only change to a more permissive type
     }
 
+    prepare();
+}
+
+void table_t::prepare()
+{
     //let postgres cache this query as it will presumably happen a lot
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
                       (fmt("PREPARE get_wkb (" POSTGRES_OSMID_TYPE
