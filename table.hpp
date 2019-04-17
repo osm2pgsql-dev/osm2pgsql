@@ -71,6 +71,7 @@ class table_t
 
     protected:
         void connect();
+        void prepare();
         void teardown();
 
         void write_columns(taglist_t const &tags, std::vector<bool> *used);
