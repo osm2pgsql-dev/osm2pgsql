@@ -68,8 +68,7 @@ public:
     bool has_data() const { return !m_main.empty(); }
 
 private:
-    bool add_metadata_style_entry(std::string const &key,
-                                  std::string const &value);
+    bool add_metadata_style_entry(std::string const &key);
     void add_style_entry(std::string const &key, std::string const &value,
                          flag_t flags);
     flag_t parse_flags(std::string const &str);

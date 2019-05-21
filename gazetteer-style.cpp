@@ -128,8 +128,7 @@ gazetteer_style_t::flag_t gazetteer_style_t::parse_flags(std::string const &str)
     return out;
 }
 
-bool gazetteer_style_t::add_metadata_style_entry(std::string const &key,
-                                                 std::string const &value)
+bool gazetteer_style_t::add_metadata_style_entry(std::string const &key)
 {
     if (key == "osm_version") {
         m_metadata_fields.set_version(true);
@@ -190,10 +189,15 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
         }
     }
 
-    if (add_metadata_style_entry(key, value)) {
+    if (add_metadata_style_entry(key)) {
         if (!value.empty()) {
             throw std::runtime_error("Style error. Rules for OSM metadata "
                                      "attributes must have an empty value.\n");
+        }
+        if (flags != SF_EXTRA) {
+            throw std::runtime_error("Style error. Rules for OSM metadata "
+                                     "attributes must have the style flag "
+                                     "\"extra\" and no other flag.\n");
         }
         return;
     }
