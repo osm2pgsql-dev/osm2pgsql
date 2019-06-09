@@ -61,7 +61,7 @@ class gazetteer_style_t
 public:
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
-    void copy_out(osmium::OSMObject const &o, std::string const &geom,
+    bool copy_out(osmium::OSMObject const &o, std::string const &geom,
                   db_copy_mgr_t &buffer);
     bool has_place(std::string const &cls) const;
 
