@@ -146,7 +146,8 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
     /* Are we interested in this item? */
     if (m_style.has_data()) {
         auto wkb = m_builder.get_wkb_node(node.location());
-        m_style.copy_out(node, wkb, m_copy);
+        if (!m_style.copy_out(node, wkb, m_copy))
+            delete_unused_full("N", node.id());
     }
 
     return 0;
@@ -178,7 +179,8 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             geom = wkbs[0];
         }
 
-        m_style.copy_out(*way, geom, m_copy);
+        if (!m_style.copy_out(*way, geom, m_copy))
+            delete_unused_full("W", way->id());
     }
 
     return 0;
@@ -229,7 +231,8 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
     if (!geoms.empty()) {
-        m_style.copy_out(rel, geoms[0], m_copy);
+        if (!m_style.copy_out(rel, geoms[0], m_copy))
+            delete_unused_full("R", rel.id());
     }
 
     return 0;

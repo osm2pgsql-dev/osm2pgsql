@@ -51,7 +51,15 @@ void gazetteer_style_t::clear()
 bool gazetteer_style_t::has_place(std::string const &cls) const
 {
     return std::any_of(m_main.begin(), m_main.end(), [&](pmaintag_t const &e) {
-        return strcmp(std::get<0>(e), cls.c_str()) == 0;
+        if (strcmp(std::get<0>(e), cls.c_str()) == 0) {
+            if (std::get<2>(e) & SF_MAIN_NAMED)
+                return !m_names.empty();
+            // XXX should handle SF_MAIN_NAMED_KEY as well
+
+            return true;
+        }
+
+        return false;
     });
 }
 
@@ -381,7 +389,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     }
 }
 
-void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
+bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
                                  std::string const &geom, db_copy_mgr_t &buffer)
 {
     bool any = false;
@@ -391,14 +399,17 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
         }
     }
 
-    if (!any) {
-        for (auto const &main : m_main) {
-            if ((std::get<2>(main) & SF_MAIN_FALLBACK) &&
-                copy_out_maintag(main, o, geom, buffer)) {
-                break;
-            }
+    if (any)
+        return true;
+
+    for (auto const &main : m_main) {
+        if ((std::get<2>(main) & SF_MAIN_FALLBACK) &&
+            copy_out_maintag(main, o, geom, buffer)) {
+            return true;
         }
     }
+
+    return false;
 }
 
 bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
