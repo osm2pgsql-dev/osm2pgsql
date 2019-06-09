@@ -172,6 +172,36 @@ null backend for testing. For flexibility a new [multi](docs/multi.md)
 backend is also available which allows the configuration of custom
 PostgreSQL tables instead of those provided in the pgsql backend.
 
+## LuaJIT support ##
+
+To speed up Lua tag transformations, [LuaJIT](http://luajit.org/) can be optionally
+enabled on supported platforms. Performance measurements have shown about 25%
+runtime reduction for a planet import, with about 40% reduction on parsing time.
+
+On a Debian or Ubuntu system, this can be done with:
+
+```sh
+sudo apt install libluajit-5.1-dev
+```
+
+Configuration parameter `WITH_LUAJIT=ON` needs to be added to enable LuaJIT.
+Otherwise make and installation steps are identical to the description above.
+
+```sh
+cmake -D WITH_LUAJIT=ON ..
+```
+
+Use `osm2pgsql --version` to verify that the build includes LuaJIT support:
+
+```sh
+./osm2pgsql --version
+osm2pgsql version 0.96.0 (64 bit id space)
+
+Compiled using the following library versions:
+Libosmium 2.15.0
+Lua 5.1.4 (LuaJIT 2.1.0-beta3)
+```
+
 ## Contributing ##
 
 We welcome contributions to osm2pgsql. If you would like to report an issue,
