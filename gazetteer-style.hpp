@@ -102,8 +102,6 @@ private:
 
     /// which metadata fields of the OSM objects should be written to the output
     osmium::metadata_options m_metadata_fields{"none"};
-
-    boost::format m_single_fmt{"%1%\t"};
 };
 
 #endif
