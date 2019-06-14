@@ -35,7 +35,7 @@ struct gazetteer_default : options_t
     {
         database_options = db.db_options();
         output_backend = "gazetteer";
-        style = "tests/gazetteer-test.style";
+        style = "newtests/gazetteer-test.style";
     }
 
 };

@@ -1,5 +1,7 @@
 #include "catch.hpp"
 
+#include <boost/format.hpp>
+
 #include <osmium/io/file.hpp>
 #include <osmium/io/reader.hpp>
 #include <osmium/io/any_input.hpp>
@@ -15,6 +17,23 @@
 #include "output-feed.hpp"
 
 static pg::tempdb_t db;
+
+using fmt = boost::format;
+
+static pg::result_t require_place(pg::conn_t const &conn, char type, osmid_t id,
+                          char const *cls, char const *typ)
+{
+    return conn.require_row((fmt("SELECT * FROM place WHERE osm_type = '%1%' AND osm_id = %2% AND class = '%3%' AND type = '%4%'")
+                             % type % id % cls % typ).str());
+}
+
+static void require_place_not(pg::conn_t const &conn, char type,
+                              osmid_t id, char const *cls)
+{
+    REQUIRE(conn.require_scalar<int>((fmt("SELECT count(*) FROM place WHERE osm_type = '%1%' AND osm_id = %2% AND class = '%3%'")
+                             % type % id % cls).str()) == 0);
+}
+
 
 class test_parse_t : public parse_osmium_t
 {
@@ -59,8 +78,53 @@ TEST_CASE("output_gazetteer_t import")
 {
     options_t options = testing::options::gazetteer_default(db);
 
-    REQUIRE_NOTHROW(run_import(options, "n1 Tamenity=restaurant,name=Foobar x12.3 y3"));
+    SECTION("Main tags")
+    {
+        REQUIRE_NOTHROW(run_import(options,
+                    "n1 Tamenity=restaurant,name=Foobar x12.3 y3\n"
+                    "n2 Thighway=bus_stop,railway=stop,name=X x56.4 y-4\n"
+                    "n3 Tnatural=no x2 y5\n"));
 
-    auto conn = db.connect();
+        auto conn = db.connect();
 
+        require_place(conn, 'N', 1, "amenity", "restaurant");
+        require_place(conn, 'N', 2, "highway", "bus_stop");
+        require_place(conn, 'N', 2, "railway", "stop");
+        require_place_not(conn, 'N', 3, "natural");
+    }
+
+    SECTION("Main tags with name")
+    {
+        REQUIRE_NOTHROW(run_import(options,
+                    "n45 Tlanduse=cemetry x0 y0\n"
+                    "n54 Tlanduse=cemetry,name=There x3 y5\n"
+                    "n55 Tname:de=Da,landuse=cemetry x0.0 y6.5\n"
+                    ));
+
+        auto conn = db.connect();
+
+        require_place_not(conn, 'N', 45, "landuse");
+        require_place(conn, 'N', 54, "landuse", "cemetry");
+        require_place(conn, 'N', 55, "landuse", "cemetry");
+    }
+
+    SECTION("Main tags as fallback")
+    {
+        REQUIRE_NOTHROW(run_import(options,
+                    "n100 Tjunction=yes,highway=bus_stop x0 y0\n"
+                    "n101 Tjunction=yes x4 y6\n"
+                    "n200 Tbuilding=yes,amenity=cafe x3 y7\n"
+                    "n201 Tbuilding=yes,name=Intersting x4 y5\n"
+                    "n202 Tbuilding=yes x6 y9\n"
+                    ));
+
+        auto conn = db.connect();
+
+        require_place_not(conn, 'N', 100, "junction");
+        require_place(conn, 'N', 101, "junction", "yes");
+        require_place_not(conn, 'N', 200, "building");
+        require_place(conn, 'N', 201, "building", "yes");
+        require_place_not(conn, 'N', 202, "building");
+
+    }
 }
