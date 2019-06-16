@@ -5,6 +5,9 @@
 
 #include "options.hpp"
 
+// The testfiles to use.
+#define TEST_PBF "tests/liechtenstein-2013-08-03.osm.pbf"
+
 // Various options settings to run the tests against.
 namespace testing {
 namespace options {
