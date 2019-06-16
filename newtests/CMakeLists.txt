@@ -2,6 +2,7 @@ set (TESTS
     test-db-copy-thread.cpp
     test-db-copy-mgr.cpp
     test-middle.cpp
+    test-options-database.cpp
     test-options-parse.cpp
     test-output-gazetteer.cpp
     test-persistent-cache.cpp
