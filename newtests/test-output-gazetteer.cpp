@@ -14,7 +14,6 @@
 #include "parse-osmium.hpp"
 
 #include "configs.hpp"
-#include "output-feed.hpp"
 
 static pg::tempdb_t db;
 

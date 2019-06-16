@@ -40,6 +40,15 @@ struct gazetteer_default : options_t
 
 };
 
+struct flat_nodes : options_t
+{
+    flat_nodes()
+    {
+        flat_node_file = boost::optional<std::string>(
+            "newtests/test_middle_flat.flat.nodes.bin");
+        flat_node_cache_enabled = true;
+    }
+};
 }
 }
 
