@@ -37,6 +37,12 @@ struct gazetteer_default : options_t
     gazetteer_default(pg::tempdb_t const &db)
     {
         database_options = db.db_options();
+        setup();
+    }
+    gazetteer_default() { setup(); }
+
+    void setup()
+    {
         output_backend = "gazetteer";
         style = "newtests/data/gazetteer-test.style";
     }

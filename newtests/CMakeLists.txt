@@ -4,6 +4,7 @@ set (TESTS
     test-middle.cpp
     test-options-database.cpp
     test-options-parse.cpp
+    test-options-projection.cpp
     test-output-gazetteer.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
