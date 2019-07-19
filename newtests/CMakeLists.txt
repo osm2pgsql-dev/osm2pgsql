@@ -6,6 +6,7 @@ set (TESTS
     test-options-parse.cpp
     test-options-projection.cpp
     test-output-gazetteer.cpp
+    test-output-pgsql.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp
