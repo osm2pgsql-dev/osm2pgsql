@@ -14,7 +14,7 @@ addons_shortcuts:
     apt:
       sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-3.8']
       packages: ['clang-3.8', 'postgresql-9.2-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
@@ -27,7 +27,7 @@ addons_shortcuts:
           key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
         - ubuntu-toolchain-r-test
       packages: ['clang-7','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
@@ -36,7 +36,7 @@ addons_shortcuts:
     apt:
       sources: ["ubuntu-toolchain-r-test"]
       packages: ['g++-4.8','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
@@ -46,7 +46,7 @@ addons_shortcuts:
     apt:
       sources: ["ubuntu-toolchain-r-test"]
       packages: ['g++-8','postgresql-9.6-postgis-2.3',
-                      'python-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
                       'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
