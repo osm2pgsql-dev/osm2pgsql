@@ -82,7 +82,7 @@ if (NOT HAVE_LUA)
   set_tests_properties(test-output-multi-tags PROPERTIES WILL_FAIL on)
 endif()
 
-find_package(PythonInterp)
+find_package(PythonInterp 3)
 
 if (PYTHONINTERP_FOUND)
   add_test(NAME regression-test-pbf COMMAND ${PYTHON_EXECUTABLE} tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.pbf -x $<TARGET_FILE:osm2pgsql>
