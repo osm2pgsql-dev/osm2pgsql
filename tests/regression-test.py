@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import unittest
 import psycopg2
@@ -317,14 +317,14 @@ class BaseTestCase(unittest.TestCase):
             self.conn.autocommit = True
             self.cur = self.conn.cursor()
         except Exception as e:
-            print "I am unable to connect to the database." + e
+            print("I am unable to connect to the database." + e)
 
     def dbClose(self):
         self.cur.close()
         self.conn.close()
 
     def executeStatements(self, seq):
-        print "*********************************"
+        print("*********************************")
         self.dbConnect()
         try:
             for i in seq:
@@ -393,8 +393,8 @@ class BasicNonSlimTestCase(BaseNonSlimTestCase):
         self.setUpGeneric(self.parameters, full_import_file)
 
     def runTest(self):
-        print "****************************************"
-        print "Running initial import for " + self.name
+        print("****************************************")
+        print("Running initial import for " + self.name)
         self.executeStatements(self.initialStatements)
 
 
@@ -412,10 +412,10 @@ class BasicSlimTestCase(BaseSlimTestCase):
 
 
     def runTest(self):
-        print "****************************************"
-        print "Running initial import for " + self.name
+        print("****************************************")
+        print("Running initial import for " + self.name)
         self.executeStatements(self.initialStatements)
-        print "Running diff-import for " + self.name
+        print("Running diff-import for " + self.name)
         self.updateGeneric(self.parameters, diff_import_file)
         self.executeStatements(self.postDiffStatements)
 
@@ -433,10 +433,10 @@ class MultipolygonSlimTestCase(BaseSlimTestCase):
 
 
     def runTest(self):
-        print "****************************************"
-        print "Running initial import for " + self.name
+        print("****************************************")
+        print("Running initial import for " + self.name)
         self.executeStatements(self.initialStatements)
-        print "Running diff-import for " + self.name
+        print("Running diff-import for " + self.name)
         self.updateGeneric(self.parameters, diff_multipoly_import_file)
         self.executeStatements(self.postDiffStatements)
 
@@ -455,10 +455,10 @@ class BasicGazetteerTestCase(BaseGazetteerTestCase):
 
 
     def runTest(self):
-        print "****************************************"
-        print "Running initial import in gazetteer mode for " + self.name
+        print("****************************************")
+        print("Running initial import in gazetteer mode for " + self.name)
         self.executeStatements(self.initialStatements)
-        print "Running diff-import in gazetteer mode for " + self.name
+        print("Running diff-import in gazetteer mode for " + self.name)
         self.updateGeneric(self.parameters, diff_import_file)
         self.executeStatements(self.postDiffStatements)
 
@@ -483,26 +483,26 @@ def findContribSql(filename):
 #****************************************************************
 #****************************************************************
 def setupDB():
-    print "Setting up test database"
+    print("Setting up test database")
     try:
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
     except Exception as e:
-        print "I am unable to connect to the database."
+        print("I am unable to connect to the database.")
         exit(1)
 
     try:
         gen_cur = gen_conn.cursor()
     except Exception as e:
         gen_conn.close()
-        print "I am unable to connect to the database."
+        print("I am unable to connect to the database.")
         exit(1)
 
     try:
         gen_cur.execute("""DROP DATABASE IF EXISTS \"osm2pgsql-test\"""")
         gen_cur.execute("""CREATE DATABASE \"osm2pgsql-test\" WITH ENCODING 'UTF8'""")
     except Exception as e:
-        print "Failed to create osm2pgsql-test db" + e.pgerror
+        print("Failed to create osm2pgsql-test db" + e.pgerror)
         exit(1);
     finally:
         gen_cur.close()
@@ -512,13 +512,13 @@ def setupDB():
         test_conn=psycopg2.connect("dbname='osm2pgsql-test'")
         test_conn.autocommit = True
     except Exception as e:
-        print "I am unable to connect to the database." + e
+        print("I am unable to connect to the database." + e)
         exit(1)
 
     try:
         test_cur = test_conn.cursor()
     except Exception as e:
-        print "I am unable to connect to the database." + e
+        print("I am unable to connect to the database." + e)
         gen_conn.close()
         exit(1)
 
@@ -531,15 +531,15 @@ def setupDB():
 
             test_cur.execute("""SELECT spcname FROM pg_tablespace WHERE spcname = 'tablespacetest'""")
             if test_cur.fetchone():
-                print "We already have a tablespace, can use that"
+                print("We already have a tablespace, can use that")
             else:
-                print "The test needs a temporary tablespace to run in, but it does not exist. Please create the temporary tablespace. On Linux, you can do this by running:"
-                print "  sudo mkdir -p /tmp/psql-tablespace"
-                print "  sudo /bin/chown postgres.postgres /tmp/psql-tablespace"
-                print "  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres"
+                print("The test needs a temporary tablespace to run in, but it does not exist. Please create the temporary tablespace. On Linux, you can do this by running:")
+                print("  sudo mkdir -p /tmp/psql-tablespace")
+                print("  sudo /bin/chown postgres.postgres /tmp/psql-tablespace")
+                print("  psql -c \"CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'\" postgres")
                 exit(77)
         except Exception as e:
-            print "Failed to create directory for tablespace" + str(e)
+            print("Failed to create directory for tablespace" + str(e))
 
         # Check for postgis
         try:
@@ -568,13 +568,13 @@ def setupDB():
         test_conn.close()
 
 def tearDownDB():
-    print "Cleaning up test database"
+    print("Cleaning up test database")
     try:
         gen_conn=psycopg2.connect("dbname='template1'")
         gen_conn.autocommit = True
         gen_cur = gen_conn.cursor()
     except Exception as e:
-        print "I am unable to connect to the database."
+        print("I am unable to connect to the database.")
         exit(1)
 
     try:
@@ -582,7 +582,7 @@ def tearDownDB():
         if (created_tablespace == 1):
             gen_cur.execute("""DROP TABLESPACE IF EXISTS \"tablespacetest\"""")
     except Exception as e:
-        print "Failed to clean up osm2pgsql-test db" + e.pgerror
+        print("Failed to clean up osm2pgsql-test db" + e.pgerror)
         exit(1);
 
     gen_cur.close()
@@ -621,8 +621,8 @@ finally:
     tearDownDB()
 
 if success:
-    print "All tests passed :-)"
+    print("All tests passed :-)")
     exit(0)
 else:
-    print "Some tests failed :-("
+    print("Some tests failed :-(")
     exit(1)
