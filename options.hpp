@@ -69,7 +69,6 @@ public:
     int alloc_chunkwise;
     int num_procs;
     bool droptemp; ///< drop slim mode temp tables after act
-    bool unlogged; ///< use unlogged tables where possible
     bool hstore_match_only; ///< only copy rows that match an explicitly listed key
     bool flat_node_cache_enabled;
     bool reproject_area;
