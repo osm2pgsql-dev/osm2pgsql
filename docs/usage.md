@@ -1,6 +1,6 @@
 # Command-line usage #
 
-Osm2pgsql has one program, the executable itself, which has **44** command line
+Osm2pgsql has one program, the executable itself, which has **43** command line
 options. A full list of options can be obtained with ``osm2pgsql -h -v``. This
 document provides an overview of options, and more importantly, why you might
 use them.
@@ -58,9 +58,6 @@ planet imports or very large extracts (e.g. Europe) but in those situations
 offers significant space savings and speed increases, particularly on
 mechanical drives. The file takes approximately 8 bytes * maximum node ID, or
 about 23 GiB, regardless of the size of the extract.
-
-``--unlogged`` specifies to use unlogged tables which are dropped from the
-database if the database server ever crashes, but are faster to import.
 
 ``--prefix`` specifies the prefix for tables
 

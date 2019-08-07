@@ -200,12 +200,6 @@ invalid polygons. With this option, invalid polygons are instead simply dropped
 from the database. Even without this option, all polygons in the database should
 be valid.
 .TP
-\fB\  \fR\-\-unlogged
-Use postgresql's unlogged tables for storing data. This requires PostgreSQL 9.1
-or above. Data written to unlogged tables is not written to PostgreSQL's write\-ahead log,
-which makes them considerably faster than ordinary tables. However, they are not
-crash\-safe: an unlogged table is automatically truncated after a crash or unclean shutdown.
-.TP
 \fB\  \fR\-\-number\-processes num
 Specifies the number of parallel processes used for certain operations. If disks are
 fast enough e.g. if you have an SSD, then this can greatly increase speed of
