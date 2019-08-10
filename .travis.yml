@@ -12,7 +12,7 @@ addons_shortcuts:
   addons_clang38_pg92: &clang38_pg92
     postgresql: '9.2'
     apt:
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-3.8']
+      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-bionic-3.8']
       packages: ['clang-3.8', 'postgresql-9.2-postgis-2.3',
                       'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
                       'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
@@ -23,7 +23,7 @@ addons_shortcuts:
     apt:
       update: true
       sources:
-        - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+        - sourceline: 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-7 main'
           key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
         - ubuntu-toolchain-r-test
       packages: ['clang-7','postgresql-9.6-postgis-2.3',
@@ -55,7 +55,7 @@ matrix:
   include:
   # ---- Linux + CLANG ---------------------------
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: "clang-3.8"
       env: T="clang38_pg92_dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -63,7 +63,7 @@ matrix:
       addons: *clang38_pg92
 
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: "clang-7"
       env: T="clang7_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -84,7 +84,7 @@ matrix:
 
   # ---- Linux + GCC ---------------------------
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: "gcc-4.8"
       env: T="gcc48_pg96_dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -92,7 +92,7 @@ matrix:
       addons: *gcc48_pg96
 
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: gcc-8
       env: T="gcc8_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
