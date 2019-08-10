@@ -41,7 +41,7 @@ using namespace std;
  * %p replaced by the content of the "prefix" option
  * %i replaced by the content of the "tblsslim_data" option
  * %t replaced by the content of the "tblssslim_index" option
- * %m replaced by "UNLOGGED" if the "unlogged" option is set
+ * %m replaced by "UNLOGGED" if the "droptemp" option is set
  * other occurrences of the "%" char are treated normally.
  * any occurrence of { or } will be ignored (not copied to output string);
  * anything inside {} is only copied if it contained at least one of
@@ -105,7 +105,7 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
                 source += 2;
                 continue;
             } else if (*(source + 1) == 'm') {
-                if (options->unlogged) {
+                if (options->droptemp) {
                     strcpy(dest, "UNLOGGED");
                     dest += 8;
                     copied = true;

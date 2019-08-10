@@ -55,6 +55,7 @@ matrix:
   include:
   # ---- Linux + CLANG ---------------------------
     - os: linux
+      dist: trusty
       compiler: "clang-3.8"
       env: T="clang38_pg92_dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -62,6 +63,7 @@ matrix:
       addons: *clang38_pg92
 
     - os: linux
+      dist: trusty
       compiler: "clang-7"
       env: T="clang7_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -82,6 +84,7 @@ matrix:
 
   # ---- Linux + GCC ---------------------------
     - os: linux
+      dist: trusty
       compiler: "gcc-4.8"
       env: T="gcc48_pg96_dbtest" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
@@ -89,6 +92,7 @@ matrix:
       addons: *gcc48_pg96
 
     - os: linux
+      dist: trusty
       compiler: gcc-8
       env: T="gcc8_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"

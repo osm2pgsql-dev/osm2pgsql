@@ -73,7 +73,6 @@ namespace
         {"cache-strategy", 1, 0, 204},
         {"number-processes", 1, 0, 205},
         {"drop", 0, 0, 206},
-        {"unlogged", 0, 0, 207},
         {"flat-nodes",1,0, 'F'},
         {"tag-transform-script",1,0,212},
         {"reproject-area",0,0,213},
@@ -157,8 +156,6 @@ namespace
           --number-processes        Specifies the number of parallel processes \n\
                         used for certain operations (default is 1).\n\
        -I|--disable-parallel-indexing   Disable indexing all tables concurrently.\n\
-          --unlogged    Use unlogged tables (lost on crash but faster). \n\
-                        Requires PostgreSQL 9.1.\n\
           --cache-strategy  Specifies the method used to cache nodes in ram.\n\
                         Available options are:\n\
                         dense: caching strategy optimised for full planet import\n\
@@ -293,7 +290,7 @@ options_t::options_t()
 #else
   alloc_chunkwise(ALLOC_SPARSE),
 #endif
-  droptemp(false), unlogged(false), hstore_match_only(false),
+  droptemp(false), hstore_match_only(false),
   flat_node_cache_enabled(false), reproject_area(false),
   flat_node_file(boost::none), tag_transform_script(boost::none),
   tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
@@ -491,9 +488,6 @@ options_t::options_t(int argc, char *argv[]): options_t()
         case 206:
             droptemp = true;
             break;
-        case 207:
-            unlogged = true;
-            break;
         case 'F':
             flat_node_cache_enabled = true;
             flat_node_file = optarg;
@@ -569,11 +563,6 @@ void options_t::check_options()
 
     if (droptemp && !slim) {
         throw std::runtime_error("--drop only makes sense with --slim.\n");
-    }
-
-    if (unlogged && append) {
-        fprintf(stderr, "Warning: --unlogged only makes sense with --create; ignored.\n");
-        unlogged = false;
     }
 
     if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {
