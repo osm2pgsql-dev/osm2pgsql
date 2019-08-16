@@ -57,6 +57,7 @@ DEALINGS IN THE SOFTWARE.
 #include <protozero/varint.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -98,18 +99,18 @@ namespace osmium {
 
                 // The maximum number of entries in this table.
                 enum {
-                    number_of_entries = 15000u
+                    number_of_entries = 15000U
                 };
 
                 // The size of one entry in the table.
                 enum {
-                    entry_size = 256u
+                    entry_size = 256U
                 };
 
                 // The maximum length of a string in the table including
                 // two \0 bytes.
                 enum {
-                    max_length = 250u + 2u
+                    max_length = 250U + 2U
                 };
 
                 // The data is stored in this string. It is default constructed
@@ -152,7 +153,7 @@ namespace osmium {
             class O5mParser : public Parser {
 
                 enum {
-                    initial_buffer_size = 1024ul * 1024ul
+                    initial_buffer_size = 1024UL * 1024UL
                 };
 
                 osmium::io::Header m_header{};
@@ -248,7 +249,7 @@ namespace osmium {
                 osmium::DeltaDecode<int64_t> m_delta_lat;
 
                 osmium::DeltaDecode<osmium::object_id_type> m_delta_way_node_id;
-                osmium::DeltaDecode<osmium::object_id_type> m_delta_member_ids[3];
+                std::array<osmium::DeltaDecode<osmium::object_id_type>, 3> m_delta_member_ids;
 
                 void reset() {
                     m_reference_table.clear();
@@ -430,7 +431,7 @@ namespace osmium {
                     }
                 }
 
-                osmium::item_type decode_member_type(char c) {
+                static osmium::item_type decode_member_type(char c) {
                     if (c < '0' || c > '2') {
                         throw o5m_error{"unknown member type"};
                     }

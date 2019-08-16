@@ -192,7 +192,7 @@ namespace osmium {
          *
          * @pre DiffObject must not be empty.
          */
-        const osmium::Timestamp start_time() const noexcept {
+        osmium::Timestamp start_time() const noexcept {
             assert(m_prev && m_curr && m_next);
             return m_curr->timestamp();
         }
@@ -206,7 +206,7 @@ namespace osmium {
          *
          * @pre DiffObject must not be empty.
          */
-        const osmium::Timestamp end_time() const noexcept {
+        osmium::Timestamp end_time() const noexcept {
             assert(m_prev && m_curr && m_next);
             return last() ? osmium::end_of_time() : m_next->timestamp();
         }

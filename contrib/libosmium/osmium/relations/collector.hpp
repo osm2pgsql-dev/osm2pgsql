@@ -46,6 +46,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/visitor.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -185,7 +186,7 @@ namespace osmium {
              */
             using mm_vector_type = std::vector<MemberMeta>;
             using mm_iterator = mm_vector_type::iterator;
-            mm_vector_type m_member_meta[3];
+            std::array<mm_vector_type, 3> m_member_meta;
 
             int m_count_complete = 0;
 
@@ -193,7 +194,7 @@ namespace osmium {
             callback_func_type m_callback;
 
             enum {
-                initial_buffer_size = 1024ul * 1024ul
+                initial_buffer_size = 1024UL * 1024UL
             };
 
             iterator_range<mm_iterator> find_member_meta(osmium::item_type type, osmium::object_id_type id) {

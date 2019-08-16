@@ -78,8 +78,8 @@ class pbf_writer {
     }
 
     void add_field(pbf_tag_type tag, pbf_wire_type type) {
-        protozero_assert(((tag > 0 && tag < 19000) || (tag > 19999 && tag <= ((1u << 29u) - 1))) && "tag out of range");
-        const uint32_t b = (tag << 3u) | uint32_t(type);
+        protozero_assert(((tag > 0 && tag < 19000) || (tag > 19999 && tag <= ((1U << 29U) - 1))) && "tag out of range");
+        const uint32_t b = (tag << 3U) | uint32_t(type);
         add_varint(b);
     }
 
@@ -289,9 +289,16 @@ public:
         return *this;
     }
 
-    ~pbf_writer() {
-        if (m_parent_writer != nullptr) {
-            m_parent_writer->close_submessage();
+    ~pbf_writer() noexcept {
+        try {
+            if (m_parent_writer != nullptr) {
+                m_parent_writer->close_submessage();
+            }
+        } catch (...) {
+            // This try/catch is used to make the destructor formally noexcept.
+            // close_submessage() is not noexcept, but will not throw the way
+            // it is called here, so we are good. But to be paranoid, call...
+            std::terminate();
         }
     }
 
@@ -928,7 +935,7 @@ namespace detail {
 
     protected:
 
-        pbf_writer m_writer{};
+        pbf_writer m_writer{}; // NOLINT(misc-non-private-member-variables-in-classes, cppcoreguidelines-non-private-member-variables-in-classes,-warnings-as-errors)
 
     public:
 

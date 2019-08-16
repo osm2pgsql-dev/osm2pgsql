@@ -216,7 +216,7 @@ namespace osmium {
                     int c;
 
                     while ((c = *str++)) {
-                        hash = ((hash << 5u) + hash) + c; /* hash * 33 + c */
+                        hash = ((hash << 5U) + hash) + c; /* hash * 33 + c */
                     }
 
                     return hash;
@@ -243,7 +243,7 @@ namespace osmium {
                 // in typical OSM files will only need a single memory
                 // allocation.
                 enum {
-                    default_stringtable_chunk_size = 100u * 1024u
+                    default_stringtable_chunk_size = 100U * 1024U
                 };
 
                 StringStore m_strings;

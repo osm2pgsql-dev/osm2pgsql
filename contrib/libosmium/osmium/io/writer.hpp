@@ -100,7 +100,7 @@ namespace osmium {
         class Writer {
 
             enum {
-                default_buffer_size = 10ul * 1024ul * 1024ul
+                default_buffer_size = 10UL * 1024UL * 1024UL
             };
 
             osmium::io::File m_file;

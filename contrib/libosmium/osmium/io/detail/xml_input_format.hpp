@@ -127,7 +127,7 @@ namespace osmium {
             class XMLParser : public Parser {
 
                 enum {
-                    initial_buffer_size = 1024ul * 1024ul
+                    initial_buffer_size = 1024UL * 1024UL
                 };
 
                 enum class context {
@@ -147,6 +147,7 @@ namespace osmium {
                     discussion,
                     comment,
                     text,
+                    obj_bbox,
                     other
                 }; // enum class context
 
@@ -274,7 +275,7 @@ namespace osmium {
                     return user;
                 }
 
-                void init_changeset(osmium::builder::ChangesetBuilder& builder, const XML_Char** attrs) {
+                static void init_changeset(osmium::builder::ChangesetBuilder& builder, const XML_Char** attrs) {
                     osmium::Box box;
 
                     check_attributes(attrs, [&builder, &box](const XML_Char* name, const XML_Char* value) {
@@ -496,6 +497,8 @@ namespace osmium {
                                     m_wnl_builder.reset();
                                     get_tag(*m_way_builder, attrs);
                                 }
+                            } else if (!std::strcmp(element, "bbox") || !std::strcmp(element, "bounds")) {
+                                m_context_stack.push_back(context::obj_bbox);
                             } else {
                                 throw xml_error{std::string{"Unknown element in <way>: "} + element};
                             }
@@ -538,6 +541,8 @@ namespace osmium {
                                     m_rml_builder.reset();
                                     get_tag(*m_relation_builder, attrs);
                                 }
+                            } else if (!std::strcmp(element, "bbox") || !std::strcmp(element, "bounds")) {
+                                m_context_stack.push_back(context::obj_bbox);
                             } else {
                                 throw xml_error{std::string{"Unknown element in <relation>: "} + element};
                             }
@@ -600,6 +605,8 @@ namespace osmium {
                             throw osmium::xml_error{"No element in <text> allowed"};
                         case context::bounds:
                             throw osmium::xml_error{"No element in <bounds> allowed"};
+                        case context::obj_bbox:
+                            throw osmium::xml_error{"No element in <bbox>/<bounds> allowed"};
                         case context::other:
                             throw xml_error{"xml file nested too deep"};
                     }
@@ -689,6 +696,9 @@ namespace osmium {
                             break;
                         case context::bounds:
                             assert(!std::strcmp(element, "bounds"));
+                            break;
+                        case context::obj_bbox:
+                            assert(!std::strcmp(element, "bbox") || !std::strcmp(element, "bounds"));
                             break;
                         case context::other:
                             break;

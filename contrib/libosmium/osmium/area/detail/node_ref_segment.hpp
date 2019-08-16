@@ -38,6 +38,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/node_ref.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iosfwd>
@@ -195,7 +196,7 @@ namespace osmium {
                 }
 
                 const char* role_name() const noexcept {
-                    static const char* names[] = { "unknown", "outer", "inner", "empty" };
+                    static const std::array<const char*, 4> names = {{ "unknown", "outer", "inner", "empty" }};
                     return names[int(m_role)];
                 }
 
@@ -348,14 +349,14 @@ namespace osmium {
                         osmium::Location location;
                     };
 
-                    seg_loc sl[4] = {
+                    std::array<seg_loc, 4> sl = {{
                         {0, s1.first().location() },
                         {0, s1.second().location()},
                         {1, s2.first().location() },
                         {1, s2.second().location()},
-                    };
+                    }};
 
-                    std::sort(sl, sl+4, [](const seg_loc& lhs, const seg_loc& rhs) {
+                    std::sort(sl.begin(), sl.end(), [](const seg_loc& lhs, const seg_loc& rhs) {
                         return lhs.location < rhs.location;
                     });
 

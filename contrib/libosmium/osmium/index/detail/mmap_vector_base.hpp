@@ -47,7 +47,7 @@ namespace osmium {
     namespace detail {
 
         enum {
-            mmap_vector_size_increment = 1024ul * 1024ul
+            mmap_vector_size_increment = 1024UL * 1024UL
         };
 
         /**

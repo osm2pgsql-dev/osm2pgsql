@@ -125,20 +125,20 @@ namespace osmium {
             }
 
             inline uint8_t utf8_sequence_length(uint32_t first) noexcept {
-                if (first < 0x80u) {
-                    return 1u;
+                if (first < 0x80U) {
+                    return 1U;
                 }
 
-                if ((first >> 5u) == 0x6u) {
-                    return 2u;
+                if ((first >> 5U) == 0x6U) {
+                    return 2U;
                 }
 
-                if ((first >> 4u) == 0xeu) {
-                    return 3u;
+                if ((first >> 4U) == 0xeU) {
+                    return 3U;
                 }
 
-                if ((first >> 3u) == 0x1eu) {
-                    return 4u;
+                if ((first >> 3U) == 0x1eU) {
+                    return 4U;
                 }
 
                 return 0;
@@ -146,7 +146,7 @@ namespace osmium {
 
             inline uint32_t next_utf8_codepoint(char const** begin, const char* end) {
                 auto it = reinterpret_cast<const uint8_t*>(*begin);
-                uint32_t cp = 0xffu & *it;
+                uint32_t cp = 0xffU & *it;
                 const auto length = utf8_sequence_length(cp);
                 if (length == 0) {
                     throw std::runtime_error{"invalid Unicode codepoint"};
@@ -159,21 +159,21 @@ namespace osmium {
                         break;
                     case 2:
                         ++it;
-                        cp = ((cp << 6u) & 0x7ffu) + ((*it) & 0x3fu);
+                        cp = ((cp << 6U) & 0x7ffU) + ((*it) & 0x3fU);
                         break;
                     case 3:
                         ++it;
-                        cp = ((cp << 12u) & 0xffffu) + (((0xffu & *it) << 6u) & 0xfffu);
+                        cp = ((cp << 12U) & 0xffffU) + (((0xffU & *it) << 6U) & 0xfffU);
                         ++it;
-                        cp += (*it) & 0x3fu;
+                        cp += (*it) & 0x3fU;
                         break;
                     case 4:
                         ++it;
-                        cp = ((cp << 18u) & 0x1fffffu) + (((0xffu & *it) << 12u) & 0x3ffffu);
+                        cp = ((cp << 18U) & 0x1fffffU) + (((0xffU & *it) << 12U) & 0x3ffffU);
                         ++it;
-                        cp += ((0xffu & *it) << 6u) & 0xfffu;
+                        cp += ((0xffU & *it) << 6U) & 0xfffU;
                         ++it;
-                        cp += (*it) & 0x3fu;
+                        cp += (*it) & 0x3fU;
                         break;
                     default:
                         break;
@@ -185,22 +185,22 @@ namespace osmium {
 
             // Write out the value with exactly two hex digits.
             inline void append_2_hex_digits(std::string& out, uint32_t value, const char* const hex_digits) {
-                out += hex_digits[(value >> 4u) & 0xfu];
-                out += hex_digits[ value        & 0xfu];
+                out += hex_digits[(value >> 4U) & 0xfU];
+                out += hex_digits[ value        & 0xfU];
             }
 
             // Write out the value with four or more hex digits.
             inline void append_min_4_hex_digits(std::string& out, uint32_t value, const char* const hex_digits) {
                 auto
-                v = value & 0xf0000000u; if (v) { out += hex_digits[v >> 28u]; }
-                v = value & 0x0f000000u; if (v) { out += hex_digits[v >> 24u]; }
-                v = value & 0x00f00000u; if (v) { out += hex_digits[v >> 20u]; }
-                v = value & 0x000f0000u; if (v) { out += hex_digits[v >> 16u]; }
+                v = value & 0xf0000000U; if (v) { out += hex_digits[v >> 28U]; }
+                v = value & 0x0f000000U; if (v) { out += hex_digits[v >> 24U]; }
+                v = value & 0x00f00000U; if (v) { out += hex_digits[v >> 20U]; }
+                v = value & 0x000f0000U; if (v) { out += hex_digits[v >> 16U]; }
 
-                out += hex_digits[(value >> 12u) & 0xfu];
-                out += hex_digits[(value >>  8u) & 0xfu];
-                out += hex_digits[(value >>  4u) & 0xfu];
-                out += hex_digits[ value         & 0xfu];
+                out += hex_digits[(value >> 12U) & 0xfU];
+                out += hex_digits[(value >>  8U) & 0xfU];
+                out += hex_digits[(value >>  4U) & 0xfU];
+                out += hex_digits[ value         & 0xfU];
             }
 
             inline void append_utf8_encoded_string(std::string& out, const char* data) {
@@ -286,20 +286,20 @@ namespace osmium {
             template <typename TOutputIterator>
             TOutputIterator append_codepoint_as_utf8(uint32_t cp, TOutputIterator out)
             {
-                if (cp < 0x80ul) {
+                if (cp < 0x80UL) {
                     *(out++) = static_cast<uint8_t>(cp);
-                } else if (cp < 0x800ul) {
-                    *(out++) = static_cast<uint8_t>( (cp >>  6u)          | 0xc0u);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
-                } else if (cp < 0x10000ul) {
-                    *(out++) = static_cast<uint8_t>( (cp >> 12u)          | 0xe0u);
-                    *(out++) = static_cast<uint8_t>(((cp >>  6u) & 0x3fu) | 0x80u);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
+                } else if (cp < 0x800UL) {
+                    *(out++) = static_cast<uint8_t>( (cp >>  6U)          | 0xc0U);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
+                } else if (cp < 0x10000UL) {
+                    *(out++) = static_cast<uint8_t>( (cp >> 12U)          | 0xe0U);
+                    *(out++) = static_cast<uint8_t>(((cp >>  6U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
                 } else {
-                    *(out++) = static_cast<uint8_t>( (cp >> 18u)          | 0xf0u);
-                    *(out++) = static_cast<uint8_t>(((cp >> 12u) & 0x3fu) | 0x80u);
-                    *(out++) = static_cast<uint8_t>(((cp >>  6u) & 0x3fu) | 0x80u);
-                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fu) | 0x80u);
+                    *(out++) = static_cast<uint8_t>( (cp >> 18U)          | 0xf0U);
+                    *(out++) = static_cast<uint8_t>(((cp >> 12U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<uint8_t>(((cp >>  6U) & 0x3fU) | 0x80U);
+                    *(out++) = static_cast<uint8_t>(( cp         & 0x3fU) | 0x80U);
                 }
                 return out;
             }

@@ -144,7 +144,7 @@ namespace osmium {
             };
 
             enum {
-                default_queue_size = 0u
+                default_queue_size = 0U
             };
 
             /**

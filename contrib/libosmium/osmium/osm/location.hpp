@@ -214,7 +214,7 @@ namespace osmium {
             char temp[10];
             char* t = temp;
             do {
-                *t++ = char(v % 10) + '0';
+                *t++ = static_cast<char>(v % 10) + '0'; // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
                 v /= 10;
             } while (v != 0);
 
@@ -539,7 +539,7 @@ namespace osmium {
         template <>
         inline size_t hash<8>(const osmium::Location& location) noexcept {
             uint64_t h = location.x();
-            h <<= 32u;
+            h <<= 32U;
             return static_cast<size_t>(h ^ static_cast<uint64_t>(location.y()));
         }
 

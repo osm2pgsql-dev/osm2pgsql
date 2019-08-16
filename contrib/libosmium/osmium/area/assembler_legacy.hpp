@@ -72,10 +72,6 @@ namespace osmium {
          */
         class AssemblerLegacy : public detail::BasicAssemblerWithTags {
 
-            void add_tags_to_area(osmium::builder::AreaBuilder& builder, const osmium::Way& way) const {
-                builder.add_item(way.tags());
-            }
-
             void add_common_tags(osmium::builder::TagListBuilder& tl_builder, std::set<const osmium::Way*>& ways) const {
                 std::map<std::string, std::size_t> counter;
                 for (const osmium::Way* way : ways) {
@@ -166,7 +162,7 @@ namespace osmium {
 
                 const bool area_okay = create_rings();
                 if (area_okay || config().create_empty_areas) {
-                    add_tags_to_area(builder, way);
+                    builder.add_item(way.tags());
                 }
                 if (area_okay) {
                     add_rings_to_area(builder);

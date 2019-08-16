@@ -92,7 +92,7 @@ namespace osmium {
         public:
 
             enum {
-                input_buffer_size = 1024u * 1024u
+                input_buffer_size = 1024U * 1024U
             };
 
             Decompressor() = default;
@@ -184,9 +184,9 @@ namespace osmium {
 
             bool register_compression(
                 osmium::io::file_compression compression,
-                create_compressor_type create_compressor,
-                create_decompressor_type_fd create_decompressor_fd,
-                create_decompressor_type_buffer create_decompressor_buffer) {
+                const create_compressor_type& create_compressor,
+                const create_decompressor_type_fd& create_decompressor_fd,
+                const create_decompressor_type_buffer& create_decompressor_buffer) {
 
                 compression_map_type::value_type cc{compression,
                                                     std::make_tuple(create_compressor,

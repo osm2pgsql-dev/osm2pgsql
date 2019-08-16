@@ -60,6 +60,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/util/minmax.hpp>
 #include <osmium/visitor.hpp>
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <iterator>
@@ -413,7 +414,7 @@ namespace osmium {
                 }
 
                 void relation(const osmium::Relation& relation) {
-                    static const char* short_typename[] = { "node", "way ", "rel " };
+                    static const std::array<const char*, 3> short_typename = {{ "node", "way ", "rel " }};
 
                     m_diff_char = m_options.format_as_diff ? relation.diff_as_char() : '\0';
 
