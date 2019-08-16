@@ -103,10 +103,12 @@ namespace osmium {
              */
             class BasicAssembler {
 
+                static constexpr const std::size_t max_split_locations = 100ULL;
+
                 struct slocation {
 
                     enum {
-                        invalid_item = 1u << 30u
+                        invalid_item = 1U << 30U
                     };
 
                     uint32_t item : 31;
@@ -271,7 +273,7 @@ namespace osmium {
 
                 using rings_stack = std::vector<rings_stack_element>;
 
-                void remove_duplicates(rings_stack& outer_rings) {
+                static void remove_duplicates(rings_stack& outer_rings) {
                     while (true) {
                         const auto it = std::adjacent_find(outer_rings.begin(), outer_rings.end());
                         if (it == outer_rings.end()) {
@@ -352,7 +354,8 @@ namespace osmium {
                                     std::cerr << "        Segment is below (nesting=" << nesting << ")\n";
                                 }
                                 if (segment->ring()->is_outer()) {
-                                    const double y = ay + (by - ay) * (lx - ax) / double(bx - ax);
+                                    const double y = static_cast<double>(ay) +
+                                                     static_cast<double>((by - ay) * (lx - ax)) / static_cast<double>(bx - ax);
                                     if (debug()) {
                                         std::cerr << "        Segment belongs to outer ring (y=" << y << " ring=" << *segment->ring() << ")\n";
                                     }
@@ -502,7 +505,12 @@ namespace osmium {
                 void create_locations_list() {
                     m_locations.reserve(m_segment_list.size() * 2);
 
-                    for (uint32_t n = 0; n < m_segment_list.size(); ++n) {
+                    // static_cast is okay here: The 32bit limit is way past
+                    // anything that makes sense here and even if there are
+                    // 2^32 segments here, it would simply not go through
+                    // all of them not building the multipolygon correctly.
+                    assert(m_segment_list.size() < std::numeric_limits<uint32_t>::max());
+                    for (uint32_t n = 0; n < static_cast<uint32_t>(m_segment_list.size()); ++n) {
                         m_locations.emplace_back(n, false);
                         m_locations.emplace_back(n, true);
                     }
@@ -1079,6 +1087,15 @@ namespace osmium {
                         timer_simple_case.start();
                         create_rings_simple_case();
                         timer_simple_case.stop();
+                    } else if (m_split_locations.size() > max_split_locations) {
+                        if (debug()) {
+                            std::cerr << "  Ignoring polygon with "
+                                      << m_split_locations.size()
+                                      << " split locations (>"
+                                      << max_split_locations
+                                      << ")\n";
+                        }
+                        return false;
                     } else {
                         if (debug()) {
                             std::cerr << "  Found split locations -> using complex algorithm\n";

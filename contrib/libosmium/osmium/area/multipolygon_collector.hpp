@@ -86,11 +86,11 @@ namespace osmium {
             area_stats m_stats;
 
             enum {
-                initial_output_buffer_size = 1024ul * 1024ul
+                initial_output_buffer_size = 1024UL * 1024UL
             };
 
             enum {
-                max_buffer_size_for_flush = 100ul * 1024ul
+                max_buffer_size_for_flush = 100UL * 1024UL
             };
 
             void flush_output_buffer() {

@@ -33,8 +33,9 @@ DEALINGS IN THE SOFTWARE.
 
 */
 
-// Workarounds for MSVC which doesn't support
-// * [[noreturn]]
+// Workarounds for MSVC which doesn't support [[noreturn]]
+// This is not needed any more, but kept here for the time being, because
+// older versions of osmium-tool need it.
 #ifdef _MSC_VER
 # define OSMIUM_NORETURN __declspec(noreturn)
 #else

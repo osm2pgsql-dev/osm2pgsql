@@ -63,8 +63,8 @@ namespace osmium {
         /**
          * This class collects all data needed for creating areas from
          * relations tagged with type=multipolygon or type=boundary.
-         * Most of its functionality is derived from the parent class
-         * osmium::relations::Collector.
+         * Most of its functionality is derived from the parent template class
+         * osmium::relations::RelationsManager.
          *
          * The actual assembling of the areas is done by the assembler
          * class given as template argument.

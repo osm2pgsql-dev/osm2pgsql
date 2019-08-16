@@ -181,7 +181,6 @@ namespace osmium {
             // https://msdn.microsoft.com/en-us/library/whx354w1.aspx
             if (::_chsize_s(fd, static_cast<__int64>(new_size)) != 0) {
 #else
-            assert(std::numeric_limits<off_t>::max() >= std::numeric_limits<size_t>::max() || new_size <= std::numeric_limits<off_t>::max());
             if (::ftruncate(fd, static_cast<off_t>(new_size)) != 0) {
 #endif
                 throw std::system_error{errno, std::system_category(), "Could not resize file"};

@@ -63,7 +63,7 @@ namespace osmium {
                 // and parent plus some overhead for color of red-black-tree
                 // or similar).
                 enum {
-                    element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4u
+                    element_size = sizeof(TId) + sizeof(TValue) + sizeof(void*) * 4U
                 };
 
                 std::map<TId, TValue> m_elements;

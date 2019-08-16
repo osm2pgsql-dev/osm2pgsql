@@ -37,6 +37,7 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/osm/types.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstring>
@@ -102,7 +103,7 @@ namespace osmium {
             // relations Ids it could be smaller, because they would all fit
             // into a smaller allocation.
             enum : std::size_t {
-                default_chunk_bits = 22u
+                default_chunk_bits = 22U
             };
 
         } // namespace detail
@@ -135,7 +136,7 @@ namespace osmium {
                         const auto slot = m_set->m_data[cid][id_set::offset(m_value)];
                         if (slot == 0) {
                             m_value += 8;
-                            m_value &= ~0x7ull;
+                            m_value &= ~0x7ULL;
                         } else {
                             ++m_value;
                         }
@@ -202,22 +203,22 @@ namespace osmium {
             friend class IdSetDenseIterator<T, chunk_bits>;
 
             enum : std::size_t {
-                chunk_size = 1u << chunk_bits
+                chunk_size = 1U << chunk_bits
             };
 
             std::vector<std::unique_ptr<unsigned char[]>> m_data;
             T m_size = 0;
 
             static std::size_t chunk_id(T id) noexcept {
-                return id >> (chunk_bits + 3u);
+                return id >> (chunk_bits + 3U);
             }
 
             static std::size_t offset(T id) noexcept {
-                return (id >> 3u) & ((1u << chunk_bits) - 1u);
+                return (id >> 3U) & ((1U << chunk_bits) - 1U);
             }
 
             static unsigned int bitmask(T id) noexcept {
-                return 1u << (id & 0x7u);
+                return 1U << (id & 0x7U);
             }
 
             T last() const noexcept {
@@ -243,7 +244,39 @@ namespace osmium {
 
             using const_iterator = IdSetDenseIterator<T, chunk_bits>;
 
+            friend void swap(IdSetDense& first, IdSetDense& second) noexcept {
+                using std::swap;
+                swap(first.m_data, second.m_data);
+                swap(first.m_size, second.m_size);
+            }
+
             IdSetDense() = default;
+
+            IdSetDense(const IdSetDense& other) :
+                IdSet<T>(other) {
+                m_data.reserve(other.m_data.size());
+                for (const auto& ptr: other.m_data) {
+                    if (ptr) {
+                        m_data.emplace_back(new unsigned char[chunk_size]);
+                        ::memcpy(m_data.back().get(), ptr.get(), chunk_size);
+                    } else {
+                        m_data.emplace_back();
+                    }
+                }
+                m_size = other.m_size;
+            }
+
+            IdSetDense& operator=(IdSetDense other) {
+                swap(*this, other);
+                return *this;
+            }
+
+            IdSetDense(IdSetDense&&) noexcept = default;
+
+            // This should really be noexcept, but GCC 4.8 doesn't like it.
+            IdSetDense& operator=(IdSetDense&&) = default;
+
+            ~IdSetDense() noexcept override = default;
 
             /**
              * Add the Id to the set if it is not already in there.
@@ -446,7 +479,7 @@ namespace osmium {
 
             using id_set_type = IdSetType<osmium::unsigned_object_id_type>;
 
-            id_set_type m_sets[3];
+            std::array<id_set_type, 3> m_sets;
 
         public:
 

@@ -101,7 +101,7 @@ namespace osmium {
             class OPLParser : public Parser {
 
                 enum {
-                    initial_buffer_size = 1024ul * 1024ul
+                    initial_buffer_size = 1024UL * 1024UL
                 };
 
                 osmium::memory::Buffer m_buffer{initial_buffer_size,

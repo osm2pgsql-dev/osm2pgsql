@@ -58,7 +58,7 @@ namespace osmium {
          * level.
          */
         inline constexpr uint32_t num_tiles_in_zoom(uint32_t zoom) noexcept {
-            return 1u << zoom;
+            return 1U << zoom;
         }
 
         /**
@@ -99,7 +99,7 @@ namespace osmium {
         struct Tile {
 
             enum {
-                max_zoom = 30u
+                max_zoom = 30U
             };
 
             /// x coordinate

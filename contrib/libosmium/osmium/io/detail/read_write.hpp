@@ -134,7 +134,7 @@ namespace osmium {
 
                 enum : std::size_t {
                     // Max 100 MByte per write
-                    max_write = 100ul * 1024ul * 1024ul
+                    max_write = 100UL * 1024UL * 1024UL
                 };
                 size_t offset = 0;
                 do {

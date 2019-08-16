@@ -58,7 +58,7 @@ namespace osmium {
 
         // align datastructures to this many bytes
         enum : std::size_t {
-            align_bytes = 8ul
+            align_bytes = 8UL
         };
 
         inline constexpr std::size_t padded_length(std::size_t length) noexcept {

@@ -83,7 +83,7 @@ namespace osmium {
                     char temp[20];
                     char *t = temp;
                     do {
-                        *t++ = char(value % 10) + '0';
+                        *t++ = static_cast<char>(value % 10) + '0'; // NOLINT(bugprone-narrowing-conversions, cppcoreguidelines-narrowing-conversions)
                         value /= 10;
                     } while (value > 0);
 
@@ -91,7 +91,7 @@ namespace osmium {
                     m_out->resize(old_size + (t - temp));
                     char* data = &(*m_out)[old_size];
                     do {
-                        *data++ += *--t;
+                        *data++ = *--t;
                     } while (t != temp);
                 }
 

@@ -154,11 +154,11 @@ namespace osmium {
                 return m_end;
             }
 
-            const InputIterator<TSource, TItem> cbegin() const noexcept {
+            InputIterator<TSource, TItem> cbegin() const noexcept {
                 return m_begin;
             }
 
-            const InputIterator<TSource, TItem> cend() const noexcept {
+            InputIterator<TSource, TItem> cend() const noexcept {
                 return m_end;
             }
 

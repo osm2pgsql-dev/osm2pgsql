@@ -47,7 +47,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/error.hpp>
 #include <osmium/io/file_compression.hpp>
 #include <osmium/io/writer_options.hpp>
-#include <osmium/util/compatibility.hpp>
 #include <osmium/util/file.hpp>
 
 #include <bzlib.h>
@@ -88,7 +87,7 @@ namespace osmium {
 
         namespace detail {
 
-            OSMIUM_NORETURN inline void throw_bzip2_error(BZFILE* bzfile, const char* msg, const int bzlib_error) {
+            [[noreturn]] inline void throw_bzip2_error(BZFILE* bzfile, const char* msg, const int bzlib_error) {
                 std::string error{"bzip2 error: "};
                 error += msg;
                 error += ": ";

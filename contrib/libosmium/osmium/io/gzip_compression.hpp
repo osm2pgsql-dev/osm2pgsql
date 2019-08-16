@@ -47,7 +47,6 @@ DEALINGS IN THE SOFTWARE.
 #include <osmium/io/error.hpp>
 #include <osmium/io/file_compression.hpp>
 #include <osmium/io/writer_options.hpp>
-#include <osmium/util/compatibility.hpp>
 
 #include <zlib.h>
 
@@ -90,7 +89,7 @@ namespace osmium {
 
         namespace detail {
 
-            OSMIUM_NORETURN inline void throw_gzip_error(gzFile gzfile, const char* msg) {
+            [[noreturn]] inline void throw_gzip_error(gzFile gzfile, const char* msg) {
                 std::string error{"gzip error: "};
                 error += msg;
                 error += ": ";

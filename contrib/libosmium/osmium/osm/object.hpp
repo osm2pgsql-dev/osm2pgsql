@@ -304,11 +304,16 @@ namespace osmium {
          *
          * @param timestamp Timestamp in ISO format.
          * @returns Reference to object to make calls chainable.
+         * @throws std::invalid_argment if the timestamp isn't a correctly ISO
+         *                              formatted string with the Z timezone.
+         *
+         * @pre @code timestamp != nullptr @endcode
          */
         OSMObject& set_timestamp(const char* timestamp) {
+            assert(timestamp);
             m_timestamp = detail::parse_timestamp(timestamp);
             if (timestamp[20] != '\0') {
-                throw std::invalid_argument{"can not parse timestamp"};
+                throw std::invalid_argument{"can not parse timestamp: garbage after timestamp"};
             }
             return *this;
         }

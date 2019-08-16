@@ -59,7 +59,7 @@ namespace osmium {
     public:
 
         void process_byte(const unsigned char byte) noexcept {
-            m_crc32 = ::crc32(m_crc32, &byte, 1u);
+            m_crc32 = ::crc32(m_crc32, &byte, 1U);
         }
 
         void process_bytes(const void* buffer, std::size_t byte_count) noexcept {

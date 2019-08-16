@@ -85,7 +85,7 @@ namespace osmium {
         void stop() {
         }
 
-        int64_t elapsed_microseconds() const {
+        int64_t elapsed_microseconds() {
             return 0;
         }
 

@@ -149,7 +149,7 @@ namespace osmium {
          * Complexity: Constant.
          */
         bool from_way() const noexcept {
-            return (positive_id() & 0x1u) == 0;
+            return (positive_id() & 0x1U) == 0;
         }
 
         /**

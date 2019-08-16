@@ -116,7 +116,7 @@ namespace osmium {
     private:
 
         enum {
-            initial_buffer_size = 1024ul * 1024ul
+            initial_buffer_size = 1024UL * 1024UL
         };
 
         enum {

@@ -49,7 +49,7 @@ namespace osmium {
             constexpr double earth_radius_for_epsg3857 = 6378137.0;
             constexpr double max_coordinate_epsg3857 = 20037508.34;
 
-            constexpr inline double lon_to_x(double lon) {
+            constexpr inline double lon_to_x(double lon) noexcept {
                 return earth_radius_for_epsg3857 * deg_to_rad(lon);
             }
 
@@ -116,6 +116,9 @@ namespace osmium {
          * Convert the coordinates from WGS84 lon/lat to web mercator.
          *
          * @pre @code c.valid() @endcode
+         * @pre Coordinates must be in valid range, longitude between
+         *      -180 and +180 degree, latitude between -MERCATOR_MAX_LAT
+         *      and MERCATOR_MAX_LAT.
          */
         inline Coordinates lonlat_to_mercator(const Coordinates& c) {
             return Coordinates{detail::lon_to_x(c.x), detail::lat_to_y(c.y)};
@@ -125,6 +128,8 @@ namespace osmium {
          * Convert the coordinates from web mercator to WGS84 lon/lat.
          *
          * @pre @code c.valid() @endcode
+         * @pre Coordinates must be in valid range (longitude and
+         *      latidude between -/+20037508.34).
          */
         inline Coordinates mercator_to_lonlat(const Coordinates& c) {
             return Coordinates{detail::x_to_lon(c.x), detail::y_to_lat(c.y)};
@@ -145,6 +150,13 @@ namespace osmium {
             MercatorProjection() { // NOLINT(hicpp-use-equals-default, modernize-use-equals-default)
             }
 
+            /**
+             * Do coordinate transformation.
+             *
+             * @pre Coordinates must be in valid range, longitude between
+             *      -180 and +180 degree, latitude between -MERCATOR_MAX_LAT
+             *      and MERCATOR_MAX_LAT.
+             */
             Coordinates operator()(osmium::Location location) const {
                 return Coordinates{detail::lon_to_x(location.lon()), detail::lat_to_y(location.lat())};
             }

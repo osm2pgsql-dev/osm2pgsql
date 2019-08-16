@@ -81,7 +81,7 @@ namespace osmium {
             class PBFPrimitiveBlockDecoder {
 
                 enum {
-                    initial_buffer_size = 64ul * 1024ul
+                    initial_buffer_size = 64UL * 1024UL
                 };
 
                 data_view m_data;
@@ -201,7 +201,7 @@ namespace osmium {
                                     }
 
                                     if (version == -1) {
-                                        object.set_version(0u);
+                                        object.set_version(0U);
                                     } else {
                                         object.set_version(static_cast<object_version_type>(version));
                                     }
@@ -218,7 +218,7 @@ namespace osmium {
                                     }
 
                                     if (changeset_id == -1) {
-                                        object.set_changeset(0u);
+                                        object.set_changeset(0U);
                                     } else {
                                         object.set_changeset(static_cast<changeset_id_type>(changeset_id));
                                     }
@@ -645,7 +645,7 @@ namespace osmium {
                                     }
 
                                     if (version == -1) {
-                                        node.set_version(0u);
+                                        node.set_version(0U);
                                     } else {
                                         node.set_version(static_cast<osmium::object_version_type>(version));
                                     }
@@ -659,7 +659,7 @@ namespace osmium {
                                     }
 
                                     if (changeset_id == -1) {
-                                        node.set_changeset(0u);
+                                        node.set_changeset(0U);
                                     } else {
                                         node.set_changeset(static_cast<osmium::changeset_id_type>(changeset_id));
                                     }
