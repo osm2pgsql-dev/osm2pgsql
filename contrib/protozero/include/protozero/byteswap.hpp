@@ -27,10 +27,10 @@ inline uint32_t byteswap_impl(uint32_t value) noexcept {
 #ifdef PROTOZERO_USE_BUILTIN_BSWAP
     return __builtin_bswap32(value);
 #else
-    return ((value & 0xff000000) >> 24) |
-           ((value & 0x00ff0000) >>  8) |
-           ((value & 0x0000ff00) <<  8) |
-           ((value & 0x000000ff) << 24);
+    return ((value & 0xff000000U) >> 24U) |
+           ((value & 0x00ff0000U) >>  8U) |
+           ((value & 0x0000ff00U) <<  8U) |
+           ((value & 0x000000ffU) << 24U);
 #endif
 }
 
@@ -38,14 +38,14 @@ inline uint64_t byteswap_impl(uint64_t value) noexcept {
 #ifdef PROTOZERO_USE_BUILTIN_BSWAP
     return __builtin_bswap64(value);
 #else
-    return ((value & 0xff00000000000000ULL) >> 56) |
-           ((value & 0x00ff000000000000ULL) >> 40) |
-           ((value & 0x0000ff0000000000ULL) >> 24) |
-           ((value & 0x000000ff00000000ULL) >>  8) |
-           ((value & 0x00000000ff000000ULL) <<  8) |
-           ((value & 0x0000000000ff0000ULL) << 24) |
-           ((value & 0x000000000000ff00ULL) << 40) |
-           ((value & 0x00000000000000ffULL) << 56);
+    return ((value & 0xff00000000000000ULL) >> 56U) |
+           ((value & 0x00ff000000000000ULL) >> 40U) |
+           ((value & 0x0000ff0000000000ULL) >> 24U) |
+           ((value & 0x000000ff00000000ULL) >>  8U) |
+           ((value & 0x00000000ff000000ULL) <<  8U) |
+           ((value & 0x0000000000ff0000ULL) << 24U) |
+           ((value & 0x000000000000ff00ULL) << 40U) |
+           ((value & 0x00000000000000ffULL) << 56U);
 #endif
 }
 

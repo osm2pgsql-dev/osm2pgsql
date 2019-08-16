@@ -287,7 +287,7 @@ public:
         }
 
         const auto value = get_varint<uint32_t>();
-        m_tag = pbf_tag_type(value >> 3u);
+        m_tag = pbf_tag_type(value >> 3U);
 
         // tags 0 and 19000 to 19999 are not allowed as per
         // https://developers.google.com/protocol-buffers/docs/proto#assigning-tags
@@ -295,7 +295,7 @@ public:
             throw invalid_tag_exception{};
         }
 
-        m_wire_type = pbf_wire_type(value & 0x07u);
+        m_wire_type = pbf_wire_type(value & 0x07U);
         switch (m_wire_type) {
             case pbf_wire_type::varint:
             case pbf_wire_type::fixed64:

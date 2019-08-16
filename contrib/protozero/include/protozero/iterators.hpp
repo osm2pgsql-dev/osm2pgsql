@@ -291,10 +291,10 @@ class const_varint_iterator {
 protected:
 
     /// Pointer to current iterator position
-    const char* m_data = nullptr;
+    const char* m_data = nullptr; // NOLINT(misc-non-private-member-variables-in-classes, cppcoreguidelines-non-private-member-variables-in-classes,-warnings-as-errors)
 
     /// Pointer to end iterator position
-    const char* m_end = nullptr;
+    const char* m_end = nullptr; // NOLINT(misc-non-private-member-variables-in-classes, cppcoreguidelines-non-private-member-variables-in-classes,-warnings-as-errors)
 
 public:
 
@@ -316,7 +316,7 @@ public:
         // significant bit not set. We can use this to quickly figure out
         // how many varints there are without actually decoding the varints.
         return std::count_if(begin.m_data, end.m_data, [](char c) noexcept {
-            return (static_cast<unsigned char>(c) & 0x80u) == 0;
+            return (static_cast<unsigned char>(c) & 0x80U) == 0;
         });
     }
 
