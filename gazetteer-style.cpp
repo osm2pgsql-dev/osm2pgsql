@@ -170,7 +170,7 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
     // prefix: works on empty key only
     if (key[key.size() - 1] == '*') {
         if (key.size() == 1) {
-            throw std::runtime_error("Style error. Ambigious key '*'.");
+            throw std::runtime_error("Style error. Ambiguous key '*'.");
         }
         if (!value.empty()) {
             throw std::runtime_error(
