@@ -457,9 +457,9 @@ void table_t::escape_type(const string &value, ColumnType flags)
     switch (flags) {
     case COLUMN_TYPE_INT: {
         // For integers we take the first number, or the average if it's a-b
-        int64_t from, to;
+        long long from, to;
         // limit number of digits parsed to avoid undefined behaviour in sscanf
-        int items = sscanf(value.c_str(), "%18ld-%18ld", &from, &to);
+        int items = sscanf(value.c_str(), "%18Ld-%18Ld", &from, &to);
         if (items == 1 && from <= std::numeric_limits<int32_t>::max() &&
             from >= std::numeric_limits<int32_t>::min()) {
             m_copy.add_column(from);
