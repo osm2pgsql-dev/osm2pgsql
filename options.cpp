@@ -119,7 +119,7 @@ namespace
     \n\
     Database options:\n\
        -d|--database    The name of the PostgreSQL database to connect to.\n\
-       -U|--username    PostgreSQL user name (specify passsword in PGPASS\n\
+       -U|--username    PostgreSQL user name (specify passsword in PGPASSWORD\n\
                         environment variable or use -W).\n\
        -W|--password    Force password prompt.\n\
        -H|--host        Database server host name or socket location.\n\
