@@ -1,0 +1,3 @@
+# OsmType  Tag          DataType     Flags
+node,way   population      int4      linear
+node,way   name            text      linear
