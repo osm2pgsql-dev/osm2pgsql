@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6">
+ <node id="1" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000000000000000000" />
+   <tag k="name" v="longer than long" />
+ </node>
+ <node id="2" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000000000" />
+   <tag k="name" v="long (ten billion)" />
+ </node>
+ <node id="3" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="2147483648" />
+   <tag k="name" v="postgresql one more than int4 type" />
+ </node>
+ <node id="4" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="2147483647" />
+   <tag k="name" v="postgresql max int4 type" />
+ </node>
+ <node id="5" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000" />
+   <tag k="name" v="ten thousand" />
+ </node>
+ <node id="6" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000" />
+   <tag k="name" v="minus ten thousand" />
+ </node>
+ <node id="7" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-2147483648" />
+   <tag k="name" v="postgresql min int4 type" />
+ </node>
+ <node id="8" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-2147483649" />
+   <tag k="name" v="postgresql one less than min int4 type" />
+ </node>
+ <node id="9" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000000000" />
+   <tag k="name" v="minus long (minus ten billion)" />
+ </node>
+ <node id="10" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000000000000000000" />
+   <tag k="name" v="minus longer than long" />
+ </node>
+ <node id="11" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000000000000000000-20000000000000000000" />
+   <tag k="name" v="range, longer than long" />
+ </node>
+ <node id="12" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000000000-20000000000" />
+   <tag k="name" v="range, 15 billion" />
+ </node>
+ <node id="13" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="2147483646-2147483648" />
+   <tag k="name" v="range, mean is max int4" />
+ </node>
+ <node id="14" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="10000-20000" />
+   <tag k="name" v="range, 15 thousand" />
+ </node>
+ <node id="15" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000--20000" />
+   <tag k="name" v="range, negative 15 thousand" />
+ </node>
+ <node id="16" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-2147483647--2147483649" />
+   <tag k="name" v="range, mean is min int4" />
+ </node>
+ <node id="17" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000000000--20000000000" />
+   <tag k="name" v="range, negative 15 billion" />
+ </node>
+ <node id="18" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-10000000000000000000--20000000000000000000" />
+   <tag k="name" v="range, negative longer than long" />
+ </node>
+</osm>

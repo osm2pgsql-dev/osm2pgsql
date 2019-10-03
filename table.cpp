@@ -457,12 +457,21 @@ void table_t::escape_type(const string &value, ColumnType flags)
     switch (flags) {
     case COLUMN_TYPE_INT: {
         // For integers we take the first number, or the average if it's a-b
-        long from, to;
-        int items = sscanf(value.c_str(), "%ld-%ld", &from, &to);
-        if (items == 1) {
+        long long from, to;
+        // limit number of digits parsed to avoid undefined behaviour in sscanf
+        int items = sscanf(value.c_str(), "%18lld-%18lld", &from, &to);
+        if (items == 1 && from <= std::numeric_limits<int32_t>::max() &&
+            from >= std::numeric_limits<int32_t>::min()) {
             m_copy.add_column(from);
         } else if (items == 2) {
-            m_copy.add_column((from + to) / 2);
+            // calculate mean while avoiding overflows
+            int64_t mean = (from / 2) + (to / 2) + ((from % 2 + to % 2) / 2);
+            if (mean <= std::numeric_limits<int32_t>::max() &&
+                mean >= std::numeric_limits<int32_t>::min()) {
+                m_copy.add_column(mean);
+            } else {
+                m_copy.add_null_column();
+            }
         } else {
             m_copy.add_null_column();
         }
