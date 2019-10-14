@@ -67,7 +67,7 @@ protected:
 
 struct db_cmd_copy_t : public db_cmd_t
 {
-    enum { Max_buf_size = 10 * 1024 * 1024 };
+    enum { Max_buf_size = 10 * 1024 * 1024, Max_buffers = 10 };
     /// Name of the target table for the copy operation
     std::shared_ptr<db_target_descr_t> target;
     /// Vector with object to delete before copying
@@ -141,6 +141,7 @@ private:
     std::thread m_worker;
     std::mutex m_queue_mutex;
     std::condition_variable m_queue_cond;
+    std::condition_variable m_queue_full_cond;
     std::deque<std::unique_ptr<db_cmd_t>> m_worker_queue;
 
     // Target for copy operation currently ongoing.

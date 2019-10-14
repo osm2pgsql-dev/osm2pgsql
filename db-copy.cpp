@@ -28,9 +28,18 @@ db_copy_thread_t::~db_copy_thread_t() { finish(); }
 void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
 {
     assert(m_worker.joinable()); // thread must not have been finished
-    std::unique_lock<std::mutex> lock(m_queue_mutex);
-    m_worker_queue.push_back(std::move(buffer));
-    m_queue_cond.notify_one();
+
+    for (;;) {
+        std::unique_lock<std::mutex> lock(m_queue_mutex);
+        if (m_worker_queue.size() >= db_cmd_copy_t::Max_buffers) {
+            m_queue_full_cond.wait(lock);
+            continue;
+        }
+
+        m_worker_queue.push_back(std::move(buffer));
+        m_queue_cond.notify_one();
+        break;
+    }
 }
 
 void db_copy_thread_t::sync_and_wait()
@@ -67,6 +76,7 @@ void db_copy_thread_t::worker_thread()
 
             item = std::move(m_worker_queue.front());
             m_worker_queue.pop_front();
+            m_queue_full_cond.notify_one();
         }
 
         switch (item->type) {
