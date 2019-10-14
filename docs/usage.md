@@ -25,8 +25,8 @@ use them.
 Performance is heavily influenced by other options, but there are some options
 that only impact performance.
 
-* ``--cache`` specifies how much memory to allocate for caching information. In
-  ``--slim`` mode, this is just node positions while in non-slim it has to
+* ``--cache`` specifies how much memory in MB to allocate for caching information.
+  In ``--slim`` mode, this is just node positions while in non-slim it has to
   store information about ways and relations too. The rule of thumb in slim mode
   is as follows: use the size of the PBF file you are trying to import or about
   75% of RAM, whatever is smaller. Make sure there is enough RAM left for
