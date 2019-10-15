@@ -25,11 +25,15 @@ use them.
 Performance is heavily influenced by other options, but there are some options
 that only impact performance.
 
-* ``--cache`` specifies how much memory to allocate for caching information. In
-  ``--slim`` mode, this is just node positions while in non-slim it has to
-  store information about ways and relations too. The maximum RAM it is useful
-  to set this to in slim mode is 8 bytes * number of nodes / efficiency, where
-  efficiency ranges from 50% on small imports to 80% for a planet.
+* ``--cache`` specifies how much memory in MB to allocate for caching information.
+  In ``--slim`` mode, this is just node positions while in non-slim it has to
+  store information about ways and relations too. The rule of thumb in slim mode
+  is as follows: use the size of the PBF file you are trying to import or about
+  75% of RAM, whatever is smaller. Make sure there is enough RAM left for
+  PostgreSQL. It needs at least the amount of `shared_buffers` given in its
+  configuration. You may also set ``--cache`` to 0 to disable node caching
+  completely. This makes only sense when a flat node file is given and there
+  is not enough RAM to fit most of the cache.
 
 * ``--number-processes`` sets the number of processes to use. This should
   typically be set to the number of CPU threads, but gains in speed are minimal

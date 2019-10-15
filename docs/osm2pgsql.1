@@ -112,9 +112,11 @@ imported into database columns and which tags get dropped. Defaults to /usr/shar
 \fB\-C\fR|\-\-cache num
 Only for slim mode: Use up to num many MB of RAM for caching nodes. Giving osm2pgsql sufficient cache
 to store all imported nodes typically greatly increases the speed of the import. Each cached node
-requires 8 bytes of cache, plus about 10% \- 30% overhead. For a current OSM full planet import with
-its ~ 3 billion nodes, a good value would be 27000 if you have enough RAM. If you don't have enough
-RAM, it is likely beneficial to give osm2pgsql close to the full available amount of RAM. Defaults to 800.
+requires 8 bytes of cache, plus about 10% \- 30% overhead. As a rule of thumb,
+give a bit more than the size of the import file in PBF format. If the RAM is not
+big enough, use about 75% of memory. Make sure to leave enough RAM for PostgreSQL.
+It needs at least the amount of `shared_buffers` given in its configuration.
+Defaults to 800.
 .TP
 \fB\  \fR\-\-cache\-strategy strategy
 There are a number of different modes in which osm2pgsql can organize its
