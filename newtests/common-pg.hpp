@@ -95,6 +95,9 @@ public:
         return boost::lexical_cast<T>(str);
     }
 
+    void assert_double(double expected, std::string const &cmd) const
+    { REQUIRE(Approx(expected) == require_scalar<double>(cmd)); }
+
     result_t require_row(std::string const &cmd) const
     {
         result_t res = query(cmd);
@@ -102,6 +105,23 @@ public:
         REQUIRE(res.num_tuples() == 1);
 
         return res;
+    }
+
+    unsigned long get_count(char const *table_name, std::string const &where = "") const
+    {
+        auto query = boost::format("select count(*) from %1% %2% %3%")
+                                   % table_name
+                                   % (where.empty() ? "" : "where")
+                                   % where;
+
+        return require_scalar<unsigned long>(query.str());
+    }
+
+    void require_has_table(char const *table_name) const
+    {
+        auto where = boost::format("oid = '%1%'::regclass") % table_name;
+
+        REQUIRE(get_count("pg_catalog.pg_class", where.str()) == 1);
     }
 
 private:
@@ -134,7 +154,7 @@ public:
         }
     }
 
-    conn_t connect()
+    conn_t connect() const
     {
         return conn_t(conninfo().c_str());
     }

@@ -18,6 +18,7 @@ struct slim_default : options_t
     {
         database_options = db.db_options();
         prefix = "osm2pgsql_test";
+        style = "default.style";
         slim = true;
         cache = 1;
         num_procs = 1;
@@ -58,6 +59,18 @@ struct flat_nodes : options_t
         flat_node_cache_enabled = true;
     }
 };
+
+struct slim_flat_nodes : slim_default
+{
+    slim_flat_nodes(pg::tempdb_t const &db)
+    : slim_default(db)
+    {
+        flat_node_file = boost::optional<std::string>(
+            "newtests/test_middle_flat.flat.nodes.bin");
+        flat_node_cache_enabled = true;
+    }
+};
+
 }
 }
 

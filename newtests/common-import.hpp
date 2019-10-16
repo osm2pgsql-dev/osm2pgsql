@@ -95,6 +95,8 @@ public:
 
     pg::conn_t connect() { return m_db.connect(); }
 
+    pg::tempdb_t const &db() const { return m_db; }
+
 private:
     pg::tempdb_t m_db;
 };
