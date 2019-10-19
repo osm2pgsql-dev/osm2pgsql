@@ -9,6 +9,7 @@ set (TESTS
     test-output-pgsql.cpp
     test-output-pgsql-area.cpp
     test-output-pgsql-int4.cpp
+    test-output-pgsql-schema.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp
