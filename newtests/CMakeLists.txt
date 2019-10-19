@@ -10,6 +10,7 @@ set (TESTS
     test-output-pgsql-area.cpp
     test-output-pgsql-int4.cpp
     test-output-pgsql-schema.cpp
+    test-output-pgsql-tablespace.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp
@@ -25,4 +26,20 @@ foreach (test ${TESTS})
   set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
 endforeach()
 
+# Fixture for creating test tablespace under a pg_virtualenv
+if (NOT WIN32)
+  message(STATUS "Added tablespace fixture...")
+  add_test(NAME FixtureTablespaceSetup
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/fixture-tablespace-setup
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+  add_test(NAME FixtureTablespaceCleanup
+      COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/fixture-tablespace-cleanup
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+  set_tests_properties(FixtureTablespaceSetup PROPERTIES FIXTURES_SETUP Tablespace)
+  set_tests_properties(FixtureTablespaceCleanup PROPERTIES FIXTURES_CLEANUP Tablespace)
+endif()
+
+set_tests_properties(test-output-pgsql-tablespace
+                     PROPERTIES FIXTURES_REQUIRED Tablespace)
 
