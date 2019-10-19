@@ -98,6 +98,9 @@ public:
     void assert_double(double expected, std::string const &cmd) const
     { REQUIRE(Approx(expected) == require_scalar<double>(cmd)); }
 
+    void assert_null(std::string const &cmd) const
+    { REQUIRE(require_scalar<std::string>(cmd) == ""); }
+
     result_t require_row(std::string const &cmd) const
     {
         result_t res = query(cmd);

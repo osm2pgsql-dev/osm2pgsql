@@ -8,6 +8,7 @@ set (TESTS
     test-output-gazetteer.cpp
     test-output-pgsql.cpp
     test-output-pgsql-area.cpp
+    test-output-pgsql-int4.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp
