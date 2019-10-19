@@ -8,6 +8,7 @@
 #define basename /*SKIP IT*/
 #endif
 #include <boost/format.hpp>
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <osmium/version.hpp>
@@ -300,7 +301,7 @@ options_t::options_t()
   output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
   extra_attributes(false), verbose(false)
 {
-    num_procs = std::thread::hardware_concurrency();
+    num_procs = (int) std::min(4U, std::thread::hardware_concurrency());
     if (num_procs < 1) {
         fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");
         num_procs = 1;
