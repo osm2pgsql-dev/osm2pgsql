@@ -40,6 +40,14 @@ public:
         return *this;
     }
 
+    opt_t &multi(char const *style)
+    {
+        m_opt.output_backend = "multi";
+        m_opt.style = "tests/";
+        m_opt.style += style;
+        return *this;
+    }
+
     opt_t &flatnodes()
     {
         m_opt.flat_node_file = boost::optional<std::string>(
