@@ -11,6 +11,8 @@ set (TESTS
     test-output-pgsql-int4.cpp
     test-output-pgsql-schema.cpp
     test-output-pgsql-tablespace.cpp
+    test-output-pgsql-validgeom.cpp
+    test-output-pgsql-z_order.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp
