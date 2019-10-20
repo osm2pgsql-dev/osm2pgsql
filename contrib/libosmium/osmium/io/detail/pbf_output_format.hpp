@@ -577,6 +577,10 @@ namespace osmium {
                         pbf_header_block.add_string(OSMFormat::HeaderBlock::repeated_string_optional_features, "LocationsOnWays");
                     }
 
+                    if (header.get("sorting") == "Type_then_ID") {
+                        pbf_header_block.add_string(OSMFormat::HeaderBlock::repeated_string_optional_features, "Sort.Type_then_ID");
+                    }
+
                     pbf_header_block.add_string(OSMFormat::HeaderBlock::optional_string_writingprogram, header.get("generator"));
 
                     const std::string osmosis_replication_timestamp{header.get("osmosis_replication_timestamp")};

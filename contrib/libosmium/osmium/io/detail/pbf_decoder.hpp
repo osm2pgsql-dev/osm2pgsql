@@ -847,8 +847,13 @@ namespace osmium {
                                 }
                             }
                             break;
-                        case protozero::tag_and_type(OSMFormat::HeaderBlock::repeated_string_optional_features, protozero::pbf_wire_type::length_delimited):
-                            header.set("pbf_optional_feature_" + std::to_string(i++), pbf_header_block.get_string());
+                        case protozero::tag_and_type(OSMFormat::HeaderBlock::repeated_string_optional_features, protozero::pbf_wire_type::length_delimited): {
+                                const auto opt = pbf_header_block.get_string();
+                                header.set("pbf_optional_feature_" + std::to_string(i++), opt);
+                                if (opt == "Sort.Type_then_ID") {
+                                    header.set("sorting", "Type_then_ID");
+                                }
+                            }
                             break;
                         case protozero::tag_and_type(OSMFormat::HeaderBlock::optional_string_writingprogram, protozero::pbf_wire_type::length_delimited):
                             header.set("generator", pbf_header_block.get_string());
