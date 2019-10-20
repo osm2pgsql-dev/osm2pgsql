@@ -1,0 +1,70 @@
+#ifndef __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
+#define __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
+
+#include "options.hpp"
+
+#include "common-pg.hpp"
+
+namespace testing {
+
+class opt_t
+{
+public:
+    opt_t()
+    {
+        m_opt.prefix = "osm2pgsql_test";
+        m_opt.style = "default.style";
+        m_opt.num_procs = 1;
+        m_opt.cache = 1;
+    }
+
+    operator options_t() const { return m_opt; }
+
+    opt_t &slim()
+    {
+        m_opt.slim = true;
+        return *this;
+    }
+
+    opt_t &slim(pg::tempdb_t const &db)
+    {
+        m_opt.slim = true;
+        m_opt.database_options = db.db_options();
+        return *this;
+    }
+
+    opt_t &gazetteer()
+    {
+        m_opt.output_backend = "gazetteer";
+        m_opt.style = "newtests/data/gazetteer-test.style";
+        return *this;
+    }
+
+    opt_t &flatnodes()
+    {
+        m_opt.flat_node_file = boost::optional<std::string>(
+            "newtests/test_middle_flat.flat.nodes.bin");
+        m_opt.flat_node_cache_enabled = true;
+        return *this;
+    }
+
+    opt_t &style(char const *filename)
+    {
+        m_opt.style = "tests/";
+        m_opt.style += filename;
+        return *this;
+    }
+
+    opt_t &srs(int srs)
+    {
+        m_opt.projection.reset(reprojection::create_projection(srs));
+        return *this;
+    }
+
+private:
+    options_t m_opt;
+};
+
+} // namespace testing
+
+#endif // __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP

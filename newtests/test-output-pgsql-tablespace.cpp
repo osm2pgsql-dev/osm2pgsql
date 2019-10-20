@@ -1,7 +1,7 @@
 #include "catch.hpp"
 
 #include "common-import.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static testing::db::import_t db;
 
@@ -20,7 +20,7 @@ TEST_CASE("simple import with tables spaces")
         REQUIRE(1 == conn.get_count("pg_tablespace", "spcname = 'tablespacetest'"));
     }
 
-    testing::options::slim_default options(db.db());
+    options_t options = testing::opt_t().slim();
     options.tblsslim_index = "tablespacetest";
     options.tblsslim_data = "tablespacetest";
 

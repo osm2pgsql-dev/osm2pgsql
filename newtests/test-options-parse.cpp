@@ -6,7 +6,7 @@
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
 
-#include "configs.hpp"
+char const *TEST_PBF = "foo.pbf";
 
 static void bad_opt(std::vector<char const *> opts, char const *msg)
 {

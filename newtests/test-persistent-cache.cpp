@@ -4,7 +4,7 @@
 #include "options.hpp"
 
 #include "common-cleanup.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static void write_and_read_location(node_persistent_cache &cache, osmid_t id,
                                     double x, double y)
@@ -27,7 +27,7 @@ static void delete_location(node_persistent_cache &cache, osmid_t id)
 
 TEST_CASE("Persistent cache", "[NoDB]")
 {
-    auto options = testing::options::flat_nodes();
+    options_t options = testing::opt_t().flatnodes();
     testing::cleanup::file_t flatnode_cleaner(options.flat_node_file.get());
     auto ram_cache = std::make_shared<node_ram_cache>(0, 0); // empty cache
 

@@ -1,7 +1,7 @@
 #include "catch.hpp"
 
 #include "common-import.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static testing::db::import_t db;
 
@@ -16,9 +16,8 @@ TEST_CASE("schema separation")
                   "CREATE TABLE myschema.osm2pgsql_test_roads (id bigint)");
     }
 
-    testing::options::slim_default options(db.db());
-
-    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_z_order.osm"));
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim(),
+                                "test_output_pgsql_z_order.osm"));
 
     auto conn = db.db().connect();
 

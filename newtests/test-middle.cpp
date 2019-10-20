@@ -7,7 +7,7 @@
 #include "middle-ram.hpp"
 
 #include "common-pg.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static pg::tempdb_t db;
 
@@ -50,10 +50,29 @@ void expect_location(osmium::Location loc, osmium::Node const &expected)
 }
 }
 
-TEMPLATE_TEST_CASE("middle import", "", ::testing::options::slim_default,
-                   ::testing::options::slim_dense_cache)
+struct options_slim_default
 {
-    options_t options = TestType(db);
+    static options_t options(pg::tempdb_t const &tmpdb)
+    {
+        return testing::opt_t().slim(tmpdb);
+    }
+};
+
+struct options_slim_dense_cache : options_slim_default
+{
+    static options_t options(pg::tempdb_t const &tmpdb)
+    {
+        options_t o = options_slim_default::options(tmpdb);
+        o.alloc_chunkwise = ALLOC_DENSE;
+
+        return o;
+    }
+};
+
+TEMPLATE_TEST_CASE("middle import", "",
+                   options_slim_default, options_slim_dense_cache)
+{
+    options_t options = TestType::options(db);
 
     auto mid = options.slim
                    ? std::shared_ptr<middle_t>(new middle_pgsql_t(&options))

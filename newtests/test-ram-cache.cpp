@@ -4,8 +4,6 @@
 
 #include "node-ram-cache.cpp"
 
-#include "configs.hpp"
-
 enum class strategy_sparse
 {
     value = ALLOC_SPARSE

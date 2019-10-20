@@ -13,6 +13,7 @@ set (TESTS
     test-output-pgsql-tablespace.cpp
     test-output-pgsql-validgeom.cpp
     test-output-pgsql-z_order.cpp
+    test-parse-diff.cpp
     test-persistent-cache.cpp
     test-ram-cache.cpp
     test-wildcard-match.cpp

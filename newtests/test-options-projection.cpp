@@ -3,7 +3,6 @@
 #include <vector>
 
 #include "common-import.hpp"
-#include "configs.hpp"
 
 static testing::db::import_t db;
 

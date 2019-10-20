@@ -3,12 +3,16 @@
 #include <boost/format.hpp>
 
 #include "common-import.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static testing::db::import_t db;
 
 using fmt = boost::format;
-using options = testing::options::gazetteer_default;
+
+options_t options()
+{
+    return testing::opt_t().gazetteer();
+}
 
 static pg::result_t require_place(pg::conn_t const &conn, char type, osmid_t id,
                           char const *cls, char const *typ)

@@ -1,7 +1,7 @@
 #include "catch.hpp"
 
 #include "common-import.hpp"
-#include "configs.hpp"
+#include "common-options.hpp"
 
 static testing::db::import_t db;
 
@@ -15,7 +15,7 @@ static void require_tables(pg::conn_t const &conn)
 
 TEST_CASE("liechtenstein slim regression simple")
 {
-    REQUIRE_NOTHROW(db.run_file(testing::options::slim_default(db.db()),
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim(),
                     "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
@@ -41,10 +41,8 @@ TEST_CASE("liechtenstein slim regression simple")
 
 TEST_CASE("liechtenstein slim latlon")
 {
-    testing::options::slim_default options(db.db());
-    options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
-
-    REQUIRE_NOTHROW(db.run_file(options, "liechtenstein-2013-08-03.osm.pbf"));
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().srs(PROJ_LATLONG),
+                                "liechtenstein-2013-08-03.osm.pbf"));
 
     auto conn = db.db().connect();
     require_tables(conn);
@@ -69,7 +67,7 @@ TEST_CASE("liechtenstein slim latlon")
 
 TEST_CASE("way area slim flatnode")
 {
-    REQUIRE_NOTHROW(db.run_file(testing::options::slim_flat_nodes(db.db()),
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().flatnodes(),
                                 "test_output_pgsql_way_area.osm"));
 
     auto conn = db.db().connect();
@@ -83,7 +81,7 @@ TEST_CASE("way area slim flatnode")
 
 TEST_CASE("route relation slim flatnode")
 {
-    REQUIRE_NOTHROW(db.run_file(testing::options::slim_flat_nodes(db.db()),
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().flatnodes(),
                                 "test_output_pgsql_route_rel.osm"));
 
     auto conn = db.db().connect();
