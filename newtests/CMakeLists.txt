@@ -6,8 +6,11 @@ set (TESTS
     test-options-parse.cpp
     test-options-projection.cpp
     test-output-gazetteer.cpp
+    test-output-multi-line.cpp
     test-output-multi-line-storage.cpp
+    test-output-multi-point.cpp
     test-output-multi-poly-trivial.cpp
+    test-output-multi-polygon.cpp
     test-output-multi-tags.cpp
     test-output-pgsql.cpp
     test-output-pgsql-area.cpp

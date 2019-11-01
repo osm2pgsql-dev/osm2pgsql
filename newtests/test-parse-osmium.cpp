@@ -3,7 +3,7 @@
 #include "middle.hpp"
 #include "osmdata.hpp"
 #include "output-null.hpp"
-#include "parse-osmium.cpp"
+#include "parse-osmium.hpp"
 
 #include "common-options.hpp"
 

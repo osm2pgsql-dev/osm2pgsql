@@ -7,9 +7,13 @@
 #include <osmium/io/reader.hpp>
 #include <osmium/visitor.hpp>
 
+#include "geometry-processor.hpp"
 #include "middle-ram.hpp"
+#include "middle-pgsql.hpp"
+#include "taginfo_impl.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "output-multi.hpp"
 #include "parse-osmium.hpp"
 
 #include "common-pg.hpp"
@@ -90,6 +94,44 @@ public:
             filep += options.input_files[0];
         parser.stream_file(filep, options.input_reader);
 
+        osmdata.stop();
+    }
+
+    void run_file_multi_output(options_t options,
+                               std::shared_ptr<geometry_processor> const &proc,
+                               char const *table_name,
+                               osmium::item_type type,
+                               char const *tag_key,
+                               char const *file)
+    {
+        options.database_options = m_db.db_options();
+
+        export_list columns;
+        {
+            taginfo info;
+            info.name = tag_key;
+            info.type = "text";
+            columns.add(type, info);
+        }
+
+        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+        mid_pgsql->start();
+        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
+
+        // This actually uses the multi-backend with C transforms,
+        // not Lua transforms. This is unusual and doesn't reflect real practice.
+        auto out_test = std::make_shared<output_multi_t>(
+                table_name, proc, columns, midq, options,
+                std::make_shared<db_copy_thread_t>(
+                    options.database_options.conninfo()));
+
+        std::string filep("tests/");
+        filep += file;
+
+        osmdata_t osmdata(mid_pgsql, out_test);
+        osmdata.start();
+        parse_osmium_t parser(options.bbox, options.append, &osmdata);
+        parser.stream_file(filep.c_str(), "");
         osmdata.stop();
     }
 
