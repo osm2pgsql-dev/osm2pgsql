@@ -10,11 +10,13 @@ set (TESTS
     test-output-multi-line.cpp
     test-output-multi-line-storage.cpp
     test-output-multi-point.cpp
+    test-output-multi-point-multi-table.cpp
     test-output-multi-poly-trivial.cpp
     test-output-multi-polygon.cpp
     test-output-multi-tags.cpp
     test-output-pgsql.cpp
     test-output-pgsql-area.cpp
+    test-output-pgsql-hstore-match-only.cpp
     test-output-pgsql-int4.cpp
     test-output-pgsql-schema.cpp
     test-output-pgsql-tablespace.cpp
