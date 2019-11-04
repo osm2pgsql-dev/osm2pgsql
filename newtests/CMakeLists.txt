@@ -1,6 +1,7 @@
 set (TESTS
     test-db-copy-thread.cpp
     test-db-copy-mgr.cpp
+    test-expire-tiles.cpp
     test-middle.cpp
     test-options-database.cpp
     test-options-parse.cpp
