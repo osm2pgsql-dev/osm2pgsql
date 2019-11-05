@@ -69,8 +69,29 @@ struct options_slim_dense_cache : options_slim_default
     }
 };
 
+struct options_ram_optimized
+{
+    static options_t options(pg::tempdb_t const &)
+    {
+        options_t o = testing::opt_t();
+        o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
+        return o;
+    }
+};
+
+struct options_ram_flatnode
+{
+    static options_t options(pg::tempdb_t const &)
+    {
+        options_t o = testing::opt_t().flatnodes();
+        o.alloc_chunkwise = ALLOC_SPARSE | ALLOC_DENSE;
+        return o;
+    }
+};
+
 TEMPLATE_TEST_CASE("middle import", "",
-                   options_slim_default, options_slim_dense_cache)
+                   options_slim_default, options_slim_dense_cache,
+                   options_ram_optimized, options_ram_flatnode)
 {
     options_t options = TestType::options(db);
 
