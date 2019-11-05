@@ -6,19 +6,20 @@
 #include "reprojection.hpp"
 
 static constexpr double EARTH_CIRCUMFERENCE = 40075016.68;
-static std::shared_ptr<reprojection> defproj(reprojection::create_projection(PROJ_SPHERE_MERC));
+static std::shared_ptr<reprojection>
+    defproj(reprojection::create_projection(PROJ_SPHERE_MERC));
 
 class xyz
 {
 public:
     xyz(uint32_t z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
 
-    bool operator ==(xyz const &other) const
+    bool operator==(xyz const &other) const
     {
         return ((z == other.z) && (x == other.x) && (y == other.y));
     }
 
-    bool operator <(const xyz &other) const
+    bool operator<(const xyz &other) const
     {
         if (z < other.z)
             return true;
@@ -51,7 +52,7 @@ struct tile_output_set
 {
     ~tile_output_set() = default;
 
-    bool operator ==(tile_output_set const &other) const
+    bool operator==(tile_output_set const &other) const
     {
         if (tiles.size() != other.tiles.size())
             return false;
@@ -65,7 +66,7 @@ struct tile_output_set
         return true;
     }
 
-    tile_output_set& operator +=(const tile_output_set& other)
+    tile_output_set &operator+=(const tile_output_set &other)
     {
         tiles.insert(other.tiles.cbegin(), other.tiles.cend());
         return *this;
@@ -100,16 +101,14 @@ struct tile_output_set
     std::set<xyz> tiles;
 };
 
-
-void check_quadkey_to_xy(uint64_t quadkey_expected,
-                         uint32_t x, uint32_t y, uint32_t zoom)
+void check_quadkey_to_xy(uint64_t quadkey_expected, uint32_t x, uint32_t y,
+                         uint32_t zoom)
 {
     CHECK(expire_tiles::xy_to_quadkey(x, y, zoom) == quadkey_expected);
 
     xy_coord_t xy = expire_tiles::quadkey_to_xy(quadkey_expected, zoom);
     CHECK(xy.x == x);
     CHECK(xy.y == y);
-
 }
 
 TEST_CASE("xy to quadkey", "[NoDB]")
@@ -122,7 +121,8 @@ TEST_CASE("xy to quadkey", "[NoDB]")
     check_quadkey_to_xy(0x3fffffff0, 131068, 131068, 18);
 }
 
-TEST_CASE("simple expire z1", "[NoDB]") {
+TEST_CASE("simple expire z1", "[NoDB]")
+{
     uint32_t minzoom = 1;
     expire_tiles et(minzoom, 20000, defproj);
 
@@ -248,7 +248,7 @@ TEST_CASE("expire centroids", "[NoDB]")
         et.output_and_destroy(set, zoom);
 
         CHECK(set == check_set);
-  }
+    }
 }
 
 /**

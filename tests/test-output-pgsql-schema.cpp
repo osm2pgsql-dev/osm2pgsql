@@ -16,8 +16,8 @@ TEST_CASE("schema separation")
                   "CREATE TABLE myschema.osm2pgsql_test_roads (id bigint)");
     }
 
-    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim(),
-                                "test_output_pgsql_z_order.osm"));
+    REQUIRE_NOTHROW(
+        db.run_file(testing::opt_t().slim(), "test_output_pgsql_z_order.osm"));
 
     auto conn = db.db().connect();
 

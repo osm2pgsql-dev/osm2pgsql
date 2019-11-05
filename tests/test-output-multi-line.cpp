@@ -3,9 +3,9 @@
 #include "geometry-processor.hpp"
 #include "middle-pgsql.hpp"
 #include "osmdata.hpp"
-#include "taginfo_impl.hpp"
 #include "output-multi.hpp"
 #include "parse-osmium.hpp"
+#include "taginfo_impl.hpp"
 
 #include "common-import.hpp"
 #include "common-options.hpp"
@@ -19,9 +19,8 @@ TEST_CASE("parse linestring")
     auto processor = geometry_processor::create("line", &options);
 
     db.run_file_multi_output(testing::opt_t().slim(), processor,
-                             "foobar_highways",
-                             osmium::item_type::way, "highway",
-                             "liechtenstein-2013-08-03.osm.pbf");
+                             "foobar_highways", osmium::item_type::way,
+                             "highway", "liechtenstein-2013-08-03.osm.pbf");
 
     auto conn = db.db().connect();
     conn.require_has_table("foobar_highways");

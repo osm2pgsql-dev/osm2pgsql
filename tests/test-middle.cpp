@@ -6,8 +6,8 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 
-#include "common-pg.hpp"
 #include "common-options.hpp"
+#include "common-pg.hpp"
 
 static pg::tempdb_t db;
 
@@ -48,7 +48,7 @@ void expect_location(osmium::Location loc, osmium::Node const &expected)
     CHECK(loc.lat() == Approx(expected.location().lat()));
     CHECK(loc.lon() == Approx(expected.location().lon()));
 }
-}
+} // namespace
 
 struct options_slim_default
 {
@@ -89,9 +89,9 @@ struct options_ram_flatnode
     }
 };
 
-TEMPLATE_TEST_CASE("middle import", "",
-                   options_slim_default, options_slim_dense_cache,
-                   options_ram_optimized, options_ram_flatnode)
+TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
+                   options_slim_dense_cache, options_ram_optimized,
+                   options_ram_flatnode)
 {
     options_t options = TestType::options(db);
 

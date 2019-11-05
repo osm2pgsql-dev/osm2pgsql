@@ -8,13 +8,13 @@
 #include <osmium/visitor.hpp>
 
 #include "geometry-processor.hpp"
-#include "middle-ram.hpp"
 #include "middle-pgsql.hpp"
-#include "taginfo_impl.hpp"
+#include "middle-ram.hpp"
 #include "osmdata.hpp"
-#include "output.hpp"
 #include "output-multi.hpp"
+#include "output.hpp"
 #include "parse-osmium.hpp"
+#include "taginfo_impl.hpp"
 
 #include "common-pg.hpp"
 
@@ -99,10 +99,8 @@ public:
 
     void run_file_multi_output(options_t options,
                                std::shared_ptr<geometry_processor> const &proc,
-                               char const *table_name,
-                               osmium::item_type type,
-                               char const *tag_key,
-                               char const *file)
+                               char const *table_name, osmium::item_type type,
+                               char const *tag_key, char const *file)
     {
         options.database_options = m_db.db_options();
 
@@ -121,9 +119,9 @@ public:
         // This actually uses the multi-backend with C transforms,
         // not Lua transforms. This is unusual and doesn't reflect real practice.
         auto out_test = std::make_shared<output_multi_t>(
-                table_name, proc, columns, midq, options,
-                std::make_shared<db_copy_thread_t>(
-                    options.database_options.conninfo()));
+            table_name, proc, columns, midq, options,
+            std::make_shared<db_copy_thread_t>(
+                options.database_options.conninfo()));
 
         std::string filep(TESTDATA_DIR);
         filep += file;

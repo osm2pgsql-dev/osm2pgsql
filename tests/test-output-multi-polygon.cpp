@@ -3,9 +3,9 @@
 #include "geometry-processor.hpp"
 #include "middle-pgsql.hpp"
 #include "osmdata.hpp"
-#include "taginfo_impl.hpp"
 #include "output-multi.hpp"
 #include "parse-osmium.hpp"
+#include "taginfo_impl.hpp"
 
 #include "common-import.hpp"
 #include "common-options.hpp"
@@ -19,9 +19,8 @@ TEST_CASE("parse point")
     auto processor = geometry_processor::create("polygon", &options);
 
     db.run_file_multi_output(testing::opt_t().slim(), processor,
-                             "foobar_buildings", 
-                             osmium::item_type::way, "building",
-                             "liechtenstein-2013-08-03.osm.pbf");
+                             "foobar_buildings", osmium::item_type::way,
+                             "building", "liechtenstein-2013-08-03.osm.pbf");
 
     auto conn = db.db().connect();
     conn.require_has_table("foobar_buildings");
@@ -40,7 +39,8 @@ TEST_CASE("parse point")
     REQUIRE(153 == conn.get_count("foobar_buildings", "building='house'"));
     REQUIRE(4 == conn.get_count("foobar_buildings", "building='hut'"));
     REQUIRE(8 == conn.get_count("foobar_buildings", "building='industrial'"));
-    REQUIRE(200 == conn.get_count("foobar_buildings", "building='residential'"));
+    REQUIRE(200 ==
+            conn.get_count("foobar_buildings", "building='residential'"));
     REQUIRE(6 == conn.get_count("foobar_buildings", "building='roof'"));
     REQUIRE(4 == conn.get_count("foobar_buildings", "building='school'"));
     REQUIRE(2 == conn.get_count("foobar_buildings", "building='station'"));

@@ -7,7 +7,8 @@ static testing::db::import_t db;
 
 TEST_CASE("hstore match only import")
 {
-    options_t options = testing::opt_t().slim().style("hstore-match-only.style");
+    options_t options =
+        testing::opt_t().slim().style("hstore-match-only.style");
     options.hstore_match_only = true;
     options.hstore_mode = HSTORE_NORM;
 

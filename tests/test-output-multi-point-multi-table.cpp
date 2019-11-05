@@ -3,9 +3,9 @@
 #include "geometry-processor.hpp"
 #include "middle-pgsql.hpp"
 #include "osmdata.hpp"
-#include "taginfo_impl.hpp"
 #include "output-multi.hpp"
 #include "parse-osmium.hpp"
+#include "taginfo_impl.hpp"
 
 #include "common-import.hpp"
 #include "common-options.hpp"
@@ -29,7 +29,7 @@ TEST_CASE("parse point")
     mid_pgsql->start();
     auto midq = mid_pgsql->get_query_instance(mid_pgsql);
 
-    std::vector<std::shared_ptr<output_t> > outputs;
+    std::vector<std::shared_ptr<output_t>> outputs;
 
     // let's make lots of tables!
     for (int i = 0; i < 10; ++i) {
@@ -38,9 +38,9 @@ TEST_CASE("parse point")
         auto processor = geometry_processor::create("point", &options);
 
         auto out_test = std::make_shared<output_multi_t>(
-                name, processor, columns, midq, options,
-                std::make_shared<db_copy_thread_t>(
-                    options.database_options.conninfo()));
+            name, processor, columns, midq, options,
+            std::make_shared<db_copy_thread_t>(
+                options.database_options.conninfo()));
 
         outputs.push_back(out_test);
     }

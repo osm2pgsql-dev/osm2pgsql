@@ -1,7 +1,7 @@
 #include "catch.hpp"
 
-#include "db-copy.hpp"
 #include "common-pg.hpp"
+#include "db-copy.hpp"
 
 static pg::tempdb_t db;
 

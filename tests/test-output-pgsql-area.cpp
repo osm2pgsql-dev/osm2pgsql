@@ -14,10 +14,12 @@ TEST_CASE("default projection")
     auto conn = db.db().connect();
 
     REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
-    conn.assert_double(1.23927e+10,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
-    conn.assert_double(9.91828e+10,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        1.23927e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        9.91828e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
 TEST_CASE("latlon projection")
@@ -29,10 +31,10 @@ TEST_CASE("latlon projection")
     auto conn = db.db().connect();
 
     REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
-    conn.assert_double(1,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
-    conn.assert_double(8,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        1, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        8, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
 TEST_CASE("latlon projection with way_area reprojection")
@@ -45,8 +47,10 @@ TEST_CASE("latlon projection with way_area reprojection")
     auto conn = db.db().connect();
 
     REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
-    conn.assert_double(1.23927e+10,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
-    conn.assert_double(9.91828e+10,
-                       "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
+    conn.assert_double(
+        1.23927e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        9.91828e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }

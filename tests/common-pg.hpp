@@ -14,8 +14,7 @@
 #include "options.hpp"
 
 /// Helper classes for postgres connections
-namespace pg
-{
+namespace pg {
 
 class result_t
 {
@@ -40,7 +39,6 @@ private:
     PGresult *m_result;
 };
 
-
 class conn_t
 {
 public:
@@ -63,7 +61,8 @@ public:
         }
     }
 
-    void exec(boost::format const &cmd, ExecStatusType expect = PGRES_COMMAND_OK)
+    void exec(boost::format const &cmd,
+              ExecStatusType expect = PGRES_COMMAND_OK)
     {
         exec(cmd.str(), expect);
     }
@@ -72,7 +71,8 @@ public:
     {
         result_t res = query(cmd);
         if (res.status() != expect) {
-            fprintf(stderr, "Query '%s' failed with: %s\n", cmd.c_str(), PQerrorMessage(m_conn));
+            fprintf(stderr, "Query '%s' failed with: %s\n", cmd.c_str(),
+                    PQerrorMessage(m_conn));
             throw std::runtime_error("DB exec failed.");
         }
     }
@@ -96,10 +96,14 @@ public:
     }
 
     void assert_double(double expected, std::string const &cmd) const
-    { REQUIRE(Approx(expected) == require_scalar<double>(cmd)); }
+    {
+        REQUIRE(Approx(expected) == require_scalar<double>(cmd));
+    }
 
     void assert_null(std::string const &cmd) const
-    { REQUIRE(require_scalar<std::string>(cmd) == ""); }
+    {
+        REQUIRE(require_scalar<std::string>(cmd) == "");
+    }
 
     result_t require_row(std::string const &cmd) const
     {
@@ -110,12 +114,11 @@ public:
         return res;
     }
 
-    unsigned long get_count(char const *table_name, std::string const &where = "") const
+    unsigned long get_count(char const *table_name,
+                            std::string const &where = "") const
     {
-        auto query = boost::format("select count(*) from %1% %2% %3%")
-                                   % table_name
-                                   % (where.empty() ? "" : "where")
-                                   % where;
+        auto query = boost::format("select count(*) from %1% %2% %3%") %
+                     table_name % (where.empty() ? "" : "where") % where;
 
         return require_scalar<unsigned long>(query.str());
     }
@@ -131,7 +134,6 @@ private:
     PGconn *m_conn = nullptr;
 };
 
-
 class tempdb_t
 {
 public:
@@ -139,9 +141,13 @@ public:
     {
         conn_t conn("dbname=postgres");
 
-        m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr)).str();
+        m_db_name =
+            (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr))
+                .str();
         conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
-        conn.exec(boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") % m_db_name);
+        conn.exec(
+            boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
+            m_db_name);
 
         conn_t local = connect();
         local.exec("CREATE EXTENSION postgis");
@@ -157,10 +163,7 @@ public:
         }
     }
 
-    conn_t connect() const
-    {
-        return conn_t(conninfo().c_str());
-    }
+    conn_t connect() const { return conn_t(conninfo().c_str()); }
 
     std::string conninfo() const { return "dbname=" + m_db_name; }
 
@@ -176,6 +179,6 @@ private:
     std::string m_db_name;
 };
 
-}
+} // namespace pg
 
 #endif // OSM2PGSQL_TEST_COMMON_PG_HPP

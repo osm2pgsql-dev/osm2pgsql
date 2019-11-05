@@ -21,17 +21,17 @@ struct counting_slim_middle_t : public slim_middle_t
     void start() override {}
     void stop(osmium::thread::Pool &) override {}
     void flush(osmium::item_type) override {}
-    void cleanup() { }
-    void analyze() override  { }
-    void commit() override  { }
+    void cleanup() {}
+    void analyze() override {}
+    void commit() override {}
 
     void nodes_set(osmium::Node const &) override { node.added++; }
     void ways_set(osmium::Way const &) override { way.added++; }
     void relations_set(osmium::Relation const &) override { relation.added++; }
 
-    void iterate_ways(pending_processor&) override  { }
-    void iterate_relations(pending_processor&) override  { }
-    size_t pending_count() const override  { return 0; }
+    void iterate_ways(pending_processor &) override {}
+    void iterate_relations(pending_processor &) override {}
+    size_t pending_count() const override { return 0; }
 
     std::shared_ptr<middle_query_t>
     get_query_instance(std::shared_ptr<middle_t> const &) const override
@@ -39,14 +39,14 @@ struct counting_slim_middle_t : public slim_middle_t
         return std::shared_ptr<middle_query_t>();
     }
 
-    void nodes_delete(osmid_t) override  { node.deleted++; }
-    void node_changed(osmid_t) override  { node.modified++; }
+    void nodes_delete(osmid_t) override { node.deleted++; }
+    void node_changed(osmid_t) override { node.modified++; }
 
-    void ways_delete(osmid_t) override  { way.deleted++; }
-    void way_changed(osmid_t) override  { way.modified++; }
+    void ways_delete(osmid_t) override { way.deleted++; }
+    void way_changed(osmid_t) override { way.modified++; }
 
-    void relations_delete(osmid_t) override  { relation.deleted++; }
-    void relation_changed(osmid_t) override  { relation.modified++; }
+    void relations_delete(osmid_t) override { relation.deleted++; }
+    void relation_changed(osmid_t) override { relation.modified++; }
 
     type_stats_t node, way, relation;
 };
@@ -143,7 +143,7 @@ TEST_CASE("parse xml file")
     parse_osmium_t parser(options.bbox, false, &osmdata);
     parser.stream_file("tests/test_multipolygon.osm", "");
 
-    auto* out_test = static_cast<counting_output_t *>(output.get());
+    auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 4728);
     REQUIRE(out_test->sum_nds == 186);
     REQUIRE(out_test->sum_members == 146);
@@ -157,7 +157,7 @@ TEST_CASE("parse xml file")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto* mid_test = static_cast<counting_slim_middle_t *>(middle.get());
+    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
     REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);
@@ -167,7 +167,6 @@ TEST_CASE("parse xml file")
     REQUIRE(mid_test->relation.added == 40);
     REQUIRE(mid_test->relation.modified == 0);
     REQUIRE(mid_test->relation.deleted == 0);
-
 }
 
 TEST_CASE("parse diff file")
@@ -183,7 +182,7 @@ TEST_CASE("parse diff file")
     parse_osmium_t parser(options.bbox, true, &osmdata);
     parser.stream_file("tests/008-ch.osc.gz", "");
 
-    auto* out_test = static_cast<counting_output_t *>(output.get());
+    auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->node.added == 0);
     REQUIRE(out_test->node.modified == 1176);
     REQUIRE(out_test->node.deleted == 16773);
@@ -194,7 +193,7 @@ TEST_CASE("parse diff file")
     REQUIRE(out_test->relation.modified == 11);
     REQUIRE(out_test->relation.deleted == 1);
 
-    auto* mid_test = static_cast<counting_slim_middle_t *>(middle.get());
+    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 1176);
     REQUIRE(mid_test->node.modified == 1176);
     REQUIRE(mid_test->node.deleted == 17949);
@@ -220,7 +219,7 @@ TEST_CASE("parse xml file with extra args")
     parse_osmium_t parser(options.bbox, false, &osmdata);
     parser.stream_file("tests/test_multipolygon.osm", "");
 
-    auto* out_test = static_cast<counting_output_t *>(output.get());
+    auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 73514);
     REQUIRE(out_test->sum_nds == 495);
     REQUIRE(out_test->sum_members == 146);
@@ -234,7 +233,7 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto* mid_test = static_cast<counting_slim_middle_t *>(middle.get());
+    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
     REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);
@@ -244,7 +243,4 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(mid_test->relation.added == 40);
     REQUIRE(mid_test->relation.modified == 0);
     REQUIRE(mid_test->relation.deleted == 0);
-
 }
-
-

@@ -17,7 +17,8 @@ TEST_CASE("simple import with tables spaces")
 {
     {
         auto conn = db.db().connect();
-        REQUIRE(1 == conn.get_count("pg_tablespace", "spcname = 'tablespacetest'"));
+        REQUIRE(1 ==
+                conn.get_count("pg_tablespace", "spcname = 'tablespacetest'"));
     }
 
     options_t options = testing::opt_t().slim();
@@ -31,6 +32,6 @@ TEST_CASE("simple import with tables spaces")
 
     REQUIRE(1342 == conn.get_count("osm2pgsql_test_point"));
     REQUIRE(3231 == conn.get_count("osm2pgsql_test_line"));
-    REQUIRE(375  == conn.get_count("osm2pgsql_test_roads"));
+    REQUIRE(375 == conn.get_count("osm2pgsql_test_roads"));
     REQUIRE(4130 == conn.get_count("osm2pgsql_test_polygon"));
 }
