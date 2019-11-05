@@ -270,9 +270,9 @@ enable_testing()
 include(CTest)
 
 if (BUILD_TESTS)
-  add_subdirectory(newtests)
+  add_subdirectory(tests)
 else()
-  add_subdirectory(newtests EXCLUDE_FROM_ALL)
+  add_subdirectory(tests EXCLUDE_FROM_ALL)
 endif()
 
 
