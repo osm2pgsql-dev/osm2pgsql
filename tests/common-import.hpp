@@ -87,7 +87,7 @@ public:
 
         parse_osmium_t parser(options.bbox, options.append, &osmdata);
 
-        std::string filep("tests/");
+        std::string filep(TESTDATA_DIR);
         if (file)
             filep += file;
         else
@@ -125,7 +125,7 @@ public:
                 std::make_shared<db_copy_thread_t>(
                     options.database_options.conninfo()));
 
-        std::string filep("tests/");
+        std::string filep(TESTDATA_DIR);
         filep += file;
 
         osmdata_t osmdata(mid_pgsql, out_test);

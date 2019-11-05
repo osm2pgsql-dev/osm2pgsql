@@ -1,13 +1,13 @@
 [
 {
-    "keys" : ["*source", "skip", "source*"],
+    "keys" : ["*source"],
     "values" : {
         "" : "skip"
     }
 },
 {
     "keys" : ["name:prefix", "name:suffix", "name:botanical", "wikidata",
-              "*:wikidata", "skip"],
+              "*:wikidata"],
     "values" : {
         "" : "extra"
     }
@@ -175,7 +175,7 @@
 {
     "keys" : ["junction"],
     "values" : {
-        "" : "main,fallback"
+        "" : "main,fallback,with_name"
     }
 },
 {

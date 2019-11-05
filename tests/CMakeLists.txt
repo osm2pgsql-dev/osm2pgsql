@@ -28,10 +28,15 @@ set (TESTS
     test-wildcard-match.cpp
 )
 
+add_definitions( -DTESTDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/tests/data/\" )
+add_definitions( -DOSM2PGSQLDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/\" )
+
+add_library(catch_main_lib STATIC catch-main.cpp)
+
 foreach (test ${TESTS})
   get_filename_component(test_name ${test} NAME_WE)
-  add_executable(${test_name} ${test} catch-main.cpp)
-  target_link_libraries(${test_name} osm2pgsql_lib)
+  add_executable(${test_name} ${test})
+  target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
   add_test(NAME ${test_name} COMMAND ${test_name}
     WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
   message(STATUS "Added test: ${test_name}...")

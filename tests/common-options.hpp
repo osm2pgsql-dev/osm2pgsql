@@ -13,7 +13,7 @@ public:
     opt_t()
     {
         m_opt.prefix = "osm2pgsql_test";
-        m_opt.style = "default.style";
+        m_opt.style = OSM2PGSQLDATA_DIR "default.style";
         m_opt.num_procs = 1;
         m_opt.cache = 1;
     }
@@ -36,7 +36,7 @@ public:
     opt_t &gazetteer()
     {
         m_opt.output_backend = "gazetteer";
-        m_opt.style = "newtests/data/gazetteer-test.style";
+        m_opt.style = TESTDATA_DIR "gazetteer-test.style";
         return *this;
     }
 
@@ -51,14 +51,14 @@ public:
     opt_t &flatnodes()
     {
         m_opt.flat_node_file = boost::optional<std::string>(
-            "newtests/test_middle_flat.flat.nodes.bin");
+            "test_middle_flat.flat.nodes.bin");
         m_opt.flat_node_cache_enabled = true;
         return *this;
     }
 
     opt_t &style(char const *filename)
     {
-        m_opt.style = "tests/";
+        m_opt.style = TESTDATA_DIR;
         m_opt.style += filename;
         return *this;
     }
