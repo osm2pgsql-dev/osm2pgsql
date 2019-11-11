@@ -19,7 +19,24 @@
 #include "common-pg.hpp"
 
 namespace testing {
-namespace db {
+
+inline void parse_file(options_t const &options, std::shared_ptr<middle_t> mid,
+                       std::vector<std::shared_ptr<output_t>> const &outs,
+                       char const *filename = nullptr)
+{
+    //let osmdata orchestrate between the middle and the outs
+    osmdata_t osmdata(mid, outs);
+
+    osmdata.start();
+    parse_osmium_t parser(options.bbox, options.append, &osmdata);
+
+    std::string filep(TESTDATA_DIR);
+    filep += filename ? filename : options.input_files[0];
+
+    parser.stream_file(filep, "");
+
+    osmdata.stop();
+}
 
 class test_parse_t : public parse_osmium_t
 {
@@ -35,6 +52,8 @@ public:
         reader.close();
     }
 };
+
+namespace db {
 
 /**
  * Convenience class around tempdb_t that offers functions for
@@ -80,21 +99,7 @@ public:
         auto outputs = output_t::create_outputs(
             middle->get_query_instance(middle), options);
 
-        //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
-
-        osmdata.start();
-
-        parse_osmium_t parser(options.bbox, options.append, &osmdata);
-
-        std::string filep(TESTDATA_DIR);
-        if (file)
-            filep += file;
-        else
-            filep += options.input_files[0];
-        parser.stream_file(filep, options.input_reader);
-
-        osmdata.stop();
+        parse_file(options, middle, outputs, file);
     }
 
     void run_file_multi_output(options_t options,
@@ -123,14 +128,7 @@ public:
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));
 
-        std::string filep(TESTDATA_DIR);
-        filep += file;
-
-        osmdata_t osmdata(mid_pgsql, out_test);
-        osmdata.start();
-        parse_osmium_t parser(options.bbox, options.append, &osmdata);
-        parser.stream_file(filep.c_str(), "");
-        osmdata.stop();
+        parse_file(options, mid_pgsql, {out_test}, file);
     }
 
     pg::conn_t connect() { return m_db.connect(); }

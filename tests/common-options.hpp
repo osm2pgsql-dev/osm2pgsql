@@ -16,6 +16,7 @@ public:
         m_opt.style = OSM2PGSQLDATA_DIR "default.style";
         m_opt.num_procs = 1;
         m_opt.cache = 1;
+        m_opt.append = false;
     }
 
     operator options_t() const { return m_opt; }
@@ -33,6 +34,12 @@ public:
         return *this;
     }
 
+    opt_t &append()
+    {
+        m_opt.append = true;
+        return *this;
+    }
+
     opt_t &gazetteer()
     {
         m_opt.output_backend = "gazetteer";
@@ -43,7 +50,7 @@ public:
     opt_t &multi(char const *style)
     {
         m_opt.output_backend = "multi";
-        m_opt.style = "tests/";
+        m_opt.style = TESTDATA_DIR;
         m_opt.style += style;
         return *this;
     }

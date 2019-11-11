@@ -1,10 +1,9 @@
 #include "catch.hpp"
 
 #include "middle.hpp"
-#include "osmdata.hpp"
 #include "output-null.hpp"
-#include "parse-osmium.hpp"
 
+#include "common-import.hpp"
 #include "common-options.hpp"
 
 struct type_stats_t
@@ -137,11 +136,7 @@ TEST_CASE("parse xml file")
     std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
-    osmdata_t osmdata(middle, {output});
-
-    osmdata.start();
-    parse_osmium_t parser(options.bbox, false, &osmdata);
-    parser.stream_file("tests/test_multipolygon.osm", "");
+    testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
 
     auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 4728);
@@ -171,16 +166,12 @@ TEST_CASE("parse xml file")
 
 TEST_CASE("parse diff file")
 {
-    options_t options = testing::opt_t().slim();
+    options_t options = testing::opt_t().slim().append();
 
     std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
-    osmdata_t osmdata(middle, {output});
-
-    osmdata.start();
-    parse_osmium_t parser(options.bbox, true, &osmdata);
-    parser.stream_file("tests/008-ch.osc.gz", "");
+    testing::parse_file(options, middle, {output}, "008-ch.osc.gz");
 
     auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->node.added == 0);
@@ -213,11 +204,7 @@ TEST_CASE("parse xml file with extra args")
     std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
-    osmdata_t osmdata(middle, {output});
-
-    osmdata.start();
-    parse_osmium_t parser(options.bbox, false, &osmdata);
-    parser.stream_file("tests/test_multipolygon.osm", "");
+    testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
 
     auto *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 73514);

@@ -45,14 +45,8 @@ TEST_CASE("parse point")
         outputs.push_back(out_test);
     }
 
-    std::string filep("tests/");
-    filep += "liechtenstein-2013-08-03.osm.pbf";
-
-    osmdata_t osmdata(mid_pgsql, outputs);
-    osmdata.start();
-    parse_osmium_t parser(options.bbox, options.append, &osmdata);
-    parser.stream_file(filep.c_str(), "");
-    osmdata.stop();
+    testing::parse_file(options, mid_pgsql, outputs,
+                        "liechtenstein-2013-08-03.osm.pbf");
 
     auto conn = db.db().connect();
 

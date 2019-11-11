@@ -66,7 +66,7 @@ TEST_CASE("output_gazetteer_t import")
     {
         REQUIRE_NOTHROW(db.run_import(
             options(), "n100 Tjunction=yes,highway=bus_stop x0 y0\n"
-                       "n101 Tjunction=yes x4 y6\n"
+                       "n101 Tjunction=yes,name=Bar x4 y6\n"
                        "n200 Tbuilding=yes,amenity=cafe x3 y7\n"
                        "n201 Tbuilding=yes,name=Intersting x4 y5\n"
                        "n202 Tbuilding=yes x6 y9\n"));
