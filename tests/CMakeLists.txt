@@ -69,7 +69,7 @@ endif()
 find_package(PythonInterp 3)
 
 if (PYTHONINTERP_FOUND)
-  add_test(NAME regression-test-pbf COMMAND ${PYTHON_EXECUTABLE} tests/regression-test.py -f tests/liechtenstein-2013-08-03.osm.pbf -x $<TARGET_FILE:osm2pgsql>
+  add_test(NAME regression-test-pbf COMMAND ${PYTHON_EXECUTABLE} ${osm2pgsql_SOURCE_DIR}/tests/regression-test.py -f ${osm2pgsql_SOURCE_DIR}/tests/data/liechtenstein-2013-08-03.osm.pbf -x $<TARGET_FILE:osm2pgsql>
     WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
   set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
   set_tests_properties(regression-test-pbf

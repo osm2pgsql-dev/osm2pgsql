@@ -7,10 +7,10 @@ import fnmatch
 import subprocess
 
 exe_path="./osm2pgsql"
-full_import_file="tests/liechtenstein-2013-08-03.osm.pbf"
-multipoly_import_file="tests/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
-diff_import_file="tests/000466354.osc.gz"
-diff_multipoly_import_file="tests/test_multipolygon_diff.osc" #This file contains a number of different multi-polygon diff processing test cases
+full_import_file="tests/data/liechtenstein-2013-08-03.osm.pbf"
+multipoly_import_file="tests/data/test_multipolygon.osm" #This file contains a number of different multi-polygon test cases
+diff_import_file="tests/data/000466354.osc.gz"
+diff_multipoly_import_file="tests/data/test_multipolygon_diff.osc" #This file contains a number of different multi-polygon diff processing test cases
 lua_test_enabled = os.environ.get("HAVE_LUA", True)
 
 created_tablespace = 0
@@ -370,12 +370,12 @@ class BaseSlimTestCase(BaseTestCase):
 class BaseGazetteerTestCase(BaseTestCase):
 
     def setUpGeneric(self, parameters, file):
-        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Stests/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "-Stests/data/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
     def updateGeneric(self, parameters, file):
-        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Stests/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen([exe_path, "--slim", "-Ogazetteer", "--append", "-Stests/data/gazetteer-test.style", "-dosm2pgsql-test"] + parameters + [file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         (outp, outerr) = proc.communicate()
         self.assertEqual (proc.returncode, 0, "Execution of osm2pgsql --slim --append gazetteer options: '%s' failed:\n%s\n%s\n" % (str(parameters), outp, outerr))
 
