@@ -30,7 +30,7 @@ private:
                                            osmium::Location>;
 
     std::shared_ptr<node_ram_cache> m_ram_cache;
-    int m_fd;
+    int m_fd = -1;
     std::unique_ptr<index_t> m_index;
     bool m_remove_file;
     const char *m_fname;

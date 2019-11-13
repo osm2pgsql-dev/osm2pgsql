@@ -49,7 +49,7 @@ size_t node_persistent_cache::get_list(osmium::WayNodeList *nodes)
 
 node_persistent_cache::node_persistent_cache(
     const options_t *options, std::shared_ptr<node_ram_cache> ptr)
-: m_ram_cache(ptr), m_fd(-1)
+: m_ram_cache(ptr)
 {
     if (!options->flat_node_file) {
         throw std::runtime_error("Unable to set up persistent cache: the name "

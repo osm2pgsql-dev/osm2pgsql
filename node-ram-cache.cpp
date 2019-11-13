@@ -310,17 +310,11 @@ osmium::Location node_ram_cache::get_dense(osmid_t id)
 }
 
 node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
-: allocStrategy(strategy), blocks(nullptr), usedBlocks(0), maxBlocks(0),
-  blockCache(nullptr), queue(nullptr), sparseBlock(nullptr), maxSparseTuples(0),
-  sizeSparseTuples(0), maxSparseId(0), cacheUsed(0),
-  cacheSize((int64_t)cacheSizeMB * 1024 * 1024), storedNodes(0), totalNodes(0),
-  nodesCacheHits(0), nodesCacheLookups(0), warn_node_order(0)
+: allocStrategy(strategy), cacheSize((int64_t)cacheSizeMB * 1024 * 1024)
 {
     if (cacheSize == 0)
         return;
 
-    blockCache = 0;
-    blockCachePos = 0;
     /* How much we can fit, and make sure it's odd */
     maxBlocks = (cacheSize / (PER_BLOCK * sizeof(osmium::Location)));
     maxSparseTuples = (cacheSize / sizeof(ramNodeID)) + 1;
