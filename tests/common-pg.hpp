@@ -13,6 +13,12 @@
 #include "catch.hpp"
 #include "options.hpp"
 
+#ifdef _MSC_VER
+#include <windows.h>
+#include <process.h>
+#define getpid _getpid
+#endif
+
 /// Helper classes for postgres connections
 namespace pg {
 
@@ -32,7 +38,7 @@ public:
 
     bool is_null(int row, int col) const
     {
-        return PQgetisnull(m_result, row, col);
+        return PQgetisnull(m_result, row, col) != 0;
     }
 
 private:
