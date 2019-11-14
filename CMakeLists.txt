@@ -67,7 +67,6 @@ include (CheckFunctionExists)
 include (CheckTypeSize)
 
 add_definitions( -DDEFAULT_STYLE=\"${DEFAULT_STYLE}\" )
-add_definitions( -DFIXED_POINT )
 
 CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
 CHECK_INCLUDE_FILES (libgen.h HAVE_LIBGEN_H)
