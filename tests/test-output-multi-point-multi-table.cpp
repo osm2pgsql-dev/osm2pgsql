@@ -25,7 +25,7 @@ TEST_CASE("parse point")
         columns.add(osmium::item_type::node, info);
     }
 
-    std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+    auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
     mid_pgsql->start();
     auto midq = mid_pgsql->get_query_instance(mid_pgsql);
 

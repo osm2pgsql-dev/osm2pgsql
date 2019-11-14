@@ -1,3 +1,6 @@
+#ifndef OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP
+#define OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP
+
 #include <string>
 
 #include <boost/filesystem.hpp>
@@ -8,7 +11,7 @@ namespace cleanup {
 /**
  * RAII structure to remove a file upon destruction.
  *
- * Per defualt will also make sure that the file does not exist
+ * Per default will also make sure that the file does not exist
  * when it is constructed.
  */
 class file_t
@@ -21,10 +24,10 @@ public:
             delete_file(false);
     }
 
-    ~file_t() { delete_file(true); }
+    ~file_t() noexcept { delete_file(true); }
 
 private:
-    void delete_file(bool warn)
+    void delete_file(bool warn) noexcept
     {
         boost::system::error_code ec;
         boost::filesystem::remove(m_filename, ec);
@@ -39,3 +42,5 @@ private:
 
 } // namespace cleanup
 } // namespace testing
+
+#endif // OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP

@@ -20,7 +20,8 @@
 
 namespace testing {
 
-inline void parse_file(options_t const &options, std::shared_ptr<middle_t> mid,
+inline void parse_file(options_t const &options,
+                       std::shared_ptr<middle_t> const &mid,
                        std::vector<std::shared_ptr<output_t>> const &outs,
                        char const *filename = nullptr)
 {
@@ -68,7 +69,7 @@ public:
         options.database_options = m_db.db_options();
 
         // setup the middle
-        std::shared_ptr<middle_t> middle(new middle_ram_t(&options));
+        auto middle = std::make_shared<middle_ram_t>(&options);
         middle->start();
 
         // setup the output
@@ -92,7 +93,7 @@ public:
         options.database_options = m_db.db_options();
 
         // setup the middle
-        std::shared_ptr<middle_t> middle(new middle_ram_t(&options));
+        auto middle = std::make_shared<middle_ram_t>(&options);
         middle->start();
 
         // setup the output
@@ -117,7 +118,7 @@ public:
             columns.add(type, info);
         }
 
-        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
+        auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
         mid_pgsql->start();
         auto midq = mid_pgsql->get_query_instance(mid_pgsql);
 

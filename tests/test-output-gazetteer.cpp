@@ -7,28 +7,23 @@
 
 static testing::db::import_t db;
 
-using fmt = boost::format;
-
-options_t options() { return testing::opt_t().gazetteer(); }
+static options_t options() { return testing::opt_t().gazetteer(); }
 
 static pg::result_t require_place(pg::conn_t const &conn, char type, osmid_t id,
                                   char const *cls, char const *typ)
 {
-    return conn.require_row(
-        (fmt("SELECT * FROM place WHERE osm_type = '%1%' AND osm_id = %2% AND "
-             "class = '%3%' AND type = '%4%'") %
-         type % id % cls % typ)
-            .str());
+    auto sql = boost::format("SELECT * FROM place"
+                             " WHERE osm_type = '%1%' AND osm_id = %2%"
+                             " AND class = '%3%' AND type = '%4%'");
+    return conn.require_row((sql % type % id % cls % typ).str());
 }
 
 static void require_place_not(pg::conn_t const &conn, char type, osmid_t id,
                               char const *cls)
 {
-    REQUIRE(conn.require_scalar<int>(
-                (fmt("SELECT count(*) FROM place WHERE osm_type = '%1%' AND "
-                     "osm_id = %2% AND class = '%3%'") %
-                 type % id % cls)
-                    .str()) == 0);
+    auto where = boost::format("osm_type = '%1%' AND osm_id = %2%"
+                               " AND class = '%3%'");
+    REQUIRE(conn.get_count("place", (where % type % id % cls).str()) == 0);
 }
 
 TEST_CASE("output_gazetteer_t import")

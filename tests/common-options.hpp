@@ -1,5 +1,5 @@
-#ifndef __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
-#define __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
+#ifndef OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
+#define OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
 
 #include "options.hpp"
 
@@ -15,7 +15,7 @@ public:
         m_opt.prefix = "osm2pgsql_test";
         m_opt.style = OSM2PGSQLDATA_DIR "default.style";
         m_opt.num_procs = 1;
-        m_opt.cache = 1;
+        m_opt.cache = 2;
         m_opt.append = false;
     }
 
@@ -82,4 +82,4 @@ private:
 
 } // namespace testing
 
-#endif // __OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP
+#endif // OSM2PGSQL_TESTS_COMMON_OPTIONS_HPP

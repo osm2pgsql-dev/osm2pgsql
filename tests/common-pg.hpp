@@ -27,16 +27,18 @@ class result_t
 public:
     result_t(PGresult *result) : m_result(result) {}
 
-    ~result_t() { PQclear(m_result); }
+    ~result_t() noexcept { PQclear(m_result); }
 
-    ExecStatusType status() const { return PQresultStatus(m_result); }
-    int num_tuples() const { return PQntuples(m_result); }
-    std::string get_value(int row, int col) const
+    ExecStatusType status() const noexcept { return PQresultStatus(m_result); }
+
+    int num_tuples() const noexcept { return PQntuples(m_result); }
+
+    std::string get_value(int row, int col) const noexcept
     {
         return PQgetvalue(m_result, row, col);
     }
 
-    bool is_null(int row, int col) const
+    bool is_null(int row, int col) const noexcept
     {
         return PQgetisnull(m_result, row, col) != 0;
     }
@@ -60,7 +62,7 @@ public:
         }
     }
 
-    ~conn_t()
+    ~conn_t() noexcept
     {
         if (m_conn) {
             PQfinish(m_conn);
@@ -108,7 +110,10 @@ public:
 
     void assert_null(std::string const &cmd) const
     {
-        REQUIRE(require_scalar<std::string>(cmd) == "");
+        result_t res = query(cmd);
+        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        REQUIRE(res.num_tuples() == 1);
+        REQUIRE(res.is_null(0, 0));
     }
 
     result_t require_row(std::string const &cmd) const
@@ -160,7 +165,7 @@ public:
         local.exec("CREATE EXTENSION hstore");
     }
 
-    ~tempdb_t()
+    ~tempdb_t() noexcept
     {
         if (!m_db_name.empty()) {
             conn_t conn("dbname=postgres");

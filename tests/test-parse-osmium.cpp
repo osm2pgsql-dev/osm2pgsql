@@ -133,7 +133,7 @@ TEST_CASE("parse xml file")
 {
     options_t options = testing::opt_t().slim();
 
-    std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
+    auto middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
     testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
@@ -168,7 +168,7 @@ TEST_CASE("parse diff file")
 {
     options_t options = testing::opt_t().slim().append();
 
-    std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
+    auto middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
     testing::parse_file(options, middle, {output}, "008-ch.osc.gz");
@@ -201,7 +201,7 @@ TEST_CASE("parse xml file with extra args")
     options_t options = testing::opt_t().slim().srs(PROJ_SPHERE_MERC);
     options.extra_attributes = true;
 
-    std::shared_ptr<middle_t> middle(new counting_slim_middle_t());
+    auto middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output(new counting_output_t(options));
 
     testing::parse_file(options, middle, {output}, "test_multipolygon.osm");

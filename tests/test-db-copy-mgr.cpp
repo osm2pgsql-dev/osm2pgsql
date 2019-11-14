@@ -1,4 +1,5 @@
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "catch.hpp"
@@ -6,15 +7,13 @@
 #include "common-pg.hpp"
 #include "db-copy.hpp"
 
-using fmt = boost::format;
-
 static pg::tempdb_t db;
 
 static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 {
     auto conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_mgr");
-    conn.exec(fmt("CREATE TABLE test_copy_mgr (id int8%1%%2%)") %
+    conn.exec(boost::format("CREATE TABLE test_copy_mgr (id int8%1%%2%)") %
               (cols.empty() ? "" : ",") % cols);
 
     auto table = std::make_shared<db_target_descr_t>();
@@ -29,7 +28,7 @@ void add_row(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
              ARGS &&... args)
 {
     mgr.new_line(t);
-    mgr.add_columns(args...);
+    mgr.add_columns(std::forward<ARGS>(args)...);
     mgr.finish_line();
 
     mgr.sync();
@@ -37,7 +36,7 @@ void add_row(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
 
 template <typename T>
 void add_array(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
-               std::vector<T> values)
+               std::vector<T> const &values)
 {
     mgr.new_line(t);
     mgr.add_column(id);
@@ -51,9 +50,9 @@ void add_array(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
     mgr.sync();
 }
 
-static void add_hash(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
-                     int id,
-                     std::vector<std::pair<std::string, std::string>> values)
+static void
+add_hash(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
+         std::vector<std::pair<std::string, std::string>> const &values)
 {
     mgr.new_line(t);
 
@@ -68,7 +67,7 @@ static void add_hash(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
     mgr.sync();
 }
 
-static void check_row(std::vector<std::string> row)
+static void check_row(std::vector<std::string> const &row)
 {
     auto conn = db.connect();
     auto res = conn.require_row("SELECT * FROM test_copy_mgr");
@@ -173,7 +172,7 @@ TEST_CASE("db_copy_mgr_t")
     {
         auto t = setup_table("h hstore");
 
-        std::vector<std::pair<std::string, std::string>> values = {
+        std::vector<std::pair<std::string, std::string>> const values = {
             {"one", "two"},           {"key 1", "value 1"},
             {"\"key\"", "\"value\""}, {"key\t2", "value\t2"},
             {"key\n3", "value\n3"},   {"key\r4", "value\r4"},
@@ -183,9 +182,9 @@ TEST_CASE("db_copy_mgr_t")
 
         auto c = db.connect();
 
+        auto sql = boost::format("SELECT h->'%1%' from test_copy_mgr");
         for (auto const &v : values) {
-            auto res = c.require_scalar<std::string>(
-                (fmt("SELECT h->'%1%' from test_copy_mgr") % v.first).str());
+            auto res = c.require_scalar<std::string>((sql % v.first).str());
             CHECK(res == v.second);
         }
     }
