@@ -5,19 +5,19 @@ with Mapnik, but is also useful for [analysis](analysis.md) and
 [exporting](export.md) to other formats.
 
 ## Database Layout ##
-It connects to a PostgreSQL database and stores the data in four tables
+It connects to a PostgreSQL database and stores the data in four tables:
 
 * ``planet_osm_point``
 * ``planet_osm_line``
 * ``planet_osm_roads``
 * ``planet_osm_polygon``
 
-planet_osm_roads contains the data from other tables, but has tags selected
-for low-zoom rendering. It does not only contain roads.
+``planet_osm_roads`` contains the data from other tables, but has tags selected
+for low-zoom rendering. It does not only contain roads!
 
 The default prefix ``planet_osm`` can be changed with the ``--prefix`` option.
 
-If you are using ``--slim`` mode, it will create the following additional 3
+If you are using ``--slim`` mode, it will create the following additional three
 tables which are used by the pgsql middle layer, not the backend:
 
 * ``planet_osm_nodes``
@@ -52,12 +52,12 @@ the topic.
 4. Ways without tags or with polygon tags are stored as "pending" in the
    middle layer.
 
-5. Relations are parsed. In this stage, "new-style" multipolygon and boundary
+5. Relations are parsed. In this stage, multipolygon and boundary
    relations are turned into polygons. Route relations are turned into
    linestrings.
 
 6. "Pending" ways are processed, and they are either added as just the way, or
-   if a member of a multipolygon relation, they processed as multipolygons.
+   if a member of a multipolygon relation, they are processed as multipolygons.
 
 7. Indexes are built. This may take substantial time, particularly for the
    middle layer indexes created in non-slim mode.
