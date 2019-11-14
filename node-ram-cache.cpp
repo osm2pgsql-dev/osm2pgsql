@@ -132,6 +132,7 @@ void node_ram_cache::set_sparse(osmid_t id, const osmium::Location &coord)
 void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
 {
     int32_t const block = id2block(id);
+    assert(block < NUM_BLOCKS); // https://github.com/openstreetmap/osm2pgsql/issues/965
     int const offset = id2offset(id);
 
     if (maxBlocks == 0) {
