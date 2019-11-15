@@ -2,11 +2,6 @@
 #include "sprompt.hpp"
 
 #include <getopt.h>
-#ifdef HAVE_LIBGEN_H
-#include <libgen.h>
-#else
-#define basename /*SKIP IT*/
-#endif
 #include <boost/format.hpp>
 #include <algorithm>
 #include <cstdio>
@@ -28,6 +23,11 @@ extern "C" {
 }
 #endif
 
+static char const *program_name(char const *name)
+{
+    char const *const slash = std::strrchr(name, '/');
+    return slash ? (slash + 1) : name;
+}
 
 namespace
 {
@@ -82,12 +82,16 @@ namespace
 
     void short_usage(char *arg0)
     {
-        throw std::runtime_error((boost::format("Usage error. For further information see:\n\t%1% -h|--help\n") % basename(arg0)).str());
+        throw std::runtime_error(
+            (boost::format("Usage error. For further information see:\n\t%1% "
+                           "-h|--help\n") %
+             program_name(arg0))
+                .str());
     }
 
     void long_usage(char *arg0, bool verbose = false)
     {
-        const char *name = basename(arg0);
+        const char *name = program_name(arg0);
 
         printf("Usage:\n");
         printf("\t%s [options] planet.osm\n", name);

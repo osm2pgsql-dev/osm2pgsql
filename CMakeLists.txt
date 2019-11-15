@@ -69,12 +69,7 @@ include (CheckTypeSize)
 add_definitions( -DDEFAULT_STYLE=\"${DEFAULT_STYLE}\" )
 
 CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
-CHECK_INCLUDE_FILES (libgen.h HAVE_LIBGEN_H)
 CHECK_INCLUDE_FILES (unistd.h HAVE_UNISTD_H)
-
-if (WIN32)
-  set(HAVE_LIBGEN_H FALSE)
-endif()
 
 #############################################################
 # Find necessary libraries
