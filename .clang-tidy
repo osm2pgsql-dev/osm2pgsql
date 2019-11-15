@@ -1,0 +1,4 @@
+---
+Checks: '*,-fuchsia-*'
+#WarningsAsErrors: '*'
+...
