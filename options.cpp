@@ -284,7 +284,7 @@ options_t::options_t()
 #else
   alloc_chunkwise(ALLOC_SPARSE),
 #endif
-  num_procs((int) std::min(4U, std::thread::hardware_concurrency()))
+  num_procs((int)std::min(4U, std::thread::hardware_concurrency()))
 {
     if (num_procs < 1) {
         fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");

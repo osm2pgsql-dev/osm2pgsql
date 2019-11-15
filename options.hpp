@@ -45,34 +45,60 @@ public:
     options_t(int argc, char *argv[]);
     virtual ~options_t();
 
-    std::string prefix{"planet_osm"}; ///< prefix for table names
+    std::string prefix{"planet_osm"};         ///< prefix for table names
     std::shared_ptr<reprojection> projection; ///< SRS of projection
-    bool append = false; ///< Append to existing data
-    bool slim = false; ///< In slim mode
-    int cache = 800; ///< Memory usable for cache in MB
-    boost::optional<std::string> tblsmain_index{boost::none}; ///< Pg Tablespace to store indexes on main tables (no default TABLESPACE)
-    boost::optional<std::string> tblsslim_index{boost::none}; ///< Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
-    boost::optional<std::string> tblsmain_data{boost::none}; ///< Pg Tablespace to store main tables (no default TABLESPACE)
-    boost::optional<std::string> tblsslim_data{boost::none}; ///< Pg Tablespace to store slim tables (no default TABLESPACE)
+    bool append = false;                      ///< Append to existing data
+    bool slim = false;                        ///< In slim mode
+    int cache = 800;                          ///< Memory usable for cache in MB
+
+    /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
+    boost::optional<std::string> tblsmain_index{boost::none};
+
+    /// Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
+    boost::optional<std::string> tblsslim_index{boost::none};
+
+    /// Pg Tablespace to store main tables (no default TABLESPACE)
+    boost::optional<std::string> tblsmain_data{boost::none};
+
+    /// Pg Tablespace to store slim tables (no default TABLESPACE)
+    boost::optional<std::string> tblsslim_data{boost::none};
+
     std::string style{DEFAULT_STYLE}; ///< style file to use
     uint32_t expire_tiles_zoom = 0; ///< Zoom level for tile expiry list
-    uint32_t expire_tiles_zoom_min =
-        0;                        ///< Minimum zoom level for tile expiry list
-    double expire_tiles_max_bbox = 20000.0; ///< Max bbox size in either dimension to expire full bbox for a polygon
-    std::string expire_tiles_filename{"dirty_tiles"}; ///< File name to output expired tiles list to
-    int hstore_mode = HSTORE_NONE; ///< add an additional hstore column with objects key/value pairs, and what type of hstore column
+
+    /// Minimum zoom level for tile expiry list
+    uint32_t expire_tiles_zoom_min = 0;
+
+    /// Max bbox size in either dimension to expire full bbox for a polygon
+    double expire_tiles_max_bbox = 20000.0;
+
+    /// File name to output expired tiles list to
+    std::string expire_tiles_filename{"dirty_tiles"};
+
+    /// add an additional hstore column with objects key/value pairs, and what type of hstore column
+    int hstore_mode = HSTORE_NONE;
+
     bool enable_hstore_index = false; ///< add an index on the hstore column
-    bool enable_multi = false; ///< Output multi-geometries intead of several simple geometries
-    std::vector<std::string> hstore_columns; ///< list of columns that should be written into their own hstore column
+
+    /// Output multi-geometries intead of several simple geometries
+    bool enable_multi = false;
+
+    /// list of columns that should be written into their own hstore column
+    std::vector<std::string> hstore_columns;
+
     bool keep_coastlines = false;
     bool parallel_indexing = true;
     int alloc_chunkwise;
     int num_procs;
     bool droptemp = false; ///< drop slim mode temp tables after act
-    bool hstore_match_only = false; ///< only copy rows that match an explicitly listed key
+
+    /// only copy rows that match an explicitly listed key
+    bool hstore_match_only = false;
+
     bool flat_node_cache_enabled = false;
     bool reproject_area = false;
     boost::optional<std::string> flat_node_file{boost::none};
+
     /**
      * these options allow you to control the name of the
      * Lua functions which get called in the tag transform
