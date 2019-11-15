@@ -105,7 +105,7 @@ public:
 
     void assert_double(double expected, std::string const &cmd) const
     {
-        REQUIRE(Approx(expected) == require_scalar<double>(cmd));
+        REQUIRE(Approx(expected).epsilon(0.01) == require_scalar<double>(cmd));
     }
 
     void assert_null(std::string const &cmd) const
