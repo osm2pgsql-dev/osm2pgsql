@@ -282,30 +282,14 @@ std::string database_options_t::conninfo() const
 }
 
 options_t::options_t()
-: prefix("planet_osm"),
-  projection(reprojection::create_projection(PROJ_SPHERE_MERC)), append(false),
-  slim(false), cache(800), tblsmain_index(boost::none),
-  tblsslim_index(boost::none), tblsmain_data(boost::none),
-  tblsslim_data(boost::none), style(DEFAULT_STYLE),
-  expire_tiles_zoom(0), expire_tiles_zoom_min(0),
-  expire_tiles_max_bbox(20000.0), expire_tiles_filename("dirty_tiles"),
-  hstore_mode(HSTORE_NONE), enable_hstore_index(false), enable_multi(false),
-  hstore_columns(), keep_coastlines(false), parallel_indexing(true),
+: projection(reprojection::create_projection(PROJ_SPHERE_MERC)),
 #ifdef __amd64__
   alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
 #else
   alloc_chunkwise(ALLOC_SPARSE),
 #endif
-  droptemp(false), hstore_match_only(false),
-  flat_node_cache_enabled(false), reproject_area(false),
-  flat_node_file(boost::none), tag_transform_script(boost::none),
-  tag_transform_node_func(boost::none), tag_transform_way_func(boost::none),
-  tag_transform_rel_func(boost::none), tag_transform_rel_mem_func(boost::none),
-  create(false), long_usage_bool(false), pass_prompt(false),
-  output_backend("pgsql"), input_reader("auto"), bbox(boost::none),
-  extra_attributes(false), verbose(false)
+  num_procs((int)std::min(4U, std::thread::hardware_concurrency()))
 {
-    num_procs = (int) std::min(4U, std::thread::hardware_concurrency());
     if (num_procs < 1) {
         fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");
         num_procs = 1;

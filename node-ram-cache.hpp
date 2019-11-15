@@ -32,17 +32,16 @@ struct ramNodeID
 class ramNodeBlock
 {
 public:
-    ramNodeBlock() : nodes(nullptr), block_offset(-1), _used(0) {}
 
     void reset_used() { _used = 0; }
     void inc_used() { _used += 1; }
     int used() const { return _used; }
 
-    osmium::Location *nodes;
-    int32_t block_offset;
+    osmium::Location *nodes = nullptr;
+    int32_t block_offset = -1;
 
 private:
-    int32_t _used;
+    int32_t _used = 0;
 };
 
 struct node_ram_cache : public boost::noncopyable
@@ -63,25 +62,28 @@ private:
 
     int allocStrategy;
 
-    ramNodeBlock *blocks;
-    int usedBlocks;
+    ramNodeBlock *blocks = nullptr;
+    int usedBlocks = 0;
     /* Note: maxBlocks *must* be odd, to make sure the priority queue has no nodes with only one child */
-    int maxBlocks;
-    char *blockCache;
-    size_t blockCachePos;
+    int maxBlocks = 0;
+    char *blockCache = nullptr;
+    size_t blockCachePos = 0;
 
-    ramNodeBlock **queue;
+    ramNodeBlock **queue = nullptr;
 
-    ramNodeID *sparseBlock;
-    int64_t maxSparseTuples;
-    int64_t sizeSparseTuples;
-    osmid_t maxSparseId;
+    ramNodeID *sparseBlock = nullptr;
+    int64_t maxSparseTuples = 0;
+    int64_t sizeSparseTuples = 0;
+    osmid_t maxSparseId = 0;
 
-    int64_t cacheUsed, cacheSize;
-    osmid_t storedNodes, totalNodes;
-    long nodesCacheHits, nodesCacheLookups;
+    int64_t cacheUsed = 0;
+    int64_t cacheSize;
+    osmid_t storedNodes = 0;
+    osmid_t totalNodes = 0;
+    long nodesCacheHits = 0;
+    long nodesCacheLookups = 0;
 
-    int warn_node_order;
+    int warn_node_order = 0;
 };
 
 #endif
