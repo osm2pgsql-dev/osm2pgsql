@@ -23,9 +23,9 @@ extern "C" {
 }
 #endif
 
-static char const *program_name(char const * name)
+static char const *program_name(char const *name)
 {
-    char const * const slash = std::strrchr(name, '/');
+    char const *const slash = std::strrchr(name, '/');
     return slash ? (slash + 1) : name;
 }
 
@@ -82,7 +82,11 @@ namespace
 
     void short_usage(char *arg0)
     {
-        throw std::runtime_error((boost::format("Usage error. For further information see:\n\t%1% -h|--help\n") % program_name(arg0)).str());
+        throw std::runtime_error(
+            (boost::format("Usage error. For further information see:\n\t%1% "
+                           "-h|--help\n") %
+             program_name(arg0))
+                .str());
     }
 
     void long_usage(char *arg0, bool verbose = false)
