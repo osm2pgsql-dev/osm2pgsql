@@ -6,6 +6,8 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(osm2pgsql)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if (WIN32)
@@ -242,6 +244,28 @@ set_target_properties(osm2pgsql_lib PROPERTIES OUTPUT_NAME osm2pgsql)
 add_executable(osm2pgsql osm2pgsql.cpp)
 target_link_libraries(osm2pgsql_lib ${LIBS})
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
+
+#############################################################
+# Optional "clang-tidy" target
+#############################################################
+
+message(STATUS "Looking for clang-tidy")
+find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-10 clang-tidy-9 clang-tidy-8 clang-tidy-7)
+
+if(CLANG_TIDY)
+    message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
+
+    file(GLOB CT_CHECK_FILES *.cpp tests/*cpp)
+
+    add_custom_target(clang-tidy
+        ${CLANG_TIDY}
+        -p ${CMAKE_BINARY_DIR}
+        ${CT_CHECK_FILES}
+    )
+else()
+    message(STATUS "Looking for clang-tidy - not found")
+    message(STATUS "  Build target 'clang-tidy' will not be available.")
+endif()
 
 #############################################################
 # Build tests
