@@ -24,8 +24,7 @@ in modern C++, making use of data structures in the standard library.
 ## Versioning
 
 Osm2pgsql uses a X.Y.Z version number, where Y tells you if you are on a stable
-or development series. Like the Linux Kernel, even numbers are stable and
-development versions are odd.
+or development series. Even numbers are stable and development versions are odd.
 
 Bugs and known issues are fixed on the main branch only. Exceptions may be made
 for easy bug fixes, or if a patch backporting a fix is provided.
@@ -69,6 +68,9 @@ actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
 
 The code also comes with a suite of tests which can be run by
 executing ``ctest``.
+
+You can call `ctest` with `-L NoDB` to only run tests that don't need a
+database.
 
 Regression tests require python and psycopg to be installed. On Ubuntu run:
 

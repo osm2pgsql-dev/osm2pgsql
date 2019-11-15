@@ -3,12 +3,12 @@
 An osm2pgsql database and PostGIS is well-suited for geospatial analysis using
 OpenStreetMap data where topology is not a consideration.
 
-PostGIS provides an [extensive number of geometry functions](http://postgis.net/docs/manual-2.1/reference.html)
+PostGIS provides an [extensive number of geometry functions](http://postgis.net/docs/manual-2.5/reference.html)
 and a full description of how to perform analysis with them is beyond the
 scope of a readme, but a simple example of finding the total road lengths by
 classification for a municipality should help.
 
-To start with, we'll download the data for the region as an [extract from Geofabrik](http://download.geofabrik.de/) and import it with osm2pgsql.
+To start with, we'll download the data for the region as an [extract from Geofabrik](https://download.geofabrik.de/) and import it with osm2pgsql.
 
     osm2pgsql --database gis --number-processes 4 --multi-geometry british-columbia-latest.osm.pbf
 

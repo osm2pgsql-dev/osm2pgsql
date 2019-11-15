@@ -1,6 +1,8 @@
 # Exporting with osm2pgsql #
 
-Osm2pgsql can be used in combination with [ogr2ogr](http://www.gdal.org/ogr2ogr.html) and a [PostgreSQL data source](http://www.gdal.org/drv_pg.html).
+Osm2pgsql can be used in combination with
+[ogr2ogr](https://gdal.org/programs/ogr2ogr.html) and a [PostgreSQL data
+source](https://gdal.org/drivers/vector/pg.html).
 
 An example command to export to GeoJSON would be
 

@@ -7,8 +7,8 @@ use them.
 
 ## Overall options
 
-* ``--append`` or ``--create`` specify if osm2pgsql is conducting a new import
-  or adding to an existing one. ``--slim`` is required with ``--append``.
+* ``--create`` or ``--append`` specify if osm2pgsql should conduct a new import
+  or add to an existing database. ``--slim`` is required with ``--append``.
 
 * ``--input-reader`` specifies the format if the filetype can't be
   automatically detected for some reason.
@@ -26,7 +26,7 @@ Performance is heavily influenced by other options, but there are some options
 that only impact performance.
 
 * ``--cache`` specifies how much memory in MB to allocate for caching information.
-  In ``--slim`` mode, this is just node positions while in non-slim it has to
+  In ``--slim`` mode, this is just node positions while in non-slim mode it has to
   store information about ways and relations too. The rule of thumb in slim mode
   is as follows: use the size of the PBF file you are trying to import or about
   75% of RAM, whatever is smaller. Make sure there is enough RAM left for
@@ -40,7 +40,7 @@ that only impact performance.
   past 8 threads.
 
 * ``--disable-parallel-indexing`` disables the clustering and indexing of all
-  tables in parallel. This reduces disk and ram requirements during the import,
+  tables in parallel. This reduces disk and RAM requirements during the import,
   but causes the last stages to take significantly longer.
 
 * ``--cache-strategy`` sets the cache strategy to use. The defaults are fine
@@ -52,7 +52,7 @@ osm2pgsql supports standard options for how to connect to PostgreSQL. If left
 unset, it will attempt to connect to the default database (usually the username)
 using a unix socket. Most usage only requires setting ``--database``.
 
-``--tablespace`` options allow the location of main and slim tables and indexes
+``--tablespace-*`` options allow the location of main and slim tables and indexes
 to be set to different tablespaces independently, typically on machines with
 multiple drive arrays where one is not large enough for all of the database.
 
@@ -61,13 +61,13 @@ file is used as a database of node locations. This should only be used on full
 planet imports or very large extracts (e.g. Europe) but in those situations
 offers significant space savings and speed increases, particularly on
 mechanical drives. The file takes approximately 8 bytes * maximum node ID, or
-about 23 GiB, regardless of the size of the extract.
+more than 50 GiB, regardless of the size of the extract.
 
-``--prefix`` specifies the prefix for tables
+``--prefix`` specifies the prefix for tables.
 
 ## Middle-layer options ##
 
-* ``--slim`` causes the middle layer to store node and way information in
+* ``--slim`` causes the middle layer to store node and way information in the
   database rather than in memory. It is required for updates and for large
   extracts or the entire planet which will not fit in RAM.
 
@@ -89,7 +89,7 @@ about 23 GiB, regardless of the size of the extract.
   file.
 
 * ``--tag-transform-script`` sets a [Lua tag transform](lua.md) to use in
-  place of the built-in C tag transform.
+  place of the built-in C++ tag transform.
 
 ### Hstore
 

@@ -54,7 +54,7 @@ as a string of flag names separated by commas.
 
 ## Polygons ##
 
-Area handling differs slightly from the traditional osm2pgsql C and Lua transforms
+Area handling differs slightly from the traditional osm2pgsql C++ and Lua transforms
 where if a way is added to the polygon or line table depends on if it is closed,
 not just its tagging. All tables with the multi-backend are independent.
 
