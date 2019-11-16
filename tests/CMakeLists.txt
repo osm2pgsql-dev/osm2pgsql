@@ -16,13 +16,17 @@ function(set_test test_name)
     set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
 
     if (DEFINED test_param_LABELS)
-        set_tests_properties(${test_name} PROPERTIES LABELS "${test_param_LABELS}")
-
-        list(FIND ${test_param_LABELS} Tablespace test_num_labels)
+        list(FIND test_param_LABELS Tablespace test_num_labels)
         if (${test_num_labels} EQUAL -1)
+            list(APPEND test_param_LABELS "NoTablespace")
+        else()
             set_tests_properties(${test_name}
                                  PROPERTIES FIXTURES_REQUIRED Tablespace)
         endif()
+
+        set_tests_properties(${test_name} PROPERTIES LABELS "${test_param_LABELS}")
+    else()
+        set_tests_properties(${test_name} PROPERTIES LABELS NoTablespace)
     endif()
 
     message(STATUS "Added test: ${test_name}...")
