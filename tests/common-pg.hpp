@@ -1,112 +1,205 @@
-#ifndef COMMON_PG_HPP
-#define COMMON_PG_HPP
+#ifndef OSM2PGSQL_TEST_COMMON_PG_HPP
+#define OSM2PGSQL_TEST_COMMON_PG_HPP
 
+#include <cstdio>
+#include <stdexcept>
 #include <string>
-#include <memory>
-#include <boost/format.hpp>
-#include <boost/noncopyable.hpp>
+
 #include <libpq-fe.h>
 
-// reuse the database_options_t class
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+
+#include "catch.hpp"
 #include "options.hpp"
 
-/* Some RAII objects to make writing stuff that needs a temporary database
- * easier, and to keep track of and free connections and results objects.
- */
+#ifdef _MSC_VER
+#include <windows.h>
+#include <process.h>
+#define getpid _getpid
+#endif
+
+/// Helper classes for postgres connections
 namespace pg {
 
-struct conn;
-struct result;
+class result_t
+{
+public:
+    result_t(PGresult *result) : m_result(result) {}
 
-typedef std::shared_ptr<conn> conn_ptr;
-typedef std::shared_ptr<result> result_ptr;
+    ~result_t() noexcept { PQclear(m_result); }
 
-struct conn
-    : public boost::noncopyable,
-      public std::enable_shared_from_this<conn> {
+    ExecStatusType status() const noexcept { return PQresultStatus(m_result); }
 
-    static conn_ptr connect(const std::string &conninfo);
-    static conn_ptr connect(const database_options_t &database_options);
-    result_ptr exec(const std::string &query);
-    result_ptr exec(const boost::format &fmt);
-    PGconn *get();
+    int num_tuples() const noexcept { return PQntuples(m_result); }
 
-    ~conn();
+    std::string get_value(int row, int col) const noexcept
+    {
+        return PQgetvalue(m_result, row, col);
+    }
 
-private:
-    conn(const std::string &conninfo);
-
-    PGconn *m_conn;
-};
-
-struct result
-  : public boost::noncopyable {
-    result(conn_ptr conn, const std::string &query);
-    PGresult *get();
-    ~result();
+    bool is_null(int row, int col) const noexcept
+    {
+        return PQgetisnull(m_result, row, col) != 0;
+    }
 
 private:
-    conn_ptr m_conn;
     PGresult *m_result;
 };
 
-struct tempdb
-  : public boost::noncopyable {
+class conn_t
+{
+public:
+    conn_t(char const *conninfo)
+    {
+        m_conn = PQconnectdb(conninfo);
 
-    tempdb();
-    ~tempdb();
+        if (PQstatus(m_conn) != CONNECTION_OK) {
+            fprintf(stderr, "Could not connect to database '%s' because: %s\n",
+                    conninfo, PQerrorMessage(m_conn));
+            PQfinish(m_conn);
+            throw std::runtime_error("Database connection failed");
+        }
+    }
 
-    static std::unique_ptr<pg::tempdb> create_db_or_skip();
+    ~conn_t() noexcept
+    {
+        if (m_conn) {
+            PQfinish(m_conn);
+        }
+    }
 
-    database_options_t database_options;
+    void exec(boost::format const &cmd,
+              ExecStatusType expect = PGRES_COMMAND_OK)
+    {
+        exec(cmd.str(), expect);
+    }
 
-    void check_tblspc();
-    /**
-     * Checks the result of a query with COUNT(*).
-     * It will work with any integer-returning query.
-     * \param[in] expected expected result
-     * \param[in] query SQL query to run. Must return one tuple.
-     * \throws std::runtime_error if query result is not expected
-     */
-    void check_count(int expected, const std::string &query);
+    void exec(std::string const &cmd, ExecStatusType expect = PGRES_COMMAND_OK)
+    {
+        result_t res = query(cmd);
+        if (res.status() != expect) {
+            fprintf(stderr, "Query '%s' failed with: %s\n", cmd.c_str(),
+                    PQerrorMessage(m_conn));
+            throw std::runtime_error("DB exec failed.");
+        }
+    }
 
-    /**
-     * Checks a floating point number.
-     * It allows a small variance around the expected result to allow for
-     * floating point differences.
-     * The query must only return one tuple
-     * \param[in] expected expected result
-     * \param[in] query SQL query to run. Must return one tuple.
-     * \throws std::runtime_error if query result is not expected
-     */
-    void check_number(double expected, const std::string &query);
+    result_t query(std::string const &cmd) const
+    {
+        return PQexec(m_conn, cmd.c_str());
+    }
 
-    /**
-     * Check the string a query returns.
-     * \param[in] expected expected result
-     * \param[in] query SQL query to run. Must return one tuple.
-     * \throws std::runtime_error if query result is not expected
-     */
-    void check_string(const std::string &expected, const std::string &query);
-    /**
-     * Assert that the database has a certain table_name
-     * \param[in] table_name Name of the table to check, optionally schema-qualified
-     * \throws std::runtime_error if missing the table
-     */
-    void assert_has_table(const std::string &table_name);
+    result_t query(boost::format const &fmt) const { return query(fmt.str()); }
+
+    template <typename T>
+    T require_scalar(std::string const &cmd) const
+    {
+        result_t res = query(cmd);
+        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        REQUIRE(res.num_tuples() == 1);
+
+        std::string str = res.get_value(0, 0);
+        return boost::lexical_cast<T>(str);
+    }
+
+    void assert_double(double expected, std::string const &cmd) const
+    {
+        REQUIRE(Approx(expected).epsilon(0.01) == require_scalar<double>(cmd));
+    }
+
+    void assert_null(std::string const &cmd) const
+    {
+        result_t res = query(cmd);
+        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        REQUIRE(res.num_tuples() == 1);
+        REQUIRE(res.is_null(0, 0));
+    }
+
+    result_t require_row(std::string const &cmd) const
+    {
+        result_t res = query(cmd);
+        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        REQUIRE(res.num_tuples() == 1);
+
+        return res;
+    }
+
+    unsigned long get_count(char const *table_name,
+                            std::string const &where = "") const
+    {
+        auto query = boost::format("select count(*) from %1% %2% %3%") %
+                     table_name % (where.empty() ? "" : "where") % where;
+
+        return require_scalar<unsigned long>(query.str());
+    }
+
+    void require_has_table(char const *table_name) const
+    {
+        auto where = boost::format("oid = '%1%'::regclass") % table_name;
+
+        REQUIRE(get_count("pg_catalog.pg_class", where.str()) == 1);
+    }
 
 private:
-    /**
-     * Sets up an extension, trying first with 9.1 CREATE EXTENSION, and falling
-     * back to trying to find extension_files. The fallback is not likely to
-     * work on systems not based on Debian.
-     */
-    void setup_extension(const std::string &extension, const std::vector<std::string> &extension_files = std::vector<std::string>());
+    PGconn *m_conn = nullptr;
+};
 
-    conn_ptr m_conn; ///< connection to the test DB
-    conn_ptr m_postgres_conn; ///< Connection to the "postgres" db, used to create and drop test DBs
+class tempdb_t
+{
+public:
+    tempdb_t()
+    {
+        try {
+            conn_t conn("dbname=postgres");
+
+            m_db_name =
+                (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr))
+                    .str();
+            conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
+            conn.exec(
+                boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
+                m_db_name);
+
+            conn_t local = connect();
+            local.exec("CREATE EXTENSION postgis");
+            local.exec("CREATE EXTENSION hstore");
+        } catch (std::runtime_error const &e) {
+            fprintf(stderr, "Test database cannot be created: %s\n", e.what());
+            fprintf(stderr, "Did you mean to run 'pg_virtualenv ctest'?\n");
+            exit(1);
+        }
+    }
+
+    ~tempdb_t() noexcept
+    {
+        if (!m_db_name.empty()) {
+            try {
+                conn_t conn("dbname=postgres");
+                conn.query(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
+                           m_db_name);
+            } catch (...) {
+                fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
+            }
+        }
+    }
+
+    conn_t connect() const { return conn_t(conninfo().c_str()); }
+
+    std::string conninfo() const { return "dbname=" + m_db_name; }
+
+    database_options_t db_options() const
+    {
+        database_options_t opt;
+        opt.db = m_db_name;
+
+        return opt;
+    }
+
+private:
+    std::string m_db_name;
 };
 
 } // namespace pg
 
-#endif /* COMMON_PG_HPP */
+#endif // OSM2PGSQL_TEST_COMMON_PG_HPP

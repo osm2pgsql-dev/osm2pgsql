@@ -1,61 +1,29 @@
-/*
- * Test wildcard matching function.
- */
-
-#include <iostream>
-#include <string>
-#include <vector>
+#include "catch.hpp"
 
 #include "wildcmp.hpp"
 
-struct test_t {
-    std::string wildcard;
-    std::string match;
-    bool result;
-
-    test_t(const std::string& w, const std::string& m, bool r)
-    : wildcard(w), match(m), result(r) {}
-};
-
-static std::vector<test_t> tests {
-    {"fhwieurwe", "fhwieurwe", true},
-    {"fhwieurwe", "fhwieurw", false},
-    {"fhwieurw", "fhwieurwe", false},
-    {"*", "foo", true},
-    {"r*", "foo", false},
-    {"r*", "roo", true},
-    {"*bar", "Hausbar", true},
-    {"*bar", "Haustar", false},
-    {"*", "", true},
-    {"kin*la", "kinla", true},
-    {"kin*la", "kinLLla", true},
-    {"kin*la", "kinlalalala", true},
-    {"kin*la", "kinlaa", false},
-    {"kin*la", "ki??laa", false},
-    {"1*2*3", "123", true},
-    {"1*2*3", "1xX23", true},
-    {"1*2*3", "12y23", true},
-    {"1*2*3", "12", false},
-    {"bo??f", "boxxf", true},
-    {"bo??f", "boxf", false},
-    {"?5?", "?5?", true},
-    {"?5?", "x5x", true},
-};
-
-int main()
+TEST_CASE("Wildcard matching", "[NoDB]")
 {
-    int ret = 0;
-
-    for (const auto& test: tests) {
-        if (bool(wildMatch(test.wildcard.c_str(), test.match.c_str())) != test.result) {
-            std::cerr << "Wildcard match failed:";
-            std::cerr << "\n  expression: " << test.wildcard;
-            std::cerr << "\n  test string: " << test.match;
-            std::cerr << "\n  expected: " << test.result;
-            std::cerr << "\n  got: " << (!test.result) << "\n";
-            ret = 1;
-        }
-    }
-
-    return ret;
+    CHECK(wildMatch("fhwieurwe", "fhwieurwe"));
+    CHECK_FALSE(wildMatch("fhwieurwe", "fhwieurw"));
+    CHECK_FALSE(wildMatch("fhwieurw", "fhwieurwe"));
+    CHECK(wildMatch("*", "foo"));
+    CHECK_FALSE(wildMatch("r*", "foo"));
+    CHECK(wildMatch("r*", "roo"));
+    CHECK(wildMatch("*bar", "Hausbar"));
+    CHECK_FALSE(wildMatch("*bar", "Haustar"));
+    CHECK(wildMatch("*", ""));
+    CHECK(wildMatch("kin*la", "kinla"));
+    CHECK(wildMatch("kin*la", "kinLLla"));
+    CHECK(wildMatch("kin*la", "kinlalalala"));
+    CHECK_FALSE(wildMatch("kin*la", "kinlaa"));
+    CHECK_FALSE(wildMatch("kin*la", "ki??laa"));
+    CHECK(wildMatch("1*2*3", "123"));
+    CHECK(wildMatch("1*2*3", "1xX23"));
+    CHECK(wildMatch("1*2*3", "12y23"));
+    CHECK_FALSE(wildMatch("1*2*3", "12"));
+    CHECK(wildMatch("bo??f", "boxxf"));
+    CHECK_FALSE(wildMatch("bo??f", "boxf"));
+    CHECK(wildMatch("?5?", "?5?"));
+    CHECK(wildMatch("?5?", "x5x"));
 }

@@ -1,104 +1,56 @@
-/**
+#include "catch.hpp"
 
-Test the area reprojection functionality of osm2pgsql 
+#include "common-import.hpp"
+#include "common-options.hpp"
 
-The idea behind that functionality is to populate the way_area
-column with the area that a polygoun would have in EPSG:3857, 
-rather than the area it actually has in the coordinate system
-used for importing.
+static testing::db::import_t db;
 
-*/
-#include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cassert>
-#include <sstream>
-#include <stdexcept>
-#include <memory>
+TEST_CASE("default projection")
+{
+    options_t options = testing::opt_t().slim();
 
-#include "osmtypes.hpp"
-#include "osmdata.hpp"
-#include "middle.hpp"
-#include "output-pgsql.hpp"
-#include "options.hpp"
-#include "middle-pgsql.hpp"
-#include "middle-ram.hpp"
-#include "taginfo_impl.hpp"
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_area.osm"));
 
-#include <sys/types.h>
-#include <unistd.h>
+    auto conn = db.db().connect();
 
-#include <boost/lexical_cast.hpp>
-
-#include "tests/common-pg.hpp"
-#include "tests/common.hpp"
-
-void run_test(const char* test_name, void (*testfunc)()) {
-    try {
-        fprintf(stderr, "%s\n", test_name);
-        testfunc();
-
-    } catch (const std::exception& e) {
-        fprintf(stderr, "%s\n", e.what());
-        fprintf(stderr, "FAIL\n");
-        exit(EXIT_FAILURE);
-    }
-
-    fprintf(stderr, "PASS\n");
-}
-#define RUN_TEST(x) run_test(#x, &(x))
-
-
-void test_area_base(bool latlon, bool reproj, double expect_area_poly, double expect_area_multi) {
-    std::unique_ptr<pg::tempdb> db;
-
-    try {
-        db.reset(new pg::tempdb);
-    } catch (const std::exception &e) {
-        std::cerr << "Unable to setup database: " << e.what() << "\n";
-        exit(77);
-    }
-
-    options_t options;
-    options.database_options = db->database_options;
-    options.num_procs = 1;
-    options.slim = true;
-    options.style = "default.style";
-    options.prefix = "osm2pgsql_test";
-    if (latlon) {
-        options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
-    }
-    if (reproj) {
-        options.reproject_area = true;
-    }
-
-    testing::run_osm2pgsql(options, "tests/test_output_pgsql_area.osm", "xml");
-
-    db->check_count(2, "SELECT COUNT(*) FROM osm2pgsql_test_polygon");
-    db->check_number(expect_area_poly, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
-    db->check_number(expect_area_multi, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
-
-    return;
+    REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
+    conn.assert_double(
+        1.23927e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        9.91828e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
-void test_area_classic() {
-    test_area_base(false, false, 1.23927e+10, 9.91828e+10);
+TEST_CASE("latlon projection")
+{
+    options_t options = testing::opt_t().slim().srs(PROJ_LATLONG);
+
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_area.osm"));
+
+    auto conn = db.db().connect();
+
+    REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
+    conn.assert_double(
+        1, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        8, "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }
 
-void test_area_latlon() {
-    test_area_base(true, false, 1, 8);
-}
+TEST_CASE("latlon projection with way_area reprojection")
+{
+    options_t options = testing::opt_t().slim().srs(PROJ_LATLONG);
+    options.reproject_area = true;
 
-void test_area_latlon_with_reprojection() {
-    test_area_base(true, true, 1.23927e+10, 9.91828e+10);
-}
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_area.osm"));
 
-int main(int argc, char *argv[]) {
-    (void)argc;
-    (void)argv;
-    RUN_TEST(test_area_latlon);
-    RUN_TEST(test_area_classic);
-    RUN_TEST(test_area_latlon_with_reprojection);
-    return 0;
+    auto conn = db.db().connect();
+
+    REQUIRE(2 == conn.get_count("osm2pgsql_test_polygon"));
+    conn.assert_double(
+        1.23927e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='poly'");
+    conn.assert_double(
+        9.91828e+10,
+        "SELECT way_area FROM osm2pgsql_test_polygon WHERE name='multi'");
 }

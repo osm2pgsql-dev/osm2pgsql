@@ -1,101 +1,49 @@
-#include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cassert>
-#include <sstream>
-#include <stdexcept>
-#include <memory>
+#include "catch.hpp"
 
-#include "osmtypes.hpp"
+#include "geometry-processor.hpp"
+#include "middle-pgsql.hpp"
 #include "osmdata.hpp"
 #include "output-multi.hpp"
-#include "options.hpp"
-#include "middle-pgsql.hpp"
+#include "parse-osmium.hpp"
 #include "taginfo_impl.hpp"
 
-#include <sys/types.h>
-#include <unistd.h>
+#include "common-import.hpp"
+#include "common-options.hpp"
 
-#include <boost/lexical_cast.hpp>
+static testing::db::import_t db;
 
-#include "tests/middle-tests.hpp"
-#include "tests/common-pg.hpp"
-#include "tests/common.hpp"
+TEST_CASE("parse point")
+{
+    options_t options = testing::opt_t().slim();
 
-int main(int argc, char *argv[]) {
-    (void)argc;
-    (void)argv;
-    std::unique_ptr<pg::tempdb> db;
+    auto processor = geometry_processor::create("polygon", &options);
 
-    try {
-        db.reset(new pg::tempdb);
-    } catch (const std::exception &e) {
-        std::cerr << "Unable to setup database: " << e.what() << "\n";
-        return 77; // <-- code to skip this test.
-    }
+    db.run_file_multi_output(testing::opt_t().slim(), processor,
+                             "foobar_buildings", osmium::item_type::way,
+                             "building", "liechtenstein-2013-08-03.osm.pbf");
 
-    try {
-        options_t options;
-        options.database_options = db->database_options;
-        options.num_procs = 1;
-        options.prefix = "osm2pgsql_test";
-        options.slim = true;
+    auto conn = db.db().connect();
+    conn.require_has_table("foobar_buildings");
 
-        std::shared_ptr<geometry_processor> processor = geometry_processor::create("polygon", &options);
+    REQUIRE(3723 == conn.get_count("foobar_buildings"));
+    REQUIRE(0 == conn.get_count("foobar_buildings", "building is null"));
 
-        export_list columns;
-        {
-            taginfo info;
-            info.name = "building";
-            info.type = "text";
-            columns.add(osmium::item_type::way, info);
-        }
-
-        std::shared_ptr<middle_t> mid_pgsql(new middle_pgsql_t(&options));
-        mid_pgsql->start();
-        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
-
-        auto out_test = std::make_shared<output_multi_t>(
-            "foobar_buildings", processor, columns, midq, options,
-            std::make_shared<db_copy_thread_t>(
-                options.database_options.conninfo()));
-
-        osmdata_t osmdata(mid_pgsql, out_test);
-
-        testing::parse("tests/liechtenstein-2013-08-03.osm.pbf", "pbf",
-                       options, &osmdata);
-
-        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'foobar_buildings'");
-        db->check_count(0, "select count(*) from foobar_buildings where building is null");
-        db->check_count(3723, "select count(*) from foobar_buildings");
-
-        //check that we have the right spread
-        db->check_count(1, "select count(*) from foobar_buildings where building='barn'");
-        db->check_count(1, "select count(*) from foobar_buildings where building='chapel'");
-        db->check_count(5, "select count(*) from foobar_buildings where building='church'");
-        db->check_count(3, "select count(*) from foobar_buildings where building='commercial'");
-        db->check_count(6, "select count(*) from foobar_buildings where building='farm'");
-        db->check_count(1, "select count(*) from foobar_buildings where building='garage'");
-        db->check_count(2, "select count(*) from foobar_buildings where building='glasshouse'");
-        db->check_count(1, "select count(*) from foobar_buildings where building='greenhouse'");
-        db->check_count(153, "select count(*) from foobar_buildings where building='house'");
-        db->check_count(4, "select count(*) from foobar_buildings where building='hut'");
-        db->check_count(8, "select count(*) from foobar_buildings where building='industrial'");
-        db->check_count(200, "select count(*) from foobar_buildings where building='residential'");
-        db->check_count(6, "select count(*) from foobar_buildings where building='roof'");
-        db->check_count(4, "select count(*) from foobar_buildings where building='school'");
-        db->check_count(2, "select count(*) from foobar_buildings where building='station'");
-        db->check_count(3, "select count(*) from foobar_buildings where building='warehouse'");
-        db->check_count(3323, "select count(*) from foobar_buildings where building='yes'");
-        return 0;
-
-    } catch (const std::exception &e) {
-        std::cerr << "ERROR: " << e.what() << std::endl;
-
-    } catch (...) {
-        std::cerr << "UNKNOWN ERROR" << std::endl;
-    }
-
-    return 1;
+    REQUIRE(1 == conn.get_count("foobar_buildings", "building='barn'"));
+    REQUIRE(1 == conn.get_count("foobar_buildings", "building='chapel'"));
+    REQUIRE(5 == conn.get_count("foobar_buildings", "building='church'"));
+    REQUIRE(3 == conn.get_count("foobar_buildings", "building='commercial'"));
+    REQUIRE(6 == conn.get_count("foobar_buildings", "building='farm'"));
+    REQUIRE(1 == conn.get_count("foobar_buildings", "building='garage'"));
+    REQUIRE(2 == conn.get_count("foobar_buildings", "building='glasshouse'"));
+    REQUIRE(1 == conn.get_count("foobar_buildings", "building='greenhouse'"));
+    REQUIRE(153 == conn.get_count("foobar_buildings", "building='house'"));
+    REQUIRE(4 == conn.get_count("foobar_buildings", "building='hut'"));
+    REQUIRE(8 == conn.get_count("foobar_buildings", "building='industrial'"));
+    REQUIRE(200 ==
+            conn.get_count("foobar_buildings", "building='residential'"));
+    REQUIRE(6 == conn.get_count("foobar_buildings", "building='roof'"));
+    REQUIRE(4 == conn.get_count("foobar_buildings", "building='school'"));
+    REQUIRE(2 == conn.get_count("foobar_buildings", "building='station'"));
+    REQUIRE(3 == conn.get_count("foobar_buildings", "building='warehouse'"));
+    REQUIRE(3323 == conn.get_count("foobar_buildings", "building='yes'"));
 }

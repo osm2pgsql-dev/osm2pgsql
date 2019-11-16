@@ -2,7 +2,7 @@
   {
     "name": "test_line",
     "type": "line",
-    "tagtransform": "tests/test_output_multi_line_trivial.lua",
+    "tagtransform": "tests/data/test_output_multi_line_trivial.lua",
     "tagtransform-node-function": "drop_all",
     "tagtransform-way-function": "test_ways",
     "tagtransform-relation-function": "drop_all",

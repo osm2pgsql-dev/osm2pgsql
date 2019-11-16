@@ -1,71 +1,34 @@
-#include <iostream>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <cassert>
-#include <sstream>
-#include <stdexcept>
-#include <memory>
+#include "catch.hpp"
 
-#include "middle-pgsql.hpp"
-#include "options.hpp"
-#include "osmdata.hpp"
-#include "osmtypes.hpp"
-#include "output-multi.hpp"
-#include "taginfo_impl.hpp"
+#include "common-import.hpp"
+#include "common-options.hpp"
 
-#include <sys/types.h>
-#include <unistd.h>
+static testing::db::import_t db;
 
-#include <boost/lexical_cast.hpp>
+TEST_CASE("multi backend line import")
+{
+    options_t options = testing::opt_t()
+                            .slim()
+                            .multi("test_output_multi_line_trivial.style.json")
+                            .srs(PROJ_LATLONG);
 
-#include "tests/middle-tests.hpp"
-#include "tests/common-pg.hpp"
-#include "tests/common.hpp"
+    REQUIRE_NOTHROW(db.run_file(options, "test_output_multi_line_storage.osm"));
 
-int main(int argc, char *argv[]) {
-    (void)argc;
-    (void)argv;
-    std::unique_ptr<pg::tempdb> db;
+    auto conn = db.db().connect();
+    conn.require_has_table("test_line");
 
-    try {
-        db.reset(new pg::tempdb);
-    } catch (const std::exception &e) {
-        std::cerr << "Unable to setup database: " << e.what() << "\n";
-        return 77; // <-- code to skip this test.
-    }
+    REQUIRE(3 == conn.get_count("test_line"));
 
-    try {
-        options_t options;
-        options.database_options = db->database_options;
-        options.num_procs = 1;
-        options.slim = true;
+    //check that we have the number of vertexes in each linestring
+    REQUIRE(3 ==
+            conn.require_scalar<int>(
+                "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 1"));
+    REQUIRE(2 ==
+            conn.require_scalar<int>(
+                "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 2"));
+    REQUIRE(2 ==
+            conn.require_scalar<int>(
+                "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 3"));
 
-        options.projection.reset(reprojection::create_projection(PROJ_LATLONG));
-
-        options.output_backend = "multi";
-        options.style = "tests/test_output_multi_line_trivial.style.json";
-
-        testing::run_osm2pgsql(
-            options, "tests/test_output_multi_line_storage.osm", "xml");
-
-        db->check_count(1, "select count(*) from pg_catalog.pg_class where relname = 'test_line'");
-        db->check_count(3, "select count(*) from test_line");
-
-        //check that we have the number of vertexes in each linestring
-        db->check_count(3, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 1");
-        db->check_count(2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 2");
-        db->check_count(2, "SELECT ST_NumPoints(way) FROM test_line WHERE osm_id = 3");
-
-        db->check_count(3, "SELECT COUNT(*) FROM test_line WHERE foo = 'bar'");
-        return 0;
-
-    } catch (const std::exception &e) {
-        std::cerr << "ERROR: " << e.what() << std::endl;
-
-    } catch (...) {
-        std::cerr << "UNKNOWN ERROR" << std::endl;
-    }
-
-    return 1;
+    REQUIRE(3 == conn.get_count("test_line", "foo = 'bar'"));
 }

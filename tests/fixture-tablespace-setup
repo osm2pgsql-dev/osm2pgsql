@@ -6,20 +6,20 @@
 # Then the tablespace can be owned by the current user.
 
 if [ "x$PG_CLUSTER_CONF_ROOT" != "x" ]; then
-  BASEDIR=`pwd`
+    BASEDIR=`pwd`
 
-  TBLDIR=${BASEDIR}/osm2pgsql-test-tablespace
+    TBLDIR=${BASEDIR}/osm2pgsql-test-tablespace
 
-  if [ -d "$TBLDIR" ]; then
-    echo "Tablespace directory already exists. Cleaning up."
+    if [ -d "$TBLDIR" ]; then
+        echo "Tablespace directory already exists. Cleaning up."
 
-    if find $TBLDIR -maxdepth 1 -mindepth 1 -type d -name 'PG*'; then
-        rm -r $TBLDIR/PG*
+        if find $TBLDIR -maxdepth 1 -mindepth 1 -type d -name 'PG*'; then
+            rm -r $TBLDIR/PG*
+        fi
+    else
+        mkdir $TBLDIR
+        chmod 777 $TBLDIR
     fi
-  else
-    mkdir $TBLDIR
-    chmod 777 $TBLDIR
-  fi
 
-  psql -c "CREATE TABLESPACE tablespacetest LOCATION '$TBLDIR'" postgres
+    psql -c "CREATE TABLESPACE tablespacetest LOCATION '$TBLDIR'" postgres
 fi

@@ -114,10 +114,15 @@ void node_ram_cache::set_sparse(osmid_t id, const osmium::Location &coord)
         if (allocStrategy & ALLOC_LOSSY) {
             return;
         } else {
-            fprintf(stderr,
+            if (maxSparseId && id < maxSparseId)
+                fprintf(stderr,
+                        "Node ids are out of order. Please use slim mode.\n");
+            else
+                fprintf(
+                    stderr,
                     "\nNode cache size is too small to fit all nodes. Please "
                     "increase cache size\n");
-            util::exit_nicely();
+            throw std::runtime_error("Using RAM cache.");
         }
     }
     maxSparseId = id;
