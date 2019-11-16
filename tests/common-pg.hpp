@@ -150,27 +150,37 @@ class tempdb_t
 public:
     tempdb_t()
     {
-        conn_t conn("dbname=postgres");
+        try {
+            conn_t conn("dbname=postgres");
 
-        m_db_name =
-            (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr))
-                .str();
-        conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
-        conn.exec(
-            boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
-            m_db_name);
+            m_db_name =
+                (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr))
+                    .str();
+            conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
+            conn.exec(
+                boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
+                m_db_name);
 
-        conn_t local = connect();
-        local.exec("CREATE EXTENSION postgis");
-        local.exec("CREATE EXTENSION hstore");
+            conn_t local = connect();
+            local.exec("CREATE EXTENSION postgis");
+            local.exec("CREATE EXTENSION hstore");
+        } catch (std::runtime_error const &e) {
+            fprintf(stderr, "Test database cannot be created: %s\n", e.what());
+            fprintf(stderr, "Did you mean to run 'pg_virtualenv ctest'?\n");
+            exit(1);
+        }
     }
 
     ~tempdb_t() noexcept
     {
         if (!m_db_name.empty()) {
-            conn_t conn("dbname=postgres");
-            conn.query(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
-                       m_db_name);
+            try {
+                conn_t conn("dbname=postgres");
+                conn.query(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
+                           m_db_name);
+            } catch (...) {
+                fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
+            }
         }
     }
 
