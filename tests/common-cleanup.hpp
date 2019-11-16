@@ -20,8 +20,9 @@ public:
     file_t(std::string const &filename, bool remove_on_construct = true)
     : m_filename(filename)
     {
-        if (remove_on_construct)
+        if (remove_on_construct) {
             delete_file(false);
+        }
     }
 
     ~file_t() noexcept { delete_file(true); }

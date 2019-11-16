@@ -61,8 +61,9 @@ TEST_CASE("Projection setup")
 
     options_t options((int)option_params.size(), (char **)option_params.data());
 
-    if (proj_name)
+    if (proj_name) {
         CHECK(strcmp(options.projection->target_desc(), proj_name) == 0);
+    }
 
     db.run_import(options, "n1 Tamenity=bar x0 y0");
 

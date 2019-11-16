@@ -19,26 +19,31 @@ public:
         return ((z == other.z) && (x == other.x) && (y == other.y));
     }
 
-    bool operator<(const xyz &other) const
+    bool operator<(xyz const &other) const
     {
-        if (z < other.z)
+        if (z < other.z) {
             return true;
-        if (z > other.z)
+        }
+        if (z > other.z) {
             return false;
-        if (x < other.x)
+        }
+        if (x < other.x) {
             return true;
-        if (x > other.x)
+        }
+        if (x > other.x) {
             return false;
-        if (y < other.y)
+        }
+        if (y < other.y) {
             return true;
+        }
 
         return false;
     }
 
     void to_centroid(double &cx, double &cy) const
     {
-        const double datum = 0.5 * (1 << z);
-        const double scale = EARTH_CIRCUMFERENCE / (1 << z);
+        double const datum = 0.5 * (1U << z);
+        double const scale = EARTH_CIRCUMFERENCE / (1U << z);
         cx = ((x + 0.5) - datum) * scale;
         cy = (datum - (y + 0.5)) * scale;
     }
@@ -54,19 +59,10 @@ struct tile_output_set
 
     bool operator==(tile_output_set const &other) const
     {
-        if (tiles.size() != other.tiles.size())
-            return false;
-
-        auto this_itr = tiles.cbegin();
-        auto o_itr = other.tiles.cbegin();
-        while (this_itr != tiles.end())
-            if (!(*(this_itr++) == *(o_itr++)))
-                return false;
-
-        return true;
+        return tiles == other.tiles;
     }
 
-    tile_output_set &operator+=(const tile_output_set &other)
+    tile_output_set &operator+=(tile_output_set const &other)
     {
         tiles.insert(other.tiles.cbegin(), other.tiles.cend());
         return *this;
@@ -89,7 +85,7 @@ struct tile_output_set
     static tile_output_set generate_random(uint32_t zoom, size_t count)
     {
         tile_output_set set;
-        const int cmask = (1 << zoom) - 1;
+        int const cmask = (1 << zoom) - 1;
 
         do {
             set.output_dirty_tile(rand() & cmask, rand() & cmask, zoom);
