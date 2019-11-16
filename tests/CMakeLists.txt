@@ -1,47 +1,66 @@
-set (TESTS
-    test-db-copy-thread.cpp
-    test-db-copy-mgr.cpp
-    test-expire-tiles.cpp
-    test-middle.cpp
-    test-options-database.cpp
-    test-options-parse.cpp
-    test-options-projection.cpp
-    test-output-gazetteer.cpp
-    test-output-multi-line.cpp
-    test-output-multi-line-storage.cpp
-    test-output-multi-point.cpp
-    test-output-multi-point-multi-table.cpp
-    test-output-multi-poly-trivial.cpp
-    test-output-multi-polygon.cpp
-    test-output-multi-tags.cpp
-    test-output-pgsql.cpp
-    test-output-pgsql-area.cpp
-    test-output-pgsql-hstore-match-only.cpp
-    test-output-pgsql-int4.cpp
-    test-output-pgsql-schema.cpp
-    test-output-pgsql-tablespace.cpp
-    test-output-pgsql-validgeom.cpp
-    test-output-pgsql-z_order.cpp
-    test-parse-osmium.cpp
-    test-persistent-cache.cpp
-    test-ram-cache.cpp
-    test-wildcard-match.cpp
-)
+# Add a new test
+#
+# set_test(name [LABELS labels])
+#
+# name - Name of test (source file without suffix)
+# labels - optional labels for the test
+function(set_test test_name)
+    cmake_parse_arguments(test_param "" "" "LABELS" ${ARGN})
+
+    add_executable(${test_name} ${test_name}.cpp)
+    target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
+    add_test(NAME ${test_name}
+             COMMAND ${test_name}
+             WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
+
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
+
+    if (DEFINED test_param_LABELS)
+        set_tests_properties(${test_name} PROPERTIES LABELS "${test_param_LABELS}")
+
+        list(FIND ${test_param_LABELS} Tablespace test_num_labels)
+        if (${test_num_labels} EQUAL -1)
+            set_tests_properties(${test_name}
+                                 PROPERTIES FIXTURES_REQUIRED Tablespace)
+        endif()
+    endif()
+
+  message(STATUS "Added test: ${test_name}...")
+endfunction()
 
 add_definitions( -DTESTDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/tests/data/\" )
 add_definitions( -DOSM2PGSQLDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/\" )
 
 add_library(catch_main_lib STATIC catch-main.cpp)
 
-foreach (test ${TESTS})
-  get_filename_component(test_name ${test} NAME_WE)
-  add_executable(${test_name} ${test})
-  target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
-  add_test(NAME ${test_name} COMMAND ${test_name}
-    WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
-  message(STATUS "Added test: ${test_name}...")
-  set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
-endforeach()
+set_test(test-db-copy-thread)
+set_test(test-db-copy-mgr)
+set_test(test-expire-tiles LABELS NoDB)
+set_test(test-middle)
+set_test(test-options-database LABELS NoDB)
+set_test(test-options-parse LABELS NoDB)
+set_test(test-options-projection)
+set_test(test-output-gazetteer)
+set_test(test-output-multi-line)
+set_test(test-output-multi-line-storage)
+set_test(test-output-multi-point)
+set_test(test-output-multi-point-multi-table)
+set_test(test-output-multi-poly-trivial)
+set_test(test-output-multi-polygon)
+set_test(test-output-multi-tags)
+set_test(test-output-pgsql)
+set_test(test-output-pgsql-area)
+set_test(test-output-pgsql-hstore-match-only)
+set_test(test-output-pgsql-int4)
+set_test(test-output-pgsql-schema)
+set_test(test-output-pgsql-tablespace LABELS Tablespace)
+set_test(test-output-pgsql-validgeom)
+set_test(test-output-pgsql-z_order)
+set_test(test-parse-osmium)
+set_test(test-persistent-cache LABELS NoDB)
+set_test(test-ram-cache LABELS NoDB)
+set_test(test-wildcard-match LABELS NoDB)
+
 
 # Fixture for creating test tablespace under a pg_virtualenv
 if (NOT WIN32)
@@ -56,9 +75,6 @@ if (NOT WIN32)
   set_tests_properties(FixtureTablespaceSetup PROPERTIES FIXTURES_SETUP Tablespace)
   set_tests_properties(FixtureTablespaceCleanup PROPERTIES FIXTURES_CLEANUP Tablespace)
 endif()
-
-set_tests_properties(test-output-pgsql-tablespace
-                     PROPERTIES FIXTURES_REQUIRED Tablespace)
 
 if (NOT HAVE_LUA)
   # these tests require LUA support
