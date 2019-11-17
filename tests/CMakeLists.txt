@@ -46,12 +46,9 @@ set_test(test-options-parse LABELS NoDB)
 set_test(test-options-projection)
 set_test(test-output-gazetteer)
 set_test(test-output-multi-line)
-set_test(test-output-multi-line-storage)
 set_test(test-output-multi-point)
 set_test(test-output-multi-point-multi-table)
-set_test(test-output-multi-poly-trivial)
 set_test(test-output-multi-polygon)
-set_test(test-output-multi-tags)
 set_test(test-output-pgsql)
 set_test(test-output-pgsql-area)
 set_test(test-output-pgsql-hstore-match-only)
@@ -64,6 +61,13 @@ set_test(test-parse-osmium)
 set_test(test-persistent-cache LABELS NoDB)
 set_test(test-ram-cache LABELS NoDB)
 set_test(test-wildcard-match LABELS NoDB)
+
+# these tests require LUA support
+if (HAVE_LUA)
+    set_test(test-output-multi-line-storage)
+    set_test(test-output-multi-poly-trivial)
+    set_test(test-output-multi-tags)
+endif()
 
 
 # Fixture for creating test tablespace under a pg_virtualenv
@@ -80,11 +84,6 @@ if (NOT WIN32)
     set_tests_properties(FixtureTablespaceCleanup PROPERTIES FIXTURES_CLEANUP Tablespace)
 endif()
 
-if (NOT HAVE_LUA)
-    # these tests require LUA support
-    set_tests_properties(test-output-multi-poly-trivial PROPERTIES WILL_FAIL on)
-    set_tests_properties(test-output-multi-tags PROPERTIES WILL_FAIL on)
-endif()
 
 find_package(PythonInterp 3)
 
