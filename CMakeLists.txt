@@ -141,13 +141,6 @@ endif()
 
 list(APPEND LIBS ${CMAKE_DL_LIBS})
 
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-  check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME_IN_RT)
-  if (HAVE_CLOCK_GETTIME_IN_RT)
-    list(APPEND LIBS rt)
-  endif()
-endif ()
-
 message(STATUS "Libraries used to build: ${LIBS}")
 
 #############################################################
