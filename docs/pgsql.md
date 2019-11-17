@@ -7,24 +7,24 @@ with Mapnik, but is also useful for [analysis](analysis.md) and
 ## Database Layout ##
 It connects to a PostgreSQL database and stores the data in four tables:
 
-* ``planet_osm_point``
-* ``planet_osm_line``
-* ``planet_osm_roads``
-* ``planet_osm_polygon``
+* `planet_osm_point`
+* `planet_osm_line`
+* `planet_osm_roads`
+* `planet_osm_polygon`
 
-``planet_osm_roads`` contains the data from other tables, but has tags selected
+`planet_osm_roads` contains the data from other tables, but has tags selected
 for low-zoom rendering. It does not only contain roads!
 
-The default prefix ``planet_osm`` can be changed with the ``--prefix`` option.
+The default prefix `planet_osm` can be changed with the `--prefix` option.
 
-If you are using ``--slim`` mode, it will create the following additional three
+If you are using `--slim` mode, it will create the following additional three
 tables which are used by the pgsql middle layer, not the backend:
 
-* ``planet_osm_nodes``
-* ``planet_osm_ways``
-* ``planet_osm_rels``
+* `planet_osm_nodes`
+* `planet_osm_ways`
+* `planet_osm_rels`
 
-With the ``--flat-nodes`` option, the ``planet_osm_nodes`` information is
+With the `--flat-nodes` option, the `planet_osm_nodes` information is
 instead stored in a binary file.
 
 **Note:** The names and structure of these additional tables, colloquially 
@@ -41,7 +41,7 @@ the topic.
 1. Runs a parser on the input file and processes the nodes, ways and relations.
 
 2. If a node has a tag declared in the style file then it is added to
-   ``planet_osm_point``. Regardless of tags, its position is stored by the
+   `planet_osm_point`. Regardless of tags, its position is stored by the
    middle layer.
 
 3. If there are tags on a way in the style file as linear but without polygon

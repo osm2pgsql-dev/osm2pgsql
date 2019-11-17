@@ -56,7 +56,7 @@ User documentation is stored in `docs/`. Pages on the OpenStreetMap wiki are
 known to be unreliable and outdated.
 
 There is some documentation in Doxygen-formatted comments. The documentation can
-be generated with ``doxygen docs/Doxyfile``. It is not yet hooked into the build
+be generated with `doxygen docs/Doxyfile`. It is not yet hooked into the build
 scripts as most functions are not yet documented.
 
 ## Platforms targeted
@@ -79,18 +79,18 @@ sudo apt-get install python3-psycopg2
 ```
 
 Most of these tests depend on being able to set up a database and run osm2pgsql
-against it. This is most easily done using ``pg_virtualenv``. Just run
+against it. This is most easily done using `pg_virtualenv`. Just run
 
 ```sh
 pg_virtualenv ctest
 ```
 
-``pg_virtualenv`` creates a separate postgres server instance. The test databases
+`pg_virtualenv` creates a separate postgres server instance. The test databases
 are created in this instance and the complete server is destroyed after the
 tests are finished. ctest also calls appropriate fixtures that create the
 separate tablespace required for some tests.
 
-When running without ``pg_virtualenv``, you need to ensure that PostgreSQL is
+When running without `pg_virtualenv`, you need to ensure that PostgreSQL is
 running and that your user is a superuser of that system. You also need to
 create an appropriate test tablespace manually. To do that, run:
 
