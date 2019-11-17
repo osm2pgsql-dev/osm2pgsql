@@ -20,10 +20,6 @@ option(BUILD_TESTS "Build test suite" OFF)
 option(WITH_LUA    "Build with Lua support" ON)
 option(WITH_LUAJIT "Build with LuaJIT support" OFF)
 
-if (NOT TESTING_TIMEOUT)
-  set(TESTING_TIMEOUT 1200)
-endif()
-
 if (NOT WIN32 AND NOT APPLE)
   # No need for this path, just a workaround to make cmake check pass on all systems
   set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
@@ -51,7 +47,6 @@ if ( MSVC )
   set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099 /STACK:30000000")
 else()
   add_definitions(-Wall)
-  add_definitions(-DBOOST_TEST_DYN_LINK)
   if (CMAKE_VERSION VERSION_LESS 3.1)
     add_definitions(-std=c++11)
   endif ()
@@ -140,18 +135,7 @@ if (WIN32)
   endif()
 endif()
 
-message("Libraries used to build: " ${LIBS})
-
-list(APPEND LIBS ${CMAKE_DL_LIBS})
-
-if (CMAKE_SYSTEM_NAME STREQUAL Linux)
-  check_library_exists(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME_IN_RT)
-  if (HAVE_CLOCK_GETTIME_IN_RT)
-    list(APPEND LIBS rt)
-  endif()
-endif ()
-
-message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
+message(STATUS "Libraries used to build: ${LIBS}")
 
 #############################################################
 # Build the library and executable file
@@ -266,15 +250,15 @@ endif()
 # Build tests
 #############################################################
 
-enable_testing()
-include(CTest)
-
 if (BUILD_TESTS)
-  add_subdirectory(tests)
+    enable_testing()
+    if (NOT TESTING_TIMEOUT)
+        set(TESTING_TIMEOUT 1200)
+    endif()
+    add_subdirectory(tests)
 else()
-  add_subdirectory(tests EXCLUDE_FROM_ALL)
+    message(STATUS "Tests disabled. Set BUILD_TESTS=ON to enable tests.")
 endif()
-
 
 #############################################################
 # Install
