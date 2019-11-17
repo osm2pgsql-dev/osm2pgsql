@@ -139,8 +139,6 @@ if (WIN32)
   endif()
 endif()
 
-message("Libraries used to build: " ${LIBS})
-
 list(APPEND LIBS ${CMAKE_DL_LIBS})
 
 if (CMAKE_SYSTEM_NAME STREQUAL Linux)
@@ -150,7 +148,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL Linux)
   endif()
 endif ()
 
-message("Active compiler flags:" ${CMAKE_CXX_FLAGS})
+message(STATUS "Libraries used to build: ${LIBS}")
 
 #############################################################
 # Build the library and executable file
