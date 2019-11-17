@@ -20,10 +20,6 @@ option(BUILD_TESTS "Build test suite" OFF)
 option(WITH_LUA    "Build with Lua support" ON)
 option(WITH_LUAJIT "Build with LuaJIT support" OFF)
 
-if (NOT TESTING_TIMEOUT)
-  set(TESTING_TIMEOUT 1200)
-endif()
-
 if (NOT WIN32 AND NOT APPLE)
   # No need for this path, just a workaround to make cmake check pass on all systems
   set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
@@ -254,15 +250,15 @@ endif()
 # Build tests
 #############################################################
 
-enable_testing()
-include(CTest)
-
 if (BUILD_TESTS)
-  add_subdirectory(tests)
+    enable_testing()
+    if (NOT TESTING_TIMEOUT)
+        set(TESTING_TIMEOUT 1200)
+    endif()
+    add_subdirectory(tests)
 else()
-  add_subdirectory(tests EXCLUDE_FROM_ALL)
+    message(STATUS "Tests disabled. Set BUILD_TESTS=ON to enable tests.")
 endif()
-
 
 #############################################################
 # Install
