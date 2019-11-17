@@ -66,11 +66,11 @@ actively tested on Debian, Ubuntu and FreeBSD by the maintainers.
 
 ## Testing
 
-The code also comes with a suite of tests which can be run by
-executing ``ctest``.
+The code comes with a suite of tests. They are only compiled and run when
+`BUILD_TESTS=ON` is set in the CMake config.
 
-You can call `ctest` with `-L NoDB` to only run tests that don't need a
-database.
+Tests are executed by calling `ctest`. You can call `ctest` with `-L NoDB` to
+only run tests that don't need a database.
 
 Regression tests require python and psycopg to be installed. On Ubuntu run:
 
@@ -101,12 +101,10 @@ sudo chown postgres.postgres /tmp/psql-tablespace
 psql -c "CREATE TABLESPACE tablespacetest LOCATION '/tmp/psql-tablespace'" postgres
 ```
 
-Once this is all set up, all the tests should run (no SKIPs), and pass
-(no FAILs). If you encounter a failure, you can find more information
-by looking in the `test-suite.log`. If you find something which seems
-to be a bug, please check to see if it is a known issue at
-https://github.com/openstreetmap/osm2pgsql/issues and, if it's not
-already known, report it there.
+Once this is all set up, all the tests should run (no SKIPs), and pass (no
+FAILs). If you find something which seems to be a bug, please check to see if
+it is a known issue at https://github.com/openstreetmap/osm2pgsql/issues and,
+if it's not already known, report it there.
 
 ### Performance Testing
 
