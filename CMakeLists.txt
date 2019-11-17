@@ -139,8 +139,6 @@ if (WIN32)
   endif()
 endif()
 
-list(APPEND LIBS ${CMAKE_DL_LIBS})
-
 message(STATUS "Libraries used to build: ${LIBS}")
 
 #############################################################
