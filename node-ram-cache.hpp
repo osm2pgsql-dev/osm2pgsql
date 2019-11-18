@@ -12,8 +12,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include <boost/noncopyable.hpp>
-
 #include <osmium/osm/location.hpp>
 
 #include "osmtypes.hpp"
@@ -44,9 +42,16 @@ private:
     int32_t _used = 0;
 };
 
-struct node_ram_cache : public boost::noncopyable
+struct node_ram_cache
 {
     node_ram_cache(int strategy, int cacheSizeMB);
+
+    node_ram_cache(node_ram_cache const &) = delete;
+    node_ram_cache &operator=(node_ram_cache const &) = delete;
+
+    node_ram_cache(node_ram_cache &&) = delete;
+    node_ram_cache &operator=(node_ram_cache &&) = delete;
+
     ~node_ram_cache();
 
     void set(osmid_t id, const osmium::Location &coord);

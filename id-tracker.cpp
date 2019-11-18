@@ -139,8 +139,7 @@ id_tracker::id_tracker(): impl() {
     impl.reset(new pimpl());
 }
 
-id_tracker::~id_tracker() {
-}
+id_tracker::~id_tracker() = default;
 
 void id_tracker::mark(osmid_t id) {
     //setting returns true if the id wasn't already marked
