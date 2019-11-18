@@ -1,5 +1,5 @@
-#ifndef TAGINFO_IMPL_HPP
-#define TAGINFO_IMPL_HPP
+#ifndef OSM2PGSQL_TAGINFO_IMPL_HPP
+#define OSM2PGSQL_TAGINFO_IMPL_HPP
 
 #include "taginfo.hpp"
 #include "osmtypes.hpp"
@@ -60,4 +60,4 @@ int parse_tag_flags(const char *flags, int lineno);
  */
 int read_style_file( const std::string &filename, export_list *exlist );
 
-#endif /* TAGINFO_IMPL_HPP */
+#endif // OSM2PGSQL_TAGINFO_IMPL_HPP

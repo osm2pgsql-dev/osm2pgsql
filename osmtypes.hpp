@@ -1,7 +1,7 @@
-/* Data types to hold OSM node, segment, way data */
+#ifndef OSM2PGSQL_OSMTYPES_HPP
+#define OSM2PGSQL_OSMTYPES_HPP
 
-#ifndef OSMTYPES_H
-#define OSMTYPES_H
+/* Data types to hold OSM node, segment, way data */
 
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
@@ -182,4 +182,4 @@ struct idlist_t : public std::vector<osmid_t> {
 
 typedef std::vector<char const *> rolelist_t;
 
-#endif
+#endif // OSM2PGSQL_OSMTYPES_HPP

@@ -1,12 +1,11 @@
-/* reprojection.h
- *
+#ifndef OSM2PGSQL_REPROJECTION_HPP
+#define OSM2PGSQL_REPROJECTION_HPP
+
+/*
  * Convert OSM lattitude / longitude from degrees to mercator
  * so that Mapnik does not have to project the data again
  *
  */
-
-#ifndef REPROJECTION_H
-#define REPROJECTION_H
 
 #include <osmium/geom/projection.hpp>
 #include <osmium/osm/location.hpp>
@@ -65,4 +64,4 @@ public:
     static reprojection *create_projection(int srs);
 };
 
-#endif
+#endif // OSM2PGSQL_REPROJECTION_HPP

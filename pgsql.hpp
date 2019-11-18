@@ -1,10 +1,10 @@
+#ifndef OSM2PGSQL_PGSQL_HPP
+#define OSM2PGSQL_PGSQL_HPP
+
 /* Helper functions for pgsql access */
 
 /* Current middle and output-pgsql do a lot of things similarly, this should
  * be used to abstract to commonalities */
-
-#ifndef PGSQL_H
-#define PGSQL_H
 
 #include <string>
 #include <cstring>
@@ -34,4 +34,4 @@ int pgsql_exec(PGconn *sql_conn, const ExecStatusType expect, const char *fmt, .
 #endif
 ;
 
-#endif
+#endif // OSM2PGSQL_PGSQL_HPP

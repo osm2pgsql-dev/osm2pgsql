@@ -1,5 +1,5 @@
-#ifndef GAZETTEER_STYLE_HPP
-#define GAZETTEER_STYLE_HPP
+#ifndef OSM2PGSQL_GAZETTEER_STYLE_HPP
+#define OSM2PGSQL_GAZETTEER_STYLE_HPP
 
 #include <string>
 #include <tuple>
@@ -104,4 +104,4 @@ private:
     osmium::metadata_options m_metadata_fields{"none"};
 };
 
-#endif
+#endif // OSM2PGSQL_GAZETTEER_STYLE_HPP

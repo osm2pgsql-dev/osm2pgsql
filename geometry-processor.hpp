@@ -1,5 +1,5 @@
-#ifndef GEOMETRY_PROCESSOR_HPP
-#define GEOMETRY_PROCESSOR_HPP
+#ifndef OSM2PGSQL_GEOMETRY_PROCESSOR_HPP
+#define OSM2PGSQL_GEOMETRY_PROCESSOR_HPP
 
 #include <cstddef>
 #include <string>
@@ -92,4 +92,4 @@ public:
     osmium::memory::Buffer data;
 };
 
-#endif /* GEOMETRY_PROCESSOR_HPP */
+#endif // OSM2PGSQL_GEOMETRY_PROCESSOR_HPP

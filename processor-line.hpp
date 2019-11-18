@@ -1,5 +1,5 @@
-#ifndef PROCESSOR_LINE_HPP
-#define PROCESSOR_LINE_HPP
+#ifndef OSM2PGSQL_PROCESSOR_LINE_HPP
+#define OSM2PGSQL_PROCESSOR_LINE_HPP
 
 #include "geometry-processor.hpp"
 
@@ -15,4 +15,4 @@ public:
                             geom::osmium_builder_t *builder) override;
 };
 
-#endif /* PROCESSOR_LINE_HPP */
+#endif // OSM2PGSQL_PROCESSOR_LINE_HPP

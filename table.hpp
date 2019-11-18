@@ -1,5 +1,5 @@
-#ifndef TABLE_H
-#define TABLE_H
+#ifndef OSM2PGSQL_TABLE_HPP
+#define OSM2PGSQL_TABLE_HPP
 
 #include "db-copy.hpp"
 #include "osmtypes.hpp"
@@ -97,4 +97,4 @@ class table_t
         db_copy_mgr_t m_copy;
 };
 
-#endif
+#endif // OSM2PGSQL_TABLE_HPP

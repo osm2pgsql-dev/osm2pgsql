@@ -1,5 +1,5 @@
-#ifndef OUTPUT_GAZETTEER_H
-#define OUTPUT_GAZETTEER_H
+#ifndef OSM2PGSQL_OUTPUT_GAZETTEER_HPP
+#define OSM2PGSQL_OUTPUT_GAZETTEER_HPP
 
 #include <memory>
 #include <string>
@@ -137,4 +137,4 @@ private:
     osmium::memory::Buffer osmium_buffer;
 };
 
-#endif
+#endif // OSM2PGSQL_OUTPUT_GAZETTEER_HPP

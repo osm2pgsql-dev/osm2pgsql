@@ -1,5 +1,5 @@
-#ifndef OSMIUM_BUILDER_H
-#define OSMIUM_BUILDER_H
+#ifndef OSM2PGSQL_OSMIUM_BUILDER_HPP
+#define OSM2PGSQL_OSMIUM_BUILDER_HPP
 
 #include <memory>
 #include <string>
@@ -48,4 +48,4 @@ private:
 
 } // namespace
 
-#endif // OSMIUM_BUILDER_H
+#endif // OSM2PGSQL_OSMIUM_BUILDER_HPP

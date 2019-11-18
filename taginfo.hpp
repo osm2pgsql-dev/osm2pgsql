@@ -1,5 +1,5 @@
-#ifndef TAGINFO_HPP
-#define TAGINFO_HPP
+#ifndef OSM2PGSQL_TAGINFO_HPP
+#define OSM2PGSQL_TAGINFO_HPP
 
 #include <string>
 #include <vector>
@@ -28,4 +28,4 @@ struct taginfo;
 /* list of exported tags */
 struct export_list;
 
-#endif /* TAGINFO_HPP */
+#endif // OSM2PGSQL_TAGINFO_HPP

@@ -1,10 +1,9 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef OSM2PGSQL_UTIL_HPP
+#define OSM2PGSQL_UTIL_HPP
 
 namespace util {
 
-	void exit_nicely();
+    void exit_nicely();
 }
 
-
-#endif
+#endif // OSM2PGSQL_UTIL_HPP

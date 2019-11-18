@@ -1,12 +1,12 @@
+#ifndef OSM2PGSQL_NODE_RAM_CACHE_HPP
+#define OSM2PGSQL_NODE_RAM_CACHE_HPP
+
 /* Implements the node cache in ram.
  *
  * There are two different storage strategies, either optimised
  * for dense storage of node ids, or for sparse storage as well as
  * a strategy to combine both in an optimal way.
 */
-
-#ifndef NODE_RAM_CACHE_H
-#define NODE_RAM_CACHE_H
 
 #include <climits>
 #include <cstddef>
@@ -91,4 +91,4 @@ private:
     int warn_node_order = 0;
 };
 
-#endif
+#endif // OSM2PGSQL_NODE_RAM_CACHE_HPP

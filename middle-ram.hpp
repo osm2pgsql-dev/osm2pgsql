@@ -1,3 +1,6 @@
+#ifndef OSM2PGSQL_MIDDLE_RAM_HPP
+#define OSM2PGSQL_MIDDLE_RAM_HPP
+
 /* Implements the mid-layer processing for osm2pgsql
  * using data structures in RAM.
  *
@@ -5,9 +8,6 @@
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
 */
-
-#ifndef MIDDLE_RAM_H
-#define MIDDLE_RAM_H
 
 #include <array>
 #include <memory>
@@ -163,4 +163,4 @@ private:
     bool simulate_ways_deleted;
 };
 
-#endif
+#endif // OSM2PGSQL_MIDDLE_RAM_HPP
