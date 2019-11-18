@@ -131,14 +131,14 @@ createdb gis
 psql -d gis -c 'CREATE EXTENSION postgis; CREATE EXTENSION hstore;'
 ```
 
-A basic invocation to load the data into the database ``gis`` for rendering would be
+A basic invocation to load the data into the database `gis` for rendering would be
 
 ```sh
 osm2pgsql --create --database gis data.osm.pbf
 ```
 
-This will load the data from ``data.osm.pbf`` into the ``planet_osm_point``,
-``planet_osm_line``, ``planet_osm_roads``, and ``planet_osm_polygon`` tables.
+This will load the data from `data.osm.pbf` into the `planet_osm_point`,
+`planet_osm_line`, `planet_osm_roads`, and `planet_osm_polygon` tables.
 
 When importing a large amount of data such as the complete planet, a typical
 command line would be
@@ -148,8 +148,8 @@ osm2pgsql -c -d gis --slim -C <cache size> \
   --flat-nodes <flat nodes> planet-latest.osm.pbf
 ```
 where
-* ``<cache size>`` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
-* ``<flat nodes>`` is a location where a 36GiB+ file can be saved.
+* `<cache size>` is about 75% of memory in MiB, to a maximum of about 30000. Additional RAM will not be used.
+* `<flat nodes>` is a location where a 36GiB+ file can be saved.
 
 Many different data files (e.g., .pbf) can be found at [planet.osm.org](https://planet.osm.org/).
 
