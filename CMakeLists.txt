@@ -59,9 +59,7 @@ option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 # Detect available headers and set global compiler options
 #############################################################
 
-include (CheckIncludeFiles)
-include (CheckFunctionExists)
-include (CheckTypeSize)
+include(CheckIncludeFiles)
 
 add_definitions( -DDEFAULT_STYLE=\"${DEFAULT_STYLE}\" )
 
@@ -97,12 +95,7 @@ if (WITH_LUA)
   set(HAVE_LUA 1)
 endif()
 
-if (NOT Boost_ADDITIONAL_VERSIONS)
-  set(Boost_ADDITIONAL_VERSIONS "1.55;1.56;1.57;1.58;1.59;1.60;1.61")
-endif()
-
-# first try to find the version
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem ${BOOST_EXTRA})
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
