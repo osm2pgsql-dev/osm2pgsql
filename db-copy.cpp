@@ -1,8 +1,9 @@
-#include <boost/format.hpp>
 #include <cassert>
 #include <cstdio>
 #include <future>
 #include <thread>
+
+#include <boost/format.hpp>
 
 #include "db-copy.hpp"
 #include "pgsql.hpp"

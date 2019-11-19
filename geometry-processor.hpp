@@ -2,9 +2,9 @@
 #define OSM2PGSQL_GEOMETRY_PROCESSOR_HPP
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 #include <osmium/memory/buffer.hpp>
 

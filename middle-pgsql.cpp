@@ -6,21 +6,21 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <stdexcept>
-#include <unordered_map>
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <functional>
-
-#include <boost/format.hpp>
-#include <osmium/memory/buffer.hpp>
-#include <osmium/builder/osm_object_builder.hpp>
+#include <stdexcept>
+#include <unordered_map>
 
 #include <libpq-fe.h>
+
+#include <boost/format.hpp>
+
+#include <osmium/builder/osm_object_builder.hpp>
+#include <osmium/memory/buffer.hpp>
 
 #include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"

@@ -1,15 +1,18 @@
 #include "options.hpp"
 #include "sprompt.hpp"
 
-#include <getopt.h>
-#include <boost/format.hpp>
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <osmium/version.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <thread> // for number of threads
+
+#include <getopt.h>
+
+#include <boost/format.hpp>
+
+#include <osmium/version.hpp>
 
 #ifdef HAVE_LUA
 extern "C" {

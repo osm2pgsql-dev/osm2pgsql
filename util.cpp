@@ -1,7 +1,7 @@
 #include "util.hpp"
 
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
 namespace util {
 

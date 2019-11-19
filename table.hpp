@@ -7,10 +7,10 @@
 #include "taginfo.hpp"
 
 #include <cstddef>
-#include <string>
-#include <vector>
-#include <utility>
 #include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <boost/optional.hpp>
 

@@ -5,11 +5,10 @@
 
 #include "config.h"
 
-#include <new>
-#include <stdexcept>
-
 #include <cstdio>
 #include <cstdlib>
+#include <new>
+#include <stdexcept>
 
 #include <boost/format.hpp>
 

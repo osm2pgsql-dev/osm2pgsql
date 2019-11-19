@@ -1,9 +1,9 @@
 #include "id-tracker.hpp"
 
+#include <algorithm>
+#include <limits>
 #include <map>
 #include <vector>
-#include <limits>
-#include <algorithm>
 
 #include <boost/optional.hpp>
 

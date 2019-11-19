@@ -2,6 +2,7 @@
 #define OSM2PGSQL_ID_TRACKER_HPP
 
 #include "osmtypes.hpp"
+
 #include <memory>
 
 /**

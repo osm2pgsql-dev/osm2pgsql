@@ -1,6 +1,3 @@
-#include <libpq-fe.h>
-#include <boost/format.hpp>
-
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
@@ -12,6 +9,10 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+
+#include <boost/format.hpp>
+
+#include <libpq-fe.h>
 
 void output_gazetteer_t::delete_unused_classes(char const *osm_type,
                                                osmid_t osm_id)

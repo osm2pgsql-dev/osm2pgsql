@@ -6,6 +6,12 @@
  * emit the final geometry-enabled output formats
 */
 
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
 #include <future>
 #include <iostream>
 #include <limits>
@@ -13,12 +19,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <cassert>
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
 #include <unistd.h>
 
 #include "expire-tiles.hpp"

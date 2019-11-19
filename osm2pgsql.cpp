@@ -35,14 +35,15 @@
 #include "reprojection.hpp"
 #include "util.hpp"
 
-#include <time.h>
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <cstdio>
-#include <cstdlib>
 
 #include <libpq-fe.h>
+
 #include <boost/format.hpp>
 
 int main(int argc, char *argv[])

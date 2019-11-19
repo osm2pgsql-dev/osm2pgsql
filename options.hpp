@@ -4,9 +4,10 @@
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
 
-#include <vector>
-#include <string>
 #include <memory>
+#include <string>
+#include <vector>
+
 #include <boost/optional.hpp>
 
 /* Variants for generation of hstore column */

@@ -1,11 +1,12 @@
 #ifndef OSM2PGSQL_TAGINFO_IMPL_HPP
 #define OSM2PGSQL_TAGINFO_IMPL_HPP
 
-#include "taginfo.hpp"
 #include "osmtypes.hpp"
+#include "taginfo.hpp"
+
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 enum column_flags {
   FLAG_POLYGON = 1,   /* For polygon table */

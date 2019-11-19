@@ -8,8 +8,9 @@
 #include "tagtransform.hpp"
 #include "wkb.hpp"
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <vector>
+
+#include <boost/algorithm/string/predicate.hpp>
 
 output_multi_t::output_multi_t(
     std::string const &name, std::shared_ptr<geometry_processor> processor_,

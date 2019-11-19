@@ -7,10 +7,9 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <stdexcept>
-
 #include <cassert>
 #include <cstdio>
+#include <stdexcept>
 
 #include <osmium/builder/attr.hpp>
 

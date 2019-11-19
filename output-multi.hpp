@@ -14,8 +14,8 @@
 #include "geometry-processor.hpp"
 
 #include <cstddef>
-#include <string>
 #include <memory>
+#include <string>
 
 class table_t;
 class tagtransform_t;

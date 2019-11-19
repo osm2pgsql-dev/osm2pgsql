@@ -3,15 +3,16 @@
 
 /* Data types to hold OSM node, segment, way data */
 
+#include "config.h"
+
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
-#include "config.h"
 
+#include <cinttypes>
+#include <cmath>
 #include <string>
 #include <vector>
-#include <cmath>
 
 #include <osmium/builder/attr.hpp>
 #include <osmium/geom/coordinates.hpp>

@@ -3,8 +3,9 @@
 
 #include "config.h"
 
-#include <boost/optional.hpp>
 #include <ctime>
+
+#include <boost/optional.hpp>
 
 #include "osmtypes.hpp"
 

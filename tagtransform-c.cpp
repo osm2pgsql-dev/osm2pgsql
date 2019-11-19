@@ -1,6 +1,7 @@
-#include <boost/algorithm/string/predicate.hpp>
 #include <cstdlib>
 #include <cstring>
+
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "options.hpp"
 #include "taginfo_impl.hpp"

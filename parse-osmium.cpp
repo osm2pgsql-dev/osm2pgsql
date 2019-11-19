@@ -22,14 +22,14 @@
 
 #include <boost/format.hpp>
 
+#include "osmdata.hpp"
 #include "parse-osmium.hpp"
 #include "reprojection.hpp"
-#include "osmdata.hpp"
 
-#include <osmium/io/any_input.hpp>
 #include <osmium/handler.hpp>
-#include <osmium/visitor.hpp>
+#include <osmium/io/any_input.hpp>
 #include <osmium/osm.hpp>
+#include <osmium/visitor.hpp>
 
 void parse_stats_t::update(const parse_stats_t &other)
 {

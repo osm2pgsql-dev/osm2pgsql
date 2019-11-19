@@ -1,10 +1,11 @@
 /* Helper functions for the postgresql connections */
 #include "pgsql.hpp"
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
-#include <cstdarg>
 #include <memory>
+
 #include <boost/format.hpp>
 
 pg_result_t pgsql_exec_simple(PGconn *sql_conn, const ExecStatusType expect,

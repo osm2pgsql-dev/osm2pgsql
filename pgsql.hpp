@@ -6,10 +6,11 @@
 /* Current middle and output-pgsql do a lot of things similarly, this should
  * be used to abstract to commonalities */
 
-#include <string>
 #include <cstring>
-#include <libpq-fe.h>
 #include <memory>
+#include <string>
+
+#include <libpq-fe.h>
 
 struct pg_result_deleter_t
 {

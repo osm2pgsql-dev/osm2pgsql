@@ -2,6 +2,7 @@
 #include <cstring>
 
 #include <boost/property_tree/json_parser.hpp>
+
 #include <osmium/osm.hpp>
 
 #include "gazetteer-style.hpp"

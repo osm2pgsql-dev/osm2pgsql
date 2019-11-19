@@ -2,11 +2,12 @@
 #include "util.hpp"
 
 #include <cassert>
+#include <cerrno>
 #include <cstring>
 #include <map>
 #include <stdexcept>
+
 #include <boost/format.hpp>
-#include <errno.h>
 
 #ifdef _WIN32
 #ifndef strtok_r

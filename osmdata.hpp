@@ -5,8 +5,8 @@
 // to get the print format specifiers in the inttypes.h header.
 #include "config.h"
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "osmtypes.hpp"
 

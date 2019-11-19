@@ -1,15 +1,16 @@
 #include "geometry-processor.hpp"
+#include "middle.hpp"
+#include "options.hpp"
 #include "processor-line.hpp"
 #include "processor-point.hpp"
 #include "processor-polygon.hpp"
-#include "middle.hpp"
-#include "options.hpp"
 #include "reprojection.hpp"
+
+#include <memory>
+#include <stdexcept>
 
 #include <boost/format.hpp>
 #include <boost/optional.hpp>
-#include <stdexcept>
-#include <memory>
 
 std::shared_ptr<geometry_processor> geometry_processor::create(const std::string &type,
                                                                  const options_t *options) {

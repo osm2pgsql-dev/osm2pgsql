@@ -7,11 +7,10 @@
  * storing and retrieving node and way data.
  */
 
-#include <osmium/memory/buffer.hpp>
-
 #include <cstddef>
 #include <memory>
 
+#include <osmium/memory/buffer.hpp>
 #include <osmium/thread/pool.hpp>
 
 #include "osmtypes.hpp"
