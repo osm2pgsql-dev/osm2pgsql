@@ -21,35 +21,35 @@ option(WITH_LUA    "Build with Lua support" ON)
 option(WITH_LUAJIT "Build with LuaJIT support" OFF)
 
 if (NOT WIN32 AND NOT APPLE)
-  # No need for this path, just a workaround to make cmake check pass on all systems
-  set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
+    # No need for this path, just a workaround to make cmake check pass on all systems
+    set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include)
 endif()
 
 # Just in case user installed RPMs from http://yum.postgresql.org/
 list(APPEND CMAKE_PREFIX_PATH /usr/pgsql-9.3 /usr/pgsql-9.4 /usr/pgsql-9.5 /usr/pgsql-9.6)
 
 if (PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR)
-  message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
+    message(FATAL_ERROR "In-source builds are not allowed, please use a separate build directory like `mkdir build && cd build && cmake ..`")
 endif()
 
 message(STATUS "Building osm2pgsql ${PACKAGE_VERSION}")
 
 if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-set (CMAKE_CXX_STANDARD 11)
-set (CMAKE_CXX_EXTENSIONS Off)
-set (CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS Off)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-if ( MSVC )
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -wd4996)
-  set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099 /STACK:30000000")
+if (MSVC)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -wd4996)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4099 /STACK:30000000")
 else()
-  add_definitions(-Wall)
-  if (CMAKE_VERSION VERSION_LESS 3.1)
-    add_definitions(-std=c++11)
-  endif ()
+    add_definitions(-Wall)
+    if (CMAKE_VERSION VERSION_LESS 3.1)
+        add_definitions(-std=c++11)
+    endif()
 endif()
 
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
@@ -59,25 +59,23 @@ option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 # Detect available headers and set global compiler options
 #############################################################
 
-include (CheckIncludeFiles)
-include (CheckFunctionExists)
-include (CheckTypeSize)
+include(CheckIncludeFiles)
 
-add_definitions( -DDEFAULT_STYLE=\"${DEFAULT_STYLE}\" )
+add_definitions(-DDEFAULT_STYLE=\"${DEFAULT_STYLE}\")
 
-CHECK_INCLUDE_FILES (termios.h HAVE_TERMIOS_H)
-CHECK_INCLUDE_FILES (unistd.h HAVE_UNISTD_H)
+CHECK_INCLUDE_FILES(termios.h HAVE_TERMIOS_H)
+CHECK_INCLUDE_FILES(unistd.h HAVE_UNISTD_H)
 
 #############################################################
 # Find necessary libraries
 #############################################################
 
 if (NOT EXTERNAL_LIBOSMIUM)
-  set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium")
+    set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium")
 endif()
 
 if (NOT EXTERNAL_PROTOZERO)
-  set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
+    set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
@@ -86,23 +84,18 @@ find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR})
 
 if (WITH_LUA)
-  if (WITH_LUAJIT)
-    find_package(LuaJIT REQUIRED)
-    include_directories(SYSTEM ${LUAJIT_INCLUDE_DIR})
-    set(HAVE_LUAJIT 1)
-  else()
-    find_package(Lua REQUIRED)
-    include_directories(SYSTEM ${LUA_INCLUDE_DIR})
-  endif()
-  set(HAVE_LUA 1)
+    if (WITH_LUAJIT)
+        find_package(LuaJIT REQUIRED)
+        include_directories(SYSTEM ${LUAJIT_INCLUDE_DIR})
+        set(HAVE_LUAJIT 1)
+    else()
+        find_package(Lua REQUIRED)
+        include_directories(SYSTEM ${LUA_INCLUDE_DIR})
+    endif()
+    set(HAVE_LUA 1)
 endif()
 
-if (NOT Boost_ADDITIONAL_VERSIONS)
-  set(Boost_ADDITIONAL_VERSIONS "1.55;1.56;1.57;1.58;1.59;1.60;1.61")
-endif()
-
-# first try to find the version
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem ${BOOST_EXTRA})
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
 include_directories(SYSTEM ${Boost_INCLUDE_DIR})
 
 find_package(PostgreSQL REQUIRED)
@@ -112,27 +105,26 @@ find_package(Threads)
 
 ############### Libraries are found now ########################
 
-
-set (LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
+set(LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
 
 if (LUAJIT_FOUND)
-  list(APPEND LIBS ${LUAJIT_LIBRARIES})
+    list(APPEND LIBS ${LUAJIT_LIBRARIES})
 elseif(LUA_FOUND)
-  list(APPEND LIBS ${LUA_LIBRARIES})
+    list(APPEND LIBS ${LUA_LIBRARIES})
 endif()
 
 if (WIN32)
-  list(APPEND LIBS ws2_32)
-  if (MSVC)
-    find_path(GETOPT_INCLUDE_DIR getopt.h)
-    find_library(GETOPT_LIBRARY NAMES wingetopt getopt )
-    if (GETOPT_INCLUDE_DIR AND GETOPT_LIBRARY)
-      include_directories(SYSTEM ${GETOPT_INCLUDE_DIR})
-      list(APPEND LIBS ${GETOPT_LIBRARY})
-    else()
-      message(ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
+    list(APPEND LIBS ws2_32)
+    if (MSVC)
+        find_path(GETOPT_INCLUDE_DIR getopt.h)
+        find_library(GETOPT_LIBRARY NAMES wingetopt getopt)
+        if (GETOPT_INCLUDE_DIR AND GETOPT_LIBRARY)
+            include_directories(SYSTEM ${GETOPT_INCLUDE_DIR})
+            list(APPEND LIBS ${GETOPT_LIBRARY})
+        else()
+            message(ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
+        endif()
     endif()
-  endif()
 endif()
 
 message(STATUS "Libraries used to build: ${LIBS}")
@@ -214,7 +206,7 @@ set(osm2pgsql_lib_SOURCES
 )
 
 if (LUA_FOUND OR LUAJIT_FOUND)
-  list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
+    list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
 endif()
 
 add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})
@@ -229,7 +221,8 @@ target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 #############################################################
 
 message(STATUS "Looking for clang-tidy")
-find_program(CLANG_TIDY NAMES clang-tidy clang-tidy-10 clang-tidy-9 clang-tidy-8 clang-tidy-7)
+find_program(CLANG_TIDY
+             NAMES clang-tidy clang-tidy-10 clang-tidy-9 clang-tidy-8 clang-tidy-7)
 
 if(CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
