@@ -14,9 +14,9 @@ addons_shortcuts:
     apt:
       sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-3.8']
       packages: ['clang-3.8', 'postgresql-9.2-postgis-2.3',
-                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
+                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
   addons_clang7_pg96: &clang7_pg96
     postgresql: '9.6'
@@ -27,28 +27,34 @@ addons_shortcuts:
           key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
         - ubuntu-toolchain-r-test
       packages: ['clang-7','postgresql-9.6-postgis-2.3',
-                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
+                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+
+  addons_bionic_clang7_pg96: &bionic_clang7_pg96
+    postgresql: '9.6'
+    apt:
+      packages: ['clang-7', 'postgresql-9.6-postgis-2.4',
+                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                 'lua5.3', 'liblua5.3-dev', 'libluajit-5.1-dev',
+                 'libboost1.65-dev', 'libboost-system1.65-dev', 'libboost-filesystem1.65-dev']
 
   addons_gcc48_pg96: &gcc48_pg96
     postgresql: '9.6'
     apt:
       sources: ["ubuntu-toolchain-r-test"]
       packages: ['g++-4.8','postgresql-9.6-postgis-2.3',
-                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
+                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
 
-
-  addons_gcc8_pg96: &gcc8_pg96
+  addons_gcc8_pg96: &bionic_gcc8_pg96
     postgresql: '9.6'
     apt:
-      sources: ["ubuntu-toolchain-r-test"]
-      packages: ['g++-8','postgresql-9.6-postgis-2.3',
-                      'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                      'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                      'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
+      packages: ['g++-8', 'postgresql-9.6-postgis-2.4',
+                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
+                 'lua5.3', 'liblua5.3-dev', 'libluajit-5.1-dev',
+                 'libboost1.65-dev', 'libboost-system1.65-dev', 'libboost-filesystem1.65-dev']
 
 # env: T="...."     //  please set an unique test id (T="..")
 matrix:
@@ -57,7 +63,8 @@ matrix:
     - os: linux
       dist: trusty
       compiler: "clang-3.8"
-      env: T="clang38_pg92_dbtest" LUAJIT_OPTION="OFF"
+      env: T="clang38_pg92_dbtest"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-3.8 CXX=clang++-3.8
       addons: *clang38_pg92
@@ -65,20 +72,30 @@ matrix:
     - os: linux
       dist: trusty
       compiler: "clang-7"
-      env: T="clang7_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
+      env: T="clang7_pg96_dbtest_luajit"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-7 CXX=clang++-7
       addons: *clang7_pg96
 
+    - os: linux
+      dist: bionic
+      compiler: "clang-7"
+      env: T="bionic_clang7_pg96_dbtest"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=clang-7 CXX=clang++-7
+      addons: *bionic_clang7_pg96
+
   # ---- OSX + CLANG ---------------------------
     - os: osx
       compiler: clang
-      env: T="osx_clang_NoDB" LUAJIT_OPTION="OFF" TEST_NODB=1
+      env: T="osx_clang_NoDB"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
            CXXFLAGS="-pedantic -Wextra -Werror"
       before_install:
         - brew install lua; brew install lua
       before_script:
-        - xml2-config --version
         - proj | head -n1
         - lua -v
 
@@ -86,34 +103,45 @@ matrix:
     - os: linux
       dist: trusty
       compiler: "gcc-4.8"
-      env: T="gcc48_pg96_dbtest" LUAJIT_OPTION="OFF"
+      env: T="gcc48_pg96_dbtest"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-4.8 CXX=g++-4.8
       addons: *gcc48_pg96
 
     - os: linux
-      dist: trusty
+      dist: bionic
       compiler: gcc-8
-      env: T="gcc8_pg96_dbtest_luajit" LUAJIT_OPTION="ON"
+      env: T="bionic_gcc8_pg96_dbtest_luajit"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-8 CXX=g++-8
-      addons: *gcc8_pg96
+      addons: *bionic_gcc8_pg96
+
+    - os: linux
+      dist: bionic
+      compiler: gcc-8
+      env: T="bionic_gcc8_pg96_dbtest_luajit_release"
+           BUILD_TYPE="Release" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-8 CXX=g++-8
+      addons: *bionic_gcc8_pg96
 
 
 before_install:
-  - dpkg -l | grep -E 'lua|proj|xml|bz2|postgis|zlib|boost|expat'  # checking available versions
+  - dpkg -l | grep -E 'lua|proj|bz2|postgresql|postgis|zlib|boost|expat'  # checking available versions
+
 before_script:
   - psql -U postgres -c "SELECT version()"
   - psql -U postgres -c "CREATE EXTENSION postgis"
   - psql -U postgres -c "CREATE EXTENSION hstore"
   - psql -U postgres -c "SELECT PostGIS_Full_Version()"
   - $CXX --version
-  - xml2-config --version
   - proj | head -n1
-  - lua -v
+
 script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWITH_LUAJIT=$LUAJIT_OPTION
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_LUAJIT=${LUAJIT_OPTION}
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
@@ -122,8 +150,8 @@ script:
       PG_VERSION=`psql -U postgres -t -c "SELECT version()" | head -n 1 |  cut -d ' ' -f 3 | cut -d . -f 1-2`;
       pg_virtualenv -v $PG_VERSION ctest -VV;
     fi
+
 after_failure:
   - # rerun make, but verbosely
     make VERBOSE=1
 
-# end of .travis
