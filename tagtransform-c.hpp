@@ -1,5 +1,5 @@
-#ifndef TAGTRANSFORM_C_H
-#define TAGTRANSFORM_C_H
+#ifndef OSM2PGSQL_TAGTRANSFORM_C_HPP
+#define OSM2PGSQL_TAGTRANSFORM_C_HPP
 
 #include "taginfo_impl.hpp"
 #include "tagtransform.hpp"
@@ -29,4 +29,4 @@ private:
     export_list m_export_list;
 };
 
-#endif // TAGTRANSFORM_C_H
+#endif // OSM2PGSQL_TAGTRANSFORM_C_HPP

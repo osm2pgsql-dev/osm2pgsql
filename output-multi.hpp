@@ -1,11 +1,11 @@
+#ifndef OSM2PGSQL_OUTPUT_MULTI_HPP
+#define OSM2PGSQL_OUTPUT_MULTI_HPP
+
 /* One implementation of output-layer processing for osm2pgsql.
  * Manages a single table, transforming geometry using a
  * variety of algorithms plus tag transformation for the
  * database columns.
  */
-
-#ifndef OUTPUT_MULTI_HPP
-#define OUTPUT_MULTI_HPP
 
 #include "expire-tiles.hpp"
 #include "id-tracker.hpp"
@@ -94,4 +94,4 @@ protected:
     bool m_way_area;
 };
 
-#endif
+#endif // OSM2PGSQL_OUTPUT_MULTI_HPP

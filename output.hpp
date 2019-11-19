@@ -1,3 +1,6 @@
+#ifndef OSM2PGSQL_OUTPUT_HPP
+#define OSM2PGSQL_OUTPUT_HPP
+
 /* Common output layer interface */
 
 /* Each output layer must provide methods for
@@ -6,9 +9,6 @@
  * - Way geometries
  * Associated tags: name, type etc.
 */
-
-#ifndef OUTPUT_H
-#define OUTPUT_H
 
 #include <stack>
 
@@ -80,4 +80,4 @@ protected:
     const options_t m_options;
 };
 
-#endif
+#endif // OSM2PGSQL_OUTPUT_HPP

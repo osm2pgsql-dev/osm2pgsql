@@ -1,8 +1,8 @@
+#ifndef OSM2PGSQL_OUTPUT_NULL_HPP
+#define OSM2PGSQL_OUTPUT_NULL_HPP
+
 /* Implements dummy output-layer processing for testing.
 */
-
-#ifndef OUTPUT_NULL_H
-#define OUTPUT_NULL_H
 
 #include "output.hpp"
 
@@ -40,4 +40,4 @@ public:
     int relation_delete(osmid_t id) override;
 };
 
-#endif
+#endif // OSM2PGSQL_OUTPUT_NULL_HPP

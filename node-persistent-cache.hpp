@@ -1,5 +1,5 @@
-#ifndef NODE_PERSISTENT_CACHE_H
-#define NODE_PERSISTENT_CACHE_H
+#ifndef OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP
+#define OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP
 
 #include <memory>
 
@@ -36,4 +36,4 @@ private:
     const char *m_fname;
 };
 
-#endif
+#endif // OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP

@@ -1,3 +1,6 @@
+#ifndef OSM2PGSQL_MIDDLE_PGSQL_HPP
+#define OSM2PGSQL_MIDDLE_PGSQL_HPP
+
 /* Implements the mid-layer processing for osm2pgsql
  * using several PostgreSQL tables
  *
@@ -5,9 +8,6 @@
  * and is then read by the backend processing code to
  * emit the final geometry-enabled output formats
 */
-
-#ifndef MIDDLE_PGSQL_H
-#define MIDDLE_PGSQL_H
 
 #include <memory>
 
@@ -131,4 +131,4 @@ private:
     db_copy_mgr_t m_db_copy;
 };
 
-#endif
+#endif // OSM2PGSQL_MIDDLE_PGSQL_HPP

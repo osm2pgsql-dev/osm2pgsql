@@ -1,11 +1,11 @@
+#ifndef OSM2PGSQL_MIDDLE_HPP
+#define OSM2PGSQL_MIDDLE_HPP
+
 /**
  * Common middle layer interface
  * Each middle layer data store must provide methods for
  * storing and retrieving node and way data.
  */
-
-#ifndef MIDDLE_H
-#define MIDDLE_H
 
 #include <osmium/memory/buffer.hpp>
 
@@ -132,4 +132,4 @@ struct slim_middle_t : public middle_t {
 
 inline slim_middle_t::~slim_middle_t() = default;
 
-#endif
+#endif // OSM2PGSQL_MIDDLE_HPP

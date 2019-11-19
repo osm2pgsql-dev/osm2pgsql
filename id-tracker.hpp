@@ -1,5 +1,5 @@
-#ifndef ID_TRACKER_HPP
-#define ID_TRACKER_HPP
+#ifndef OSM2PGSQL_ID_TRACKER_HPP
+#define OSM2PGSQL_ID_TRACKER_HPP
 
 #include "osmtypes.hpp"
 #include <memory>
@@ -48,4 +48,4 @@ private:
     std::unique_ptr<pimpl> impl;
 };
 
-#endif /* ID_TRACKER_HPP */
+#endif // OSM2PGSQL_ID_TRACKER_HPP

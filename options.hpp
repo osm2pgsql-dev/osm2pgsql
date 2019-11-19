@@ -1,5 +1,5 @@
-#ifndef OPTION_H
-#define OPTION_H
+#ifndef OSM2PGSQL_OPTIONS_HPP
+#define OSM2PGSQL_OPTIONS_HPP
 
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
@@ -130,4 +130,4 @@ private:
     void check_options();
 };
 
-#endif
+#endif // OSM2PGSQL_OPTIONS_HPP

@@ -143,4 +143,4 @@ private:
 } // namespace db
 } // namespace testing
 
-#endif
+#endif // OSM2PGSQL_TEST_COMMON_IMPORT_HPP

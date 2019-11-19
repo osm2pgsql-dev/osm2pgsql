@@ -1,5 +1,5 @@
-#ifndef TAGTRANSFORM_LUA_H
-#define TAGTRANSFORM_LUA_H
+#ifndef OSM2PGSQL_TAGTRANSFORM_LUA_HPP
+#define OSM2PGSQL_TAGTRANSFORM_LUA_HPP
 
 #include <string>
 
@@ -39,4 +39,4 @@ private:
     bool m_extra_attributes;
 };
 
-#endif // TAGTRANSFORM_LUA_H
+#endif // OSM2PGSQL_TAGTRANSFORM_LUA_HPP

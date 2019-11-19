@@ -1,5 +1,5 @@
-#ifndef OSMDATA_H
-#define OSMDATA_H
+#ifndef OSM2PGSQL_OSMDATA_HPP
+#define OSM2PGSQL_OSMDATA_HPP
 
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
@@ -44,4 +44,4 @@ private:
     bool with_extra;
 };
 
-#endif
+#endif // OSM2PGSQL_OSMDATA_HPP

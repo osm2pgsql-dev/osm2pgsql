@@ -1,5 +1,5 @@
-#ifndef DB_COPY_HPP
-#define DB_COPY_HPP
+#ifndef OSM2PGSQL_DB_COPY_HPP
+#define OSM2PGSQL_DB_COPY_HPP
 
 #include <condition_variable>
 #include <deque>
@@ -461,4 +461,4 @@ private:
     std::unique_ptr<db_cmd_copy_t> m_current;
 };
 
-#endif
+#endif // OSM2PGSQL_DB_COPY_HPP

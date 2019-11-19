@@ -1,5 +1,5 @@
-#ifndef TAGTRANSFORM_H
-#define TAGTRANSFORM_H
+#ifndef OSM2PGSQL_TAGTRANSFORM_HPP
+#define OSM2PGSQL_TAGTRANSFORM_HPP
 
 #include <string>
 
@@ -32,4 +32,4 @@ public:
                                         bool allow_typeless = false) = 0;
 };
 
-#endif //TAGTRANSFORM_H
+#endif // OSM2PGSQL_TAGTRANSFORM_HPP

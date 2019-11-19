@@ -1,5 +1,5 @@
-#ifndef EXPIRE_TILES_H
-#define EXPIRE_TILES_H
+#ifndef OSM2PGSQL_EXPIRE_TILES_HPP
+#define OSM2PGSQL_EXPIRE_TILES_HPP
 
 #include <memory>
 #include <unordered_set>
@@ -191,4 +191,4 @@ private:
     std::unordered_set<uint64_t> m_dirty_tiles;
 };
 
-#endif
+#endif // OSM2PGSQL_EXPIRE_TILES_HPP

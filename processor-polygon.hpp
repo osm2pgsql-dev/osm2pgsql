@@ -1,5 +1,5 @@
-#ifndef PROCESSOR_POLYGON_HPP
-#define PROCESSOR_POLYGON_HPP
+#ifndef OSM2PGSQL_PROCESSOR_POLYGON_HPP
+#define OSM2PGSQL_PROCESSOR_POLYGON_HPP
 
 #include "geometry-processor.hpp"
 
@@ -15,4 +15,4 @@ public:
                             geom::osmium_builder_t *builder) override;
 };
 
-#endif /* PROCESSOR_POLYGON_HPP */
+#endif // OSM2PGSQL_PROCESSOR_POLYGON_HPP
