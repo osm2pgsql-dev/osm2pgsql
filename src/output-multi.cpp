@@ -301,7 +301,8 @@ int output_multi_t::process_node(osmium::Node const &node)
 {
     // check if we are keeping this node
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(node, 0, 0, outtags, true);
+    auto filter =
+        m_tagtransform->filter_tags(node, nullptr, nullptr, outtags, true);
     if (!filter) {
         // grab its geom
         auto geom = m_processor->process_node(node.location(), &m_builder);
@@ -331,7 +332,7 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     //check if we are keeping this way
     taglist_t outtags;
     unsigned int filter =
-        m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
+        m_tagtransform->filter_tags(*way, nullptr, nullptr, outtags, true);
     if (!filter) {
         m_mid->nodes_get_list(&(way->nodes()));
         auto geom = m_processor->process_way(*way, &m_builder);
@@ -346,7 +347,8 @@ int output_multi_t::process_way(osmium::Way *way)
 {
     //check if we are keeping this way
     taglist_t outtags;
-    auto filter = m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
+    auto filter =
+        m_tagtransform->filter_tags(*way, nullptr, nullptr, outtags, true);
     if (!filter) {
         //get the geom from the middle
         if (m_mid->nodes_get_list(&(way->nodes())) < 1) {
@@ -379,7 +381,8 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 
     //does this relation have anything interesting to us
     taglist_t rel_outtags;
-    auto filter = m_tagtransform->filter_tags(rel, 0, 0, rel_outtags, true);
+    auto filter =
+        m_tagtransform->filter_tags(rel, nullptr, nullptr, rel_outtags, true);
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used

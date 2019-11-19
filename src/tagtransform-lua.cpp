@@ -136,7 +136,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     while (lua_next(L, -2) != 0) {
         const char *key = lua_tostring(L, -2);
         const char *value = lua_tostring(L, -1);
-        if (key == NULL) {
+        if (key == nullptr) {
             int ltype = lua_type(L, -2);
             throw std::runtime_error(
                 (boost::format(
@@ -145,7 +145,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
                  lua_typename(L, ltype))
                     .str());
         }
-        if (value == NULL) {
+        if (value == nullptr) {
             int ltype = lua_type(L, -1);
             throw std::runtime_error(
                 (boost::format(

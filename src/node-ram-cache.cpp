@@ -422,7 +422,7 @@ node_ram_cache::~node_ram_cache()
             }
         } else {
             free(blockCache);
-            blockCache = 0;
+            blockCache = nullptr;
         }
         free(blocks);
         free(queue);
