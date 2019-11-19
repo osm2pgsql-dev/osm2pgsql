@@ -8,16 +8,22 @@
 #ifndef REPROJECTION_H
 #define REPROJECTION_H
 
-#include <boost/noncopyable.hpp>
-
 #include <osmium/geom/projection.hpp>
 #include <osmium/osm/location.hpp>
 
 enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 3857 };
 
-class reprojection : public boost::noncopyable
+class reprojection
 {
 public:
+    reprojection() = default;
+
+    reprojection(reprojection const &) = delete;
+    reprojection &operator=(reprojection const &) = delete;
+
+    reprojection(reprojection &&) = delete;
+    reprojection &operator=(reprojection &&) = delete;
+
     virtual ~reprojection() = default;
 
     /**

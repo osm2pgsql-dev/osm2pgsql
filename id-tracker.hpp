@@ -2,7 +2,6 @@
 #define ID_TRACKER_HPP
 
 #include "osmtypes.hpp"
-#include <boost/noncopyable.hpp>
 #include <memory>
 
 /**
@@ -19,8 +18,16 @@
   * These details aren't exposed in the public interface, which just has
   * pop_mark.
   */
-struct id_tracker : public boost::noncopyable {
+struct id_tracker
+{
     id_tracker();
+
+    id_tracker(id_tracker const &) = delete;
+    id_tracker &operator=(id_tracker const &) = delete;
+
+    id_tracker(id_tracker &&) = delete;
+    id_tracker &operator=(id_tracker &&) = delete;
+
     ~id_tracker();
 
     void mark(osmid_t id);
