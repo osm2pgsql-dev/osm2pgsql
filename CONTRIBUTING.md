@@ -118,6 +118,17 @@ database created by `pg_virtualenv`.
 If performance testing with a full planet import is required, indicate what
 needs testing in a pull request.
 
+## Coverage reports
+
+To create coverage reports, set `BUILD_COVERAGE` in the CMake config to `ON`,
+compile and run the tests. Then run `make coverage`. This will generate a
+coverage report in `coverage/index.html` in the build directory.
+
+For this to work you need a coverage tool installed. For GCC this is `gcov`,
+for Clang this is `llvm-cov` in the right version. CMake will automatically
+try to find the correct tool. In any case the tool `gcovr` is used to create
+the report.
+
 ## Maintainers
 
 The current maintainers of osm2pgsql are [Sarah Hoffmann](https://github.com/lonvia/)

@@ -16,9 +16,10 @@ else()
     set(DEFAULT_STYLE "${CMAKE_INSTALL_PREFIX}/share/osm2pgsql/default.style" CACHE STRING "Default style used unless one is given on the command line")
 endif()
 
-option(BUILD_TESTS "Build test suite" OFF)
-option(WITH_LUA    "Build with Lua support" ON)
-option(WITH_LUAJIT "Build with LuaJIT support" OFF)
+option(BUILD_TESTS    "Build test suite" OFF)
+option(BUILD_COVERAGE "Build with coverage" OFF)
+option(WITH_LUA       "Build with Lua support" ON)
+option(WITH_LUAJIT    "Build with LuaJIT support" OFF)
 
 if (NOT WIN32 AND NOT APPLE)
     # No need for this path, just a workaround to make cmake check pass on all systems
@@ -79,6 +80,65 @@ configure_file(
     ${PROJECT_SOURCE_DIR}/src/version.cpp.in
     ${PROJECT_BINARY_DIR}/src/version.cpp
 )
+
+#############################################################
+# Coverage
+#############################################################
+
+if (BUILD_COVERAGE)
+    if (NOT BUILD_TESTS)
+        message(WARNING "Coverage build enabled, but tests not enabled!")
+    endif()
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        string(REGEX REPLACE "^([0-9]+).*$" "llvm-cov-\\1"
+               gcov_ ${CMAKE_CXX_COMPILER_VERSION})
+        set(gcov_param_ " gcov")
+    else()
+        set(gcov_ "gcov")
+        set(gcov_param_ "")
+    endif()
+
+    message(STATUS "Looking for coverage tool: ${gcov_}")
+
+    find_program(GCOV ${gcov_} DOC "Coverage tool")
+
+    if (GCOV STREQUAL "GCOV-NOTFOUND")
+        message(STATUS "  coverage tool not found - coverage disabled")
+    else()
+        message(STATUS "  found")
+
+        message(STATUS "Looking von gcovr")
+        find_program(GCOVR "gcovr" DOC "Coverage report tool")
+        if (GCOVR STREQUAL "GCOVR-NOTFOUND")
+            message(WARNING "  gcovr not found - coverage will not work")
+        else()
+            message(STATUS "  found")
+        endif()
+
+        add_definitions(-g -O0 -fno-inline-functions -fno-inline --coverage)
+
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage"
+            CACHE
+            STRING "Flags used by the linker during all build types."
+            FORCE)
+
+        set(coverage_report_dir "${CMAKE_BINARY_DIR}/coverage")
+        file(MAKE_DIRECTORY ${coverage_report_dir})
+        add_custom_target(coverage
+            ${GCOVR}
+            ${CMAKE_BINARY_DIR}
+            --root=${CMAKE_SOURCE_DIR}
+            --html --html-details
+            #--verbose
+            #--keep
+            '--exclude=.*contrib.*'
+            '--exclude=.*catch.hpp'
+            --sort-percentage
+            --gcov-executable=${GCOV}${gcov_param_}
+            --output=${coverage_report_dir}/index.html)
+    endif()
+endif()
 
 #############################################################
 # Detect available headers and set global compiler options
