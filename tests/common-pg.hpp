@@ -10,7 +10,7 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "catch.hpp"
+#include <catch.hpp>
 #include "options.hpp"
 
 #ifdef _MSC_VER

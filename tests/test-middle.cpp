@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch.hpp>
 
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>

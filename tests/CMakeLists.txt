@@ -32,6 +32,8 @@ function(set_test test_name)
     message(STATUS "Added test: ${test_name}...")
 endfunction()
 
+include_directories(SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/../contrib/catch2/include")
+
 add_definitions(-DTESTDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/tests/data/\")
 add_definitions(-DOSM2PGSQLDATA_DIR=\"${osm2pgsql_SOURCE_DIR}/\")
 
