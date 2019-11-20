@@ -6,10 +6,6 @@
  * emit the final geometry-enabled output formats
 */
 
-#ifdef _WIN32
-using namespace std;
-#endif
-
 #include <stdexcept>
 #include <unordered_map>
 
