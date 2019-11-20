@@ -35,7 +35,7 @@
 #include "reprojection.hpp"
 #include "util.hpp"
 
-#include <time.h>
+#include <ctime>
 #include <stdexcept>
 #include <string>
 #include <vector>

@@ -6,7 +6,7 @@
 #include <map>
 #include <stdexcept>
 #include <boost/format.hpp>
-#include <errno.h>
+#include <cerrno>
 
 #ifdef _WIN32
 #ifndef strtok_r

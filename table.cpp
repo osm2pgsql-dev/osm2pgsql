@@ -3,7 +3,7 @@
 #include <cstring>
 #include <cstdio>
 #include <utility>
-#include <time.h>
+#include <ctime>
 
 #include <boost/format.hpp>
 
