@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch.hpp>
 
 #include "common-import.hpp"
 #include "common-options.hpp"

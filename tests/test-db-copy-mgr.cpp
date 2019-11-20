@@ -2,7 +2,7 @@
 #include <utility>
 #include <vector>
 
-#include "catch.hpp"
+#include <catch.hpp>
 
 #include "common-pg.hpp"
 #include "db-copy.hpp"
