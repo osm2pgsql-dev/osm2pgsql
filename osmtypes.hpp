@@ -6,7 +6,7 @@
 // when __cplusplus is defined, we need to define this macro as well
 // to get the print format specifiers in the inttypes.h header.
 #define __STDC_FORMAT_MACROS
-#include <inttypes.h>
+#include <cinttypes>
 #include "config.h"
 
 #include <string>
