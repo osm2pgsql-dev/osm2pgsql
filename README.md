@@ -4,7 +4,7 @@ osm2pgsql is a tool for loading OpenStreetMap data into a PostgreSQL / PostGIS
 database suitable for applications like rendering into a map, geocoding with
 Nominatim, or general analysis.
 
-[![Travis Build Status](https://secure.travis-ci.org/openstreetmap/osm2pgsql.svg)](https://travis-ci.org/openstreetmap/osm2pgsql)
+[![Travis Build Status](https://secure.travis-ci.org/openstreetmap/osm2pgsql.svg?branch=master)](https://travis-ci.org/openstreetmap/osm2pgsql)
 [![Appveyor Build status](https://ci.appveyor.com/api/projects/status/7abwls7hfmb83axj/branch/master?svg=true)](https://ci.appveyor.com/project/openstreetmap/osm2pgsql/branch/master)
 [![Packaging status](https://repology.org/badge/tiny-repos/osm2pgsql.svg)](https://repology.org/project/osm2pgsql/versions)
 
