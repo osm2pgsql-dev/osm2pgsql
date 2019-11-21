@@ -72,4 +72,24 @@
    <tag k="population" v="-10000000000000000000--20000000000000000000" />
    <tag k="name" v="range, negative longer than long" />
  </node>
+ <node id="19" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="" />
+   <tag k="name" v="invalid, empty value" />
+ </node>
+ <node id="20" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="-" />
+   <tag k="name" v="invalid, single minus sign" />
+ </node>
+ <node id="21" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="--" />
+   <tag k="name" v="invalid, two minus signs" />
+ </node>
+ <node id="22" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="abc" />
+   <tag k="name" v="invalid, not a number" />
+ </node>
+ <node id="23" visible="true" version="1" changeset="1" timestamp="2018-10-31T10:20:19Z" user="a" uid="1" lat="51.4779481" lon="-0.0014863">
+   <tag k="population" v="0" />
+   <tag k="name" v="valid 0" />
+ </node>
 </osm>

@@ -76,4 +76,20 @@ TEST_CASE("int4 conversion")
         "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 17");
     conn.assert_null(
         "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 18");
+
+    // More invalid values
+    conn.assert_null(
+        "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 19");
+    conn.assert_null(
+        "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 20");
+    conn.assert_null(
+        "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 21");
+    conn.assert_null(
+        "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 22");
+
+    // Zero is a valid value
+    REQUIRE(
+        0 ==
+        conn.require_scalar<int>(
+            "SELECT population FROM osm2pgsql_test_point WHERE osm_id = 23"));
 }
