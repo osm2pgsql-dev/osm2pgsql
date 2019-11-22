@@ -29,7 +29,7 @@
 #include "output-pgsql.hpp"
 #include "pgsql.hpp"
 #include "reprojection.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 #include "util.hpp"
 #include "wildcmp.hpp"

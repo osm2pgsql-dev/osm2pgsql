@@ -4,7 +4,7 @@
 #include "output-multi.hpp"
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 
 #include <cstring>
 #include <stdexcept>

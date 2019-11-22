@@ -4,7 +4,7 @@
 #include "middle.hpp"
 #include "options.hpp"
 #include "table.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 #include "wkb.hpp"
 

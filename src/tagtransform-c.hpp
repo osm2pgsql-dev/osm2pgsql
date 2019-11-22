@@ -1,7 +1,7 @@
 #ifndef OSM2PGSQL_TAGTRANSFORM_C_HPP
 #define OSM2PGSQL_TAGTRANSFORM_C_HPP
 
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 
 class c_tagtransform_t : public tagtransform_t

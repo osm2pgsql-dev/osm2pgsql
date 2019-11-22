@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "options.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 #include "tagtransform.hpp"
 
 char const *TEST_PBF = "foo.pbf";

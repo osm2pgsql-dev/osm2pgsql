@@ -3,7 +3,7 @@
 #include <cstring>
 
 #include "options.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 #include "tagtransform-c.hpp"
 #include "wildcmp.hpp"
 
