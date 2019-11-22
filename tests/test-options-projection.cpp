@@ -9,7 +9,8 @@ static testing::db::import_t db;
 TEST_CASE("Projection setup")
 {
     std::vector<char const *> option_params = {
-        "osm2pgsql", "-S", "default.style", "--number-processes", "1"};
+        "osm2pgsql", "-S", OSM2PGSQLDATA_DIR "default.style",
+        "--number-processes", "1"};
 
     char const *proj_name = nullptr;
     char const *srid = "";

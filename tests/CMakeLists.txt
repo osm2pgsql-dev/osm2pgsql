@@ -9,9 +9,7 @@ function(set_test test_name)
 
     add_executable(${test_name} ${test_name}.cpp)
     target_link_libraries(${test_name} osm2pgsql_lib catch_main_lib)
-    add_test(NAME ${test_name}
-             COMMAND ${test_name}
-             WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
+    add_test(NAME ${test_name} COMMAND ${test_name})
 
     set_tests_properties(${test_name} PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
 
