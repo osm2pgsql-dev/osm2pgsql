@@ -38,7 +38,6 @@
  *
  */
 
-
 /*
  * simple_prompt
  *
@@ -69,125 +68,114 @@
 #include <windows.h>
 #endif
 
-char *
-simple_prompt(const char *prompt, int maxlen, int echo)
+char *simple_prompt(const char *prompt, int maxlen, int echo)
 {
-	size_t	   length;
-	char	   *destination;
-	FILE	   *termin,
-			   *termout;
+    size_t length;
+    char *destination;
+    FILE *termin, *termout;
 
 #ifdef HAVE_TERMIOS_H
-	struct termios t_orig,
-				t;
+    struct termios t_orig, t;
 #else
 #ifdef _WIN32
-	HANDLE		t = NULL;
-	DWORD		t_orig;
+    HANDLE t = NULL;
+    DWORD t_orig;
 #endif
 #endif
 
-	destination = static_cast<char *>(malloc(maxlen + 1));
-	if (!destination)
-		return NULL;
+    destination = static_cast<char *>(malloc(maxlen + 1));
+    if (!destination)
+        return NULL;
 
-	/*
+    /*
 	 * Do not try to collapse these into one "w+" mode file. Doesn't work on
 	 * some platforms (eg, HPUX 10.20).
 	 */
-	termin = fopen(DEVTTY, "r");
-	termout = fopen(DEVTTY, "w");
-	if (!termin || !termout
+    termin = fopen(DEVTTY, "r");
+    termout = fopen(DEVTTY, "w");
+    if (!termin ||
+        !termout
 #ifdef _WIN32
-	/* See DEVTTY comment for msys */
-		|| (getenv("OSTYPE") && strcmp(getenv("OSTYPE"), "msys") == 0)
+        /* See DEVTTY comment for msys */
+        || (getenv("OSTYPE") && strcmp(getenv("OSTYPE"), "msys") == 0)
 #endif
-		)
-	{
-		if (termin)
-			fclose(termin);
-		if (termout)
-			fclose(termout);
-		termin = stdin;
-		termout = stderr;
-	}
+    ) {
+        if (termin)
+            fclose(termin);
+        if (termout)
+            fclose(termout);
+        termin = stdin;
+        termout = stderr;
+    }
 
 #ifdef HAVE_TERMIOS_H
-	if (!echo)
-	{
-		tcgetattr(fileno(termin), &t);
-		t_orig = t;
-		t.c_lflag &= ~ECHO;
-		tcsetattr(fileno(termin), TCSAFLUSH, &t);
-	}
+    if (!echo) {
+        tcgetattr(fileno(termin), &t);
+        t_orig = t;
+        t.c_lflag &= ~ECHO;
+        tcsetattr(fileno(termin), TCSAFLUSH, &t);
+    }
 #else
 #ifdef _WIN32
-	if (!echo)
-	{
-		/* get a new handle to turn echo off */
-		t = GetStdHandle(STD_INPUT_HANDLE);
+    if (!echo) {
+        /* get a new handle to turn echo off */
+        t = GetStdHandle(STD_INPUT_HANDLE);
 
-		/* save the old configuration first */
-		GetConsoleMode(t, &t_orig);
+        /* save the old configuration first */
+        GetConsoleMode(t, &t_orig);
 
-		/* set to the new mode */
-		SetConsoleMode(t, ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
-	}
+        /* set to the new mode */
+        SetConsoleMode(t, ENABLE_LINE_INPUT | ENABLE_PROCESSED_INPUT);
+    }
 #endif
 #endif
 
-	if (prompt)
-	{
-		fputs(prompt, termout);
-		fflush(termout);
-	}
+    if (prompt) {
+        fputs(prompt, termout);
+        fflush(termout);
+    }
 
-	if (fgets(destination, maxlen + 1, termin) == NULL)
-		destination[0] = '\0';
+    if (fgets(destination, maxlen + 1, termin) == NULL)
+        destination[0] = '\0';
 
-	length = strlen(destination);
-	if (length > 0 && destination[length - 1] != '\n')
-	{
-		/* eat rest of the line */
-		char		buf[128];
-		size_t		buflen;
+    length = strlen(destination);
+    if (length > 0 && destination[length - 1] != '\n') {
+        /* eat rest of the line */
+        char buf[128];
+        size_t buflen;
 
-		do
-		{
-			if (fgets(buf, sizeof(buf), termin) == NULL)
-				break;
-			buflen = strlen(buf);
-		} while (buflen > 0 && buf[buflen - 1] != '\n');
-	}
+        do {
+            if (fgets(buf, sizeof(buf), termin) == NULL)
+                break;
+            buflen = strlen(buf);
+        } while (buflen > 0 && buf[buflen - 1] != '\n');
+    }
 
-	if (length > 0 && destination[length - 1] == '\n')
-		/* remove trailing newline */
-		destination[length - 1] = '\0';
+    if (length > 0 && destination[length - 1] == '\n')
+        /* remove trailing newline */
+        destination[length - 1] = '\0';
 
 #ifdef HAVE_TERMIOS_H
-	if (!echo)
-	{
-		tcsetattr(fileno(termin), TCSAFLUSH, &t_orig);
-		fputs("\n", termout);
-		fflush(termout);
-	}
+    if (!echo) {
+        tcsetattr(fileno(termin), TCSAFLUSH, &t_orig);
+        fputs("\n", termout);
+        fflush(termout);
+    }
 #else
 #ifdef _WIN32
-	if (!echo)
-	{
-		/* reset to the original console mode */
-		SetConsoleMode(t, t_orig);
-		fputs("\n", termout);
-		fflush(termout);
-	}
+    if (!echo) {
+        /* reset to the original console mode */
+        SetConsoleMode(t, t_orig);
+        fputs("\n", termout);
+        fflush(termout);
+    }
 #endif
 #endif
 
-	if (termin != stdin)
-	{
-		fclose(termin);
-		fclose(termout);
-	}
+    if (termin != stdin) {
+        fclose(termin);
+        fclose(termout);
+    }
 
-	return destination;
+    return destination;
 }

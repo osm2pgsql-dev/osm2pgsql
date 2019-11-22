@@ -1,13 +1,14 @@
 #include "util.hpp"
 
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
 namespace util {
 
-    void exit_nicely() {
-        std::cerr << "Error occurred, cleaning up\n";
-        exit(EXIT_FAILURE);
-    }
-
+void exit_nicely()
+{
+    std::cerr << "Error occurred, cleaning up\n";
+    exit(EXIT_FAILURE);
 }
+
+} // namespace util

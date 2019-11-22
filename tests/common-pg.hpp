@@ -10,12 +10,12 @@
 #include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include <catch.hpp>
 #include "options.hpp"
+#include <catch.hpp>
 
 #ifdef _MSC_VER
-#include <windows.h>
 #include <process.h>
+#include <windows.h>
 #define getpid _getpid
 #endif
 
@@ -153,10 +153,11 @@ public:
         try {
             conn_t conn("dbname=postgres");
 
-            m_db_name =
-                (boost::format("osm2pgsql-test-%1%-%2%") % getpid() % time(nullptr))
-                    .str();
-            conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") % m_db_name);
+            m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() %
+                         time(nullptr))
+                            .str();
+            conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
+                      m_db_name);
             conn.exec(
                 boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
                 m_db_name);

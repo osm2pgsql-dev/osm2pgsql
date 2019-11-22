@@ -35,24 +35,24 @@
 #include "reprojection.hpp"
 #include "util.hpp"
 
+#include <cstdio>
+#include <cstdlib>
 #include <ctime>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <cstdio>
-#include <cstdlib>
 
-#include <libpq-fe.h>
 #include <boost/format.hpp>
+#include <libpq-fe.h>
 
 int main(int argc, char *argv[])
 {
-    fprintf(stderr, "osm2pgsql version %s (%zu bit id space)\n\n", VERSION, 8 * sizeof(osmid_t));
-    try
-    {
+    fprintf(stderr, "osm2pgsql version %s (%zu bit id space)\n\n", VERSION,
+            8 * sizeof(osmid_t));
+    try {
         //parse the args into the different options members
         options_t options = options_t(argc, argv);
-        if(options.long_usage_bool)
+        if (options.long_usage_bool)
             return 0;
 
         //setup the middle and backend (output)
@@ -97,7 +97,8 @@ int main(int argc, char *argv[])
 
             stats.update(parser.stats());
 
-            fprintf(stderr, "  parse time: %ds\n", (int)(time(nullptr) - start));
+            fprintf(stderr, "  parse time: %ds\n",
+                    (int)(time(nullptr) - start));
         }
 
         //show stats
@@ -106,12 +107,12 @@ int main(int argc, char *argv[])
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
 
-        fprintf(stderr, "\nOsm2pgsql took %ds overall\n", (int)(time(nullptr) - overall_start));
+        fprintf(stderr, "\nOsm2pgsql took %ds overall\n",
+                (int)(time(nullptr) - overall_start));
 
         return 0;
-    }//something went wrong along the way
-    catch(const std::runtime_error& e)
-    {
+    } //something went wrong along the way
+    catch (const std::runtime_error &e) {
         fprintf(stderr, "Osm2pgsql failed due to ERROR: %s\n", e.what());
         exit(EXIT_FAILURE);
     }

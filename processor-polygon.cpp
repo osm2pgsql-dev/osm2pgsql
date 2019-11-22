@@ -3,8 +3,7 @@
 processor_polygon::processor_polygon(std::shared_ptr<reprojection> const &proj)
 : geometry_processor(proj->target_srs(), "GEOMETRY",
                      interest_way | interest_relation)
-{
-}
+{}
 
 geometry_processor::wkb_t
 processor_polygon::process_way(osmium::Way const &way,

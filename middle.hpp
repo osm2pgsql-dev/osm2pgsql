@@ -20,7 +20,8 @@
 /**
  * Infterface for returning information about raw OSM input data from a cache.
  */
-struct middle_query_t {
+struct middle_query_t
+{
     virtual ~middle_query_t() = 0;
 
     /**
@@ -64,7 +65,8 @@ struct middle_query_t {
      *
      * \return true if the relation was retrieved
      */
-    virtual bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
+    virtual bool relations_get(osmid_t id,
+                               osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member
@@ -94,7 +96,8 @@ struct middle_t
     /// Write all pending data to permanent storage.
     virtual void flush(osmium::item_type new_type) = 0;
 
-    struct pending_processor {
+    struct pending_processor
+    {
         virtual ~pending_processor() {}
         virtual void enqueue_ways(osmid_t id) = 0;
         virtual void process_ways() = 0;
@@ -102,8 +105,8 @@ struct middle_t
         virtual void process_relations() = 0;
     };
 
-    virtual void iterate_ways(pending_processor& pf) = 0;
-    virtual void iterate_relations(pending_processor& pf) = 0;
+    virtual void iterate_ways(pending_processor &pf) = 0;
+    virtual void iterate_relations(pending_processor &pf) = 0;
 
     virtual size_t pending_count() const = 0;
 
@@ -117,7 +120,8 @@ inline middle_t::~middle_t() = default;
  * Extended interface for permanent caching of raw OSM data.
  * It also allows updates.
  */
-struct slim_middle_t : public middle_t {
+struct slim_middle_t : public middle_t
+{
     virtual ~slim_middle_t() = 0;
 
     virtual void nodes_delete(osmid_t id) = 0;

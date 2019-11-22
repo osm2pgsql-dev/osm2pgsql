@@ -51,9 +51,10 @@ struct expire_tiles
     expire_tiles(uint32_t maxzoom, double maxbbox,
                  const std::shared_ptr<reprojection> &projection);
 
-    int from_bbox(double min_lon, double min_lat, double max_lon, double max_lat);
-    void from_wkb(const char* wkb, osmid_t osm_id);
-    int from_db(table_t* table, osmid_t osm_id);
+    int from_bbox(double min_lon, double min_lat, double max_lon,
+                  double max_lat);
+    void from_wkb(const char *wkb, osmid_t osm_id);
+    int from_db(table_t *table, osmid_t osm_id);
 
     /**
      * Write the list of expired tiles to a file.

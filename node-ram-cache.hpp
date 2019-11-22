@@ -30,7 +30,6 @@ struct ramNodeID
 class ramNodeBlock
 {
 public:
-
     void reset_used() { _used = 0; }
     void inc_used() { _used += 1; }
     int used() const { return _used; }

@@ -10,7 +10,11 @@
 #include <osmium/geom/projection.hpp>
 #include <osmium/osm/location.hpp>
 
-enum Projection { PROJ_LATLONG = 4326, PROJ_SPHERE_MERC = 3857 };
+enum Projection
+{
+    PROJ_LATLONG = 4326,
+    PROJ_SPHERE_MERC = 3857
+};
 
 class reprojection
 {
@@ -45,15 +49,12 @@ public:
      * The zoom level for the coordinates is explicitly given in the
      * variable map_width.
      */
-    void coords_to_tile(double *tilex, double *tiley,
-                        double lon, double lat, int map_width);
+    void coords_to_tile(double *tilex, double *tiley, double lon, double lat,
+                        int map_width);
     virtual int target_srs() const = 0;
     virtual const char *target_desc() const = 0;
 
-    bool target_latlon() const
-    {
-        return target_srs() == PROJ_LATLONG;
-    }
+    bool target_latlon() const { return target_srs() == PROJ_LATLONG; }
 
     /**
      * Create a reprojection object with target srs `srs`.

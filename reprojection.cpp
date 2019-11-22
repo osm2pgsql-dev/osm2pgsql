@@ -16,7 +16,7 @@
 #include "reprojection.hpp"
 
 /** must match expire.tiles.c */
-#define EARTH_CIRCUMFERENCE              40075016.68
+#define EARTH_CIRCUMFERENCE 40075016.68
 
 namespace {
 
@@ -66,7 +66,8 @@ public:
     }
 
     void target_to_tile(double *, double *) const override
-    { /* nothing */ }
+    { /* nothing */
+    }
 
     int target_srs() const override { return PROJ_SPHERE_MERC; }
     const char *target_desc() const override { return "Spherical Mercator"; }
@@ -77,7 +78,9 @@ class generic_reprojection_t : public reprojection
 public:
     generic_reprojection_t(int srs)
     : m_target_srs(srs), pj_target(srs), pj_source(PROJ_LATLONG),
-      pj_tile("+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs")
+      pj_tile(
+          "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 "
+          "+y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext  +no_defs")
     {}
 
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
@@ -90,14 +93,18 @@ public:
 
     void target_to_tile(double *lat, double *lon) const override
     {
-        auto c = transform(pj_target, pj_tile, osmium::geom::Coordinates(*lon, *lat));
+        auto c = transform(pj_target, pj_tile,
+                           osmium::geom::Coordinates(*lon, *lat));
 
         *lon = c.x;
         *lat = c.y;
     }
 
     int target_srs() const override { return m_target_srs; }
-    const char *target_desc() const override { return pj_get_def(pj_target.get(), 0); }
+    const char *target_desc() const override
+    {
+        return pj_get_def(pj_target.get(), 0);
+    }
 
 private:
     int m_target_srs;
@@ -111,26 +118,24 @@ private:
      *  in, say, lat/lon but still create tiles in Spherical Mercator.
      */
     osmium::geom::CRS pj_tile;
-
 };
 
 } // anonymous namespace
 
-
 reprojection *reprojection::create_projection(int srs)
 {
-    switch (srs)
-    {
-        case PROJ_LATLONG: return new latlon_reprojection_t();
-        case PROJ_SPHERE_MERC: return new merc_reprojection_t();
+    switch (srs) {
+    case PROJ_LATLONG:
+        return new latlon_reprojection_t();
+    case PROJ_SPHERE_MERC:
+        return new merc_reprojection_t();
     }
 
     return new generic_reprojection_t(srs);
 }
 
-
-void reprojection::coords_to_tile(double *tilex, double *tiley,
-                                  double lon, double lat, int map_width)
+void reprojection::coords_to_tile(double *tilex, double *tiley, double lon,
+                                  double lat, int map_width)
 {
     target_to_tile(&lat, &lon);
 

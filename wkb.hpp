@@ -214,12 +214,13 @@ public:
         if (out[0] != Endian)
             throw std::runtime_error(
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-                "Geometries in the database are returned in big-endian byte order. "
+                "Geometries in the database are returned in big-endian byte "
+                "order. "
 #else
-                "Geometries in the database are returned in little-endian byte order. "
+                "Geometries in the database are returned in little-endian byte "
+                "order. "
 #endif
-                "osm2pgsql can only process geometries in native byte order."
-                );
+                "osm2pgsql can only process geometries in native byte order.");
 
         return out;
     }
@@ -350,6 +351,6 @@ private:
     size_t m_pos;
 };
 
-} // namespace
+} // namespace ewkb
 
 #endif // OSM2PGSQL_WKB_HPP

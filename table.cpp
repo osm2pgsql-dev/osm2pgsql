@@ -1,9 +1,9 @@
-#include <exception>
 #include <algorithm>
-#include <cstring>
 #include <cstdio>
-#include <utility>
+#include <cstring>
 #include <ctime>
+#include <exception>
+#include <utility>
 
 #include <boost/format.hpp>
 
@@ -28,8 +28,9 @@ table_t::table_t(string const &name, string const &type,
   hstore_columns(hstore_columns), m_copy(copy_thread)
 {
     //if we dont have any columns
-    if(columns.size() == 0 && hstore_mode != HSTORE_ALL)
-        throw std::runtime_error((fmt("No columns provided for table %1%") % name).str());
+    if (columns.size() == 0 && hstore_mode != HSTORE_ALL)
+        throw std::runtime_error(
+            (fmt("No columns provided for table %1%") % name).str());
 
     generate_copy_column_list();
 }
@@ -51,10 +52,7 @@ table_t::table_t(table_t const &other,
     }
 }
 
-table_t::~table_t()
-{
-    teardown();
-}
+table_t::~table_t() { teardown(); }
 
 void table_t::teardown()
 {
@@ -64,26 +62,26 @@ void table_t::teardown()
     }
 }
 
-void table_t::commit()
-{
-    m_copy.sync();
-}
+void table_t::commit() { m_copy.sync(); }
 
 void table_t::connect()
 {
     //connect
     PGconn *_conn = PQconnectdb(m_conninfo.c_str());
     if (PQstatus(_conn) != CONNECTION_OK)
-        throw std::runtime_error((fmt("Connection to database failed: %1%\n") % PQerrorMessage(_conn)).str());
+        throw std::runtime_error((fmt("Connection to database failed: %1%\n") %
+                                  PQerrorMessage(_conn))
+                                     .str());
     sql_conn = _conn;
     //let commits happen faster by delaying when they actually occur
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET synchronous_commit TO off;");
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                      "SET synchronous_commit TO off;");
 }
 
 void table_t::start(std::string const &conninfo,
                     boost::optional<std::string> const &table_space)
 {
-    if(sql_conn)
+    if (sql_conn)
         throw std::runtime_error(m_target->name +
                                  " cannot start, its already started");
 
@@ -92,10 +90,10 @@ void table_t::start(std::string const &conninfo,
 
     connect();
     fprintf(stderr, "Setting up table: %s\n", m_target->name.c_str());
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
+    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                      "SET client_min_messages = WARNING");
     //we are making a new table
-    if (!append)
-    {
+    if (!append) {
         pgsql_exec_simple(
             sql_conn, PGRES_COMMAND_OK,
             (fmt("DROP TABLE IF EXISTS %1% CASCADE") % m_target->name).str());
@@ -109,8 +107,7 @@ void table_t::start(std::string const &conninfo,
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
 
     //making a new table
-    if (!append)
-    {
+    if (!append) {
         //define the new table
         string sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
                       m_target->name % POSTGRES_OSMID_TYPE)
@@ -141,13 +138,13 @@ void table_t::start(std::string const &conninfo,
 
         //create the table
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
-    }//appending
+    } //appending
     else {
         //check the columns against those in the existing table
         auto res = pgsql_exec_simple(
             sql_conn, PGRES_TUPLES_OK,
             (fmt("SELECT * FROM %1% LIMIT 0") % m_target->name).str());
-        for (auto const &column :  columns) {
+        for (auto const &column : columns) {
             if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
 #if 0
                 throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%1%\"\n") % info.name).str());
@@ -216,8 +213,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     // make sure that all data is written to the DB before continuing
     m_copy.sync();
 
-    if (!append)
-    {
+    if (!append) {
         time_t start, end;
         time(&start);
 
@@ -239,7 +235,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                and these need to be filtered. Also, a transformation is needed for geohashing.
                Notices are expected and ignored because they mean nothing aboud the validity of the geom
                in OSM. */
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
+            pgsql_exec(sql_conn, PGRES_COMMAND_OK,
+                       "SET client_min_messages = WARNING");
             pgsql_exec_simple(
                 sql_conn, PGRES_COMMAND_OK,
                 (fmt("CREATE TABLE %1%_tmp %2% AS\n"
@@ -251,7 +248,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                      "    COLLATE \"C\"") %
                  m_target->name % m_table_space)
                     .str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
+            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
+                              "RESET client_min_messages");
         }
         pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
                           (fmt("DROP TABLE %1%") % m_target->name).str());
@@ -322,7 +320,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                           : ""))
                         .str());
             }
-            for(size_t i = 0; i < hstore_columns.size(); ++i) {
+            for (size_t i = 0; i < hstore_columns.size(); ++i) {
                 pgsql_exec_simple(
                     sql_conn, PGRES_COMMAND_OK,
                     (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") %
@@ -352,7 +350,8 @@ void table_t::delete_row(const osmid_t id)
     m_copy.delete_id(id);
 }
 
-void table_t::write_row(osmid_t id, taglist_t const &tags, std::string const &geom)
+void table_t::write_row(osmid_t id, taglist_t const &tags,
+                        std::string const &geom)
 {
     m_copy.new_line(m_target);
 
@@ -405,9 +404,8 @@ void table_t::write_tags_column(taglist_t const &tags,
 {
     m_copy.new_hash();
     //iterate through the list of tags, first one is always null
-    for (size_t i = 0; i < tags.size(); ++i)
-    {
-        const tag_t& xtag = tags[i];
+    for (size_t i = 0; i < tags.size(); ++i) {
+        const tag_t &xtag = tags[i];
         //skip z_order tag and keys which have their own column
         if (used[i] || ("z_order" == xtag.key))
             continue;

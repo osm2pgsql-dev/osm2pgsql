@@ -30,8 +30,9 @@ void db_copy_thread_t::add_buffer(std::unique_ptr<db_cmd_t> &&buffer)
     assert(m_worker.joinable()); // thread must not have been finished
 
     std::unique_lock<std::mutex> lock(m_queue_mutex);
-    m_queue_full_cond.wait(lock,
-            [&]{ return m_worker_queue.size() < db_cmd_copy_t::Max_buffers; });
+    m_queue_full_cond.wait(lock, [&] {
+        return m_worker_queue.size() < db_cmd_copy_t::Max_buffers;
+    });
 
     m_worker_queue.push_back(std::move(buffer));
     m_queue_cond.notify_one();
@@ -41,7 +42,8 @@ void db_copy_thread_t::sync_and_wait()
 {
     std::promise<void> barrier;
     std::future<void> sync = barrier.get_future();
-    add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
+    add_buffer(
+        std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
     sync.wait();
 }
 
@@ -64,7 +66,7 @@ void db_copy_thread_t::worker_thread()
         std::unique_ptr<db_cmd_t> item;
         {
             std::unique_lock<std::mutex> lock(m_queue_mutex);
-            m_queue_cond.wait(lock, [&]{ return !m_worker_queue.empty(); });
+            m_queue_cond.wait(lock, [&] { return !m_worker_queue.empty(); });
 
             item = std::move(m_worker_queue.front());
             m_worker_queue.pop_front();
@@ -72,16 +74,16 @@ void db_copy_thread_t::worker_thread()
         }
 
         switch (item->type) {
-            case db_cmd_t::Cmd_copy:
-                write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
-                break;
-            case db_cmd_t::Cmd_sync:
-                finish_copy();
-                static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
-                break;
-            case db_cmd_t::Cmd_finish:
-                done = true;
-                break;
+        case db_cmd_t::Cmd_copy:
+            write_to_db(static_cast<db_cmd_copy_t *>(item.get()));
+            break;
+        case db_cmd_t::Cmd_sync:
+            finish_copy();
+            static_cast<db_cmd_sync_t *>(item.get())->barrier.set_value();
+            break;
+        case db_cmd_t::Cmd_finish:
+            done = true;
+            break;
         }
     }
 
@@ -150,7 +152,8 @@ void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
     pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
 }
 
-void db_copy_thread_t::start_copy(std::shared_ptr<db_target_descr_t> const &target)
+void db_copy_thread_t::start_copy(
+    std::shared_ptr<db_target_descr_t> const &target)
 {
     m_inflight = target;
 
@@ -175,15 +178,13 @@ void db_copy_thread_t::finish_copy()
 
     if (PQputCopyEnd(m_conn, nullptr) != 1)
         throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->name %
-                                  PQerrorMessage(m_conn))
+                                  m_inflight->name % PQerrorMessage(m_conn))
                                      .str());
 
     pg_result_t res(PQgetResult(m_conn));
     if (PQresultStatus(res.get()) != PGRES_COMMAND_OK)
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->name %
-                                  PQerrorMessage(m_conn))
+                                  m_inflight->name % PQerrorMessage(m_conn))
                                      .str());
 
     m_inflight.reset();
@@ -237,4 +238,3 @@ void db_copy_mgr_t::finish_line()
         m_processor->add_buffer(std::move(m_current));
     }
 }
-

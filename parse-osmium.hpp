@@ -8,16 +8,16 @@
 
 #include "osmtypes.hpp"
 
-#include <osmium/osm/box.hpp>
 #include <osmium/fwd.hpp>
 #include <osmium/handler.hpp>
-
+#include <osmium/osm/box.hpp>
 
 class osmdata_t;
 
 class parse_stats_t
 {
-    struct Counter {
+    struct Counter
+    {
         osmid_t count = 0;
         osmid_t max = 0;
         time_t start = 0;
@@ -35,7 +35,7 @@ class parse_stats_t
             return (count % frac == 0);
         }
 
-        Counter& operator+=(const Counter& rhs)
+        Counter &operator+=(const Counter &rhs)
         {
             count += rhs.count;
             if (rhs.max > max) {
@@ -73,7 +73,7 @@ public:
     inline void add_rel(osmid_t id)
     {
         if (rel.add(id, 10)) {
-           print_status();
+            print_status();
         }
     }
 
@@ -82,23 +82,19 @@ private:
     time_t print_time;
 };
 
-
-class parse_osmium_t: public osmium::handler::Handler
+class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(const boost::optional<std::string> &bbox,
-                   bool do_append, osmdata_t *osmdata);
+    parse_osmium_t(const boost::optional<std::string> &bbox, bool do_append,
+                   osmdata_t *osmdata);
 
     void stream_file(const std::string &filename, const std::string &fmt);
 
     void node(osmium::Node const &node);
-    void way(osmium::Way& way);
+    void way(osmium::Way &way);
     void relation(osmium::Relation const &rel);
 
-    parse_stats_t const &stats() const
-    {
-        return m_stats;
-    }
+    parse_stats_t const &stats() const { return m_stats; }
 
 private:
     osmium::Box parse_bbox(const boost::optional<std::string> &bbox);

@@ -1,28 +1,33 @@
 #ifndef OSM2PGSQL_TAGINFO_IMPL_HPP
 #define OSM2PGSQL_TAGINFO_IMPL_HPP
 
-#include "taginfo.hpp"
 #include "osmtypes.hpp"
+#include "taginfo.hpp"
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
-enum column_flags {
-  FLAG_POLYGON = 1,   /* For polygon table */
-  FLAG_LINEAR = 2,    /* For lines table */
-  FLAG_NOCACHE = 4,   /* Optimisation: don't bother remembering this one */
-  FLAG_DELETE = 8,    /* These tags should be simply deleted on sight */
-  FLAG_NOCOLUMN = 16, /* objects without column but should be listed in database hstore column */
-  FLAG_PHSTORE = 17,  /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
-  FLAG_INT_TYPE = 32, /* column value should be converted to integer */
-  FLAG_REAL_TYPE = 64 /* column value should be converted to double */
+enum column_flags
+{
+    FLAG_POLYGON = 1, /* For polygon table */
+    FLAG_LINEAR = 2,  /* For lines table */
+    FLAG_NOCACHE = 4, /* Optimisation: don't bother remembering this one */
+    FLAG_DELETE = 8,  /* These tags should be simply deleted on sight */
+    FLAG_NOCOLUMN =
+        16, /* objects without column but should be listed in database hstore column */
+    FLAG_PHSTORE =
+        17, /* same as FLAG_NOCOLUMN & FLAG_POLYGON to maintain compatibility */
+    FLAG_INT_TYPE = 32, /* column value should be converted to integer */
+    FLAG_REAL_TYPE = 64 /* column value should be converted to double */
 };
 
-struct taginfo {
+struct taginfo
+{
     taginfo();
     taginfo(const taginfo &);
 
-    ColumnType column_type() const {
+    ColumnType column_type() const
+    {
         if (flags & FLAG_INT_TYPE) {
             return COLUMN_TYPE_INT;
         }
@@ -36,7 +41,8 @@ struct taginfo {
     unsigned flags;
 };
 
-struct export_list {
+struct export_list
+{
     void add(osmium::item_type id, const taginfo &info);
     std::vector<taginfo> &get(osmium::item_type id);
     const std::vector<taginfo> &get(osmium::item_type id) const;
@@ -44,7 +50,7 @@ struct export_list {
     columns_t normal_columns(osmium::item_type id) const;
     bool has_column(osmium::item_type id, char const *name) const;
 
-    std::vector<std::vector<taginfo> > exportList; /* Indexed osmium nwr index */
+    std::vector<std::vector<taginfo>> exportList; /* Indexed osmium nwr index */
 };
 
 /* Parse a comma or whitespace delimited list of tags to apply to
@@ -58,6 +64,6 @@ int parse_tag_flags(const char *flags, int lineno);
  * Returns 1 if the 'way_area' column should (implicitly) exist, or
  * 0 if it should be suppressed.
  */
-int read_style_file( const std::string &filename, export_list *exlist );
+int read_style_file(const std::string &filename, export_list *exlist);
 
 #endif // OSM2PGSQL_TAGINFO_IMPL_HPP

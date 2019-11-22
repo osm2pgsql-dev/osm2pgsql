@@ -43,7 +43,7 @@ inline void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
     }
 }
 
-} // name space
+} // namespace
 
 namespace geom {
 
@@ -54,7 +54,8 @@ osmium_builder_t::get_wkb_node(osmium::Location const &loc) const
 }
 
 osmium_builder_t::wkbs_t
-osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes, double split_at)
+osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
+                               double split_at)
 {
     wkbs_t ret;
 
@@ -289,13 +290,13 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
                     prev = cur;
                     if (forward) {
                         // add way forwards
-                        add_nodes_to_builder(wnl_builder, nl.cbegin(), nl.cend(),
-                                             skip_first);
+                        add_nodes_to_builder(wnl_builder, nl.cbegin(),
+                                             nl.cend(), skip_first);
                         cur = std::get<2>(conn);
                     } else {
                         // add way backwards
-                        add_nodes_to_builder(wnl_builder, nl.crbegin(), nl.crend(),
-                                             skip_first);
+                        add_nodes_to_builder(wnl_builder, nl.crbegin(),
+                                             nl.crend(), skip_first);
                         cur = std::get<0>(conn);
                     }
                     // mark way as done
@@ -407,4 +408,4 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
     return ret;
 }
 
-} // name space
+} // namespace geom

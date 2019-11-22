@@ -1,24 +1,26 @@
 #include "options.hpp"
 #include "sprompt.hpp"
 
-#include <getopt.h>
-#include <boost/format.hpp>
 #include <algorithm>
+#include <boost/format.hpp>
 #include <cstdio>
 #include <cstring>
+#include <getopt.h>
 #include <osmium/version.hpp>
 #include <sstream>
 #include <stdexcept>
 #include <thread> // for number of threads
 
 #ifdef HAVE_LUA
-extern "C" {
+extern "C"
+{
 #include <lua.h>
 }
 #endif
 
 #ifdef HAVE_LUAJIT
-extern "C" {
+extern "C"
+{
 #include <luajit.h>
 }
 #endif
@@ -29,76 +31,76 @@ static char const *program_name(char const *name)
     return slash ? (slash + 1) : name;
 }
 
-namespace
+namespace {
+const char *short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
+const struct option long_options[] = {
+    {"append", no_argument, nullptr, 'a'},
+    {"bbox", required_argument, nullptr, 'b'},
+    {"cache", required_argument, nullptr, 'C'},
+    {"cache-strategy", required_argument, nullptr, 204},
+    {"create", no_argument, nullptr, 'c'},
+    {"database", required_argument, nullptr, 'd'},
+    {"disable-parallel-indexing", no_argument, nullptr, 'I'},
+    {"drop", no_argument, nullptr, 206},
+    {"expire-bbox-size", required_argument, nullptr, 214},
+    {"expire-output", required_argument, nullptr, 'o'},
+    {"expire-tiles", required_argument, nullptr, 'e'},
+    {"extra-attributes", no_argument, nullptr, 'x'},
+    {"flat-nodes", required_argument, nullptr, 'F'},
+    {"help", no_argument, nullptr, 'h'},
+    {"host", required_argument, nullptr, 'H'},
+    {"hstore", no_argument, nullptr, 'k'},
+    {"hstore-add-index", no_argument, nullptr, 211},
+    {"hstore-all", no_argument, nullptr, 'j'},
+    {"hstore-column", required_argument, nullptr, 'z'},
+    {"hstore-match-only", no_argument, nullptr, 208},
+    {"input-reader", required_argument, nullptr, 'r'},
+    {"keep-coastlines", no_argument, nullptr, 'K'},
+    {"latlong", no_argument, nullptr, 'l'},
+    {"merc", no_argument, nullptr, 'm'},
+    {"multi-geometry", no_argument, nullptr, 'G'},
+    {"number-processes", required_argument, nullptr, 205},
+    {"output", required_argument, nullptr, 'O'},
+    {"password", no_argument, nullptr, 'W'},
+    {"port", required_argument, nullptr, 'P'},
+    {"prefix", required_argument, nullptr, 'p'},
+    {"proj", required_argument, nullptr, 'E'},
+    {"reproject-area", no_argument, nullptr, 213},
+    {"slim", no_argument, nullptr, 's'},
+    {"style", required_argument, nullptr, 'S'},
+    {"tablespace-index", required_argument, nullptr, 'i'},
+    {"tablespace-main-data", required_argument, nullptr, 202},
+    {"tablespace-main-index", required_argument, nullptr, 203},
+    {"tablespace-slim-data", required_argument, nullptr, 200},
+    {"tablespace-slim-index", required_argument, nullptr, 201},
+    {"tag-transform-script", required_argument, nullptr, 212},
+    {"username", required_argument, nullptr, 'U'},
+    {"verbose", no_argument, nullptr, 'v'},
+    {"version", no_argument, nullptr, 'V'},
+    {nullptr, 0, nullptr, 0}};
+
+void short_usage(char *arg0)
 {
-    const char * short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
-    const struct option long_options[] = {
-        {"append", no_argument, nullptr, 'a'},
-        {"bbox", required_argument, nullptr, 'b'},
-        {"cache", required_argument, nullptr, 'C'},
-        {"cache-strategy", required_argument, nullptr, 204},
-        {"create", no_argument, nullptr, 'c'},
-        {"database", required_argument, nullptr, 'd'},
-        {"disable-parallel-indexing", no_argument, nullptr, 'I'},
-        {"drop", no_argument, nullptr, 206},
-        {"expire-bbox-size", required_argument, nullptr, 214},
-        {"expire-output", required_argument, nullptr, 'o'},
-        {"expire-tiles", required_argument, nullptr, 'e'},
-        {"extra-attributes", no_argument, nullptr, 'x'},
-        {"flat-nodes", required_argument, nullptr, 'F'},
-        {"help", no_argument, nullptr, 'h'},
-        {"host", required_argument, nullptr, 'H'},
-        {"hstore", no_argument, nullptr, 'k'},
-        {"hstore-add-index", no_argument, nullptr, 211},
-        {"hstore-all", no_argument, nullptr, 'j'},
-        {"hstore-column", required_argument, nullptr, 'z'},
-        {"hstore-match-only", no_argument, nullptr, 208},
-        {"input-reader", required_argument, nullptr, 'r'},
-        {"keep-coastlines", no_argument, nullptr, 'K'},
-        {"latlong", no_argument, nullptr, 'l'},
-        {"merc", no_argument, nullptr, 'm'},
-        {"multi-geometry", no_argument, nullptr, 'G'},
-        {"number-processes", required_argument, nullptr, 205},
-        {"output", required_argument, nullptr, 'O'},
-        {"password", no_argument, nullptr, 'W'},
-        {"port", required_argument, nullptr, 'P'},
-        {"prefix", required_argument, nullptr, 'p'},
-        {"proj", required_argument, nullptr, 'E'},
-        {"reproject-area", no_argument, nullptr, 213},
-        {"slim", no_argument, nullptr, 's'},
-        {"style", required_argument, nullptr, 'S'},
-        {"tablespace-index", required_argument, nullptr, 'i'},
-        {"tablespace-main-data", required_argument, nullptr, 202},
-        {"tablespace-main-index", required_argument, nullptr, 203},
-        {"tablespace-slim-data", required_argument, nullptr, 200},
-        {"tablespace-slim-index", required_argument, nullptr, 201},
-        {"tag-transform-script", required_argument, nullptr, 212},
-        {"username", required_argument, nullptr, 'U'},
-        {"verbose", no_argument, nullptr, 'v'},
-        {"version", no_argument, nullptr, 'V'},
-        {nullptr, 0, nullptr, 0}};
+    throw std::runtime_error(
+        (boost::format("Usage error. For further information see:\n\t%1% "
+                       "-h|--help\n") %
+         program_name(arg0))
+            .str());
+}
 
-    void short_usage(char *arg0)
-    {
-        throw std::runtime_error(
-            (boost::format("Usage error. For further information see:\n\t%1% "
-                           "-h|--help\n") %
-             program_name(arg0))
-                .str());
-    }
+void long_usage(char *arg0, bool verbose = false)
+{
+    const char *name = program_name(arg0);
 
-    void long_usage(char *arg0, bool verbose = false)
-    {
-        const char *name = program_name(arg0);
+    printf("Usage:\n");
+    printf("\t%s [options] planet.osm\n", name);
+    printf("\t%s [options] planet.osm.{pbf,gz,bz2}\n", name);
+    printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
+    printf("\nThis will import the data from the OSM file(s) into a PostgreSQL "
+           "database\n");
+    printf("suitable for use by the Mapnik renderer.\n\n");
 
-        printf("Usage:\n");
-        printf("\t%s [options] planet.osm\n", name);
-        printf("\t%s [options] planet.osm.{pbf,gz,bz2}\n", name);
-        printf("\t%s [options] file1.osm file2.osm file3.osm\n", name);
-        printf("\nThis will import the data from the OSM file(s) into a PostgreSQL database\n");
-        printf("suitable for use by the Mapnik renderer.\n\n");
-
-        printf("%s", "\
+    printf("%s", "\
     Common options:\n\
        -a|--append      Add the OSM file into the database without removing\n\
                         existing data.\n\
@@ -111,9 +113,10 @@ namespace
                         reduces the RAM usage but is much slower. This switch is\n\
                         required if you want to update with --append later.\n\
        -S|--style       Location of the style file. Defaults to\n");
-        printf("\
-                        %s.\n", DEFAULT_STYLE);
-        printf("%s", "\
+    printf("\
+                        %s.\n",
+           DEFAULT_STYLE);
+    printf("%s", "\
        -C|--cache       Use up to this many MB for caching nodes (default: 800)\n\
        -F|--flat-nodes  Specifies the flat file to use to persistently store node \n\
                         information in slim mode instead of in PostgreSQL.\n\
@@ -128,9 +131,8 @@ namespace
        -H|--host        Database server host name or socket location.\n\
        -P|--port        Database server port.\n");
 
-        if (verbose)
-        {
-            printf("%s", "\
+    if (verbose) {
+        printf("%s", "\
     \n\
     Hstore options:\n\
        -k|--hstore      Add tags without column to an additional hstore\n\
@@ -169,14 +171,14 @@ namespace
                             strategies for optimal storage efficiency. This may\n\
                             us twice as much virtual memory, but no more physical \n\
                             memory.\n");
-    #ifdef __amd64__
+#ifdef __amd64__
         printf("\
                         The default is \"optimized\"\n");
-    #else
+#else
         /* use "chunked" as a default in 32 bit compilations, as it is less wasteful of virtual memory than "optimized"*/
         printf("\
                         The default is \"sparse\"\n");
-    #endif
+#endif
         printf("%s", "\
     \n\
     Expiry options:\n\
@@ -203,13 +205,13 @@ namespace
                             database (requires style file for configuration)\n\
                         gazetteer - Output to a PostGIS database for Nominatim\n\
                         null - No output. Useful for testing. Still creates tables if --slim is specified.\n");
-    #ifdef HAVE_LUA
+#ifdef HAVE_LUA
         printf("\
           --tag-transform-script  Specify a lua script to handle tag filtering and normalisation\n\
                         The script contains callback functions for nodes, ways and relations, which each\n\
                         take a set of tags and returns a transformed, filtered set of tags which are then\n\
                         written to the database.\n");
-    #endif
+#endif
         printf("\
        -x|--extra-attributes\n\
                         Include attributes for each object in the database.\n\
@@ -222,38 +224,41 @@ namespace
           --reproject-area   compute area column using spherical mercator coordinates.\n\
        -h|--help        Help information.\n\
        -v|--verbose     Verbose output.\n");
-        }
-        else
-        {
-            printf("\n");
-            printf("A typical command to import a full planet is\n");
-            printf("    %s -c -d gis --slim -C <cache size> -k \\\n", name);
-            printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
-            printf("where\n");
-            printf("    <cache size> should be equivalent to the size of the \n");
-            printf("      pbf file to be imported if there is enough RAM \n");
-            printf("      or about 75%% of memory in MB on machines with less\n");
-            printf("    <flat nodes> is a location where a 50+GB file can be saved.\n");
-            printf("\n");
-            printf("A typical command to update a database imported with the above command is\n");
-            printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc - \\\n");
-            printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -r xml -\n", name);
-            printf("where\n");
-            printf("    <flat nodes> is the same location as above.\n");
-            printf("    <osmosis dir> is the location osmosis replication was initialized to.\n");
-            printf("\nRun %s --help --verbose (-h -v) for a full list of options.\n", name);
-        }
-
+    } else {
+        printf("\n");
+        printf("A typical command to import a full planet is\n");
+        printf("    %s -c -d gis --slim -C <cache size> -k \\\n", name);
+        printf("      --flat-nodes <flat nodes> planet-latest.osm.pbf\n");
+        printf("where\n");
+        printf("    <cache size> should be equivalent to the size of the \n");
+        printf("      pbf file to be imported if there is enough RAM \n");
+        printf("      or about 75%% of memory in MB on machines with less\n");
+        printf("    <flat nodes> is a location where a 50+GB file can be "
+               "saved.\n");
+        printf("\n");
+        printf("A typical command to update a database imported with the above "
+               "command is\n");
+        printf("    osmosis --rri workingDirectory=<osmosis dir> --simc --wxc "
+               "- \\\n");
+        printf("      | %s -a -d gis --slim -k --flat-nodes <flat nodes> -r "
+               "xml -\n",
+               name);
+        printf("where\n");
+        printf("    <flat nodes> is the same location as above.\n");
+        printf("    <osmosis dir> is the location osmosis replication was "
+               "initialized to.\n");
+        printf(
+            "\nRun %s --help --verbose (-h -v) for a full list of options.\n",
+            name);
     }
+}
 
 } // anonymous namespace
 
-database_options_t::database_options_t():
-    db(boost::none), username(boost::none), host(boost::none),
-    password(boost::none), port(boost::none)
-{
-
-}
+database_options_t::database_options_t()
+: db(boost::none), username(boost::none), host(boost::none),
+  password(boost::none), port(boost::none)
+{}
 
 std::string database_options_t::conninfo() const
 {
@@ -289,16 +294,15 @@ options_t::options_t()
   num_procs((int)std::min(4U, std::thread::hardware_concurrency()))
 {
     if (num_procs < 1) {
-        fprintf(stderr, "WARNING: unable to detect number of hardware threads supported!\n");
+        fprintf(stderr, "WARNING: unable to detect number of hardware threads "
+                        "supported!\n");
         num_procs = 1;
     }
 }
 
-options_t::~options_t()
-{
-}
+options_t::~options_t() {}
 
-options_t::options_t(int argc, char *argv[]): options_t()
+options_t::options_t(int argc, char *argv[]) : options_t()
 {
     int c;
 
@@ -307,7 +311,8 @@ options_t::options_t(int argc, char *argv[]): options_t()
     // errors - setting it to zero seems to work, though. see
     // http://stackoverflow.com/questions/15179963/is-it-possible-to-repeat-getopt#15179990
     optind = 0;
-    while(-1 != (c = getopt_long(argc, argv, short_options, long_options, nullptr))) {
+    while (-1 != (c = getopt_long(argc, argv, short_options, long_options,
+                                  nullptr))) {
 
         //handle the current arg
         switch (c) {
@@ -379,16 +384,18 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'e':
             if (!optarg || optarg[0] == '-') {
-                throw std::runtime_error("Missing argument for option --expire-tiles. Zoom "
-                                         "levels must be positive.\n");
+                throw std::runtime_error(
+                    "Missing argument for option --expire-tiles. Zoom "
+                    "levels must be positive.\n");
             }
             char *next_char;
             expire_tiles_zoom_min =
                 static_cast<uint32_t>(std::strtoul(optarg, &next_char, 10));
             if (expire_tiles_zoom_min == 0) {
-                throw std::runtime_error("Bad argument for option --expire-tiles. "
-                                         "Minimum zoom level must be larger "
-                                         "than 0.\n");
+                throw std::runtime_error(
+                    "Bad argument for option --expire-tiles. "
+                    "Minimum zoom level must be larger "
+                    "than 0.\n");
             }
             // The first character after the number is ignored because that is the separating hyphen.
             if (*next_char == '-') {
@@ -429,7 +436,8 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'k':
             if (hstore_mode != HSTORE_NONE) {
-                throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+                throw std::runtime_error("You can not specify both --hstore "
+                                         "(-k) and --hstore-all (-j)\n");
             }
             hstore_mode = HSTORE_NORM;
             break;
@@ -438,7 +446,8 @@ options_t::options_t(int argc, char *argv[]): options_t()
             break;
         case 'j':
             if (hstore_mode != HSTORE_NONE) {
-                throw std::runtime_error("You can not specify both --hstore (-k) and --hstore-all (-j)\n");
+                throw std::runtime_error("You can not specify both --hstore "
+                                         "(-k) and --hstore-all (-j)\n");
             }
             hstore_mode = HSTORE_ALL;
             break;
@@ -467,7 +476,10 @@ options_t::options_t(int argc, char *argv[]): options_t()
             else if (strcmp(optarg, "optimized") == 0)
                 alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
             else {
-                throw std::runtime_error((boost::format("Unrecognized cache strategy %1%.\n") % optarg).str());
+                throw std::runtime_error(
+                    (boost::format("Unrecognized cache strategy %1%.\n") %
+                     optarg)
+                        .str());
             }
             break;
         case 205:
@@ -501,7 +513,7 @@ options_t::options_t(int argc, char *argv[]): options_t()
             fprintf(stderr, "Lua support not included");
 #endif
             fprintf(stderr, "\n");
-            exit (EXIT_SUCCESS);
+            exit(EXIT_SUCCESS);
             break;
         case '?':
         default:
@@ -542,7 +554,8 @@ options_t::options_t(int argc, char *argv[]): options_t()
 void options_t::check_options()
 {
     if (append && create) {
-        throw std::runtime_error("--append and --create options can not be used at the same time!\n");
+        throw std::runtime_error("--append and --create options can not be "
+                                 "used at the same time!\n");
     }
 
     if (append && !slim) {
@@ -553,19 +566,25 @@ void options_t::check_options()
         throw std::runtime_error("--drop only makes sense with --slim.\n");
     }
 
-    if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 && hstore_match_only) {
-        fprintf(stderr, "Warning: --hstore-match-only only makes sense with --hstore, --hstore-all, or --hstore-column; ignored.\n");
+    if (hstore_mode == HSTORE_NONE && hstore_columns.size() == 0 &&
+        hstore_match_only) {
+        fprintf(stderr,
+                "Warning: --hstore-match-only only makes sense with --hstore, "
+                "--hstore-all, or --hstore-column; ignored.\n");
         hstore_match_only = false;
     }
 
-    if (enable_hstore_index && hstore_mode == HSTORE_NONE && hstore_columns.size() == 0) {
-        fprintf(stderr, "Warning: --hstore-add-index only makes sense with hstore enabled.\n");
+    if (enable_hstore_index && hstore_mode == HSTORE_NONE &&
+        hstore_columns.size() == 0) {
+        fprintf(stderr, "Warning: --hstore-add-index only makes sense with "
+                        "hstore enabled.\n");
         enable_hstore_index = false;
     }
 
     if (cache < 0) {
         cache = 0;
-        fprintf(stderr, "WARNING: ram cache cannot be negative. Using 0 instead.\n\n");
+        fprintf(stderr,
+                "WARNING: ram cache cannot be negative. Using 0 instead.\n\n");
     }
 
     if (cache == 0) {
@@ -584,10 +603,14 @@ void options_t::check_options()
         fprintf(stderr, "WARNING: Must use at least 1 process.\n\n");
     }
 
-    if (sizeof(int*) == 4 && !slim) {
-        fprintf(stderr, "\n!! You are running this on 32bit system, so at most\n");
-        fprintf(stderr, "!! 3GB of RAM can be used. If you encounter unexpected\n");
-        fprintf(stderr, "!! exceptions during import, you should try running in slim\n");
+    if (sizeof(int *) == 4 && !slim) {
+        fprintf(stderr,
+                "\n!! You are running this on 32bit system, so at most\n");
+        fprintf(stderr,
+                "!! 3GB of RAM can be used. If you encounter unexpected\n");
+        fprintf(
+            stderr,
+            "!! exceptions during import, you should try running in slim\n");
         fprintf(stderr, "!! mode using parameter -s.\n");
     }
 

@@ -22,6 +22,7 @@ template <typename T, size_t N>
 class cache_block_t
 {
     std::array<std::unique_ptr<T>, N> arr;
+
 public:
     void set(size_t idx, T *ele) { arr[idx].reset(ele); }
 
@@ -37,16 +38,17 @@ class elem_cache_t
     constexpr static size_t id2block(osmid_t id)
     {
         /* + NUM_BLOCKS/2 allows for negative IDs */
-        return (id >> BLOCK_SHIFT) + num_blocks()/2;
+        return (id >> BLOCK_SHIFT) + num_blocks() / 2;
     }
 
     constexpr static size_t id2offset(osmid_t id)
     {
-        return id & (per_block()-1);
+        return id & (per_block() - 1);
     }
 
     typedef cache_block_t<T, 1 << BLOCK_SHIFT> element_t;
     std::vector<std::unique_ptr<element_t>> arr;
+
 public:
     elem_cache_t() : arr(num_blocks()) {}
 
@@ -103,7 +105,8 @@ struct middle_ram_t : public middle_t, public middle_query_t
     int ways_delete(osmid_t id);
     int way_changed(osmid_t id);
 
-    bool relations_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    bool relations_get(osmid_t id,
+                       osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel) override;
     int relations_delete(osmid_t id);
     int relation_changed(osmid_t id);
@@ -112,8 +115,8 @@ struct middle_ram_t : public middle_t, public middle_query_t
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    void iterate_ways(middle_t::pending_processor& pf) override;
-    void iterate_relations(pending_processor& pf) override;
+    void iterate_ways(middle_t::pending_processor &pf) override;
+    void iterate_relations(pending_processor &pf) override;
 
     size_t pending_count() const override;
 
@@ -121,11 +124,11 @@ struct middle_ram_t : public middle_t, public middle_query_t
     get_query_instance(std::shared_ptr<middle_t> const &mid) const override;
 
 private:
-
     void release_ways();
     void release_relations();
 
-    struct ramWay {
+    struct ramWay
+    {
         taglist_t tags;
         idlist_t ndids;
 
@@ -137,7 +140,8 @@ private:
         }
     };
 
-    struct ramRel {
+    struct ramRel
+    {
         taglist_t tags;
         memberlist_t members;
 

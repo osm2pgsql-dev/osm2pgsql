@@ -1,4 +1,4 @@
-#define _LARGEFILE64_SOURCE     /* See feature_test_macrors(7) */
+#define _LARGEFILE64_SOURCE /* See feature_test_macrors(7) */
 
 #include "node-persistent-cache.hpp"
 #include "options.hpp"
@@ -34,7 +34,7 @@ size_t node_persistent_cache::get_list(osmium::WayNodeList *nodes)
         if (!loc.valid() && n.ref() >= 0) {
             try {
                 loc = m_index->get(
-                        static_cast<osmium::unsigned_object_id_type>(n.ref()));
+                    static_cast<osmium::unsigned_object_id_type>(n.ref()));
             } catch (osmium::not_found const &) {
             }
         }

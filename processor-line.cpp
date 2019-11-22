@@ -3,8 +3,7 @@
 processor_line::processor_line(std::shared_ptr<reprojection> const &proj)
 : geometry_processor(proj->target_srs(), "LINESTRING",
                      interest_way | interest_relation)
-{
-}
+{}
 
 geometry_processor::wkb_t
 processor_line::process_way(osmium::Way const &way,

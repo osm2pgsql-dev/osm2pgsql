@@ -2,9 +2,9 @@
 #define OSM2PGSQL_GEOMETRY_PROCESSOR_HPP
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 #include <osmium/memory/buffer.hpp>
 
@@ -16,21 +16,23 @@ struct middle_query_t;
 struct options_t;
 class reprojection;
 
-struct geometry_processor {
+struct geometry_processor
+{
     using wkb_t = geom::osmium_builder_t::wkb_t;
     using wkbs_t = geom::osmium_builder_t::wkbs_t;
     // factory method for creating various types of geometry processors either by name or by geometry column type
     static std::shared_ptr<geometry_processor> create(const std::string &type,
-                                                        const options_t *options);
+                                                      const options_t *options);
 
     virtual ~geometry_processor();
 
-    enum interest {
-        interest_NONE     = 0,
-        interest_node     = 1,
-        interest_way      = 2,
+    enum interest
+    {
+        interest_NONE = 0,
+        interest_node = 1,
+        interest_way = 2,
         interest_relation = 4,
-        interest_ALL      = 7
+        interest_ALL = 7
     };
 
     // return bit-mask of the type of elements this processor is
@@ -76,7 +78,8 @@ protected:
     const unsigned int m_interests;
 
     // constructor for use by implementing classes only
-    geometry_processor(int srid, const std::string &type, unsigned int interests);
+    geometry_processor(int srid, const std::string &type,
+                       unsigned int interests);
 };
 
 //various bits for continuous processing of members of relations

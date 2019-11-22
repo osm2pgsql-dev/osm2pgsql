@@ -82,8 +82,7 @@ void add_z_order(taglist_t &tags, int *roads)
 c_tagtransform_t::c_tagtransform_t(options_t const *options,
                                    export_list const &exlist)
 : m_options(options), m_export_list(exlist)
-{
-}
+{}
 
 std::unique_ptr<tagtransform_t> c_tagtransform_t::clone() const
 {
@@ -211,8 +210,8 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
 bool c_tagtransform_t::filter_rel_member_tags(
     taglist_t const &rel_tags, osmium::memory::Buffer const &,
-    rolelist_t const &, int *make_boundary, int *make_polygon,
-    int *roads, taglist_t &out_tags, bool allow_typeless)
+    rolelist_t const &, int *make_boundary, int *make_polygon, int *roads,
+    taglist_t &out_tags, bool allow_typeless)
 {
     //if it has a relation figure out what kind it is
     const std::string *type = rel_tags.get("type");

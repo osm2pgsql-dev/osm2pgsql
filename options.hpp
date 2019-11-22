@@ -4,10 +4,10 @@
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
 
-#include <vector>
-#include <string>
-#include <memory>
 #include <boost/optional.hpp>
+#include <memory>
+#include <string>
+#include <vector>
 
 /* Variants for generation of hstore column */
 /* No hstore column */
@@ -20,7 +20,8 @@
 /**
  * Database options, not specific to a table
  */
-class database_options_t {
+class database_options_t
+{
 public:
     database_options_t();
     boost::optional<std::string> db;
@@ -35,9 +36,10 @@ public:
 /**
  * Structure for storing command-line and other options
  */
-struct options_t {
+struct options_t
+{
 public:
-  // fixme: bring back old comment
+    // fixme: bring back old comment
     options_t();
     /**
      * Parse the options from the command line
@@ -64,7 +66,7 @@ public:
     boost::optional<std::string> tblsslim_data{boost::none};
 
     std::string style{DEFAULT_STYLE}; ///< style file to use
-    uint32_t expire_tiles_zoom = 0; ///< Zoom level for tile expiry list
+    uint32_t expire_tiles_zoom = 0;   ///< Zoom level for tile expiry list
 
     /// Minimum zoom level for tile expiry list
     uint32_t expire_tiles_zoom_min = 0;
@@ -123,6 +125,7 @@ public:
     bool verbose = false;
 
     std::vector<std::string> input_files;
+
 private:
     /**
      * Check input options for sanity

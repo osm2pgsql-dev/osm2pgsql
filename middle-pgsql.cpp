@@ -17,8 +17,8 @@
 #include <functional>
 
 #include <boost/format.hpp>
-#include <osmium/memory/buffer.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
+#include <osmium/memory/buffer.hpp>
 
 #include <libpq-fe.h>
 
@@ -136,8 +136,6 @@ middle_pgsql_t::table_desc::table_desc(options_t const *options,
     set_prefix_and_tbls(options, &m_array_indexes);
 }
 
-
-
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 char const *param) const
 {
@@ -152,7 +150,8 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
     return exec_prepared(stmt, buffer);
 }
 
-pg_result_t middle_pgsql_t::exec_prepared(char const *stmt, osmid_t osm_id) const
+pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
+                                          osmid_t osm_id) const
 {
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
@@ -165,7 +164,8 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
     pgsql_exec(m_sql_conn, PGRES_COMMAND_OK, "%s", sql_cmd.c_str());
 }
 
-void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp, bool build_indexes)
+void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
+                                      bool build_indexes)
 {
     time_t start, end;
 
@@ -193,53 +193,57 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp, bool 
     fprintf(stderr, "Stopped table: %s in %is\n", name(), (int)(end - start));
 }
 
-
 namespace {
 // Decodes a portion of an array literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
-inline const char *decode_upto( const char *src, char *dst )
+inline const char *decode_upto(const char *src, char *dst)
 {
-  int quoted = (*src == '"');
-  if( quoted ) src++;
+    int quoted = (*src == '"');
+    if (quoted)
+        src++;
 
-  while( quoted ? (*src != '"') : (*src != ',' && *src != '}') )
-  {
-    if( *src == '\\' )
-    {
-      switch( src[1] )
-      {
-        case 'n': *dst++ = '\n'; break;
-        case 't': *dst++ = '\t'; break;
-        default: *dst++ = src[1]; break;
-      }
-      src+=2;
+    while (quoted ? (*src != '"') : (*src != ',' && *src != '}')) {
+        if (*src == '\\') {
+            switch (src[1]) {
+            case 'n':
+                *dst++ = '\n';
+                break;
+            case 't':
+                *dst++ = '\t';
+                break;
+            default:
+                *dst++ = src[1];
+                break;
+            }
+            src += 2;
+        } else
+            *dst++ = *src++;
     }
-    else
-      *dst++ = *src++;
-  }
-  if( quoted ) src++;
-  *dst = 0;
-  return src;
+    if (quoted)
+        src++;
+    *dst = 0;
+    return src;
 }
 
 template <typename T>
-void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer, T &obuilder)
+void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
+                      T &obuilder)
 {
-    if( *string++ != '{' )
+    if (*string++ != '{')
         return;
 
     char key[1024];
     char val[1024];
     osmium::builder::TagListBuilder builder(buffer, &obuilder);
 
-    while( *string != '}' ) {
+    while (*string != '}') {
         string = decode_upto(string, key);
         // String points to the comma */
         string++;
         string = decode_upto(string, val);
         builder.add_tag(key, val);
         // String points to the comma or closing '}' */
-        if( *string == ',' ) {
+        if (*string == ',') {
             string++;
         }
     }
@@ -248,13 +252,13 @@ void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer, T &obu
 void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
                          osmium::builder::RelationBuilder &obuilder)
 {
-    if( *string++ != '{' )
+    if (*string++ != '{')
         return;
 
     char role[1024];
     osmium::builder::RelationMemberListBuilder builder(buffer, &obuilder);
 
-    while( *string != '}' ) {
+    while (*string != '}') {
         char type = string[0];
         char *endp;
         osmid_t id = strtoosmid(string + 1, &endp, 10);
@@ -262,14 +266,14 @@ void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
         string = decode_upto(endp + 1, role);
         builder.add_member(osmium::char_to_item_type(type), id, role);
         // String points to the comma or closing '}' */
-        if( *string == ',' ) {
+        if (*string == ',') {
             string++;
         }
     }
 }
 
 void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
-                         osmium::builder::WayBuilder &builder)
+                       osmium::builder::WayBuilder &builder)
 {
     if (*string++ == '{') {
         osmium::builder::WayNodeListBuilder wnl_builder(buffer, &builder);
@@ -285,7 +289,6 @@ void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
 }
 
 } // anonymous namespace
-
 
 void middle_pgsql_t::buffer_store_tags(osmium::OSMObject const &obj, bool attrs)
 {
@@ -359,7 +362,6 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
             n.set_location(el->second);
             ++count;
         }
-
     }
 
     return count;
@@ -374,7 +376,8 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node)
     } else {
         m_db_copy.new_line(tables[NODE_TABLE].m_copy_target);
 
-        m_db_copy.add_columns(node.id(), node.location().y(), node.location().x());
+        m_db_copy.add_columns(node.id(), node.location().y(),
+                              node.location().x());
 
         m_db_copy.finish_line();
     }
@@ -525,19 +528,17 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     return outres;
 }
 
-
 void middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     m_db_copy.new_line(tables[WAY_TABLE].m_copy_target);
     m_db_copy.delete_id(osm_id);
 }
 
-void middle_pgsql_t::iterate_ways(middle_t::pending_processor& pf)
+void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
 {
     // enqueue the jobs
     osmid_t id;
-    while(id_tracker::is_valid(id = ways_pending_tracker->pop_mark()))
-    {
+    while (id_tracker::is_valid(id = ways_pending_tracker->pop_mark())) {
         pf.enqueue_ways(id);
     }
     // in case we had higher ones than the middle
@@ -639,12 +640,11 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     m_db_copy.delete_id(osm_id);
 }
 
-void middle_pgsql_t::iterate_relations(pending_processor& pf)
+void middle_pgsql_t::iterate_relations(pending_processor &pf)
 {
     // enqueue the jobs
     osmid_t id;
-    while(id_tracker::is_valid(id = rels_pending_tracker->pop_mark()))
-    {
+    while (id_tracker::is_valid(id = rels_pending_tracker->pop_mark())) {
         pf.enqueue_relations(id);
     }
     // in case we had higher ones than the middle
@@ -673,7 +673,7 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
     auto result = exec_prepared("rels_using_way", way_id);
     const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
-    rel_ids.resize((size_t) ntuples);
+    rel_ids.resize((size_t)ntuples);
     for (int i = 0; i < ntuples; ++i) {
         rel_ids[i] = strtoosmid(PQgetvalue(result.get(), i, 0), nullptr, 10);
     }
@@ -725,7 +725,8 @@ void middle_pgsql_t::start()
         mark_pending = false;
     }
 
-    m_query_conn = PQconnectdb(out_options->database_options.conninfo().c_str());
+    m_query_conn =
+        PQconnectdb(out_options->database_options.conninfo().c_str());
     if (PQstatus(m_query_conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n",
                 PQerrorMessage(m_query_conn));
@@ -742,11 +743,14 @@ void middle_pgsql_t::start()
         }
     } else {
         // (Re)create tables.
-        pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "SET client_min_messages = WARNING");
+        pgsql_exec(m_query_conn, PGRES_COMMAND_OK,
+                   "SET client_min_messages = WARNING");
         for (auto &table : tables) {
             fprintf(stderr, "Setting up table: %s\n", table.name());
-            pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "DROP TABLE IF EXISTS %s CASCADE", table.name());
-            pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "%s", table.m_create.c_str());
+            pgsql_exec(m_query_conn, PGRES_COMMAND_OK,
+                       "DROP TABLE IF EXISTS %s CASCADE", table.name());
+            pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "%s",
+                       table.m_create.c_str());
         }
 
         PQfinish(m_query_conn);
@@ -766,10 +770,7 @@ void middle_pgsql_t::commit()
     }
 }
 
-void middle_pgsql_t::flush(osmium::item_type)
-{
-    m_db_copy.sync();
-}
+void middle_pgsql_t::flush(osmium::item_type) { m_db_copy.sync(); }
 
 void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 {
@@ -787,8 +788,9 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
         }
     } else {
         for (auto &t : tables) {
-            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop,
-                                  &t, out_options->database_options.conninfo(), out_options->droptemp, !append));
+            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &t,
+                                  out_options->database_options.conninfo(),
+                                  out_options->droptemp, !append));
         }
     }
 }
@@ -865,6 +867,7 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
     return std::shared_ptr<middle_query_t>(mid.release());
 }
 
-size_t middle_pgsql_t::pending_count() const {
+size_t middle_pgsql_t::pending_count() const
+{
     return ways_pending_tracker->size() + rels_pending_tracker->size();
 }

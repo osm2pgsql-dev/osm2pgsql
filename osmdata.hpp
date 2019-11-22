@@ -5,8 +5,8 @@
 // to get the print format specifiers in the inttypes.h header.
 #include "config.h"
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "osmtypes.hpp"
 
@@ -40,7 +40,7 @@ public:
 
 private:
     std::shared_ptr<middle_t> mid;
-    std::vector<std::shared_ptr<output_t> > outs;
+    std::vector<std::shared_ptr<output_t>> outs;
     bool with_extra;
 };
 

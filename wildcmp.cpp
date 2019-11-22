@@ -18,18 +18,17 @@ bool wildMatch(const char *first, const char *second)
         return true;
     }
 
-    if (*first == '*' && *(first+1) != '\0' && *second == '\0') {
+    if (*first == '*' && *(first + 1) != '\0' && *second == '\0') {
         return false;
     }
 
     if (*first == '?' || *first == *second) {
-        return wildMatch(first+1, second+1);
+        return wildMatch(first + 1, second + 1);
     }
 
     if (*first == '*') {
-        return wildMatch(first+1, second) || wildMatch(first, second+1);
+        return wildMatch(first + 1, second) || wildMatch(first, second + 1);
     }
 
     return false;
 }
-

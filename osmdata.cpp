@@ -56,7 +56,7 @@ int osmdata_t::way_add(osmium::Way *way)
     int status = 0;
 
     if (with_extra || !way->tags().empty()) {
-        for (auto& out: outs) {
+        for (auto &out : outs) {
             status |= out->way_add(way);
         }
     }
@@ -70,7 +70,7 @@ int osmdata_t::relation_add(osmium::Relation const &rel)
 
     int status = 0;
     if (with_extra || !rel.tags().empty()) {
-        for (auto& out: outs) {
+        for (auto &out : outs) {
             status |= out->relation_add(rel);
         }
     }
@@ -86,7 +86,7 @@ int osmdata_t::node_modify(osmium::Node const &node)
     slim->nodes_set(node);
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->node_modify(node);
     }
 
@@ -103,7 +103,7 @@ int osmdata_t::way_modify(osmium::Way *way)
     slim->ways_set(*way);
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->way_modify(way);
     }
 
@@ -120,7 +120,7 @@ int osmdata_t::relation_modify(osmium::Relation const &rel)
     slim->relations_set(rel);
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->relation_modify(rel);
     }
 
@@ -129,11 +129,12 @@ int osmdata_t::relation_modify(osmium::Relation const &rel)
     return status;
 }
 
-int osmdata_t::node_delete(osmid_t id) {
+int osmdata_t::node_delete(osmid_t id)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->node_delete(id);
     }
 
@@ -142,11 +143,12 @@ int osmdata_t::node_delete(osmid_t id) {
     return status;
 }
 
-int osmdata_t::way_delete(osmid_t id) {
+int osmdata_t::way_delete(osmid_t id)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->way_delete(id);
     }
 
@@ -155,11 +157,12 @@ int osmdata_t::way_delete(osmid_t id) {
     return status;
 }
 
-int osmdata_t::relation_delete(osmid_t id) {
+int osmdata_t::relation_delete(osmid_t id)
+{
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     int status = 0;
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         status |= out->relation_delete(id);
     }
 
@@ -168,8 +171,9 @@ int osmdata_t::relation_delete(osmid_t id) {
     return status;
 }
 
-void osmdata_t::start() {
-    for (auto& out: outs) {
+void osmdata_t::start()
+{
+    for (auto &out : outs) {
         out->start();
     }
 }
@@ -185,26 +189,29 @@ namespace {
 //and stuffing those into the work queue, so we have a single producer multi consumer threaded queue
 //since the fetching from middle should be faster than the processing in each backend.
 
-struct pending_threaded_processor : public middle_t::pending_processor {
+struct pending_threaded_processor : public middle_t::pending_processor
+{
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
-    static void do_jobs(output_vec_t const& outputs, pending_queue_t& queue, size_t& ids_done, std::mutex& mutex, int append, bool ways) {
+    static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
+                        size_t &ids_done, std::mutex &mutex, int append,
+                        bool ways)
+    {
         while (true) {
             //get the job off the queue synchronously
             pending_job_t job;
             mutex.lock();
-            if(queue.empty()) {
+            if (queue.empty()) {
                 mutex.unlock();
                 break;
-            }
-            else {
+            } else {
                 job = queue.top();
                 queue.pop();
             }
             mutex.unlock();
 
             //process it
-            if(ways)
+            if (ways)
                 outputs.at(job.output_id)->pending_way(job.osm_id, append);
             else
                 outputs.at(job.output_id)->pending_relation(job.osm_id, append);
@@ -233,14 +240,10 @@ struct pending_threaded_processor : public middle_t::pending_processor {
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
                                const output_vec_t &outs, size_t thread_count,
                                int append)
-        //note that we cant hint to the stack how large it should be ahead of time
-        //we could use a different datastructure like a deque or vector but then
-        //the outputs the enqueue jobs would need the version check for the push(_back) method
-        : outs(outs),
-          ids_queued(0),
-          append(append),
-          queue(),
-          ids_done(0)
+    //note that we cant hint to the stack how large it should be ahead of time
+    //we could use a different datastructure like a deque or vector but then
+    //the outputs the enqueue jobs would need the version check for the push(_back) method
+    : outs(outs), ids_queued(0), append(append), queue(), ids_done(0)
     {
 
         //clone all the things we need
@@ -253,7 +256,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
             //clone the outs
             output_vec_t out_clones;
-            for (const auto& out: outs) {
+            for (const auto &out : outs) {
                 out_clones.push_back(out->clone(mid_clone, copy_thread));
             }
 
@@ -264,14 +267,16 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 
     ~pending_threaded_processor() {}
 
-    void enqueue_ways(osmid_t id) {
-        for(size_t i = 0; i < outs.size(); ++i) {
+    void enqueue_ways(osmid_t id)
+    {
+        for (size_t i = 0; i < outs.size(); ++i) {
             outs[i]->enqueue_ways(queue, id, i, ids_queued);
         }
     }
 
     //waits for the completion of all outstanding jobs
-    void process_ways() {
+    void process_ways()
+    {
         //reset the number we've done
         ids_done = 0;
 
@@ -279,7 +284,6 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         fprintf(stderr, "\t%zu ways are pending\n", ids_queued);
         fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
         time_t start = time(nullptr);
-
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
@@ -291,7 +295,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
 
-        for (auto& w: workers) {
+        for (auto &w : workers) {
             try {
                 w.get();
             } catch (...) {
@@ -306,9 +310,11 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu ways in %i s\n\n", ids_queued, (int)(finish - start));
+        fprintf(stderr, "\rFinished processing %zu ways in %i s\n\n",
+                ids_queued, (int)(finish - start));
         if (finish - start > 0)
-            fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
+            fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n",
+                    ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
         ids_queued = 0;
         ids_done = 0;
@@ -324,18 +330,21 @@ struct pending_threaded_processor : public middle_t::pending_processor {
                 //done copying ways for now
                 clone_output->get()->commit();
                 //merge the pending from this threads copy of output back
-                original_output->get()->merge_pending_relations(clone_output->get());
+                original_output->get()->merge_pending_relations(
+                    clone_output->get());
             }
         }
     }
 
-    void enqueue_relations(osmid_t id) {
-        for(size_t i = 0; i < outs.size(); ++i) {
+    void enqueue_relations(osmid_t id)
+    {
+        for (size_t i = 0; i < outs.size(); ++i) {
             outs[i]->enqueue_relations(queue, id, i, ids_queued);
         }
     }
 
-    void process_relations() {
+    void process_relations()
+    {
         //reset the number we've done
         ids_done = 0;
 
@@ -354,7 +363,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
 
-        for (auto& w: workers) {
+        for (auto &w : workers) {
             try {
                 w.get();
             } catch (...) {
@@ -369,9 +378,12 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu relations in %i s\n\n", ids_queued, (int)(finish - start));
+        fprintf(stderr, "\rFinished processing %zu relations in %i s\n\n",
+                ids_queued, (int)(finish - start));
         if (finish - start > 0)
-            fprintf(stderr, "%zu Pending relations took %ds at a rate of %.2f/s\n", ids_queued, (int)(finish - start),
+            fprintf(stderr,
+                    "%zu Pending relations took %ds at a rate of %.2f/s\n",
+                    ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
         ids_queued = 0;
         ids_done = 0;
@@ -394,7 +406,8 @@ struct pending_threaded_processor : public middle_t::pending_processor {
 private:
     // output copies, one vector per thread
     std::vector<output_vec_t> clones;
-    output_vec_t outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
+    output_vec_t
+        outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //how many jobs do we have in the queue to start with
     size_t ids_queued;
     //appending to output that is already there (diff processing)
@@ -410,13 +423,14 @@ private:
 
 } // anonymous namespace
 
-void osmdata_t::stop() {
+void osmdata_t::stop()
+{
     /* Commit the transactions, so that multiple processes can
      * access the data simultanious to process the rest in parallel
      * as well as see the newly created tables.
      */
     mid->commit();
-    for (auto& out: outs) {
+    for (auto &out : outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
     }
@@ -447,7 +461,6 @@ void osmdata_t::stop() {
             mid->iterate_relations(ptp);
         }
     }
-
 
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands

@@ -5,7 +5,8 @@
 
 #include "tagtransform.hpp"
 
-extern "C" {
+extern "C"
+{
 #include <lua.h>
 }
 

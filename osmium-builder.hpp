@@ -23,8 +23,7 @@ public:
                               bool build_multigeoms)
     : m_proj(proj), m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
       m_writer(m_proj->target_srs()), m_build_multigeoms(build_multigeoms)
-    {
-    }
+    {}
 
     wkb_t get_wkb_node(osmium::Location const &loc) const;
     wkbs_t get_wkb_line(osmium::WayNodeList const &way, double split_at);
@@ -32,7 +31,8 @@ public:
 
     wkbs_t get_wkb_multipolygon(osmium::Relation const &rel,
                                 osmium::memory::Buffer const &ways);
-    wkbs_t get_wkb_multiline(osmium::memory::Buffer const &ways, double split_at);
+    wkbs_t get_wkb_multiline(osmium::memory::Buffer const &ways,
+                             double split_at);
 
 private:
     wkb_t create_multipolygon(osmium::Area const &area);
@@ -46,6 +46,6 @@ private:
     bool m_build_multigeoms;
 };
 
-} // namespace
+} // namespace geom
 
 #endif // OSM2PGSQL_OSMIUM_BUILDER_HPP

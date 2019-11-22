@@ -15,7 +15,6 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
-
 class output_gazetteer_t : public output_t
 {
     output_gazetteer_t(output_gazetteer_t const *other,
@@ -54,10 +53,12 @@ public:
     void stop(osmium::thread::Pool *) override {}
     void commit() override;
 
-    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t&) override {}
+    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t &) override {}
     int pending_way(osmid_t, int) override { return 0; }
 
-    void enqueue_relations(pending_queue_t &, osmid_t, size_t, size_t&) override {}
+    void enqueue_relations(pending_queue_t &, osmid_t, size_t,
+                           size_t &) override
+    {}
     int pending_relation(osmid_t, int) override { return 0; }
 
     int node_add(osmium::Node const &node) override
@@ -65,10 +66,7 @@ public:
         return process_node(node);
     }
 
-    int way_add(osmium::Way *way) override
-    {
-        return process_way(way);
-    }
+    int way_add(osmium::Way *way) override { return process_way(way); }
 
     int relation_add(osmium::Relation const &rel) override
     {
@@ -80,10 +78,7 @@ public:
         return process_node(node);
     }
 
-    int way_modify(osmium::Way *way) override
-    {
-        return process_way(way);
-    }
+    int way_modify(osmium::Way *way) override { return process_way(way); }
 
     int relation_modify(osmium::Relation const &rel) override
     {
@@ -109,7 +104,10 @@ public:
     }
 
 private:
-    enum { PLACE_BUFFER_SIZE = 4096 };
+    enum
+    {
+        PLACE_BUFFER_SIZE = 4096
+    };
 
     /// Delete all places that are not covered by the current style results.
     void delete_unused_classes(char const *osm_type, osmid_t osm_id);

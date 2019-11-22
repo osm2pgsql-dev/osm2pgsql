@@ -6,7 +6,8 @@
 
 #include "output.hpp"
 
-class output_null_t : public output_t {
+class output_null_t : public output_t
+{
 public:
     output_null_t(std::shared_ptr<middle_query_t> const &mid,
                   options_t const &options);
@@ -21,10 +22,12 @@ public:
     void commit() override;
     void cleanup(void);
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
+                      size_t &added) override;
     int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                           size_t output_id, size_t &added) override;
     int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node) override;

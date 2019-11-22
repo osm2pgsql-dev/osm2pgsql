@@ -37,8 +37,7 @@ struct db_target_descr_t
     db_target_descr_t() = default;
     db_target_descr_t(char const *n, char const *i, char const *r = "")
     : name(n), rows(r), id(i)
-    {
-    }
+    {}
 };
 
 /**
@@ -59,15 +58,13 @@ public:
     cmd_t type;
 
 protected:
-    explicit db_cmd_t(cmd_t t)
-    : type(t)
-    {
-    }
+    explicit db_cmd_t(cmd_t t) : type(t) {}
 };
 
 struct db_cmd_copy_t : public db_cmd_t
 {
-    enum {
+    enum
+    {
         /** Size of a single buffer with COPY data for Postgresql.
          *  This is a trade-off between memory usage and sending large chunks
          *  to speed up processing. Currently a one-size fits all value.
@@ -103,8 +100,7 @@ struct db_cmd_sync_t : public db_cmd_t
 
     explicit db_cmd_sync_t(std::promise<void> &&b)
     : db_cmd_t(db_cmd_t::Cmd_sync), barrier(std::move(b))
-    {
-    }
+    {}
 };
 
 struct db_cmd_finish_t : public db_cmd_t
@@ -192,8 +188,8 @@ public:
      *
      * See add_column().
      */
-    template <typename T, typename ...ARGS>
-    void add_columns(T value, ARGS&&... args)
+    template <typename T, typename... ARGS>
+    void add_columns(T value, ARGS &&... args)
     {
         add_column(value);
         add_columns(args...);
@@ -284,7 +280,9 @@ public:
      *
      * Must be closed with a finish_hash() call.
      */
-    void new_hash() { /* nothing */}
+    void new_hash()
+    { /* nothing */
+    }
 
     void add_hash_elem(std::string const &k, std::string const &v)
     {
@@ -409,24 +407,24 @@ private:
         assert(m_current);
         for (char const *c = s; *c; ++c) {
             switch (*c) {
-                case '"':
-                    m_current->buffer += "\\\"";
-                    break;
-                case '\\':
-                    m_current->buffer += "\\\\";
-                    break;
-                case '\n':
-                    m_current->buffer += "\\n";
-                    break;
-                case '\r':
-                    m_current->buffer += "\\r";
-                    break;
-                case '\t':
-                    m_current->buffer += "\\t";
-                    break;
-                default:
-                    m_current->buffer += *c;
-                    break;
+            case '"':
+                m_current->buffer += "\\\"";
+                break;
+            case '\\':
+                m_current->buffer += "\\\\";
+                break;
+            case '\n':
+                m_current->buffer += "\\n";
+                break;
+            case '\r':
+                m_current->buffer += "\\r";
+                break;
+            case '\t':
+                m_current->buffer += "\\t";
+                break;
+            default:
+                m_current->buffer += *c;
+                break;
             }
         }
     }

@@ -434,7 +434,8 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
     // osm_id
     buffer.add_column(o.id());
     // osm_type
-    char const osm_type[2] = { (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
+    char const osm_type[2] = {
+        (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
     buffer.add_column(osm_type);
     // class
     buffer.add_column(std::get<0>(tag));
@@ -509,7 +510,8 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
                 "osm_version", o.version());
         }
         if (m_metadata_fields.uid() && o.uid()) {
-            buffer.add_hstore_num_noescape<osmium::user_id_type>("osm_uid", o.uid());
+            buffer.add_hstore_num_noescape<osmium::user_id_type>("osm_uid",
+                                                                 o.uid());
         }
         if (m_metadata_fields.user() && o.user() && *(o.user()) != '\0') {
             buffer.add_hash_elem("osm_user", o.user());

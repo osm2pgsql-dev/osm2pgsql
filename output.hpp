@@ -21,9 +21,10 @@ struct id_tracker;
 struct middle_query_t;
 class db_copy_thread_t;
 
-struct pending_job_t {
+struct pending_job_t
+{
     osmid_t osm_id;
-    size_t  output_id;
+    size_t output_id;
 
     pending_job_t() : osm_id(0), output_id(0) {}
     pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
@@ -50,10 +51,12 @@ public:
     virtual void stop(osmium::thread::Pool *pool) = 0;
     virtual void commit() = 0;
 
-    virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
+    virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id,
+                              size_t output_id, size_t &added) = 0;
     virtual int pending_way(osmid_t id, int exists) = 0;
 
-    virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) = 0;
+    virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                                   size_t output_id, size_t &added) = 0;
     virtual int pending_relation(osmid_t id, int exists) = 0;
 
     virtual int node_add(osmium::Node const &node) = 0;

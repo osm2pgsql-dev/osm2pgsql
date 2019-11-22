@@ -8,14 +8,14 @@
  */
 
 #include "expire-tiles.hpp"
+#include "geometry-processor.hpp"
 #include "id-tracker.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "geometry-processor.hpp"
 
 #include <cstddef>
-#include <string>
 #include <memory>
+#include <string>
 
 class table_t;
 class tagtransform_t;
@@ -46,10 +46,12 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
+                      size_t &added) override;
     int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                           size_t output_id, size_t &added) override;
     int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node) override;
@@ -70,13 +72,13 @@ public:
     void merge_expire_trees(output_t *other) override;
 
 protected:
-
     void delete_from_output(osmid_t id);
     int process_node(osmium::Node const &node);
     int process_way(osmium::Way *way);
     int reprocess_way(osmium::Way *way, bool exists);
     int process_relation(osmium::Relation const &rel, bool exists);
-    void copy_node_to_table(osmid_t id, const std::string &geom, taglist_t &tags);
+    void copy_node_to_table(osmid_t id, const std::string &geom,
+                            taglist_t &tags);
     void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
                        taglist_t &tags);
 

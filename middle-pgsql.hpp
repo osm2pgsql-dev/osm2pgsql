@@ -72,8 +72,8 @@ struct middle_pgsql_t : public slim_middle_t
 
     void flush(osmium::item_type new_type) override;
 
-    void iterate_ways(middle_t::pending_processor& pf) override;
-    void iterate_relations(pending_processor& pf) override;
+    void iterate_ways(middle_t::pending_processor &pf) override;
+    void iterate_relations(pending_processor &pf) override;
 
     size_t pending_count() const override;
 

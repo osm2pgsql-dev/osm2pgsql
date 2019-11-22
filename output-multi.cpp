@@ -34,8 +34,7 @@ output_multi_t::output_multi_t(
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_builder(m_options.projection, m_options.enable_multi),
   m_way_area(export_list.has_column(m_osm_type, "way_area"))
-{
-}
+{}
 
 output_multi_t::output_multi_t(
     output_multi_t const *other, std::shared_ptr<middle_query_t> const &mid,
@@ -54,8 +53,7 @@ output_multi_t::output_multi_t(
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   m_builder(m_options.projection, m_options.enable_multi),
   m_way_area(other->m_way_area)
-{
-}
+{}
 
 output_multi_t::~output_multi_t() = default;
 
@@ -67,17 +65,21 @@ std::shared_ptr<output_t> output_multi_t::clone(
         new output_multi_t(this, mid, copy_thread));
 }
 
-int output_multi_t::start() {
+int output_multi_t::start()
+{
     m_table->start(m_options.database_options.conninfo(),
                    m_options.tblsmain_data);
     return 0;
 }
 
-size_t output_multi_t::pending_count() const {
+size_t output_multi_t::pending_count() const
+{
     return ways_pending_tracker.size() + rels_pending_tracker.size();
 }
 
-void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
+                                  size_t output_id, size_t &added)
+{
     osmid_t const prev = ways_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
@@ -88,14 +90,14 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //make sure we get the one passed in
-    if(!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
+    if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         added++;
     }
 
     //grab the first one or bail if its not valid
     osmid_t popped = ways_pending_tracker.pop_mark();
-    if(!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped))
         return;
 
     //get all the ones up to the id that was passed in
@@ -109,14 +111,16 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
 
     //make sure to get this one as well and move to the next
     if (popped > id) {
-        if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
+        if (!ways_done_tracker->is_marked(popped) &&
+            id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
     }
 }
 
-int output_multi_t::pending_way(osmid_t id, int exists) {
+int output_multi_t::pending_way(osmid_t id, int exists)
+{
     int ret = 0;
 
     // Try to fetch the way from the DB
@@ -129,7 +133,9 @@ int output_multi_t::pending_way(osmid_t id, int exists) {
     return ret;
 }
 
-void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                                       size_t output_id, size_t &added)
+{
     osmid_t const prev = rels_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
@@ -140,14 +146,14 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //make sure we get the one passed in
-    if(id_tracker::is_valid(id)) {
+    if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         added++;
     }
 
     //grab the first one or bail if its not valid
     osmid_t popped = rels_pending_tracker.pop_mark();
-    if(!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped))
         return;
 
     //get all the ones up to the id that was passed in
@@ -159,14 +165,15 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
 
     //make sure to get this one as well and move to the next
     if (popped > id) {
-        if(id_tracker::is_valid(popped)) {
+        if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
     }
 }
 
-int output_multi_t::pending_relation(osmid_t id, int exists) {
+int output_multi_t::pending_relation(osmid_t id, int exists)
+{
     int ret = 0;
 
     // Try to fetch the relation from the DB
@@ -191,9 +198,7 @@ void output_multi_t::stop(osmium::thread::Pool *pool)
     }
 }
 
-void output_multi_t::commit() {
-    m_table->commit();
-}
+void output_multi_t::commit() { m_table->commit(); }
 
 int output_multi_t::node_add(osmium::Node const &node)
 {
@@ -203,17 +208,19 @@ int output_multi_t::node_add(osmium::Node const &node)
     return 0;
 }
 
-int output_multi_t::way_add(osmium::Way *way) {
-    if (m_processor->interests(geometry_processor::interest_way) && way->nodes().size() > 1) {
+int output_multi_t::way_add(osmium::Way *way)
+{
+    if (m_processor->interests(geometry_processor::interest_way) &&
+        way->nodes().size() > 1) {
         return process_way(way);
     }
     return 0;
 }
 
-
-int output_multi_t::relation_add(osmium::Relation const &rel) {
-    if (m_processor->interests(geometry_processor::interest_relation)
-        && !rel.members().empty()) {
+int output_multi_t::relation_add(osmium::Relation const &rel)
+{
+    if (m_processor->interests(geometry_processor::interest_relation) &&
+        !rel.members().empty()) {
         return process_relation(rel, 0);
     }
     return 0;
@@ -233,7 +240,8 @@ int output_multi_t::node_modify(osmium::Node const &node)
     return 0;
 }
 
-int output_multi_t::way_modify(osmium::Way *way) {
+int output_multi_t::way_modify(osmium::Way *way)
+{
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(way->id());
@@ -246,7 +254,8 @@ int output_multi_t::way_modify(osmium::Way *way) {
     return 0;
 }
 
-int output_multi_t::relation_modify(osmium::Relation const &rel) {
+int output_multi_t::relation_modify(osmium::Relation const &rel)
+{
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(-rel.id());
@@ -254,13 +263,13 @@ int output_multi_t::relation_modify(osmium::Relation const &rel) {
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
         return process_relation(rel, false);
-
     }
 
     return 0;
 }
 
-int output_multi_t::node_delete(osmid_t id) {
+int output_multi_t::node_delete(osmid_t id)
+{
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(id);
@@ -268,7 +277,8 @@ int output_multi_t::node_delete(osmid_t id) {
     return 0;
 }
 
-int output_multi_t::way_delete(osmid_t id) {
+int output_multi_t::way_delete(osmid_t id)
+{
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(id);
@@ -276,7 +286,8 @@ int output_multi_t::way_delete(osmid_t id) {
     return 0;
 }
 
-int output_multi_t::relation_delete(osmid_t id) {
+int output_multi_t::relation_delete(osmid_t id)
+{
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(-id);
@@ -304,11 +315,13 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 {
     //if the way could exist already we have to make the relation pending and reprocess it later
     //but only if we actually care about relations
-    if(m_processor->interests(geometry_processor::interest_relation) && exists) {
+    if (m_processor->interests(geometry_processor::interest_relation) &&
+        exists) {
         way_delete(way->id());
         const std::vector<osmid_t> rel_ids =
             m_mid->relations_using_way(way->id());
-        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin(); itr != rel_ids.end(); ++itr) {
+        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
+             itr != rel_ids.end(); ++itr) {
             rels_pending_tracker.mark(*itr);
         }
     }
@@ -327,7 +340,8 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     return 0;
 }
 
-int output_multi_t::process_way(osmium::Way *way) {
+int output_multi_t::process_way(osmium::Way *way)
+{
     //check if we are keeping this way
     taglist_t outtags;
     auto filter = m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
@@ -356,7 +370,7 @@ int output_multi_t::process_way(osmium::Way *way) {
 int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 {
     //if it may exist already, delete it first
-    if(exists)
+    if (exists)
         relation_delete(rel.id());
 
     //does this relation have anything interesting to us
@@ -380,8 +394,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
         filter = m_tagtransform->filter_rel_member_tags(
             rel_outtags, m_relation_helper.data, m_relation_helper.roles,
             &make_boundary, &make_polygon, &roads, outtags, true);
-        if (!filter)
-        {
+        if (!filter) {
             m_relation_helper.add_way_locations(m_mid.get());
             auto geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
@@ -427,8 +440,9 @@ void output_multi_t::copy_to_table(const osmid_t id,
     m_table->write_row(id, tags, geom);
 }
 
-void output_multi_t::delete_from_output(osmid_t id) {
-    if(m_expire.from_db(m_table.get(), id))
+void output_multi_t::delete_from_output(osmid_t id)
+{
+    if (m_expire.from_db(m_table.get(), id))
         m_table->delete_row(id);
 }
 
@@ -438,7 +452,8 @@ void output_multi_t::merge_pending_relations(output_t *other)
 
     if (omulti) {
         osmid_t id;
-        while (id_tracker::is_valid((id = omulti->rels_pending_tracker.pop_mark()))) {
+        while (id_tracker::is_valid(
+            (id = omulti->rels_pending_tracker.pop_mark()))) {
             rels_pending_tracker.mark(id);
         }
     }

@@ -17,14 +17,20 @@
 #include <array>
 #include <memory>
 
-class output_pgsql_t : public output_t {
+class output_pgsql_t : public output_t
+{
     output_pgsql_t(output_pgsql_t const *other,
                    std::shared_ptr<middle_query_t> const &mid,
                    std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
 public:
-    enum table_id {
-        t_point = 0, t_line, t_poly, t_roads, t_MAX
+    enum table_id
+    {
+        t_point = 0,
+        t_line,
+        t_poly,
+        t_roads,
+        t_MAX
     };
 
     output_pgsql_t(std::shared_ptr<middle_query_t> const &mid,
@@ -40,10 +46,12 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
+                      size_t &added) override;
     int pending_way(osmid_t id, int exists) override;
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) override;
+    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                           size_t output_id, size_t &added) override;
     int pending_relation(osmid_t id, int exists) override;
 
     int node_add(osmium::Node const &node) override;

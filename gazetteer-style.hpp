@@ -52,8 +52,7 @@ class gazetteer_style_t
 
         string_with_flag_t(std::string const &n, flag_t f, matcher_t t)
         : name(n), flag(f), type(t)
-        {
-        }
+        {}
     };
 
     using flag_list_t = std::vector<string_with_flag_t>;

@@ -137,7 +137,8 @@ void node_ram_cache::set_sparse(osmid_t id, const osmium::Location &coord)
 void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
 {
     int32_t const block = id2block(id);
-    assert(block < NUM_BLOCKS); // https://github.com/openstreetmap/osm2pgsql/issues/965
+    assert(block <
+           NUM_BLOCKS); // https://github.com/openstreetmap/osm2pgsql/issues/965
     int const offset = id2offset(id);
 
     if (maxBlocks == 0) {
@@ -383,8 +384,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         }
     }
 
-    fprintf(stderr, "Node-cache: cache=%" PRId64 "MB, maxblocks=%d*%" PRId64
-                    ", allocation method=%i\n",
+    fprintf(stderr,
+            "Node-cache: cache=%" PRId64 "MB, maxblocks=%d*%" PRId64
+            ", allocation method=%i\n",
             (cacheSize >> 20), maxBlocks,
             (int64_t)PER_BLOCK * sizeof(osmium::Location), allocStrategy);
 }
@@ -394,9 +396,10 @@ node_ram_cache::~node_ram_cache()
     if (cacheSize == 0)
         return;
 
-    fprintf(stderr, "node cache: stored: %" PRIdOSMID
-                    "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
-                    "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
+    fprintf(stderr,
+            "node cache: stored: %" PRIdOSMID
+            "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
+            "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
             storedNodes, 100.0f * storedNodes / totalNodes,
             100.0f * storedNodes * sizeof(osmium::Location) / cacheUsed,
             usedBlocks, sizeSparseTuples,
@@ -428,8 +431,9 @@ void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
 
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32)) {
-        fprintf(stderr, "\nAbsolute node IDs must not be larger than %" PRId64
-                        " (got%" PRId64 " )\n",
+        fprintf(stderr,
+                "\nAbsolute node IDs must not be larger than %" PRId64
+                " (got%" PRId64 " )\n",
                 (int64_t)1 << 42, (int64_t)id);
         util::exit_nicely();
     }

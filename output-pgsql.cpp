@@ -56,7 +56,8 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
     } else {
-        double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
+        double const split_at =
+            m_options.projection->target_latlon() ? 1 : 100 * 1000;
         for (auto const &wkb : m_builder.get_wkb_line(way.nodes(), split_at)) {
             expire.from_wkb(wkb.c_str(), way.id());
             m_tables[t_line]->write_row(way.id(), *tags, wkb);
@@ -64,11 +65,12 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                 m_tables[t_roads]->write_row(way.id(), *tags, wkb);
             }
         }
-
     }
 }
 
-void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
+                                  size_t output_id, size_t &added)
+{
     osmid_t const prev = ways_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
@@ -79,14 +81,14 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //make sure we get the one passed in
-    if(!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
+    if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         added++;
     }
 
     //grab the first one or bail if its not valid
     osmid_t popped = ways_pending_tracker.pop_mark();
-    if(!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped))
         return;
 
     //get all the ones up to the id that was passed in
@@ -99,15 +101,17 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t
     }
 
     //make sure to get this one as well and move to the next
-    if(popped > id) {
-        if (!ways_done_tracker->is_marked(popped) && id_tracker::is_valid(popped)) {
+    if (popped > id) {
+        if (!ways_done_tracker->is_marked(popped) &&
+            id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
     }
 }
 
-int output_pgsql_t::pending_way(osmid_t id, int exists) {
+int output_pgsql_t::pending_way(osmid_t id, int exists)
+{
     // Try to fetch the way from the DB
     buffer.clear();
     if (m_mid->ways_get(id, buffer)) {
@@ -118,7 +122,7 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
             // call-back, so we need some alternative way to trigger this within
             // osmdata_t.
             const idlist_t rel_ids = m_mid->relations_using_way(id);
-            for (auto &mid: rel_ids) {
+            for (auto &mid : rel_ids) {
                 rels_pending_tracker.mark(mid);
             }
         }
@@ -139,7 +143,9 @@ int output_pgsql_t::pending_way(osmid_t id, int exists) {
     return 0;
 }
 
-void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, size_t output_id, size_t& added) {
+void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
+                                       size_t output_id, size_t &added)
+{
     osmid_t const prev = rels_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
@@ -150,14 +156,14 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //make sure we get the one passed in
-    if(id_tracker::is_valid(id)) {
+    if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         added++;
     }
 
     //grab the first one or bail if its not valid
     osmid_t popped = rels_pending_tracker.pop_mark();
-    if(!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped))
         return;
 
     //get all the ones up to the id that was passed in
@@ -168,15 +174,16 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id, s
     }
 
     //make sure to get this one as well and move to the next
-    if(popped > id) {
-        if(id_tracker::is_valid(popped)) {
+    if (popped > id) {
+        if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             added++;
         }
     }
 }
 
-int output_pgsql_t::pending_relation(osmid_t id, int exists) {
+int output_pgsql_t::pending_relation(osmid_t id, int exists)
+{
     // Try to fetch the relation from the DB
     // Note that we cannot use the global buffer here because
     // we cannot keep a reference to the relation and an autogrow buffer
@@ -250,7 +257,6 @@ int output_pgsql_t::way_add(osmium::Way *way)
     return 0;
 }
 
-
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
 int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
@@ -274,59 +280,60 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     if (num_ways == 0)
         return 0;
 
-  int roads = 0;
-  int make_polygon = 0;
-  int make_boundary = 0;
-  taglist_t outtags;
+    int roads = 0;
+    int make_polygon = 0;
+    int make_boundary = 0;
+    taglist_t outtags;
 
-  // If it's a route relation make_boundary and make_polygon will be false
-  // otherwise one or the other will be true.
-  if (m_tagtransform->filter_rel_member_tags(prefiltered_tags, buffer, xrole,
-                                             &make_boundary, &make_polygon,
-                                             &roads, outtags)) {
-      return 0;
-  }
+    // If it's a route relation make_boundary and make_polygon will be false
+    // otherwise one or the other will be true.
+    if (m_tagtransform->filter_rel_member_tags(prefiltered_tags, buffer, xrole,
+                                               &make_boundary, &make_polygon,
+                                               &roads, outtags)) {
+        return 0;
+    }
 
-  for (auto &w : buffer.select<osmium::Way>()) {
-      m_mid->nodes_get_list(&(w.nodes()));
-  }
+    for (auto &w : buffer.select<osmium::Way>()) {
+        m_mid->nodes_get_list(&(w.nodes()));
+    }
 
-  // linear features and boundaries
-  // Needs to be done before the polygon treatment below because
-  // for boundaries the way_area tag may be added.
-  if (!make_polygon) {
-      double const split_at = m_options.projection->target_latlon() ? 1 : 100 * 1000;
-      auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
-      for (auto const &wkb : wkbs) {
-          expire.from_wkb(wkb.c_str(), -rel.id());
-          m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
-          if (roads)
-              m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
-      }
-  }
+    // linear features and boundaries
+    // Needs to be done before the polygon treatment below because
+    // for boundaries the way_area tag may be added.
+    if (!make_polygon) {
+        double const split_at =
+            m_options.projection->target_latlon() ? 1 : 100 * 1000;
+        auto wkbs = m_builder.get_wkb_multiline(buffer, split_at);
+        for (auto const &wkb : wkbs) {
+            expire.from_wkb(wkb.c_str(), -rel.id());
+            m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
+            if (roads)
+                m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
+        }
+    }
 
-  // multipolygons and boundaries
-  if (make_boundary || make_polygon) {
-      auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
+    // multipolygons and boundaries
+    if (make_boundary || make_polygon) {
+        auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
 
-      char tmp[32];
-      for (auto const &wkb : wkbs) {
-          expire.from_wkb(wkb.c_str(), -rel.id());
-          if (m_enable_way_area) {
-              auto const area =
-                  m_options.reproject_area
-                      ? ewkb::parser_t(wkb).get_area<reprojection>(
-                            m_options.projection.get())
-                      : ewkb::parser_t(wkb)
-                            .get_area<osmium::geom::IdentityProjection>();
-              snprintf(tmp, sizeof(tmp), "%g", area);
-              outtags.push_override(tag_t("way_area", tmp));
-          }
-          m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
-      }
-  }
+        char tmp[32];
+        for (auto const &wkb : wkbs) {
+            expire.from_wkb(wkb.c_str(), -rel.id());
+            if (m_enable_way_area) {
+                auto const area =
+                    m_options.reproject_area
+                        ? ewkb::parser_t(wkb).get_area<reprojection>(
+                              m_options.projection.get())
+                        : ewkb::parser_t(wkb)
+                              .get_area<osmium::geom::IdentityProjection>();
+                snprintf(tmp, sizeof(tmp), "%g", area);
+                outtags.push_override(tag_t("way_area", tmp));
+            }
+            m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
+        }
+    }
 
-  return 0;
+    return 0;
 }
 
 int output_pgsql_t::relation_add(osmium::Relation const &rel)
@@ -338,8 +345,8 @@ int output_pgsql_t::relation_add(osmium::Relation const &rel)
         return 0;
 
     /* Only a limited subset of type= is supported, ignore other */
-    if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0
-        && strcmp(type, "boundary") != 0) {
+    if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0 &&
+        strcmp(type, "boundary") != 0) {
         return 0;
     }
 
@@ -351,13 +358,12 @@ int output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 int output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
 
-    if ( expire.from_db(m_tables[t_point].get(), osm_id) != 0)
+    if (expire.from_db(m_tables[t_point].get(), osm_id) != 0)
         m_tables[t_point]->delete_row(osm_id);
 
     return 0;
@@ -367,25 +373,24 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
-    if( !m_options.slim )
+    if (!m_options.slim)
         return 0;
     /* in droptemp mode we don't have indices and this takes ages. */
     if (m_options.droptemp)
         return 0;
 
     m_tables[t_roads]->delete_row(osm_id);
-    if ( expire.from_db(m_tables[t_line].get(), osm_id) != 0)
+    if (expire.from_db(m_tables[t_line].get(), osm_id) != 0)
         m_tables[t_line]->delete_row(osm_id);
-    if ( expire.from_db(m_tables[t_poly].get(), osm_id) != 0)
+    if (expire.from_db(m_tables[t_poly].get(), osm_id) != 0)
         m_tables[t_poly]->delete_row(osm_id);
     return 0;
 }
 
 int output_pgsql_t::way_delete(osmid_t osm_id)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
@@ -396,18 +401,17 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
-    if ( expire.from_db(m_tables[t_line].get(), -osm_id) != 0)
+    if (expire.from_db(m_tables[t_line].get(), -osm_id) != 0)
         m_tables[t_line]->delete_row(-osm_id);
-    if ( expire.from_db(m_tables[t_poly].get(), -osm_id) != 0)
+    if (expire.from_db(m_tables[t_poly].get(), -osm_id) != 0)
         m_tables[t_poly]->delete_row(-osm_id);
     return 0;
 }
 
 int output_pgsql_t::relation_delete(osmid_t osm_id)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
@@ -430,9 +434,8 @@ int output_pgsql_t::node_modify(osmium::Node const &node)
 
 int output_pgsql_t::way_modify(osmium::Way *way)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     way_delete(way->id());
@@ -443,9 +446,8 @@ int output_pgsql_t::way_modify(osmium::Way *way)
 
 int output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
-    if( !m_options.slim )
-    {
-        fprintf( stderr, "Cannot apply diffs unless in slim mode\n" );
+    if (!m_options.slim) {
+        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     relation_delete(rel.id());
@@ -497,27 +499,27 @@ output_pgsql_t::output_pgsql_t(
         //figure out what name we are using for this and what type
         std::string name = m_options.prefix;
         std::string type;
-        switch(i)
-        {
-            case t_point:
-                name += "_point";
-                type = "POINT";
-                break;
-            case t_line:
-                name += "_line";
-                type = "LINESTRING";
-                break;
-            case t_poly:
-                name += "_polygon";
-                type = "GEOMETRY"; // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
-                break;
-            case t_roads:
-                name += "_roads";
-                type = "LINESTRING";
-                break;
-            default:
-                //TODO: error message about coding error
-                util::exit_nicely();
+        switch (i) {
+        case t_point:
+            name += "_point";
+            type = "POINT";
+            break;
+        case t_line:
+            name += "_line";
+            type = "LINESTRING";
+            break;
+        case t_poly:
+            name += "_polygon";
+            type =
+                "GEOMETRY"; // Actually POLGYON & MULTIPOLYGON but no way to limit to just these two
+            break;
+        case t_roads:
+            name += "_roads";
+            type = "LINESTRING";
+            break;
+        default:
+            //TODO: error message about coding error
+            util::exit_nicely();
         }
 
         m_tables[i].reset(
@@ -551,7 +553,8 @@ output_pgsql_t::output_pgsql_t(
 
 output_pgsql_t::~output_pgsql_t() = default;
 
-size_t output_pgsql_t::pending_count() const {
+size_t output_pgsql_t::pending_count() const
+{
     return ways_pending_tracker.size() + rels_pending_tracker.size();
 }
 
@@ -560,7 +563,8 @@ void output_pgsql_t::merge_pending_relations(output_t *other)
     auto opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
         osmid_t id;
-        while (id_tracker::is_valid((id = opgsql->rels_pending_tracker.pop_mark()))) {
+        while (id_tracker::is_valid(
+            (id = opgsql->rels_pending_tracker.pop_mark()))) {
             rels_pending_tracker.mark(id);
         }
     }
@@ -571,4 +575,3 @@ void output_pgsql_t::merge_expire_trees(output_t *other)
     if (opgsql)
         expire.merge_and_destroy(opgsql->expire);
 }
-
