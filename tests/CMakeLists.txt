@@ -89,12 +89,11 @@ endif()
 find_package(PythonInterp 3)
 
 if (PYTHONINTERP_FOUND)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/regression-test.py.in
+                   ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
     add_test(NAME regression-test-pbf
-             COMMAND ${PYTHON_EXECUTABLE} ${osm2pgsql_SOURCE_DIR}/tests/regression-test.py -f ${osm2pgsql_SOURCE_DIR}/tests/data/liechtenstein-2013-08-03.osm.pbf -x $<TARGET_FILE:osm2pgsql>
-             WORKING_DIRECTORY ${osm2pgsql_SOURCE_DIR})
+             COMMAND ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
     set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
-    set_tests_properties(regression-test-pbf
-                         PROPERTIES ENVIRONMENT "HAVE_LUA=${LUA_FOUND}")
     set_tests_properties(regression-test-pbf
                          PROPERTIES FIXTURES_REQUIRED Tablespace)
     message(STATUS "Added test: regression-test-pbf (needs Python with psycopg2 module)")
