@@ -107,17 +107,20 @@ osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
     double minx, maxx, miny, maxy;
     int n =
         sscanf(bbox->c_str(), "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
-    if (n != 4)
+    if (n != 4) {
         throw std::runtime_error("Bounding box must be specified like: "
                                  "minlon,minlat,maxlon,maxlat\n");
+    }
 
-    if (maxx <= minx)
+    if (maxx <= minx) {
         throw std::runtime_error(
             "Bounding box failed due to maxlon <= minlon\n");
+    }
 
-    if (maxy <= miny)
+    if (maxy <= miny) {
         throw std::runtime_error(
             "Bounding box failed due to maxlat <= minlat\n");
+    }
 
     fprintf(stderr, "Applying Bounding box: %f,%f to %f,%f\n", minx, miny, maxx,
             maxy);
@@ -131,11 +134,12 @@ void parse_osmium_t::stream_file(const std::string &filename,
     const char *osmium_format = fmt == "auto" ? "" : fmt.c_str();
     osmium::io::File infile(filename, osmium_format);
 
-    if (infile.format() == osmium::io::file_format::unknown)
+    if (infile.format() == osmium::io::file_format::unknown) {
         throw std::runtime_error(
             fmt == "auto"
                 ? "Cannot detect file format. Try using -r."
                 : ((boost::format("Unknown file format '%1%'.") % fmt).str()));
+    }
 
     fprintf(stderr, "Using %s parser.\n",
             osmium::io::as_string(infile.format()));

@@ -97,8 +97,9 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
 
     //grab the first one or bail if its not valid
     osmid_t popped = ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped)) {
         return;
+    }
 
     //get all the ones up to the id that was passed in
     while (popped < id) {
@@ -153,8 +154,9 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
 
     //grab the first one or bail if its not valid
     osmid_t popped = rels_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped)) {
         return;
+    }
 
     //get all the ones up to the id that was passed in
     while (popped < id) {
@@ -347,8 +349,9 @@ int output_multi_t::process_way(osmium::Way *way)
     auto filter = m_tagtransform->filter_tags(*way, 0, 0, outtags, true);
     if (!filter) {
         //get the geom from the middle
-        if (m_mid->nodes_get_list(&(way->nodes())) < 1)
+        if (m_mid->nodes_get_list(&(way->nodes())) < 1) {
             return 0;
+        }
         //grab its geom
         auto geom = m_processor->process_way(*way, &m_builder);
 
@@ -370,8 +373,9 @@ int output_multi_t::process_way(osmium::Way *way)
 int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 {
     //if it may exist already, delete it first
-    if (exists)
+    if (exists) {
         relation_delete(rel.id());
+    }
 
     //does this relation have anything interesting to us
     taglist_t rel_outtags;
@@ -379,8 +383,9 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
     if (!filter) {
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
-        if (m_relation_helper.set(rel, m_mid.get()) < 1)
+        if (m_relation_helper.set(rel, m_mid.get()) < 1) {
             return 0;
+        }
 
         //NOTE: make_polygon is preset here this is to force the tag matching
         //normally this wouldnt work but we tell the tag transform to allow typeless relations
@@ -442,8 +447,9 @@ void output_multi_t::copy_to_table(const osmid_t id,
 
 void output_multi_t::delete_from_output(osmid_t id)
 {
-    if (m_expire.from_db(m_table.get(), id))
+    if (m_expire.from_db(m_table.get(), id)) {
         m_table->delete_row(id);
+    }
 }
 
 void output_multi_t::merge_pending_relations(output_t *other)

@@ -84,8 +84,9 @@ char *simple_prompt(const char *prompt, int maxlen, int echo)
 #endif
 
     destination = static_cast<char *>(malloc(maxlen + 1));
-    if (!destination)
+    if (!destination) {
         return NULL;
+    }
 
     /*
 	 * Do not try to collapse these into one "w+" mode file. Doesn't work on
@@ -100,10 +101,12 @@ char *simple_prompt(const char *prompt, int maxlen, int echo)
         || (getenv("OSTYPE") && strcmp(getenv("OSTYPE"), "msys") == 0)
 #endif
     ) {
-        if (termin)
+        if (termin) {
             fclose(termin);
-        if (termout)
+        }
+        if (termout) {
             fclose(termout);
+        }
         termin = stdin;
         termout = stderr;
     }
@@ -135,8 +138,9 @@ char *simple_prompt(const char *prompt, int maxlen, int echo)
         fflush(termout);
     }
 
-    if (fgets(destination, maxlen + 1, termin) == NULL)
+    if (fgets(destination, maxlen + 1, termin) == NULL) {
         destination[0] = '\0';
+    }
 
     length = strlen(destination);
     if (length > 0 && destination[length - 1] != '\n') {
@@ -145,15 +149,17 @@ char *simple_prompt(const char *prompt, int maxlen, int echo)
         size_t buflen;
 
         do {
-            if (fgets(buf, sizeof(buf), termin) == NULL)
+            if (fgets(buf, sizeof(buf), termin) == NULL) {
                 break;
+            }
             buflen = strlen(buf);
         } while (buflen > 0 && buf[buflen - 1] != '\n');
     }
 
-    if (length > 0 && destination[length - 1] == '\n')
+    if (length > 0 && destination[length - 1] == '\n') {
         /* remove trailing newline */
         destination[length - 1] = '\0';
+    }
 
 #ifdef HAVE_TERMIOS_H
     if (!echo) {

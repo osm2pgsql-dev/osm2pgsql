@@ -467,15 +467,15 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             parallel_indexing = false;
             break;
         case 204:
-            if (strcmp(optarg, "dense") == 0)
+            if (strcmp(optarg, "dense") == 0) {
                 alloc_chunkwise = ALLOC_DENSE;
-            else if (strcmp(optarg, "chunk") == 0)
+            } else if (strcmp(optarg, "chunk") == 0) {
                 alloc_chunkwise = ALLOC_DENSE | ALLOC_DENSE_CHUNK;
-            else if (strcmp(optarg, "sparse") == 0)
+            } else if (strcmp(optarg, "sparse") == 0) {
                 alloc_chunkwise = ALLOC_SPARSE;
-            else if (strcmp(optarg, "optimized") == 0)
+            } else if (strcmp(optarg, "optimized") == 0) {
                 alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
-            else {
+            } else {
                 throw std::runtime_error(
                     (boost::format("Unrecognized cache strategy %1%.\n") %
                      optarg)

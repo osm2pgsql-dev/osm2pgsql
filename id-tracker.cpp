@@ -177,8 +177,9 @@ osmid_t id_tracker::pop_mark()
     impl->old_id = id;
 
     //we just go rid of one (if there were some to get rid of)
-    if (impl->count > 0)
+    if (impl->count > 0) {
         impl->count--;
+    }
 
     return id;
 }

@@ -67,8 +67,9 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
     size_t curlen = 0;
 
     for (auto const &node : nodes) {
-        if (!node.location().valid())
+        if (!node.location().valid()) {
             continue;
+        }
 
         auto const this_pt = m_proj->reproject(node.location());
         if (prev_pt.valid()) {

@@ -52,8 +52,9 @@ bool gazetteer_style_t::has_place(std::string const &cls) const
 {
     return std::any_of(m_main.begin(), m_main.end(), [&](pmaintag_t const &e) {
         if (strcmp(std::get<0>(e), cls.c_str()) == 0) {
-            if (std::get<2>(e) & SF_MAIN_NAMED)
+            if (std::get<2>(e) & SF_MAIN_NAMED) {
                 return !m_names.empty();
+            }
             // XXX should handle SF_MAIN_NAMED_KEY as well
 
             return true;
@@ -280,8 +281,9 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 
         if (strcmp(k, "admin_level") == 0) {
             m_admin_level = atoi(v);
-            if (m_admin_level <= 0 || m_admin_level > MAX_ADMINLEVEL)
+            if (m_admin_level <= 0 || m_admin_level > MAX_ADMINLEVEL) {
                 m_admin_level = MAX_ADMINLEVEL;
+            }
             continue;
         }
 
@@ -376,11 +378,12 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         m_address.emplace_back("country", country);
     }
     if (place) {
-        if (interpolation || (admin_boundary &&
-                              strncmp(place, "isl", 3) != 0)) // island or islet
+        if (interpolation || (admin_boundary && strncmp(place, "isl", 3) !=
+                                                    0)) { // island or islet
             m_extra.emplace_back("place", place);
-        else
+        } else {
             m_main.emplace_back("place", place, place_flag);
+        }
     }
     if (address_point) {
         m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
@@ -399,8 +402,9 @@ bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
         }
     }
 
-    if (any)
+    if (any) {
         return true;
+    }
 
     for (auto const &main : m_main) {
         if ((std::get<2>(main) & SF_MAIN_FALLBACK) &&
@@ -420,8 +424,9 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
     std::vector<osmium::Tag const *> domain_name;
     if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
         domain_name = domain_names(std::get<0>(tag), o.tags());
-        if (domain_name.empty())
+        if (domain_name.empty()) {
             return false;
+        }
     }
 
     if (std::get<2>(tag) & SF_MAIN_NAMED) {

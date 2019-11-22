@@ -142,14 +142,16 @@ int read_style_file(const std::string &filename, export_list *exlist)
 
         //find where a comment starts and terminate the string there
         str = strchr(buffer, '#');
-        if (str)
+        if (str) {
             *str = '\0';
+        }
 
         //grab the expected fields for this row
         fields = sscanf(buffer, "%23s %63s %23s %127s", osmtype, tag, datatype,
                         flags);
-        if (fields <= 0) /* Blank line */
+        if (fields <= 0) { /* Blank line */
             continue;
+        }
         if (fields < 3) {
             fprintf(stderr, "Error reading style file line %d (fields=%d)\n",
                     lineno, fields);

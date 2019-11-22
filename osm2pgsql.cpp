@@ -52,8 +52,9 @@ int main(int argc, char *argv[])
     try {
         //parse the args into the different options members
         options_t options = options_t(argc, argv);
-        if (options.long_usage_bool)
+        if (options.long_usage_bool) {
             return 0;
+        }
 
         //setup the middle and backend (output)
         std::shared_ptr<middle_t> middle;

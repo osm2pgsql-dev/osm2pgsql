@@ -114,8 +114,9 @@ void expire_tiles::expire_tile(uint32_t x, uint32_t y)
 int expire_tiles::normalise_tile_x_coord(int x)
 {
     x %= map_width;
-    if (x < 0)
+    if (x < 0) {
         x = (map_width - x) + 1;
+    }
     return x;
 }
 
@@ -179,8 +180,9 @@ void expire_tiles::from_line(double lon_a, double lat_a, double lon_b,
     for (step = 0; step <= hyp_len; step += 0.4) {
         /* Interpolate points 1 tile width apart */
         next_step = step + 0.4;
-        if (next_step > hyp_len)
+        if (next_step > hyp_len) {
             next_step = hyp_len;
+        }
         x1 = tile_x_a + ((double)step * x_step);
         y1 = tile_y_a + ((double)step * y_step);
         x2 = tile_x_a + ((double)next_step * x_step);
@@ -225,8 +227,9 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
     double tmp_x;
     double tmp_y;
 
-    if (maxzoom == 0)
+    if (maxzoom == 0) {
         return 0;
+    }
 
     width = max_lon - min_lon;
     height = max_lat - min_lat;
@@ -249,14 +252,18 @@ int expire_tiles::from_bbox(double min_lon, double min_lat, double max_lon,
     projection->coords_to_tile(&tmp_x, &tmp_y, max_lon, min_lat, map_width);
     max_tile_x = tmp_x + TILE_EXPIRY_LEEWAY;
     max_tile_y = tmp_y + TILE_EXPIRY_LEEWAY;
-    if (min_tile_x < 0)
+    if (min_tile_x < 0) {
         min_tile_x = 0;
-    if (min_tile_y < 0)
+    }
+    if (min_tile_y < 0) {
         min_tile_y = 0;
-    if (max_tile_x > map_width)
+    }
+    if (max_tile_x > map_width) {
         max_tile_x = map_width;
-    if (max_tile_y > map_width)
+    }
+    if (max_tile_y > map_width) {
         max_tile_y = map_width;
+    }
     for (iterator_x = min_tile_x; iterator_x <= max_tile_x; iterator_x++) {
         norm_x = normalise_tile_x_coord(iterator_x);
         for (iterator_y = min_tile_y; iterator_y <= max_tile_y; iterator_y++) {
@@ -348,14 +355,18 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 
     for (size_t i = 1; i < num_pt; ++i) {
         auto c = wkb->read_point();
-        if (c.x < min.x)
+        if (c.x < min.x) {
             min.x = c.x;
-        if (c.y < min.y)
+        }
+        if (c.y < min.y) {
             min.y = c.y;
-        if (c.x > max.x)
+        }
+        if (c.x > max.x) {
             max.x = c.x;
-        if (c.y > max.y)
+        }
+        if (c.y > max.y) {
             max.y = c.y;
+        }
     }
 
     if (from_bbox(min.x, min.y, max.x, max.y)) {
@@ -390,8 +401,9 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 int expire_tiles::from_db(table_t *table, osmid_t osm_id)
 {
     //bail if we dont care about expiry
-    if (maxzoom == 0)
+    if (maxzoom == 0) {
         return -1;
+    }
 
     //grab the geom for this id
     auto wkbs = table->get_wkb_reader(osm_id);

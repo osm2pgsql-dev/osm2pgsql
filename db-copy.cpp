@@ -97,10 +97,11 @@ void db_copy_thread_t::connect()
     assert(!m_conn);
 
     PGconn *conn = PQconnectdb(m_conninfo.c_str());
-    if (PQstatus(conn) != CONNECTION_OK)
+    if (PQstatus(conn) != CONNECTION_OK) {
         throw std::runtime_error(
             (fmt("Connection to database failed: %1%\n") % PQerrorMessage(conn))
                 .str());
+    }
     m_conn = conn;
 
     // Let commits happen faster by delaying when they actually occur.
@@ -110,8 +111,9 @@ void db_copy_thread_t::connect()
 
 void db_copy_thread_t::disconnect()
 {
-    if (!m_conn)
+    if (!m_conn) {
         return;
+    }
 
     PQfinish(m_conn);
     m_conn = nullptr;
@@ -120,14 +122,17 @@ void db_copy_thread_t::disconnect()
 void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
     if (!buffer->deletables.empty() ||
-        (m_inflight && !buffer->target->same_copy_target(*m_inflight.get())))
+        (m_inflight && !buffer->target->same_copy_target(*m_inflight.get()))) {
         finish_copy();
+    }
 
-    if (!buffer->deletables.empty())
+    if (!buffer->deletables.empty()) {
         delete_rows(buffer);
+    }
 
-    if (!m_inflight)
+    if (!m_inflight) {
         start_copy(buffer->target);
+    }
 
     pgsql_CopyData(buffer->target->name.c_str(), m_conn, buffer->buffer);
 }
@@ -173,19 +178,22 @@ void db_copy_thread_t::start_copy(
 
 void db_copy_thread_t::finish_copy()
 {
-    if (!m_inflight)
+    if (!m_inflight) {
         return;
+    }
 
-    if (PQputCopyEnd(m_conn, nullptr) != 1)
+    if (PQputCopyEnd(m_conn, nullptr) != 1) {
         throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") %
                                   m_inflight->name % PQerrorMessage(m_conn))
                                      .str());
+    }
 
     pg_result_t res(PQgetResult(m_conn));
-    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK)
+    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") %
                                   m_inflight->name % PQerrorMessage(m_conn))
                                      .str());
+    }
 
     m_inflight.reset();
 }

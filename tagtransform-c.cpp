@@ -63,14 +63,17 @@ void add_z_order(taglist_t &tags, int *roads)
         *roads = 1;
     }
     /* Administrative boundaries are rendered at low zooms so we prefer to use the roads table */
-    if (boundary && *boundary == "administrative")
+    if (boundary && *boundary == "administrative") {
         *roads = 1;
+    }
 
-    if (bridge)
+    if (bridge) {
         z_order += 100;
+    }
 
-    if (tunnel)
+    if (tunnel) {
         z_order -= 100;
+    }
 
     char z[13];
     snprintf(z, sizeof(z), "%d", z_order);
@@ -116,8 +119,9 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
         if (m_options->hstore_mode != HSTORE_NONE) {
             /* ... but if hstore_match_only is set then don't take this
                  as a reason for keeping the object */
-            if (!m_options->hstore_match_only)
+            if (!m_options->hstore_match_only) {
                 *filter = false;
+            }
             /* with hstore, copy all tags... */
             return true;
         } else if (m_options->hstore_columns.size() > 0) {
@@ -194,10 +198,11 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
             *polygon = 1;
         } else {
             auto const *area = o.tags()["area"];
-            if (area)
+            if (area) {
                 *polygon = taglist_t::value_to_bool(area, flags & FLAG_POLYGON);
-            else
+            } else {
                 *polygon = flags & FLAG_POLYGON;
+            }
         }
     }
 
@@ -218,14 +223,15 @@ bool c_tagtransform_t::filter_rel_member_tags(
     bool is_route = false, is_boundary = false, is_multipolygon = false;
     if (type) {
         //what kind of relation is it
-        if (*type == "route")
+        if (*type == "route") {
             is_route = true;
-        else if (*type == "boundary")
+        } else if (*type == "boundary") {
             is_boundary = true;
-        else if (*type == "multipolygon")
+        } else if (*type == "multipolygon") {
             is_multipolygon = true;
-        else if (!allow_typeless)
+        } else if (!allow_typeless) {
             return true;
+        }
     } //you didnt have a type and it was required
     else if (!allow_typeless) {
         return true;
@@ -234,11 +240,13 @@ bool c_tagtransform_t::filter_rel_member_tags(
     /* Clone tags from relation */
     for (const auto &rel_tag : rel_tags) {
         //copy the name tag as "route_name"
-        if (is_route && (rel_tag.key == "name"))
+        if (is_route && (rel_tag.key == "name")) {
             out_tags.push_dedupe(tag_t("route_name", rel_tag.value));
+        }
         //copy all other tags except for "type"
-        if (rel_tag.key != "type")
+        if (rel_tag.key != "type") {
             out_tags.push_dedupe(rel_tag);
+        }
     }
 
     if (out_tags.empty()) {
@@ -253,10 +261,11 @@ bool c_tagtransform_t::filter_rel_member_tags(
             const std::string *state = rel_tags.get("state");
             std::string statetype("yes");
             if (state) {
-                if (*state == "alternate")
+                if (*state == "alternate") {
                     statetype = "alternate";
-                else if (*state == "connection")
+                } else if (*state == "connection") {
                     statetype = "connection";
+                }
             }
             if (*netw == "lcn") {
                 networknr = 10;

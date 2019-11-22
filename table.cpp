@@ -28,9 +28,10 @@ table_t::table_t(string const &name, string const &type,
   hstore_columns(hstore_columns), m_copy(copy_thread)
 {
     //if we dont have any columns
-    if (columns.size() == 0 && hstore_mode != HSTORE_ALL)
+    if (columns.size() == 0 && hstore_mode != HSTORE_ALL) {
         throw std::runtime_error(
             (fmt("No columns provided for table %1%") % name).str());
+    }
 
     generate_copy_column_list();
 }
@@ -68,10 +69,11 @@ void table_t::connect()
 {
     //connect
     PGconn *_conn = PQconnectdb(m_conninfo.c_str());
-    if (PQstatus(_conn) != CONNECTION_OK)
+    if (PQstatus(_conn) != CONNECTION_OK) {
         throw std::runtime_error((fmt("Connection to database failed: %1%\n") %
                                   PQerrorMessage(_conn))
                                      .str());
+    }
     sql_conn = _conn;
     //let commits happen faster by delaying when they actually occur
     pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
@@ -81,9 +83,10 @@ void table_t::connect()
 void table_t::start(std::string const &conninfo,
                     boost::optional<std::string> const &table_space)
 {
-    if (sql_conn)
+    if (sql_conn) {
         throw std::runtime_error(m_target->name +
                                  " cannot start, its already started");
+    }
 
     m_conninfo = conninfo;
     m_table_space = table_space ? " TABLESPACE " + table_space.get() : "";
@@ -119,8 +122,9 @@ void table_t::start(std::string const &conninfo,
         }
 
         //then with the hstore columns
-        for (auto const &hcolumn : hstore_columns)
+        for (auto const &hcolumn : hstore_columns) {
             sql += (fmt("\"%1%\" hstore,") % hcolumn).str();
+        }
 
         //add tags column
         if (hstore_mode != HSTORE_NONE) {
@@ -200,11 +204,12 @@ void table_t::generate_copy_column_list()
     }
 
     //add tags column and geom column
-    if (hstore_mode != HSTORE_NONE)
+    if (hstore_mode != HSTORE_NONE) {
         m_target->rows += "tags,way";
-    //or just the geom column
-    else
+        //or just the geom column
+    } else {
         m_target->rows += "way";
+    }
 }
 
 void table_t::stop(bool updateable, bool enable_hstore_index,
@@ -361,8 +366,9 @@ void table_t::write_row(osmid_t id, taglist_t const &tags,
     // used to remember which columns have been written out already.
     std::vector<bool> used;
 
-    if (hstore_mode != HSTORE_NONE)
+    if (hstore_mode != HSTORE_NONE) {
         used.assign(tags.size(), false);
+    }
 
     //get the regular columns' values
     write_columns(tags, hstore_mode == HSTORE_NORM ? &used : nullptr);
@@ -371,8 +377,9 @@ void table_t::write_row(osmid_t id, taglist_t const &tags,
     write_hstore_columns(tags);
 
     //get the key value pairs for the tags column
-    if (hstore_mode != HSTORE_NONE)
+    if (hstore_mode != HSTORE_NONE) {
         write_tags_column(tags, used);
+    }
 
     //add the geometry - encoding it to hex along the way
     m_copy.add_hex_geom(geom);
@@ -391,8 +398,9 @@ void table_t::write_columns(taglist_t const &tags, std::vector<bool> *used)
 
             // Remember we already used this one so we can't use
             // again later in the hstore column.
-            if (used)
+            if (used) {
                 (*used)[(size_t)idx] = true;
+            }
         } else {
             m_copy.add_null_column();
         }
@@ -407,8 +415,9 @@ void table_t::write_tags_column(taglist_t const &tags,
     for (size_t i = 0; i < tags.size(); ++i) {
         const tag_t &xtag = tags[i];
         //skip z_order tag and keys which have their own column
-        if (used[i] || ("z_order" == xtag.key))
+        if (used[i] || ("z_order" == xtag.key)) {
             continue;
+        }
 
         m_copy.add_hash_elem(xtag.key, xtag.value);
     }

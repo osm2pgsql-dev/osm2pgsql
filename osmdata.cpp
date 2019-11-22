@@ -211,10 +211,11 @@ struct pending_threaded_processor : public middle_t::pending_processor
             mutex.unlock();
 
             //process it
-            if (ways)
+            if (ways) {
                 outputs.at(job.output_id)->pending_way(job.osm_id, append);
-            else
+            } else {
                 outputs.at(job.output_id)->pending_relation(job.osm_id, append);
+            }
 
             mutex.lock();
             ++ids_done;
@@ -312,10 +313,11 @@ struct pending_threaded_processor : public middle_t::pending_processor
         time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu ways in %i s\n\n",
                 ids_queued, (int)(finish - start));
-        if (finish - start > 0)
+        if (finish - start > 0) {
             fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n",
                     ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
+        }
         ids_queued = 0;
         ids_done = 0;
 
@@ -380,11 +382,12 @@ struct pending_threaded_processor : public middle_t::pending_processor
         time_t finish = time(nullptr);
         fprintf(stderr, "\rFinished processing %zu relations in %i s\n\n",
                 ids_queued, (int)(finish - start));
-        if (finish - start > 0)
+        if (finish - start > 0) {
             fprintf(stderr,
                     "%zu Pending relations took %ds at a rate of %.2f/s\n",
                     ids_queued, (int)(finish - start),
                     ((double)ids_queued / (double)(finish - start)));
+        }
         ids_queued = 0;
         ids_done = 0;
 

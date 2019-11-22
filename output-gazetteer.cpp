@@ -131,8 +131,9 @@ void output_gazetteer_t::prepare_query_conn() const
 
 output_gazetteer_t::~output_gazetteer_t()
 {
-    if (m_conn)
+    if (m_conn) {
         PQfinish(m_conn);
+    }
 }
 
 void output_gazetteer_t::commit() { m_copy.sync(); }
@@ -141,14 +142,16 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 {
     m_style.process_tags(node);
 
-    if (m_options.append)
+    if (m_options.append) {
         delete_unused_classes("N", node.id());
+    }
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
         auto wkb = m_builder.get_wkb_node(node.location());
-        if (!m_style.copy_out(node, wkb, m_copy))
+        if (!m_style.copy_out(node, wkb, m_copy)) {
             delete_unused_full("N", node.id());
+        }
     }
 
     return 0;
@@ -158,8 +161,9 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 {
     m_style.process_tags(*way);
 
-    if (m_options.append)
+    if (m_options.append) {
         delete_unused_classes("W", way->id());
+    }
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
@@ -180,8 +184,9 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             geom = wkbs[0];
         }
 
-        if (!m_style.copy_out(*way, geom, m_copy))
+        if (!m_style.copy_out(*way, geom, m_copy)) {
             delete_unused_full("W", way->id());
+        }
     }
 
     return 0;
@@ -207,12 +212,14 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     m_style.process_tags(rel);
 
-    if (m_options.append)
+    if (m_options.append) {
         delete_unused_classes("R", rel.id());
+    }
 
     /* Are we interested in this item? */
-    if (!m_style.has_data())
+    if (!m_style.has_data()) {
         return 0;
+    }
 
     /* get the boundary path (ways) */
     osmium_buffer.clear();
@@ -232,8 +239,9 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
     if (!geoms.empty()) {
-        if (!m_style.copy_out(rel, geoms[0], m_copy))
+        if (!m_style.copy_out(rel, geoms[0], m_copy)) {
             delete_unused_full("R", rel.id());
+        }
     }
 
     return 0;

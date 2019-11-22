@@ -71,8 +71,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
             source++;
             continue;
         } else if (*source == '}') {
-            if (!copied && openbrace)
+            if (!copied && openbrace) {
                 dest = openbrace;
+            }
             source++;
             continue;
         } else if (*source == '%') {
@@ -199,8 +200,9 @@ namespace {
 inline const char *decode_upto(const char *src, char *dst)
 {
     int quoted = (*src == '"');
-    if (quoted)
+    if (quoted) {
         src++;
+    }
 
     while (quoted ? (*src != '"') : (*src != ',' && *src != '}')) {
         if (*src == '\\') {
@@ -216,11 +218,13 @@ inline const char *decode_upto(const char *src, char *dst)
                 break;
             }
             src += 2;
-        } else
+        } else {
             *dst++ = *src++;
+        }
     }
-    if (quoted)
+    if (quoted) {
         src++;
+    }
     *dst = 0;
     return src;
 }
@@ -229,8 +233,9 @@ template <typename T>
 void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
                       T &obuilder)
 {
-    if (*string++ != '{')
+    if (*string++ != '{') {
         return;
+    }
 
     char key[1024];
     char val[1024];
@@ -252,8 +257,9 @@ void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
 void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
                          osmium::builder::RelationBuilder &obuilder)
 {
-    if (*string++ != '{')
+    if (*string++ != '{') {
         return;
+    }
 
     char role[1024];
     osmium::builder::RelationMemberListBuilder builder(buffer, &obuilder);

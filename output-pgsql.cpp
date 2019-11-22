@@ -88,8 +88,9 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
 
     //grab the first one or bail if its not valid
     osmid_t popped = ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped)) {
         return;
+    }
 
     //get all the ones up to the id that was passed in
     while (popped < id) {
@@ -163,8 +164,9 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
 
     //grab the first one or bail if its not valid
     osmid_t popped = rels_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped))
+    if (!id_tracker::is_valid(popped)) {
         return;
+    }
 
     //get all the ones up to the id that was passed in
     while (popped < id) {
@@ -228,8 +230,9 @@ void output_pgsql_t::stop(osmium::thread::Pool *pool)
 int output_pgsql_t::node_add(osmium::Node const &node)
 {
     taglist_t outtags;
-    if (m_tagtransform->filter_tags(node, nullptr, nullptr, outtags))
+    if (m_tagtransform->filter_tags(node, nullptr, nullptr, outtags)) {
         return 1;
+    }
 
     auto wkb = m_builder.get_wkb_node(node.location());
     expire.from_wkb(wkb.c_str(), node.id());
@@ -277,8 +280,9 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     rolelist_t xrole;
     auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
 
-    if (num_ways == 0)
+    if (num_ways == 0) {
         return 0;
+    }
 
     int roads = 0;
     int make_polygon = 0;
@@ -307,8 +311,9 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         for (auto const &wkb : wkbs) {
             expire.from_wkb(wkb.c_str(), -rel.id());
             m_tables[t_line]->write_row(-rel.id(), outtags, wkb);
-            if (roads)
+            if (roads) {
                 m_tables[t_roads]->write_row(-rel.id(), outtags, wkb);
+            }
         }
     }
 
@@ -341,8 +346,9 @@ int output_pgsql_t::relation_add(osmium::Relation const &rel)
     char const *type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
-    if (!type)
+    if (!type) {
         return 0;
+    }
 
     /* Only a limited subset of type= is supported, ignore other */
     if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0 &&
@@ -363,8 +369,9 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
         util::exit_nicely();
     }
 
-    if (expire.from_db(m_tables[t_point].get(), osm_id) != 0)
+    if (expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
         m_tables[t_point]->delete_row(osm_id);
+    }
 
     return 0;
 }
@@ -373,17 +380,21 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
-    if (!m_options.slim)
+    if (!m_options.slim) {
         return 0;
+    }
     /* in droptemp mode we don't have indices and this takes ages. */
-    if (m_options.droptemp)
+    if (m_options.droptemp) {
         return 0;
+    }
 
     m_tables[t_roads]->delete_row(osm_id);
-    if (expire.from_db(m_tables[t_line].get(), osm_id) != 0)
+    if (expire.from_db(m_tables[t_line].get(), osm_id) != 0) {
         m_tables[t_line]->delete_row(osm_id);
-    if (expire.from_db(m_tables[t_poly].get(), osm_id) != 0)
+    }
+    if (expire.from_db(m_tables[t_poly].get(), osm_id) != 0) {
         m_tables[t_poly]->delete_row(osm_id);
+    }
     return 0;
 }
 
@@ -401,10 +412,12 @@ int output_pgsql_t::way_delete(osmid_t osm_id)
 int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
-    if (expire.from_db(m_tables[t_line].get(), -osm_id) != 0)
+    if (expire.from_db(m_tables[t_line].get(), -osm_id) != 0) {
         m_tables[t_line]->delete_row(-osm_id);
-    if (expire.from_db(m_tables[t_poly].get(), -osm_id) != 0)
+    }
+    if (expire.from_db(m_tables[t_poly].get(), -osm_id) != 0) {
         m_tables[t_poly]->delete_row(-osm_id);
+    }
     return 0;
 }
 
@@ -572,6 +585,7 @@ void output_pgsql_t::merge_pending_relations(output_t *other)
 void output_pgsql_t::merge_expire_trees(output_t *other)
 {
     auto *opgsql = dynamic_cast<output_pgsql_t *>(other);
-    if (opgsql)
+    if (opgsql) {
         expire.merge_and_destroy(opgsql->expire);
+    }
 }

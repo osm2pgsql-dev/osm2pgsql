@@ -87,8 +87,9 @@ void node_ram_cache::percolate_up(int pos)
         int parent = (i - 1) >> 1;
         if (queue[i]->used() < queue[parent]->used()) {
             Swap(queue[i], queue[parent]) i = parent;
-        } else
+        } else {
             break;
+        }
     }
 }
 
@@ -114,14 +115,15 @@ void node_ram_cache::set_sparse(osmid_t id, const osmium::Location &coord)
         if (allocStrategy & ALLOC_LOSSY) {
             return;
         } else {
-            if (maxSparseId && id < maxSparseId)
+            if (maxSparseId && id < maxSparseId) {
                 fprintf(stderr,
                         "Node ids are out of order. Please use slim mode.\n");
-            else
+            } else {
                 fprintf(
                     stderr,
                     "\nNode cache size is too small to fit all nodes. Please "
                     "increase cache size\n");
+            }
             throw std::runtime_error("Using RAM cache.");
         }
     }
@@ -210,8 +212,9 @@ void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
             /* If we've just used up the last possible block we enter the
        * transition and we change the invariant. To do this we percolate
        * the newly allocated block straight to the head */
-            if ((usedBlocks == maxBlocks) || (cacheUsed > cacheSize))
+            if ((usedBlocks == maxBlocks) || (cacheUsed > cacheSize)) {
                 percolate_up(usedBlocks - 1);
+            }
         } else {
             if ((allocStrategy & ALLOC_LOSSY) == 0) {
                 fprintf(stderr,
@@ -229,14 +232,16 @@ void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
                     if (queue[i]->used() > queue[2 * i + 1]->used()) {
                         Swap(queue[i], queue[2 * i + 1]);
                         i = 2 * i + 1;
-                    } else
+                    } else {
                         break;
+                    }
                 } else {
                     if (queue[i]->used() > queue[2 * i + 2]->used()) {
                         Swap(queue[i], queue[2 * i + 2]);
                         i = 2 * i + 2;
-                    } else
+                    } else {
                         break;
+                    }
                 }
             }
             /* Now the head of the queue is the smallest, so it becomes our
@@ -257,10 +262,11 @@ void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
      * nodes come in numerical order, which is the common case */
 
         int expectedpos;
-        if ((usedBlocks < maxBlocks) && (cacheUsed < cacheSize))
+        if ((usedBlocks < maxBlocks) && (cacheUsed < cacheSize)) {
             expectedpos = usedBlocks - 1;
-        else
+        } else {
             expectedpos = 0;
+        }
 
         if (queue[expectedpos] != &blocks[block]) {
             if (!warn_node_order) {
@@ -310,8 +316,9 @@ osmium::Location node_ram_cache::get_dense(osmid_t id)
     const int32_t block = id2block(id);
     const int offset = id2offset(id);
 
-    if (!blocks[block].nodes)
+    if (!blocks[block].nodes) {
         return osmium::Location();
+    }
 
     return blocks[block].nodes[offset];
 }
@@ -319,8 +326,9 @@ osmium::Location node_ram_cache::get_dense(osmid_t id)
 node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
 : allocStrategy(strategy), cacheSize((int64_t)cacheSizeMB * 1024 * 1024)
 {
-    if (cacheSize == 0)
+    if (cacheSize == 0) {
         return;
+    }
 
     /* How much we can fit, and make sure it's odd */
     maxBlocks = (cacheSize / (PER_BLOCK * sizeof(osmium::Location)));
@@ -393,8 +401,9 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
 
 node_ram_cache::~node_ram_cache()
 {
-    if (cacheSize == 0)
+    if (cacheSize == 0) {
         return;
+    }
 
     fprintf(stderr,
             "node cache: stored: %" PRIdOSMID
@@ -426,8 +435,9 @@ node_ram_cache::~node_ram_cache()
 
 void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
 {
-    if (cacheSize == 0)
+    if (cacheSize == 0) {
         return;
+    }
 
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32)) {
@@ -461,8 +471,9 @@ osmium::Location node_ram_cache::get(osmid_t id)
 {
     osmium::Location coord;
 
-    if (cacheSize == 0)
+    if (cacheSize == 0) {
         return coord;
+    }
 
     if (allocStrategy & ALLOC_DENSE) {
         coord = get_dense(id);
