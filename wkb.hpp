@@ -211,7 +211,7 @@ public:
             }
         }
 
-        if (out[0] != Endian)
+        if (out[0] != Endian) {
             throw std::runtime_error(
 #if __BYTE_ORDER == __LITTLE_ENDIAN
                 "Geometries in the database are returned in big-endian byte "
@@ -221,7 +221,7 @@ public:
                 "order. "
 #endif
                 "osm2pgsql can only process geometries in native byte order.");
-
+        }
         return out;
     }
 

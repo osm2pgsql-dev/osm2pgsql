@@ -1,4 +1,4 @@
-#define _LARGEFILE64_SOURCE /* See feature_test_macrors(7) */
+#define _LARGEFILE64_SOURCE /* See feature_test_macros(7) */
 
 #include "node-persistent-cache.hpp"
 #include "options.hpp"

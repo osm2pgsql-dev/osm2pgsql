@@ -24,8 +24,9 @@
 
 #define EARTH_CIRCUMFERENCE 40075016.68
 #define HALF_EARTH_CIRCUMFERENCE (EARTH_CIRCUMFERENCE / 2)
-#define TILE_EXPIRY_LEEWAY                                                     \
-    0.1 /* How many tiles worth of space to leave either side of a changed feature */
+
+// How many tiles worth of space to leave either side of a changed feature
+#define TILE_EXPIRY_LEEWAY 0.1
 
 tile_output_t::tile_output_t(const char *filename)
 : outfile(fopen(filename, "a"))

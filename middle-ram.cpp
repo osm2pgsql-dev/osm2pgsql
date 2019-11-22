@@ -144,7 +144,7 @@ bool middle_ram_t::relations_get(osmid_t id,
     return true;
 }
 
-void middle_ram_t::analyze(void)
+void middle_ram_t::analyze()
 { /* No need */
 }
 
@@ -158,7 +158,7 @@ void middle_ram_t::stop(osmium::thread::Pool &)
     release_relations();
 }
 
-void middle_ram_t::commit(void) {}
+void middle_ram_t::commit() {}
 
 middle_ram_t::middle_ram_t(options_t const *options)
 : ways(), rels(),

@@ -102,7 +102,9 @@ gazetteer_style_t::flag_t gazetteer_style_t::parse_flags(std::string const &str)
 
         if (item == "skip") {
             return 0;
-        } else if (item == "main") {
+        }
+
+        if (item == "main") {
             out |= SF_MAIN;
         } else if (item == "with_name_key") {
             out |= SF_MAIN_NAMED_KEY;
