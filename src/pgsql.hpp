@@ -1,10 +1,7 @@
 #ifndef OSM2PGSQL_PGSQL_HPP
 #define OSM2PGSQL_PGSQL_HPP
 
-/* Helper functions for pgsql access */
-
-/* Current middle and output-pgsql do a lot of things similarly, this should
- * be used to abstract to commonalities */
+/* Helper functions for PostgreSQL access */
 
 #include <boost/format.hpp>
 #include <cstring>
@@ -14,10 +11,10 @@
 
 struct pg_result_deleter_t
 {
-    void operator()(PGresult *p) const { PQclear(p); }
+    void operator()(PGresult *p) const noexcept { PQclear(p); }
 };
 
-typedef std::unique_ptr<PGresult, pg_result_deleter_t> pg_result_t;
+using pg_result_t = std::unique_ptr<PGresult, pg_result_deleter_t>;
 
 /**
  * Simple postgres connection.
@@ -34,11 +31,14 @@ public:
 
     ~pg_conn_t();
 
-    pg_result_t exec_prepared(char const *stmtName, int nParams,
-                              const char *const *paramValues,
+    pg_result_t exec_prepared(char const *stmt, int num_params,
+                              const char *const *param_values,
                               ExecStatusType expect = PGRES_TUPLES_OK) const;
+
     void copy_data(std::string const &sql, std::string const &context) const;
     void end_copy(std::string const &context) const;
+
+    pg_result_t query(ExecStatusType expect, char const *sql) const;
 
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
@@ -46,32 +46,31 @@ public:
     pg_result_t query(ExecStatusType expect, std::string const &fmt,
                       ARGS &&... args) const
     {
-        boost::format formatter(fmt);
-        format_sql(formatter, args...);
-        return query(expect, fmt, formatter.str());
+        boost::format formatter{fmt};
+        format_sql(formatter, std::forward<ARGS>(args)...);
+        return query(expect, formatter.str());
     }
 
     void exec(char const *sql) const;
 
+    void exec(std::string const &sql) const;
+
     template <typename... ARGS>
     void exec(char const *fmt, ARGS &&... args) const
     {
-        boost::format formatter(fmt);
-        format_sql(formatter, args...);
-
-        exec(formatter.str().c_str());
+        query(PGRES_COMMAND_OK, fmt, std::forward<ARGS>(args)...);
     }
 
 private:
     template <typename T, typename... ARGS>
-    void format_sql(boost::format &fmt, T arg, ARGS &&... args) const
+    static void format_sql(boost::format &fmt, T arg, ARGS &&... args)
     {
         fmt % arg;
-        format_sql(fmt, args...);
+        format_sql(fmt, std::forward<ARGS>(args)...);
     }
 
     template <typename T>
-    void format_sql(boost::format &fmt, T arg) const
+    static void format_sql(boost::format &fmt, T arg)
     {
         fmt % arg;
     }

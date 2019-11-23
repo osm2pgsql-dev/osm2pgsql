@@ -26,7 +26,7 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
     snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
     char const *params[2] = {osm_type, id};
 
-    auto res = m_conn->exec_prepared("get_classes", 2, params, PGRES_TUPLES_OK);
+    auto res = m_conn->exec_prepared("get_classes", 2, params);
     int sz = PQntuples(res.get());
 
     std::string clslist;
@@ -92,14 +92,14 @@ int output_gazetteer_t::start()
             sql += " TABLESPACE " + m_options.tblsmain_data.get();
         }
 
-        m_conn->exec(sql.c_str());
+        m_conn->exec(sql);
 
         std::string index_sql =
             "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
         if (m_options.tblsmain_index) {
             index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
         }
-        m_conn->exec(index_sql.c_str());
+        m_conn->exec(index_sql);
     }
 
     prepare_query_conn();

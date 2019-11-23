@@ -36,7 +36,7 @@ public:
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
     void delete_row(const osmid_t id);
 
-    //interface from retrieving well known binary geometry from the table
+    // interface for retrieving well known binary geometry from the table
     class wkb_reader
     {
         friend table_t;

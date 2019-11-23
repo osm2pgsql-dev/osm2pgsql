@@ -13,12 +13,11 @@
 #include "util.hpp"
 #include "wkb.hpp"
 
-using std::string;
 typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 
-table_t::table_t(string const &name, string const &type,
+table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
@@ -28,9 +27,10 @@ table_t::table_t(string const &name, string const &type,
   m_copy(copy_thread)
 {
     // if we dont have any columns
-    if (columns.size() == 0 && hstore_mode != HSTORE_ALL)
-        throw std::runtime_error(
-            (fmt("No columns provided for table %1%") % name).str());
+    if (columns.size() == 0 && hstore_mode != HSTORE_ALL) {
+        throw std::runtime_error{
+            (fmt("No columns provided for table %1%") % name).str()};
+    }
 
     generate_copy_column_list();
 }
@@ -58,7 +58,7 @@ void table_t::commit() { m_copy.sync(); }
 void table_t::connect()
 {
     //connect
-    m_sql_conn.reset(new pg_conn_t(m_conninfo));
+    m_sql_conn.reset(new pg_conn_t{m_conninfo});
     //let commits happen faster by delaying when they actually occur
     m_sql_conn->exec("SET synchronous_commit TO off");
 }
@@ -89,9 +89,9 @@ void table_t::start(std::string const &conninfo,
     //making a new table
     if (!append) {
         //define the new table
-        string sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
-                      m_target->name % POSTGRES_OSMID_TYPE)
-                         .str();
+        auto sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
+                    m_target->name % POSTGRES_OSMID_TYPE)
+                       .str();
 
         //first with the regular columns
         for (auto const &column : columns) {
@@ -118,7 +118,7 @@ void table_t::start(std::string const &conninfo,
         sql += m_table_space;
 
         //create the table
-        m_sql_conn->exec(sql.c_str());
+        m_sql_conn->exec(sql);
     } //appending
     else {
         //check the columns against those in the existing table
@@ -397,7 +397,7 @@ void table_t::write_hstore_columns(const taglist_t &tags)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const string &value, ColumnType flags)
+void table_t::escape_type(const std::string &value, ColumnType flags)
 {
     switch (flags) {
     case COLUMN_TYPE_INT: {
@@ -431,7 +431,7 @@ void table_t::escape_type(const string &value, ColumnType flags)
              * reject anything else
              */
         {
-            string escaped(value);
+            std::string escaped{value};
             std::replace(escaped.begin(), escaped.end(), ',', '.');
 
             double from, to;
@@ -465,13 +465,12 @@ table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 {
     char tmp[32];
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    char const *paramValues[] = {tmp};
+    char const *param_values[] = {tmp};
 
     // the prepared statement get_wkb will behave differently depending on the
     // sql_conn
     // each table has its own sql_connection with the get_way referring to the
     // appropriate table
-    auto res =
-        m_sql_conn->exec_prepared("get_wkb", 1, paramValues, PGRES_TUPLES_OK);
-    return wkb_reader(std::move(res));
+    auto res = m_sql_conn->exec_prepared("get_wkb", 1, param_values);
+    return wkb_reader{std::move(res)};
 }

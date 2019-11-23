@@ -96,7 +96,7 @@ void db_copy_thread_t::connect()
 {
     assert(!m_conn);
 
-    m_conn.reset(new pg_conn_t(m_conninfo));
+    m_conn.reset(new pg_conn_t{m_conninfo});
 
     // Let commits happen faster by delaying when they actually occur.
     m_conn->exec("SET synchronous_commit TO off");
@@ -139,7 +139,7 @@ void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
     }
     sql[sql.size() - 1] = ')';
 
-    m_conn->exec(sql.c_str());
+    m_conn->exec(sql);
 }
 
 void db_copy_thread_t::start_copy(

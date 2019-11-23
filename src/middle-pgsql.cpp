@@ -140,7 +140,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const *options,
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 char const *param) const
 {
-    return m_sql_conn.exec_prepared(stmt, 1, &param, PGRES_TUPLES_OK);
+    return m_sql_conn.exec_prepared(stmt, 1, &param);
 }
 
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
@@ -156,13 +156,13 @@ pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
 {
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    auto bptr = const_cast<char const *>(buffer);
-    return m_query_conn->exec_prepared(stmt, 1, &bptr, PGRES_TUPLES_OK);
+    char const *const bptr = buffer;
+    return m_query_conn->exec_prepared(stmt, 1, &bptr);
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 {
-    m_sql_conn.exec(sql_cmd.c_str());
+    m_sql_conn.exec(sql_cmd);
 }
 
 void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
@@ -181,7 +181,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
         sql_conn.exec("DROP TABLE %1%", name());
     } else if (build_indexes && !m_array_indexes.empty()) {
         fprintf(stderr, "Building index on table: %s\n", name());
-        sql_conn.exec(m_array_indexes.c_str());
+        sql_conn.exec(m_array_indexes);
     }
 
     time(&end);
@@ -444,7 +444,6 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
 bool middle_query_pgsql_t::ways_get(osmid_t id,
                                     osmium::memory::Buffer &buffer) const
 {
-    // Make sure we're out of copy mode
     auto res = exec_prepared("get_way", id);
 
     if (PQntuples(res.get()) != 1) {
@@ -606,7 +605,6 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
 bool middle_query_pgsql_t::relations_get(osmid_t id,
                                          osmium::memory::Buffer &buffer) const
 {
-    // Make sure relation table is out of copy mode
     auto res = exec_prepared("get_rel", id);
     // Fields are: members, tags, member_count */
     //
@@ -630,7 +628,7 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
 void middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     //keep track of whatever ways this relation interesects
-    auto res = exec_prepared("mark_ways_by_rel", osm_id);
+    auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
         osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
@@ -670,7 +668,6 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
 
 idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 {
-    // Make sure relation table is out of copy mode */
     auto result = exec_prepared("rels_using_way", way_id);
     const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
@@ -711,13 +708,13 @@ void middle_pgsql_t::start()
         mark_pending = false;
     }
 
-    m_query_conn.reset(new pg_conn_t(out_options->database_options.conninfo()));
+    m_query_conn.reset(new pg_conn_t{out_options->database_options.conninfo()});
 
     if (append) {
         // Prepare queries for updating dependent objects
         for (auto &table : tables) {
             if (!table.m_prepare_intarray.empty()) {
-                m_query_conn->exec(table.m_prepare_intarray.c_str());
+                m_query_conn->exec(table.m_prepare_intarray);
             }
         }
     } else {
@@ -727,7 +724,7 @@ void middle_pgsql_t::start()
             fprintf(stderr, "Setting up table: %s\n", table.name());
             m_query_conn->exec("DROP TABLE IF EXISTS %1% CASCADE",
                                table.name());
-            m_query_conn->exec(table.m_create.c_str());
+            m_query_conn->exec(table.m_create);
         }
 
         // The extra query connection is only needed in append mode, so close.
