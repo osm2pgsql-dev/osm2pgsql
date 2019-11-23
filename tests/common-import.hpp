@@ -14,7 +14,7 @@
 #include "output-multi.hpp"
 #include "output.hpp"
 #include "parse-osmium.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 
 #include "common-pg.hpp"
 

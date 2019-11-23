@@ -5,7 +5,7 @@
 #include "osmdata.hpp"
 #include "output-multi.hpp"
 #include "parse-osmium.hpp"
-#include "taginfo_impl.hpp"
+#include "taginfo-impl.hpp"
 
 #include "common-import.hpp"
 #include "common-options.hpp"

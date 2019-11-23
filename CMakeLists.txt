@@ -78,7 +78,7 @@ if (NOT EXTERNAL_PROTOZERO)
     set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR})
@@ -139,81 +139,9 @@ if (NOT HAVE_UNISTD_H AND NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/unistd.h)
    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/unistd.h "// empty header\n")
 endif()
 
-set(osm2pgsql_lib_SOURCES
-  db-copy.cpp
-  expire-tiles.cpp
-  geometry-processor.cpp
-  id-tracker.cpp
-  middle-pgsql.cpp
-  middle-ram.cpp
-  node-persistent-cache.cpp
-  node-ram-cache.cpp
-  options.cpp
-  osmdata.cpp
-  osmium-builder.cpp
-  gazetteer-style.cpp
-  output-gazetteer.cpp
-  output-multi.cpp
-  output-null.cpp
-  output-pgsql.cpp
-  output.cpp
-  parse-osmium.cpp
-  pgsql.cpp
-  processor-line.cpp
-  processor-point.cpp
-  processor-polygon.cpp
-  reprojection.cpp
-  sprompt.cpp
-  table.cpp
-  taginfo.cpp
-  tagtransform.cpp
-  tagtransform-c.cpp
-  util.cpp
-  wildcmp.cpp
-  db-copy.hpp
-  expire-tiles.hpp
-  geometry-processor.hpp
-  id-tracker.hpp
-  middle-pgsql.hpp
-  middle-ram.hpp
-  middle.hpp
-  node-persistent-cache.hpp
-  node-ram-cache.hpp
-  options.hpp
-  osmdata.hpp
-  osmium-builder.hpp
-  osmtypes.hpp
-  gazetteer-style.hpp
-  output-gazetteer.hpp
-  output-multi.hpp
-  output-null.hpp
-  output-pgsql.hpp
-  output.hpp
-  parse-osmium.hpp
-  pgsql.hpp
-  processor-line.hpp
-  processor-point.hpp
-  processor-polygon.hpp
-  reprojection.hpp
-  sprompt.hpp
-  table.hpp
-  taginfo.hpp
-  taginfo_impl.hpp
-  tagtransform.hpp
-  util.hpp
-  wildcmp.hpp
-  wkb.hpp
-)
+add_subdirectory(src)
 
-if (LUA_FOUND OR LUAJIT_FOUND)
-    list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
-endif()
-
-add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})
-set_target_properties(osm2pgsql_lib PROPERTIES OUTPUT_NAME osm2pgsql)
-
-add_executable(osm2pgsql osm2pgsql.cpp)
-target_link_libraries(osm2pgsql_lib ${LIBS})
+add_executable(osm2pgsql src/osm2pgsql.cpp)
 target_link_libraries(osm2pgsql osm2pgsql_lib ${LIBS})
 
 #############################################################
@@ -227,7 +155,7 @@ find_program(CLANG_TIDY
 if(CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
 
-    file(GLOB CT_CHECK_FILES *.cpp tests/*cpp)
+    file(GLOB CT_CHECK_FILES src/*.cpp tests/*cpp)
 
     add_custom_target(clang-tidy
         ${CLANG_TIDY}
