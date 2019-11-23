@@ -43,8 +43,8 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
         clslist[clslist.size() - 1] = '\0';
         // Delete places where classes have disappeared for this object.
         m_conn->exec("DELETE FROM place WHERE osm_type = '%1%' "
-                         "AND osm_id = %2% and class = any(ARRAY[%3%])",
-                         osm_type, osm_id, clslist);
+                     "AND osm_id = %2% and class = any(ARRAY[%3%])",
+                     osm_type, osm_id, clslist);
     }
 }
 
@@ -110,11 +110,10 @@ int output_gazetteer_t::start()
 void output_gazetteer_t::prepare_query_conn() const
 {
     m_conn->exec("PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-                     "AS SELECT class FROM place "
-                     "WHERE osm_type = $1 and osm_id = $2");
-    m_conn->exec(
-        "PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-        "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
+                 "AS SELECT class FROM place "
+                 "WHERE osm_type = $1 and osm_id = $2");
+    m_conn->exec("PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
+                 "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
 }
 
 void output_gazetteer_t::commit() { m_copy.sync(); }

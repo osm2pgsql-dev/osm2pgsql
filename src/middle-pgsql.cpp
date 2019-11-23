@@ -693,8 +693,7 @@ middle_query_pgsql_t::middle_query_pgsql_t(
     std::string const &conninfo, std::shared_ptr<node_ram_cache> const &cache,
     std::shared_ptr<node_persistent_cache> const &persistent_cache)
 : m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
-{
-}
+{}
 
 void middle_pgsql_t::start()
 {
@@ -727,7 +726,7 @@ void middle_pgsql_t::start()
         for (auto &table : tables) {
             fprintf(stderr, "Setting up table: %s\n", table.name());
             m_query_conn->exec("DROP TABLE IF EXISTS %1% CASCADE",
-                                   table.name());
+                               table.name());
             m_query_conn->exec(table.m_create.c_str());
         }
 
