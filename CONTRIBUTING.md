@@ -46,9 +46,9 @@ There is a .clang-format configuration avialable and all code must be run throug
 clang-format before submitting. You can use git-clang-format after staging all
 your changes:
 
-    git-clang-format --style=file *pp tests/*pp
+    git-clang-format src/*pp tests/*pp
 
-clang-format 3.8 or later is required.
+clang-format 7 or later is required.
 
 ## Documentation
 
