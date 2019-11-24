@@ -1,4 +1,3 @@
-#include <boost/format.hpp>
 #include <cassert>
 #include <cstdio>
 #include <future>
@@ -6,8 +5,6 @@
 
 #include "db-copy.hpp"
 #include "pgsql.hpp"
-
-using fmt = boost::format;
 
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
 : m_conninfo(conninfo)

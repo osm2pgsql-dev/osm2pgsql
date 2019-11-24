@@ -1,7 +1,6 @@
 /* Helper functions for the postgresql connections */
 #include "pgsql.hpp"
 
-#include <boost/format.hpp>
 #include <cstdarg>
 #include <cstdio>
 

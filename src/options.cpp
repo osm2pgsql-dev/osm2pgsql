@@ -1,8 +1,8 @@
+#include "format.hpp"
 #include "options.hpp"
 #include "sprompt.hpp"
 
 #include <algorithm>
-#include <boost/format.hpp>
 #include <cstdio>
 #include <cstring>
 #include <getopt.h>
@@ -81,11 +81,8 @@ const struct option long_options[] = {
 
 void short_usage(char *arg0)
 {
-    throw std::runtime_error(
-        (boost::format("Usage error. For further information see:\n\t%1% "
-                       "-h|--help\n") %
-         program_name(arg0))
-            .str());
+    throw std::runtime_error{"Usage error. For further information see:\n"
+                             "\t{} -h|--help\n"_format(program_name(arg0))};
 }
 
 void long_usage(char *arg0, bool verbose = false)
@@ -476,10 +473,8 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             } else if (strcmp(optarg, "optimized") == 0) {
                 alloc_chunkwise = ALLOC_DENSE | ALLOC_SPARSE;
             } else {
-                throw std::runtime_error(
-                    (boost::format("Unrecognized cache strategy %1%.\n") %
-                     optarg)
-                        .str());
+                throw std::runtime_error{
+                    "Unrecognized cache strategy {}.\n"_format(optarg)};
             }
             break;
         case 205:

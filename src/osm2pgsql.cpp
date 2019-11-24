@@ -42,7 +42,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/format.hpp>
 #include <libpq-fe.h>
 
 int main(int argc, char *argv[])

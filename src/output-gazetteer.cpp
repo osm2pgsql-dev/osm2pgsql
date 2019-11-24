@@ -1,6 +1,6 @@
-#include <boost/format.hpp>
 #include <libpq-fe.h>
 
+#include "format.hpp"
 #include "middle.hpp"
 #include "options.hpp"
 #include "osmtypes.hpp"
@@ -42,9 +42,9 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
     if (!clslist.empty()) {
         clslist[clslist.size() - 1] = '\0';
         // Delete places where classes have disappeared for this object.
-        m_conn->exec("DELETE FROM place WHERE osm_type = '%1%' "
-                     "AND osm_id = %2% and class = any(ARRAY[%3%])",
-                     osm_type, osm_id, clslist);
+        m_conn->exec("DELETE FROM place WHERE osm_type = '{}'"
+                     " AND osm_id = {} and class = any(ARRAY[{}])"_format(
+                         osm_type, osm_id, clslist));
     }
 }
 
@@ -85,9 +85,7 @@ int output_gazetteer_t::start()
             "  admin_level SMALLINT,"
             "  address HSTORE,"
             "  extratags HSTORE," +
-            (boost::format("  geometry Geometry(Geometry,%1%) NOT NULL") % srid)
-                .str() +
-            ")";
+            "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")";
         if (m_options.tblsmain_data) {
             sql += " TABLESPACE " + m_options.tblsmain_data.get();
         }

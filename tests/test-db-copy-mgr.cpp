@@ -13,8 +13,8 @@ static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 {
     auto conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_mgr");
-    conn.exec(boost::format("CREATE TABLE test_copy_mgr (id int8%1%%2%)") %
-              (cols.empty() ? "" : ",") % cols);
+    conn.exec("CREATE TABLE test_copy_mgr (id int8{}{})"_format(
+        cols.empty() ? "" : ",", cols));
 
     auto table = std::make_shared<db_target_descr_t>();
     table->name = "test_copy_mgr";
@@ -182,9 +182,9 @@ TEST_CASE("db_copy_mgr_t")
 
         auto c = db.connect();
 
-        auto sql = boost::format("SELECT h->'%1%' from test_copy_mgr");
         for (auto const &v : values) {
-            auto res = c.require_scalar<std::string>((sql % v.first).str());
+            auto const res = c.require_scalar<std::string>(
+                "SELECT h->'{}' FROM test_copy_mgr"_format(v.first));
             CHECK(res == v.second);
         }
     }

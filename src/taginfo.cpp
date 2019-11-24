@@ -1,7 +1,7 @@
+#include "format.hpp"
 #include "taginfo-impl.hpp"
 #include "util.hpp"
 
-#include <boost/format.hpp>
 #include <cassert>
 #include <cerrno>
 #include <cstring>
@@ -120,10 +120,8 @@ int read_style_file(const std::string &filename, export_list *exlist)
 
     in = fopen(filename.c_str(), "rt");
     if (!in) {
-        throw std::runtime_error(
-            (boost::format("Couldn't open style file '%1%': %2%") % filename %
-             strerror(errno))
-                .str());
+        throw std::runtime_error{"Couldn't open style file '{}': {}"_format(
+            filename, std::strerror(errno))};
     }
 
     //for each line of the style file
@@ -197,9 +195,8 @@ int read_style_file(const std::string &filename, export_list *exlist)
         //do we really want to completely quit on an unusable line?
         if (!kept) {
             fclose(in);
-            throw std::runtime_error(
-                (boost::format("Weird style line %1%:%2%") % filename % lineno)
-                    .str());
+            throw std::runtime_error{
+                "Weird style line {}:{}"_format(filename, lineno)};
         }
         num_read++;
     }
@@ -207,8 +204,7 @@ int read_style_file(const std::string &filename, export_list *exlist)
     if (ferror(in)) {
         int err = errno;
         fclose(in);
-        throw std::runtime_error(
-            (boost::format("%1%: %2%") % filename % strerror(err)).str());
+        throw std::runtime_error{"{}: {}"_format(filename, std::strerror(err))};
     }
     fclose(in);
     if (num_read == 0) {

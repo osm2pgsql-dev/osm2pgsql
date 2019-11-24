@@ -16,11 +16,10 @@ TEST_CASE("compute Z order")
                               "tertiary"};
 
     for (unsigned i = 0; i < 5; ++i) {
-        auto sql = boost::format("SELECT highway FROM osm2pgsql_test_line"
-                                 " WHERE layer IS NULL ORDER BY z_order DESC"
-                                 " LIMIT 1 OFFSET %1%") %
-                   i;
-        REQUIRE(expected[i] == conn.require_scalar<std::string>(sql.str()));
+        auto const sql = "SELECT highway FROM osm2pgsql_test_line"
+                         " WHERE layer IS NULL ORDER BY z_order DESC"
+                         " LIMIT 1 OFFSET {}"_format(i);
+        REQUIRE(expected[i] == conn.require_scalar<std::string>(sql));
     }
 
     REQUIRE("residential" == conn.require_scalar<std::string>(

@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/format.hpp>
 #include <osmium/osm/metadata_options.hpp>
 
 #include "db-copy.hpp"

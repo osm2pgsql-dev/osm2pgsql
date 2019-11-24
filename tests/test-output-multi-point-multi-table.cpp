@@ -33,7 +33,7 @@ TEST_CASE("parse point")
 
     // let's make lots of tables!
     for (int i = 0; i < 10; ++i) {
-        std::string name = (boost::format("foobar_%d") % i).str();
+        std::string const name{"foobar_{}"_format(i)};
 
         auto processor = geometry_processor::create("point", &options);
 
@@ -51,7 +51,7 @@ TEST_CASE("parse point")
     auto conn = db.db().connect();
 
     for (int i = 0; i < 10; ++i) {
-        std::string buf = (boost::format("foobar_%d") % i).str();
+        std::string const buf{"foobar_{}"_format(i)};
         char const *name = buf.c_str();
 
         conn.require_has_table(name);
