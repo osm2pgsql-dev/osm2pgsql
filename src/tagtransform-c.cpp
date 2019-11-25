@@ -44,7 +44,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
     int z_order = 0;
 
-    int l = layer ? (int)strtol(layer->c_str(), NULL, 10) : 0;
+    int l = layer ? (int)strtol(layer->c_str(), nullptr, 10) : 0;
     z_order = 100 * l;
     *roads = 0;
 
@@ -289,7 +289,7 @@ bool c_tagtransform_t::filter_rel_member_tags(
         }
 
         const std::string *prefcol = rel_tags.get("preferred_color");
-        if (prefcol != NULL && prefcol->size() == 1) {
+        if (prefcol != nullptr && prefcol->size() == 1) {
             if ((*prefcol)[0] == '0' || (*prefcol)[0] == '1' ||
                 (*prefcol)[0] == '2' || (*prefcol)[0] == '3' ||
                 (*prefcol)[0] == '4') {
@@ -302,7 +302,7 @@ bool c_tagtransform_t::filter_rel_member_tags(
         }
 
         const std::string *relref = rel_tags.get("ref");
-        if (relref != NULL) {
+        if (relref != nullptr) {
             if (networknr == 10) {
                 out_tags.push_dedupe(tag_t("lcn_ref", *relref));
             } else if (networknr == 11) {
