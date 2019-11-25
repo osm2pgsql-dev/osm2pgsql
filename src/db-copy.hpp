@@ -12,7 +12,7 @@
 
 #include "osmtypes.hpp"
 
-struct pg_conn;
+class pg_conn_t;
 
 /**
  * Table information necessary for building SQL queries.
@@ -147,7 +147,7 @@ private:
     void delete_rows(db_cmd_copy_t *buffer);
 
     std::string m_conninfo;
-    pg_conn *m_conn;
+    std::unique_ptr<pg_conn_t> m_conn;
 
     std::thread m_worker;
     std::mutex m_queue_mutex;

@@ -25,7 +25,6 @@ public:
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
     table_t(const table_t &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
-    ~table_t();
 
     void start(std::string const &conninfo,
                boost::optional<std::string> const &table_space);
@@ -37,7 +36,7 @@ public:
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
     void delete_row(const osmid_t id);
 
-    //interface from retrieving well known binary geometry from the table
+    // interface for retrieving well known binary geometry from the table
     class wkb_reader
     {
         friend table_t;
@@ -88,7 +87,7 @@ protected:
     std::string m_conninfo;
     std::shared_ptr<db_target_descr_t> m_target;
     std::string type;
-    pg_conn *sql_conn;
+    std::unique_ptr<pg_conn_t> m_sql_conn;
     std::string srid;
     bool append;
     int hstore_mode;

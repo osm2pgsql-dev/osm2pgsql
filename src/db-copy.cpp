@@ -10,7 +10,7 @@
 using fmt = boost::format;
 
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
-: m_conninfo(conninfo), m_conn(nullptr)
+: m_conninfo(conninfo)
 {
     m_worker = std::thread([this]() {
         try {
@@ -96,28 +96,13 @@ void db_copy_thread_t::connect()
 {
     assert(!m_conn);
 
-    PGconn *conn = PQconnectdb(m_conninfo.c_str());
-    if (PQstatus(conn) != CONNECTION_OK) {
-        throw std::runtime_error(
-            (fmt("Connection to database failed: %1%\n") % PQerrorMessage(conn))
-                .str());
-    }
-    m_conn = conn;
+    m_conn.reset(new pg_conn_t{m_conninfo});
 
     // Let commits happen faster by delaying when they actually occur.
-    pgsql_exec_simple(m_conn, PGRES_COMMAND_OK,
-                      "SET synchronous_commit TO off;");
+    m_conn->exec("SET synchronous_commit TO off");
 }
 
-void db_copy_thread_t::disconnect()
-{
-    if (!m_conn) {
-        return;
-    }
-
-    PQfinish(m_conn);
-    m_conn = nullptr;
-}
+void db_copy_thread_t::disconnect() { m_conn.reset(); }
 
 void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
@@ -134,7 +119,7 @@ void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
         start_copy(buffer->target);
     }
 
-    pgsql_CopyData(buffer->target->name.c_str(), m_conn, buffer->buffer);
+    m_conn->copy_data(buffer->buffer, buffer->target->name);
 }
 
 void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
@@ -154,7 +139,7 @@ void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
     }
     sql[sql.size() - 1] = ')';
 
-    pgsql_exec_simple(m_conn, PGRES_COMMAND_OK, sql);
+    m_conn->exec(sql);
 }
 
 void db_copy_thread_t::start_copy(
@@ -171,31 +156,17 @@ void db_copy_thread_t::start_copy(
         copystr += ')';
     }
     copystr += " FROM STDIN";
-    pgsql_exec_simple(m_conn, PGRES_COPY_IN, copystr);
+    m_conn->query(PGRES_COPY_IN, copystr);
 
     m_inflight = target;
 }
 
 void db_copy_thread_t::finish_copy()
 {
-    if (!m_inflight) {
-        return;
+    if (m_inflight) {
+        m_conn->end_copy(m_inflight->name);
+        m_inflight.reset();
     }
-
-    if (PQputCopyEnd(m_conn, nullptr) != 1) {
-        throw std::runtime_error((fmt("stop COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->name % PQerrorMessage(m_conn))
-                                     .str());
-    }
-
-    pg_result_t res(PQgetResult(m_conn));
-    if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
-        throw std::runtime_error((fmt("result COPY_END for %1% failed: %2%\n") %
-                                  m_inflight->name % PQerrorMessage(m_conn))
-                                     .str());
-    }
-
-    m_inflight.reset();
 }
 
 db_copy_mgr_t::db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)

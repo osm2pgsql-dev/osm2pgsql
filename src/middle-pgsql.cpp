@@ -140,7 +140,7 @@ middle_pgsql_t::table_desc::table_desc(options_t const *options,
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 char const *param) const
 {
-    return pgsql_execPrepared(m_sql_conn, stmt, 1, &param, PGRES_TUPLES_OK);
+    return m_sql_conn.exec_prepared(stmt, 1, &param);
 }
 
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
@@ -156,13 +156,13 @@ pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
 {
     char buffer[64];
     snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    auto bptr = const_cast<char const *>(buffer);
-    return pgsql_execPrepared(m_query_conn, stmt, 1, &bptr, PGRES_TUPLES_OK);
+    char const *const bptr = buffer;
+    return m_query_conn->exec_prepared(stmt, 1, &bptr);
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 {
-    pgsql_exec(m_sql_conn, PGRES_COMMAND_OK, "%s", sql_cmd.c_str());
+    m_sql_conn.exec(sql_cmd);
 }
 
 void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
@@ -173,22 +173,17 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
     fprintf(stderr, "Stopping table: %s\n", name());
     time(&start);
 
-    auto sql_conn = PQconnectdb(conninfo.c_str());
-
-    if (PQstatus(sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n",
-                PQerrorMessage(sql_conn));
-        util::exit_nicely();
-    }
+    // Use a temporary connection here because we might run in a separate
+    // thread context.
+    pg_conn_t sql_conn(conninfo);
 
     if (droptemp) {
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "DROP TABLE %s", name());
+        sql_conn.exec("DROP TABLE %1%", name());
     } else if (build_indexes && !m_array_indexes.empty()) {
         fprintf(stderr, "Building index on table: %s\n", name());
-        pgsql_exec(sql_conn, PGRES_COMMAND_OK, "%s", m_array_indexes.c_str());
+        sql_conn.exec(m_array_indexes);
     }
 
-    PQfinish(sql_conn);
     time(&end);
 
     fprintf(stderr, "Stopped table: %s in %is\n", name(), (int)(end - start));
@@ -449,7 +444,6 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
 bool middle_query_pgsql_t::ways_get(osmid_t id,
                                     osmium::memory::Buffer &buffer) const
 {
-    // Make sure we're out of copy mode
     auto res = exec_prepared("get_way", id);
 
     if (PQntuples(res.get()) != 1) {
@@ -611,7 +605,6 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
 bool middle_query_pgsql_t::relations_get(osmid_t id,
                                          osmium::memory::Buffer &buffer) const
 {
-    // Make sure relation table is out of copy mode
     auto res = exec_prepared("get_rel", id);
     // Fields are: members, tags, member_count */
     //
@@ -635,7 +628,7 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
 void middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
     //keep track of whatever ways this relation interesects
-    auto res = exec_prepared("mark_ways_by_rel", osm_id);
+    auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < PQntuples(res.get()); ++i) {
         char *end;
         osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
@@ -675,7 +668,6 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
 
 idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 {
-    // Make sure relation table is out of copy mode */
     auto result = exec_prepared("rels_using_way", way_id);
     const int ntuples = PQntuples(result.get());
     idlist_t rel_ids;
@@ -690,30 +682,15 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 void middle_pgsql_t::analyze()
 {
     for (auto &t : tables) {
-        pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "ANALYZE %s", t.name());
+        m_query_conn->exec("ANALYZE %1%", t.name());
     }
 }
 
 middle_query_pgsql_t::middle_query_pgsql_t(
-    char const *conninfo, std::shared_ptr<node_ram_cache> const &cache,
+    std::string const &conninfo, std::shared_ptr<node_ram_cache> const &cache,
     std::shared_ptr<node_persistent_cache> const &persistent_cache)
-: m_sql_conn(PQconnectdb(conninfo)), m_cache(cache),
-  m_persistent_cache(persistent_cache)
-{
-    // Check to see that the backend connection was successfully made, and if not, exit */
-    if (PQstatus(m_sql_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n",
-                PQerrorMessage(m_sql_conn));
-        util::exit_nicely();
-    }
-}
-
-middle_query_pgsql_t::~middle_query_pgsql_t()
-{
-    if (m_sql_conn) {
-        PQfinish(m_sql_conn);
-    }
-}
+: m_sql_conn(conninfo), m_cache(cache), m_persistent_cache(persistent_cache)
+{}
 
 void middle_pgsql_t::start()
 {
@@ -731,36 +708,27 @@ void middle_pgsql_t::start()
         mark_pending = false;
     }
 
-    m_query_conn =
-        PQconnectdb(out_options->database_options.conninfo().c_str());
-    if (PQstatus(m_query_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n",
-                PQerrorMessage(m_query_conn));
-        util::exit_nicely();
-    }
+    m_query_conn.reset(new pg_conn_t{out_options->database_options.conninfo()});
 
     if (append) {
         // Prepare queries for updating dependent objects
         for (auto &table : tables) {
             if (!table.m_prepare_intarray.empty()) {
-                pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "%s",
-                           table.m_prepare_intarray.c_str());
+                m_query_conn->exec(table.m_prepare_intarray);
             }
         }
     } else {
         // (Re)create tables.
-        pgsql_exec(m_query_conn, PGRES_COMMAND_OK,
-                   "SET client_min_messages = WARNING");
+        m_query_conn->exec("SET client_min_messages = WARNING");
         for (auto &table : tables) {
             fprintf(stderr, "Setting up table: %s\n", table.name());
-            pgsql_exec(m_query_conn, PGRES_COMMAND_OK,
-                       "DROP TABLE IF EXISTS %s CASCADE", table.name());
-            pgsql_exec(m_query_conn, PGRES_COMMAND_OK, "%s",
-                       table.m_create.c_str());
+            m_query_conn->exec("DROP TABLE IF EXISTS %1% CASCADE",
+                               table.name());
+            m_query_conn->exec(table.m_create);
         }
 
-        PQfinish(m_query_conn);
-        m_query_conn = nullptr;
+        // The extra query connection is only needed in append mode, so close.
+        m_query_conn.reset();
     }
 }
 
@@ -770,10 +738,7 @@ void middle_pgsql_t::commit()
     // release the copy thread and its query connection
     m_copy_thread->finish();
 
-    if (m_query_conn) {
-        PQfinish(m_query_conn);
-        m_query_conn = nullptr;
-    }
+    m_query_conn.reset();
 }
 
 void middle_pgsql_t::flush(osmium::item_type) { m_db_copy.sync(); }
@@ -805,8 +770,8 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : append(options->append), mark_pending(true), out_options(options),
   cache(new node_ram_cache(options->alloc_chunkwise | ALLOC_LOSSY,
                            options->cache)),
-  m_query_conn(nullptr), m_copy_thread(std::make_shared<db_copy_thread_t>(
-                             options->database_options.conninfo())),
+  m_copy_thread(
+      std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
 {
     if (options->flat_node_cache_enabled) {

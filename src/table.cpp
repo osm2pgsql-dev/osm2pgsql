@@ -13,24 +13,23 @@
 #include "util.hpp"
 #include "wkb.hpp"
 
-using std::string;
 typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 
-table_t::table_t(string const &name, string const &type,
+table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
-  type(type), sql_conn(nullptr), srid((fmt("%1%") % srid).str()),
-  append(append), hstore_mode(hstore_mode), columns(columns),
-  hstore_columns(hstore_columns), m_copy(copy_thread)
+  type(type), srid((fmt("%1%") % srid).str()), append(append),
+  hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
+  m_copy(copy_thread)
 {
-    //if we dont have any columns
+    // if we dont have any columns
     if (columns.size() == 0 && hstore_mode != HSTORE_ALL) {
-        throw std::runtime_error(
-            (fmt("No columns provided for table %1%") % name).str());
+        throw std::runtime_error{
+            (fmt("No columns provided for table %1%") % name).str()};
     }
 
     generate_copy_column_list();
@@ -39,51 +38,35 @@ table_t::table_t(string const &name, string const &type,
 table_t::table_t(table_t const &other,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_conninfo(other.m_conninfo), m_target(other.m_target), type(other.type),
-  sql_conn(nullptr), srid(other.srid), append(other.append),
-  hstore_mode(other.hstore_mode), columns(other.columns),
-  hstore_columns(other.hstore_columns), m_table_space(other.m_table_space),
-  m_copy(copy_thread)
+  srid(other.srid), append(other.append), hstore_mode(other.hstore_mode),
+  columns(other.columns), hstore_columns(other.hstore_columns),
+  m_table_space(other.m_table_space), m_copy(copy_thread)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
     // this would be premature.
-    if (other.sql_conn) {
+    if (other.m_sql_conn) {
         connect();
         prepare();
     }
 }
 
-table_t::~table_t() { teardown(); }
-
-void table_t::teardown()
-{
-    if (sql_conn != nullptr) {
-        PQfinish(sql_conn);
-        sql_conn = nullptr;
-    }
-}
+void table_t::teardown() { m_sql_conn.reset(); }
 
 void table_t::commit() { m_copy.sync(); }
 
 void table_t::connect()
 {
     //connect
-    PGconn *_conn = PQconnectdb(m_conninfo.c_str());
-    if (PQstatus(_conn) != CONNECTION_OK) {
-        throw std::runtime_error((fmt("Connection to database failed: %1%\n") %
-                                  PQerrorMessage(_conn))
-                                     .str());
-    }
-    sql_conn = _conn;
+    m_sql_conn.reset(new pg_conn_t{m_conninfo});
     //let commits happen faster by delaying when they actually occur
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                      "SET synchronous_commit TO off;");
+    m_sql_conn->exec("SET synchronous_commit TO off");
 }
 
 void table_t::start(std::string const &conninfo,
                     boost::optional<std::string> const &table_space)
 {
-    if (sql_conn) {
+    if (m_sql_conn) {
         throw std::runtime_error(m_target->name +
                                  " cannot start, its already started");
     }
@@ -93,28 +76,22 @@ void table_t::start(std::string const &conninfo,
 
     connect();
     fprintf(stderr, "Setting up table: %s\n", m_target->name.c_str());
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                      "SET client_min_messages = WARNING");
-    //we are making a new table
+    m_sql_conn->exec("SET client_min_messages = WARNING");
+    // we are making a new table
     if (!append) {
-        pgsql_exec_simple(
-            sql_conn, PGRES_COMMAND_OK,
-            (fmt("DROP TABLE IF EXISTS %1% CASCADE") % m_target->name).str());
+        m_sql_conn->exec("DROP TABLE IF EXISTS %1% CASCADE", m_target->name);
     }
 
-    /* These _tmp tables can be left behind if we run out of disk space */
-    pgsql_exec_simple(
-        sql_conn, PGRES_COMMAND_OK,
-        (fmt("DROP TABLE IF EXISTS %1%_tmp") % m_target->name).str());
-
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, "RESET client_min_messages");
+    // These _tmp tables can be left behind if we run out of disk space.
+    m_sql_conn->exec("DROP TABLE IF EXISTS %1%_tmp", m_target->name);
+    m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
     if (!append) {
         //define the new table
-        string sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
-                      m_target->name % POSTGRES_OSMID_TYPE)
-                         .str();
+        auto sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
+                    m_target->name % POSTGRES_OSMID_TYPE)
+                       .str();
 
         //first with the regular columns
         for (auto const &column : columns) {
@@ -141,31 +118,23 @@ void table_t::start(std::string const &conninfo,
         sql += m_table_space;
 
         //create the table
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, sql);
+        m_sql_conn->exec(sql);
     } //appending
     else {
         //check the columns against those in the existing table
-        auto res = pgsql_exec_simple(
-            sql_conn, PGRES_TUPLES_OK,
-            (fmt("SELECT * FROM %1% LIMIT 0") % m_target->name).str());
+        auto res = m_sql_conn->query(
+            PGRES_TUPLES_OK, "SELECT * FROM %1% LIMIT 0", m_target->name);
         for (auto const &column : columns) {
             if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
-#if 0
-                throw std::runtime_error((fmt("Append failed. Column \"%1%\" is missing from \"%1%\"\n") % info.name).str());
-#else
                 fprintf(stderr, "%s",
                         (fmt("Adding new column \"%1%\" to \"%2%\"\n") %
                          column.name % m_target->name)
                             .str()
                             .c_str());
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%") %
-                     m_target->name % column.name % column.type_name)
-                        .str());
-#endif
+                m_sql_conn->exec("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%",
+                                 m_target->name, column.name, column.type_name);
             }
-            //Note: we do not verify the type or delete unused columns
+            // Note: we do not verify the type or delete unused columns
         }
 
         //TODO: check over hstore columns
@@ -179,11 +148,9 @@ void table_t::start(std::string const &conninfo,
 void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
-    pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                      (fmt("PREPARE get_wkb (" POSTGRES_OSMID_TYPE
-                           ") AS SELECT way FROM %1% WHERE osm_id = $1") %
-                       m_target->name)
-                          .str());
+    m_sql_conn->exec("PREPARE get_wkb (" POSTGRES_OSMID_TYPE
+                     ") AS SELECT way FROM %1% WHERE osm_id = $1",
+                     m_target->name);
 }
 
 void table_t::generate_copy_column_list()
@@ -228,39 +195,29 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         if (srid == "4326") {
             /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
                Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                              (fmt("CREATE TABLE %1%_tmp %2% AS\n"
-                                   "  SELECT * FROM %1%\n"
-                                   "    ORDER BY ST_GeoHash(way,10)\n"
-                                   "    COLLATE \"C\"") %
-                               m_target->name % m_table_space)
-                                  .str());
+            m_sql_conn->exec("CREATE TABLE %1%_tmp %2% AS\n"
+                             "  SELECT * FROM %1%\n"
+                             "    ORDER BY ST_GeoHash(way,10)\n"
+                             "    COLLATE \"C\"",
+                             m_target->name, m_table_space);
         } else {
             /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
                and these need to be filtered. Also, a transformation is needed for geohashing.
                Notices are expected and ignored because they mean nothing aboud the validity of the geom
                in OSM. */
-            pgsql_exec(sql_conn, PGRES_COMMAND_OK,
-                       "SET client_min_messages = WARNING");
-            pgsql_exec_simple(
-                sql_conn, PGRES_COMMAND_OK,
-                (fmt("CREATE TABLE %1%_tmp %2% AS\n"
-                     "  SELECT * FROM %1%\n"
-                     "    WHERE ST_IsValid(way)\n"
-                     // clang-format off
-                     "    ORDER BY ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
-                     // clang-format on
-                     "    COLLATE \"C\"") %
-                 m_target->name % m_table_space)
-                    .str());
-            pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                              "RESET client_min_messages");
+            m_sql_conn->exec("SET client_min_messages = WARNING");
+            m_sql_conn->exec(
+                "CREATE TABLE %1%_tmp %2% AS\n"
+                "  SELECT * FROM %1%\n"
+                "    WHERE ST_IsValid(way)\n"
+                "    ORDER BY "
+                "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
+                "    COLLATE \"C\"",
+                m_target->name, m_table_space);
+            m_sql_conn->exec("RESET client_min_messages");
         }
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                          (fmt("DROP TABLE %1%") % m_target->name).str());
-        pgsql_exec_simple(
-            sql_conn, PGRES_COMMAND_OK,
-            (fmt("ALTER TABLE %1%_tmp RENAME TO %1%") % m_target->name).str());
+        m_sql_conn->exec("DROP TABLE %1%", m_target->name);
+        m_sql_conn->exec("ALTER TABLE %1%_tmp RENAME TO %1%", m_target->name);
         fprintf(stderr, "Copying %s to cluster by geometry finished\n",
                 m_target->name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n",
@@ -269,77 +226,58 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         std::string tblspc_sql =
             table_space_index ? "TABLESPACE " + table_space_index.get() : "";
         // Use fillfactor 100 for un-updatable imports
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                          (fmt("CREATE INDEX ON %1% USING GIST (way) %2% %3%") %
-                           m_target->name %
-                           (updateable ? "" : "WITH (FILLFACTOR=100)") %
-                           tblspc_sql)
-                              .str());
+        m_sql_conn->exec(
+            "CREATE INDEX ON %1% USING GIST (way) %2% %3%", m_target->name,
+            (updateable ? "" : "WITH (FILLFACTOR=100)"), tblspc_sql);
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
             fprintf(stderr, "Creating osm_id index on %s\n",
                     m_target->name.c_str());
-            pgsql_exec_simple(
-                sql_conn, PGRES_COMMAND_OK,
-                (fmt("CREATE INDEX ON %1% USING BTREE (osm_id) %2%") %
-                 m_target->name % tblspc_sql)
-                    .str());
+            m_sql_conn->exec("CREATE INDEX ON %1% USING BTREE (osm_id) %2%",
+                             m_target->name, tblspc_sql);
             if (srid != "4326") {
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
-                         "RETURNS TRIGGER AS $$\n"
-                         "BEGIN\n"
-                         "  IF ST_IsValid(NEW.way) THEN \n"
-                         "    RETURN NEW;\n"
-                         "  END IF;\n"
-                         "  RETURN NULL;\n"
-                         "END;"
-                         "$$ LANGUAGE plpgsql;") %
-                     m_target->name)
-                        .str());
+                m_sql_conn->exec(
+                    "CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
+                    "RETURNS TRIGGER AS $$\n"
+                    "BEGIN\n"
+                    "  IF ST_IsValid(NEW.way) THEN \n"
+                    "    RETURN NEW;\n"
+                    "  END IF;\n"
+                    "  RETURN NULL;\n"
+                    "END;"
+                    "$$ LANGUAGE plpgsql;",
+                    m_target->name);
 
-                pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                                  (fmt("CREATE TRIGGER %1%_osm2pgsql_valid "
-                                       "BEFORE INSERT OR UPDATE\n"
-                                       "  ON %1%\n"
-                                       "    FOR EACH ROW EXECUTE PROCEDURE "
-                                       "%1%_osm2pgsql_valid();") %
-                                   m_target->name)
-                                      .str());
+                m_sql_conn->exec("CREATE TRIGGER %1%_osm2pgsql_valid "
+                                 "BEFORE INSERT OR UPDATE\n"
+                                 "  ON %1%\n"
+                                 "    FOR EACH ROW EXECUTE PROCEDURE "
+                                 "%1%_osm2pgsql_valid();",
+                                 m_target->name);
             }
-            //pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK, (fmt("ALTER TABLE %1% ADD CHECK (ST_IsValid(way));") % name).str());
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
             fprintf(stderr, "Creating hstore indexes on %s\n",
                     m_target->name.c_str());
             if (hstore_mode != HSTORE_NONE) {
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE INDEX ON %1% USING GIN (tags) %2%") %
-                     m_target->name %
-                     (table_space_index
-                          ? "TABLESPACE " + table_space_index.get()
-                          : ""))
-                        .str());
+                m_sql_conn->exec(
+                    "CREATE INDEX ON %1% USING GIN (tags) %2%", m_target->name,
+                    (table_space_index ? "TABLESPACE " + table_space_index.get()
+                                       : ""));
             }
             for (size_t i = 0; i < hstore_columns.size(); ++i) {
-                pgsql_exec_simple(
-                    sql_conn, PGRES_COMMAND_OK,
-                    (fmt("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%") %
-                     m_target->name % i % hstore_columns[i] %
-                     (table_space_index
-                          ? "TABLESPACE " + table_space_index.get()
-                          : ""))
-                        .str());
+                m_sql_conn->exec("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%",
+                                 m_target->name, i, hstore_columns[i],
+                                 (table_space_index
+                                      ? "TABLESPACE " + table_space_index.get()
+                                      : ""));
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n",
                 m_target->name.c_str());
-        pgsql_exec_simple(sql_conn, PGRES_COMMAND_OK,
-                          (fmt("ANALYZE %1%") % m_target->name).str());
+        m_sql_conn->exec("ANALYZE %1%", m_target->name);
         time(&end);
         fprintf(stderr, "All indexes on %s created in %ds\n",
                 m_target->name.c_str(), (int)(end - start));
@@ -459,7 +397,7 @@ void table_t::write_hstore_columns(const taglist_t &tags)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const string &value, ColumnType flags)
+void table_t::escape_type(const std::string &value, ColumnType flags)
 {
     switch (flags) {
     case COLUMN_TYPE_INT: {
@@ -493,7 +431,7 @@ void table_t::escape_type(const string &value, ColumnType flags)
              * reject anything else
              */
         {
-            string escaped(value);
+            std::string escaped{value};
             std::replace(escaped.begin(), escaped.end(), ',', '.');
 
             double from, to;
@@ -525,15 +463,14 @@ void table_t::escape_type(const string &value, ColumnType flags)
 
 table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 {
-    char const *paramValues[1];
-    char tmp[16];
+    char tmp[32];
     snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    paramValues[0] = tmp;
+    char const *param_values[] = {tmp};
 
-    //the prepared statement get_wkb will behave differently depending on the sql_conn
-    //each table has its own sql_connection with the get_way referring to the appropriate table
-    auto res =
-        pgsql_execPrepared(sql_conn, "get_wkb", 1,
-                           (const char *const *)paramValues, PGRES_TUPLES_OK);
-    return wkb_reader(std::move(res));
+    // the prepared statement get_wkb will behave differently depending on the
+    // sql_conn
+    // each table has its own sql_connection with the get_way referring to the
+    // appropriate table
+    auto res = m_sql_conn->exec_prepared("get_wkb", 1, param_values);
+    return wkb_reader{std::move(res)};
 }
