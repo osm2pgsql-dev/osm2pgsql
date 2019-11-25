@@ -441,7 +441,7 @@ void output_multi_t::copy_to_table(const osmid_t id,
             ewkb::parser_t(geom).get_area<osmium::geom::IdentityProjection>();
         char tmp[32];
         snprintf(tmp, sizeof(tmp), "%g", area);
-        tags.push_override(tag_t("way_area", tmp));
+        tags.set("way_area", tmp);
     }
 
     m_expire.from_wkb(geom.c_str(), id);

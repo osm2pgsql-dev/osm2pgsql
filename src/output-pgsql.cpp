@@ -51,7 +51,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
                         : ewkb::parser_t(wkb)
                               .get_area<osmium::geom::IdentityProjection>();
                 snprintf(tmp, sizeof(tmp), "%g", area);
-                tags->push_override(tag_t("way_area", tmp));
+                tags->set("way_area", tmp);
             }
             m_tables[t_poly]->write_row(way.id(), *tags, wkb);
         }
@@ -332,7 +332,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
                         : ewkb::parser_t(wkb)
                               .get_area<osmium::geom::IdentityProjection>();
                 snprintf(tmp, sizeof(tmp), "%g", area);
-                outtags.push_override(tag_t("way_area", tmp));
+                outtags.set("way_area", tmp);
             }
             m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
         }

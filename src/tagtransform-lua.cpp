@@ -154,7 +154,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
                  lua_typename(L, ltype))
                     .str());
         }
-        out_tags.emplace_back(key, value);
+        out_tags.add_tag(key, value);
         lua_pop(L, 1);
     }
 
@@ -226,9 +226,9 @@ bool lua_tagtransform_t::filter_rel_member_tags(
 
     lua_pushnil(L);
     while (lua_next(L, -2) != 0) {
-        const char *key = lua_tostring(L, -2);
-        const char *value = lua_tostring(L, -1);
-        out_tags.push_back(tag_t(key, value));
+        char const *key = lua_tostring(L, -2);
+        char const *value = lua_tostring(L, -1);
+        out_tags.add_tag(key, value);
         lua_pop(L, 1);
     }
     lua_pop(L, 1);
