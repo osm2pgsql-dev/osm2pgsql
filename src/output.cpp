@@ -88,7 +88,7 @@ parse_multi_single(pt::ptree const &conf,
             tag.get_optional<std::string>("flags").get_value_or(std::string());
         // TODO: we fake the line number here - any way to get the right one
         // from the JSON parser?
-        info.flags = parse_tag_flags(flags.c_str(), -1);
+        info.flags = parse_tag_flags(flags, -1);
         // TODO: shouldn't need to specify a type here?
         columns.add(osm_type, info);
     }

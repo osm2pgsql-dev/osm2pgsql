@@ -56,7 +56,7 @@ struct export_list
 /* Parse a comma or whitespace delimited list of tags to apply to
  * a style file entry, returning the OR-ed set of flags.
  */
-int parse_tag_flags(const char *flags, int lineno);
+unsigned parse_tag_flags(std::string const &flags, int lineno);
 
 /* Parse an osm2pgsql "pgsql" backend format style file, putting
  * the results in the `exlist` argument.
