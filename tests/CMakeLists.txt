@@ -60,6 +60,7 @@ set_test(test-output-pgsql-z_order)
 set_test(test-parse-osmium)
 set_test(test-persistent-cache LABELS NoDB)
 set_test(test-ram-cache LABELS NoDB)
+set_test(test-taginfo LABELS NoDB)
 set_test(test-wildcard-match LABELS NoDB)
 
 # these tests require LUA support
