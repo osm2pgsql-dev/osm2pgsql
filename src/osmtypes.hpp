@@ -9,7 +9,9 @@
 #include "config.h"
 #include <cinttypes>
 
+#include <algorithm>
 #include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -33,7 +35,7 @@ struct member
         return osmium::builder::attr::member_type(type, id, role.c_str());
     }
 
-    member(osmium::item_type t, osmid_t i, const std::string &r)
+    member(osmium::item_type t, osmid_t i, std::string const &r)
     : type(t), id(i), role(r)
     {}
 };
@@ -71,109 +73,165 @@ struct tag_t
                                                      value.c_str());
     }
 
-    tag_t(const std::string &k, const std::string &v) : key(k), value(v) {}
+    tag_t(std::string const &k, std::string const &v) : key(k), value(v) {}
 };
 
-class taglist_t : public std::vector<tag_t>
+/**
+ * An editable list of tags.
+ *
+ * The list is not sorted.
+ */
+class taglist_t
 {
-
-    typedef std::vector<tag_t> base_t;
-
 public:
-    taglist_t() {}
+    using iterator = std::vector<tag_t>::iterator;
+    using const_iterator = std::vector<tag_t>::const_iterator;
+
+    taglist_t() = default;
 
     explicit taglist_t(osmium::TagList const &list)
     {
         for (auto const &t : list) {
-            emplace_back(t.key(), t.value());
+            m_tags.emplace_back(t.key(), t.value());
         }
     }
 
-    void add_attributes(const osmium::OSMObject &obj)
+    /// Add attributes from OSM object as pseudo-tags to list
+    void add_attributes(osmium::OSMObject const &obj)
     {
-        emplace_back("osm_user", obj.user());
-        emplace_back("osm_uid", std::to_string(obj.uid()));
-        emplace_back("osm_version", std::to_string(obj.version()));
-        emplace_back("osm_timestamp", obj.timestamp().to_iso());
-        emplace_back("osm_changeset", std::to_string(obj.changeset()));
+        m_tags.emplace_back("osm_user", obj.user());
+        m_tags.emplace_back("osm_uid", std::to_string(obj.uid()));
+        m_tags.emplace_back("osm_version", std::to_string(obj.version()));
+        m_tags.emplace_back("osm_timestamp", obj.timestamp().to_iso());
+        m_tags.emplace_back("osm_changeset", std::to_string(obj.changeset()));
     }
 
-    const tag_t *find(const std::string &key) const { return _find(key); }
+    /// Is the tag list empty?
+    bool empty() const noexcept { return m_tags.empty(); }
 
-    tag_t *find(const std::string &key)
+    /// Return size of the tag list
+    std::size_t size() const noexcept { return m_tags.size(); }
+
+    const_iterator cbegin() const noexcept { return m_tags.cbegin(); }
+
+    const_iterator cend() const noexcept { return m_tags.cend(); }
+
+    const_iterator begin() const noexcept { return m_tags.cbegin(); }
+
+    const_iterator end() const noexcept { return m_tags.cend(); }
+
+    tag_t const &operator[](std::size_t idx) const noexcept
     {
-        return const_cast<tag_t *>(_find(key));
+        return m_tags[idx];
     }
 
-    int indexof(const std::string &key) const
+    /// Is there a tag with this key in the list?
+    bool contains(std::string const &key) const
     {
-        for (size_t i = 0; i < size(); ++i)
-            if (at(i).key == key)
-                return int(i);
-
-        return -1;
+        return find_by_key(key) != m_tags.cend();
     }
 
-    const std::string *get(const std::string &key) const
+    /**
+     * Find index of tag with key in list. Return max value of size_t if this
+     * key was not found.
+     */
+    std::size_t indexof(std::string const &key) const noexcept
     {
-        for (base_t::const_iterator it = begin(); it != end(); ++it)
-            if (it->key == key)
-                return &(it->value);
-
-        return 0;
-    }
-
-    static bool value_to_bool(char const *value, bool defval)
-    {
-        if (!defval && (strcmp(value, "yes") == 0 ||
-                        strcmp(value, "true") == 0 || strcmp(value, "1") == 0))
-            return true;
-        if (defval && (strcmp(value, "no") == 0 ||
-                       strcmp(value, "false") == 0 || strcmp(value, "0") == 0))
-            return false;
-
-        return defval;
-    }
-
-    bool get_bool(const std::string &key, bool defval) const
-    {
-        for (auto const &t : *this)
-            if (t.key == key) {
-                return value_to_bool(t.value.c_str(), defval);
+        for (std::size_t i = 0; i < m_tags.size(); ++i) {
+            if (m_tags[i].key == key) {
+                return i;
             }
+        }
+
+        return std::numeric_limits<std::size_t>::max();
+    }
+
+    std::string const *get(std::string const &key) const
+    {
+        auto const it = find_by_key(key);
+        if (it == m_tags.cend()) {
+            return nullptr;
+        }
+        return &(it->value);
+    }
+
+    static bool value_to_bool(char const *value, bool defval) noexcept
+    {
+        if (!defval &&
+            (std::strcmp(value, "yes") == 0 ||
+             std::strcmp(value, "true") == 0 || std::strcmp(value, "1") == 0)) {
+            return true;
+        }
+
+        if (defval && (std::strcmp(value, "no") == 0 ||
+                       std::strcmp(value, "false") == 0 ||
+                       std::strcmp(value, "0") == 0)) {
+            return false;
+        }
 
         return defval;
     }
 
-    void push_dedupe(const tag_t &t)
+    bool get_bool(std::string const &key, bool defval) const
     {
-        if (find(t.key) == 0)
-            push_back(t);
+        auto const it = find_by_key(key);
+        if (it == m_tags.cend()) {
+            return defval;
+        }
+
+        return value_to_bool(it->value.c_str(), defval);
     }
 
-    /** Pushes a tag onto the list, overriding an existing tag if necessary */
-    void push_override(const tag_t &t)
+    /// Add tag to list without checking for duplicates
+    void add_tag(char const *key, char const *value)
     {
-        auto *tag_in_list = find(t.key);
+        m_tags.emplace_back(key, value);
+    }
 
-        if (tag_in_list == 0) {
-            push_back(t);
-        } else {
-            tag_in_list->value = t.value;
+    /// Add tag to list if there is no tag with that key yet
+    template <typename V>
+    void add_tag_if_not_exists(char const *key, V &&value)
+    {
+        if (!contains(key)) {
+            m_tags.emplace_back(key, std::forward<V>(value));
         }
     }
-    bool contains(const std::string &key) const { return _find(key) != 0; }
+
+    /// Add tag to list if there is no tag with that key yet
+    void add_tag_if_not_exists(tag_t const &t)
+    {
+        if (!contains(t.key)) {
+            m_tags.push_back(t);
+        }
+    }
+
+    /// Insert or update tag in list
+    template <typename V>
+    void set(char const *key, V &&value)
+    {
+        auto const it = find_by_key(key);
+        if (it == m_tags.end()) {
+            m_tags.emplace_back(key, std::forward<V>(value));
+        } else {
+            it->value = std::forward<V>(value);
+        }
+    }
 
 private:
-    const tag_t *_find(const std::string &key) const
+    iterator find_by_key(std::string const &key)
     {
-        for (base_t::const_iterator it = begin(); it != end(); ++it)
-            if (it->key == key)
-                return &(*it);
-
-        return 0;
+        return std::find_if(m_tags.begin(), m_tags.end(),
+                            [&key](tag_t const &t) { return t.key == key; });
     }
-};
+
+    const_iterator find_by_key(std::string const &key) const
+    {
+        return std::find_if(m_tags.cbegin(), m_tags.cend(),
+                            [&key](tag_t const &t) { return t.key == key; });
+    }
+
+    std::vector<tag_t> m_tags;
+}; // class taglist_t
 
 struct idlist_t : public std::vector<osmid_t>
 {

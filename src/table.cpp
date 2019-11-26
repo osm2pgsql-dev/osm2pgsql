@@ -330,14 +330,14 @@ void table_t::write_columns(taglist_t const &tags, std::vector<bool> *used)
 {
     //for each column
     for (auto const &column : columns) {
-        int idx;
-        if ((idx = tags.indexof(column.name)) >= 0) {
-            escape_type(tags[(size_t)idx].value, column.type);
+        std::size_t const idx = tags.indexof(column.name);
+        if (idx != std::numeric_limits<std::size_t>::max()) {
+            escape_type(tags[idx].value, column.type);
 
             // Remember we already used this one so we can't use
             // again later in the hstore column.
             if (used) {
-                (*used)[(size_t)idx] = true;
+                (*used)[idx] = true;
             }
         } else {
             m_copy.add_null_column();
@@ -345,20 +345,19 @@ void table_t::write_columns(taglist_t const &tags, std::vector<bool> *used)
     }
 }
 
+/// Write all tags to hstore. Exclude tags written to other columns and z_order.
 void table_t::write_tags_column(taglist_t const &tags,
                                 std::vector<bool> const &used)
 {
     m_copy.new_hash();
-    //iterate through the list of tags, first one is always null
-    for (size_t i = 0; i < tags.size(); ++i) {
-        const tag_t &xtag = tags[i];
-        //skip z_order tag and keys which have their own column
-        if (used[i] || ("z_order" == xtag.key)) {
-            continue;
-        }
 
-        m_copy.add_hash_elem(xtag.key, xtag.value);
+    for (std::size_t i = 0; i < tags.size(); ++i) {
+        tag_t const &tag = tags[i];
+        if (!used[i] && (tag.key != "z_order")) {
+            m_copy.add_hash_elem(tag.key, tag.value);
+        }
     }
+
     m_copy.finish_hash();
 }
 

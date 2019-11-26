@@ -77,7 +77,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
     char z[13];
     snprintf(z, sizeof(z), "%d", z_order);
-    tags.push_back(tag_t("z_order", z));
+    tags.add_tag("z_order", z);
 }
 
 } // anonymous namespace
@@ -168,7 +168,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         if (!strict) {
             if (o.type() == osmium::item_type::relation &&
                 strcmp("type", k) == 0) {
-                out_tags.emplace_back(k, v);
+                out_tags.add_tag(k, v);
                 continue;
             }
             /* Allow named islands to appear as polygons */
@@ -184,7 +184,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
         //go through the actual tags found on the item and keep the ones in the export list
         if (check_key(infos, k, &filter, &flags, strict)) {
-            out_tags.emplace_back(k, v);
+            out_tags.add_tag(k, v);
         }
     }
     if (m_options->extra_attributes && o.version() > 0) {
@@ -194,7 +194,7 @@ bool c_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
     if (polygon) {
         if (add_area_tag) {
             /* If we need to force this as a polygon, append an area tag */
-            out_tags.push_dedupe(tag_t("area", "yes"));
+            out_tags.add_tag_if_not_exists("area", "yes");
             *polygon = 1;
         } else {
             auto const *area = o.tags()["area"];
@@ -241,11 +241,11 @@ bool c_tagtransform_t::filter_rel_member_tags(
     for (const auto &rel_tag : rel_tags) {
         //copy the name tag as "route_name"
         if (is_route && (rel_tag.key == "name")) {
-            out_tags.push_dedupe(tag_t("route_name", rel_tag.value));
+            out_tags.add_tag_if_not_exists("route_name", rel_tag.value);
         }
         //copy all other tags except for "type"
         if (rel_tag.key != "type") {
-            out_tags.push_dedupe(rel_tag);
+            out_tags.add_tag_if_not_exists(rel_tag);
         }
     }
 
@@ -269,22 +269,22 @@ bool c_tagtransform_t::filter_rel_member_tags(
             }
             if (*netw == "lcn") {
                 networknr = 10;
-                out_tags.push_dedupe(tag_t("lcn", statetype));
+                out_tags.add_tag_if_not_exists("lcn", statetype);
             } else if (*netw == "rcn") {
                 networknr = 11;
-                out_tags.push_dedupe(tag_t("rcn", statetype));
+                out_tags.add_tag_if_not_exists("rcn", statetype);
             } else if (*netw == "ncn") {
                 networknr = 12;
-                out_tags.push_dedupe(tag_t("ncn", statetype));
+                out_tags.add_tag_if_not_exists("ncn", statetype);
             } else if (*netw == "lwn") {
                 networknr = 20;
-                out_tags.push_dedupe(tag_t("lwn", statetype));
+                out_tags.add_tag_if_not_exists("lwn", statetype);
             } else if (*netw == "rwn") {
                 networknr = 21;
-                out_tags.push_dedupe(tag_t("rwn", statetype));
+                out_tags.add_tag_if_not_exists("rwn", statetype);
             } else if (*netw == "nwn") {
                 networknr = 22;
-                out_tags.push_dedupe(tag_t("nwn", statetype));
+                out_tags.add_tag_if_not_exists("nwn", statetype);
             }
         }
 
@@ -293,28 +293,28 @@ bool c_tagtransform_t::filter_rel_member_tags(
             if ((*prefcol)[0] == '0' || (*prefcol)[0] == '1' ||
                 (*prefcol)[0] == '2' || (*prefcol)[0] == '3' ||
                 (*prefcol)[0] == '4') {
-                out_tags.push_dedupe(tag_t("route_pref_color", *prefcol));
+                out_tags.add_tag_if_not_exists("route_pref_color", *prefcol);
             } else {
-                out_tags.push_dedupe(tag_t("route_pref_color", "0"));
+                out_tags.add_tag_if_not_exists("route_pref_color", "0");
             }
         } else {
-            out_tags.push_dedupe(tag_t("route_pref_color", "0"));
+            out_tags.add_tag_if_not_exists("route_pref_color", "0");
         }
 
         const std::string *relref = rel_tags.get("ref");
         if (relref != nullptr) {
             if (networknr == 10) {
-                out_tags.push_dedupe(tag_t("lcn_ref", *relref));
+                out_tags.add_tag_if_not_exists("lcn_ref", *relref);
             } else if (networknr == 11) {
-                out_tags.push_dedupe(tag_t("rcn_ref", *relref));
+                out_tags.add_tag_if_not_exists("rcn_ref", *relref);
             } else if (networknr == 12) {
-                out_tags.push_dedupe(tag_t("ncn_ref", *relref));
+                out_tags.add_tag_if_not_exists("ncn_ref", *relref);
             } else if (networknr == 20) {
-                out_tags.push_dedupe(tag_t("lwn_ref", *relref));
+                out_tags.add_tag_if_not_exists("lwn_ref", *relref);
             } else if (networknr == 21) {
-                out_tags.push_dedupe(tag_t("rwn_ref", *relref));
+                out_tags.add_tag_if_not_exists("rwn_ref", *relref);
             } else if (networknr == 22) {
-                out_tags.push_dedupe(tag_t("nwn_ref", *relref));
+                out_tags.add_tag_if_not_exists("nwn_ref", *relref);
             }
         }
     } else if (is_boundary) {
