@@ -8,11 +8,7 @@
 #include <map>
 #include <stdexcept>
 
-#ifdef _WIN32
-#ifndef strtok_r
-#define strtok_r strtok_s
-#endif
-#endif
+#include <osmium/util/string.hpp>
 
 static const std::map<std::string, unsigned> tagflags = {
     {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
@@ -90,23 +86,17 @@ columns_t export_list::normal_columns(osmium::item_type id) const
     return columns;
 }
 
-int parse_tag_flags(const char *flags_, int lineno)
+unsigned parse_tag_flags(std::string const &flags, int lineno)
 {
-    int temp_flags = 0;
-    char *str = nullptr, *saveptr = nullptr;
+    unsigned temp_flags = 0;
 
-    // yuck! but strtok requires a non-const char * pointer, and i'm fairly sure it
-    // doesn't actually modify the string.
-    char *flags = const_cast<char *>(flags_);
-
-    //split the flags column on commas and keep track of which flags you've seen in a bit mask
-    for (str = strtok_r(flags, ",\r\n", &saveptr); str != nullptr;
-         str = strtok_r(nullptr, ",\r\n", &saveptr)) {
-        if (tagflags.count(str)) {
-            temp_flags |= tagflags.at(str);
+    for (auto const &flag_name : osmium::split_string(flags, ",\r\n")) {
+        auto const it = tagflags.find(flag_name);
+        if (it != tagflags.end()) {
+            temp_flags |= it->second;
         } else {
-            fprintf(stderr, "Unknown flag '%s' line %d, ignored\n", str,
-                    lineno);
+            fprintf(stderr, "Unknown flag '%s' line %d, ignored\n",
+                    flag_name.c_str(), lineno);
         }
     }
 
