@@ -35,7 +35,7 @@ struct member
         return osmium::builder::attr::member_type(type, id, role.c_str());
     }
 
-    member(osmium::item_type t, osmid_t i, const std::string &r)
+    member(osmium::item_type t, osmid_t i, std::string const &r)
     : type(t), id(i), role(r)
     {}
 };
@@ -73,7 +73,7 @@ struct tag_t
                                                      value.c_str());
     }
 
-    tag_t(const std::string &k, const std::string &v) : key(k), value(v) {}
+    tag_t(std::string const &k, std::string const &v) : key(k), value(v) {}
 };
 
 /**
@@ -126,7 +126,7 @@ public:
     }
 
     /// Is there a tag with this key in the list?
-    bool contains(const std::string &key) const
+    bool contains(std::string const &key) const
     {
         return find_by_key(key) != m_tags.cend();
     }
@@ -218,13 +218,13 @@ public:
     }
 
 private:
-    iterator find_by_key(const std::string &key)
+    iterator find_by_key(std::string const &key)
     {
         return std::find_if(m_tags.begin(), m_tags.end(),
                             [&key](tag_t const &t) { return t.key == key; });
     }
 
-    const_iterator find_by_key(const std::string &key) const
+    const_iterator find_by_key(std::string const &key) const
     {
         return std::find_if(m_tags.cbegin(), m_tags.cend(),
                             [&key](tag_t const &t) { return t.key == key; });
