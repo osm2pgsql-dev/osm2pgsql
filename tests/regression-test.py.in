@@ -1,4 +1,4 @@
-#! @PYTHON_EXECUTABLE@
+#! @PYTHON_EXECUTABLE@ -B
 
 import sys
 import unittest
