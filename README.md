@@ -37,7 +37,7 @@ $ git clone git://github.com/openstreetmap/osm2pgsql.git
 ```
 
 Osm2pgsql uses the cross-platform [CMake build system](https://cmake.org/)
-to configure and build itself and requires
+to configure and build itself.
 
 Required libraries are
 
@@ -57,6 +57,9 @@ It also requires access to a database server running
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
 Both GCC 4.8 and Clang 3.4 meet this requirement.
+
+Note that osm2pgsql needs a 64bit system. It might work on 32bit systems
+in some circumstances but that configuration is not supported.
 
 First install the dependencies.
 
