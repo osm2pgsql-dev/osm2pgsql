@@ -148,6 +148,13 @@ namespace osmium {
             }
 
             /**
+             * Is the set of options empty?
+             */
+            bool empty() const noexcept {
+                return m_options.empty();
+            }
+
+            /**
              * The number of options set.
              */
             std::size_t size() const noexcept {

@@ -102,14 +102,10 @@ namespace osmium {
                 NodeRefSegment() noexcept = default;
 
                 NodeRefSegment(const osmium::NodeRef& nr1, const osmium::NodeRef& nr2, role_type role, const osmium::Way* way) noexcept :
-                    m_first(nr1),
-                    m_second(nr2),
+                    m_first(nr1.location() < nr2.location() ? nr1 : nr2),
+                    m_second(nr1.location() < nr2.location() ? nr2 : nr1),
                     m_way(way),
                     m_role(role) {
-                    if (nr2.location() < nr1.location()) {
-                        using std::swap;
-                        swap(m_first, m_second);
-                    }
                 }
 
                 /**
@@ -206,7 +202,7 @@ namespace osmium {
 
                 /**
                  * The "determinant" of this segment. Used for calculating
-                 * the winding order or a ring.
+                 * the winding order of a ring.
                  */
                 int64_t det() const noexcept {
                     const vec a{start()};
