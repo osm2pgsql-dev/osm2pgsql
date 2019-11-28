@@ -2,3 +2,5 @@ build
 
 docs/html
 docs/latex
+
+tests/__pycache__
