@@ -20,8 +20,7 @@
 #-----------------------------------------------------------------------------
 */
 
-#include <boost/format.hpp>
-
+#include "format.hpp"
 #include "osmdata.hpp"
 #include "parse-osmium.hpp"
 #include "reprojection.hpp"
@@ -135,10 +134,10 @@ void parse_osmium_t::stream_file(const std::string &filename,
     osmium::io::File infile(filename, osmium_format);
 
     if (infile.format() == osmium::io::file_format::unknown) {
-        throw std::runtime_error(
+        throw std::runtime_error{
             fmt == "auto"
-                ? "Cannot detect file format. Try using -r."
-                : ((boost::format("Unknown file format '%1%'.") % fmt).str()));
+                ? std::string{"Cannot detect file format. Try using -r."}
+                : "Unknown file format '{}'."_format(fmt)};
     }
 
     fprintf(stderr, "Using %s parser.\n",

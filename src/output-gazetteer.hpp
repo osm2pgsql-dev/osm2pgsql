@@ -4,7 +4,6 @@
 #include <memory>
 #include <string>
 
-#include <boost/format.hpp>
 #include <osmium/memory/buffer.hpp>
 
 #include "db-copy.hpp"

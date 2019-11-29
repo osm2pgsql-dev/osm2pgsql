@@ -7,9 +7,9 @@
 
 #include <libpq-fe.h>
 
-#include <boost/format.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "format.hpp"
 #include "options.hpp"
 #include <catch.hpp>
 
@@ -69,12 +69,6 @@ public:
         }
     }
 
-    void exec(boost::format const &cmd,
-              ExecStatusType expect = PGRES_COMMAND_OK)
-    {
-        exec(cmd.str(), expect);
-    }
-
     void exec(std::string const &cmd, ExecStatusType expect = PGRES_COMMAND_OK)
     {
         result_t res = query(cmd);
@@ -89,8 +83,6 @@ public:
     {
         return PQexec(m_conn, cmd.c_str());
     }
-
-    result_t query(boost::format const &fmt) const { return query(fmt.str()); }
 
     template <typename T>
     T require_scalar(std::string const &cmd) const
@@ -128,17 +120,17 @@ public:
     unsigned long get_count(char const *table_name,
                             std::string const &where = "") const
     {
-        auto query = boost::format("select count(*) from %1% %2% %3%") %
-                     table_name % (where.empty() ? "" : "where") % where;
+        auto const query = "SELECT count(*) FROM {} {} {}"_format(
+            table_name, (where.empty() ? "" : "WHERE"), where);
 
-        return require_scalar<unsigned long>(query.str());
+        return require_scalar<unsigned long>(query);
     }
 
     void require_has_table(char const *table_name) const
     {
-        auto where = boost::format("oid = '%1%'::regclass") % table_name;
+        auto const where = "oid = '{}'::regclass"_format(table_name);
 
-        REQUIRE(get_count("pg_catalog.pg_class", where.str()) == 1);
+        REQUIRE(get_count("pg_catalog.pg_class", where) == 1);
     }
 
 private:
@@ -153,14 +145,10 @@ public:
         try {
             conn_t conn("dbname=postgres");
 
-            m_db_name = (boost::format("osm2pgsql-test-%1%-%2%") % getpid() %
-                         time(nullptr))
-                            .str();
-            conn.exec(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
-                      m_db_name);
-            conn.exec(
-                boost::format("CREATE DATABASE \"%1%\" WITH ENCODING 'UTF8'") %
-                m_db_name);
+            m_db_name = "osm2pgsql-test-{}-{}"_format(getpid(), time(nullptr));
+            conn.exec("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
+            conn.exec("CREATE DATABASE \"{}\" WITH ENCODING 'UTF8'"_format(
+                m_db_name));
 
             conn_t local = connect();
             local.exec("CREATE EXTENSION postgis");
@@ -177,8 +165,7 @@ public:
         if (!m_db_name.empty()) {
             try {
                 conn_t conn("dbname=postgres");
-                conn.query(boost::format("DROP DATABASE IF EXISTS \"%1%\"") %
-                           m_db_name);
+                conn.query("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
             } catch (...) {
                 fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
             }

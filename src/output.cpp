@@ -1,15 +1,15 @@
-#include "output.hpp"
 #include "db-copy.hpp"
+#include "format.hpp"
 #include "output-gazetteer.hpp"
 #include "output-multi.hpp"
 #include "output-null.hpp"
 #include "output-pgsql.hpp"
+#include "output.hpp"
 #include "taginfo-impl.hpp"
 
 #include <cstring>
 #include <stdexcept>
 
-#include <boost/format.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 
@@ -121,10 +121,9 @@ parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
         }
 
     } catch (const std::exception &e) {
-        throw std::runtime_error(
-            (boost::format("Unable to parse multi config file `%1%': %2%") %
-             file_name % e.what())
-                .str());
+        throw std::runtime_error{
+            "Unable to parse multi config file `{}': {}"_format(file_name,
+                                                                e.what())};
     }
 
     return outputs;
@@ -155,11 +154,10 @@ output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
         outputs = parse_multi_config(mid, options, copy_thread);
 
     } else {
-        throw std::runtime_error(
-            (boost::format("Output backend `%1%' not recognised. Should be one "
-                           "of [pgsql, gazetteer, null, multi].\n") %
-             options.output_backend)
-                .str());
+        throw std::runtime_error{
+            "Output backend `{}' not recognised. Should be one "
+            "of [pgsql, gazetteer, null, multi].\n"_format(
+                options.output_backend)};
     }
 
     return outputs;

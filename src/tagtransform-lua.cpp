@@ -5,8 +5,8 @@ extern "C"
 }
 
 #include <boost/filesystem.hpp>
-#include <boost/format.hpp>
 
+#include "format.hpp"
 #include "options.hpp"
 #include "tagtransform-lua.hpp"
 
@@ -38,10 +38,8 @@ void lua_tagtransform_t::open_style()
     L = luaL_newstate();
     luaL_openlibs(L);
     if (luaL_dofile(L, m_lua_file.c_str())) {
-        throw std::runtime_error(
-            (boost::format("Lua tag transform style error: %1%") %
-             lua_tostring(L, -1))
-                .str());
+        throw std::runtime_error{
+            "Lua tag transform style error: {}"_format(lua_tostring(L, -1))};
     }
 
     check_lua_function_exists(m_node_func);
@@ -64,11 +62,9 @@ void lua_tagtransform_t::check_lua_function_exists(const std::string &func_name)
 {
     lua_getglobal(L, func_name.c_str());
     if (!lua_isfunction(L, -1)) {
-        throw std::runtime_error(
-            (boost::format(
-                 "Tag transform style does not contain a function %1%") %
-             func_name)
-                .str());
+        throw std::runtime_error{
+            "Tag transform style does not contain a function {}"_format(
+                func_name)};
     }
     lua_pop(L, 1);
 }
@@ -114,11 +110,8 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
     if (lua_pcall(L, 2, (o.type() == osmium::item_type::way) ? 4 : 2, 0)) {
         /* lua function failed */
-        throw std::runtime_error(
-            (boost::format("Failed to execute lua function for basic tag "
-                           "processing: %1%") %
-             lua_tostring(L, -1))
-                .str());
+        throw std::runtime_error{"Failed to execute lua function for basic tag "
+                                 "processing: {}"_format(lua_tostring(L, -1))};
     }
 
     if (o.type() == osmium::item_type::way) {
@@ -138,21 +131,17 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         const char *value = lua_tostring(L, -1);
         if (key == nullptr) {
             int ltype = lua_type(L, -2);
-            throw std::runtime_error(
-                (boost::format(
-                     "Basic tag processing returned NULL key. Possibly this is "
-                     "due an incorrect data type '%1%'.") %
-                 lua_typename(L, ltype))
-                    .str());
+            throw std::runtime_error{
+                "Basic tag processing returned NULL key. Possibly this is "
+                "due an incorrect data type '{}'."_format(
+                    lua_typename(L, ltype))};
         }
         if (value == nullptr) {
             int ltype = lua_type(L, -1);
-            throw std::runtime_error(
-                (boost::format(
-                     "Basic tag processing returned NULL value. Possibly this "
-                     "is due an incorrect data type '%1%'.") %
-                 lua_typename(L, ltype))
-                    .str());
+            throw std::runtime_error{
+                "Basic tag processing returned NULL value. Possibly this "
+                "is due an incorrect data type '{}'."_format(
+                    lua_typename(L, ltype))};
         }
         out_tags.add_tag(key, value);
         lua_pop(L, 1);
@@ -207,11 +196,9 @@ bool lua_tagtransform_t::filter_rel_member_tags(
 
     if (lua_pcall(L, 4, 6, 0)) {
         /* lua function failed */
-        throw std::runtime_error(
-            (boost::format("Failed to execute lua function for relation tag "
-                           "processing: %1%") %
-             lua_tostring(L, -1))
-                .str());
+        throw std::runtime_error{
+            "Failed to execute lua function for relation tag "
+            "processing: {}"_format(lua_tostring(L, -1))};
     }
 
     *roads = (int)lua_tointeger(L, -1);

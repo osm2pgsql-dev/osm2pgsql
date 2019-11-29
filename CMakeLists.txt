@@ -38,9 +38,12 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_EXTENSIONS Off)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+if (NOT "${CMAKE_CXX_STANDARD}")
+    set(CMAKE_CXX_STANDARD 11)
+endif()
+message(STATUS "Building in C++${CMAKE_CXX_STANDARD} mode")
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if (MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS -DNOMINMAX -wd4996)
@@ -54,6 +57,7 @@ endif()
 
 option(EXTERNAL_LIBOSMIUM "Do not use the bundled libosmium" OFF)
 option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
+option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
 #############################################################
 # Detect available headers and set global compiler options
@@ -78,10 +82,14 @@ if (NOT EXTERNAL_PROTOZERO)
     set(PROTOZERO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/protozero/include")
 endif()
 
+if (NOT EXTERNAL_FMT)
+    set(FMT_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/fmt/include")
+endif()
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
 find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
-include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR})
+include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
 if (WITH_LUA)
     if (WITH_LUAJIT)

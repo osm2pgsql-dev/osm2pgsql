@@ -3,7 +3,6 @@
 
 /* Helper functions for PostgreSQL access */
 
-#include <boost/format.hpp>
 #include <cstring>
 #include <libpq-fe.h>
 #include <memory>
@@ -42,39 +41,11 @@ public:
 
     pg_result_t query(ExecStatusType expect, std::string const &sql) const;
 
-    template <typename... ARGS>
-    pg_result_t query(ExecStatusType expect, std::string const &fmt,
-                      ARGS &&... args) const
-    {
-        boost::format formatter{fmt};
-        format_sql(formatter, std::forward<ARGS>(args)...);
-        return query(expect, formatter.str());
-    }
-
     void exec(char const *sql) const;
 
     void exec(std::string const &sql) const;
 
-    template <typename... ARGS>
-    void exec(char const *fmt, ARGS &&... args) const
-    {
-        query(PGRES_COMMAND_OK, fmt, std::forward<ARGS>(args)...);
-    }
-
 private:
-    template <typename T, typename... ARGS>
-    static void format_sql(boost::format &fmt, T arg, ARGS &&... args)
-    {
-        fmt % arg;
-        format_sql(fmt, std::forward<ARGS>(args)...);
-    }
-
-    template <typename T>
-    static void format_sql(boost::format &fmt, T arg)
-    {
-        fmt % arg;
-    }
-
     PGconn *m_conn;
 };
 

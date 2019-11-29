@@ -1,7 +1,5 @@
 #include <memory>
 
-#include <boost/format.hpp>
-
 #include "processor-point.hpp"
 #include "util.hpp"
 

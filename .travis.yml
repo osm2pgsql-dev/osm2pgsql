@@ -66,7 +66,7 @@ matrix:
       env: T="clang38_pg92_dbtest"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=clang-3.8 CXX=clang++-3.8
+           CC=clang-3.8 CXX=clang++-3.8 CPPVERSION=11
       addons: *clang38_pg92
 
     - os: linux
@@ -75,7 +75,7 @@ matrix:
       env: T="clang7_pg96_dbtest_luajit"
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=clang-7 CXX=clang++-7
+           CC=clang-7 CXX=clang++-7 CPPVERSION=11
       addons: *clang7_pg96
 
     - os: linux
@@ -84,7 +84,7 @@ matrix:
       env: T="bionic_clang7_pg96_dbtest"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=clang-7 CXX=clang++-7
+           CC=clang-7 CXX=clang++-7 CPPVERSION=14
       addons: *bionic_clang7_pg96
 
   # ---- OSX + CLANG ---------------------------
@@ -92,7 +92,7 @@ matrix:
       compiler: clang
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
-           CXXFLAGS="-pedantic -Wextra -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
       before_install:
         - brew install lua; brew install lua
       before_script:
@@ -106,7 +106,7 @@ matrix:
       env: T="gcc48_pg96_dbtest"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-4.8 CXX=g++-4.8
+           CC=gcc-4.8 CXX=g++-4.8 CPPVERSION=11
       addons: *gcc48_pg96
 
     - os: linux
@@ -115,7 +115,7 @@ matrix:
       env: T="bionic_gcc8_pg96_dbtest_luajit"
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-8 CXX=g++-8
+           CC=gcc-8 CXX=g++-8 CPPVERSION=14
       addons: *bionic_gcc8_pg96
 
     - os: linux
@@ -124,7 +124,7 @@ matrix:
       env: T="bionic_gcc8_pg96_dbtest_luajit_release"
            BUILD_TYPE="Release" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-8 CXX=g++-8
+           CC=gcc-8 CXX=g++-8 CPPVERSION=14
       addons: *bionic_gcc8_pg96
 
 
@@ -142,7 +142,7 @@ before_script:
 
 script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DWITH_LUAJIT=${LUAJIT_OPTION}
+  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} -DWITH_LUAJIT=${LUAJIT_OPTION}
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then

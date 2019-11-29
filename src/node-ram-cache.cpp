@@ -4,18 +4,15 @@
 */
 
 #include "config.h"
-
-#include <new>
-#include <stdexcept>
-
-#include <cstdio>
-#include <cstdlib>
-
-#include <boost/format.hpp>
-
+#include "format.hpp"
 #include "node-ram-cache.hpp"
 #include "osmtypes.hpp"
 #include "util.hpp"
+
+#include <cstdio>
+#include <cstdlib>
+#include <new>
+#include <stdexcept>
 
 /* Here we use a similar storage structure as middle-ram, except we allow
  * the array to be lossy so we can cap the total memory usage. Hence it is a
@@ -458,12 +455,9 @@ void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
         set_sparse(id, coord);
     } else {
         // Command line options always have ALLOC_DENSE | ALLOC_SPARSE
-        throw std::logic_error(
-            (boost::format(
-                 "Unexpected cache strategy in node_ram_cache::set with "
-                 "allocStrategy %1%") %
-             allocStrategy)
-                .str());
+        throw std::logic_error{
+            "Unexpected cache strategy in node_ram_cache::set with "
+            "allocStrategy {}"_format(allocStrategy)};
     }
 }
 

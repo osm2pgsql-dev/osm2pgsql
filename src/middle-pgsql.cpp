@@ -16,12 +16,12 @@
 #include <ctime>
 #include <functional>
 
-#include <boost/format.hpp>
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
 
 #include <libpq-fe.h>
 
+#include "format.hpp"
 #include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
@@ -178,7 +178,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
     pg_conn_t sql_conn(conninfo);
 
     if (droptemp) {
-        sql_conn.exec("DROP TABLE %1%", name());
+        sql_conn.exec("DROP TABLE {}"_format(name()));
     } else if (build_indexes && !m_array_indexes.empty()) {
         fprintf(stderr, "Building index on table: %s\n", name());
         sql_conn.exec(m_array_indexes);
@@ -682,7 +682,7 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 void middle_pgsql_t::analyze()
 {
     for (auto &t : tables) {
-        m_query_conn->exec("ANALYZE %1%", t.name());
+        m_query_conn->exec("ANALYZE {}"_format(t.name()));
     }
 }
 
@@ -722,8 +722,8 @@ void middle_pgsql_t::start()
         m_query_conn->exec("SET client_min_messages = WARNING");
         for (auto &table : tables) {
             fprintf(stderr, "Setting up table: %s\n", table.name());
-            m_query_conn->exec("DROP TABLE IF EXISTS %1% CASCADE",
-                               table.name());
+            m_query_conn->exec(
+                "DROP TABLE IF EXISTS {} CASCADE"_format(table.name()));
             m_query_conn->exec(table.m_create);
         }
 

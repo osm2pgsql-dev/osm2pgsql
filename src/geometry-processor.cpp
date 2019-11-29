@@ -1,3 +1,4 @@
+#include "format.hpp"
 #include "geometry-processor.hpp"
 #include "middle.hpp"
 #include "options.hpp"
@@ -6,8 +7,6 @@
 #include "processor-polygon.hpp"
 #include "reprojection.hpp"
 
-#include <boost/format.hpp>
-#include <boost/optional.hpp>
 #include <memory>
 #include <stdexcept>
 
@@ -23,11 +22,9 @@ geometry_processor::create(const std::string &type, const options_t *options)
     } else if (type == "polygon") {
         ptr = std::make_shared<processor_polygon>(options->projection);
     } else {
-        throw std::runtime_error(
-            (boost::format("Unable to construct geometry processor "
-                           "because type `%1%' is not known.") %
-             type)
-                .str());
+        throw std::runtime_error{
+            "Unable to construct geometry processor "
+            "because type `{}' is not known."_format(type)};
     }
 
     return ptr;

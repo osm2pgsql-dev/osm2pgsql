@@ -14,9 +14,8 @@
 #include <cstring>
 #include <string>
 
-#include <boost/format.hpp>
-
 #include "expire-tiles.hpp"
+#include "format.hpp"
 #include "options.hpp"
 #include "reprojection.hpp"
 #include "table.hpp"
@@ -423,19 +422,15 @@ int expire_tiles::from_db(table_t *table, osmid_t osm_id)
 void expire_tiles::merge_and_destroy(expire_tiles &other)
 {
     if (map_width != other.map_width) {
-        throw std::runtime_error(
-            (boost::format("Unable to merge tile expiry sets when "
-                           "map_width does not match: %1% != %2%.") %
-             map_width % other.map_width)
-                .str());
+        throw std::runtime_error{"Unable to merge tile expiry sets when "
+                                 "map_width does not match: {} != {}."_format(
+                                     map_width, other.map_width)};
     }
 
     if (tile_width != other.tile_width) {
-        throw std::runtime_error(
-            (boost::format("Unable to merge tile expiry sets when "
-                           "tile_width does not match: %1% != %2%.") %
-             tile_width % other.tile_width)
-                .str());
+        throw std::runtime_error{"Unable to merge tile expiry sets when "
+                                 "tile_width does not match: {} != {}."_format(
+                                     tile_width, other.tile_width)};
     }
 
     if (m_dirty_tiles.size() == 0) {

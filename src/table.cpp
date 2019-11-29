@@ -5,15 +5,12 @@
 #include <exception>
 #include <utility>
 
-#include <boost/format.hpp>
-
+#include "format.hpp"
 #include "options.hpp"
 #include "table.hpp"
 #include "taginfo.hpp"
 #include "util.hpp"
 #include "wkb.hpp"
-
-typedef boost::format fmt;
 
 #define BUFFER_SEND_SIZE 1024
 
@@ -22,14 +19,14 @@ table_t::table_t(std::string const &name, std::string const &type,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
-  type(type), srid((fmt("%1%") % srid).str()), append(append),
+  type(type), srid(fmt::to_string(srid)), append(append),
   hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
   m_copy(copy_thread)
 {
     // if we dont have any columns
     if (columns.size() == 0 && hstore_mode != HSTORE_ALL) {
         throw std::runtime_error{
-            (fmt("No columns provided for table %1%") % name).str()};
+            "No columns provided for table {}"_format(name)};
     }
 
     generate_copy_column_list();
@@ -79,28 +76,28 @@ void table_t::start(std::string const &conninfo,
     m_sql_conn->exec("SET client_min_messages = WARNING");
     // we are making a new table
     if (!append) {
-        m_sql_conn->exec("DROP TABLE IF EXISTS %1% CASCADE", m_target->name);
+        m_sql_conn->exec(
+            "DROP TABLE IF EXISTS {} CASCADE"_format(m_target->name));
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_sql_conn->exec("DROP TABLE IF EXISTS %1%_tmp", m_target->name);
+    m_sql_conn->exec("DROP TABLE IF EXISTS {}_tmp"_format(m_target->name));
     m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
     if (!append) {
         //define the new table
-        auto sql = (fmt("CREATE UNLOGGED TABLE %1% (osm_id %2%,") %
-                    m_target->name % POSTGRES_OSMID_TYPE)
-                       .str();
+        auto sql = "CREATE UNLOGGED TABLE {} (osm_id {},"_format(
+            m_target->name, POSTGRES_OSMID_TYPE);
 
         //first with the regular columns
         for (auto const &column : columns) {
-            sql += (fmt("\"%1%\" %2%,") % column.name % column.type_name).str();
+            sql += "\"{}\" {},"_format(column.name, column.type_name);
         }
 
         //then with the hstore columns
         for (auto const &hcolumn : hstore_columns) {
-            sql += (fmt("\"%1%\" hstore,") % hcolumn).str();
+            sql += "\"{}\" hstore,"_format(hcolumn);
         }
 
         //add tags column
@@ -108,7 +105,7 @@ void table_t::start(std::string const &conninfo,
             sql += "\"tags\" hstore,";
         }
 
-        sql += (fmt("way geometry(%1%,%2%) )") % type % srid).str();
+        sql += "way geometry({},{}) )"_format(type, srid);
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't
@@ -123,16 +120,13 @@ void table_t::start(std::string const &conninfo,
     else {
         //check the columns against those in the existing table
         auto res = m_sql_conn->query(
-            PGRES_TUPLES_OK, "SELECT * FROM %1% LIMIT 0", m_target->name);
+            PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(m_target->name));
         for (auto const &column : columns) {
             if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
-                fprintf(stderr, "%s",
-                        (fmt("Adding new column \"%1%\" to \"%2%\"\n") %
-                         column.name % m_target->name)
-                            .str()
-                            .c_str());
-                m_sql_conn->exec("ALTER TABLE %1% ADD COLUMN \"%2%\" %3%",
-                                 m_target->name, column.name, column.type_name);
+                fmt::print(stderr, "Adding new column \"{}\" to \"{}\"\n",
+                           column.name, m_target->name);
+                m_sql_conn->exec("ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
+                    m_target->name, column.name, column.type_name));
             }
             // Note: we do not verify the type or delete unused columns
         }
@@ -148,9 +142,9 @@ void table_t::start(std::string const &conninfo,
 void table_t::prepare()
 {
     //let postgres cache this query as it will presumably happen a lot
-    m_sql_conn->exec("PREPARE get_wkb (" POSTGRES_OSMID_TYPE
-                     ") AS SELECT way FROM %1% WHERE osm_id = $1",
-                     m_target->name);
+    m_sql_conn->exec(
+        "PREPARE get_wkb (" POSTGRES_OSMID_TYPE
+        ") AS SELECT way FROM {} WHERE osm_id = $1"_format(m_target->name));
 }
 
 void table_t::generate_copy_column_list()
@@ -195,11 +189,11 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         if (srid == "4326") {
             /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
                Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
-            m_sql_conn->exec("CREATE TABLE %1%_tmp %2% AS\n"
-                             "  SELECT * FROM %1%\n"
-                             "    ORDER BY ST_GeoHash(way,10)\n"
-                             "    COLLATE \"C\"",
-                             m_target->name, m_table_space);
+            m_sql_conn->exec(
+                "CREATE TABLE {0}_tmp {1} AS\n"
+                "  SELECT * FROM {0}\n"
+                "    ORDER BY ST_GeoHash(way,10)\n"
+                "    COLLATE \"C\""_format(m_target->name, m_table_space));
         } else {
             /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
                and these need to be filtered. Also, a transformation is needed for geohashing.
@@ -207,17 +201,18 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                in OSM. */
             m_sql_conn->exec("SET client_min_messages = WARNING");
             m_sql_conn->exec(
-                "CREATE TABLE %1%_tmp %2% AS\n"
-                "  SELECT * FROM %1%\n"
+                "CREATE TABLE {0}_tmp {1} AS\n"
+                "  SELECT * FROM {0}\n"
                 "    WHERE ST_IsValid(way)\n"
                 "    ORDER BY "
                 "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
-                "    COLLATE \"C\"",
-                m_target->name, m_table_space);
+                "    COLLATE \"C\""_format(m_target->name, m_table_space));
             m_sql_conn->exec("RESET client_min_messages");
         }
-        m_sql_conn->exec("DROP TABLE %1%", m_target->name);
-        m_sql_conn->exec("ALTER TABLE %1%_tmp RENAME TO %1%", m_target->name);
+
+        m_sql_conn->exec("DROP TABLE {}"_format(m_target->name));
+        m_sql_conn->exec(
+            "ALTER TABLE {0}_tmp RENAME TO {0}"_format(m_target->name));
         fprintf(stderr, "Copying %s to cluster by geometry finished\n",
                 m_target->name.c_str());
         fprintf(stderr, "Creating geometry index on %s\n",
@@ -226,19 +221,20 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         std::string tblspc_sql =
             table_space_index ? "TABLESPACE " + table_space_index.get() : "";
         // Use fillfactor 100 for un-updatable imports
-        m_sql_conn->exec(
-            "CREATE INDEX ON %1% USING GIST (way) %2% %3%", m_target->name,
-            (updateable ? "" : "WITH (FILLFACTOR=100)"), tblspc_sql);
+        m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}"_format(
+            m_target->name, (updateable ? "" : "WITH (FILLFACTOR=100)"),
+            tblspc_sql));
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
             fprintf(stderr, "Creating osm_id index on %s\n",
                     m_target->name.c_str());
-            m_sql_conn->exec("CREATE INDEX ON %1% USING BTREE (osm_id) %2%",
-                             m_target->name, tblspc_sql);
+            m_sql_conn->exec(
+                "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
+                    m_target->name, tblspc_sql));
             if (srid != "4326") {
                 m_sql_conn->exec(
-                    "CREATE OR REPLACE FUNCTION %1%_osm2pgsql_valid()\n"
+                    "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
                     "RETURNS TRIGGER AS $$\n"
                     "BEGIN\n"
                     "  IF ST_IsValid(NEW.way) THEN \n"
@@ -246,15 +242,14 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                     "  END IF;\n"
                     "  RETURN NULL;\n"
                     "END;"
-                    "$$ LANGUAGE plpgsql;",
-                    m_target->name);
+                    "$$ LANGUAGE plpgsql;"_format(m_target->name));
 
-                m_sql_conn->exec("CREATE TRIGGER %1%_osm2pgsql_valid "
-                                 "BEFORE INSERT OR UPDATE\n"
-                                 "  ON %1%\n"
-                                 "    FOR EACH ROW EXECUTE PROCEDURE "
-                                 "%1%_osm2pgsql_valid();",
-                                 m_target->name);
+                m_sql_conn->exec(
+                    "CREATE TRIGGER {0}_osm2pgsql_valid "
+                    "BEFORE INSERT OR UPDATE\n"
+                    "  ON {0}\n"
+                    "    FOR EACH ROW EXECUTE PROCEDURE "
+                    "{0}_osm2pgsql_valid();"_format(m_target->name));
             }
         }
         /* Create hstore index if selected */
@@ -263,21 +258,24 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                     m_target->name.c_str());
             if (hstore_mode != HSTORE_NONE) {
                 m_sql_conn->exec(
-                    "CREATE INDEX ON %1% USING GIN (tags) %2%", m_target->name,
-                    (table_space_index ? "TABLESPACE " + table_space_index.get()
-                                       : ""));
+                    "CREATE INDEX ON {} USING GIN (tags) {}"_format(
+                        m_target->name,
+                        (table_space_index
+                             ? "TABLESPACE " + table_space_index.get()
+                             : "")));
             }
             for (size_t i = 0; i < hstore_columns.size(); ++i) {
-                m_sql_conn->exec("CREATE INDEX ON %1% USING GIN (\"%3%\") %4%",
-                                 m_target->name, i, hstore_columns[i],
-                                 (table_space_index
-                                      ? "TABLESPACE " + table_space_index.get()
-                                      : ""));
+                m_sql_conn->exec(
+                    "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
+                        m_target->name, hstore_columns[i],
+                        (table_space_index
+                             ? "TABLESPACE " + table_space_index.get()
+                             : "")));
             }
         }
         fprintf(stderr, "Creating indexes on %s finished\n",
                 m_target->name.c_str());
-        m_sql_conn->exec("ANALYZE %1%", m_target->name);
+        m_sql_conn->exec("ANALYZE {}"_format(m_target->name));
         time(&end);
         fprintf(stderr, "All indexes on %s created in %ds\n",
                 m_target->name.c_str(), (int)(end - start));
