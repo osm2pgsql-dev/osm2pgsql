@@ -395,7 +395,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 }
 
 bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
-                                 std::string const &geom, db_copy_mgr_t &buffer)
+                                 std::string const &geom, copy_mgr_t &buffer)
 {
     bool any = false;
     for (auto const &main : m_main) {
@@ -421,7 +421,7 @@ bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
 bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
                                          osmium::OSMObject const &o,
                                          std::string const &geom,
-                                         db_copy_mgr_t &buffer)
+                                         copy_mgr_t &buffer)
 {
     std::vector<osmium::Tag const *> domain_name;
     if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {

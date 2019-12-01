@@ -104,15 +104,12 @@ void db_copy_thread_t::disconnect() { m_conn.reset(); }
 
 void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
-    if (buffer->deleter.has_data() ||
+    if (buffer->has_deletables() ||
         (m_inflight && !buffer->target->same_copy_target(*m_inflight.get()))) {
         finish_copy();
     }
 
-    if (buffer->deleter.has_data()) {
-        buffer->deleter.delete_rows(buffer->target->name, buffer->target->id,
-                                    m_conn.get());
-    }
+    buffer->delete_data(m_conn.get());
 
     if (!m_inflight) {
         start_copy(buffer->target);
@@ -160,54 +157,5 @@ void db_copy_thread_t::finish_copy()
     if (m_inflight) {
         m_conn->end_copy(m_inflight->name);
         m_inflight.reset();
-    }
-}
-
-db_copy_mgr_t::db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
-: m_processor(processor)
-{}
-
-void db_copy_mgr_t::new_line(std::shared_ptr<db_target_descr_t> const &table)
-{
-    if (!m_current || !m_current->target->same_copy_target(*table.get())) {
-        if (m_current) {
-            m_processor->add_buffer(std::move(m_current));
-        }
-
-        m_current.reset(new db_cmd_copy_t(table));
-    }
-}
-
-void db_copy_mgr_t::delete_id(osmid_t osm_id)
-{
-    assert(m_current);
-    m_current->deleter.add(osm_id);
-}
-
-void db_copy_mgr_t::sync()
-{
-    // finish any ongoing copy operations
-    if (m_current) {
-        m_processor->add_buffer(std::move(m_current));
-    }
-
-    m_processor->sync_and_wait();
-}
-
-void db_copy_mgr_t::finish_line()
-{
-    assert(m_current);
-
-    auto &buf = m_current->buffer;
-    assert(!buf.empty());
-
-    // Expect that a column has been written last which ended in a '\t'.
-    // Replace it with the row delimiter '\n'.
-    auto sz = buf.size();
-    assert(buf[sz - 1] == '\t');
-    buf[sz - 1] = '\n';
-
-    if (sz > db_cmd_copy_t::Max_buf_size - 100) {
-        m_processor->add_buffer(std::move(m_current));
     }
 }

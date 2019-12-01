@@ -6,7 +6,7 @@
 
 #include <osmium/memory/buffer.hpp>
 
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 #include "gazetteer-style.hpp"
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
@@ -124,7 +124,7 @@ private:
         }
     }
 
-    db_copy_mgr_t m_copy;
+    db_copy_mgr_t<db_deleter_by_id_t> m_copy;
     std::unique_ptr<pg_conn_t> m_conn;
     gazetteer_style_t m_style;
 

@@ -8,7 +8,7 @@
 
 #include <osmium/osm/metadata_options.hpp>
 
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 
 class gazetteer_style_t
 {
@@ -57,10 +57,12 @@ class gazetteer_style_t
     using flag_list_t = std::vector<string_with_flag_t>;
 
 public:
+    using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
+
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
     bool copy_out(osmium::OSMObject const &o, std::string const &geom,
-                  db_copy_mgr_t &buffer);
+                  copy_mgr_t &buffer);
     bool has_place(std::string const &cls) const;
 
     bool has_data() const { return !m_main.empty(); }
@@ -73,7 +75,7 @@ private:
     flag_t find_flag(char const *k, char const *v) const;
 
     bool copy_out_maintag(pmaintag_t const &tag, osmium::OSMObject const &o,
-                          std::string const &geom, db_copy_mgr_t &buffer);
+                          std::string const &geom, copy_mgr_t &buffer);
     void clear();
 
     // Style data.
