@@ -64,24 +64,20 @@ void gazetteer_style_t::clear()
 
 std::string gazetteer_style_t::class_list() const
 {
-    std::string l;
+    fmt::memory_buffer buf;
 
     for (auto const &m : m_main) {
-        bool do_include = true;
-        if (std::get<2>(m) & SF_MAIN_NAMED) {
-            do_include = !m_names.empty();
-        }
         // XXX should handle SF_MAIN_NAMED_KEY as well
-
-        if (do_include) {
-            l += "'{}',"_format(std::get<0>(m));
+        if (!(std::get<2>(m) & SF_MAIN_NAMED) || !m_names.empty()) {
+            fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
         }
     }
 
-    if (!l.empty())
-        l.resize(l.size() - 1);
+    if (buf.size() > 0) {
+        buf.resize(buf.size() - 1);
+    }
 
-    return l;
+    return fmt::to_string(buf);
 }
 
 void gazetteer_style_t::load_style(std::string const &filename)

@@ -121,16 +121,21 @@ void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 void db_deleter_by_id_t::delete_rows(std::string const &table,
                                      std::string const &column, pg_conn_t *conn)
 {
-    std::string sql = "DELETE FROM {} WHERE {} IN ("_format(table, column);
-    sql.reserve(m_deletables.size() * 15 + sql.size());
+    fmt::memory_buffer sql;
+    // Each deletable contributes an OSM ID and a comma. The highest node ID
+    // currently has 10 digits, so 15 characters should do for a couple of years.
+    // Add 50 characters for the SQL statement itself.
+    sql.reserve(m_deletables.size() * 15 + 50);
+
+    fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
+                   column);
 
     for (auto id : m_deletables) {
-        sql += fmt::to_string(id);
-        sql += ',';
+        format_to(sql, FMT_STRING("{},"), id);
     }
     sql[sql.size() - 1] = ')';
 
-    conn->exec(sql);
+    conn->exec(fmt::to_string(sql));
 }
 
 void db_copy_thread_t::start_copy(
