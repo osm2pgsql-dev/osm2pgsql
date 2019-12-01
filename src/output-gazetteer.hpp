@@ -106,16 +106,16 @@ private:
     };
 
     /// Delete all places that are not covered by the current style results.
-    void delete_unused_classes(char const *osm_type, osmid_t osm_id);
+    void delete_unused_classes(char osm_type, osmid_t osm_id);
     int process_node(osmium::Node const &node);
     int process_way(osmium::Way *way);
     int process_relation(osmium::Relation const &rel);
     void connect();
 
-    void delete_unused_full(char const *osm_type, osmid_t osm_id)
+    void delete_unused_full(char osm_type, osmid_t osm_id)
     {
         if (m_options.append) {
-            m_copy.delete_object(osm_type[0], osm_id);
+            m_copy.delete_object(osm_type, osm_id);
         }
     }
 

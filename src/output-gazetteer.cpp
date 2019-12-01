@@ -16,8 +16,7 @@
 static auto place_table =
     std::make_shared<db_target_descr_t>("place", "place_id");
 
-void output_gazetteer_t::delete_unused_classes(char const *osm_type,
-                                               osmid_t osm_id)
+void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
     if (!m_options.append) {
         return;
@@ -25,10 +24,10 @@ void output_gazetteer_t::delete_unused_classes(char const *osm_type,
 
     if (m_style.has_data()) {
         std::string cls = m_style.class_list();
-        m_copy.delete_object(osm_type[0], osm_id, cls);
+        m_copy.delete_object(osm_type, osm_id, cls);
     } else {
         /* unconditional delete of all places */
-        m_copy.delete_object(osm_type[0], osm_id);
+        m_copy.delete_object(osm_type, osm_id);
     }
 }
 
@@ -84,13 +83,13 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 {
     m_copy.new_line(place_table);
     m_style.process_tags(node);
-    delete_unused_classes("N", node.id());
+    delete_unused_classes('N', node.id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
         auto wkb = m_builder.get_wkb_node(node.location());
         if (!m_style.copy_out(node, wkb, m_copy)) {
-            delete_unused_full("N", node.id());
+            delete_unused_full('N', node.id());
         }
     }
 
@@ -101,7 +100,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 {
     m_copy.new_line(place_table);
     m_style.process_tags(*way);
-    delete_unused_classes("W", way->id());
+    delete_unused_classes('W', way->id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
@@ -116,7 +115,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
         if (geom.empty()) {
             auto wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
             if (wkbs.empty()) {
-                delete_unused_full("W", way->id());
+                delete_unused_full('W', way->id());
                 return 0;
             }
 
@@ -124,7 +123,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
         }
 
         if (!m_style.copy_out(*way, geom, m_copy)) {
-            delete_unused_full("W", way->id());
+            delete_unused_full('W', way->id());
         }
     }
 
@@ -138,7 +137,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     auto const &tags = rel.tags();
     char const *type = tags["type"];
     if (!type) {
-        delete_unused_full("R", rel.id());
+        delete_unused_full('R', rel.id());
         return 0;
     }
 
@@ -147,12 +146,12 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     if (strcmp(type, "associatedStreet") == 0 ||
         !(strcmp(type, "boundary") == 0 || strcmp(type, "multipolygon") == 0 ||
           is_waterway)) {
-        delete_unused_full("R", rel.id());
+        delete_unused_full('R', rel.id());
         return 0;
     }
 
     m_style.process_tags(rel);
-    delete_unused_classes("R", rel.id());
+    delete_unused_classes('R', rel.id());
 
     /* Are we interested in this item? */
     if (!m_style.has_data()) {
@@ -164,7 +163,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     auto num_ways = m_mid->rel_way_members_get(rel, nullptr, osmium_buffer);
 
     if (num_ways == 0) {
-        delete_unused_full("R", rel.id());
+        delete_unused_full('R', rel.id());
         return 0;
     }
 
@@ -177,7 +176,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
     if (geoms.empty() || !m_style.copy_out(rel, geoms[0], m_copy)) {
-        delete_unused_full("R", rel.id());
+        delete_unused_full('R', rel.id());
     }
 
     return 0;
