@@ -19,6 +19,10 @@ static auto place_table =
 void output_gazetteer_t::delete_unused_classes(char const *osm_type,
                                                osmid_t osm_id)
 {
+    if (!m_options.append) {
+        return;
+    }
+
     if (m_style.has_data()) {
         std::string cls = m_style.class_list();
         m_copy.delete_object(osm_type[0], osm_id, cls);
@@ -80,10 +84,7 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 {
     m_copy.new_line(place_table);
     m_style.process_tags(node);
-
-    if (m_options.append) {
-        delete_unused_classes("N", node.id());
-    }
+    delete_unused_classes("N", node.id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
@@ -100,10 +101,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 {
     m_copy.new_line(place_table);
     m_style.process_tags(*way);
-
-    if (m_options.append) {
-        delete_unused_classes("W", way->id());
-    }
+    delete_unused_classes("W", way->id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
@@ -154,10 +152,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     }
 
     m_style.process_tags(rel);
-
-    if (m_options.append) {
-        delete_unused_classes("R", rel.id());
-    }
+    delete_unused_classes("R", rel.id());
 
     /* Are we interested in this item? */
     if (!m_style.has_data()) {
