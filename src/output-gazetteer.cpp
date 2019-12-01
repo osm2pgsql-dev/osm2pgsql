@@ -13,48 +13,19 @@
 #include <iostream>
 #include <memory>
 
+static auto place_table =
+    std::make_shared<db_target_descr_t>("place", "place_id");
+
 void output_gazetteer_t::delete_unused_classes(char const *osm_type,
                                                osmid_t osm_id)
 {
-    if (!m_style.has_data()) {
+    if (m_style.has_data()) {
+        std::string cls = m_style.class_list();
+        m_copy.delete_object(osm_type[0], osm_id, cls);
+    } else {
         /* unconditional delete of all places */
-        delete_place(osm_type, osm_id);
-        return;
+        m_copy.delete_object(osm_type[0], osm_id);
     }
-
-    char id[64];
-    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
-    char const *params[2] = {osm_type, id};
-
-    auto res = m_conn->exec_prepared("get_classes", 2, params);
-    int sz = PQntuples(res.get());
-
-    std::string clslist;
-    for (int i = 0; i < sz; i++) {
-        std::string cls(PQgetvalue(res.get(), i, 0));
-        if (!m_style.has_place(cls)) {
-            clslist += '\'';
-            clslist += cls;
-            clslist += "\',";
-        }
-    }
-
-    if (!clslist.empty()) {
-        clslist[clslist.size() - 1] = '\0';
-        // Delete places where classes have disappeared for this object.
-        m_conn->exec("DELETE FROM place WHERE osm_type = '{}'"
-                     " AND osm_id = {} and class = any(ARRAY[{}])"_format(
-                         osm_type, osm_id, clslist));
-    }
-}
-
-void output_gazetteer_t::delete_place(char const *osm_type, osmid_t osm_id)
-{
-    char id[64];
-    snprintf(id, sizeof(id), "%" PRIdOSMID, osm_id);
-    char const *params[2] = {osm_type, id};
-
-    m_conn->exec_prepared("delete_place", 2, params, PGRES_COMMAND_OK);
 }
 
 void output_gazetteer_t::connect()
@@ -100,24 +71,14 @@ int output_gazetteer_t::start()
         m_conn->exec(index_sql);
     }
 
-    prepare_query_conn();
-
     return 0;
-}
-
-void output_gazetteer_t::prepare_query_conn() const
-{
-    m_conn->exec("PREPARE get_classes (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-                 "AS SELECT class FROM place "
-                 "WHERE osm_type = $1 and osm_id = $2");
-    m_conn->exec("PREPARE delete_place (CHAR(1), " POSTGRES_OSMID_TYPE ") "
-                 "AS DELETE FROM place WHERE osm_type = $1 and osm_id = $2");
 }
 
 void output_gazetteer_t::commit() { m_copy.sync(); }
 
 int output_gazetteer_t::process_node(osmium::Node const &node)
 {
+    m_copy.new_line(place_table);
     m_style.process_tags(node);
 
     if (m_options.append) {
@@ -137,6 +98,7 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 
 int output_gazetteer_t::process_way(osmium::Way *way)
 {
+    m_copy.new_line(place_table);
     m_style.process_tags(*way);
 
     if (m_options.append) {
@@ -156,6 +118,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
         if (geom.empty()) {
             auto wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
             if (wkbs.empty()) {
+                delete_unused_full("W", way->id());
                 return 0;
             }
 
@@ -172,6 +135,8 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 
 int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
+    m_copy.new_line(place_table);
+
     auto const &tags = rel.tags();
     char const *type = tags["type"];
     if (!type) {
@@ -216,10 +181,8 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      ? m_builder.get_wkb_multiline(osmium_buffer, 0.0)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
-    if (!geoms.empty()) {
-        if (!m_style.copy_out(rel, geoms[0], m_copy)) {
-            delete_unused_full("R", rel.id());
-        }
+    if (geoms.empty() || !m_style.copy_out(rel, geoms[0], m_copy)) {
+        delete_unused_full("R", rel.id());
     }
 
     return 0;

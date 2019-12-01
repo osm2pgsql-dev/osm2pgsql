@@ -396,7 +396,7 @@ void middle_pgsql_t::nodes_delete(osmid_t osm_id)
         persistent_cache->set(osm_id, osmium::Location());
     } else {
         m_db_copy.new_line(tables[NODE_TABLE].m_copy_target);
-        m_db_copy.delete_id(osm_id);
+        m_db_copy.delete_object(osm_id);
     }
 }
 
@@ -531,7 +531,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 void middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
     m_db_copy.new_line(tables[WAY_TABLE].m_copy_target);
-    m_db_copy.delete_id(osm_id);
+    m_db_copy.delete_object(osm_id);
 }
 
 void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
@@ -636,7 +636,7 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     }
 
     m_db_copy.new_line(tables[REL_TABLE].m_copy_target);
-    m_db_copy.delete_id(osm_id);
+    m_db_copy.delete_object(osm_id);
 }
 
 void middle_pgsql_t::iterate_relations(pending_processor &pf)

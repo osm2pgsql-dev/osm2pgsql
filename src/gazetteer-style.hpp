@@ -10,6 +10,49 @@
 
 #include "db-copy-mgr.hpp"
 
+/**
+ * Deleter which removes objects by osm_type, osm_id and class
+ * from a gazetteer place table.
+ *
+ * It deletes all object that have a given type and id and where the
+ * (comma-separated) list of classes does _not_ match.
+ */
+class db_deleter_place_t
+{
+    struct item_t
+    {
+        std::string classes;
+        osmid_t osm_id;
+        char osm_type;
+
+        item_t(char t, osmid_t i, std::string const &c)
+        : classes(c), osm_id(i), osm_type(t)
+        {}
+
+        item_t(char t, osmid_t i) : osm_id(i), osm_type(t) {}
+    };
+
+public:
+    bool has_data() const noexcept { return !m_deletables.empty(); }
+
+    void add(char osm_type, osmid_t osm_id, std::string const &classes)
+    {
+        m_deletables.emplace_back(osm_type, osm_id, classes);
+    }
+
+    void add(char osm_type, osmid_t osm_id)
+    {
+        m_deletables.emplace_back(osm_type, osm_id);
+    }
+
+    void delete_rows(std::string const &table, std::string const &column,
+                     pg_conn_t *conn);
+
+private:
+    /// Vector with object to delete before copying
+    std::vector<item_t> m_deletables;
+};
+
 class gazetteer_style_t
 {
     using flag_t = uint16_t;
@@ -57,13 +100,13 @@ class gazetteer_style_t
     using flag_list_t = std::vector<string_with_flag_t>;
 
 public:
-    using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
+    using copy_mgr_t = db_copy_mgr_t<db_deleter_place_t>;
 
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
     bool copy_out(osmium::OSMObject const &o, std::string const &geom,
                   copy_mgr_t &buffer);
-    bool has_place(std::string const &cls) const;
+    std::string class_list() const;
 
     bool has_data() const { return !m_main.empty(); }
 

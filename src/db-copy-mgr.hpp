@@ -250,12 +250,13 @@ public:
      * Mark an OSM object for deletion in the current table.
      *
      * The object is guaranteed to be deleted before any lines
-     * following the delete_id() are inserted.
+     * following the delete_object() are inserted.
      */
-    void delete_id(osmid_t osm_id)
+    template <typename... ARGS>
+    void delete_object(ARGS &&... args)
     {
         assert(m_current);
-        m_current->add_deletable(osm_id);
+        m_current->add_deletable(std::forward<ARGS>(args)...);
     }
 
     /**
