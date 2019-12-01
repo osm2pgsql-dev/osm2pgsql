@@ -70,8 +70,8 @@ TEST_CASE("db_copy_thread_t")
 
         SECTION("simple delete of existing rows")
         {
-            cmd->deletables.push_back(223);
-            cmd->deletables.push_back(42);
+            cmd->deleter.add(223);
+            cmd->deleter.add(42);
 
             t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
             t.sync_and_wait();
@@ -82,7 +82,7 @@ TEST_CASE("db_copy_thread_t")
 
         SECTION("delete one and add another")
         {
-            cmd->deletables.push_back(133);
+            cmd->deleter.add(133);
             cmd->buffer += "134\n";
 
             t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
@@ -94,7 +94,7 @@ TEST_CASE("db_copy_thread_t")
 
         SECTION("delete one and add the same")
         {
-            cmd->deletables.push_back(133);
+            cmd->deleter.add(133);
             cmd->buffer += "133\n";
 
             t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
@@ -126,7 +126,7 @@ TEST_CASE("db_copy_thread_t")
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
 
         cmd = std::unique_ptr<db_cmd_copy_t>(new db_cmd_copy_t(table));
-        cmd->deletables.push_back(542);
+        cmd->deleter.add(542);
         cmd->buffer += "12\n";
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
 

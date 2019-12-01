@@ -41,6 +41,24 @@ struct db_target_descr_t
 };
 
 /**
+ * Deleter which removes objects by id from the database.
+ */
+class db_deleter_by_id_t
+{
+public:
+    bool has_data() const noexcept { return !m_deletables.empty(); }
+
+    void add(osmid_t osm_id) { m_deletables.push_back(osm_id); }
+
+    void delete_rows(std::string const &table, std::string const &column,
+                     pg_conn_t *conn);
+
+private:
+    /// Vector with object to delete before copying
+    std::vector<osmid_t> m_deletables;
+};
+
+/**
  * A command for the copy thread to execute.
  */
 class db_cmd_t
@@ -82,10 +100,10 @@ struct db_cmd_copy_t : public db_cmd_t
     };
     /// Name of the target table for the copy operation
     std::shared_ptr<db_target_descr_t> target;
-    /// Vector with object to delete before copying
-    std::vector<osmid_t> deletables;
     /// actual copy buffer
     std::string buffer;
+    /// Deleter class for old items
+    db_deleter_by_id_t deleter;
 
     explicit db_cmd_copy_t(std::shared_ptr<db_target_descr_t> const &t)
     : db_cmd_t(db_cmd_t::Cmd_copy), target(t)
