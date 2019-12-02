@@ -5,9 +5,11 @@
 #include <catch.hpp>
 
 #include "common-pg.hpp"
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 
 static pg::tempdb_t db;
+
+using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
 
 static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 {
@@ -24,7 +26,7 @@ static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
 }
 
 template <typename... ARGS>
-void add_row(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
+void add_row(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
              ARGS &&... args)
 {
     mgr.new_line(t);
@@ -35,7 +37,7 @@ void add_row(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t,
 }
 
 template <typename T>
-void add_array(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
+void add_array(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
                std::vector<T> const &values)
 {
     mgr.new_line(t);
@@ -51,7 +53,7 @@ void add_array(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
 }
 
 static void
-add_hash(db_copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
+add_hash(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
          std::vector<std::pair<std::string, std::string>> const &values)
 {
     mgr.new_line(t);
@@ -77,9 +79,9 @@ static void check_row(std::vector<std::string> const &row)
     }
 }
 
-TEST_CASE("db_copy_mgr_t")
+TEST_CASE("copy_mgr_t")
 {
-    db_copy_mgr_t mgr(std::make_shared<db_copy_thread_t>(db.conninfo()));
+    copy_mgr_t mgr(std::make_shared<db_copy_thread_t>(db.conninfo()));
 
     SECTION("Insert null")
     {

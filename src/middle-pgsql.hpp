@@ -11,7 +11,7 @@
 
 #include <memory>
 
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 #include "id-tracker.hpp"
 #include "middle.hpp"
 #include "node-persistent-cache.hpp"
@@ -128,7 +128,7 @@ private:
     std::unique_ptr<pg_conn_t> m_query_conn;
     // middle keeps its own thread for writing to the database.
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
-    db_copy_mgr_t m_db_copy;
+    db_copy_mgr_t<db_deleter_by_id_t> m_db_copy;
 };
 
 #endif // OSM2PGSQL_MIDDLE_PGSQL_HPP

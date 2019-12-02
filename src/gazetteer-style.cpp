@@ -4,6 +4,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <osmium/osm.hpp>
 
+#include "format.hpp"
 #include "gazetteer-style.hpp"
 #include "pgsql.hpp"
 #include "wkb.hpp"
@@ -34,8 +35,21 @@ domain_names(char const *cls, osmium::TagList const &tags)
 
 namespace pt = boost::property_tree;
 
-static auto place_table =
-    std::make_shared<db_target_descr_t>("place", "place_id");
+void db_deleter_place_t::delete_rows(std::string const &table,
+                                     std::string const &, pg_conn_t *conn)
+{
+    for (auto const &i : m_deletables) {
+        if (i.classes.empty()) {
+            conn->exec(
+                "DELETE FROM {} WHERE osm_type = '{}' AND osm_id = {}"_format(
+                    table, i.osm_type, i.osm_id));
+        } else {
+            conn->exec("DELETE FROM {} WHERE osm_type = '{}' AND osm_id = {}"
+                       "AND class NOT IN ({})"_format(table, i.osm_type,
+                                                      i.osm_id, i.classes));
+        }
+    }
+}
 
 void gazetteer_style_t::clear()
 {
@@ -48,20 +62,22 @@ void gazetteer_style_t::clear()
     m_is_named = false;
 }
 
-bool gazetteer_style_t::has_place(std::string const &cls) const
+std::string gazetteer_style_t::class_list() const
 {
-    return std::any_of(m_main.begin(), m_main.end(), [&](pmaintag_t const &e) {
-        if (strcmp(std::get<0>(e), cls.c_str()) == 0) {
-            if (std::get<2>(e) & SF_MAIN_NAMED) {
-                return !m_names.empty();
-            }
-            // XXX should handle SF_MAIN_NAMED_KEY as well
+    fmt::memory_buffer buf;
 
-            return true;
+    for (auto const &m : m_main) {
+        // XXX should handle SF_MAIN_NAMED_KEY as well
+        if (!(std::get<2>(m) & SF_MAIN_NAMED) || !m_names.empty()) {
+            fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
         }
+    }
 
-        return false;
-    });
+    if (buf.size() > 0) {
+        buf.resize(buf.size() - 1);
+    }
+
+    return fmt::to_string(buf);
 }
 
 void gazetteer_style_t::load_style(std::string const &filename)
@@ -395,7 +411,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 }
 
 bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
-                                 std::string const &geom, db_copy_mgr_t &buffer)
+                                 std::string const &geom, copy_mgr_t &buffer)
 {
     bool any = false;
     for (auto const &main : m_main) {
@@ -421,7 +437,7 @@ bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
 bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
                                          osmium::OSMObject const &o,
                                          std::string const &geom,
-                                         db_copy_mgr_t &buffer)
+                                         copy_mgr_t &buffer)
 {
     std::vector<osmium::Tag const *> domain_name;
     if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
@@ -437,7 +453,6 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
         }
     }
 
-    buffer.new_line(place_table);
     // osm_id
     buffer.add_column(o.id());
     // osm_type

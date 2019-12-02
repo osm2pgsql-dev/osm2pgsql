@@ -1,7 +1,7 @@
 #ifndef OSM2PGSQL_TABLE_HPP
 #define OSM2PGSQL_TABLE_HPP
 
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 #include "osmtypes.hpp"
 #include "pgsql.hpp"
 #include "taginfo.hpp"
@@ -95,7 +95,7 @@ protected:
     hstores_t hstore_columns;
     std::string m_table_space;
 
-    db_copy_mgr_t m_copy;
+    db_copy_mgr_t<db_deleter_by_id_t> m_copy;
 };
 
 #endif // OSM2PGSQL_TABLE_HPP

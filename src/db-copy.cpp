@@ -4,6 +4,7 @@
 #include <thread>
 
 #include "db-copy.hpp"
+#include "format.hpp"
 #include "pgsql.hpp"
 
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
@@ -103,14 +104,12 @@ void db_copy_thread_t::disconnect() { m_conn.reset(); }
 
 void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
 {
-    if (!buffer->deletables.empty() ||
+    if (buffer->has_deletables() ||
         (m_inflight && !buffer->target->same_copy_target(*m_inflight.get()))) {
         finish_copy();
     }
 
-    if (!buffer->deletables.empty()) {
-        delete_rows(buffer);
-    }
+    buffer->delete_data(m_conn.get());
 
     if (!m_inflight) {
         start_copy(buffer->target);
@@ -119,24 +118,24 @@ void db_copy_thread_t::write_to_db(db_cmd_copy_t *buffer)
     m_conn->copy_data(buffer->buffer, buffer->target->name);
 }
 
-void db_copy_thread_t::delete_rows(db_cmd_copy_t *buffer)
+void db_deleter_by_id_t::delete_rows(std::string const &table,
+                                     std::string const &column, pg_conn_t *conn)
 {
-    assert(!m_inflight);
+    fmt::memory_buffer sql;
+    // Each deletable contributes an OSM ID and a comma. The highest node ID
+    // currently has 10 digits, so 15 characters should do for a couple of years.
+    // Add 50 characters for the SQL statement itself.
+    sql.reserve(m_deletables.size() * 15 + 50);
 
-    std::string sql = "DELETE FROM ";
-    sql.reserve(buffer->target->name.size() + buffer->deletables.size() * 15 +
-                30);
-    sql += buffer->target->name;
-    sql += " WHERE ";
-    sql += buffer->target->id;
-    sql += " IN (";
-    for (auto id : buffer->deletables) {
-        sql += std::to_string(id);
-        sql += ',';
+    fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
+                   column);
+
+    for (auto id : m_deletables) {
+        format_to(sql, FMT_STRING("{},"), id);
     }
     sql[sql.size() - 1] = ')';
 
-    m_conn->exec(sql);
+    conn->exec(fmt::to_string(sql));
 }
 
 void db_copy_thread_t::start_copy(
@@ -163,54 +162,5 @@ void db_copy_thread_t::finish_copy()
     if (m_inflight) {
         m_conn->end_copy(m_inflight->name);
         m_inflight.reset();
-    }
-}
-
-db_copy_mgr_t::db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
-: m_processor(processor)
-{}
-
-void db_copy_mgr_t::new_line(std::shared_ptr<db_target_descr_t> const &table)
-{
-    if (!m_current || !m_current->target->same_copy_target(*table.get())) {
-        if (m_current) {
-            m_processor->add_buffer(std::move(m_current));
-        }
-
-        m_current.reset(new db_cmd_copy_t(table));
-    }
-}
-
-void db_copy_mgr_t::delete_id(osmid_t osm_id)
-{
-    assert(m_current);
-    m_current->deletables.push_back(osm_id);
-}
-
-void db_copy_mgr_t::sync()
-{
-    // finish any ongoing copy operations
-    if (m_current) {
-        m_processor->add_buffer(std::move(m_current));
-    }
-
-    m_processor->sync_and_wait();
-}
-
-void db_copy_mgr_t::finish_line()
-{
-    assert(m_current);
-
-    auto &buf = m_current->buffer;
-    assert(!buf.empty());
-
-    // Expect that a column has been written last which ended in a '\t'.
-    // Replace it with the row delimiter '\n'.
-    auto sz = buf.size();
-    assert(buf[sz - 1] == '\t');
-    buf[sz - 1] = '\n';
-
-    if (sz > db_cmd_copy_t::Max_buf_size - 100) {
-        m_processor->add_buffer(std::move(m_current));
     }
 }

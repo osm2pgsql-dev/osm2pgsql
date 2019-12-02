@@ -6,7 +6,7 @@
 
 #include <osmium/memory/buffer.hpp>
 
-#include "db-copy.hpp"
+#include "db-copy-mgr.hpp"
 #include "gazetteer-style.hpp"
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
@@ -24,7 +24,6 @@ class output_gazetteer_t : public output_t
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         connect();
-        prepare_query_conn();
     }
 
 public:
@@ -84,19 +83,19 @@ public:
 
     int node_delete(osmid_t id) override
     {
-        delete_place("N", id);
+        m_copy.delete_object('N', id);
         return 0;
     }
 
     int way_delete(osmid_t id) override
     {
-        delete_place("W", id);
+        m_copy.delete_object('W', id);
         return 0;
     }
 
     int relation_delete(osmid_t id) override
     {
-        delete_place("R", id);
+        m_copy.delete_object('R', id);
         return 0;
     }
 
@@ -107,24 +106,20 @@ private:
     };
 
     /// Delete all places that are not covered by the current style results.
-    void delete_unused_classes(char const *osm_type, osmid_t osm_id);
-    /// Delete all places for the given OSM object.
-    void delete_place(char const *osm_type, osmid_t osm_id);
+    void delete_unused_classes(char osm_type, osmid_t osm_id);
     int process_node(osmium::Node const &node);
     int process_way(osmium::Way *way);
     int process_relation(osmium::Relation const &rel);
     void connect();
 
-    void prepare_query_conn() const;
-
-    void delete_unused_full(char const *osm_type, osmid_t osm_id)
+    void delete_unused_full(char osm_type, osmid_t osm_id)
     {
         if (m_options.append) {
-            delete_place(osm_type, osm_id);
+            m_copy.delete_object(osm_type, osm_id);
         }
     }
 
-    db_copy_mgr_t m_copy;
+    db_copy_mgr_t<db_deleter_place_t> m_copy;
     std::unique_ptr<pg_conn_t> m_conn;
     gazetteer_style_t m_style;
 

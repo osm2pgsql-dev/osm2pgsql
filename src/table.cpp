@@ -288,7 +288,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 void table_t::delete_row(const osmid_t id)
 {
     m_copy.new_line(m_target);
-    m_copy.delete_id(id);
+    m_copy.delete_object(id);
 }
 
 void table_t::write_row(osmid_t id, taglist_t const &tags,
