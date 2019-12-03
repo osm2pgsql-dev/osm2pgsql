@@ -3,10 +3,10 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("multi backend trivial polygon import")
 {
+    testing::db::import_t db;
+
     options_t options = testing::opt_t()
                             .slim()
                             .multi("test_output_multi_poly_trivial.style.json")
@@ -17,7 +17,7 @@ TEST_CASE("multi backend trivial polygon import")
         REQUIRE_NOTHROW(
             db.run_file(options, "test_output_multi_poly_trivial.osm"));
 
-        auto conn = db.db().connect();
+        auto const conn = db.db().connect();
         conn.require_has_table("test_poly");
 
         REQUIRE(2 == conn.get_count("test_poly"));
@@ -38,7 +38,7 @@ TEST_CASE("multi backend trivial polygon import")
         REQUIRE_NOTHROW(
             db.run_file(options, "test_output_multi_poly_trivial.osm"));
 
-        auto conn = db.db().connect();
+        auto const conn = db.db().connect();
         conn.require_has_table("test_poly");
 
         REQUIRE(1 == conn.get_count("test_poly"));

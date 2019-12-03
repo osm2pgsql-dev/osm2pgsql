@@ -3,14 +3,14 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("compute Z order")
 {
+    testing::db::import_t db;
+
     REQUIRE_NOTHROW(
         db.run_file(testing::opt_t().slim(), "test_output_pgsql_z_order.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     char const *expected[] = {"motorway", "trunk", "primary", "secondary",
                               "tertiary"};

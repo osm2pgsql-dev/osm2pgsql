@@ -3,8 +3,6 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 static void require_tables(pg::conn_t const &conn)
 {
     conn.require_has_table("osm2pgsql_test_point");
@@ -15,10 +13,12 @@ static void require_tables(pg::conn_t const &conn)
 
 TEST_CASE("liechtenstein slim regression simple")
 {
+    testing::db::import_t db;
+
     REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim(),
                                 "liechtenstein-2013-08-03.osm.pbf"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
     require_tables(conn);
 
     REQUIRE(1342 == conn.get_count("osm2pgsql_test_point"));
@@ -52,10 +52,12 @@ TEST_CASE("liechtenstein slim regression simple")
 
 TEST_CASE("liechtenstein slim latlon")
 {
+    testing::db::import_t db;
+
     REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().srs(PROJ_LATLONG),
                                 "liechtenstein-2013-08-03.osm.pbf"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
     require_tables(conn);
 
     REQUIRE(1342 == conn.get_count("osm2pgsql_test_point"));
@@ -89,10 +91,12 @@ TEST_CASE("liechtenstein slim latlon")
 
 TEST_CASE("way area slim flatnode")
 {
+    testing::db::import_t db;
+
     REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().flatnodes(),
                                 "test_output_pgsql_way_area.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
     require_tables(conn);
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));
@@ -103,10 +107,12 @@ TEST_CASE("way area slim flatnode")
 
 TEST_CASE("route relation slim flatnode")
 {
+    testing::db::import_t db;
+
     REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim().flatnodes(),
                                 "test_output_pgsql_route_rel.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
     require_tables(conn);
 
     REQUIRE(0 == conn.get_count("osm2pgsql_test_point"));

@@ -4,10 +4,10 @@
 
 #include "common-import.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("Projection setup")
 {
+    testing::db::import_t db;
+
     std::vector<char const *> option_params = {
         "osm2pgsql", "-S", OSM2PGSQLDATA_DIR "default.style",
         "--number-processes", "1"};
@@ -68,7 +68,7 @@ TEST_CASE("Projection setup")
 
     db.run_import(options, "n1 Tamenity=bar x0 y0");
 
-    auto conn = db.connect();
+    auto const conn = db.connect();
 
     CHECK(conn.require_scalar<std::string>(
               "select find_srid('public', 'planet_osm_roads', 'way')") == srid);

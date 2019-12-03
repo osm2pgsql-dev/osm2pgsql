@@ -3,18 +3,18 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("multi backend tag import")
 {
-    options_t options = testing::opt_t()
-                            .slim()
-                            .multi("test_output_multi_tags.json")
-                            .srs(PROJ_LATLONG);
+    testing::db::import_t db;
+
+    options_t const options = testing::opt_t()
+                                  .slim()
+                                  .multi("test_output_multi_tags.json")
+                                  .srs(PROJ_LATLONG);
 
     REQUIRE_NOTHROW(db.run_file(options, "test_output_multi_tags.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     // Check we got the right tables
     conn.require_has_table("test_points_1");

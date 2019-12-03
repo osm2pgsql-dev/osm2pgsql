@@ -4,8 +4,6 @@
 #include "db-copy.hpp"
 #include "gazetteer-style.hpp"
 
-static pg::tempdb_t db;
-
 static int table_count(pg::conn_t const &conn, std::string const &where = "")
 {
     return conn.require_scalar<int>("SELECT count(*) FROM test_copy_thread " +
@@ -14,6 +12,8 @@ static int table_count(pg::conn_t const &conn, std::string const &where = "")
 
 TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 {
+    pg::tempdb_t db;
+
     auto conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_thread");
     conn.exec("CREATE TABLE test_copy_thread (id int8)");
@@ -142,6 +142,8 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
 TEST_CASE("db_copy_thread_t with db_deleter_place_t")
 {
+    pg::tempdb_t db;
+
     auto conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_thread");
     conn.exec("CREATE TABLE test_copy_thread ("

@@ -7,11 +7,10 @@
 #include "common-pg.hpp"
 #include "db-copy-mgr.hpp"
 
-static pg::tempdb_t db;
-
 using copy_mgr_t = db_copy_mgr_t<db_deleter_by_id_t>;
 
-static std::shared_ptr<db_target_descr_t> setup_table(std::string const &cols)
+static std::shared_ptr<db_target_descr_t> setup_table(pg::tempdb_t &db,
+                                                      std::string const &cols)
 {
     auto conn = db.connect();
     conn.exec("DROP TABLE IF EXISTS test_copy_mgr");
@@ -69,10 +68,10 @@ add_hash(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
     mgr.sync();
 }
 
-static void check_row(std::vector<std::string> const &row)
+static void check_row(pg::tempdb_t &db, std::vector<std::string> const &row)
 {
-    auto conn = db.connect();
-    auto res = conn.require_row("SELECT * FROM test_copy_mgr");
+    auto const conn = db.connect();
+    auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
 
     for (unsigned i = 0; i < row.size(); ++i) {
         CHECK(res.get_value(0, (int)i) == row[i]);
@@ -81,11 +80,13 @@ static void check_row(std::vector<std::string> const &row)
 
 TEST_CASE("copy_mgr_t")
 {
+    pg::tempdb_t db;
+
     copy_mgr_t mgr(std::make_shared<db_copy_thread_t>(db.conninfo()));
 
     SECTION("Insert null")
     {
-        auto t = setup_table("big int8, t text");
+        auto const t = setup_table(db, "big int8, t text");
 
         mgr.new_line(t);
         mgr.add_column(0);
@@ -94,8 +95,8 @@ TEST_CASE("copy_mgr_t")
         mgr.finish_line();
         mgr.sync();
 
-        auto conn = db.connect();
-        auto res = conn.require_row("SELECT * FROM test_copy_mgr");
+        auto const conn = db.connect();
+        auto const res = conn.require_row("SELECT * FROM test_copy_mgr");
 
         CHECK(res.is_null(0, 1));
         CHECK(res.is_null(0, 2));
@@ -103,61 +104,61 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert numbers")
     {
-        auto t = setup_table("big int8, small smallint");
+        auto const t = setup_table(db, "big int8, small smallint");
 
         add_row(mgr, t, 34, 0xfff12345678ULL, -4457);
-        check_row({"34", "17588196497016", "-4457"});
+        check_row(db, {"34", "17588196497016", "-4457"});
     }
 
     SECTION("Insert strings")
     {
-        auto t = setup_table("s0 text, s1 varchar");
+        auto const t = setup_table(db, "s0 text, s1 varchar");
 
         SECTION("Simple strings")
         {
             add_row(mgr, t, -2, "foo", "l");
-            check_row({"-2", "foo", "l"});
+            check_row(db, {"-2", "foo", "l"});
         }
 
         SECTION("Strings with special characters")
         {
             add_row(mgr, t, -2, "va\tr", "meme\n");
-            check_row({"-2", "va\tr", "meme\n"});
+            check_row(db, {"-2", "va\tr", "meme\n"});
         }
 
         SECTION("Strings with more special characters")
         {
             add_row(mgr, t, -2, "\rrun", "K\\P");
-            check_row({"-2", "\rrun", "K\\P"});
+            check_row(db, {"-2", "\rrun", "K\\P"});
         }
 
         SECTION("Strings with space and quote")
         {
             add_row(mgr, t, 1, "with space", "name \"quoted\"");
-            check_row({"1", "with space", "name \"quoted\""});
+            check_row(db, {"1", "with space", "name \"quoted\""});
         }
     }
 
     SECTION("Insert int arrays")
     {
-        auto t = setup_table("a int[]");
+        auto const t = setup_table(db, "a int[]");
 
         add_array<int>(mgr, t, -9000, {45, -2, 0, 56});
-        check_row({"-9000", "{45,-2,0,56}"});
+        check_row(db, {"-9000", "{45,-2,0,56}"});
     }
 
     SECTION("Insert string arrays")
     {
-        auto t = setup_table("a text[]");
+        auto const t = setup_table(db, "a text[]");
 
         add_array<std::string>(mgr, t, 3,
                                {"foo", "", "with space", "with \"quote\"",
                                 "the\t", "line\nbreak", "rr\rrr", "s\\l"});
-        check_row({"3", "{foo,\"\",\"with space\",\"with "
-                        "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
-                        "\"rr\rrr\",\"s\\\\l\"}"});
+        check_row(db, {"3", "{foo,\"\",\"with space\",\"with "
+                            "\\\"quote\\\"\",\"the\t\",\"line\nbreak\","
+                            "\"rr\rrr\",\"s\\\\l\"}"});
 
-        auto c = db.connect();
+        auto const c = db.connect();
         CHECK(c.require_scalar<std::string>("SELECT a[4] from test_copy_mgr") ==
               "with \"quote\"");
         CHECK(c.require_scalar<std::string>("SELECT a[5] from test_copy_mgr") ==
@@ -172,7 +173,7 @@ TEST_CASE("copy_mgr_t")
 
     SECTION("Insert hashes")
     {
-        auto t = setup_table("h hstore");
+        auto const t = setup_table(db, "h hstore");
 
         std::vector<std::pair<std::string, std::string>> const values = {
             {"one", "two"},           {"key 1", "value 1"},
@@ -182,7 +183,7 @@ TEST_CASE("copy_mgr_t")
 
         add_hash(mgr, t, 42, values);
 
-        auto c = db.connect();
+        auto const c = db.connect();
 
         for (auto const &v : values) {
             auto const res = c.require_scalar<std::string>(

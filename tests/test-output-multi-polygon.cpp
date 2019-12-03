@@ -10,19 +10,19 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("parse point")
 {
-    options_t options = testing::opt_t().slim();
+    testing::db::import_t db;
 
-    auto processor = geometry_processor::create("polygon", &options);
+    options_t const options = testing::opt_t().slim();
+
+    auto const processor = geometry_processor::create("polygon", &options);
 
     db.run_file_multi_output(testing::opt_t().slim(), processor,
                              "foobar_buildings", osmium::item_type::way,
                              "building", "liechtenstein-2013-08-03.osm.pbf");
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
     conn.require_has_table("foobar_buildings");
 
     REQUIRE(3723 == conn.get_count("foobar_buildings"));

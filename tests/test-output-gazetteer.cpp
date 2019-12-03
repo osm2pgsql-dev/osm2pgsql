@@ -3,8 +3,6 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 static options_t options() { return testing::opt_t().gazetteer(); }
 
 static pg::result_t require_place(pg::conn_t const &conn, char type, osmid_t id,
@@ -27,6 +25,8 @@ static void require_place_not(pg::conn_t const &conn, char type, osmid_t id,
 
 TEST_CASE("output_gazetteer_t import")
 {
+    testing::db::import_t db;
+
     SECTION("Main tags")
     {
         REQUIRE_NOTHROW(db.run_import(

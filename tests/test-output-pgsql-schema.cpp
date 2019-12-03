@@ -3,10 +3,10 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("schema separation")
 {
+    testing::db::import_t db;
+
     {
         auto conn = db.db().connect();
         conn.exec("CREATE SCHEMA myschema;"
@@ -19,7 +19,7 @@ TEST_CASE("schema separation")
     REQUIRE_NOTHROW(
         db.run_file(testing::opt_t().slim(), "test_output_pgsql_z_order.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     conn.require_has_table("public.osm2pgsql_test_point");
     conn.require_has_table("public.osm2pgsql_test_line");

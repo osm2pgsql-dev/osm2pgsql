@@ -5,8 +5,6 @@
 
 #include <string>
 
-static testing::db::import_t db;
-
 static std::string population(osmid_t id)
 {
     return "SELECT population FROM osm2pgsql_test_point WHERE osm_id = " +
@@ -15,12 +13,14 @@ static std::string population(osmid_t id)
 
 TEST_CASE("int4 conversion")
 {
+    testing::db::import_t db;
+
     options_t const options =
         testing::opt_t().slim().style("test_output_pgsql_int4.style");
 
     REQUIRE_NOTHROW(db.run_file(options, "test_output_pgsql_int4.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     // First three nodes have population values that are out of range for int4 columns
     conn.assert_null(population(1));

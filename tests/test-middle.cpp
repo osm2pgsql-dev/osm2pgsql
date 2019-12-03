@@ -9,8 +9,6 @@
 #include "common-options.hpp"
 #include "common-pg.hpp"
 
-static pg::tempdb_t db;
-
 namespace {
 
 /// Simple osmium buffer to store object with some convenience.
@@ -93,6 +91,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_dense_cache, options_ram_optimized,
                    options_ram_flatnode)
 {
+    pg::tempdb_t db;
+
     options_t options = TestType::options(db);
 
     auto mid = options.slim

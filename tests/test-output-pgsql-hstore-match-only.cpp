@@ -3,10 +3,10 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("hstore match only import")
 {
+    testing::db::import_t db;
+
     options_t options =
         testing::opt_t().slim().style("hstore-match-only.style");
     options.hstore_match_only = true;
@@ -14,7 +14,7 @@ TEST_CASE("hstore match only import")
 
     REQUIRE_NOTHROW(db.run_file(options, "hstore-match-only.osm"));
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     // tables should not contain any tag columns
     REQUIRE(4 == conn.get_count("information_schema.columns",

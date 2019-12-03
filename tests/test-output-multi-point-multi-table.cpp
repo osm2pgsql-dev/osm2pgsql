@@ -10,10 +10,10 @@
 #include "common-import.hpp"
 #include "common-options.hpp"
 
-static testing::db::import_t db;
-
 TEST_CASE("parse point")
 {
+    testing::db::import_t db;
+
     options_t options = testing::opt_t().slim();
     options.database_options = db.db().db_options();
 
@@ -35,9 +35,9 @@ TEST_CASE("parse point")
     for (int i = 0; i < 10; ++i) {
         std::string const name{"foobar_{}"_format(i)};
 
-        auto processor = geometry_processor::create("point", &options);
+        auto const processor = geometry_processor::create("point", &options);
 
-        auto out_test = std::make_shared<output_multi_t>(
+        auto const out_test = std::make_shared<output_multi_t>(
             name, processor, columns, midq, options,
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));
@@ -48,7 +48,7 @@ TEST_CASE("parse point")
     testing::parse_file(options, mid_pgsql, outputs,
                         "liechtenstein-2013-08-03.osm.pbf");
 
-    auto conn = db.db().connect();
+    auto const conn = db.db().connect();
 
     for (int i = 0; i < 10; ++i) {
         std::string const buf{"foobar_{}"_format(i)};
