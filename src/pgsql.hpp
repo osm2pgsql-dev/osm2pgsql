@@ -26,9 +26,9 @@ public:
     pg_conn_t(std::string const &connection);
 
     pg_conn_t(pg_conn_t const &) = delete;
-    pg_conn_t &operator=(const pg_conn_t &) = delete;
+    pg_conn_t &operator=(pg_conn_t const &) = delete;
 
-    ~pg_conn_t();
+    ~pg_conn_t() noexcept;
 
     pg_result_t exec_prepared(char const *stmt, int num_params,
                               const char *const *param_values,

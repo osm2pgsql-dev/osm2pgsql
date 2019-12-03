@@ -10,11 +10,12 @@ pg_conn_t::pg_conn_t(std::string const &connection)
     if (PQstatus(m_conn) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n",
                 PQerrorMessage(m_conn));
+        PQfinish(m_conn);
         throw std::runtime_error{"Connecting to database."};
     }
 }
 
-pg_conn_t::~pg_conn_t()
+pg_conn_t::~pg_conn_t() noexcept
 {
     if (m_conn) {
         PQfinish(m_conn);
