@@ -3,8 +3,8 @@
 
 /* Helper functions for PostgreSQL access */
 
-#include <cstring>
 #include <libpq-fe.h>
+
 #include <memory>
 #include <string>
 
@@ -15,6 +15,13 @@ struct pg_result_deleter_t
 
 using pg_result_t = std::unique_ptr<PGresult, pg_result_deleter_t>;
 
+struct pg_conn_deleter_t
+{
+    void operator()(PGconn *p) const noexcept { PQfinish(p); }
+};
+
+using pg_conn_wrapper_t = std::unique_ptr<PGconn, pg_conn_deleter_t>;
+
 /**
  * Simple postgres connection.
  *
@@ -24,11 +31,6 @@ class pg_conn_t
 {
 public:
     pg_conn_t(std::string const &connection);
-
-    pg_conn_t(pg_conn_t const &) = delete;
-    pg_conn_t &operator=(const pg_conn_t &) = delete;
-
-    ~pg_conn_t();
 
     pg_result_t exec_prepared(char const *stmt, int num_params,
                               const char *const *param_values,
@@ -45,8 +47,10 @@ public:
 
     void exec(std::string const &sql) const;
 
+    char const *error_msg() const noexcept;
+
 private:
-    PGconn *m_conn;
+    pg_conn_wrapper_t m_conn;
 };
 
 #endif // OSM2PGSQL_PGSQL_HPP

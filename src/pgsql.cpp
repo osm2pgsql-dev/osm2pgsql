@@ -7,18 +7,15 @@
 pg_conn_t::pg_conn_t(std::string const &connection)
 : m_conn(PQconnectdb(connection.c_str()))
 {
-    if (PQstatus(m_conn) != CONNECTION_OK) {
-        fprintf(stderr, "Connection to database failed: %s\n",
-                PQerrorMessage(m_conn));
+    if (PQstatus(m_conn.get()) != CONNECTION_OK) {
+        fprintf(stderr, "Connection to database failed: %s\n", error_msg());
         throw std::runtime_error{"Connecting to database."};
     }
 }
 
-pg_conn_t::~pg_conn_t()
+char const *pg_conn_t::error_msg() const noexcept
 {
-    if (m_conn) {
-        PQfinish(m_conn);
-    }
+    return PQerrorMessage(m_conn.get());
 }
 
 pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
@@ -26,10 +23,10 @@ pg_result_t pg_conn_t::query(ExecStatusType expect, char const *sql) const
 #ifdef DEBUG_PGSQL
     fprintf(stderr, "Executing: %s\n", sql);
 #endif
-    pg_result_t res{PQexec(m_conn, sql)};
+    pg_result_t res{PQexec(m_conn.get(), sql)};
     if (PQresultStatus(res.get()) != expect) {
-        fprintf(stderr, "SQL command failed: %s\nFull query: %s\n",
-                PQerrorMessage(m_conn), sql);
+        fprintf(stderr, "SQL command failed: %s\nFull query: %s\n", error_msg(),
+                sql);
         throw std::runtime_error{"Executing SQL"};
     }
     return res;
@@ -54,7 +51,7 @@ void pg_conn_t::copy_data(std::string const &sql,
 #ifdef DEBUG_PGSQL
     fprintf(stderr, "%s>>> %s\n", context.c_str(), sql.c_str());
 #endif
-    int const r = PQputCopyData(m_conn, sql.c_str(), (int)sql.size());
+    int const r = PQputCopyData(m_conn.get(), sql.c_str(), (int)sql.size());
 
     if (r == 1) {
         return; // success
@@ -66,7 +63,7 @@ void pg_conn_t::copy_data(std::string const &sql,
         break;
     case -1: // error occurred
         fprintf(stderr, "%s - error on COPY: %s\n", context.c_str(),
-                PQerrorMessage(m_conn));
+                error_msg());
         break;
     }
 
@@ -83,16 +80,16 @@ void pg_conn_t::copy_data(std::string const &sql,
 
 void pg_conn_t::end_copy(std::string const &context) const
 {
-    if (PQputCopyEnd(m_conn, nullptr) != 1) {
+    if (PQputCopyEnd(m_conn.get(), nullptr) != 1) {
         fprintf(stderr, "COPY END for %s failed: %s\n", context.c_str(),
-                PQerrorMessage(m_conn));
+                error_msg());
         throw std::runtime_error{"Ending COPY mode"};
     }
 
-    pg_result_t const res{PQgetResult(m_conn)};
+    pg_result_t const res{PQgetResult(m_conn.get())};
     if (PQresultStatus(res.get()) != PGRES_COMMAND_OK) {
         fprintf(stderr, "result COPY END for %s failed: %s\n", context.c_str(),
-                PQerrorMessage(m_conn));
+                error_msg());
         throw std::runtime_error{"Ending COPY mode"};
     }
 }
@@ -105,11 +102,11 @@ pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
     fprintf(stderr, "ExecPrepared: %s\n", stmt);
 #endif
     //run the prepared statement
-    pg_result_t res{PQexecPrepared(m_conn, stmt, num_params, param_values,
+    pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
     if (PQresultStatus(res.get()) != expect) {
         fprintf(stderr, "Prepared statement failed with: %s (%d)\n",
-                PQerrorMessage(m_conn), PQresultStatus(res.get()));
+                error_msg(), PQresultStatus(res.get()));
         fprintf(stderr, "Query: %s\n", stmt);
         if (num_params) {
             fprintf(stderr, "with arguments:\n");
