@@ -187,13 +187,11 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                 m_target->name.c_str());
 
         if (srid == "4326") {
-            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
-               Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
+            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped. */
             m_sql_conn->exec(
                 "CREATE TABLE {0}_tmp {1} AS\n"
                 "  SELECT * FROM {0}\n"
-                "    ORDER BY ST_GeoHash(way,10)\n"
-                "    COLLATE \"C\""_format(m_target->name, m_table_space));
+                "    ORDER BY way"_format(m_target->name, m_table_space));
         } else {
             /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
                and these need to be filtered. Also, a transformation is needed for geohashing.
@@ -204,9 +202,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                 "CREATE TABLE {0}_tmp {1} AS\n"
                 "  SELECT * FROM {0}\n"
                 "    WHERE ST_IsValid(way)\n"
-                "    ORDER BY "
-                "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
-                "    COLLATE \"C\""_format(m_target->name, m_table_space));
+                "    ORDER BY way"_format(m_target->name, m_table_space));
             m_sql_conn->exec("RESET client_min_messages");
         }
 
