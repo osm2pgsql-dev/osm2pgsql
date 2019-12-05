@@ -11,7 +11,6 @@
 #include "osmium-builder.hpp"
 #include "osmtypes.hpp"
 #include "output.hpp"
-#include "pgsql.hpp"
 #include "util.hpp"
 
 class output_gazetteer_t : public output_t
@@ -22,9 +21,7 @@ class output_gazetteer_t : public output_t
     : output_t(cloned_mid, other->m_options), m_copy(copy_thread),
       m_builder(other->m_options.projection, true),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
-    {
-        connect();
-    }
+    {}
 
 public:
     output_gazetteer_t(std::shared_ptr<middle_query_t> const &mid,
@@ -110,7 +107,6 @@ private:
     int process_node(osmium::Node const &node);
     int process_way(osmium::Way *way);
     int process_relation(osmium::Relation const &rel);
-    void connect();
 
     void delete_unused_full(char osm_type, osmid_t osm_id)
     {
@@ -120,7 +116,6 @@ private:
     }
 
     db_copy_mgr_t<db_deleter_place_t> m_copy;
-    std::unique_ptr<pg_conn_t> m_conn;
     gazetteer_style_t m_style;
 
     geom::osmium_builder_t m_builder;

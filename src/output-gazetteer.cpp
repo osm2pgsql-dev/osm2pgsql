@@ -31,21 +31,16 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
     }
 }
 
-void output_gazetteer_t::connect()
-{
-    m_conn.reset(new pg_conn_t(m_options.database_options.conninfo()));
-}
-
 int output_gazetteer_t::start()
 {
     int srid = m_options.projection->target_srs();
 
-    connect();
-
     /* (Re)create the table unless we are appending */
     if (!m_options.append) {
+        pg_conn_t conn{m_options.database_options.conninfo()};
+
         /* Drop any existing table */
-        m_conn->exec("DROP TABLE IF EXISTS place CASCADE");
+        conn.exec("DROP TABLE IF EXISTS place CASCADE");
 
         /* Create the new table */
 
@@ -64,14 +59,14 @@ int output_gazetteer_t::start()
             sql += " TABLESPACE " + m_options.tblsmain_data.get();
         }
 
-        m_conn->exec(sql);
+        conn.exec(sql);
 
         std::string index_sql =
             "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
         if (m_options.tblsmain_index) {
             index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
         }
-        m_conn->exec(index_sql);
+        conn.exec(index_sql);
     }
 
     return 0;
