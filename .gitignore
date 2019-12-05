@@ -4,3 +4,5 @@ docs/html
 docs/latex
 
 tests/__pycache__
+
+compile_commands.json
