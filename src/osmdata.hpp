@@ -26,17 +26,17 @@ public:
     void type_changed(osmium::item_type new_type);
     void stop();
 
-    int node_add(osmium::Node const &node);
-    int way_add(osmium::Way *way);
-    int relation_add(osmium::Relation const &rel);
+    void node_add(osmium::Node const &node);
+    void way_add(osmium::Way *way);
+    void relation_add(osmium::Relation const &rel);
 
-    int node_modify(osmium::Node const &node);
-    int way_modify(osmium::Way *way);
-    int relation_modify(osmium::Relation const &rel);
+    void node_modify(osmium::Node const &node);
+    void way_modify(osmium::Way *way);
+    void relation_modify(osmium::Relation const &rel);
 
-    int node_delete(osmid_t id);
-    int way_delete(osmid_t id);
-    int relation_delete(osmid_t id);
+    void node_delete(osmid_t id);
+    void way_delete(osmid_t id);
+    void relation_delete(osmid_t id);
 
 private:
     std::shared_ptr<middle_t> mid;

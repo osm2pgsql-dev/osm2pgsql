@@ -34,141 +34,112 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
     with_extra = outs[0]->get_options()->extra_attributes;
 }
 
-int osmdata_t::node_add(osmium::Node const &node)
+void osmdata_t::node_add(osmium::Node const &node)
 {
     mid->nodes_set(node);
 
-    int status = 0;
-
     if (with_extra || !node.tags().empty()) {
         for (auto &out : outs) {
-            status |= out->node_add(node);
+            out->node_add(node);
         }
     }
-
-    return status;
 }
 
-int osmdata_t::way_add(osmium::Way *way)
+void osmdata_t::way_add(osmium::Way *way)
 {
     mid->ways_set(*way);
 
-    int status = 0;
-
     if (with_extra || !way->tags().empty()) {
         for (auto &out : outs) {
-            status |= out->way_add(way);
+            out->way_add(way);
         }
     }
-
-    return status;
 }
 
-int osmdata_t::relation_add(osmium::Relation const &rel)
+void osmdata_t::relation_add(osmium::Relation const &rel)
 {
     mid->relations_set(rel);
 
-    int status = 0;
     if (with_extra || !rel.tags().empty()) {
         for (auto &out : outs) {
-            status |= out->relation_add(rel);
+            out->relation_add(rel);
         }
     }
-
-    return status;
 }
 
-int osmdata_t::node_modify(osmium::Node const &node)
+void osmdata_t::node_modify(osmium::Node const &node)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->nodes_delete(node.id());
     slim->nodes_set(node);
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->node_modify(node);
+        out->node_modify(node);
     }
 
     slim->node_changed(node.id());
-
-    return status;
 }
 
-int osmdata_t::way_modify(osmium::Way *way)
+void osmdata_t::way_modify(osmium::Way *way)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->ways_delete(way->id());
     slim->ways_set(*way);
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->way_modify(way);
+        out->way_modify(way);
     }
 
     slim->way_changed(way->id());
-
-    return status;
 }
 
-int osmdata_t::relation_modify(osmium::Relation const &rel)
+void osmdata_t::relation_modify(osmium::Relation const &rel)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
     slim->relations_delete(rel.id());
     slim->relations_set(rel);
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->relation_modify(rel);
+        out->relation_modify(rel);
     }
 
     slim->relation_changed(rel.id());
-
-    return status;
 }
 
-int osmdata_t::node_delete(osmid_t id)
+void osmdata_t::node_delete(osmid_t id)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->node_delete(id);
+        out->node_delete(id);
     }
 
     slim->nodes_delete(id);
-
-    return status;
 }
 
-int osmdata_t::way_delete(osmid_t id)
+void osmdata_t::way_delete(osmid_t id)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->way_delete(id);
+        out->way_delete(id);
     }
 
     slim->ways_delete(id);
-
-    return status;
 }
 
-int osmdata_t::relation_delete(osmid_t id)
+void osmdata_t::relation_delete(osmid_t id)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    int status = 0;
     for (auto &out : outs) {
-        status |= out->relation_delete(id);
+        out->relation_delete(id);
     }
 
     slim->relations_delete(id);
-
-    return status;
 }
 
 void osmdata_t::start()
