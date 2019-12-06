@@ -13,9 +13,6 @@
 #include <iostream>
 #include <memory>
 
-static auto place_table =
-    std::make_shared<db_target_descr_t>("place", "place_id");
-
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
     if (!m_options.append) {
@@ -76,7 +73,7 @@ void output_gazetteer_t::commit() { m_copy.sync(); }
 
 int output_gazetteer_t::process_node(osmium::Node const &node)
 {
-    m_copy.new_line(place_table);
+    m_copy.new_line();
     m_style.process_tags(node);
     delete_unused_classes('N', node.id());
 
@@ -93,7 +90,7 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 
 int output_gazetteer_t::process_way(osmium::Way *way)
 {
-    m_copy.new_line(place_table);
+    m_copy.new_line();
     m_style.process_tags(*way);
     delete_unused_classes('W', way->id());
 
@@ -127,7 +124,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 
 int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
-    m_copy.new_line(place_table);
+    m_copy.new_line();
 
     auto const &tags = rel.tags();
     char const *type = tags["type"];

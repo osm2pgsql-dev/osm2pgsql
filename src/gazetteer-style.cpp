@@ -9,28 +9,33 @@
 #include "pgsql.hpp"
 #include "wkb.hpp"
 
+namespace {
+
 enum : int
 {
     MAX_ADMINLEVEL = 15
 };
 
-static std::vector<osmium::Tag const *>
-domain_names(char const *cls, osmium::TagList const &tags)
+class DomainMatcher
 {
-    std::vector<osmium::Tag const *> ret;
+public:
+    DomainMatcher(char const *cls) : m_domain(cls), m_len(strlen(cls)) {}
 
-    std::string const prefix = cls + std::string(":name");
-    auto plen = prefix.length();
-
-    for (auto const &item : tags) {
-        char const *k = item.key();
-        if (prefix.compare(0, plen, k) == 0 &&
-            (k[plen] == '\0' || k[plen] == ':')) {
-            ret.push_back(&item);
+    char const *operator()(osmium::Tag const &t) const noexcept
+    {
+        if (strncmp(t.key(), m_domain, m_len) == 0 &&
+            strncmp(t.key() + m_len, ":name", 5) == 0 &&
+            (t.key()[m_len + 5] == '\0' || t.key()[m_len + 5] == ':')) {
+            return t.key() + m_len + 6;
         }
+
+        return nullptr;
     }
 
-    return ret;
+private:
+    char const *m_domain;
+    size_t m_len;
+};
 }
 
 namespace pt = boost::property_tree;
@@ -59,7 +64,6 @@ void gazetteer_style_t::clear()
     m_address.clear();
     m_operator = nullptr;
     m_admin_level = MAX_ADMINLEVEL;
-    m_is_named = false;
 }
 
 std::string gazetteer_style_t::class_list() const
@@ -67,10 +71,7 @@ std::string gazetteer_style_t::class_list() const
     fmt::memory_buffer buf;
 
     for (auto const &m : m_main) {
-        // XXX should handle SF_MAIN_NAMED_KEY as well
-        if (!(std::get<2>(m) & SF_MAIN_NAMED) || !m_names.empty()) {
-            fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
-        }
+        fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
     }
 
     if (buf.size() > 0) {
@@ -284,14 +285,15 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 {
     clear();
 
-    char const *postcode = nullptr;
-    char const *country = nullptr;
+    bool has_postcode = false;
+    bool has_country = false;
     char const *place = nullptr;
     flag_t place_flag;
     bool address_point = false;
     bool interpolation = false;
     bool admin_boundary = false;
     bool postcode_fallback = false;
+    bool is_named = false;
 
     for (auto const &item : o.tags()) {
         char const *k = item.key();
@@ -330,7 +332,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         if (flag & (SF_NAME | SF_REF)) {
             m_names.emplace_back(k, v);
             if (flag & SF_NAME) {
-                m_is_named = true;
+                is_named = true;
             }
         }
 
@@ -344,39 +346,31 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
                 addr_key = k;
             }
 
-            if (strcmp(addr_key, "postcode") == 0) {
-                if (!postcode) {
-                    postcode = v;
-                }
-            } else if (strcmp(addr_key, "country") == 0) {
-                if (!country && strlen(v) == 2) {
-                    country = v;
-                }
-            } else {
-                bool first = std::none_of(
-                    m_address.begin(), m_address.end(), [&](ptag_t const &t) {
-                        return strcmp(t.first, addr_key) == 0;
-                    });
-                if (first) {
-                    m_address.emplace_back(addr_key, v);
-                }
+            bool first = std::none_of(m_address.begin(), m_address.end(),
+                                      [&](ptag_t const &t) {
+                                          return strcmp(t.first, addr_key) == 0;
+                                      });
+            if (first) {
+                m_address.emplace_back(addr_key, v);
             }
         }
 
         if (flag & SF_ADDRESS_POINT) {
             address_point = true;
-            m_is_named = true;
+            is_named = true;
         }
 
-        if ((flag & SF_POSTCODE) && !postcode) {
-            postcode = v;
+        if ((flag & SF_POSTCODE) && !has_postcode) {
+            has_postcode = true;
+            m_address.emplace_back("postcode", v);
             if (flag & SF_MAIN_FALLBACK) {
                 postcode_fallback = true;
             }
         }
 
-        if ((flag & SF_COUNTRY) && !country && std::strlen(v) == 2) {
-            country = v;
+        if ((flag & SF_COUNTRY) && !has_country && std::strlen(v) == 2) {
+            has_country = true;
+            m_address.emplace_back("country", v);
         }
 
         if (flag & SF_EXTRA) {
@@ -389,12 +383,6 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         }
     }
 
-    if (postcode) {
-        m_address.emplace_back("postcode", postcode);
-    }
-    if (country) {
-        m_address.emplace_back("country", country);
-    }
     if (place) {
         if (interpolation || (admin_boundary && strncmp(place, "isl", 3) !=
                                                     0)) { // island or islet
@@ -403,56 +391,75 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             m_main.emplace_back("place", place, place_flag);
         }
     }
-    if (address_point) {
-        m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
-    } else if (postcode_fallback && postcode) {
-        m_main.emplace_back("place", "postcode", SF_MAIN | SF_MAIN_FALLBACK);
+
+    filter_main_tags(is_named, o.tags());
+
+    if (m_main.empty()) {
+        if (address_point) {
+            m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
+        } else if (postcode_fallback && has_postcode) {
+            m_main.emplace_back("place", "postcode",
+                                SF_MAIN | SF_MAIN_FALLBACK);
+        }
+    }
+}
+
+void gazetteer_style_t::filter_main_tags(bool is_named,
+                                         osmium::TagList const &tags)
+{
+    // first throw away unnamed mains
+    auto mend =
+        std::remove_if(m_main.begin(), m_main.end(), [&](pmaintag_t const &t) {
+            auto flags = std::get<2>(t);
+
+            if (flags & SF_MAIN_NAMED) {
+                return !is_named;
+            }
+
+            if (flags & SF_MAIN_NAMED_KEY) {
+                return !std::any_of(tags.begin(), tags.end(),
+                                    DomainMatcher(std::get<0>(t)));
+            }
+
+            return false;
+        });
+
+    // any non-fallback mains left?
+    bool has_primary =
+        std::any_of(m_main.begin(), mend, [](pmaintag_t const &t) {
+            return !(std::get<2>(t) & SF_MAIN_FALLBACK);
+        });
+
+    if (has_primary) {
+        // remove all fallbacks
+        mend = std::remove_if(m_main.begin(), mend, [&](pmaintag_t const &t) {
+            return (std::get<2>(t) & SF_MAIN_FALLBACK);
+        });
+        m_main.erase(mend, m_main.end());
+    } else if (mend == m_main.begin()) {
+        m_main.clear();
+    } else {
+        // remove everything except the first entry
+        m_main.resize(1);
     }
 }
 
 bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
                                  std::string const &geom, copy_mgr_t &buffer)
 {
-    bool any = false;
     for (auto const &main : m_main) {
-        if (!(std::get<2>(main) & SF_MAIN_FALLBACK)) {
-            any |= copy_out_maintag(main, o, geom, buffer);
-        }
+        copy_out_maintag(main, o, geom, buffer);
     }
 
-    if (any) {
-        return true;
-    }
-
-    for (auto const &main : m_main) {
-        if ((std::get<2>(main) & SF_MAIN_FALLBACK) &&
-            copy_out_maintag(main, o, geom, buffer)) {
-            return true;
-        }
-    }
-
-    return false;
+    return !m_main.empty();
 }
 
-bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
+void gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
                                          osmium::OSMObject const &o,
                                          std::string const &geom,
                                          copy_mgr_t &buffer)
 {
-    std::vector<osmium::Tag const *> domain_name;
-    if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
-        domain_name = domain_names(std::get<0>(tag), o.tags());
-        if (domain_name.empty()) {
-            return false;
-        }
-    }
-
-    if (std::get<2>(tag) & SF_MAIN_NAMED) {
-        if (domain_name.empty() && !m_is_named) {
-            return false;
-        }
-    }
-
+    buffer.new_line();
     // osm_id
     buffer.add_column(o.id());
     // osm_type
@@ -464,11 +471,14 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
     // type
     buffer.add_column(std::get<1>(tag));
     // names
-    if (!domain_name.empty()) {
-        auto prefix_len = strlen(std::get<0>(tag)) + 1; // class name and ':'
+    if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
+        DomainMatcher m(std::get<0>(tag));
         buffer.new_hash();
-        for (auto *t : domain_name) {
-            buffer.add_hash_elem(t->key() + prefix_len, t->value());
+        for (auto const &t : o.tags()) {
+            char const *k = m(t);
+            if (k) {
+                buffer.add_hash_elem(k, t.value());
+            }
         }
         buffer.finish_hash();
     } else {
@@ -552,6 +562,4 @@ bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
     buffer.add_hex_geom(geom);
 
     buffer.finish_line();
-
-    return true;
 }
