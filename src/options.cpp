@@ -1,3 +1,4 @@
+#include "config.h"
 #include "format.hpp"
 #include "options.hpp"
 #include "sprompt.hpp"

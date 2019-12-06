@@ -1,10 +1,6 @@
 #ifndef OSM2PGSQL_OSMDATA_HPP
 #define OSM2PGSQL_OSMDATA_HPP
 
-// when __cplusplus is defined, we need to define this macro as well
-// to get the print format specifiers in the inttypes.h header.
-#include "config.h"
-
 #include <memory>
 #include <vector>
 

@@ -5,8 +5,6 @@
  * so Mapnik doesn't have to).
  */
 
-#include "config.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
