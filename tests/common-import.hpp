@@ -69,7 +69,14 @@ public:
         options.database_options = m_db.db_options();
 
         // setup the middle
-        auto middle = std::make_shared<middle_ram_t>(&options);
+        std::shared_ptr<middle_t> middle;
+
+        if (options.slim) {
+            // middle gets its own copy-in thread
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
+        } else {
+            middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
+        }
         middle->start();
 
         // setup the output
