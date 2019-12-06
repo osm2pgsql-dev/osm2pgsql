@@ -3,7 +3,6 @@
  * nodes (with respect to id) and the other for sparse representations.
 */
 
-#include "config.h"
 #include "format.hpp"
 #include "node-ram-cache.hpp"
 #include "osmtypes.hpp"

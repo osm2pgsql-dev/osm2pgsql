@@ -1,8 +1,6 @@
 #ifndef OSM2PGSQL_PARSE_OSMIUM_HPP
 #define OSM2PGSQL_PARSE_OSMIUM_HPP
 
-#include "config.h"
-
 #include <boost/optional.hpp>
 #include <ctime>
 
