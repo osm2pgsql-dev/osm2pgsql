@@ -22,21 +22,21 @@ public:
     osmdata_t(std::shared_ptr<middle_t> mid_,
               std::vector<std::shared_ptr<output_t>> const &outs_);
 
-    void start();
-    void type_changed(osmium::item_type new_type);
-    void stop();
+    void start() const;
+    void type_changed(osmium::item_type new_type) const;
+    void stop() const;
 
-    void node_add(osmium::Node const &node);
-    void way_add(osmium::Way *way);
-    void relation_add(osmium::Relation const &rel);
+    void node_add(osmium::Node const &node) const;
+    void way_add(osmium::Way *way) const;
+    void relation_add(osmium::Relation const &rel) const;
 
-    void node_modify(osmium::Node const &node);
-    void way_modify(osmium::Way *way);
-    void relation_modify(osmium::Relation const &rel);
+    void node_modify(osmium::Node const &node) const;
+    void way_modify(osmium::Way *way) const;
+    void relation_modify(osmium::Relation const &rel) const;
 
-    void node_delete(osmid_t id);
-    void way_delete(osmid_t id);
-    void relation_delete(osmid_t id);
+    void node_delete(osmid_t id) const;
+    void way_delete(osmid_t id) const;
+    void relation_delete(osmid_t id) const;
 
 private:
     std::shared_ptr<middle_t> mid;

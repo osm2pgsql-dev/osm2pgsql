@@ -34,7 +34,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
     with_extra = outs[0]->get_options()->extra_attributes;
 }
 
-void osmdata_t::node_add(osmium::Node const &node)
+void osmdata_t::node_add(osmium::Node const &node) const
 {
     mid->nodes_set(node);
 
@@ -45,7 +45,7 @@ void osmdata_t::node_add(osmium::Node const &node)
     }
 }
 
-void osmdata_t::way_add(osmium::Way *way)
+void osmdata_t::way_add(osmium::Way *way) const
 {
     mid->ways_set(*way);
 
@@ -56,7 +56,7 @@ void osmdata_t::way_add(osmium::Way *way)
     }
 }
 
-void osmdata_t::relation_add(osmium::Relation const &rel)
+void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
     mid->relations_set(rel);
 
@@ -67,7 +67,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel)
     }
 }
 
-void osmdata_t::node_modify(osmium::Node const &node)
+void osmdata_t::node_modify(osmium::Node const &node) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -81,7 +81,7 @@ void osmdata_t::node_modify(osmium::Node const &node)
     slim->node_changed(node.id());
 }
 
-void osmdata_t::way_modify(osmium::Way *way)
+void osmdata_t::way_modify(osmium::Way *way) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -95,7 +95,7 @@ void osmdata_t::way_modify(osmium::Way *way)
     slim->way_changed(way->id());
 }
 
-void osmdata_t::relation_modify(osmium::Relation const &rel)
+void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -109,7 +109,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel)
     slim->relation_changed(rel.id());
 }
 
-void osmdata_t::node_delete(osmid_t id)
+void osmdata_t::node_delete(osmid_t id) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -120,7 +120,7 @@ void osmdata_t::node_delete(osmid_t id)
     slim->nodes_delete(id);
 }
 
-void osmdata_t::way_delete(osmid_t id)
+void osmdata_t::way_delete(osmid_t id) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -131,7 +131,7 @@ void osmdata_t::way_delete(osmid_t id)
     slim->ways_delete(id);
 }
 
-void osmdata_t::relation_delete(osmid_t id)
+void osmdata_t::relation_delete(osmid_t id) const
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
@@ -142,14 +142,14 @@ void osmdata_t::relation_delete(osmid_t id)
     slim->relations_delete(id);
 }
 
-void osmdata_t::start()
+void osmdata_t::start() const
 {
     for (auto &out : outs) {
         out->start();
     }
 }
 
-void osmdata_t::type_changed(osmium::item_type new_type)
+void osmdata_t::type_changed(osmium::item_type new_type) const
 {
     mid->flush(new_type);
 }
@@ -397,7 +397,7 @@ private:
 
 } // anonymous namespace
 
-void osmdata_t::stop()
+void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
      * access the data simultanious to process the rest in parallel
@@ -410,7 +410,7 @@ void osmdata_t::stop()
     }
 
     // should be the same for all outputs
-    auto *opts = outs[0]->get_options();
+    auto const *opts = outs[0]->get_options();
 
     // are there any objects left pending?
     bool has_pending = mid->pending_count() > 0;
