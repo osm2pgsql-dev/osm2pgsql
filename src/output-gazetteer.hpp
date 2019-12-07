@@ -47,12 +47,12 @@ public:
     void commit() override;
 
     void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t &) override {}
-    int pending_way(osmid_t, int) override { return 0; }
+    void pending_way(osmid_t, int) override {}
 
     void enqueue_relations(pending_queue_t &, osmid_t, size_t,
                            size_t &) override
     {}
-    int pending_relation(osmid_t, int) override { return 0; }
+    void pending_relation(osmid_t, int) override {}
 
     void node_add(osmium::Node const &node) override { process_node(node); }
 

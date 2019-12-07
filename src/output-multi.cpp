@@ -120,18 +120,14 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_multi_t::pending_way(osmid_t id, int exists)
+void output_multi_t::pending_way(osmid_t id, int exists)
 {
-    int ret = 0;
-
     // Try to fetch the way from the DB
     buffer.clear();
     if (m_mid->ways_get(id, buffer)) {
         // Output the way
-        ret = reprocess_way(&buffer.get<osmium::Way>(0), exists);
+        reprocess_way(&buffer.get<osmium::Way>(0), exists);
     }
-
-    return ret;
 }
 
 void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
@@ -174,18 +170,14 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_multi_t::pending_relation(osmid_t id, int exists)
+void output_multi_t::pending_relation(osmid_t id, int exists)
 {
-    int ret = 0;
-
     // Try to fetch the relation from the DB
     buffer.clear();
     if (m_mid->relations_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = process_relation(rel, exists);
+        process_relation(rel, exists);
     }
-
-    return ret;
 }
 
 void output_multi_t::stop(osmium::thread::Pool *pool)

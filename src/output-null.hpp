@@ -24,11 +24,11 @@ public:
 
     void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
                       size_t &added) override;
-    int pending_way(osmid_t id, int exists) override;
+    void pending_way(osmid_t id, int exists) override {};
 
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
                            size_t output_id, size_t &added) override;
-    int pending_relation(osmid_t id, int exists) override;
+    void pending_relation(osmid_t id, int exists) override {};
 
     void node_add(osmium::Node const &node) override {}
     void way_add(osmium::Way *way) override {}

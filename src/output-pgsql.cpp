@@ -111,7 +111,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_pgsql_t::pending_way(osmid_t id, int exists)
+void output_pgsql_t::pending_way(osmid_t id, int exists)
 {
     // Try to fetch the way from the DB
     buffer.clear();
@@ -136,12 +136,10 @@ int output_pgsql_t::pending_way(osmid_t id, int exists)
             auto nnodes = m_mid->nodes_get_list(&(way.nodes()));
             if (nnodes > 1) {
                 pgsql_out_way(way, &outtags, polygon, roads);
-                return 1;
+                return;
             }
         }
     }
-
-    return 0;
 }
 
 void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
@@ -184,7 +182,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_pgsql_t::pending_relation(osmid_t id, int exists)
+void output_pgsql_t::pending_relation(osmid_t id, int exists)
 {
     // Try to fetch the relation from the DB
     // Note that we cannot use the global buffer here because
@@ -198,10 +196,9 @@ int output_pgsql_t::pending_relation(osmid_t id, int exists)
         }
 
         auto const &rel = rels_buffer.get<osmium::Relation>(0);
-        return pgsql_process_relation(rel);
+        pgsql_process_relation(rel);
+        return;
     }
-
-    return 0;
 }
 
 void output_pgsql_t::commit()
