@@ -65,63 +65,40 @@ struct counting_output_t : public output_null_t
         return std::shared_ptr<output_t>(new counting_output_t(m_options));
     }
 
-    int node_add(osmium::Node const &n) override
+    void node_add(osmium::Node const &n) override
     {
         ++node.added;
         sum_ids += n.id();
-        return 0;
     }
 
-    int way_add(osmium::Way *w) override
+    void way_add(osmium::Way *w) override
     {
         ++way.added;
         sum_ids += w->id();
         sum_nds += w->nodes().size();
-        return 0;
     }
 
-    int relation_add(osmium::Relation const &r) override
+    void relation_add(osmium::Relation const &r) override
     {
         ++relation.added;
         sum_ids += r.id();
         sum_members += r.members().size();
-        return 0;
     }
 
-    int node_modify(osmium::Node const &) override
-    {
-        ++node.modified;
-        return 0;
-    }
+    void node_modify(osmium::Node const &) override { ++node.modified; }
 
-    int way_modify(osmium::Way *) override
-    {
-        ++way.modified;
-        return 0;
-    }
-    int relation_modify(osmium::Relation const &) override
+    void way_modify(osmium::Way *) override { ++way.modified; }
+
+    void relation_modify(osmium::Relation const &) override
     {
         ++relation.modified;
-        return 0;
     }
 
-    int node_delete(osmid_t) override
-    {
-        ++node.deleted;
-        return 0;
-    }
+    void node_delete(osmid_t) override { ++node.deleted; }
 
-    int way_delete(osmid_t) override
-    {
-        ++way.deleted;
-        return 0;
-    }
+    void way_delete(osmid_t) override { ++way.deleted; }
 
-    int relation_delete(osmid_t) override
-    {
-        ++relation.deleted;
-        return 0;
-    }
+    void relation_delete(osmid_t) override { ++relation.deleted; }
 
     type_stats_t node, way, relation;
     long long sum_ids = 0;

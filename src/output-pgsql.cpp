@@ -227,21 +227,19 @@ void output_pgsql_t::stop(osmium::thread::Pool *pool)
     }
 }
 
-int output_pgsql_t::node_add(osmium::Node const &node)
+void output_pgsql_t::node_add(osmium::Node const &node)
 {
     taglist_t outtags;
     if (m_tagtransform->filter_tags(node, nullptr, nullptr, outtags)) {
-        return 1;
+        return;
     }
 
     auto wkb = m_builder.get_wkb_node(node.location());
     expire.from_wkb(wkb.c_str(), node.id());
     m_tables[t_point]->write_row(node.id(), outtags, wkb);
-
-    return 0;
 }
 
-int output_pgsql_t::way_add(osmium::Way *way)
+void output_pgsql_t::way_add(osmium::Way *way)
 {
     int polygon = 0;
     int roads = 0;
@@ -257,7 +255,6 @@ int output_pgsql_t::way_add(osmium::Way *way)
             pgsql_out_way(*way, &outtags, polygon, roads);
         }
     }
-    return 0;
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
@@ -341,28 +338,28 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     return 0;
 }
 
-int output_pgsql_t::relation_add(osmium::Relation const &rel)
+void output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
     char const *type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
     if (!type) {
-        return 0;
+        return;
     }
 
     /* Only a limited subset of type= is supported, ignore other */
     if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0 &&
         strcmp(type, "boundary") != 0) {
-        return 0;
+        return;
     }
 
-    return pgsql_process_relation(rel);
+    pgsql_process_relation(rel);
 }
 
 /* Delete is easy, just remove all traces of this object. We don't need to
  * worry about finding objects that depend on it, since the same diff must
  * contain the change for that also. */
-int output_pgsql_t::node_delete(osmid_t osm_id)
+void output_pgsql_t::node_delete(osmid_t osm_id)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
@@ -372,8 +369,6 @@ int output_pgsql_t::node_delete(osmid_t osm_id)
     if (expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
         m_tables[t_point]->delete_row(osm_id);
     }
-
-    return 0;
 }
 
 /* Seperated out because we use it elsewhere */
@@ -398,14 +393,13 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     return 0;
 }
 
-int output_pgsql_t::way_delete(osmid_t osm_id)
+void output_pgsql_t::way_delete(osmid_t osm_id)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     pgsql_delete_way_from_output(osm_id);
-    return 0;
 }
 
 /* Relations are identified by using negative IDs */
@@ -421,20 +415,19 @@ int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
     return 0;
 }
 
-int output_pgsql_t::relation_delete(osmid_t osm_id)
+void output_pgsql_t::relation_delete(osmid_t osm_id)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
         util::exit_nicely();
     }
     pgsql_delete_relation_from_output(osm_id);
-    return 0;
 }
 
 /* Modify is slightly trickier. The basic idea is we simply delete the
  * object and create it with the new parameters. Then we need to mark the
  * objects that depend on this one */
-int output_pgsql_t::node_modify(osmium::Node const &node)
+void output_pgsql_t::node_modify(osmium::Node const &node)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
@@ -442,10 +435,9 @@ int output_pgsql_t::node_modify(osmium::Node const &node)
     }
     node_delete(node.id());
     node_add(node);
-    return 0;
 }
 
-int output_pgsql_t::way_modify(osmium::Way *way)
+void output_pgsql_t::way_modify(osmium::Way *way)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
@@ -453,11 +445,9 @@ int output_pgsql_t::way_modify(osmium::Way *way)
     }
     way_delete(way->id());
     way_add(way);
-
-    return 0;
 }
 
-int output_pgsql_t::relation_modify(osmium::Relation const &rel)
+void output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
     if (!m_options.slim) {
         fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
@@ -465,7 +455,6 @@ int output_pgsql_t::relation_modify(osmium::Relation const &rel)
     }
     relation_delete(rel.id());
     relation_add(rel);
-    return 0;
 }
 
 int output_pgsql_t::start()

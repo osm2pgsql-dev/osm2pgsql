@@ -202,33 +202,30 @@ void output_multi_t::stop(osmium::thread::Pool *pool)
 
 void output_multi_t::commit() { m_table->commit(); }
 
-int output_multi_t::node_add(osmium::Node const &node)
+void output_multi_t::node_add(osmium::Node const &node)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        return process_node(node);
+        process_node(node);
     }
-    return 0;
 }
 
-int output_multi_t::way_add(osmium::Way *way)
+void output_multi_t::way_add(osmium::Way *way)
 {
     if (m_processor->interests(geometry_processor::interest_way) &&
         way->nodes().size() > 1) {
-        return process_way(way);
+        process_way(way);
     }
-    return 0;
 }
 
-int output_multi_t::relation_add(osmium::Relation const &rel)
+void output_multi_t::relation_add(osmium::Relation const &rel)
 {
     if (m_processor->interests(geometry_processor::interest_relation) &&
         !rel.members().empty()) {
-        return process_relation(rel, 0);
+        process_relation(rel, 0);
     }
-    return 0;
 }
 
-int output_multi_t::node_modify(osmium::Node const &node)
+void output_multi_t::node_modify(osmium::Node const &node)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
@@ -236,13 +233,11 @@ int output_multi_t::node_modify(osmium::Node const &node)
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(node);
+        process_node(node);
     }
-
-    return 0;
 }
 
-int output_multi_t::way_modify(osmium::Way *way)
+void output_multi_t::way_modify(osmium::Way *way)
 {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
@@ -250,13 +245,11 @@ int output_multi_t::way_modify(osmium::Way *way)
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(way);
+        process_way(way);
     }
-
-    return 0;
 }
 
-int output_multi_t::relation_modify(osmium::Relation const &rel)
+void output_multi_t::relation_modify(osmium::Relation const &rel)
 {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
@@ -264,37 +257,32 @@ int output_multi_t::relation_modify(osmium::Relation const &rel)
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_relation(rel, false);
+        process_relation(rel, false);
     }
-
-    return 0;
 }
 
-int output_multi_t::node_delete(osmid_t id)
+void output_multi_t::node_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(id);
     }
-    return 0;
 }
 
-int output_multi_t::way_delete(osmid_t id)
+void output_multi_t::way_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(id);
     }
-    return 0;
 }
 
-int output_multi_t::relation_delete(osmid_t id)
+void output_multi_t::relation_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(-id);
     }
-    return 0;
 }
 
 int output_multi_t::process_node(osmium::Node const &node)

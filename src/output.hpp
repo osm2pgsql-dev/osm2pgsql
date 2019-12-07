@@ -59,17 +59,17 @@ public:
                                    size_t output_id, size_t &added) = 0;
     virtual int pending_relation(osmid_t id, int exists) = 0;
 
-    virtual int node_add(osmium::Node const &node) = 0;
-    virtual int way_add(osmium::Way *way) = 0;
-    virtual int relation_add(osmium::Relation const &rel) = 0;
+    virtual void node_add(osmium::Node const &node) = 0;
+    virtual void way_add(osmium::Way *way) = 0;
+    virtual void relation_add(osmium::Relation const &rel) = 0;
 
-    virtual int node_modify(osmium::Node const &node) = 0;
-    virtual int way_modify(osmium::Way *way) = 0;
-    virtual int relation_modify(osmium::Relation const &rel) = 0;
+    virtual void node_modify(osmium::Node const &node) = 0;
+    virtual void way_modify(osmium::Way *way) = 0;
+    virtual void relation_modify(osmium::Relation const &rel) = 0;
 
-    virtual int node_delete(osmid_t id) = 0;
-    virtual int way_delete(osmid_t id) = 0;
-    virtual int relation_delete(osmid_t id) = 0;
+    virtual void node_delete(osmid_t id) = 0;
+    virtual void way_delete(osmid_t id) = 0;
+    virtual void relation_delete(osmid_t id) = 0;
 
     virtual size_t pending_count() const;
 
