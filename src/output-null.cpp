@@ -1,21 +1,6 @@
 #include "output-null.hpp"
 #include "osmtypes.hpp"
 
-void output_null_t::cleanup() {}
-
-int output_null_t::start() { return 0; }
-
-void output_null_t::stop(osmium::thread::Pool *) {}
-
-void output_null_t::commit() {}
-
-void output_null_t::enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t &)
-{}
-
-void output_null_t::enqueue_relations(pending_queue_t &, osmid_t, size_t,
-                                      size_t &)
-{}
-
 std::shared_ptr<output_t>
 output_null_t::clone(std::shared_ptr<middle_query_t> const &mid,
                      std::shared_ptr<db_copy_thread_t> const &) const

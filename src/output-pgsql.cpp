@@ -454,15 +454,13 @@ void output_pgsql_t::relation_modify(osmium::Relation const &rel)
     relation_add(rel);
 }
 
-int output_pgsql_t::start()
+void output_pgsql_t::start()
 {
     for (auto &t : m_tables) {
         //setup the table in postgres
         t->start(m_options.database_options.conninfo(),
                  m_options.tblsmain_data);
     }
-
-    return 0;
 }
 
 std::shared_ptr<output_t> output_pgsql_t::clone(

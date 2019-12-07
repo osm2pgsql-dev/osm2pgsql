@@ -42,7 +42,7 @@ public:
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
-    int start() override;
+    void start() override;
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 

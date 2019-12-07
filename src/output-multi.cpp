@@ -65,11 +65,10 @@ std::shared_ptr<output_t> output_multi_t::clone(
         new output_multi_t(this, mid, copy_thread));
 }
 
-int output_multi_t::start()
+void output_multi_t::start()
 {
     m_table->start(m_options.database_options.conninfo(),
                    m_options.tblsmain_data);
-    return 0;
 }
 
 size_t output_multi_t::pending_count() const

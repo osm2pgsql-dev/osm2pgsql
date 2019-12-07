@@ -42,7 +42,7 @@ public:
             new output_gazetteer_t(this, mid, copy_thread));
     }
 
-    int start() override;
+    void start() override;
     void stop(osmium::thread::Pool *) override {}
     void commit() override;
 

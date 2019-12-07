@@ -28,7 +28,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
     }
 }
 
-int output_gazetteer_t::start()
+void output_gazetteer_t::start()
 {
     int srid = m_options.projection->target_srs();
 
@@ -65,8 +65,6 @@ int output_gazetteer_t::start()
         }
         conn.exec(index_sql);
     }
-
-    return 0;
 }
 
 void output_gazetteer_t::commit() { m_copy.sync(); }

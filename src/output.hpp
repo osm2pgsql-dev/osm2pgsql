@@ -47,7 +47,7 @@ public:
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const = 0;
 
-    virtual int start() = 0;
+    virtual void start() = 0;
     virtual void stop(osmium::thread::Pool *pool) = 0;
     virtual void commit() = 0;
 
