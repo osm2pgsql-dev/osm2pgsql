@@ -9,28 +9,43 @@
 #include "pgsql.hpp"
 #include "wkb.hpp"
 
+namespace {
+
 enum : int
 {
     MAX_ADMINLEVEL = 15
 };
 
-static std::vector<osmium::Tag const *>
-domain_names(char const *cls, osmium::TagList const &tags)
+/**
+ * Returns the tag specific name, if applicable.
+ *
+ * OSM tags may contain name tags that refer to one of the other tags
+ * in the tag set. For example, the name of a bridge is tagged as
+ * bridge:name=Foo to not confuse it with the name of the highway
+ * going over the bridge. This matcher checks if a tag is such a name tag
+ * for the given tag key and returns the the name key without the prefix
+ * if it matches.
+ */
+class DomainMatcher
 {
-    std::vector<osmium::Tag const *> ret;
+public:
+    DomainMatcher(char const *cls) : m_domain(cls), m_len(strlen(cls)) {}
 
-    std::string const prefix = cls + std::string(":name");
-    auto plen = prefix.length();
-
-    for (auto const &item : tags) {
-        char const *k = item.key();
-        if (prefix.compare(0, plen, k) == 0 &&
-            (k[plen] == '\0' || k[plen] == ':')) {
-            ret.push_back(&item);
+    char const *operator()(osmium::Tag const &t) const noexcept
+    {
+        if (std::strncmp(t.key(), m_domain, m_len) == 0 &&
+            std::strncmp(t.key() + m_len, ":name", 5) == 0 &&
+            (t.key()[m_len + 5] == '\0' || t.key()[m_len + 5] == ':')) {
+            return t.key() + m_len + 6;
         }
+
+        return nullptr;
     }
 
-    return ret;
+private:
+    char const *m_domain;
+    size_t m_len;
+};
 }
 
 namespace pt = boost::property_tree;
@@ -59,7 +74,6 @@ void gazetteer_style_t::clear()
     m_address.clear();
     m_operator = nullptr;
     m_admin_level = MAX_ADMINLEVEL;
-    m_is_named = false;
 }
 
 std::string gazetteer_style_t::class_list() const
@@ -67,10 +81,7 @@ std::string gazetteer_style_t::class_list() const
     fmt::memory_buffer buf;
 
     for (auto const &m : m_main) {
-        // XXX should handle SF_MAIN_NAMED_KEY as well
-        if (!(std::get<2>(m) & SF_MAIN_NAMED) || !m_names.empty()) {
-            fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
-        }
+        fmt::format_to(buf, FMT_STRING("'{}',"), std::get<0>(m));
     }
 
     if (buf.size() > 0) {
@@ -284,14 +295,15 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 {
     clear();
 
-    char const *postcode = nullptr;
-    char const *country = nullptr;
+    bool has_postcode = false;
+    bool has_country = false;
     char const *place = nullptr;
     flag_t place_flag;
     bool address_point = false;
     bool interpolation = false;
     bool admin_boundary = false;
     bool postcode_fallback = false;
+    bool is_named = false;
 
     for (auto const &item : o.tags()) {
         char const *k = item.key();
@@ -330,7 +342,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         if (flag & (SF_NAME | SF_REF)) {
             m_names.emplace_back(k, v);
             if (flag & SF_NAME) {
-                m_is_named = true;
+                is_named = true;
             }
         }
 
@@ -344,39 +356,31 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
                 addr_key = k;
             }
 
-            if (strcmp(addr_key, "postcode") == 0) {
-                if (!postcode) {
-                    postcode = v;
-                }
-            } else if (strcmp(addr_key, "country") == 0) {
-                if (!country && strlen(v) == 2) {
-                    country = v;
-                }
-            } else {
-                bool first = std::none_of(
-                    m_address.begin(), m_address.end(), [&](ptag_t const &t) {
-                        return strcmp(t.first, addr_key) == 0;
-                    });
-                if (first) {
-                    m_address.emplace_back(addr_key, v);
-                }
+            bool first = std::none_of(m_address.begin(), m_address.end(),
+                                      [&](ptag_t const &t) {
+                                          return strcmp(t.first, addr_key) == 0;
+                                      });
+            if (first) {
+                m_address.emplace_back(addr_key, v);
             }
         }
 
         if (flag & SF_ADDRESS_POINT) {
             address_point = true;
-            m_is_named = true;
+            is_named = true;
         }
 
-        if ((flag & SF_POSTCODE) && !postcode) {
-            postcode = v;
+        if ((flag & SF_POSTCODE) && !has_postcode) {
+            has_postcode = true;
+            m_address.emplace_back("postcode", v);
             if (flag & SF_MAIN_FALLBACK) {
                 postcode_fallback = true;
             }
         }
 
-        if ((flag & SF_COUNTRY) && !country && std::strlen(v) == 2) {
-            country = v;
+        if ((flag & SF_COUNTRY) && !has_country && std::strlen(v) == 2) {
+            has_country = true;
+            m_address.emplace_back("country", v);
         }
 
         if (flag & SF_EXTRA) {
@@ -389,12 +393,6 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         }
     }
 
-    if (postcode) {
-        m_address.emplace_back("postcode", postcode);
-    }
-    if (country) {
-        m_address.emplace_back("country", country);
-    }
     if (place) {
         if (interpolation || (admin_boundary && strncmp(place, "isl", 3) !=
                                                     0)) { // island or islet
@@ -403,155 +401,167 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             m_main.emplace_back("place", place, place_flag);
         }
     }
-    if (address_point) {
-        m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
-    } else if (postcode_fallback && postcode) {
-        m_main.emplace_back("place", "postcode", SF_MAIN | SF_MAIN_FALLBACK);
+
+    filter_main_tags(is_named, o.tags());
+
+    if (m_main.empty()) {
+        if (address_point) {
+            m_main.emplace_back("place", "house", SF_MAIN | SF_MAIN_FALLBACK);
+        } else if (postcode_fallback && has_postcode) {
+            m_main.emplace_back("place", "postcode",
+                                SF_MAIN | SF_MAIN_FALLBACK);
+        }
     }
 }
 
-bool gazetteer_style_t::copy_out(osmium::OSMObject const &o,
-                                 std::string const &geom, copy_mgr_t &buffer)
+void gazetteer_style_t::filter_main_tags(bool is_named,
+                                         osmium::TagList const &tags)
 {
-    bool any = false;
-    for (auto const &main : m_main) {
-        if (!(std::get<2>(main) & SF_MAIN_FALLBACK)) {
-            any |= copy_out_maintag(main, o, geom, buffer);
-        }
-    }
+    // first throw away unnamed mains
+    auto mend =
+        std::remove_if(m_main.begin(), m_main.end(), [&](pmaintag_t const &t) {
+            auto flags = std::get<2>(t);
 
-    if (any) {
-        return true;
-    }
+            if (flags & SF_MAIN_NAMED) {
+                return !is_named;
+            }
 
-    for (auto const &main : m_main) {
-        if ((std::get<2>(main) & SF_MAIN_FALLBACK) &&
-            copy_out_maintag(main, o, geom, buffer)) {
-            return true;
-        }
-    }
+            if (flags & SF_MAIN_NAMED_KEY) {
+                return !std::any_of(tags.begin(), tags.end(),
+                                    DomainMatcher{std::get<0>(t)});
+            }
 
-    return false;
-}
-
-bool gazetteer_style_t::copy_out_maintag(pmaintag_t const &tag,
-                                         osmium::OSMObject const &o,
-                                         std::string const &geom,
-                                         copy_mgr_t &buffer)
-{
-    std::vector<osmium::Tag const *> domain_name;
-    if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
-        domain_name = domain_names(std::get<0>(tag), o.tags());
-        if (domain_name.empty()) {
             return false;
-        }
-    }
+        });
 
-    if (std::get<2>(tag) & SF_MAIN_NAMED) {
-        if (domain_name.empty() && !m_is_named) {
-            return false;
-        }
-    }
+    // any non-fallback mains left?
+    bool const has_primary =
+        std::any_of(m_main.begin(), mend, [](pmaintag_t const &t) {
+            return !(std::get<2>(t) & SF_MAIN_FALLBACK);
+        });
 
-    // osm_id
-    buffer.add_column(o.id());
-    // osm_type
-    char const osm_type[2] = {
-        (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
-    buffer.add_column(osm_type);
-    // class
-    buffer.add_column(std::get<0>(tag));
-    // type
-    buffer.add_column(std::get<1>(tag));
-    // names
-    if (!domain_name.empty()) {
-        auto prefix_len = strlen(std::get<0>(tag)) + 1; // class name and ':'
-        buffer.new_hash();
-        for (auto *t : domain_name) {
-            buffer.add_hash_elem(t->key() + prefix_len, t->value());
-        }
-        buffer.finish_hash();
+    if (has_primary) {
+        // remove all fallbacks
+        mend = std::remove_if(m_main.begin(), mend, [&](pmaintag_t const &t) {
+            return (std::get<2>(t) & SF_MAIN_FALLBACK);
+        });
+        m_main.erase(mend, m_main.end());
+    } else if (mend == m_main.begin()) {
+        m_main.clear();
     } else {
-        bool first = true;
-        // operator will be ignored on anything but these classes
-        if (m_operator && (std::get<2>(tag) & SF_MAIN_OPERATOR)) {
+        // remove everything except the first entry
+        m_main.resize(1);
+    }
+}
+
+void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
+                                 std::string const &geom,
+                                 copy_mgr_t &buffer) const
+{
+    for (auto const &tag : m_main) {
+        buffer.prepare();
+        // osm_id
+        buffer.add_column(o.id());
+        // osm_type
+        char const osm_type[2] = {
+            (char)toupper(osmium::item_type_to_char(o.type())), '\0'};
+        buffer.add_column(osm_type);
+        // class
+        buffer.add_column(std::get<0>(tag));
+        // type
+        buffer.add_column(std::get<1>(tag));
+        // names
+        if (std::get<2>(tag) & SF_MAIN_NAMED_KEY) {
+            DomainMatcher m{std::get<0>(tag)};
             buffer.new_hash();
-            buffer.add_hash_elem("operator", m_operator);
-            first = false;
-        }
-        for (auto const &entry : m_names) {
-            if (first) {
+            for (auto const &t : o.tags()) {
+                char const *k = m(t);
+                if (k) {
+                    buffer.add_hash_elem(k, t.value());
+                }
+            }
+            buffer.finish_hash();
+        } else {
+            bool first = true;
+            // operator will be ignored on anything but these classes
+            if (m_operator && (std::get<2>(tag) & SF_MAIN_OPERATOR)) {
                 buffer.new_hash();
+                buffer.add_hash_elem("operator", m_operator);
                 first = false;
             }
-
-            buffer.add_hash_elem(entry.first, entry.second);
-        }
-
-        if (first) {
-            buffer.add_null_column();
-        } else {
-            buffer.finish_hash();
-        }
-    }
-    // admin_level
-    buffer.add_column(m_admin_level);
-    // address
-    if (m_address.empty()) {
-        buffer.add_null_column();
-    } else {
-        buffer.new_hash();
-        for (auto const &a : m_address) {
-            if (strcmp(a.first, "tiger:county") == 0) {
-                std::string term;
-                auto *end = strchr(a.second, ',');
-                if (end) {
-                    auto len = (std::string::size_type)(end - a.second);
-                    term = std::string(a.second, len);
-                } else {
-                    term = a.second;
+            for (auto const &entry : m_names) {
+                if (first) {
+                    buffer.new_hash();
+                    first = false;
                 }
-                term += " county";
-                buffer.add_hash_elem(a.first, term);
+
+                buffer.add_hash_elem(entry.first, entry.second);
+            }
+
+            if (first) {
+                buffer.add_null_column();
             } else {
-                buffer.add_hash_elem(a.first, a.second);
+                buffer.finish_hash();
             }
         }
-        buffer.finish_hash();
-    }
-    // extra tags
-    if (m_extra.empty() && m_metadata_fields.none()) {
-        buffer.add_null_column();
-    } else {
-        buffer.new_hash();
-        for (auto const &entry : m_extra) {
-            buffer.add_hash_elem(entry.first, entry.second);
+        // admin_level
+        buffer.add_column(m_admin_level);
+        // address
+        if (m_address.empty()) {
+            buffer.add_null_column();
+        } else {
+            buffer.new_hash();
+            for (auto const &a : m_address) {
+                if (strcmp(a.first, "tiger:county") == 0) {
+                    std::string term;
+                    auto *end = strchr(a.second, ',');
+                    if (end) {
+                        auto len = (std::string::size_type)(end - a.second);
+                        term = std::string(a.second, len);
+                    } else {
+                        term = a.second;
+                    }
+                    term += " county";
+                    buffer.add_hash_elem(a.first, term);
+                } else {
+                    buffer.add_hash_elem(a.first, a.second);
+                }
+            }
+            buffer.finish_hash();
         }
-        if (m_metadata_fields.version() && o.version()) {
-            buffer.add_hstore_num_noescape<osmium::object_version_type>(
-                "osm_version", o.version());
+        // extra tags
+        if (m_extra.empty() && m_metadata_fields.none()) {
+            buffer.add_null_column();
+        } else {
+            buffer.new_hash();
+            for (auto const &entry : m_extra) {
+                buffer.add_hash_elem(entry.first, entry.second);
+            }
+            if (m_metadata_fields.version() && o.version()) {
+                buffer.add_hstore_num_noescape<osmium::object_version_type>(
+                    "osm_version", o.version());
+            }
+            if (m_metadata_fields.uid() && o.uid()) {
+                buffer.add_hstore_num_noescape<osmium::user_id_type>("osm_uid",
+                                                                     o.uid());
+            }
+            if (m_metadata_fields.user() && o.user() && *(o.user()) != '\0') {
+                buffer.add_hash_elem("osm_user", o.user());
+            }
+            if (m_metadata_fields.changeset() && o.changeset()) {
+                buffer.add_hstore_num_noescape<osmium::changeset_id_type>(
+                    "osm_changeset", o.changeset());
+            }
+            if (m_metadata_fields.timestamp() && o.timestamp()) {
+                std::string timestamp = o.timestamp().to_iso();
+                buffer.add_hash_elem_noescape("osm_timestamp",
+                                              timestamp.c_str());
+            }
+            buffer.finish_hash();
         }
-        if (m_metadata_fields.uid() && o.uid()) {
-            buffer.add_hstore_num_noescape<osmium::user_id_type>("osm_uid",
-                                                                 o.uid());
-        }
-        if (m_metadata_fields.user() && o.user() && *(o.user()) != '\0') {
-            buffer.add_hash_elem("osm_user", o.user());
-        }
-        if (m_metadata_fields.changeset() && o.changeset()) {
-            buffer.add_hstore_num_noescape<osmium::changeset_id_type>(
-                "osm_changeset", o.changeset());
-        }
-        if (m_metadata_fields.timestamp() && o.timestamp()) {
-            std::string timestamp = o.timestamp().to_iso();
-            buffer.add_hash_elem_noescape("osm_timestamp", timestamp.c_str());
-        }
-        buffer.finish_hash();
-    }
-    // add the geometry - encoding it to hex along the way
-    buffer.add_hex_geom(geom);
+        // add the geometry - encoding it to hex along the way
+        buffer.add_hex_geom(geom);
 
-    buffer.finish_line();
-
-    return true;
+        buffer.finish_line();
+    }
 }

@@ -53,6 +53,25 @@ private:
     std::vector<item_t> m_deletables;
 };
 
+/**
+ * Copy manager for the gazetteer place table only.
+ *
+ * Implicitly contains the table description.
+ */
+class gazetteer_copy_mgr_t : public db_copy_mgr_t<db_deleter_place_t>
+{
+public:
+    gazetteer_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
+    : db_copy_mgr_t<db_deleter_place_t>(processor),
+      m_table(std::make_shared<db_target_descr_t>("place", "place_id"))
+    {}
+
+    void prepare() { new_line(m_table); }
+
+private:
+    std::shared_ptr<db_target_descr_t> m_table;
+};
+
 class gazetteer_style_t
 {
     using flag_t = uint16_t;
@@ -100,12 +119,12 @@ class gazetteer_style_t
     using flag_list_t = std::vector<string_with_flag_t>;
 
 public:
-    using copy_mgr_t = db_copy_mgr_t<db_deleter_place_t>;
+    using copy_mgr_t = gazetteer_copy_mgr_t;
 
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
-    bool copy_out(osmium::OSMObject const &o, std::string const &geom,
-                  copy_mgr_t &buffer);
+    void copy_out(osmium::OSMObject const &o, std::string const &geom,
+                  copy_mgr_t &buffer) const;
     std::string class_list() const;
 
     bool has_data() const { return !m_main.empty(); }
@@ -116,9 +135,8 @@ private:
                          flag_t flags);
     flag_t parse_flags(std::string const &str);
     flag_t find_flag(char const *k, char const *v) const;
+    void filter_main_tags(bool is_named, osmium::TagList const &tags);
 
-    bool copy_out_maintag(pmaintag_t const &tag, osmium::OSMObject const &o,
-                          std::string const &geom, copy_mgr_t &buffer);
     void clear();
 
     // Style data.
@@ -140,8 +158,6 @@ private:
     char const *m_operator;
     /// admin level
     int m_admin_level;
-    /// True if there is an actual name to the object (not a ref).
-    bool m_is_named;
 
     /// which metadata fields of the OSM objects should be written to the output
     osmium::metadata_options m_metadata_fields{"none"};

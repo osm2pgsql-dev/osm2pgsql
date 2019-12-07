@@ -115,7 +115,7 @@ private:
         }
     }
 
-    db_copy_mgr_t<db_deleter_place_t> m_copy;
+    gazetteer_copy_mgr_t m_copy;
     gazetteer_style_t m_style;
 
     geom::osmium_builder_t m_builder;
