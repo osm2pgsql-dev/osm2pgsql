@@ -52,7 +52,7 @@ TEST_CASE("Main tag deleted")
     CHECK(1 == node_count(conn, 2, "highway"));
     CHECK(1 == node_count(conn, 2, "railway"));
 
-    update("n1 Tatiy=restaurant x12.3 y3\n"
+    update("n1 Tnot_a=restaurant x12.3 y3\n"
            "n2 Thighway=bus_stop,name=X x56.4 y-4\n");
 
     CHECK(0 == node_count(conn, 1, "amenity"));

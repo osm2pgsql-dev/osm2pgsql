@@ -53,6 +53,11 @@ private:
     std::vector<item_t> m_deletables;
 };
 
+/**
+ * Copy manager for the gazetteer place table only.
+ *
+ * Implicitly contains the table description.
+ */
 class gazetteer_copy_mgr_t : public db_copy_mgr_t<db_deleter_place_t>
 {
 public:
@@ -61,9 +66,7 @@ public:
       m_table(std::make_shared<db_target_descr_t>("place", "place_id"))
     {}
 
-    using db_copy_mgr_t<db_deleter_place_t>::new_line;
-
-    void new_line() { new_line(m_table); }
+    void prepare() { new_line(m_table); }
 
 private:
     std::shared_ptr<db_target_descr_t> m_table;
@@ -120,8 +123,8 @@ public:
 
     void load_style(std::string const &filename);
     void process_tags(osmium::OSMObject const &o);
-    bool copy_out(osmium::OSMObject const &o, std::string const &geom,
-                  copy_mgr_t &buffer);
+    void copy_out(osmium::OSMObject const &o, std::string const &geom,
+                  copy_mgr_t &buffer) const;
     std::string class_list() const;
 
     bool has_data() const { return !m_main.empty(); }
@@ -134,8 +137,6 @@ private:
     flag_t find_flag(char const *k, char const *v) const;
     void filter_main_tags(bool is_named, osmium::TagList const &tags);
 
-    void copy_out_maintag(pmaintag_t const &tag, osmium::OSMObject const &o,
-                          std::string const &geom, copy_mgr_t &buffer);
     void clear();
 
     // Style data.

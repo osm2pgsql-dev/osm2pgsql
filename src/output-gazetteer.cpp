@@ -73,16 +73,14 @@ void output_gazetteer_t::commit() { m_copy.sync(); }
 
 int output_gazetteer_t::process_node(osmium::Node const &node)
 {
-    m_copy.new_line();
+    m_copy.prepare();
     m_style.process_tags(node);
     delete_unused_classes('N', node.id());
 
     /* Are we interested in this item? */
     if (m_style.has_data()) {
         auto wkb = m_builder.get_wkb_node(node.location());
-        if (!m_style.copy_out(node, wkb, m_copy)) {
-            delete_unused_full('N', node.id());
-        }
+        m_style.copy_out(node, wkb, m_copy);
     }
 
     return 0;
@@ -90,7 +88,7 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
 
 int output_gazetteer_t::process_way(osmium::Way *way)
 {
-    m_copy.new_line();
+    m_copy.prepare();
     m_style.process_tags(*way);
     delete_unused_classes('W', way->id());
 
@@ -114,9 +112,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             geom = wkbs[0];
         }
 
-        if (!m_style.copy_out(*way, geom, m_copy)) {
-            delete_unused_full('W', way->id());
-        }
+        m_style.copy_out(*way, geom, m_copy);
     }
 
     return 0;
@@ -124,7 +120,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 
 int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
-    m_copy.new_line();
+    m_copy.prepare();
 
     auto const &tags = rel.tags();
     char const *type = tags["type"];
@@ -167,8 +163,10 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
                      ? m_builder.get_wkb_multiline(osmium_buffer, 0.0)
                      : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
 
-    if (geoms.empty() || !m_style.copy_out(rel, geoms[0], m_copy)) {
+    if (geoms.empty()) {
         delete_unused_full('R', rel.id());
+    } else {
+        m_style.copy_out(rel, geoms[0], m_copy);
     }
 
     return 0;
