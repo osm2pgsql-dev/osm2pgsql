@@ -19,6 +19,14 @@
  */
 class db_deleter_place_t
 {
+    enum
+    {
+        // Deletion in the place table is fairly complex because of the
+        // compound primary key. It is better to start earlier with the
+        // deletion, so it can run in parallel with the file import.
+        Max_entries = 100000
+    };
+
     struct item_t
     {
         std::string classes;
@@ -47,6 +55,8 @@ public:
 
     void delete_rows(std::string const &table, std::string const &column,
                      pg_conn_t *conn);
+
+    bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
 
 private:
     /// Vector with object to delete before copying

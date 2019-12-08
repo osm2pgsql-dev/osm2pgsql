@@ -53,7 +53,7 @@ public:
         assert(buf[sz - 1] == '\t');
         buf[sz - 1] = '\n';
 
-        if (sz > db_cmd_copy_t::Max_buf_size - 100) {
+        if (m_current->is_full()) {
             m_processor->add_buffer(std::move(m_current));
         }
     }
