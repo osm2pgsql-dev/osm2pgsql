@@ -197,7 +197,6 @@ void output_pgsql_t::pending_relation(osmid_t id, int exists)
 
         auto const &rel = rels_buffer.get<osmium::Relation>(0);
         pgsql_process_relation(rel);
-        return;
     }
 }
 
