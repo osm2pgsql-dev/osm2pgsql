@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdio>
 #include <functional>
 #include <future>
@@ -10,7 +11,6 @@
 
 #include "db-copy.hpp"
 #include "middle.hpp"
-#include "node-ram-cache.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
 
@@ -400,7 +400,7 @@ private:
 void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
-     * access the data simultanious to process the rest in parallel
+     * access the data simultaneously to process the rest in parallel
      * as well as see the newly created tables.
      */
     mid->commit();

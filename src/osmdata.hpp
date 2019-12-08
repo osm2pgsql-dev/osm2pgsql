@@ -8,7 +8,6 @@
 
 class output_t;
 struct middle_t;
-class reprojection;
 
 class osmdata_t
 {
