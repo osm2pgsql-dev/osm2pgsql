@@ -53,6 +53,8 @@ namespace pt = boost::property_tree;
 void db_deleter_place_t::delete_rows(std::string const &table,
                                      std::string const &, pg_conn_t *conn)
 {
+    assert(!m_deletables.empty());
+
     fmt::memory_buffer sql;
     // Need a VALUES line for each deletable: type (3 bytes), id (15 bytes),
     // class list (20 bytes), braces etc. (5 bytes). And additional space for
