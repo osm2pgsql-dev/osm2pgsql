@@ -86,9 +86,9 @@ private:
 
     /// Delete all places that are not covered by the current style results.
     void delete_unused_classes(char osm_type, osmid_t osm_id);
-    int process_node(osmium::Node const &node);
-    int process_way(osmium::Way *way);
-    int process_relation(osmium::Relation const &rel);
+    void process_node(osmium::Node const &node);
+    void process_way(osmium::Way *way);
+    void process_relation(osmium::Relation const &rel);
 
     void delete_unused_full(char osm_type, osmid_t osm_id)
     {

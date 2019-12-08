@@ -69,7 +69,7 @@ void output_gazetteer_t::start()
 
 void output_gazetteer_t::commit() { m_copy.sync(); }
 
-int output_gazetteer_t::process_node(osmium::Node const &node)
+void output_gazetteer_t::process_node(osmium::Node const &node)
 {
     m_copy.prepare();
     m_style.process_tags(node);
@@ -80,11 +80,9 @@ int output_gazetteer_t::process_node(osmium::Node const &node)
         auto wkb = m_builder.get_wkb_node(node.location());
         m_style.copy_out(node, wkb, m_copy);
     }
-
-    return 0;
 }
 
-int output_gazetteer_t::process_way(osmium::Way *way)
+void output_gazetteer_t::process_way(osmium::Way *way)
 {
     m_copy.prepare();
     m_style.process_tags(*way);
@@ -104,7 +102,7 @@ int output_gazetteer_t::process_way(osmium::Way *way)
             auto wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
             if (wkbs.empty()) {
                 delete_unused_full('W', way->id());
-                return 0;
+                return;
             }
 
             geom = wkbs[0];
@@ -112,11 +110,9 @@ int output_gazetteer_t::process_way(osmium::Way *way)
 
         m_style.copy_out(*way, geom, m_copy);
     }
-
-    return 0;
 }
 
-int output_gazetteer_t::process_relation(osmium::Relation const &rel)
+void output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
     m_copy.prepare();
 
@@ -124,7 +120,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     char const *type = tags["type"];
     if (!type) {
         delete_unused_full('R', rel.id());
-        return 0;
+        return;
     }
 
     bool is_waterway = strcmp(type, "waterway") == 0;
@@ -133,7 +129,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
         !(strcmp(type, "boundary") == 0 || strcmp(type, "multipolygon") == 0 ||
           is_waterway)) {
         delete_unused_full('R', rel.id());
-        return 0;
+        return;
     }
 
     m_style.process_tags(rel);
@@ -141,7 +137,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     /* Are we interested in this item? */
     if (!m_style.has_data()) {
-        return 0;
+        return;
     }
 
     /* get the boundary path (ways) */
@@ -150,7 +146,7 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     if (num_ways == 0) {
         delete_unused_full('R', rel.id());
-        return 0;
+        return;
     }
 
     for (auto &w : osmium_buffer.select<osmium::Way>()) {
@@ -166,6 +162,4 @@ int output_gazetteer_t::process_relation(osmium::Relation const &rel)
     } else {
         m_style.copy_out(rel, geoms[0], m_copy);
     }
-
-    return 0;
 }

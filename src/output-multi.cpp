@@ -276,7 +276,7 @@ void output_multi_t::relation_delete(osmid_t id)
     }
 }
 
-int output_multi_t::process_node(osmium::Node const &node)
+void output_multi_t::process_node(osmium::Node const &node)
 {
     // check if we are keeping this node
     taglist_t outtags;
@@ -290,10 +290,9 @@ int output_multi_t::process_node(osmium::Node const &node)
             copy_node_to_table(node.id(), geom, outtags);
         }
     }
-    return 0;
 }
 
-int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
+void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 {
     //if the way could exist already we have to make the relation pending and reprocess it later
     //but only if we actually care about relations
@@ -319,10 +318,9 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
             copy_to_table(way->id(), geom, outtags);
         }
     }
-    return 0;
 }
 
-int output_multi_t::process_way(osmium::Way *way)
+void output_multi_t::process_way(osmium::Way *way)
 {
     //check if we are keeping this way
     taglist_t outtags;
@@ -331,7 +329,7 @@ int output_multi_t::process_way(osmium::Way *way)
     if (!filter) {
         //get the geom from the middle
         if (m_mid->nodes_get_list(&(way->nodes())) < 1) {
-            return 0;
+            return;
         }
         //grab its geom
         auto geom = m_processor->process_way(*way, &m_builder);
@@ -348,10 +346,9 @@ int output_multi_t::process_way(osmium::Way *way)
             }
         }
     }
-    return 0;
 }
 
-int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
+void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 {
     //if it may exist already, delete it first
     if (exists) {
@@ -366,7 +363,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
         if (m_relation_helper.set(rel, m_mid.get()) < 1) {
-            return 0;
+            return;
         }
 
         //NOTE: make_polygon is preset here this is to force the tag matching
@@ -390,7 +387,6 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             }
         }
     }
-    return 0;
 }
 
 void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,

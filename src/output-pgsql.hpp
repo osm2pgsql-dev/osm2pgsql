@@ -74,9 +74,9 @@ public:
 protected:
     void pgsql_out_way(osmium::Way const &way, taglist_t *tags, bool polygon,
                        bool roads);
-    int pgsql_process_relation(osmium::Relation const &rel);
-    int pgsql_delete_way_from_output(osmid_t osm_id);
-    int pgsql_delete_relation_from_output(osmid_t osm_id);
+    void pgsql_process_relation(osmium::Relation const &rel);
+    void pgsql_delete_way_from_output(osmid_t osm_id);
+    void pgsql_delete_relation_from_output(osmid_t osm_id);
 
     std::unique_ptr<tagtransform_t> m_tagtransform;
 

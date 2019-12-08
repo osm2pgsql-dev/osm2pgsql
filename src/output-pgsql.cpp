@@ -255,11 +255,11 @@ void output_pgsql_t::way_add(osmium::Way *way)
 }
 
 /* This is the workhorse of pgsql_add_relation, split out because it is used as the callback for iterate relations */
-int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
+void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 {
     taglist_t prefiltered_tags;
     if (m_tagtransform->filter_tags(rel, nullptr, nullptr, prefiltered_tags)) {
-        return 1;
+        return;
     }
 
     idlist_t xid2;
@@ -275,7 +275,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
 
     if (num_ways == 0) {
-        return 0;
+        return;
     }
 
     int roads = 0;
@@ -288,7 +288,7 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
     if (m_tagtransform->filter_rel_member_tags(prefiltered_tags, buffer, xrole,
                                                &make_boundary, &make_polygon,
                                                &roads, outtags)) {
-        return 0;
+        return;
     }
 
     for (auto &w : buffer.select<osmium::Way>()) {
@@ -331,8 +331,6 @@ int output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
             m_tables[t_poly]->write_row(-rel.id(), outtags, wkb);
         }
     }
-
-    return 0;
 }
 
 void output_pgsql_t::relation_add(osmium::Relation const &rel)
@@ -369,15 +367,15 @@ void output_pgsql_t::node_delete(osmid_t osm_id)
 }
 
 /* Seperated out because we use it elsewhere */
-int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
+void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 {
     /* Optimisation: we only need this is slim mode */
     if (!m_options.slim) {
-        return 0;
+        return;
     }
     /* in droptemp mode we don't have indices and this takes ages. */
     if (m_options.droptemp) {
-        return 0;
+        return;
     }
 
     m_tables[t_roads]->delete_row(osm_id);
@@ -387,7 +385,6 @@ int output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     if (expire.from_db(m_tables[t_poly].get(), osm_id) != 0) {
         m_tables[t_poly]->delete_row(osm_id);
     }
-    return 0;
 }
 
 void output_pgsql_t::way_delete(osmid_t osm_id)
@@ -400,7 +397,7 @@ void output_pgsql_t::way_delete(osmid_t osm_id)
 }
 
 /* Relations are identified by using negative IDs */
-int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
+void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
     if (expire.from_db(m_tables[t_line].get(), -osm_id) != 0) {
@@ -409,7 +406,6 @@ int output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
     if (expire.from_db(m_tables[t_poly].get(), -osm_id) != 0) {
         m_tables[t_poly]->delete_row(-osm_id);
     }
-    return 0;
 }
 
 void output_pgsql_t::relation_delete(osmid_t osm_id)

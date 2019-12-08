@@ -73,10 +73,10 @@ public:
 
 protected:
     void delete_from_output(osmid_t id);
-    int process_node(osmium::Node const &node);
-    int process_way(osmium::Way *way);
-    int reprocess_way(osmium::Way *way, bool exists);
-    int process_relation(osmium::Relation const &rel, bool exists);
+    void process_node(osmium::Node const &node);
+    void process_way(osmium::Way *way);
+    void reprocess_way(osmium::Way *way, bool exists);
+    void process_relation(osmium::Relation const &rel, bool exists);
     void copy_node_to_table(osmid_t id, const std::string &geom,
                             taglist_t &tags);
     void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
