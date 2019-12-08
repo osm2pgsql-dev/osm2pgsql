@@ -65,11 +65,10 @@ std::shared_ptr<output_t> output_multi_t::clone(
         new output_multi_t(this, mid, copy_thread));
 }
 
-int output_multi_t::start()
+void output_multi_t::start()
 {
     m_table->start(m_options.database_options.conninfo(),
                    m_options.tblsmain_data);
-    return 0;
 }
 
 size_t output_multi_t::pending_count() const
@@ -120,18 +119,14 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_multi_t::pending_way(osmid_t id, int exists)
+void output_multi_t::pending_way(osmid_t id, int exists)
 {
-    int ret = 0;
-
     // Try to fetch the way from the DB
     buffer.clear();
     if (m_mid->ways_get(id, buffer)) {
         // Output the way
-        ret = reprocess_way(&buffer.get<osmium::Way>(0), exists);
+        reprocess_way(&buffer.get<osmium::Way>(0), exists);
     }
-
-    return ret;
 }
 
 void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
@@ -174,18 +169,14 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     }
 }
 
-int output_multi_t::pending_relation(osmid_t id, int exists)
+void output_multi_t::pending_relation(osmid_t id, int exists)
 {
-    int ret = 0;
-
     // Try to fetch the relation from the DB
     buffer.clear();
     if (m_mid->relations_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        ret = process_relation(rel, exists);
+        process_relation(rel, exists);
     }
-
-    return ret;
 }
 
 void output_multi_t::stop(osmium::thread::Pool *pool)
@@ -202,33 +193,30 @@ void output_multi_t::stop(osmium::thread::Pool *pool)
 
 void output_multi_t::commit() { m_table->commit(); }
 
-int output_multi_t::node_add(osmium::Node const &node)
+void output_multi_t::node_add(osmium::Node const &node)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
-        return process_node(node);
+        process_node(node);
     }
-    return 0;
 }
 
-int output_multi_t::way_add(osmium::Way *way)
+void output_multi_t::way_add(osmium::Way *way)
 {
     if (m_processor->interests(geometry_processor::interest_way) &&
         way->nodes().size() > 1) {
-        return process_way(way);
+        process_way(way);
     }
-    return 0;
 }
 
-int output_multi_t::relation_add(osmium::Relation const &rel)
+void output_multi_t::relation_add(osmium::Relation const &rel)
 {
     if (m_processor->interests(geometry_processor::interest_relation) &&
         !rel.members().empty()) {
-        return process_relation(rel, 0);
+        process_relation(rel, 0);
     }
-    return 0;
 }
 
-int output_multi_t::node_modify(osmium::Node const &node)
+void output_multi_t::node_modify(osmium::Node const &node)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
@@ -236,13 +224,11 @@ int output_multi_t::node_modify(osmium::Node const &node)
 
         // TODO: need to mark any ways or relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_node(node);
+        process_node(node);
     }
-
-    return 0;
 }
 
-int output_multi_t::way_modify(osmium::Way *way)
+void output_multi_t::way_modify(osmium::Way *way)
 {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
@@ -250,13 +236,11 @@ int output_multi_t::way_modify(osmium::Way *way)
 
         // TODO: need to mark any relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_way(way);
+        process_way(way);
     }
-
-    return 0;
 }
 
-int output_multi_t::relation_modify(osmium::Relation const &rel)
+void output_multi_t::relation_modify(osmium::Relation const &rel)
 {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
@@ -264,40 +248,35 @@ int output_multi_t::relation_modify(osmium::Relation const &rel)
 
         // TODO: need to mark any other relations using it - depends on what
         // type of output this is... delegate to the geometry processor??
-        return process_relation(rel, false);
+        process_relation(rel, false);
     }
-
-    return 0;
 }
 
-int output_multi_t::node_delete(osmid_t id)
+void output_multi_t::node_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_node)) {
         // TODO - need to know it's a node?
         delete_from_output(id);
     }
-    return 0;
 }
 
-int output_multi_t::way_delete(osmid_t id)
+void output_multi_t::way_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_way)) {
         // TODO - need to know it's a way?
         delete_from_output(id);
     }
-    return 0;
 }
 
-int output_multi_t::relation_delete(osmid_t id)
+void output_multi_t::relation_delete(osmid_t id)
 {
     if (m_processor->interests(geometry_processor::interest_relation)) {
         // TODO - need to know it's a relation?
         delete_from_output(-id);
     }
-    return 0;
 }
 
-int output_multi_t::process_node(osmium::Node const &node)
+void output_multi_t::process_node(osmium::Node const &node)
 {
     // check if we are keeping this node
     taglist_t outtags;
@@ -311,10 +290,9 @@ int output_multi_t::process_node(osmium::Node const &node)
             copy_node_to_table(node.id(), geom, outtags);
         }
     }
-    return 0;
 }
 
-int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
+void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 {
     //if the way could exist already we have to make the relation pending and reprocess it later
     //but only if we actually care about relations
@@ -340,10 +318,9 @@ int output_multi_t::reprocess_way(osmium::Way *way, bool exists)
             copy_to_table(way->id(), geom, outtags);
         }
     }
-    return 0;
 }
 
-int output_multi_t::process_way(osmium::Way *way)
+void output_multi_t::process_way(osmium::Way *way)
 {
     //check if we are keeping this way
     taglist_t outtags;
@@ -352,7 +329,7 @@ int output_multi_t::process_way(osmium::Way *way)
     if (!filter) {
         //get the geom from the middle
         if (m_mid->nodes_get_list(&(way->nodes())) < 1) {
-            return 0;
+            return;
         }
         //grab its geom
         auto geom = m_processor->process_way(*way, &m_builder);
@@ -369,10 +346,9 @@ int output_multi_t::process_way(osmium::Way *way)
             }
         }
     }
-    return 0;
 }
 
-int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
+void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
 {
     //if it may exist already, delete it first
     if (exists) {
@@ -387,7 +363,7 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
         //TODO: move this into geometry processor, figure a way to come back for tag transform
         //grab ways/nodes of the members in the relation, bail if none were used
         if (m_relation_helper.set(rel, m_mid.get()) < 1) {
-            return 0;
+            return;
         }
 
         //NOTE: make_polygon is preset here this is to force the tag matching
@@ -411,7 +387,6 @@ int output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             }
         }
     }
-    return 0;
 }
 
 void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,

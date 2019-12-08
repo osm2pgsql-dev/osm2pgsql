@@ -42,29 +42,29 @@ public:
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
-    int start() override;
+    void start() override;
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
     void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
                       size_t &added) override;
-    int pending_way(osmid_t id, int exists) override;
+    void pending_way(osmid_t id, int exists) override;
 
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
                            size_t output_id, size_t &added) override;
-    int pending_relation(osmid_t id, int exists) override;
+    void pending_relation(osmid_t id, int exists) override;
 
-    int node_add(osmium::Node const &node) override;
-    int way_add(osmium::Way *way) override;
-    int relation_add(osmium::Relation const &rel) override;
+    void node_add(osmium::Node const &node) override;
+    void way_add(osmium::Way *way) override;
+    void relation_add(osmium::Relation const &rel) override;
 
-    int node_modify(osmium::Node const &node) override;
-    int way_modify(osmium::Way *way) override;
-    int relation_modify(osmium::Relation const &rel) override;
+    void node_modify(osmium::Node const &node) override;
+    void way_modify(osmium::Way *way) override;
+    void relation_modify(osmium::Relation const &rel) override;
 
-    int node_delete(osmid_t id) override;
-    int way_delete(osmid_t id) override;
-    int relation_delete(osmid_t id) override;
+    void node_delete(osmid_t id) override;
+    void way_delete(osmid_t id) override;
+    void relation_delete(osmid_t id) override;
 
     size_t pending_count() const override;
 
@@ -73,10 +73,10 @@ public:
 
 protected:
     void delete_from_output(osmid_t id);
-    int process_node(osmium::Node const &node);
-    int process_way(osmium::Way *way);
-    int reprocess_way(osmium::Way *way, bool exists);
-    int process_relation(osmium::Relation const &rel, bool exists);
+    void process_node(osmium::Node const &node);
+    void process_way(osmium::Way *way);
+    void reprocess_way(osmium::Way *way, bool exists);
+    void process_relation(osmium::Relation const &rel, bool exists);
     void copy_node_to_table(osmid_t id, const std::string &geom,
                             taglist_t &tags);
     void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,

@@ -17,30 +17,34 @@ public:
     clone(std::shared_ptr<middle_query_t> const &mid,
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override;
 
-    int start() override;
-    void stop(osmium::thread::Pool *pool) override;
-    void commit() override;
-    void cleanup(void);
+    void start() override {}
+    void stop(osmium::thread::Pool * /*pool*/) override {}
+    void commit() override {}
+    void cleanup() {}
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
-                      size_t &added) override;
-    int pending_way(osmid_t id, int exists) override;
+    void enqueue_ways(pending_queue_t & /*job_queue*/, osmid_t /*id*/, size_t /*output_id*/,
+                      size_t & /*added*/) override
+    {}
 
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                           size_t output_id, size_t &added) override;
-    int pending_relation(osmid_t id, int exists) override;
+    void pending_way(osmid_t /*id*/, int /*exists*/) override {}
 
-    int node_add(osmium::Node const &node) override;
-    int way_add(osmium::Way *way) override;
-    int relation_add(osmium::Relation const &rel) override;
+    void enqueue_relations(pending_queue_t & /*job_queue*/, osmid_t /*id*/,
+                           size_t /*output_id*/, size_t & /*added*/) override
+    {}
 
-    int node_modify(osmium::Node const &node) override;
-    int way_modify(osmium::Way *way) override;
-    int relation_modify(osmium::Relation const &rel) override;
+    void pending_relation(osmid_t /*id*/, int /*exists*/) override {}
 
-    int node_delete(osmid_t id) override;
-    int way_delete(osmid_t id) override;
-    int relation_delete(osmid_t id) override;
+    void node_add(osmium::Node const & /*node*/) override {}
+    void way_add(osmium::Way * /*way*/) override {}
+    void relation_add(osmium::Relation const & /*rel*/) override {}
+
+    void node_modify(osmium::Node const & /*node*/) override {}
+    void way_modify(osmium::Way * /*way*/) override {}
+    void relation_modify(osmium::Relation const & /*rel*/) override {}
+
+    void node_delete(osmid_t /*id*/) override {}
+    void way_delete(osmid_t /*id*/) override {}
+    void relation_delete(osmid_t /*id*/) override {}
 };
 
 #endif // OSM2PGSQL_OUTPUT_NULL_HPP
