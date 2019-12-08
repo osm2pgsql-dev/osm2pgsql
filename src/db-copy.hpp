@@ -45,6 +45,13 @@ struct db_target_descr_t
  */
 class db_deleter_by_id_t
 {
+    enum
+    {
+        // There is a trade-off here between sending as few DELETE SQL as
+        // possible and keeping the size of the deletable vector managable.
+        Max_entries = 1000000
+    };
+
 public:
     bool has_data() const noexcept { return !m_deletables.empty(); }
 
@@ -52,6 +59,8 @@ public:
 
     void delete_rows(std::string const &table, std::string const &column,
                      pg_conn_t *conn);
+
+    bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
 
 private:
     /// Vector with object to delete before copying
@@ -119,6 +128,12 @@ class db_cmd_copy_delete_t : public db_cmd_copy_t
 {
 public:
     using db_cmd_copy_t::db_cmd_copy_t;
+
+    /// Return true if the buffer is filled up.
+    bool is_full() const noexcept
+    {
+        return (buffer.size() > Max_buf_size - 100) || m_deleter.is_full();
+    }
 
     bool has_deletables() const noexcept override
     {
