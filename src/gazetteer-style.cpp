@@ -53,17 +53,33 @@ namespace pt = boost::property_tree;
 void db_deleter_place_t::delete_rows(std::string const &table,
                                      std::string const &, pg_conn_t *conn)
 {
-    for (auto const &i : m_deletables) {
-        if (i.classes.empty()) {
-            conn->exec(
-                "DELETE FROM {} WHERE osm_type = '{}' AND osm_id = {}"_format(
-                    table, i.osm_type, i.osm_id));
+    assert(!m_deletables.empty());
+
+    fmt::memory_buffer sql;
+    // Need a VALUES line for each deletable: type (3 bytes), id (15 bytes),
+    // class list (20 bytes), braces etc. (5 bytes). And additional space for
+    // the remainder of the SQL command.
+    sql.reserve(m_deletables.size() * 43 + 200);
+
+    fmt::format_to(sql, "DELETE FROM {} p USING (VALUES ", table);
+
+    for (auto const &item : m_deletables) {
+        fmt::format_to(sql, "('{}',{},", item.osm_type, item.osm_id);
+        if (item.classes.empty()) {
+            fmt::format_to(sql, "ARRAY[]::text[]),");
         } else {
-            conn->exec("DELETE FROM {} WHERE osm_type = '{}' AND osm_id = {}"
-                       "AND class NOT IN ({})"_format(table, i.osm_type,
-                                                      i.osm_id, i.classes));
+            fmt::format_to(sql, "ARRAY[{}]),", item.classes);
         }
     }
+
+    // remove the final comma
+    sql.resize(sql.size() - 1);
+
+    fmt::format_to(sql, ") AS t (osm_type, osm_id, classes) WHERE"
+                        " p.osm_type = t.osm_type AND p.osm_id = t.osm_id"
+                        " AND NOT p.class = ANY(t.classes)");
+
+    conn->exec(fmt::to_string(sql));
 }
 
 void gazetteer_style_t::clear()
