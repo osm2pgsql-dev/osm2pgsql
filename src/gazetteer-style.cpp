@@ -36,7 +36,7 @@ public:
         if (std::strncmp(t.key(), m_domain, m_len) == 0 &&
             std::strncmp(t.key() + m_len, ":name", 5) == 0 &&
             (t.key()[m_len + 5] == '\0' || t.key()[m_len + 5] == ':')) {
-            return t.key() + m_len + 6;
+            return t.key() + m_len + 1;
         }
 
         return nullptr;
