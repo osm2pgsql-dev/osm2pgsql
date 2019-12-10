@@ -11,6 +11,7 @@
 
 #include "format.hpp"
 #include "options.hpp"
+#include "pgsql.hpp"
 #include <catch.hpp>
 
 #ifdef _MSC_VER
@@ -21,31 +22,6 @@
 
 /// Helper classes for postgres connections
 namespace pg {
-
-class result_t
-{
-public:
-    result_t(PGresult *result) : m_result(result) {}
-
-    ~result_t() noexcept { PQclear(m_result); }
-
-    ExecStatusType status() const noexcept { return PQresultStatus(m_result); }
-
-    int num_tuples() const noexcept { return PQntuples(m_result); }
-
-    std::string get_value(int row, int col) const noexcept
-    {
-        return PQgetvalue(m_result, row, col);
-    }
-
-    bool is_null(int row, int col) const noexcept
-    {
-        return PQgetisnull(m_result, row, col) != 0;
-    }
-
-private:
-    PGresult *m_result;
-};
 
 class conn_t
 {
@@ -71,7 +47,7 @@ public:
 
     void exec(std::string const &cmd, ExecStatusType expect = PGRES_COMMAND_OK)
     {
-        result_t res = query(cmd);
+        pg_result_t res = query(cmd);
         if (res.status() != expect) {
             fprintf(stderr, "Query '%s' failed with: %s\n", cmd.c_str(),
                     PQerrorMessage(m_conn));
@@ -79,7 +55,7 @@ public:
         }
     }
 
-    result_t query(std::string const &cmd) const
+    pg_result_t query(std::string const &cmd) const
     {
         return PQexec(m_conn, cmd.c_str());
     }
@@ -87,7 +63,7 @@ public:
     template <typename T>
     T require_scalar(std::string const &cmd) const
     {
-        result_t res = query(cmd);
+        pg_result_t res = query(cmd);
         REQUIRE(res.status() == PGRES_TUPLES_OK);
         REQUIRE(res.num_tuples() == 1);
 
@@ -102,15 +78,15 @@ public:
 
     void assert_null(std::string const &cmd) const
     {
-        result_t res = query(cmd);
+        pg_result_t res = query(cmd);
         REQUIRE(res.status() == PGRES_TUPLES_OK);
         REQUIRE(res.num_tuples() == 1);
         REQUIRE(res.is_null(0, 0));
     }
 
-    result_t require_row(std::string const &cmd) const
+    pg_result_t require_row(std::string const &cmd) const
     {
-        result_t res = query(cmd);
+        pg_result_t res = query(cmd);
         REQUIRE(res.status() == PGRES_TUPLES_OK);
         REQUIRE(res.num_tuples() == 1);
 
