@@ -114,3 +114,17 @@ TEST_CASE("route relation slim flatnode")
     REQUIRE(1 == conn.get_count("osm2pgsql_test_roads"));
     REQUIRE(0 == conn.get_count("osm2pgsql_test_polygon"));
 }
+
+TEST_CASE("liechtenstein slim bz2 parsing regression")
+{
+    REQUIRE_NOTHROW(db.run_file(testing::opt_t().slim(),
+                                "liechtenstein-2013-08-03.osm.bz2"));
+
+    auto conn = db.db().connect();
+    require_tables(conn);
+
+    REQUIRE(1342 == conn.get_count("osm2pgsql_test_point"));
+    REQUIRE(3231 == conn.get_count("osm2pgsql_test_line"));
+    REQUIRE(375 == conn.get_count("osm2pgsql_test_roads"));
+    REQUIRE(4130 == conn.get_count("osm2pgsql_test_polygon"));
+}
