@@ -140,7 +140,7 @@ private:
 class tempdb_t
 {
 public:
-    tempdb_t()
+    tempdb_t() noexcept
     {
         try {
             conn_t conn("dbname=postgres");
@@ -159,6 +159,12 @@ public:
             exit(1);
         }
     }
+
+    tempdb_t(tempdb_t const &) = delete;
+    tempdb_t &operator=(tempdb_t const &) = delete;
+
+    tempdb_t(tempdb_t &&) = delete;
+    tempdb_t &operator=(tempdb_t const &&) = delete;
 
     ~tempdb_t() noexcept
     {
