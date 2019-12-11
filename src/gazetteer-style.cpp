@@ -4,6 +4,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <osmium/osm.hpp>
 
+#include "domain-matcher.hpp"
 #include "format.hpp"
 #include "gazetteer-style.hpp"
 #include "pgsql.hpp"
@@ -16,36 +17,6 @@ enum : int
     MAX_ADMINLEVEL = 15
 };
 
-/**
- * Returns the tag specific name, if applicable.
- *
- * OSM tags may contain name tags that refer to one of the other tags
- * in the tag set. For example, the name of a bridge is tagged as
- * bridge:name=Foo to not confuse it with the name of the highway
- * going over the bridge. This matcher checks if a tag is such a name tag
- * for the given tag key and returns the the name key without the prefix
- * if it matches.
- */
-class DomainMatcher
-{
-public:
-    DomainMatcher(char const *cls) : m_domain(cls), m_len(strlen(cls)) {}
-
-    char const *operator()(osmium::Tag const &t) const noexcept
-    {
-        if (std::strncmp(t.key(), m_domain, m_len) == 0 &&
-            std::strncmp(t.key() + m_len, ":name", 5) == 0 &&
-            (t.key()[m_len + 5] == '\0' || t.key()[m_len + 5] == ':')) {
-            return t.key() + m_len + 1;
-        }
-
-        return nullptr;
-    }
-
-private:
-    char const *m_domain;
-    size_t m_len;
-};
 }
 
 namespace pt = boost::property_tree;

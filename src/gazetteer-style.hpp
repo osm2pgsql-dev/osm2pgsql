@@ -1,11 +1,13 @@
 #ifndef OSM2PGSQL_GAZETTEER_STYLE_HPP
 #define OSM2PGSQL_GAZETTEER_STYLE_HPP
 
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
+#include <osmium/fwd.hpp>
 #include <osmium/osm/metadata_options.hpp>
 
 #include "db-copy-mgr.hpp"
