@@ -51,12 +51,6 @@ public:
         }
 
         int get_count() const { return m_count; }
-        void reset()
-        {
-            //NOTE: PQgetvalue doc doesn't say if you can call it
-            //      multiple times with the same row col
-            m_current = 0;
-        }
 
     private:
         wkb_reader(pg_result_t &&result)
