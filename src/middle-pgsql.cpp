@@ -18,6 +18,7 @@
 
 #include <osmium/builder/osm_object_builder.hpp>
 #include <osmium/memory/buffer.hpp>
+#include <osmium/osm/types_from_string.hpp>
 
 #include <libpq-fe.h>
 
@@ -346,15 +347,12 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 
     // Nodes must have been written back at this point.
     auto const res = exec_prepared("get_node_list", buffer.c_str());
-    auto const countPG = res.num_tuples();
-
     std::unordered_map<osmid_t, osmium::Location> locs;
-    for (int i = 0; i < countPG; ++i) {
+    for (int i = 0; i < res.num_tuples(); ++i) {
         locs.emplace(
-            strtoosmid(res.get_value(i, 0), nullptr, 10),
-            osmium::Location(
-                (int)strtol(res.get_value(i, 2), nullptr, 10),
-                (int)strtol(res.get_value(i, 1), nullptr, 10)));
+            osmium::string_to_object_id(res.get_value(i, 0)),
+            osmium::Location{(int)strtol(res.get_value(i, 2), nullptr, 10),
+                             (int)strtol(res.get_value(i, 1), nullptr, 10)});
     }
 
     for (auto &n : *nodes) {
@@ -409,16 +407,14 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     //keep track of whatever ways and rels these nodes intersect
     auto res = exec_prepared("mark_ways_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
-        char *end;
-        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
+        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         ways_pending_tracker->mark(marked);
     }
 
     //do the rels too
     res = exec_prepared("mark_rels_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
-        char *end;
-        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
+        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         rels_pending_tracker->mark(marked);
     }
 }
@@ -487,13 +483,9 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
     // Make sures all ways have been written back.
     auto const res = exec_prepared("get_way_list", tmp2.c_str());
-    int const countPG = res.num_tuples();
-
     idlist_t wayidspg;
-
-    for (int i = 0; i < countPG; i++) {
-        wayidspg.push_back(
-            strtoosmid(res.get_value(i, 0), nullptr, 10));
+    for (int i = 0; i < res.num_tuples(); ++i) {
+        wayidspg.push_back(osmium::string_to_object_id(res.get_value(i, 0)));
     }
 
     // Match the list of ways coming from postgres in a different order
@@ -503,16 +495,14 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
         if (m.type() != osmium::item_type::way) {
             continue;
         }
-        for (int j = 0; j < countPG; j++) {
+        for (int j = 0; j < res.num_tuples(); ++j) {
             if (m.ref() == wayidspg[j]) {
                 {
                     osmium::builder::WayBuilder builder(buffer);
                     builder.set_id(m.ref());
 
-                    pgsql_parse_nodes(res.get_value(j, 1), buffer,
-                                      builder);
-                    pgsql_parse_tags(res.get_value(j, 2), buffer,
-                                     builder);
+                    pgsql_parse_nodes(res.get_value(j, 1), buffer, builder);
+                    pgsql_parse_tags(res.get_value(j, 2), buffer, builder);
                 }
 
                 buffer.commit();
@@ -553,8 +543,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     //keep track of whatever rels this way intersects
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
-        char *end;
-        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
+        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         rels_pending_tracker->mark(marked);
     }
 }
@@ -630,8 +619,7 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     //keep track of whatever ways this relation interesects
     auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
-        char *end;
-        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
+        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         ways_pending_tracker->mark(marked);
     }
 
@@ -660,8 +648,7 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
     auto const res = exec_prepared("mark_rels", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
-        char *end;
-        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
+        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         rels_pending_tracker->mark(marked);
     }
 }
@@ -673,7 +660,7 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
     idlist_t rel_ids;
     rel_ids.resize((size_t)ntuples);
     for (int i = 0; i < ntuples; ++i) {
-        rel_ids[i] = strtoosmid(result.get_value(i, 0), nullptr, 10);
+        rel_ids[i] = osmium::string_to_object_id(result.get_value(i, 0));
     }
 
     return rel_ids;
@@ -831,7 +818,7 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
         src->persistent_cache));
 
     // We use a connection per table to enable the use of COPY
-    for (int i = 0; i < NUM_TABLES; i++) {
+    for (int i = 0; i < NUM_TABLES; ++i) {
         mid->exec_sql(src->tables[i].m_prepare_query);
     }
 
