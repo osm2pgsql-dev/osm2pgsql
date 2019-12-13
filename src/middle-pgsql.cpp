@@ -351,10 +351,10 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     std::unordered_map<osmid_t, osmium::Location> locs;
     for (int i = 0; i < countPG; ++i) {
         locs.emplace(
-            strtoosmid(PQgetvalue(res.get(), i, 0), nullptr, 10),
+            strtoosmid(res.get_value(i, 0), nullptr, 10),
             osmium::Location(
-                (int)strtol(PQgetvalue(res.get(), i, 2), nullptr, 10),
-                (int)strtol(PQgetvalue(res.get(), i, 1), nullptr, 10)));
+                (int)strtol(res.get_value(i, 2), nullptr, 10),
+                (int)strtol(res.get_value(i, 1), nullptr, 10)));
     }
 
     for (auto &n : *nodes) {
@@ -410,7 +410,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     auto res = exec_prepared("mark_ways_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
+        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
         ways_pending_tracker->mark(marked);
     }
 
@@ -418,7 +418,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     res = exec_prepared("mark_rels_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
+        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
 }
@@ -454,8 +454,8 @@ bool middle_query_pgsql_t::ways_get(osmid_t id,
         osmium::builder::WayBuilder builder(buffer);
         builder.set_id(id);
 
-        pgsql_parse_nodes(PQgetvalue(res.get(), 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
+        pgsql_parse_nodes(res.get_value(0, 0), buffer, builder);
+        pgsql_parse_tags(res.get_value(0, 1), buffer, builder);
     }
 
     buffer.commit();
@@ -493,7 +493,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
     for (int i = 0; i < countPG; i++) {
         wayidspg.push_back(
-            strtoosmid(PQgetvalue(res.get(), i, 0), nullptr, 10));
+            strtoosmid(res.get_value(i, 0), nullptr, 10));
     }
 
     // Match the list of ways coming from postgres in a different order
@@ -509,9 +509,9 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                     osmium::builder::WayBuilder builder(buffer);
                     builder.set_id(m.ref());
 
-                    pgsql_parse_nodes(PQgetvalue(res.get(), j, 1), buffer,
+                    pgsql_parse_nodes(res.get_value(j, 1), buffer,
                                       builder);
-                    pgsql_parse_tags(PQgetvalue(res.get(), j, 2), buffer,
+                    pgsql_parse_tags(res.get_value(j, 2), buffer,
                                      builder);
                 }
 
@@ -554,7 +554,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
+        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
 }
@@ -616,8 +616,8 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
         osmium::builder::RelationBuilder builder(buffer);
         builder.set_id(id);
 
-        pgsql_parse_members(PQgetvalue(res.get(), 0, 0), buffer, builder);
-        pgsql_parse_tags(PQgetvalue(res.get(), 0, 1), buffer, builder);
+        pgsql_parse_members(res.get_value(0, 0), buffer, builder);
+        pgsql_parse_tags(res.get_value(0, 1), buffer, builder);
     }
 
     buffer.commit();
@@ -631,7 +631,7 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
+        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
         ways_pending_tracker->mark(marked);
     }
 
@@ -661,7 +661,7 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     auto const res = exec_prepared("mark_rels", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         char *end;
-        osmid_t marked = strtoosmid(PQgetvalue(res.get(), i, 0), &end, 10);
+        osmid_t marked = strtoosmid(res.get_value(i, 0), &end, 10);
         rels_pending_tracker->mark(marked);
     }
 }
@@ -673,7 +673,7 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
     idlist_t rel_ids;
     rel_ids.resize((size_t)ntuples);
     for (int i = 0; i < ntuples; ++i) {
-        rel_ids[i] = strtoosmid(PQgetvalue(result.get(), i, 0), nullptr, 10);
+        rel_ids[i] = strtoosmid(result.get_value(i, 0), nullptr, 10);
     }
 
     return rel_ids;

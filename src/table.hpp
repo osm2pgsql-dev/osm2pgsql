@@ -45,7 +45,7 @@ public:
         const char *get_next()
         {
             if (m_current < m_count) {
-                return PQgetvalue(m_result.get(), m_current++, 0);
+                return m_result.get_value(m_current++, 0);
             }
             return nullptr;
         }
@@ -54,7 +54,7 @@ public:
 
     private:
         wkb_reader(pg_result_t &&result)
-        : m_result(std::move(result)), m_count(PQntuples(m_result.get())),
+        : m_result(std::move(result)), m_count(m_result.num_tuples()),
           m_current(0)
         {}
 
