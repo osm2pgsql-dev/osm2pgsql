@@ -408,7 +408,9 @@ node_ram_cache::~node_ram_cache()
             storedNodes, 100.0f * storedNodes / totalNodes,
             100.0f * storedNodes * sizeof(osmium::Location) / cacheUsed,
             usedBlocks, sizeSparseTuples,
-            100.0f * nodesCacheHits / nodesCacheLookups);
+            nodesCacheLookups == 0
+                ? 0.0f
+                : 100.0f * nodesCacheHits / nodesCacheLookups);
 
     if ((allocStrategy & ALLOC_DENSE) > 0) {
         if ((allocStrategy & ALLOC_DENSE_CHUNK) > 0) {
@@ -477,9 +479,9 @@ osmium::Location node_ram_cache::get(osmid_t id)
     }
 
     if (coord.valid()) {
-        nodesCacheHits++;
+        ++nodesCacheHits;
     }
-    nodesCacheLookups++;
+    ++nodesCacheLookups;
 
     return coord;
 }
