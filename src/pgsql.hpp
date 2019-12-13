@@ -5,6 +5,7 @@
 
 #include <libpq-fe.h>
 
+#include <cassert>
 #include <memory>
 #include <string>
 
@@ -20,23 +21,52 @@ class pg_result_t
 public:
     pg_result_t(PGresult *result) : m_result(result) {}
 
+    /// Get a pointer to the underlying PGresult object.
     PGresult *get() const noexcept { return m_result.get(); }
 
+    /// Get the status of this result.
     ExecStatusType status() const noexcept
     {
         return PQresultStatus(m_result.get());
     }
 
+    /// The number of fields (columns) in this result.
+    int num_fields() const noexcept { return PQnfields(m_result.get()); }
+
+    /// The number of tuples (rows) in this result.
     int num_tuples() const noexcept { return PQntuples(m_result.get()); }
 
-    std::string get_value(int row, int col) const noexcept
+    /// Does the field at (row, col) has the NULL value?
+    bool is_null(int row, int col) const noexcept
     {
+        assert(row < num_tuples() && col < num_fields());
+        return PQgetisnull(m_result.get(), row, col) != 0;
+    }
+
+    /// The length of the field at (row, col) in bytes.
+    int get_length(int row, int col) const noexcept
+    {
+        assert(row < num_tuples() && col < num_fields());
+        return PQgetlength(m_result.get(), row, col);
+    }
+
+    /**
+     * Get value of the field at (row, col) as char pointer. The string is
+     * null-terminated. Only valid as long as the pg_result_t is in scope.
+     */
+    char const *get_value(int row, int col) const noexcept
+    {
+        assert(row < num_tuples() && col < num_fields());
         return PQgetvalue(m_result.get(), row, col);
     }
 
-    bool is_null(int row, int col) const noexcept
+    /**
+     * Create a std::string with the value of the field at (row, col). This
+     * does the correct thing for binary data.
+     */
+    std::string get_value_as_string(int row, int col) const noexcept
     {
-        return PQgetisnull(m_result.get(), row, col) != 0;
+        return std::string(get_value(row, col), get_length(row, col));
     }
 
 private:

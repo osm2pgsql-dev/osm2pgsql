@@ -32,7 +32,7 @@ public:
         pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
 
-        std::string const str = res.get_value(0, 0);
+        auto const str = res.get_value_as_string(0, 0);
         return boost::lexical_cast<T>(str);
     }
 
