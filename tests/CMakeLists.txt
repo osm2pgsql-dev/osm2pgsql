@@ -39,6 +39,7 @@ add_library(catch_main_lib STATIC catch-main.cpp)
 
 set_test(test-db-copy-thread)
 set_test(test-db-copy-mgr)
+set_test(test-domain-matcher LABELS NoDB)
 set_test(test-expire-tiles LABELS NoDB)
 set_test(test-middle)
 set_test(test-options-database LABELS NoDB)
