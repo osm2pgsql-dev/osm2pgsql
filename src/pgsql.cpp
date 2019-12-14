@@ -4,8 +4,8 @@
 #include <cstdarg>
 #include <cstdio>
 
-pg_conn_t::pg_conn_t(std::string const &connection)
-: m_conn(PQconnectdb(connection.c_str()))
+pg_conn_t::pg_conn_t(std::string const &conninfo)
+: m_conn(PQconnectdb(conninfo.c_str()))
 {
     if (PQstatus(m_conn.get()) != CONNECTION_OK) {
         fprintf(stderr, "Connection to database failed: %s\n", error_msg());

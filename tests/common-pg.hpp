@@ -5,12 +5,11 @@
 #include <stdexcept>
 #include <string>
 
-#include <libpq-fe.h>
-
 #include <boost/lexical_cast.hpp>
 
 #include "format.hpp"
 #include "options.hpp"
+#include "pgsql.hpp"
 #include <catch.hpp>
 
 #ifdef _MSC_VER
@@ -22,76 +21,18 @@
 /// Helper classes for postgres connections
 namespace pg {
 
-class result_t
+class conn_t : public pg_conn_t
 {
 public:
-    result_t(PGresult *result) : m_result(result) {}
-
-    ~result_t() noexcept { PQclear(m_result); }
-
-    ExecStatusType status() const noexcept { return PQresultStatus(m_result); }
-
-    int num_tuples() const noexcept { return PQntuples(m_result); }
-
-    std::string get_value(int row, int col) const noexcept
-    {
-        return PQgetvalue(m_result, row, col);
-    }
-
-    bool is_null(int row, int col) const noexcept
-    {
-        return PQgetisnull(m_result, row, col) != 0;
-    }
-
-private:
-    PGresult *m_result;
-};
-
-class conn_t
-{
-public:
-    conn_t(char const *conninfo)
-    {
-        m_conn = PQconnectdb(conninfo);
-
-        if (PQstatus(m_conn) != CONNECTION_OK) {
-            fprintf(stderr, "Could not connect to database '%s' because: %s\n",
-                    conninfo, PQerrorMessage(m_conn));
-            PQfinish(m_conn);
-            throw std::runtime_error("Database connection failed");
-        }
-    }
-
-    ~conn_t() noexcept
-    {
-        if (m_conn) {
-            PQfinish(m_conn);
-        }
-    }
-
-    void exec(std::string const &cmd, ExecStatusType expect = PGRES_COMMAND_OK)
-    {
-        result_t res = query(cmd);
-        if (res.status() != expect) {
-            fprintf(stderr, "Query '%s' failed with: %s\n", cmd.c_str(),
-                    PQerrorMessage(m_conn));
-            throw std::runtime_error("DB exec failed.");
-        }
-    }
-
-    result_t query(std::string const &cmd) const
-    {
-        return PQexec(m_conn, cmd.c_str());
-    }
+    conn_t(std::string const &conninfo) : pg_conn_t(conninfo) {}
 
     template <typename T>
     T require_scalar(std::string const &cmd) const
     {
-        result_t res = query(cmd);
-        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
 
-        std::string str = res.get_value(0, 0);
+        auto const str = res.get_value_as_string(0, 0);
         return boost::lexical_cast<T>(str);
     }
 
@@ -102,16 +43,14 @@ public:
 
     void assert_null(std::string const &cmd) const
     {
-        result_t res = query(cmd);
-        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        pg_result_t const res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
         REQUIRE(res.is_null(0, 0));
     }
 
-    result_t require_row(std::string const &cmd) const
+    pg_result_t require_row(std::string const &cmd) const
     {
-        result_t res = query(cmd);
-        REQUIRE(res.status() == PGRES_TUPLES_OK);
+        pg_result_t res = query(PGRES_TUPLES_OK, cmd);
         REQUIRE(res.num_tuples() == 1);
 
         return res;
@@ -132,15 +71,12 @@ public:
 
         REQUIRE(get_count("pg_catalog.pg_class", where) == 1);
     }
-
-private:
-    PGconn *m_conn = nullptr;
 };
 
 class tempdb_t
 {
 public:
-    tempdb_t()
+    tempdb_t() noexcept
     {
         try {
             conn_t conn("dbname=postgres");
@@ -160,19 +96,25 @@ public:
         }
     }
 
+    tempdb_t(tempdb_t const &) = delete;
+    tempdb_t &operator=(tempdb_t const &) = delete;
+
+    tempdb_t(tempdb_t &&) = delete;
+    tempdb_t &operator=(tempdb_t const &&) = delete;
+
     ~tempdb_t() noexcept
     {
         if (!m_db_name.empty()) {
             try {
-                conn_t conn("dbname=postgres");
-                conn.query("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
+                conn_t conn{"dbname=postgres"};
+                conn.exec("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
             } catch (...) {
                 fprintf(stderr, "DROP DATABASE failed. Ignored.\n");
             }
         }
     }
 
-    conn_t connect() const { return conn_t(conninfo().c_str()); }
+    conn_t connect() const { return conn_t{conninfo()}; }
 
     std::string conninfo() const { return "dbname=" + m_db_name; }
 
