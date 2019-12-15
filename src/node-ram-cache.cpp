@@ -412,6 +412,10 @@ node_ram_cache::~node_ram_cache()
                 ? 0.0f
                 : 100.0f * nodesCacheHits / nodesCacheLookups);
 
+    if (((allocStrategy & ALLOC_SPARSE) > 0) && (!blockCache)) {
+        free(sparseBlock);
+    }
+
     if ((allocStrategy & ALLOC_DENSE) > 0) {
         if ((allocStrategy & ALLOC_DENSE_CHUNK) > 0) {
             for (int i = 0; i < usedBlocks; ++i) {
@@ -424,10 +428,6 @@ node_ram_cache::~node_ram_cache()
         }
         free(blocks);
         free(queue);
-    }
-    if (((allocStrategy & ALLOC_SPARSE) > 0) &&
-        ((allocStrategy & ALLOC_DENSE) == 0)) {
-        free(sparseBlock);
     }
 }
 
