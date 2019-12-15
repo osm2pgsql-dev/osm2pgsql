@@ -65,7 +65,17 @@ struct expire_tiles
     int from_bbox(double min_lon, double min_lat, double max_lon,
                   double max_lat);
     void from_wkb(std::string const &wkb, osmid_t osm_id);
-    int from_db(table_t *table, osmid_t osm_id);
+
+    /**
+     * Expire tiles based on an osm id.
+     *
+     * \param result Result of a database query into some table returning the
+     *               geometries. (This is usally done using the "get_wkb"
+     *               prepared statement.)
+     * \param osm_id The OSM id to look for.
+     * \return The number of elements that refer to the osm_id or -1 if
+     *         expire is disabled.
+     */
     int from_result(pg_result_t const &result, osmid_t osm_id);
 
     /**

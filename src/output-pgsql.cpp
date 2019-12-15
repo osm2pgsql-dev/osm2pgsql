@@ -294,7 +294,7 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 void output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if (m_expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
+    if (m_expire.from_result(m_tables[t_point]->get_wkb(osm_id), osm_id) != 0) {
         m_tables[t_point]->delete_row(osm_id);
     }
 }
@@ -312,10 +312,10 @@ void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
     }
 
     m_tables[t_roads]->delete_row(osm_id);
-    if (m_expire.from_db(m_tables[t_line].get(), osm_id) != 0) {
+    if (m_expire.from_result(m_tables[t_line]->get_wkb(osm_id), osm_id) != 0) {
         m_tables[t_line]->delete_row(osm_id);
     }
-    if (m_expire.from_db(m_tables[t_poly].get(), osm_id) != 0) {
+    if (m_expire.from_result(m_tables[t_poly]->get_wkb(osm_id), osm_id) != 0) {
         m_tables[t_poly]->delete_row(osm_id);
     }
 }
@@ -329,10 +329,12 @@ void output_pgsql_t::way_delete(osmid_t osm_id)
 void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 {
     m_tables[t_roads]->delete_row(-osm_id);
-    if (m_expire.from_db(m_tables[t_line].get(), -osm_id) != 0) {
+    if (m_expire.from_result(m_tables[t_line]->get_wkb(-osm_id), -osm_id) !=
+        0) {
         m_tables[t_line]->delete_row(-osm_id);
     }
-    if (m_expire.from_db(m_tables[t_poly].get(), -osm_id) != 0) {
+    if (m_expire.from_result(m_tables[t_poly]->get_wkb(-osm_id), -osm_id) !=
+        0) {
         m_tables[t_poly]->delete_row(-osm_id);
     }
 }

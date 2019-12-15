@@ -43,33 +43,7 @@ public:
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
     void delete_row(osmid_t id);
 
-    // interface for retrieving well known binary geometry from the table
-    class wkb_reader
-    {
-        friend table_t;
-
-    public:
-        char const *get_next()
-        {
-            if (m_current < m_count) {
-                return m_result.get_value(m_current++, 0);
-            }
-            return nullptr;
-        }
-
-        int get_count() const noexcept { return m_count; }
-
-    private:
-        explicit wkb_reader(pg_result_t &&result)
-        : m_result(std::move(result)), m_count(m_result.num_tuples()),
-          m_current(0)
-        {}
-
-        pg_result_t m_result;
-        int m_count;
-        int m_current;
-    };
-    wkb_reader get_wkb_reader(osmid_t id);
+    pg_result_t get_wkb(osmid_t id);
 
 protected:
     void connect();
