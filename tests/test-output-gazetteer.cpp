@@ -44,20 +44,24 @@ TEST_CASE("Import main tags as fallback")
 TEST_CASE("Main tag deleted")
 {
     import("n1 Tamenity=restaurant x12.3 y3\n"
-           "n2 Thighway=bus_stop,railway=stop,name=X x56.4 y-4\n");
+           "n2 Thighway=bus_stop,railway=stop,name=X x56.4 y-4\n"
+           "n3 Tamenity=prison x3 y5\n");
 
     auto conn = db.connect();
 
     CHECK(1 == node_count(conn, 1, "amenity"));
     CHECK(1 == node_count(conn, 2, "highway"));
     CHECK(1 == node_count(conn, 2, "railway"));
+    CHECK(1 == node_count(conn, 3, "amenity"));
 
-    update("n1 Tnot_a=restaurant x12.3 y3\n"
+    update("n3 v2 dD\n"
+           "n1 Tnot_a=restaurant x12.3 y3\n"
            "n2 Thighway=bus_stop,name=X x56.4 y-4\n");
 
     CHECK(0 == node_count(conn, 1, "amenity"));
     CHECK(2 == node_count(conn, 2, "highway"));
     CHECK(0 == node_count(conn, 2, "railway"));
+    CHECK(0 == node_count(conn, 3, "amenity"));
 }
 
 TEST_CASE("Main tag added")
@@ -70,13 +74,16 @@ TEST_CASE("Main tag added")
     CHECK(0 == node_count(conn, 1, "amenity"));
     CHECK(1 == node_count(conn, 2, "highway"));
     CHECK(0 == node_count(conn, 2, "railway"));
+    CHECK(0 == node_count(conn, 3, "amenity"));
 
     update("n1 Tamenity=restaurant x12.3 y3\n"
-           "n2 Thighway=bus_stop,railway=stop,name=X x56.4 y-4\n");
+           "n2 Thighway=bus_stop,railway=stop,name=X x56.4 y-4\n"
+           "n3 Tamenity=prison x3 y5\n");
 
     CHECK(1 == node_count(conn, 1, "amenity"));
     CHECK(2 == node_count(conn, 2, "highway"));
     CHECK(1 == node_count(conn, 2, "railway"));
+    CHECK(1 == node_count(conn, 3, "amenity"));
 }
 
 TEST_CASE("Main tag modified")

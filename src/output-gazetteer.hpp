@@ -54,29 +54,17 @@ public:
     {}
     void pending_relation(osmid_t, int) override {}
 
-    void node_add(osmium::Node const &node) override { process_node(node); }
+    void node_add(osmium::Node const &node) override;
+    void way_add(osmium::Way *way) override;
+    void relation_add(osmium::Relation const &rel) override;
 
-    void way_add(osmium::Way *way) override { process_way(way); }
+    void node_modify(osmium::Node const &node) override;
+    void way_modify(osmium::Way *way) override;
+    void relation_modify(osmium::Relation const &rel) override;
 
-    void relation_add(osmium::Relation const &rel) override
-    {
-        process_relation(rel);
-    }
-
-    void node_modify(osmium::Node const &node) override { process_node(node); }
-
-    void way_modify(osmium::Way *way) override { process_way(way); }
-
-    void relation_modify(osmium::Relation const &rel) override
-    {
-        process_relation(rel);
-    }
-
-    void node_delete(osmid_t id) override { m_copy.delete_object('N', id); }
-
-    void way_delete(osmid_t id) override { m_copy.delete_object('W', id); }
-
-    void relation_delete(osmid_t id) override { m_copy.delete_object('R', id); }
+    void node_delete(osmid_t id) override { delete_unused_full('N', id); }
+    void way_delete(osmid_t id) override { delete_unused_full('W', id); }
+    void relation_delete(osmid_t id) override { delete_unused_full('R', id); }
 
 private:
     enum
@@ -86,16 +74,11 @@ private:
 
     /// Delete all places that are not covered by the current style results.
     void delete_unused_classes(char osm_type, osmid_t osm_id);
-    void process_node(osmium::Node const &node);
-    void process_way(osmium::Way *way);
-    void process_relation(osmium::Relation const &rel);
-
-    void delete_unused_full(char osm_type, osmid_t osm_id)
-    {
-        if (m_options.append) {
-            m_copy.delete_object(osm_type, osm_id);
-        }
-    }
+    /// Delete all places for the given OSM object.
+    void delete_unused_full(char osm_type, osmid_t osm_id);
+    bool process_node(osmium::Node const &node);
+    bool process_way(osmium::Way *way);
+    bool process_relation(osmium::Relation const &rel);
 
     gazetteer_copy_mgr_t m_copy;
     gazetteer_style_t m_style;
