@@ -343,12 +343,16 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
                 addr_key = k;
             }
 
-            bool first = std::none_of(m_address.begin(), m_address.end(),
-                                      [&](ptag_t const &t) {
-                                          return strcmp(t.first, addr_key) == 0;
-                                      });
-            if (first) {
-                m_address.emplace_back(addr_key, v);
+            // country and postcode are handled specially, ignore them here
+            if (strcmp(addr_key, "country") != 0 &&
+                strcmp(addr_key, "postcode") != 0) {
+                bool first = std::none_of(
+                    m_address.begin(), m_address.end(), [&](ptag_t const &t) {
+                        return strcmp(t.first, addr_key) == 0;
+                    });
+                if (first) {
+                    m_address.emplace_back(addr_key, v);
+                }
             }
         }
 
