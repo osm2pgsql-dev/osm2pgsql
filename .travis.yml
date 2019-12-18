@@ -89,6 +89,31 @@ matrix:
 
   # ---- OSX + CLANG ---------------------------
     - os: osx
+      osx_image: xcode10.3
+      compiler: clang
+      env: T="osx_clang_NoDB"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
+           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+      before_install:
+        - brew install lua; brew install lua
+      before_script:
+        - proj | head -n1
+        - lua -v
+
+    - os: osx
+      osx_image: xcode11
+      compiler: clang
+      env: T="osx_clang_NoDB"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
+           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+      before_install:
+        - brew install lua; brew install lua
+      before_script:
+        - proj | head -n1
+        - lua -v
+
+    - os: osx
+      osx_image: xcode11.2
       compiler: clang
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
