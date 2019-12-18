@@ -173,12 +173,19 @@ struct db_cmd_finish_t : public db_cmd_t
 };
 
 /**
- * The worker thread that streams copy data into the database.
+ * The manager for the worker thread that streams copy data into the database.
  */
 class db_copy_thread_t
 {
 public:
     db_copy_thread_t(std::string const &conninfo);
+
+    db_copy_thread_t(db_copy_thread_t const &) = delete;
+    db_copy_thread_t &operator=(db_copy_thread_t const &) = delete;
+
+    db_copy_thread_t(db_copy_thread_t &&) = default;
+    db_copy_thread_t &operator=(db_copy_thread_t &&) = default;
+
     ~db_copy_thread_t();
 
     /**
@@ -200,27 +207,41 @@ public:
     void finish();
 
 private:
-    void worker_thread();
+    struct shared
+    {
+        std::mutex queue_mutex;
+        std::condition_variable queue_cond;
+        std::condition_variable queue_full_cond;
+        std::deque<std::unique_ptr<db_cmd_t>> worker_queue;
+    };
 
-    void connect();
-    void disconnect();
+    // This is the class that actually instantiated and run in the thread.
+    class thread_t
+    {
+    public:
+        thread_t(std::string conninfo, shared &shared);
 
-    void write_to_db(db_cmd_copy_t *buffer);
-    void start_copy(std::shared_ptr<db_target_descr_t> const &target);
-    void finish_copy();
-    void delete_rows(db_cmd_copy_t *buffer);
+        void operator()();
 
-    std::string m_conninfo;
-    std::unique_ptr<pg_conn_t> m_conn;
+    private:
+        void write_to_db(db_cmd_copy_t *buffer);
+        void start_copy(std::shared_ptr<db_target_descr_t> const &target);
+        void finish_copy();
+        void delete_rows(db_cmd_copy_t *buffer);
+
+        std::string m_conninfo;
+        std::unique_ptr<pg_conn_t> m_conn;
+
+        // Target for copy operation currently ongoing.
+        std::shared_ptr<db_target_descr_t> m_inflight;
+
+        // These are shared with the db_copy_thread_t in the main program.
+        shared &m_shared;
+    };
 
     std::thread m_worker;
-    std::mutex m_queue_mutex;
-    std::condition_variable m_queue_cond;
-    std::condition_variable m_queue_full_cond;
-    std::deque<std::unique_ptr<db_cmd_t>> m_worker_queue;
 
-    // Target for copy operation currently ongoing.
-    std::shared_ptr<db_target_descr_t> m_inflight;
+    shared m_shared;
 };
 
 #endif // OSM2PGSQL_DB_COPY_HPP
