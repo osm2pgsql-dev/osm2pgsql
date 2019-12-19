@@ -94,8 +94,9 @@ matrix:
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
            CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+           SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
+           MACOSX_DEPLOYMENT_TARGET=10.4
       before_install:
-        - open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
         - brew install lua; brew install lua
       before_script:
         - proj | head -n1
@@ -107,8 +108,10 @@ matrix:
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
            CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+           SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
+           MACOSX_DEPLOYMENT_TARGET=10.4
       before_install:
-        - sudo open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
+        - open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
         - brew install lua; brew install lua
       before_script:
         - proj | head -n1
@@ -120,8 +123,9 @@ matrix:
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
            CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+           SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
+           MACOSX_DEPLOYMENT_TARGET=10.4
       before_install:
-        - sudo installer -allowUntrusted -pkg /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg -target /
         - brew install lua; brew install lua
       before_script:
         - proj | head -n1
