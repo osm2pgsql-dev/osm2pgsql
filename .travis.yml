@@ -93,9 +93,7 @@ matrix:
       compiler: clang
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
-           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
-           SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
-           MACOSX_DEPLOYMENT_TARGET=10.4
+           CXXFLAGS="-pedantic -Wextra -Werror -stdlib=libc++" CPPVERSION=11
       before_install:
         - brew install lua; brew install lua
       before_script:
@@ -107,7 +105,7 @@ matrix:
       compiler: clang
       env: T="osx_clang_NoDB"
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
-           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+           CXXFLAGS="-pedantic -Wextra -Werror -stdlib=libc++" CPPVERSION=11
            SDKROOT=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.14.sdk
            MACOSX_DEPLOYMENT_TARGET=10.4
       before_install:
