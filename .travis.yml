@@ -88,16 +88,36 @@ matrix:
       addons: *bionic_clang7_pg96
 
   # ---- OSX + CLANG ---------------------------
-  #  - os: osx
-  #    compiler: clang
-  #    env: T="osx_clang_NoDB"
-  #         BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
-  #         CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
-  #    before_install:
-  #      - brew install lua; brew install lua
-  #    before_script:
-  #      - proj | head -n1
-  #      - lua -v
+    - os: osx
+      osx_image: xcode10.3
+      compiler: gcc
+      env: T="osx_gcc_NoDB"
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF" TEST_NODB=1
+           CXXFLAGS="-pedantic -Wextra -Werror" CPPVERSION=11
+      before_script:
+        - proj | head -n1
+        - lua -v
+      addons:
+        homebrew:
+          packages:
+          - cmake
+          - gcc@9
+          - llvm@9
+          - lua
+          update: true
+      before_install:
+          # override default before_install
+      install:
+      # Homebrew packages aren't linked by default,
+      # need to be prepended to the path explicitly
+      - export PATH="$(brew --prefix llvm)/bin:$PATH"
+      # /usr/bin/gcc points to an older compiler on both Linux and macOS
+      - export CXX="g++-9"
+      - export CC="gcc-9"
+      - echo ${CC}
+      - echo ${CXX}
+      - ${CXX} --version
+      - cmake --version
 
   # ---- Linux + GCC ---------------------------
     - os: linux
