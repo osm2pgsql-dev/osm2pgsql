@@ -40,19 +40,21 @@ init:
   - if "%arch%"=="x86" (
       set vcvarsall_arg=x86&&
       set conda_path=C:\Miniconda36\Scripts&&
+      set python_path=C:\Python38&&
       set conda_library_path=C:\Miniconda36\envs\osm2pgsql\Library&&
       set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x86.zip&&
       set build_type=Release)
   - if "%arch%"=="x64" (
       set vcvarsall_arg=amd64&&
       set conda_path=C:\Miniconda36-x64\Scripts&&
+      set python_path=C:\Python38-x64&&
       set conda_library_path=C:\Miniconda36-x64\envs\osm2pgsql\Library&&
       set lua_url=https://lonvia.dev.openstreetmap.org/osm2pgsql-winbuild/lua_x64.zip&&
       set build_type=Release)
   - '"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall" %vcvarsall_arg%'
 
 install:
-  - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%PATH%;%conda_path%
+  - set PATH=%TESTS_POSTGRESQL_ROOt%\bin;%python_path%;%PATH%;%conda_path%
   - cd c:\
   - conda config --set always_yes yes
   - conda create --name osm2pgsql
@@ -69,7 +71,7 @@ install:
   - xcopy /e /y /q C:\postgis\postgis-bundle-pg96-2.4.3x64 %TESTS_POSTGRESQL_ROOT%
   - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
-  - pip install psycopg2
+  - python -m pip install psycopg2
 
 before_build:
   - cd C:\wingetopt

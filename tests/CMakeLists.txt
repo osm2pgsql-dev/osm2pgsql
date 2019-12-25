@@ -92,8 +92,13 @@ find_package(PythonInterp 3)
 if (PYTHONINTERP_FOUND)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/regression-test.py.in
                    ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
+if (WIN32)
+    add_test(NAME regression-test-pbf
+             COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
+else()
     add_test(NAME regression-test-pbf
              COMMAND ${CMAKE_CURRENT_BINARY_DIR}/regression-test.py)
+endif()
     set_tests_properties(regression-test-pbf PROPERTIES TIMEOUT ${TESTING_TIMEOUT})
     set_tests_properties(regression-test-pbf
                          PROPERTIES FIXTURES_REQUIRED Tablespace)
