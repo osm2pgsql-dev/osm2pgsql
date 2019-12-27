@@ -48,7 +48,80 @@ private:
     fmt::memory_buffer m_opl;
 };
 
-TEMPLATE_TEST_CASE("Main tags", "", node_importer_t)
+class way_importer_t
+{
+public:
+    void add(osmid_t id, char const *tags)
+    {
+        osmid_t first_node = m_current_node_id;
+        osmid_t last_node = make_nodes();
+
+        fmt::format_to(m_way_opl, "w{} T{} N", id, tags);
+        for (osmid_t i = first_node; i <= last_node; ++i) {
+            fmt::format_to(m_way_opl, "n{}{}", i, i == last_node ? '\n' : ',');
+        }
+    }
+
+    void del(osmid_t id) { fmt::format_to(m_way_opl, "w{} v2 dD\n", id); }
+
+    void import() { run_osm2pgsql(false); }
+    void update() { run_osm2pgsql(true); }
+
+    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
+    {
+        return conn.get_count("place", "osm_type = 'W' "
+                                       "AND osm_id = {} "
+                                       "AND class = '{}'"_format(id, cls));
+    }
+
+private:
+    osmid_t make_nodes()
+    {
+        unsigned num_nodes = std::uniform_int_distribution<unsigned>(2, 8)(rng);
+
+        // compute the start point, all points afterwards are relative
+        std::uniform_real_distribution<double> dist(-90, 89.99);
+        double x = 2 * dist(rng);
+        double y = dist(rng);
+
+        std::uniform_real_distribution<double> diff_dist(-0.01, 0.01);
+        for (unsigned i = 0; i < num_nodes; ++i) {
+            fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++, x,
+                           y);
+            double diffx = 0.0, diffy = 0.0;
+            do {
+                diffx = diff_dist(rng);
+                diffy = diff_dist(rng);
+            } while (diffx == 0.0 && diffy == 0.0);
+            x += diffx;
+            y += diffy;
+        }
+
+        return m_current_node_id - 1;
+    }
+
+    void run_osm2pgsql(bool append)
+    {
+        auto opt = testing::opt_t().gazetteer().slim();
+
+        if (append)
+            opt.append();
+
+        std::string final_opl = fmt::to_string(m_node_opl);
+        final_opl += fmt::to_string(m_way_opl);
+
+        REQUIRE_NOTHROW(db.run_import(opt, final_opl.c_str()));
+
+        m_node_opl.clear();
+        m_way_opl.clear();
+    }
+
+    osmid_t m_current_node_id = 100;
+    fmt::memory_buffer m_node_opl;
+    fmt::memory_buffer m_way_opl;
+};
+
+TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t)
 {
     TestType t;
 
