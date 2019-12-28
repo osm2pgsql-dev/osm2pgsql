@@ -15,7 +15,7 @@ class node_opl_t
 public:
     void add(osmid_t id, char const *tags)
     {
-        std::uniform_real_distribution<double> dist(-90, 89.99);
+        std::uniform_real_distribution<double> dist{-90, 89.99};
 
         fmt::format_to(m_opl, "n{} T{} x{} y{}\n", id, tags, 2 * dist(rng),
                        dist(rng));
@@ -41,8 +41,8 @@ class way_opl_t
 public:
     void add(osmid_t id, char const *tags)
     {
-        osmid_t first_node = m_current_node_id;
-        osmid_t last_node = make_nodes();
+        osmid_t const first_node = m_current_node_id;
+        osmid_t const last_node = make_nodes();
 
         fmt::format_to(m_way_opl, "w{} T{} N", id, tags);
         for (osmid_t i = first_node; i <= last_node; ++i) {
@@ -68,18 +68,20 @@ public:
 private:
     osmid_t make_nodes()
     {
-        unsigned num_nodes = std::uniform_int_distribution<unsigned>(2, 8)(rng);
+        std::uniform_int_distribution<unsigned> intdist{2, 8};
+        unsigned const num_nodes = intdist(rng);
 
         // compute the start point, all points afterwards are relative
-        std::uniform_real_distribution<double> dist(-90, 89.99);
+        std::uniform_real_distribution<double> dist{-90, 89.99};
         double x = 2 * dist(rng);
         double y = dist(rng);
 
-        std::uniform_real_distribution<double> diff_dist(-0.01, 0.01);
+        std::uniform_real_distribution<double> diff_dist{-0.01, 0.01};
         for (unsigned i = 0; i < num_nodes; ++i) {
             fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++, x,
                            y);
-            double diffx = 0.0, diffy = 0.0;
+            double diffx = 0.0;
+            double diffy = 0.0;
             do {
                 diffx = diff_dist(rng);
                 diffy = diff_dist(rng);
@@ -101,8 +103,8 @@ class relation_opl_t
 public:
     void add(osmid_t id, char const *tags)
     {
-        osmid_t first_node = m_current_node_id;
-        osmid_t last_node = make_nodes();
+        osmid_t const first_node = m_current_node_id;
+        osmid_t const last_node = make_nodes();
 
         // create a very simple multipolygon with one closed way
         fmt::format_to(m_way_opl, "w{} N", id, tags);
@@ -136,11 +138,11 @@ private:
     osmid_t make_nodes()
     {
         // compute a centre points and compute four corners from this
-        std::uniform_real_distribution<double> dist(-90, 89.99);
-        double x = 2 * dist(rng);
-        double y = dist(rng);
+        std::uniform_real_distribution<double> dist{-90, 89.99};
+        double const x = 2 * dist(rng);
+        double const y = dist(rng);
 
-        std::uniform_real_distribution<double> diff_dist(0.0000001, 0.01);
+        std::uniform_real_distribution<double> diff_dist{0.0000001, 0.01};
 
         fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
                        x - diff_dist(rng), y - diff_dist(rng));
@@ -170,7 +172,7 @@ public:
 
     void import()
     {
-        std::string opl = m_opl_factory.get_and_clear_opl();
+        std::string const opl = m_opl_factory.get_and_clear_opl();
         REQUIRE_NOTHROW(
             db.run_import(testing::opt_t().gazetteer().slim(), opl.c_str()));
     }
@@ -178,13 +180,13 @@ public:
     void update()
     {
         auto opt = testing::opt_t().gazetteer().slim().append();
-        std::string opl = m_opl_factory.get_and_clear_opl();
+        std::string const opl = m_opl_factory.get_and_clear_opl();
         REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
     }
 
     unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
     {
-        char tchar = m_opl_factory.type();
+        char const tchar = m_opl_factory.type();
         return conn.get_count("place",
                               "osm_type = '{}' "
                               "AND osm_id = {} "
