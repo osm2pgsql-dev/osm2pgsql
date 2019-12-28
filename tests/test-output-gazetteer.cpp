@@ -30,12 +30,7 @@ public:
         return ret;
     }
 
-    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
-    {
-        return conn.get_count("place", "osm_type = 'N' "
-                                       "AND osm_id = {} "
-                                       "AND class = '{}'"_format(id, cls));
-    }
+    char type() const noexcept { return 'N'; }
 
 private:
     fmt::memory_buffer m_opl;
@@ -68,12 +63,7 @@ public:
         return final_opl;
     }
 
-    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
-    {
-        return conn.get_count("place", "osm_type = 'W' "
-                                       "AND osm_id = {} "
-                                       "AND class = '{}'"_format(id, cls));
-    }
+    char type() const noexcept { return 'W'; }
 
 private:
     osmid_t make_nodes()
@@ -140,12 +130,7 @@ public:
         return final_opl;
     }
 
-    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
-    {
-        return conn.get_count("place", "osm_type = 'R' "
-                                       "AND osm_id = {} "
-                                       "AND class = '{}'"_format(id, cls));
-    }
+    char type() const noexcept { return 'R'; }
 
 private:
     osmid_t make_nodes()
@@ -191,6 +176,16 @@ void update(T *importer)
     REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
 }
 
+template <typename T>
+unsigned long obj_count(T *importer, pg::conn_t const &conn, osmid_t id,
+                        char const *cls)
+{
+    return conn.get_count("place",
+                          "osm_type = '{}' "
+                          "AND osm_id = {} "
+                          "AND class = '{}'"_format(importer->type(), id, cls));
+}
+
 TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
                    relation_importer_t)
 {
@@ -208,11 +203,11 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(0 == t.obj_count(conn, 100, "junction"));
-        CHECK(1 == t.obj_count(conn, 101, "junction"));
-        CHECK(0 == t.obj_count(conn, 200, "building"));
-        CHECK(1 == t.obj_count(conn, 201, "building"));
-        CHECK(0 == t.obj_count(conn, 202, "building"));
+        CHECK(0 == obj_count(&t, conn, 100, "junction"));
+        CHECK(1 == obj_count(&t, conn, 101, "junction"));
+        CHECK(0 == obj_count(&t, conn, 200, "building"));
+        CHECK(1 == obj_count(&t, conn, 201, "building"));
+        CHECK(0 == obj_count(&t, conn, 202, "building"));
     }
 
     SECTION("Main tag deleted")
@@ -225,10 +220,10 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 1, "amenity"));
-        CHECK(1 == t.obj_count(conn, 2, "highway"));
-        CHECK(1 == t.obj_count(conn, 2, "railway"));
-        CHECK(1 == t.obj_count(conn, 3, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 1, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 2, "highway"));
+        CHECK(1 == obj_count(&t, conn, 2, "railway"));
+        CHECK(1 == obj_count(&t, conn, 3, "amenity"));
 
         t.del(3);
         t.add(1, "not_a=restaurant");
@@ -236,10 +231,10 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         update(&t);
 
-        CHECK(0 == t.obj_count(conn, 1, "amenity"));
-        CHECK(2 == t.obj_count(conn, 2, "highway"));
-        CHECK(0 == t.obj_count(conn, 2, "railway"));
-        CHECK(0 == t.obj_count(conn, 3, "amenity"));
+        CHECK(0 == obj_count(&t, conn, 1, "amenity"));
+        CHECK(2 == obj_count(&t, conn, 2, "highway"));
+        CHECK(0 == obj_count(&t, conn, 2, "railway"));
+        CHECK(0 == obj_count(&t, conn, 3, "amenity"));
     }
 
     SECTION("Main tag added")
@@ -251,10 +246,10 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(0 == t.obj_count(conn, 1, "amenity"));
-        CHECK(1 == t.obj_count(conn, 2, "highway"));
-        CHECK(0 == t.obj_count(conn, 2, "railway"));
-        CHECK(0 == t.obj_count(conn, 3, "amenity"));
+        CHECK(0 == obj_count(&t, conn, 1, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 2, "highway"));
+        CHECK(0 == obj_count(&t, conn, 2, "railway"));
+        CHECK(0 == obj_count(&t, conn, 3, "amenity"));
 
         t.add(1, "amenity=restaurant");
         t.add(2, "highway=bus_stop,railway=stop,name=X");
@@ -262,10 +257,10 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         update(&t);
 
-        CHECK(1 == t.obj_count(conn, 1, "amenity"));
-        CHECK(2 == t.obj_count(conn, 2, "highway"));
-        CHECK(1 == t.obj_count(conn, 2, "railway"));
-        CHECK(1 == t.obj_count(conn, 3, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 1, "amenity"));
+        CHECK(2 == obj_count(&t, conn, 2, "highway"));
+        CHECK(1 == obj_count(&t, conn, 2, "railway"));
+        CHECK(1 == obj_count(&t, conn, 3, "amenity"));
     }
 
     SECTION("Main tag modified")
@@ -277,17 +272,17 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 10, "highway"));
-        CHECK(1 == t.obj_count(conn, 11, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 10, "highway"));
+        CHECK(1 == obj_count(&t, conn, 11, "amenity"));
 
         t.add(10, "highway=path,name=X");
         t.add(11, "highway=primary");
 
         update(&t);
 
-        CHECK(2 == t.obj_count(conn, 10, "highway"));
-        CHECK(0 == t.obj_count(conn, 11, "amenity"));
-        CHECK(1 == t.obj_count(conn, 11, "highway"));
+        CHECK(2 == obj_count(&t, conn, 10, "highway"));
+        CHECK(0 == obj_count(&t, conn, 11, "amenity"));
+        CHECK(1 == obj_count(&t, conn, 11, "highway"));
     }
 
     SECTION("Main tags with name, name added")
@@ -299,16 +294,16 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(0 == t.obj_count(conn, 45, "landuse"));
-        CHECK(0 == t.obj_count(conn, 46, "building"));
+        CHECK(0 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(0 == obj_count(&t, conn, 46, "building"));
 
         t.add(45, "landuse=cemetry,name=TODO");
         t.add(46, "building=yes,addr:housenumber=1");
 
         update(&t);
 
-        CHECK(1 == t.obj_count(conn, 45, "landuse"));
-        CHECK(1 == t.obj_count(conn, 46, "building"));
+        CHECK(1 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(1 == obj_count(&t, conn, 46, "building"));
     }
 
     SECTION("Main tags with name, name removed")
@@ -320,16 +315,16 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 45, "landuse"));
-        CHECK(1 == t.obj_count(conn, 46, "building"));
+        CHECK(1 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(1 == obj_count(&t, conn, 46, "building"));
 
         t.add(45, "landuse=cemetry");
         t.add(46, "building=yes");
 
         update(&t);
 
-        CHECK(0 == t.obj_count(conn, 45, "landuse"));
-        CHECK(0 == t.obj_count(conn, 46, "building"));
+        CHECK(0 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(0 == obj_count(&t, conn, 46, "building"));
     }
 
     SECTION("Main tags with name, name modified")
@@ -341,16 +336,16 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 45, "landuse"));
-        CHECK(1 == t.obj_count(conn, 46, "building"));
+        CHECK(1 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(1 == obj_count(&t, conn, 46, "building"));
 
         t.add(45, "landuse=cemetry,name=DONE");
         t.add(46, "building=yes,addr:housenumber=10");
 
         update(&t);
 
-        CHECK(2 == t.obj_count(conn, 45, "landuse"));
-        CHECK(2 == t.obj_count(conn, 46, "building"));
+        CHECK(2 == obj_count(&t, conn, 45, "landuse"));
+        CHECK(2 == obj_count(&t, conn, 46, "building"));
     }
 
     SECTION("Main tag added to address only node")
@@ -361,15 +356,15 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 1, "place"));
-        CHECK(0 == t.obj_count(conn, 1, "building"));
+        CHECK(1 == obj_count(&t, conn, 1, "place"));
+        CHECK(0 == obj_count(&t, conn, 1, "building"));
 
         t.add(1, "addr:housenumber=345,building=yes");
 
         update(&t);
 
-        CHECK(0 == t.obj_count(conn, 1, "place"));
-        CHECK(1 == t.obj_count(conn, 1, "building"));
+        CHECK(0 == obj_count(&t, conn, 1, "place"));
+        CHECK(1 == obj_count(&t, conn, 1, "building"));
     }
 
     SECTION("Main tag removed from address only node")
@@ -380,15 +375,15 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(0 == t.obj_count(conn, 1, "place"));
-        CHECK(1 == t.obj_count(conn, 1, "building"));
+        CHECK(0 == obj_count(&t, conn, 1, "place"));
+        CHECK(1 == obj_count(&t, conn, 1, "building"));
 
         t.add(1, "addr:housenumber=345");
 
         update(&t);
 
-        CHECK(1 == t.obj_count(conn, 1, "place"));
-        CHECK(0 == t.obj_count(conn, 1, "building"));
+        CHECK(1 == obj_count(&t, conn, 1, "place"));
+        CHECK(0 == obj_count(&t, conn, 1, "building"));
     }
 
     SECTION("Main tags with name key, adding key name")
@@ -399,13 +394,13 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(0 == t.obj_count(conn, 22, "bridge"));
+        CHECK(0 == obj_count(&t, conn, 22, "bridge"));
 
         t.add(22, "bridge=yes,bridge:name=high");
 
         update(&t);
 
-        CHECK(1 == t.obj_count(conn, 22, "bridge"));
+        CHECK(1 == obj_count(&t, conn, 22, "bridge"));
     }
 
     SECTION("Main tags with name key, deleting key name")
@@ -416,13 +411,13 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 22, "bridge"));
+        CHECK(1 == obj_count(&t, conn, 22, "bridge"));
 
         t.add(22, "bridge=yes");
 
         update(&t);
 
-        CHECK(0 == t.obj_count(conn, 22, "bridge"));
+        CHECK(0 == obj_count(&t, conn, 22, "bridge"));
     }
 
     SECTION("Main tags with name key, changing key name")
@@ -433,12 +428,12 @@ TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
 
         auto conn = db.connect();
 
-        CHECK(1 == t.obj_count(conn, 22, "bridge"));
+        CHECK(1 == obj_count(&t, conn, 22, "bridge"));
 
         t.add(22, "bridge=yes,bridge:name:en=high");
 
         update(&t);
 
-        CHECK(2 == t.obj_count(conn, 22, "bridge"));
+        CHECK(2 == obj_count(&t, conn, 22, "bridge"));
     }
 }
