@@ -106,6 +106,75 @@ private:
     fmt::memory_buffer m_way_opl;
 };
 
+class relation_importer_t
+{
+public:
+    void add(osmid_t id, char const *tags)
+    {
+        osmid_t first_node = m_current_node_id;
+        osmid_t last_node = make_nodes();
+
+        // create a very simple multipolygon with one closed way
+        fmt::format_to(m_way_opl, "w{} N", id, tags);
+        for (osmid_t i = first_node; i <= last_node; ++i) {
+            fmt::format_to(m_way_opl, "n{},", i);
+        }
+        fmt::format_to(m_way_opl, "n{}\n", first_node);
+
+        fmt::format_to(m_rel_opl, "r{} Ttype=multipolygon,{} Mw{}@\n", id, tags,
+                       id);
+    }
+
+    void del(osmid_t id) { fmt::format_to(m_way_opl, "r{} v2 dD\n", id); }
+
+    std::string get_and_clear_opl()
+    {
+        std::string final_opl = fmt::to_string(m_node_opl);
+        final_opl += fmt::to_string(m_way_opl);
+        final_opl += fmt::to_string(m_rel_opl);
+
+        m_node_opl.clear();
+        m_way_opl.clear();
+        m_rel_opl.clear();
+
+        return final_opl;
+    }
+
+    unsigned long obj_count(pg::conn_t const &conn, osmid_t id, char const *cls)
+    {
+        return conn.get_count("place", "osm_type = 'R' "
+                                       "AND osm_id = {} "
+                                       "AND class = '{}'"_format(id, cls));
+    }
+
+private:
+    osmid_t make_nodes()
+    {
+        // compute a centre points and compute four corners from this
+        std::uniform_real_distribution<double> dist(-90, 89.99);
+        double x = 2 * dist(rng);
+        double y = dist(rng);
+
+        std::uniform_real_distribution<double> diff_dist(0.0000001, 0.01);
+
+        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
+                       x - diff_dist(rng), y - diff_dist(rng));
+        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
+                       x - diff_dist(rng), y + diff_dist(rng));
+        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
+                       x + diff_dist(rng), y + diff_dist(rng));
+        fmt::format_to(m_node_opl, "n{} x{} y{}\n", m_current_node_id++,
+                       x + diff_dist(rng), y - diff_dist(rng));
+
+        return m_current_node_id - 1;
+    }
+
+    osmid_t m_current_node_id = 100;
+    fmt::memory_buffer m_node_opl;
+    fmt::memory_buffer m_way_opl;
+    fmt::memory_buffer m_rel_opl;
+};
+
 template <typename T>
 static void import(T *importer)
 {
@@ -122,7 +191,8 @@ void update(T *importer)
     REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
 }
 
-TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t)
+TEMPLATE_TEST_CASE("Main tags", "", node_importer_t, way_importer_t,
+                   relation_importer_t)
 {
     TestType t;
 
