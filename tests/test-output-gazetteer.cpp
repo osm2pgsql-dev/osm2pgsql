@@ -7,8 +7,10 @@
 
 static testing::db::import_t db;
 
-static std::random_device dev;
-static std::mt19937 rng(dev());
+// Use a random device with a fixed seed. We don't really care about
+// the quality of random numbers here, we just need to generate valid
+// OSM test data. The fixed seed ensures that the results are reproducible.
+static std::mt19937_64 rng(47382);
 
 class node_opl_t
 {
@@ -72,7 +74,7 @@ private:
         unsigned const num_nodes = intdist(rng);
 
         // compute the start point, all points afterwards are relative
-        std::uniform_real_distribution<double> dist{-90, 89.99};
+        std::uniform_real_distribution<double> dist{-89.9, 89.9};
         double x = 2 * dist(rng);
         double y = dist(rng);
 
@@ -138,7 +140,7 @@ private:
     osmid_t make_nodes()
     {
         // compute a centre points and compute four corners from this
-        std::uniform_real_distribution<double> dist{-90, 89.99};
+        std::uniform_real_distribution<double> dist{-89.9, 89.9};
         double const x = 2 * dist(rng);
         double const y = dist(rng);
 
