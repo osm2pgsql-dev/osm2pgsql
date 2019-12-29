@@ -35,7 +35,8 @@ struct db_target_descr_t
     }
 
     db_target_descr_t() = default;
-    db_target_descr_t(char const *n, char const *i, char const *r = "")
+
+    db_target_descr_t(std::string const &n, std::string const &i, std::string const &r = "")
     : name(n), rows(r), id(i)
     {}
 };

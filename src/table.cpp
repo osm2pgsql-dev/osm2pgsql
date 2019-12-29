@@ -18,7 +18,7 @@ table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
+: m_target(std::make_shared<db_target_descr_t>(name, "osm_id")),
   type(type), srid(fmt::to_string(srid)), append(append),
   hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
   m_copy(copy_thread)
