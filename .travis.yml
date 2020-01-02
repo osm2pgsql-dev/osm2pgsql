@@ -4,88 +4,40 @@ sudo: required
 git:
   depth: 1
 
-services:
-  - postgresql
-
-addons_shortcuts:
-
-  addons_clang38_pg92: &clang38_pg92
-    postgresql: '9.2'
-    apt:
-      sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-3.8']
-      packages: ['clang-3.8', 'postgresql-9.2-postgis-2.3',
-                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-
-  addons_clang7_pg96: &clang7_pg96
-    postgresql: '9.6'
-    apt:
-      update: true
-      sources:
-        - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
-          key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
-        - ubuntu-toolchain-r-test
-      packages: ['clang-7','postgresql-9.6-postgis-2.3',
-                 'python3-pip', 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-
-  addons_bionic_clang7_pg96: &bionic_clang7_pg96
-    postgresql: '9.6'
-    apt:
-      packages: ['clang-7', 'postgresql-9.6-postgis-2.4',
-                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                 'lua5.3', 'liblua5.3-dev', 'libluajit-5.1-dev',
-                 'libboost1.65-dev', 'libboost-system1.65-dev', 'libboost-filesystem1.65-dev']
-
-  addons_gcc48_pg96: &gcc48_pg96
-    postgresql: '9.6'
-    apt:
-      sources: ["ubuntu-toolchain-r-test"]
-      packages: ['g++-4.8','postgresql-9.6-postgis-2.3',
-                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                 'lua5.2', 'liblua5.2-dev', 'libluajit-5.1-dev',
-                 'libboost1.55-dev', 'libboost-system1.55-dev', 'libboost-filesystem1.55-dev']
-
-  addons_gcc8_pg96: &bionic_gcc8_pg96
-    postgresql: '9.6'
-    apt:
-      packages: ['g++-8', 'postgresql-9.6-postgis-2.4',
-                 'python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev', 'libproj-dev',
-                 'lua5.3', 'liblua5.3-dev', 'libluajit-5.1-dev',
-                 'libboost1.65-dev', 'libboost-system1.65-dev', 'libboost-filesystem1.65-dev']
-
 # env: T="...."     //  please set an unique test id (T="..")
 matrix:
   include:
+  # ---- Release build against all postgresql versions
+    - os: linux
+      dist: bionic
+      compiler: gcc-8
+      env: T="bionic_gcc8_all_luajit_release"
+           PG_VERSIONS="9.3 9.4 9.5 9.6 10 11 12"
+           BUILD_TYPE="Release" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-8 CXX=g++-8 CPPVERSION=14
+
   # ---- Linux + CLANG ---------------------------
     - os: linux
-      dist: trusty
-      compiler: "clang-3.8"
-      env: T="clang38_pg92_dbtest"
-           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
-           CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=clang-3.8 CXX=clang++-3.8 CPPVERSION=11
-      addons: *clang38_pg92
-
-    - os: linux
-      dist: trusty
-      compiler: "clang-7"
-      env: T="clang7_pg96_dbtest_luajit"
+      dist: xenial
+      compiler: "clang-3.5"
+      env: T="xenial_clang35_pg95_luajit"
+           PG_VERSIONS=9.5
+           POSTGIS_VERSION=2.3
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=clang-7 CXX=clang++-7 CPPVERSION=11
-      addons: *clang7_pg96
+           CXXFLAG
+           S="-pedantic -Wextra -Werror"
+           CC=clang-3.5 CXX=clang++-3.5 CPPVERSION=11
 
     - os: linux
       dist: bionic
       compiler: "clang-7"
-      env: T="bionic_clang7_pg96_dbtest"
+      env: T="bionic_clang7_pg10"
+           PG_VERSIONS=10
+           POSTGIS_VERSION=2.5
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-7 CXX=clang++-7 CPPVERSION=14
-      addons: *bionic_clang7_pg96
 
   # ---- OSX + CLANG ---------------------------
   #  - os: osx
@@ -101,44 +53,48 @@ matrix:
 
   # ---- Linux + GCC ---------------------------
     - os: linux
-      dist: trusty
-      compiler: "gcc-4.8"
-      env: T="gcc48_pg96_dbtest"
+      dist: xenial
+      compiler: "gcc-5"
+      env: T="xenial_gcc5_pg94"
+           PG_VERSIONS=9.4
+           POSTGIS_VERSION=2.2
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-4.8 CXX=g++-4.8 CPPVERSION=11
-      addons: *gcc48_pg96
+           CC=gcc-5 CXX=g++-5 CPPVERSION=11
 
     - os: linux
       dist: bionic
       compiler: gcc-8
-      env: T="bionic_gcc8_pg96_dbtest_luajit"
+      env: T="bionic_gcc8_pg10_luajit"
+           PG_VERSIONS=10
+           POSTGIS_VERSION=2.4
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-8 CXX=g++-8 CPPVERSION=14
-      addons: *bionic_gcc8_pg96
-
-    - os: linux
-      dist: bionic
-      compiler: gcc-8
-      env: T="bionic_gcc8_pg96_dbtest_luajit_release"
-           BUILD_TYPE="Release" LUAJIT_OPTION="ON"
-           CXXFLAGS="-pedantic -Wextra -Werror"
-           CC=gcc-8 CXX=g++-8 CPPVERSION=14
-      addons: *bionic_gcc8_pg96
+           CC=gcc-8 CXX=g++-8 CPPVERSION=11
 
 
 before_install:
   - dpkg -l | grep -E 'lua|proj|bz2|postgresql|postgis|zlib|boost|expat'  # checking available versions
+  - sudo apt-get remove -yq postgresql-.*-postgis-.*
+  - apt-cache search --names-only postgresql-.*-postgis
+  - apt-cache search --names-only postgresql-.*
+  - for PG_VERSION in $PG_VERSIONS; do
+      if [[ "a$POSTGIS_VERSION" = "a" ]]; then
+        PPG=`apt-cache search --names-only postgresql-$PG_VERSION-postgis-[0-9.]*$ | tail -n1 | cut -d ' ' -f 1`;
+      else
+        PPG=postgresql-$PG_VERSION-postgis-$POSTGIS_VERSION;
+      fi;
+      export POSTGIS_PKG="$POSTGIS_PKG $PPG $PPG-scripts";
+    done
+  - echo $POSTGIS_PKG
+  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG python3-psycopg2 libexpat1-dev libpq-dev libbz2-dev libproj-dev lua5.2 liblua5.2-dev libluajit-5.1-dev libboost-dev libboost-system-dev libboost-filesystem-dev
+  # g++ needs extra install, clang doesn't, so ignore errors here
+  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
 
 before_script:
-  - psql -U postgres -c "SELECT version()"
-  - psql -U postgres -c "CREATE EXTENSION postgis"
-  - psql -U postgres -c "CREATE EXTENSION hstore"
-  - psql -U postgres -c "SELECT PostGIS_Full_Version()"
+  - for PG_VERSION in $PG_VERSIONS; do PAGER= pg_virtualenv -v $PG_VERSION psql -ena -c "select * from pg_available_extensions where name = 'postgis'" -c "SELECT version()" -c "CREATE EXTENSION postgis" -c "CREATE EXTENSION hstore" -c "SELECT PostGIS_Full_Version()"; done
   - $CXX --version
   - proj | head -n1
-  - if [[ $TRAVIS_DIST = 'trusty' ]]; then pyenv shell 3.6; pip install psycopg2; fi
 
 script:
   - mkdir build && cd build
@@ -148,8 +104,7 @@ script:
   - if [[ $TEST_NODB ]]; then
       ctest -VV -L NoDB;
     else
-      PG_VERSION=`psql -U postgres -t -c "SELECT version()" | head -n 1 |  cut -d ' ' -f 3 | cut -d . -f 1-2`;
-      pg_virtualenv -v $PG_VERSION ctest -VV;
+      for PG_VERSION in $PG_VERSIONS; do pg_virtualenv -v $PG_VERSION ctest -VV; done
     fi
 
 after_failure:
