@@ -1,8 +1,8 @@
 #include <catch.hpp>
 
 #include <random>
-#include <tuple>
 #include <vector>
+#include <utility>
 
 #include "common-import.hpp"
 #include "common-options.hpp"
@@ -166,7 +166,7 @@ private:
     fmt::memory_buffer m_rel_opl;
 };
 
-using hstore_item = std::tuple<std::string, std::string>;
+using hstore_item = std::pair<std::string, std::string>;
 using hstore_list = std::vector<hstore_item>;
 
 template <typename T>
