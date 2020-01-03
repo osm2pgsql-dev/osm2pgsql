@@ -52,11 +52,12 @@ Required libraries are
 * [Psycopg](http://initd.org/psycopg/) (only for running tests)
 
 It also requires access to a database server running
-[PostgreSQL](https://www.postgresql.org/) 9.1+ and [PostGIS](http://www.postgis.net/) 2.0+.
+[PostgreSQL](https://www.postgresql.org/) 9.3+ and
+[PostGIS](http://www.postgis.net/) 2.2+.
 
 Make sure you have installed the development packages for the libraries
 mentioned in the requirements section and a C++ compiler which supports C++11.
-Both GCC 4.8 and Clang 3.4 meet this requirement.
+GCC 5 and later and Clang 3.5 and later are known to work.
 
 First install the dependencies.
 
