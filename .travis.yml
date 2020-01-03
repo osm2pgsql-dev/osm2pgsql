@@ -4,6 +4,13 @@ sudo: required
 git:
   depth: 1
 
+addons:
+  # Here we install only packages that are the same for all builds on ubuntu.
+  apt:
+    packages: ['python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev',
+               'libproj-dev', 'libluajit-5.1-dev',
+               'libboost-dev', 'libboost-system-dev', 'libboost-filesystem-dev']
+
 # env: T="...."     //  please set an unique test id (T="..")
 matrix:
   include:
@@ -13,6 +20,7 @@ matrix:
       compiler: gcc-8
       env: T="bionic_gcc8_all_luajit_release"
            PG_VERSIONS="9.3 9.4 9.5 9.6 10 11 12"
+           LUA_VERSION=5.3
            BUILD_TYPE="Release" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-8 CXX=g++-8 CPPVERSION=14
@@ -24,9 +32,9 @@ matrix:
       env: T="xenial_clang35_pg95_luajit"
            PG_VERSIONS=9.5
            POSTGIS_VERSION=2.3
+           LUA_VERSION=5.2
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
-           CXXFLAG
-           S="-pedantic -Wextra -Werror"
+           CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-3.5 CXX=clang++-3.5 CPPVERSION=11
 
     - os: linux
@@ -35,6 +43,7 @@ matrix:
       env: T="bionic_clang7_pg10"
            PG_VERSIONS=10
            POSTGIS_VERSION=2.5
+           LUA_VERSION=5.3
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-7 CXX=clang++-7 CPPVERSION=14
@@ -58,6 +67,7 @@ matrix:
       env: T="xenial_gcc5_pg94"
            PG_VERSIONS=9.4
            POSTGIS_VERSION=2.2
+           LUA_VERSION=5.3
            BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-5 CXX=g++-5 CPPVERSION=11
@@ -68,6 +78,7 @@ matrix:
       env: T="bionic_gcc8_pg10_luajit"
            PG_VERSIONS=10
            POSTGIS_VERSION=2.4
+           LUA_VERSION=5.2
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=gcc-8 CXX=g++-8 CPPVERSION=11
@@ -87,7 +98,7 @@ before_install:
       export POSTGIS_PKG="$POSTGIS_PKG $PPG $PPG-scripts";
     done
   - echo $POSTGIS_PKG
-  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG python3-psycopg2 libexpat1-dev libpq-dev libbz2-dev libproj-dev lua5.2 liblua5.2-dev libluajit-5.1-dev libboost-dev libboost-system-dev libboost-filesystem-dev
+  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev
   # g++ needs extra install, clang doesn't, so ignore errors here
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
 
