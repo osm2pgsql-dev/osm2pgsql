@@ -532,7 +532,7 @@ class TestPgsqlImportSlim(BaseImportRunner, unittest.TestCase,
 
 class TestPgsqlImportSlimParallel(BaseImportRunner, unittest.TestCase,
                                   PgsqlBaseTests, PgsqlMercGeomTests):
-    extra_params = ['--slim', '--number-processes', '32']
+    extra_params = ['--slim', '--number-processes', '16']
 
 class TestPgsqlImportSlimSmallCache(BaseImportRunner, unittest.TestCase,
                                     PgsqlBaseTests, PgsqlMercGeomTests):
@@ -601,7 +601,7 @@ class TestPgsqlUpdate(BaseUpdateRunner, unittest.TestCase,
 
 class TestPgsqlUpdateParallel(BaseUpdateRunner, unittest.TestCase,
                               PgsqlBaseTests):
-    extra_params = ['--slim', '--number-processes', '32']
+    extra_params = ['--slim', '--number-processes', '16']
 
 class TestPgsqlUpdateSmallCache(BaseUpdateRunner, unittest.TestCase,
                                 PgsqlBaseTests):
