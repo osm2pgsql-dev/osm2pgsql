@@ -783,10 +783,16 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
                "PREPARE get_way (" POSTGRES_OSMID_TYPE ") AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
                "PREPARE get_way_list (" POSTGRES_OSMID_TYPE "[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::" POSTGRES_OSMID_TYPE "[]);\n",
 /*prepare_intarray*/
-               "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
-               "PREPARE mark_ways_by_rel(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1);\n",
+               "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS"
+               "  SELECT id FROM %p_ways w"
+               "  WHERE $1 = any(nodes) and w.bucket_32 && ARRAY[$1];\n",
 
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (nodes) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
+   /*array_indexes*/
+               "CREATE FUNCTION bucket_32(%p_ways) RETURNS bigint[] AS $$\n"
+               "  SELECT array(select distinct unnest(nodes)/32)"
+               "  FROM %p_ways w WHERE w.id = $1.id\n"
+               "$$ LANGUAGE SQL IMMUTABLE;\n"
+               "CREATE INDEX %p_ways_nodes ON %p_ways USING gin (bucket_32(%p_ways)) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          );
     tables[REL_TABLE] = table_desc(options, 
         /*table = t_rel,*/
@@ -798,7 +804,8 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 /*prepare_intarray*/
                 "PREPARE mark_rels_by_node(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE nodes && ARRAY[$1];\n"
                 "PREPARE mark_rels_by_way(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
-                "PREPARE mark_rels(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n",
+                "PREPARE mark_rels(" POSTGRES_OSMID_TYPE ") AS select id from %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n"
+               "PREPARE mark_ways_by_rel(" POSTGRES_OSMID_TYPE ") AS select id from %p_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1);\n",
 
    /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING gin (parts) WITH (FASTUPDATE=OFF) {TABLESPACE %i};\n"
                          );

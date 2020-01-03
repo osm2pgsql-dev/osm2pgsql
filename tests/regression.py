@@ -108,7 +108,7 @@ class BaseRunner(object):
         with psycopg2.connect("dbname='{}'".format(CONFIG['test_database'])) as conn:
             with conn.cursor() as cur:
                 for t in ('nodes', 'ways', 'rels'):
-                    cur.execute("DROP TABLE IF EXISTS planet_osm_" + t)
+                    cur.execute("DROP TABLE IF EXISTS planet_osm_{} CASCADE".format(t))
 
         if cls.import_file:
             cls.run_import(cls.get_def_params() + cls.extra_params,
