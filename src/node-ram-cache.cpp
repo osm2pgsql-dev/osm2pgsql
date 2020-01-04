@@ -401,16 +401,18 @@ node_ram_cache::~node_ram_cache()
         return;
     }
 
-    fprintf(stderr,
-            "node cache: stored: %" PRIdOSMID
-            "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
-            "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
-            storedNodes, 100.0f * storedNodes / totalNodes,
-            100.0f * storedNodes * sizeof(osmium::Location) / cacheUsed,
-            usedBlocks, sizeSparseTuples,
-            nodesCacheLookups == 0
-                ? 0.0f
-                : 100.0f * nodesCacheHits / nodesCacheLookups);
+    fprintf(
+        stderr,
+        "node cache: stored: %" PRIdOSMID
+        "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
+        "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
+        storedNodes, totalNodes == 0 ? 0.0f : 100.0f * storedNodes / totalNodes,
+        cacheUsed == 0
+            ? 0.0f
+            : 100.0f * storedNodes * sizeof(osmium::Location) / cacheUsed,
+        usedBlocks, sizeSparseTuples,
+        nodesCacheLookups == 0 ? 0.0f
+                               : 100.0f * nodesCacheHits / nodesCacheLookups);
 
     if (((allocStrategy & ALLOC_SPARSE) > 0) && (!blockCache)) {
         free(sparseBlock);
