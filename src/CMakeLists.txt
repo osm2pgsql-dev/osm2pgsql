@@ -2,6 +2,9 @@
 set(osm2pgsql_lib_SOURCES
   db-copy.cpp
   expire-tiles.cpp
+  flex-lua.cpp
+  flex-table.cpp
+  flex-table-column.cpp
   gazetteer-style.cpp
   geometry-processor.cpp
   id-tracker.cpp
@@ -12,6 +15,7 @@ set(osm2pgsql_lib_SOURCES
   options.cpp
   osmdata.cpp
   osmium-builder.cpp
+  output-flex.cpp
   output-gazetteer.cpp
   output-multi.cpp
   output-null.cpp
@@ -32,6 +36,9 @@ set(osm2pgsql_lib_SOURCES
   wildcmp.cpp
   db-copy.hpp
   expire-tiles.hpp
+  flex-lua.hpp
+  flex-table.hpp
+  flex-table-column.hpp
   gazetteer-style.hpp
   geometry-processor.hpp
   id-tracker.hpp
@@ -44,6 +51,7 @@ set(osm2pgsql_lib_SOURCES
   osmdata.hpp
   osmium-builder.hpp
   osmtypes.hpp
+  output-flex.hpp
   output-gazetteer.hpp
   output-multi.hpp
   output-null.hpp

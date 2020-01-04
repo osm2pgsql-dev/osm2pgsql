@@ -419,6 +419,25 @@ int expire_tiles::from_db(table_t *table, osmid_t osm_id)
     return wkbs.get_count();
 }
 
+int expire_tiles::from_result(pg_result_t const &result, osmid_t osm_id)
+{
+    //bail if we dont care about expiry
+    if (maxzoom == 0) {
+        return -1;
+    }
+
+    //dirty the stuff
+    auto const num_tuples = result.num_tuples();
+    for (int i = 0; i < num_tuples; ++i) {
+        char const *const wkb = result.get_value(i, 0);
+        auto const binwkb = ewkb::parser_t::wkb_from_hex(wkb);
+        from_wkb(binwkb.c_str(), osm_id);
+    }
+
+    //return how many rows were affected
+    return num_tuples;
+}
+
 void expire_tiles::merge_and_destroy(expire_tiles &other)
 {
     if (map_width != other.map_width) {

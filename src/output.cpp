@@ -1,5 +1,6 @@
 #include "db-copy.hpp"
 #include "format.hpp"
+#include "output-flex.hpp"
 #include "output-gazetteer.hpp"
 #include "output-multi.hpp"
 #include "output-null.hpp"
@@ -143,6 +144,10 @@ output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
         outputs.push_back(
             std::make_shared<output_pgsql_t>(mid, options, copy_thread));
 
+    } else if (options.output_backend == "flex") {
+        outputs.push_back(
+            std::make_shared<output_flex_t>(mid, options, copy_thread));
+
     } else if (options.output_backend == "gazetteer") {
         outputs.push_back(
             std::make_shared<output_gazetteer_t>(mid, options, copy_thread));
@@ -156,7 +161,7 @@ output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
     } else {
         throw std::runtime_error{
             "Output backend `{}' not recognised. Should be one "
-            "of [pgsql, gazetteer, null, multi].\n"_format(
+            "of [pgsql, flex, gazetteer, null, multi].\n"_format(
                 options.output_backend)};
     }
 
