@@ -328,14 +328,14 @@ class GazetteerTests(object):
     """ Tests for gazetteer output using Liechtenstein file.
     """
     def test_place_count(self):
-        self.assert_count(2867 if self.update else 2826, 'place')
+        self.assert_count(2877 if self.update else 2836, 'place')
 
     def test_place_node_count(self):
         self.assert_count(764 if self.update else 759, 'place',
                           where="osm_type = 'N'")
 
     def test_place_way_count(self):
-        self.assert_count(2085 if self.update else 2049, 'place',
+        self.assert_count(2095 if self.update else 2059, 'place',
                           where="osm_type = 'W'")
 
     def test_place_rel_count(self):
@@ -346,7 +346,7 @@ class GazetteerTests(object):
         self.assert_count(199, 'place', where="address ? 'housenumber'")
 
     def test_place_address_count(self):
-        self.assert_count(309, 'place', where='address is not null')
+        self.assert_count(319, 'place', where='address is not null')
 
 
 class MultipolygonTests(object):

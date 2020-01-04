@@ -156,7 +156,7 @@
 {
     "keys" : ["bridge", "tunnel"],
     "values" : {
-        "" : "main,with_name_key"
+        "" : "main,with_name_key,extra"
     }
 },
 {
@@ -182,11 +182,11 @@
     "keys" : ["postal_code", "postcode", "addr:postcode",
               "tiger:zip_left", "tiger:zip_right"],
     "values" : {
-        "" : "postcode"
+        "" : "postcode,fallback"
     }
 },
 {
-    "keys" : ["country_code", "ISO3166-1", "is_in:country_code", "is_in_country",
+    "keys" : ["country_code", "ISO3166-1", "is_in:country_code",
               "addr:country", "addr:country", "addr:country_code"],
     "values" : {
         "" : "country"
@@ -196,6 +196,12 @@
     "keys" : ["addr:housenumber", "addr:conscriptionnumber", "addr:streetnumber"],
     "values" : {
         "" : "address,house"
+    }
+},
+{
+    "keys" : ["addr:interpolation"],
+    "values" : {
+        "" : "interpolation,address"
     }
 },
 {
@@ -212,20 +218,18 @@
     }
 },
 {
-    "keys" : ["tracktype", "traffic_calming", "service", "cuisine", "capital",
-              "dispensing", "religion", "denomination", "sport",
-              "internet_access", "lanes", "surface", "smoothness", "width",
-              "est_width", "incline", "opening_hours", "collection_times",
-              "service_times", "disused", "wheelchair", "sac_scale",
-              "trail_visibility", "mtb:scale", "mtb:description", "wood",
-              "drive_through", "drive_in", "access", "vehicle", "bicyle",
-              "foot", "goods", "hgv", "motor_vehicle", "motor_car", "oneway",
-              "date_on", "date_off", "day_on", "day_off", "hour_on", "hour_off",
-              "maxweight", "maxheight", "maxspeed", "fee", "toll", "charge",
-              "population", "description", "image", "attribution", "fax",
-              "email", "url", "website", "phone", "real_ale", "smoking",
-              "food", "camera", "brewery", "locality", "wikipedia",
-              "wikipedia:*", "access:*", "contact:*", "drink:*", "toll:*"],
+    "keys" : ["note", "note:*", "source", "source*", "attribution",
+              "comment", "fixme", "FIXME", "created_by", "tiger:*", "NHD:*",
+              "nhd:*", "gnis:*", "geobase:*", "KSJ2:*", "yh:*",
+              "osak:*", "naptan:*", "CLC:*", "import", "it:fvg:*",
+              "type", "lacounty:*", "ref:ruian:*", "building:ruian:type",
+              "ref:linz:*"],
+    "values" : {
+        "" : "skip"
+    }
+},
+{
+    "keys" : [""],
     "values" : {
         "" : "extra"
     }
