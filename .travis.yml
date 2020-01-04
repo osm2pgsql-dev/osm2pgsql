@@ -32,7 +32,7 @@ matrix:
       env: T="xenial_clang35_pg95_luajit"
            PG_VERSIONS=9.5
            POSTGIS_VERSION=2.3
-           LUA_VERSION=5.2
+           LUA_VERSION=5.1
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
            CC=clang-3.5 CXX=clang++-3.5 CPPVERSION=11
