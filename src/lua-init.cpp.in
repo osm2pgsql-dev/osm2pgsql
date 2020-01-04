@@ -1,0 +1,6 @@
+char const *lua_init() noexcept
+{
+    return R"MaGiC(
+@LUA_INIT_CODE@
+)MaGiC";
+}

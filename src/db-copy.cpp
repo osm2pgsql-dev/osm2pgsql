@@ -24,6 +24,50 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     conn->exec(fmt::to_string(sql));
 }
 
+void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
+                                              std::string const &column,
+                                              pg_conn_t *conn)
+{
+    assert(!m_deletables.empty());
+
+    fmt::memory_buffer sql;
+    // Need a VALUES line for each deletable: type (3 bytes), id (15 bytes),
+    // braces etc. (4 bytes). And additional space for the remainder of the
+    // SQL command.
+    sql.reserve(m_deletables.size() * 22 + 200);
+
+    if (m_has_type) {
+        fmt::format_to(sql, "DELETE FROM {} p USING (VALUES ", table);
+
+        for (auto const &item : m_deletables) {
+            fmt::format_to(sql, FMT_STRING("('{}',{}),"), item.osm_type,
+                           item.osm_id);
+        }
+
+        sql.resize(sql.size() - 1);
+
+        auto const pos = column.find(',');
+        assert(pos != std::string::npos);
+        std::string type = column.substr(0, pos);
+
+        fmt::format_to(sql,
+                       ") AS t (osm_type, osm_id) WHERE"
+                       " p.{} = t.osm_type AND p.{} = t.osm_id",
+                       type, column.c_str() + pos + 1);
+
+        conn->exec(fmt::to_string(sql));
+    } else {
+        fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
+                       column);
+
+        for (auto const &item : m_deletables) {
+            format_to(sql, FMT_STRING("{},"), item.osm_id);
+        }
+        sql[sql.size() - 1] = ')';
+        conn->exec(fmt::to_string(sql));
+    }
+}
+
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
 {
     // conninfo is captured by copy here, because we don't know wether the

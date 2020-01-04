@@ -176,6 +176,12 @@ null backend for testing. For flexibility a new [multi](docs/multi.md)
 backend is also available which allows the configuration of custom
 PostgreSQL tables instead of those provided in the pgsql backend.
 
+Also available is the new [flex](docs/flex.md) backend. It is much more
+flexible than the other backends. IT IS CURRENTLY EXPERIMENTAL AND SUBJECT
+TO CHANGE. The flex backend is only available if you have compiled osm2pgsql
+with Lua support. More details at
+https://github.com/openstreetmap/osm2pgsql/issues/1036 .
+
 ## LuaJIT support ##
 
 To speed up Lua tag transformations, [LuaJIT](https://luajit.org/) can be optionally
