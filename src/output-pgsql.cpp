@@ -261,14 +261,6 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
         return;
     }
 
-    idlist_t xid2;
-    for (auto const &m : rel.members()) {
-        /* Need to handle more than just ways... */
-        if (m.type() == osmium::item_type::way) {
-            xid2.push_back(m.ref());
-        }
-    }
-
     buffer.clear();
     rolelist_t xrole;
     auto num_ways = m_mid->rel_way_members_get(rel, &xrole, buffer);
