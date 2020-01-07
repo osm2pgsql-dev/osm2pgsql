@@ -355,11 +355,6 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
  * contain the change for that also. */
 void output_pgsql_t::node_delete(osmid_t osm_id)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
-
     if (expire.from_db(m_tables[t_point].get(), osm_id) != 0) {
         m_tables[t_point]->delete_row(osm_id);
     }
@@ -388,10 +383,6 @@ void output_pgsql_t::pgsql_delete_way_from_output(osmid_t osm_id)
 
 void output_pgsql_t::way_delete(osmid_t osm_id)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
     pgsql_delete_way_from_output(osm_id);
 }
 
@@ -409,10 +400,6 @@ void output_pgsql_t::pgsql_delete_relation_from_output(osmid_t osm_id)
 
 void output_pgsql_t::relation_delete(osmid_t osm_id)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
     pgsql_delete_relation_from_output(osm_id);
 }
 
@@ -421,30 +408,18 @@ void output_pgsql_t::relation_delete(osmid_t osm_id)
  * objects that depend on this one */
 void output_pgsql_t::node_modify(osmium::Node const &node)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
     node_delete(node.id());
     node_add(node);
 }
 
 void output_pgsql_t::way_modify(osmium::Way *way)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
     way_delete(way->id());
     way_add(way);
 }
 
 void output_pgsql_t::relation_modify(osmium::Relation const &rel)
 {
-    if (!m_options.slim) {
-        fprintf(stderr, "Cannot apply diffs unless in slim mode\n");
-        util::exit_nicely();
-    }
     relation_delete(rel.id());
     relation_add(rel);
 }
