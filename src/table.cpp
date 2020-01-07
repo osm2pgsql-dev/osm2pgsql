@@ -186,29 +186,44 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         fprintf(stderr, "Sorting data and creating indexes for %s\n",
                 m_target->name.c_str());
 
-        if (srid == "4326") {
-            /* libosmium assures validity of geometries in 4326, so the WHERE can be skipped.
-               Because we know the geom is already in 4326, no reprojection is needed for GeoHashing */
-            m_sql_conn->exec(
-                "CREATE TABLE {0}_tmp {1} AS\n"
-                "  SELECT * FROM {0}\n"
-                "    ORDER BY ST_GeoHash(way,10)\n"
-                "    COLLATE \"C\""_format(m_target->name, m_table_space));
-        } else {
-            /* osm2pgsql's transformation from 4326 to another projection could make a geometry invalid,
-               and these need to be filtered. Also, a transformation is needed for geohashing.
-               Notices are expected and ignored because they mean nothing aboud the validity of the geom
-               in OSM. */
-            m_sql_conn->exec("SET client_min_messages = WARNING");
-            m_sql_conn->exec(
-                "CREATE TABLE {0}_tmp {1} AS\n"
-                "  SELECT * FROM {0}\n"
-                "    WHERE ST_IsValid(way)\n"
-                "    ORDER BY "
-                "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)\n"
-                "    COLLATE \"C\""_format(m_target->name, m_table_space));
-            m_sql_conn->exec("RESET client_min_messages");
+        // Notices about invalid geometries are expected and can be ignored
+        // because they say nothing about the validity of the geometry in OSM.
+        m_sql_conn->exec("SET client_min_messages = WARNING");
+
+        std::string sql =
+            "CREATE TABLE {0}_tmp {1} AS SELECT * FROM {0}"_format(
+                m_target->name, m_table_space);
+
+        if (srid != "4326") {
+            // libosmium assures validity of geometries in 4326.
+            // Transformation to another projection could make the geometry
+            // invalid. Therefore add a filter to drop those.
+            sql += " WHERE ST_IsValid(way)";
         }
+
+        auto res = m_sql_conn->query(
+            PGRES_TUPLES_OK,
+            "SELECT regexp_split_to_table(postgis_lib_version(), '\\.')");
+        auto const postgis_major = std::stoi(res.get_value_as_string(0, 0));
+        auto const postgis_minor = std::stoi(res.get_value_as_string(1, 0));
+
+        sql += " ORDER BY ";
+        if (postgis_major == 2 && postgis_minor < 4) {
+            fprintf(stderr, "Using GeoHash for clustering\n");
+            if (srid == "4326") {
+                sql += "ST_GeoHash(way,10)";
+            } else {
+                sql += "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)";
+            }
+            sql += " COLLATE \"C\"";
+        } else {
+            fprintf(stderr, "Using native order for clustering\n");
+            // Since Postgis 2.4 the order function for geometries gives
+            // useful results.
+            sql += "way";
+        }
+
+        m_sql_conn->exec(sql);
 
         m_sql_conn->exec("DROP TABLE {}"_format(m_target->name));
         m_sql_conn->exec(
