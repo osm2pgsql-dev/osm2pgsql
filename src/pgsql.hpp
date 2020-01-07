@@ -67,6 +67,15 @@ public:
         return std::string(get_value(row, col), get_length(row, col));
     }
 
+    /**
+     * Get the column number from the name. Returns -1 if there is no column
+     * of that name.
+     */
+    int get_column_number(std::string const& name) const noexcept
+    {
+        return PQfnumber(m_result.get(), ('"' + name + '"').c_str());
+    }
+
 private:
     struct pg_result_deleter_t
     {
