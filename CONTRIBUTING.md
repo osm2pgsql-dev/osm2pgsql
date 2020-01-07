@@ -106,6 +106,13 @@ FAILs). If you find something which seems to be a bug, please check to see if
 it is a known issue at https://github.com/openstreetmap/osm2pgsql/issues and,
 if it's not already known, report it there.
 
+If you have failing tests and want to look at the test database to figure out
+what's happening, you can set the environment variable `OSM2PGSQL_KEEP_TEST_DB`
+to anything. This will disable the database cleanup at the end of the test.
+This will often be used together with the `-s` option of `pg_virtualenv` which
+drops you into a shell after a failed test where you can still access the
+database created by `pg_virtualenv`.
+
 ### Performance Testing
 
 If performance testing with a full planet import is required, indicate what
