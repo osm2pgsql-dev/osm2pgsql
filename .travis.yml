@@ -115,7 +115,10 @@ script:
   - if [[ $TEST_NODB ]]; then
       ctest -VV -L NoDB;
     else
-      for PG_VERSION in $PG_VERSIONS; do pg_virtualenv -v $PG_VERSION ctest -VV; done
+      for PG_VERSION in $PG_VERSIONS; do
+        pg_virtualenv -v $PG_VERSION ctest -VV;
+        if [[ $? -ne "0" ]]; then exit 2; fi
+      done
     fi
 
 after_failure:
