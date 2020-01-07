@@ -119,10 +119,10 @@ void table_t::start(std::string const &conninfo,
     } //appending
     else {
         //check the columns against those in the existing table
-        auto res = m_sql_conn->query(
+        auto const res = m_sql_conn->query(
             PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(m_target->name));
         for (auto const &column : columns) {
-            if (PQfnumber(res.get(), ('"' + column.name + '"').c_str()) < 0) {
+            if (res.get_column_number(column.name) < 0) {
                 fmt::print(stderr, "Adding new column \"{}\" to \"{}\"\n",
                            column.name, m_target->name);
                 m_sql_conn->exec("ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
