@@ -37,6 +37,8 @@ TEST_CASE("Incompatible arguments", "[NoDB]")
     bad_opt({"--drop"}, "drop only makes sense with");
 
     bad_opt({"-j", "-k"}, "You can not specify both");
+
+    bad_opt({"-a"}, "--append can only be used with slim mode");
 }
 
 TEST_CASE("Middle selection", "[NoDB]")
