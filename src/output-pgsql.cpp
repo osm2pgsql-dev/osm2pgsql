@@ -304,7 +304,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
     // multipolygons and boundaries
     if (make_boundary || make_polygon) {
-        auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer);
+        auto wkbs = m_builder.get_wkb_multipolygon(rel, buffer, m_options.enable_multi);
 
         char tmp[32];
         for (auto const &wkb : wkbs) {
@@ -436,7 +436,7 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
 output_pgsql_t::output_pgsql_t(
     std::shared_ptr<middle_query_t> const &mid, options_t const &o,
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: output_t(mid, o), m_builder(o.projection, o.enable_multi),
+: output_t(mid, o), m_builder(o.projection),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   ways_done_tracker(new id_tracker()),
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -494,7 +494,7 @@ output_pgsql_t::output_pgsql_t(
 : output_t(mid, other->m_options),
   m_tagtransform(other->m_tagtransform->clone()),
   m_enable_way_area(other->m_enable_way_area),
-  m_builder(m_options.projection, other->m_options.enable_multi),
+  m_builder(m_options.projection),
   expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
          m_options.projection),
   //NOTE: we need to know which ways were used by relations so each thread

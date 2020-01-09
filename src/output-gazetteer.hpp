@@ -19,7 +19,7 @@ class output_gazetteer_t : public output_t
                        std::shared_ptr<middle_query_t> const &cloned_mid,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(cloned_mid, other->m_options), m_copy(copy_thread),
-      m_builder(other->m_options.projection, true),
+      m_builder(other->m_options.projection),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {}
 
@@ -28,7 +28,7 @@ public:
                        options_t const &options,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(mid, options), m_copy(copy_thread),
-      m_builder(options.projection, true),
+      m_builder(options.projection),
       osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);

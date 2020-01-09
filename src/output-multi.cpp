@@ -32,7 +32,7 @@ output_multi_t::output_multi_t(
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  m_builder(m_options.projection, m_options.enable_multi),
+  m_builder(m_options.projection),
   m_way_area(export_list.has_column(m_osm_type, "way_area"))
 {}
 
@@ -51,7 +51,7 @@ output_multi_t::output_multi_t(
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  m_builder(m_options.projection, m_options.enable_multi),
+  m_builder(m_options.projection),
   m_way_area(other->m_way_area)
 {}
 

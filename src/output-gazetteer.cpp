@@ -200,7 +200,7 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
 
     auto geoms = is_waterway
                      ? m_builder.get_wkb_multiline(osmium_buffer, 0.0)
-                     : m_builder.get_wkb_multipolygon(rel, osmium_buffer);
+                     : m_builder.get_wkb_multipolygon(rel, osmium_buffer, true);
 
     if (geoms.empty()) {
         return false;
