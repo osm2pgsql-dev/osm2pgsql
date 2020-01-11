@@ -785,7 +785,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 /*prepare_intarray*/
                "PREPARE mark_ways_by_node(" POSTGRES_OSMID_TYPE ") AS"
                "  SELECT id FROM %p_ways w"
-               "  WHERE $1 = any(nodes) and w.bucket_32 && ARRAY[$1];\n",
+               "  WHERE $1 = any(nodes) and w.bucket_32 && ARRAY[$1/32];\n",
 
    /*array_indexes*/
                "CREATE FUNCTION bucket_32(%p_ways) RETURNS bigint[] AS $$\n"
