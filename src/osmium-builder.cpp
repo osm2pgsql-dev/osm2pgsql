@@ -150,7 +150,8 @@ osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
 
 osmium_builder_t::wkbs_t
 osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
-                                       osmium::memory::Buffer const &ways)
+                                       osmium::memory::Buffer const &ways,
+                                       bool build_multigeoms)
 {
     wkbs_t ret;
     osmium::area::AssemblerConfig area_config;
@@ -159,7 +160,7 @@ osmium_builder_t::get_wkb_multipolygon(osmium::Relation const &rel,
 
     m_buffer.clear();
     if (assembler(rel, ways, m_buffer)) {
-        if (m_build_multigeoms) {
+        if (build_multigeoms) {
             ret.push_back(create_multipolygon(m_buffer.get<osmium::Area>(0)));
         } else {
             ret = create_polygons(m_buffer.get<osmium::Area>(0));

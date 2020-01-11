@@ -20,7 +20,8 @@ geometry_processor::create(const std::string &type, const options_t *options)
     } else if (type == "line") {
         ptr = std::make_shared<processor_line>(options->projection);
     } else if (type == "polygon") {
-        ptr = std::make_shared<processor_polygon>(options->projection);
+        ptr = std::make_shared<processor_polygon>(options->projection,
+                                                  options->enable_multi);
     } else {
         throw std::runtime_error{
             "Unable to construct geometry processor "
