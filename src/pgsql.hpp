@@ -64,7 +64,7 @@ public:
      */
     std::string get_value_as_string(int row, int col) const noexcept
     {
-        return std::string(get_value(row, col), get_length(row, col));
+        return std::string(get_value(row, col), (std::size_t)get_length(row, col));
     }
 
     /**
