@@ -59,6 +59,7 @@ struct middle_pgsql_t : public slim_middle_t
     void commit() override;
 
     void nodes_set(osmium::Node const &node) override;
+    osmium::Location nodes_get(osmid_t osm_id) override;
     void nodes_delete(osmid_t id) override;
     void node_changed(osmid_t id) override;
 

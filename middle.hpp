@@ -88,6 +88,8 @@ struct middle_t
     virtual void commit(void) = 0;
 
     virtual void nodes_set(osmium::Node const &node) = 0;
+    virtual osmium::Location nodes_get(osmid_t osm_id) = 0;
+
     virtual void ways_set(osmium::Way const &way) = 0;
     virtual void relations_set(osmium::Relation const &rel) = 0;
 

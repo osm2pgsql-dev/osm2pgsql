@@ -38,6 +38,11 @@ void middle_ram_t::nodes_set(osmium::Node const &node)
     cache->set(node.id(), node.location());
 }
 
+osmium::Location middle_ram_t::nodes_get(osmid_t osm_id)
+{
+    return cache->get(osm_id);
+}
+
 void middle_ram_t::ways_set(osmium::Way const &way)
 {
     ways.set(way.id(), new ramWay(way, extra_attributes));

@@ -14,6 +14,8 @@
 #include "osmdata.hpp"
 #include "output.hpp"
 
+int nodes_moved = 0;
+
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
                      std::shared_ptr<output_t> const &out_)
 : mid(mid_)
@@ -82,15 +84,21 @@ int osmdata_t::node_modify(osmium::Node const &node)
 {
     slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
 
-    slim->nodes_delete(node.id());
-    slim->nodes_set(node);
+    osmium::Location oldnode = slim->nodes_get(node.id());
+    if ( node.location().x() != oldnode.x() || node.location().y() != oldnode.y() ) {
+        slim->nodes_delete(node.id());
+        slim->nodes_set(node);
+        nodes_moved++;
+    }
 
     int status = 0;
     for (auto& out: outs) {
         status |= out->node_modify(node);
     }
 
-    slim->node_changed(node.id());
+    if ( node.location().x() != oldnode.x() || node.location().y() != oldnode.y() ) {
+        slim->node_changed(node.id());
+    }
 
     return status;
 }
@@ -275,6 +283,7 @@ struct pending_threaded_processor : public middle_t::pending_processor {
         //reset the number we've done
         ids_done = 0;
 
+        fprintf(stderr, "\n%i nodes moved\n", nodes_moved);
         fprintf(stderr, "\nGoing over pending ways...\n");
         fprintf(stderr, "\t%zu ways are pending\n", ids_queued);
         fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());

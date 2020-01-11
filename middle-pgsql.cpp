@@ -384,6 +384,11 @@ void middle_pgsql_t::nodes_set(osmium::Node const &node)
     }
 }
 
+osmium::Location middle_pgsql_t::nodes_get(osmid_t osm_id)
+{
+    return persistent_cache->get(osm_id);
+}
+
 size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
     return m_persistent_cache ? m_persistent_cache->get_list(nodes)
