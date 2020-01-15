@@ -74,6 +74,7 @@ install:
   - python -m pip install psycopg2
   - ps: Invoke-Webrequest 'https://luarocks.github.io/luarocks/releases/luarocks-3.2.1-windows-32.zip' -OutFile luarocks.zip
   - ps: Expand-Archive luarocks.zip
+  - dir c:\
   - dir c:\luarocks-3.2.1-windows-32
   - set PATH=%PATH%;c:\luarocks-3.2.1-windows-32
   - luarocks.exe install --local lua-messagepack
