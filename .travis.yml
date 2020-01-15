@@ -109,6 +109,7 @@ before_script:
   - proj | head -n1
 
 script:
+  - eval `luarocks path`
   - mkdir build && cd build
   - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} -DWITH_LUAJIT=${LUAJIT_OPTION}
   - make -j2
