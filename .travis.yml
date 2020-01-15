@@ -8,7 +8,7 @@ addons:
   # Here we install only packages that are the same for all builds on ubuntu.
   apt:
     packages: ['python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev',
-               'libproj-dev', 'libluajit-5.1-dev',
+               'libproj-dev', 'libluajit-5.1-dev', 'luarocks',
                'libboost-dev', 'libboost-system-dev', 'libboost-filesystem-dev']
 
 # env: T="...."     //  please set an unique test id (T="..")
