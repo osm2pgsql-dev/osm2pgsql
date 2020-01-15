@@ -72,10 +72,9 @@ install:
   - git clone https://github.com/alex85k/wingetopt -b %WINGETOPT_VER% C:\wingetopt
   - python -V
   - python -m pip install psycopg2
-  - ps: Invoke-Webrequest 'https://luarocks.github.io/luarocks/releases/luarocks-3.2.1-windows-32.zip' -OutFile luarocks.zip
-  - ps: Expand-Archive luarocks.zip
-  - set PATH=%PATH%;c:\luarocks\luarocks-3.2.1-windows-32
-  - luarocks.exe install --lua-dir=c:\lua --local lua-messagepack
+  - ps: Invoke-Webrequest 'https://framagit.org/fperrad/lua-MessagePack/raw/master/src5.3/MessagePack.lua?inline=false' -OutFile c:\lua\MessagePack.lua
+  - dir c:\lua
+  - set LUA_PATH=c:\lua\?.lua
 
 before_build:
   - cd C:\wingetopt
