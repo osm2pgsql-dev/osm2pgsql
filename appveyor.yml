@@ -76,7 +76,7 @@ install:
   - ps: Expand-Archive luarocks.zip
   - dir c:\
   - dir c:\luarocks
-  - set PATH=%PATH%;c:\luarocks
+  - set PATH=%PATH%;c:\luarocks\luarocks-3.2.1-windows-32
   - luarocks.exe install --local lua-messagepack
 
 before_build:
