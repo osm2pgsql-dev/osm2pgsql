@@ -101,7 +101,7 @@ before_install:
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev
   # g++ needs extra install, clang doesn't, so ignore errors here
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
-  - luarocks install lua-messagepack
+  - luarocks install --local lua-messagepack
 
 before_script:
   - for PG_VERSION in $PG_VERSIONS; do PAGER= pg_virtualenv -v $PG_VERSION psql -ena -c "select * from pg_available_extensions where name = 'postgis'" -c "SELECT version()" -c "CREATE EXTENSION postgis" -c "CREATE EXTENSION hstore" -c "SELECT PostGIS_Full_Version()"; done
