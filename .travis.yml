@@ -8,7 +8,7 @@ addons:
   # Here we install only packages that are the same for all builds on ubuntu.
   apt:
     packages: ['python3-psycopg2', 'libexpat1-dev', 'libpq-dev', 'libbz2-dev',
-               'libproj-dev', 'libluajit-5.1-dev', 'lua-messagepack',
+               'libproj-dev', 'libluajit-5.1-dev',
                'libboost-dev', 'libboost-system-dev', 'libboost-filesystem-dev']
 
 # env: T="...."     //  please set an unique test id (T="..")
@@ -61,19 +61,16 @@ matrix:
   #      - lua -v
 
   # ---- Linux + GCC ---------------------------
-  #
-######## ALWAYS FAILES DUE TO MISSING MessagePack
-#
-#    - os: linux
-#      dist: xenial
-#      compiler: "gcc-5"
-#      env: T="xenial_gcc5_pg94"
-#           PG_VERSIONS=9.4
-#           POSTGIS_VERSION=2.2
-#           LUA_VERSION=5.3
-#           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
-#           CXXFLAGS="-pedantic -Wextra -Werror"
-#           CC=gcc-5 CXX=g++-5 CPPVERSION=11
+    - os: linux
+      dist: xenial
+      compiler: "gcc-5"
+      env: T="xenial_gcc5_pg94"
+           PG_VERSIONS=9.4
+           POSTGIS_VERSION=2.2
+           LUA_VERSION=5.3
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-5 CXX=g++-5 CPPVERSION=11
 
     - os: linux
       dist: bionic
@@ -104,6 +101,7 @@ before_install:
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev
   # g++ needs extra install, clang doesn't, so ignore errors here
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
+  - luarocks install lua-messagepack
 
 before_script:
   - for PG_VERSION in $PG_VERSIONS; do PAGER= pg_virtualenv -v $PG_VERSION psql -ena -c "select * from pg_available_extensions where name = 'postgis'" -c "SELECT version()" -c "CREATE EXTENSION postgis" -c "CREATE EXTENSION hstore" -c "SELECT PostGIS_Full_Version()"; done
