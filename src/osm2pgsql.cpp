@@ -23,7 +23,6 @@
 #-----------------------------------------------------------------------------
 */
 
-#include "config.h"
 #include "db-copy.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
@@ -34,6 +33,7 @@
 #include "parse-osmium.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
+#include "version.hpp"
 
 #include <cstdio>
 #include <cstdlib>
@@ -46,8 +46,8 @@
 
 int main(int argc, char *argv[])
 {
-    fprintf(stderr, "osm2pgsql version %s (%zu bit id space)\n\n", VERSION,
-            8 * sizeof(osmid_t));
+    fprintf(stderr, "osm2pgsql version %s (%zu bit id space)\n\n",
+            get_osm2pgsql_version(), 8 * sizeof(osmid_t));
     try {
         //parse the args into the different options members
         options_t options = options_t(argc, argv);
