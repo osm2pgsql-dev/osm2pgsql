@@ -60,6 +60,27 @@ option(EXTERNAL_PROTOZERO "Do not use the bundled protozero" OFF)
 option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
 #############################################################
+# Version
+#############################################################
+
+find_package(Git)
+
+if(GIT_FOUND)
+    execute_process(COMMAND "${GIT_EXECUTABLE}" describe --tags --dirty=-changed
+                    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                    OUTPUT_VARIABLE VERSION_FROM_GIT
+                    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+    if(VERSION_FROM_GIT)
+        set(VERSION_FROM_GIT " (${VERSION_FROM_GIT})")
+    endif()
+endif()
+
+configure_file(
+    ${PROJECT_SOURCE_DIR}/src/version.cpp.in
+    ${PROJECT_BINARY_DIR}/src/version.cpp
+)
+
+#############################################################
 # Detect available headers and set global compiler options
 #############################################################
 
