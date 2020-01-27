@@ -1,3 +1,4 @@
 #cmakedefine HAVE_LUA 1
 #cmakedefine HAVE_LUAJIT 1
 #cmakedefine HAVE_TERMIOS_H 1
+#cmakedefine HAVE_GENERIC_PROJ 1

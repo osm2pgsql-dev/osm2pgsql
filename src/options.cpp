@@ -105,8 +105,11 @@ void long_usage(char *arg0, bool verbose = false)
        -c|--create      Remove existing data from the database. This is the\n\
                         default if --append is not specified.\n\
        -l|--latlong     Store data in degrees of latitude & longitude.\n\
-       -m|--merc        Store data in proper spherical mercator (default).\n\
-       -E|--proj num    Use projection EPSG:num.\n\
+       -m|--merc        Store data in proper spherical mercator (default).\n"
+#ifdef HAVE_GENERIC_PROJ
+                 "       -E|--proj num    Use projection EPSG:num.\n"
+#endif
+                 "\
        -s|--slim        Store temporary data in the database. This greatly\n\
                         reduces the RAM usage but is much slower. This switch is\n\
                         required if you want to update with --append later.\n\
@@ -283,7 +286,7 @@ std::string database_options_t::conninfo() const
 }
 
 options_t::options_t()
-: projection(reprojection::create_projection(PROJ_SPHERE_MERC)),
+:
 #ifdef __amd64__
   alloc_chunkwise(ALLOC_SPARSE | ALLOC_DENSE),
 #else
@@ -333,13 +336,17 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             keep_coastlines = true;
             break;
         case 'l':
-            projection.reset(reprojection::create_projection(PROJ_LATLONG));
+            projection = reprojection::create_projection(PROJ_LATLONG);
             break;
         case 'm':
-            projection.reset(reprojection::create_projection(PROJ_SPHERE_MERC));
+            projection = reprojection::create_projection(PROJ_SPHERE_MERC);
             break;
         case 'E':
-            projection.reset(reprojection::create_projection(atoi(optarg)));
+#ifdef HAVE_GENERIC_PROJ
+            projection = reprojection::create_projection(atoi(optarg));
+#else
+            throw std::runtime_error("Generic projections not available.");
+#endif
             break;
         case 'p':
             prefix = optarg;
@@ -533,6 +540,10 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     while (optind < argc) {
         input_files.push_back(std::string(argv[optind]));
         optind++;
+    }
+
+    if (!projection) {
+        projection = reprojection::create_projection(PROJ_SPHERE_MERC);
     }
 
     check_options();

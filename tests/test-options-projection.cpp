@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "common-import.hpp"
+#include "config.h"
 
 static testing::db::import_t db;
 
@@ -35,6 +36,7 @@ TEST_CASE("Projection setup")
         srid = "3857";
     }
 
+#ifdef HAVE_GENERIC_PROJ
     SECTION("Latlong with -E option")
     {
         proj_name = "Latlong";
@@ -57,6 +59,7 @@ TEST_CASE("Projection setup")
         option_params.push_back("-E");
         option_params.push_back(srid);
     }
+#endif
 
     option_params.push_back("foo");
 

@@ -17,6 +17,7 @@ public:
         m_opt.num_procs = 1;
         m_opt.cache = 2;
         m_opt.append = false;
+        m_opt.projection = reprojection::create_projection(PROJ_SPHERE_MERC);
     }
 
     operator options_t() const { return m_opt; }
@@ -72,7 +73,7 @@ public:
 
     opt_t &srs(int srs)
     {
-        m_opt.projection.reset(reprojection::create_projection(srs));
+        m_opt.projection = reprojection::create_projection(srs);
         return *this;
     }
 
