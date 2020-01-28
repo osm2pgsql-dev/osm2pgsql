@@ -4,19 +4,9 @@ extern "C"
 #include <lualib.h>
 }
 
-#include <boost/filesystem.hpp>
-
 #include "format.hpp"
 #include "options.hpp"
 #include "tagtransform-lua.hpp"
-
-static std::string adapt_relative_filename(std::string const &lua_file,
-                                           std::string const &style_file)
-{
-    boost::filesystem::path base_path{style_file};
-    return boost::filesystem::absolute(lua_file, base_path.parent_path())
-        .string();
-}
 
 lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
 : m_node_func(
@@ -26,8 +16,7 @@ lua_tagtransform_t::lua_tagtransform_t(options_t const *options)
       options->tag_transform_rel_func.get_value_or("filter_basic_tags_rel")),
   m_rel_mem_func(options->tag_transform_rel_mem_func.get_value_or(
       "filter_tags_relation_member")),
-  m_lua_file(adapt_relative_filename(options->tag_transform_script.get(),
-                                     options->style)),
+  m_lua_file(options->tag_transform_script.get()),
   m_extra_attributes(options->extra_attributes)
 {
     open_style();
