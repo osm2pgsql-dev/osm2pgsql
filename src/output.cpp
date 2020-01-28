@@ -10,8 +10,17 @@
 #include <cstring>
 #include <stdexcept>
 
+#include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+
+static std::string adapt_relative_filename(std::string const &lua_file,
+                                           std::string const &style_file)
+{
+    boost::filesystem::path base_path{style_file};
+    return boost::filesystem::absolute(lua_file, base_path.parent_path())
+        .string();
+}
 
 namespace pt = boost::property_tree;
 
@@ -37,8 +46,11 @@ parse_multi_single(pt::ptree const &conf,
     std::string name = conf.get<std::string>("name");
     std::string proc_type = conf.get<std::string>("type");
 
-    new_opts.tag_transform_script =
-        conf.get_optional<std::string>("tagtransform");
+    auto const opt_script = conf.get_optional<std::string>("tagtransform");
+    if (opt_script) {
+        new_opts.tag_transform_script =
+            adapt_relative_filename(opt_script.get(), options.style);
+    }
 
     new_opts.tag_transform_node_func =
         conf.get_optional<std::string>("tagtransform-node-function");
