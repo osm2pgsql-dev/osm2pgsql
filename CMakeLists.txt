@@ -109,7 +109,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium 2.14 REQUIRED COMPONENTS io proj)
+find_package(Osmium 2.14 REQUIRED COMPONENTS io)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
 if (WITH_LUA)
@@ -135,6 +135,19 @@ find_package(Threads)
 ############### Libraries are found now ########################
 
 set(LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
+
+find_path(PROJ4_INCLUDE_DIR proj_api.h)
+find_library(PROJ_LIBRARY NAMES proj)
+if(PROJ4_INCLUDE_DIR AND PROJ_LIBRARY)
+    message(STATUS "Found Proj4 ${PROJ_LIBRARY}")
+    set(HAVE_GENERIC_PROJ 1)
+    set(HAVE_PROJ4 1)
+    list(APPEND LIBS ${PROJ_LIBRARY})
+    include_directories(SYSTEM ${PROJ_INCLUDE_DIR})
+else()
+    message(STATUS "Proj library not found.")
+    message(STATUS "    Only Mercartor and WGS84 projections will be available.")
+endif()
 
 if (LUAJIT_FOUND)
     list(APPEND LIBS ${LUAJIT_LIBRARIES})

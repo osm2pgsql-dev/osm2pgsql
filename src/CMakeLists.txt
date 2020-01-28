@@ -71,6 +71,12 @@ endif()
 
 list(APPEND osm2pgsql_lib_SOURCES ${PROJECT_BINARY_DIR}/src/version.cpp)
 
+if (HAVE_PROJ4)
+    list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-proj4.cpp)
+else()
+    list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-none.cpp)
+endif()
+
 add_library(osm2pgsql_lib STATIC ${osm2pgsql_lib_SOURCES})
 set_target_properties(osm2pgsql_lib PROPERTIES OUTPUT_NAME osm2pgsql)
 target_link_libraries(osm2pgsql_lib ${LIBS})

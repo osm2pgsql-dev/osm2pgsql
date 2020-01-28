@@ -2,12 +2,14 @@
 #define OSM2PGSQL_REPROJECTION_HPP
 
 /*
- * Convert OSM lattitude / longitude from degrees to mercator
+ * Convert OSM latitude / longitude from degrees to mercator
  * so that Mapnik does not have to project the data again
  *
  */
 
-#include <osmium/geom/projection.hpp>
+#include <memory>
+
+#include <osmium/geom/coordinates.hpp>
 #include <osmium/osm/location.hpp>
 
 enum Projection
@@ -62,7 +64,10 @@ public:
      * The target projection (used in the PostGIS tables).
      * Controlled by the -l/-m/-E options.
      */
-    static reprojection *create_projection(int srs);
+    static std::shared_ptr<reprojection> create_projection(int srs);
+
+private:
+    static std::shared_ptr<reprojection> make_generic_projection(int srs);
 };
 
 #endif // OSM2PGSQL_REPROJECTION_HPP
