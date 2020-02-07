@@ -5,6 +5,7 @@
 #include <unordered_set>
 
 #include "osmtypes.hpp"
+#include "pgsql.hpp"
 
 class reprojection;
 class table_t;
@@ -55,6 +56,7 @@ struct expire_tiles
                   double max_lat);
     void from_wkb(const char *wkb, osmid_t osm_id);
     int from_db(table_t *table, osmid_t osm_id);
+    int from_result(pg_result_t const &result, osmid_t osm_id);
 
     /**
      * Write the list of expired tiles to a file.

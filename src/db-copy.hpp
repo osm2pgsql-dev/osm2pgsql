@@ -68,6 +68,48 @@ private:
 };
 
 /**
+ * Deleter which removes objects by (optional) type and id from the database.
+ */
+class db_deleter_by_type_and_id_t
+{
+    enum
+    {
+        // There is a trade-off here between sending as few DELETE SQL as
+        // possible and keeping the size of the deletable vector managable.
+        Max_entries = 1000000
+    };
+
+    struct item_t
+    {
+        osmid_t osm_id;
+        char osm_type;
+
+        item_t(char t, osmid_t i) : osm_id(i), osm_type(t) {}
+    };
+
+public:
+    bool has_data() const noexcept { return !m_deletables.empty(); }
+
+    void add(char type, osmid_t osm_id)
+    {
+        m_deletables.emplace_back(type, osm_id);
+        if (type != 'X') {
+            m_has_type = true;
+        }
+    }
+
+    void delete_rows(std::string const &table, std::string const &column,
+                     pg_conn_t *conn);
+
+    bool is_full() const noexcept { return m_deletables.size() > Max_entries; }
+
+private:
+    /// Vector with object to delete before copying
+    std::vector<item_t> m_deletables;
+    bool m_has_type = false;
+};
+
+/**
  * A command for the copy thread to execute.
  */
 class db_cmd_t

@@ -3,3 +3,7 @@ char const *get_osm2pgsql_version() noexcept {
     return "@PACKAGE_VERSION@@VERSION_FROM_GIT@";
 }
 
+char const *get_osm2pgsql_short_version() noexcept {
+    return "@PACKAGE_VERSION@";
+}
+

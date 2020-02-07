@@ -4,6 +4,7 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.cpp
   gazetteer-style.cpp
   geometry-processor.cpp
+  geom-transform.cpp
   id-tracker.cpp
   middle-pgsql.cpp
   middle-ram.cpp
@@ -34,6 +35,7 @@ set(osm2pgsql_lib_SOURCES
   expire-tiles.hpp
   gazetteer-style.hpp
   geometry-processor.hpp
+  geom-transform.hpp
   id-tracker.hpp
   middle-pgsql.hpp
   middle-ram.hpp
@@ -66,7 +68,17 @@ set(osm2pgsql_lib_SOURCES
 )
 
 if (LUA_FOUND OR LUAJIT_FOUND)
-    list(APPEND osm2pgsql_lib_SOURCES tagtransform-lua.cpp)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                 "${CMAKE_CURRENT_SOURCE_DIR}/init.lua")
+    file(READ "${CMAKE_CURRENT_SOURCE_DIR}/init.lua" LUA_INIT_CODE)
+    configure_file(lua-init.cpp.in lua-init.cpp @ONLY)
+    list(APPEND osm2pgsql_lib_SOURCES
+        flex-table.cpp
+        flex-table-column.cpp
+        lua-utils.cpp
+        output-flex.cpp
+        tagtransform-lua.cpp
+        ${CMAKE_CURRENT_BINARY_DIR}/lua-init.cpp)
 endif()
 
 list(APPEND osm2pgsql_lib_SOURCES ${PROJECT_BINARY_DIR}/src/version.cpp)

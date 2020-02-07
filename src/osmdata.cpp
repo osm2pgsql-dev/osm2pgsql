@@ -442,6 +442,10 @@ void osmdata_t::stop() const
         }
     }
 
+    for (auto &out : outs) {
+        out->stage2_proc();
+    }
+
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
     {
