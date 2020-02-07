@@ -15,8 +15,10 @@ use them.
 
 * `--output` specifies if the output backend is the default
   [`pgsql`](pgsql.md), the [`gazetteer`](gazetteer.md) output used by Nominatim,
-  the new [`multi`](multi.md) backend which allows more customization of tables,
+  the new [`flex`](flex.md) backend which allows more customization of tables,
   or `null`, which emits no output to the backend.
+  There also is a [`multi`](multi.md) backend. This is now deprecated and
+  will be removed in future versions of osm2pgsql.
 
   `null` will create slim tables if `--slim` is also used.
 

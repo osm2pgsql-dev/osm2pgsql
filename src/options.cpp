@@ -435,6 +435,11 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             break;
         case 'O':
             output_backend = optarg;
+            if (output_backend == "multi") {
+                fprintf(stderr,
+                        "WARNING: 'multi' output is deprecated and will be removed.\n"
+                        "         Please switch to the 'flex' output.\n");
+            }
             break;
         case 'x':
             extra_attributes = true;

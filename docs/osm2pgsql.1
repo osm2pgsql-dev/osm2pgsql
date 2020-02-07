@@ -152,14 +152,14 @@ Create a tile expiry list.
 Output file name for expired tiles list.
 .TP
 \fB\-O\fR|\-\-output
-Specifies the output back\-end or database schema to use. Currently
-osm2pgsql supports \fBpgsql\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
+Specifies the output back\-end or database schema to use. Currently osm2pgsql
+supports \fBpgsql\fR, \fBflex\fR, \fBgazetteer\fR and \fBnull\fR. \fBpgsql\fR is
 the default output back\-end / schema and is optimized for rendering with Mapnik.
 \fBgazetteer\fR is a db schema optimized for geocoding and is used by Nominatim.
-The \fBmulti\fR backend allows more customization of tables. The experimental
-\fBflex\fR backend allows more flexible configuration.
+The experimental \fBflex\fR backend allows more flexible configuration.
 \fBnull\fR does not write any output and is only useful for testing or with
-\-\-slim for creating slim tables.
+\-\-slim for creating slim tables. There is also a \fBmulti\fR backend. This is
+now deprecated and will be removed in future versions of osm2pgsql.
 .TP
 \fB\-x\fR|\-\-extra\-attributes
 Include attributes for each object in the database.
