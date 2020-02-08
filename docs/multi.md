@@ -1,5 +1,8 @@
 # Multi Backend #
 
+**WARNING: the multi backend is deprecated and will be removed in future versions
+of osm2pgsql.**
+
 The multi backend is designed for custom table structures as an alternative
 to the standard [pgsql](pgsql.md) backend tables. It is intended to allow
 the configuration of a custom set of tables with hopefully fewer rows and fewer
