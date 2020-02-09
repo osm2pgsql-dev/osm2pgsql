@@ -42,7 +42,7 @@ static std::mutex lua_mutex;
 // context (the output_flex_t object) and call the respective function on the
 // context object.
 #define TRAMPOLINE(func_name, lua_name)                                        \
-    static int lua_trampoline_##func_name(lua_State *lua_state) noexcept       \
+    static int lua_trampoline_##func_name(lua_State *lua_state)                \
     {                                                                          \
         try {                                                                  \
             return static_cast<output_flex_t *>(luaX_get_context(lua_state))   \
