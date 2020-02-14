@@ -105,7 +105,14 @@ geom_transform_area_t::run(geom::osmium_builder_t *builder,
         return {};
     }
 
-    return {builder->get_wkb_polygon(*way)};
+    geom::osmium_builder_t::wkbs_t result;
+    result.push_back(builder->get_wkb_polygon(*way));
+
+    if (result.front().empty()) {
+        result.clear();
+    }
+
+    return result;
 }
 
 geom::osmium_builder_t::wkbs_t

@@ -331,6 +331,7 @@ void output_flex_t::write_row(flex_table_t *table, osmium::item_type id_type,
         } else if (column.type() == table_column_type::id_num) {
             copy_mgr->add_column(id);
         } else if (column.is_geometry_column()) {
+            assert(!geom.empty());
             copy_mgr->add_hex_geom(geom);
         } else if (column.type() == table_column_type::area) {
             if (geom.empty()) {
