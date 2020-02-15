@@ -62,11 +62,6 @@ for name, table in pairs(tables) do
     print("  columns=" .. inspect(table:columns()))
 end
 
--- Helper function to check whether a table is empty
-function is_empty(some_table)
-    return next(some_table) == nil
-end
-
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
 function clean_tags(tags)
