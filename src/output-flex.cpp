@@ -845,7 +845,6 @@ void output_flex_t::call_process_function(int index,
 void output_flex_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
                                  std::size_t output_id, std::size_t &added)
 {
-    fmt::print(stderr, "enqueue_ways: {}/{}\n", id, output_id);
     osmid_t const prev = m_ways_pending_tracker.last_returned();
     if (id_tracker::is_valid(prev) && prev >= id) {
         if (prev > id) {
