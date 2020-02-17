@@ -3,7 +3,7 @@
 
 **The Flex Backend is experimental. Everything in here is subject to change.**
 
-See the [Flex Backend Documentation](docs/flex.md) for all the details.
+See the [Flex Backend Documentation](../docs/flex.md) for all the details.
 
 ## Example config files
 
