@@ -109,6 +109,15 @@ if (PYTHONINTERP_FOUND)
     set_tests_properties(regression-test-pbf
                          PROPERTIES FIXTURES_REQUIRED Tablespace)
     message(STATUS "Added test: regression-test-pbf (needs Python with psycopg2 module)")
-  else()
+else()
     message(WARNING "Can not find python, regression test disabled")
+endif()
+
+if(LUA_EXE)
+    message(STATUS "Added test: lua-lib")
+    add_test(NAME lua-lib COMMAND lua lua/tests.lua
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set_tests_properties(lua-lib PROPERTIES LABELS NoDB)
+else()
+    message(WARNING "Can not find Lua interpreter, test 'lua-lib' disabled")
 endif()

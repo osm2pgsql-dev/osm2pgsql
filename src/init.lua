@@ -3,6 +3,8 @@
 --  the flex backend.
 --
 
+local math = require('math')
+
 local _define_table_impl = function (_type, _name, _columns)
     return osm2pgsql.define_table{
         name = _name,
@@ -35,6 +37,26 @@ function osm2pgsql.mark_relation(id)
     return osm2pgsql.mark('r', id)
 end
 
+function osm2pgsql.clamp(value, low, high)
+    return math.min(math.max(value, low), high)
+end
+
+function osm2pgsql.make_check_values_func(list, default)
+    local valid_values = {}
+    if default ~= nil then
+        local mt = {__index = function () return default end}
+        setmetatable(valid_values, mt)
+    end
+
+    for _, elem in ipairs(list) do
+        valid_values[elem] = elem
+    end
+
+    return function(value)
+        return valid_values[value]
+    end
+end
+
 function osm2pgsql.make_clean_tags_func(keys)
     local keys_to_delete = {}
     local prefixes_to_delete = {}
@@ -50,6 +72,10 @@ function osm2pgsql.make_clean_tags_func(keys)
     return function(tags)
         for _, k in ipairs(keys_to_delete) do
             tags[k] = nil
+        end
+
+        if next(tags) == nil then
+            return true
         end
 
         for tag, _ in pairs(tags) do
@@ -70,7 +96,7 @@ end
 local inner_metatable = {
     __index = function(table, key)
         if key == 'version' or key == 'timestamp' or
-        key == 'changeset' or key == 'uid' or key == 'user' then
+           key == 'changeset' or key == 'uid' or key == 'user' then
             return nil
         end
         error("unknown field '" .. key .. "'", 2)

@@ -46,6 +46,9 @@ You are expected to define one or more of the following functions:
 * `osm2pgsql.process_way()`: Called for each way.
 * `osm2pgsql.process_relation()`: Called for each relation.
 
+Osm2pgsql also provides some additional functions in the
+[lua-lib.md](Lua helper library).
+
 ### Defining a table
 
 You have to define one or more tables where your data should end up. This
