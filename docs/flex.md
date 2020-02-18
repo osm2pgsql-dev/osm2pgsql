@@ -115,6 +115,12 @@ Instead of the above types you can use any SQL type you want. If you do that
 you have to supply the PostgreSQL string representation for that type when
 adding data to such columns (or Lua nil to set the column to `NULL`).
 
+When defining a column you can add the following options:
+* `not_null = true`: Make this a `NOT NULL` column.
+* `create_only = true`: Add the column to the `CREATE TABLE` command, but
+  do not try to fill this column when adding data. This can be useful for
+  `SERIAL` columns or when you want to fill in the column later yourself.
+
 ### Processing callbacks
 
 You are expected to define one or more of the following functions:

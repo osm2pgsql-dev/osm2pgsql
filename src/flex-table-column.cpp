@@ -143,7 +143,7 @@ std::string flex_table_column_t::sql_modifiers() const
 {
     std::string modifiers;
 
-    if ((m_flags & table_column_flags::not_null) != 0U) {
+    if (m_not_null) {
         modifiers += "NOT NULL ";
     }
 

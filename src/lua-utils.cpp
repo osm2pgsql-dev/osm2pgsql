@@ -114,3 +114,24 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
     }
     return lua_tostring(lua_state, -1);
 }
+
+bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
+                         char const *error_msg, bool default_value)
+{
+    assert(lua_state);
+    assert(key);
+    assert(error_msg);
+    lua_getfield(lua_state, table_index, key);
+    auto const type = lua_type(lua_state, -1);
+
+    if (type == LUA_TNIL) {
+        return default_value;
+    }
+
+    if (type == LUA_TBOOLEAN) {
+        return lua_toboolean(lua_state, -1);
+    }
+
+    throw std::runtime_error{
+        "{} must contain a '{}' boolean field"_format(error_msg, key)};
+}

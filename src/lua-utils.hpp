@@ -46,4 +46,7 @@ void luaX_add_table_array(lua_State *lua_state, char const *key,
 char const *luaX_get_table_string(lua_State *lua_state, char const *key,
                                   int table_index, char const *error_msg);
 
+bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
+                         char const *error_msg, bool default_value);
+
 #endif // OSM2PGSQL_FLEX_LUA_HPP
