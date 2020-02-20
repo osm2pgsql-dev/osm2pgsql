@@ -5,7 +5,12 @@
 
 local highways = osm2pgsql.define_way_table('highways', {
     { column = 'name',     type = 'text' },
-    { column = 'type',     type = 'text' },
+    -- We always need a highway type, so we can declare the column as NOT NULL
+    { column = 'type',     type = 'text', not_null = true },
+
+    -- Add a SERIAL column and tell osm2pgsql not to fill it (PostgreSQL will
+    -- do that for us)
+    { column = 'id',       type = 'serial', create_only = true },
 
     -- type "direction" is special, see below
     { column = 'oneway',   type = 'direction' },

@@ -75,7 +75,7 @@ flex_table_column_t &flex_table_t::add_column(std::string const &name,
 
     if (column.is_geometry_column()) {
         m_geom_column = m_columns.size() - 1;
-        column.set_not_null_constraint();
+        column.set_not_null();
     }
 
     return column;
@@ -127,10 +127,12 @@ std::string flex_table_t::build_sql_column_list() const
 
     std::string result;
     for (auto const &column : m_columns) {
-        result += '"';
-        result += column.name();
-        result += '"';
-        result += ',';
+        if (!column.create_only()) {
+            result += '"';
+            result += column.name();
+            result += '"';
+            result += ',';
+        }
     }
     result.resize(result.size() - 1);
 

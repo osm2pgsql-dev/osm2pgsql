@@ -38,12 +38,6 @@ enum class table_column_type : uint8_t
     id_num
 };
 
-enum table_column_flags : uint8_t
-{
-    none = 0,
-    not_null = 1
-};
-
 /**
  * A column in a flex_table_t.
  */
@@ -55,8 +49,6 @@ public:
     std::string const &name() const noexcept { return m_name; }
 
     table_column_type type() const noexcept { return m_type; }
-
-    table_column_flags flags() const noexcept { return m_flags; }
 
     bool is_point_column() const noexcept
     {
@@ -85,11 +77,13 @@ public:
 
     std::string const &type_name() const noexcept { return m_type_name; }
 
-    void set_not_null_constraint() noexcept
-    {
-        m_flags = static_cast<table_column_flags>(m_flags |
-                                                  table_column_flags::not_null);
-    }
+    bool not_null() const noexcept { return m_not_null; }
+
+    bool create_only() const noexcept { return m_create_only; }
+
+    void set_not_null(bool value = true) noexcept { m_not_null = value; }
+
+    void set_create_only(bool value = true) noexcept { m_create_only = value; }
 
     std::string sql_type_name(int srid) const;
     std::string sql_modifiers() const;
@@ -111,8 +105,11 @@ private:
      */
     table_column_type m_type;
 
-    /// Flags like NOT NULL.
-    table_column_flags m_flags = table_column_flags::none;
+    /// NOT NULL constraint
+    bool m_not_null = false;
+
+    /// Column will be created but not filled by osm2pgsql.
+    bool m_create_only = false;
 };
 
 #endif // OSM2PGSQL_FLEX_TABLE_COLUMN_HPP

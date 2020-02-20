@@ -326,6 +326,9 @@ void output_flex_t::write_row(flex_table_t *table, osmium::item_type id_type,
     auto *copy_mgr = table->copy_mgr();
 
     for (auto const &column : *table) {
+        if (column.create_only()) {
+            continue;
+        }
         if (column.type() == table_column_type::id_type) {
             copy_mgr->add_column(type_to_char(id_type));
         } else if (column.type() == table_column_type::id_num) {
@@ -509,7 +512,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
         }
         lua_pop(lua_state(), 1); // type_column
         auto &column = table->add_column(type_column_name, "id_type");
-        column.set_not_null_constraint();
+        column.set_not_null();
         table->set_id_type(osmium::item_type::undefined);
     } else {
         throw std::runtime_error{"Unknown ids type: " + type};
@@ -520,7 +523,7 @@ void output_flex_t::setup_id_columns(flex_table_t *table)
     check_name(name, "column");
 
     auto &column = table->add_column(name, "id_num");
-    column.set_not_null_constraint();
+    column.set_not_null();
     lua_pop(lua_state(), 3); // id_column, type, ids
 }
 
@@ -551,9 +554,15 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
             luaX_get_table_string(lua_state(), "column", -2, "Column entry");
         check_name(name, "column");
 
-        table->add_column(name, type);
+        auto &column = table->add_column(name, type);
 
-        lua_pop(lua_state(), 3); // column, type, table
+        column.set_not_null(luaX_get_table_bool(lua_state(), "not_null", -3,
+                                                "Entry 'not_null'", false));
+
+        column.set_create_only(luaX_get_table_bool(
+            lua_state(), "create_only", -4, "Entry 'create_only'", false));
+
+        lua_pop(lua_state(), 5); // create_only, not_null, column, type, table
         ++num_columns;
     }
 
@@ -670,6 +679,8 @@ int output_flex_t::table_columns()
                            column.sql_type_name(table.srid()).c_str());
         luaX_add_table_str(lua_state(), "sql_modifiers",
                            column.sql_modifiers().c_str());
+        luaX_add_table_bool(lua_state(), "not_null", column.not_null());
+        luaX_add_table_bool(lua_state(), "create_only", column.create_only());
 
         lua_rawset(lua_state(), -3);
     }
