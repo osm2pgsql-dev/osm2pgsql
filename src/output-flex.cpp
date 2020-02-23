@@ -212,6 +212,17 @@ static int sgn(int val) noexcept
     return 0;
 }
 
+static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                       flex_table_column_t const &column)
+{
+    if (column.not_null()) {
+        throw std::runtime_error{
+            "Can not add NULL to column '{}' declared NOT NULL."_format(
+                column.name())};
+    }
+    copy_mgr->add_null_column();
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -221,7 +232,7 @@ void output_flex_t::write_column(
 
     // A Lua nil value is always translated to a database NULL
     if (ltype == LUA_TNIL) {
-        copy_mgr->add_null_column();
+        write_null(copy_mgr, column);
         lua_pop(lua_state(), 1);
         return;
     }
@@ -345,7 +356,7 @@ void output_flex_t::write_row(table_connection_t *table_connection,
             copy_mgr->add_hex_geom(geom);
         } else if (column.type() == table_column_type::area) {
             if (geom.empty()) {
-                copy_mgr->add_null_column();
+                write_null(copy_mgr, column);
             } else {
                 double const area =
                     get_options()->reproject_area
