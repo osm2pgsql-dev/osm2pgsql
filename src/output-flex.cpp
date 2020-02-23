@@ -226,6 +226,12 @@ void output_flex_t::write_column(
         return;
     }
 
+    if (ltype == LUA_TFUNCTION || ltype == LUA_TUSERDATA ||
+        ltype == LUA_TTHREAD) {
+        throw std::runtime_error{
+            "Can not add Lua objects of type function, userdata, or thread."};
+    }
+
     if ((column.type() == table_column_type::sql) ||
         (column.type() == table_column_type::text)) {
         auto const *const str = lua_tolstring(lua_state(), -1, nullptr);
