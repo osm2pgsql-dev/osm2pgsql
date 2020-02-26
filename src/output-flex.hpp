@@ -109,6 +109,9 @@ private:
 
     flex_table_t &table_func_params(int n);
 
+    db_copy_mgr_t<db_deleter_by_type_and_id_t> *
+    get_copy_mgr(flex_table_t *table);
+
     void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                       flex_table_column_t const &column);
     void write_row(flex_table_t *table, osmium::item_type id_type, osmid_t id,
@@ -136,6 +139,7 @@ private:
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
+    std::vector<db_copy_mgr_t<db_deleter_by_type_and_id_t>> m_copy_mgrs;
 
     id_tracker m_ways_pending_tracker;
     id_tracker m_rels_pending_tracker;

@@ -1,8 +1,9 @@
 #ifndef OSM2PGSQL_FLEX_TABLE_HPP
 #define OSM2PGSQL_FLEX_TABLE_HPP
 
-#include "db-copy-mgr.hpp"
+#include "db-copy.hpp"
 #include "flex-table-column.hpp"
+#include "osmtypes.hpp"
 #include "pgsql.hpp"
 
 #include <osmium/osm/item_type.hpp>
@@ -20,10 +21,8 @@
 class flex_table_t
 {
 public:
-    flex_table_t(std::string const &name, int srid,
-                 std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                 bool append)
-    : m_name(name), m_srid(srid), m_copy_mgr(copy_thread), m_append(append)
+    flex_table_t(std::string const &name, int srid, bool append)
+    : m_name(name), m_srid(srid), m_append(append)
     {}
 
     std::string const &name() const noexcept { return m_name; }
@@ -131,11 +130,12 @@ public:
             name().c_str(), id_columns.c_str(), columns.c_str());
     }
 
+    std::shared_ptr<db_target_descr_t> const &target() const noexcept
+    {
+        return m_target;
+    }
+
     void connect(std::string const &conninfo);
-
-    void commit() { m_copy_mgr.sync(); }
-
-    void new_line() { m_copy_mgr.new_line(m_target); }
 
     void teardown() { m_db_connection.reset(); }
 
@@ -153,14 +153,7 @@ public:
 
     void create_id_index();
 
-    void delete_rows_with(osmium::item_type type, osmid_t id);
-
     pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
-
-    db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr() noexcept
-    {
-        return &m_copy_mgr;
-    }
 
 private:
     bool has_multicolumn_id_index() const noexcept;
@@ -200,12 +193,6 @@ private:
 
     /// The SRID all geometries in this table use.
     int m_srid;
-
-    /**
-     * The copy manager responsible for sending data through the COPY mechanism
-     * to the database server.
-     */
-    db_copy_mgr_t<db_deleter_by_type_and_id_t> m_copy_mgr;
 
     /// The connection to the database server.
     std::unique_ptr<pg_conn_t> m_db_connection;

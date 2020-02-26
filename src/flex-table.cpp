@@ -195,8 +195,6 @@ void flex_table_t::start(std::string const &conninfo)
 
 void flex_table_t::stop(bool updateable)
 {
-    m_copy_mgr.sync();
-
     if (m_append) {
         teardown();
         return;
@@ -303,18 +301,6 @@ void flex_table_t::create_id_index()
 {
     m_db_connection->exec("CREATE INDEX ON {} USING BTREE ({}) {}"_format(
         full_name(), id_column_names(), tablespace_clause(m_index_tablespace)));
-}
-
-void flex_table_t::delete_rows_with(osmium::item_type type, osmid_t id)
-{
-    m_copy_mgr.new_line(m_target);
-
-    // If the table id type is some specific type, we don't care about the
-    // type of the individual object, because they all will be the same.
-    if (m_id_type != osmium::item_type::undefined) {
-        type = osmium::item_type::undefined;
-    }
-    m_copy_mgr.delete_object(type_to_char(type)[0], id);
 }
 
 pg_result_t flex_table_t::get_geom_by_id(osmium::item_type type,

@@ -318,12 +318,23 @@ void output_flex_t::write_column(
     lua_pop(lua_state(), 1);
 }
 
+db_copy_mgr_t<db_deleter_by_type_and_id_t> *
+output_flex_t::get_copy_mgr(flex_table_t *table)
+{
+    for (std::size_t n = 0; n < m_tables->size(); ++n) {
+        if (&(*m_tables)[n] == table) {
+            return &m_copy_mgrs.at(n);
+        }
+    }
+    assert(false);
+}
+
 void output_flex_t::write_row(flex_table_t *table, osmium::item_type id_type,
                               osmid_t id, std::string const &geom)
 {
     assert(table);
-    table->new_line();
-    auto *copy_mgr = table->copy_mgr();
+    auto *copy_mgr = get_copy_mgr(table);
+    copy_mgr->new_line(table->target());
 
     for (auto const &column : *table) {
         if (column.create_only()) {
@@ -444,7 +455,7 @@ flex_table_t &output_flex_t::create_flex_table()
     }
 
     m_tables->emplace_back(table_name, get_options()->projection->target_srs(),
-                           m_copy_thread, get_options()->append);
+                           get_options()->append);
     auto &new_table = m_tables->back();
 
     lua_pop(lua_state(), 1);
@@ -997,13 +1008,17 @@ void output_flex_t::pending_relation(osmid_t id, int exists)
 
 void output_flex_t::commit()
 {
-    for (auto &table : *m_tables) {
-        table.commit();
+    for (auto &copy_mgr : m_copy_mgrs) {
+        copy_mgr.sync();
     }
 }
 
 void output_flex_t::stop(osmium::thread::Pool *pool)
 {
+    for (auto &copy_mgr : m_copy_mgrs) {
+        copy_mgr.sync();
+    }
+
     for (auto &table : *m_tables) {
         pool->submit(
             [&]() { table.stop(m_options.slim & !m_options.droptemp); });
@@ -1058,7 +1073,15 @@ void output_flex_t::delete_from_table(flex_table_t *table,
     auto const id = table->map_id(type, osm_id);
     auto const result = table->get_geom_by_id(type, id);
     if (m_expire.from_result(result, id) != 0) {
-        table->delete_rows_with(type, id);
+        auto copy_mgr = get_copy_mgr(table);
+        copy_mgr->new_line(table->target());
+
+        // If the table id type is some specific type, we don't care about the
+        // type of the individual object, because they all will be the same.
+        if (table->id_type() != osmium::item_type::undefined) {
+            type = osmium::item_type::undefined;
+        }
+        copy_mgr->delete_object(type_to_char(type)[0], id);
     }
 }
 
@@ -1158,6 +1181,7 @@ output_flex_t::output_flex_t(
     }
 
     for (auto &table : *m_tables) {
+        m_copy_mgrs.emplace_back(m_copy_thread);
         table.init();
     }
 
