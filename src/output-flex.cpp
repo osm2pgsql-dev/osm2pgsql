@@ -318,14 +318,15 @@ void output_flex_t::write_column(
     lua_pop(lua_state(), 1);
 }
 
-void output_flex_t::write_row(flex_table_t *table, osmium::item_type id_type,
-                              osmid_t id, std::string const &geom)
+void output_flex_t::write_row(table_connection_t *table_connection,
+                              osmium::item_type id_type, osmid_t id,
+                              std::string const &geom)
 {
-    assert(table);
-    table->new_line();
-    auto *copy_mgr = table->copy_mgr();
+    assert(table_connection);
+    table_connection->new_line();
+    auto *copy_mgr = table_connection->copy_mgr();
 
-    for (auto const &column : *table) {
+    for (auto const &column : table_connection->table()) {
         if (column.create_only()) {
             continue;
         }
@@ -443,8 +444,7 @@ flex_table_t &output_flex_t::create_flex_table()
             "Table with that name already exists: '{}'"_format(table_name)};
     }
 
-    m_tables->emplace_back(table_name, get_options()->projection->target_srs(),
-                           m_copy_thread, get_options()->append);
+    m_tables->emplace_back(table_name, get_options()->projection->target_srs());
     auto &new_table = m_tables->back();
 
     lua_pop(lua_state(), 1);
@@ -589,7 +589,7 @@ int output_flex_t::app_define_table()
 
 // Check function parameters of all osm2pgsql.table functions and return the
 // flex table this function is on.
-flex_table_t &output_flex_t::table_func_params(int n)
+table_connection_t &output_flex_t::table_func_params(int n)
 {
     if (lua_gettop(lua_state()) != n) {
         throw std::runtime_error{"Need {} parameter(s)"_format(n)};
@@ -608,7 +608,8 @@ flex_table_t &output_flex_t::table_func_params(int n)
     }
     lua_pop(lua_state(), 2);
 
-    auto &table = m_tables->at(reinterpret_cast<uintptr_t>(user_data) - 1);
+    auto &table =
+        m_table_connections.at(reinterpret_cast<uintptr_t>(user_data) - 1);
     lua_remove(lua_state(), 1);
     return table;
 }
@@ -617,7 +618,7 @@ int output_flex_t::table_tostring()
 {
     auto const &table = table_func_params(1);
 
-    std::string const str{"osm2pgsql.table[{}]"_format(table.name())};
+    std::string const str{"osm2pgsql.table[{}]"_format(table.table().name())};
     lua_pushstring(lua_state(), str.c_str());
 
     return 1;
@@ -625,7 +626,8 @@ int output_flex_t::table_tostring()
 
 int output_flex_t::table_add_row()
 {
-    auto &table = table_func_params(2);
+    auto &table_connection = table_func_params(2);
+    auto &table = table_connection.table();
     luaL_checktype(lua_state(), 1, LUA_TTABLE);
 
     if (m_context_node) {
@@ -633,27 +635,27 @@ int output_flex_t::table_add_row()
             throw std::runtime_error{
                 "Trying to add node to table '{}'"_format(table.name())};
         }
-        add_row(&table, *m_context_node);
+        add_row(&table_connection, *m_context_node);
     } else if (m_context_way) {
         if (!table.matches_type(osmium::item_type::way)) {
             throw std::runtime_error{
                 "Trying to add way to table '{}'"_format(table.name())};
         }
         if (m_in_stage2) {
-            delete_from_table(&table, osmium::item_type::way,
+            delete_from_table(&table_connection, osmium::item_type::way,
                               m_context_way->id());
         }
-        add_row(&table, *m_context_way);
+        add_row(&table_connection, *m_context_way);
     } else if (m_context_relation) {
         if (!table.matches_type(osmium::item_type::relation)) {
             throw std::runtime_error{
                 "Trying to add relation to table '{}'"_format(table.name())};
         }
         if (m_in_stage2) {
-            delete_from_table(&table, osmium::item_type::relation,
+            delete_from_table(&table_connection, osmium::item_type::relation,
                               m_context_relation->id());
         }
-        add_row(&table, *m_context_relation);
+        add_row(&table_connection, *m_context_relation);
     } else {
         throw std::runtime_error{"The add_row() function can only be called "
                                  "from inside a process function"};
@@ -666,17 +668,17 @@ int output_flex_t::table_columns()
 {
     auto const &table = table_func_params(1);
 
-    lua_createtable(lua_state(), (int)table.num_columns(), 0);
+    lua_createtable(lua_state(), (int)table.table().num_columns(), 0);
 
     int n = 0;
-    for (auto const &column : table) {
+    for (auto const &column : table.table()) {
         lua_pushinteger(lua_state(), ++n);
         lua_newtable(lua_state());
 
         luaX_add_table_str(lua_state(), "name", column.name().c_str());
         luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
         luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name(table.srid()).c_str());
+                           column.sql_type_name(table.table().srid()).c_str());
         luaX_add_table_str(lua_state(), "sql_modifiers",
                            column.sql_modifiers().c_str());
         luaX_add_table_bool(lua_state(), "not_null", column.not_null());
@@ -690,14 +692,14 @@ int output_flex_t::table_columns()
 int output_flex_t::table_name()
 {
     auto const &table = table_func_params(1);
-    lua_pushstring(lua_state(), table.name().c_str());
+    lua_pushstring(lua_state(), table.table().name().c_str());
     return 1;
 }
 
 int output_flex_t::table_schema()
 {
     auto const &table = table_func_params(1);
-    lua_pushstring(lua_state(), table.schema().c_str());
+    lua_pushstring(lua_state(), table.table().schema().c_str());
     return 1;
 }
 
@@ -806,31 +808,32 @@ output_flex_t::run_transform(geom_transform_t const *transform,
 }
 
 template <typename OBJECT>
-void output_flex_t::add_row(flex_table_t *table, OBJECT const &object)
+void output_flex_t::add_row(table_connection_t *table_connection,
+                            OBJECT const &object)
 {
-    assert(table);
+    assert(table_connection);
+    auto const &table = table_connection->table();
 
-    osmid_t const id = table->map_id(object.type(), object.id());
+    osmid_t const id = table.map_id(object.type(), object.id());
 
-    if (!table->has_geom_column()) {
-        write_row(table, object.type(), id, "");
+    if (!table.has_geom_column()) {
+        write_row(table_connection, object.type(), id, "");
         return;
     }
 
-    auto const geom_transform =
-        get_transform(lua_state(), table->geom_column());
+    auto const geom_transform = get_transform(lua_state(), table.geom_column());
     assert(lua_gettop(lua_state()) == 1);
 
     geom_transform_t const *transform = geom_transform.get();
 
     if (!transform) {
-        transform = get_default_transform(table->geom_column(), object.type());
+        transform = get_default_transform(table.geom_column(), object.type());
     }
 
     auto const wkbs = run_transform(transform, object);
     for (auto const &wkb : wkbs) {
         m_expire.from_wkb(wkb.c_str(), id);
-        write_row(table, object.type(), id, wkb);
+        write_row(table_connection, object.type(), id, wkb);
     }
 }
 
@@ -997,16 +1000,17 @@ void output_flex_t::pending_relation(osmid_t id, int exists)
 
 void output_flex_t::commit()
 {
-    for (auto &table : *m_tables) {
+    for (auto &table : m_table_connections) {
         table.commit();
     }
 }
 
 void output_flex_t::stop(osmium::thread::Pool *pool)
 {
-    for (auto &table : *m_tables) {
-        pool->submit(
-            [&]() { table.stop(m_options.slim & !m_options.droptemp); });
+    for (auto &table : m_table_connections) {
+        pool->submit([&]() {
+            table.stop(m_options.slim & !m_options.droptemp, m_options.append);
+        });
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
@@ -1051,21 +1055,21 @@ void output_flex_t::relation_add(osmium::Relation const &relation)
     m_context_relation = nullptr;
 }
 
-void output_flex_t::delete_from_table(flex_table_t *table,
+void output_flex_t::delete_from_table(table_connection_t *table_connection,
                                       osmium::item_type type, osmid_t osm_id)
 {
-    assert(table);
-    auto const id = table->map_id(type, osm_id);
-    auto const result = table->get_geom_by_id(type, id);
+    assert(table_connection);
+    auto const id = table_connection->table().map_id(type, osm_id);
+    auto const result = table_connection->get_geom_by_id(type, id);
     if (m_expire.from_result(result, id) != 0) {
-        table->delete_rows_with(type, id);
+        table_connection->delete_rows_with(type, id);
     }
 }
 
 void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
 {
-    for (auto &table : *m_tables) {
-        if (table.matches_type(type)) {
+    for (auto &table : m_table_connections) {
+        if (table.table().matches_type(type)) {
             delete_from_table(&table, type, osm_id);
         }
     }
@@ -1109,7 +1113,7 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 
 void output_flex_t::init_clone()
 {
-    for (auto &table : *m_tables) {
+    for (auto &table : m_table_connections) {
         table.connect(m_options.database_options.conninfo());
         table.prepare();
     }
@@ -1117,8 +1121,9 @@ void output_flex_t::init_clone()
 
 void output_flex_t::start()
 {
-    for (auto &table : *m_tables) {
-        table.start(m_options.database_options.conninfo());
+    for (auto &table : m_table_connections) {
+        table.connect(m_options.database_options.conninfo());
+        table.start(m_options.append);
     }
 }
 
@@ -1157,8 +1162,9 @@ output_flex_t::output_flex_t(
         init_lua(m_options.style);
     }
 
+    assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
-        table.init();
+        m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
     if (is_clone) {
@@ -1282,13 +1288,13 @@ void output_flex_t::stage2_proc()
         fmt::print(stderr, "Creating id indexes...\n");
         const std::time_t start_time = std::time(nullptr);
 
-        for (auto &table : *m_tables) {
+        for (auto &table : m_table_connections) {
             if ((has_marked_ways &&
-                 table.matches_type(osmium::item_type::way)) ||
+                 table.table().matches_type(osmium::item_type::way)) ||
                 (has_marked_rels &&
-                 table.matches_type(osmium::item_type::relation))) {
+                 table.table().matches_type(osmium::item_type::relation))) {
                 fmt::print(stderr, "  Creating id index on table '{}'...\n",
-                           table.name());
+                           table.table().name());
                 table.create_id_index();
             }
         }

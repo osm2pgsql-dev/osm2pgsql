@@ -107,11 +107,12 @@ private:
     void setup_id_columns(flex_table_t *table);
     void setup_flex_table_columns(flex_table_t *table);
 
-    flex_table_t &table_func_params(int n);
+    table_connection_t &table_func_params(int n);
 
     void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                       flex_table_column_t const &column);
-    void write_row(flex_table_t *table, osmium::item_type id_type, osmid_t id,
+    void write_row(table_connection_t *table_connection,
+                   osmium::item_type id_type, osmid_t id,
                    std::string const &geom);
 
     geom::osmium_builder_t::wkbs_t
@@ -125,10 +126,10 @@ private:
                   osmium::Relation const &relation);
 
     template <typename OBJECT>
-    void add_row(flex_table_t *table, OBJECT const &object);
+    void add_row(table_connection_t *table_connection, OBJECT const &object);
 
-    void delete_from_table(flex_table_t *table, osmium::item_type type,
-                           osmid_t osm_id);
+    void delete_from_table(table_connection_t *table_connection,
+                           osmium::item_type type, osmid_t osm_id);
     void delete_from_tables(osmium::item_type type, osmid_t osm_id);
 
     std::size_t get_way_nodes();
@@ -136,6 +137,7 @@ private:
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
+    std::vector<table_connection_t> m_table_connections;
 
     id_tracker m_ways_pending_tracker;
     id_tracker m_rels_pending_tracker;

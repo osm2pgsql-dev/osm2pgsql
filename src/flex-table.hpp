@@ -19,11 +19,9 @@
  */
 class flex_table_t
 {
+
 public:
-    flex_table_t(std::string const &name, int srid,
-                 std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                 bool append)
-    : m_name(name), m_srid(srid), m_copy_mgr(copy_thread), m_append(append)
+    flex_table_t(std::string const &name, int srid) : m_name(name), m_srid(srid)
     {}
 
     std::string const &name() const noexcept { return m_name; }
@@ -97,6 +95,8 @@ public:
 
     std::string build_sql_column_list() const;
 
+    std::string build_sql_create_id_index() const;
+
     /// Does this table take objects of the specified type?
     bool matches_type(osmium::item_type type) const noexcept
     {
@@ -123,51 +123,12 @@ public:
     flex_table_column_t &add_column(std::string const &name,
                                     std::string const &type);
 
-    void init()
-    {
-        auto const columns = build_sql_column_list();
-        auto const id_columns = id_column_names();
-        m_target = std::make_shared<db_target_descr_t>(
-            name().c_str(), id_columns.c_str(), columns.c_str());
-    }
-
-    void connect(std::string const &conninfo);
-
-    void commit() { m_copy_mgr.sync(); }
-
-    void new_line() { m_copy_mgr.new_line(m_target); }
-
-    void teardown() { m_db_connection.reset(); }
-
-    void prepare()
-    {
-        assert(m_db_connection);
-        if (has_id_column()) {
-            m_db_connection->exec(build_sql_prepare_get_wkb());
-        }
-    }
-
-    void start(std::string const &conninfo);
-
-    void stop(bool updateable);
-
-    void create_id_index();
-
-    void delete_rows_with(osmium::item_type type, osmid_t id);
-
-    pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
-
-    db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr() noexcept
-    {
-        return &m_copy_mgr;
-    }
-
-private:
     bool has_multicolumn_id_index() const noexcept;
     std::string id_column_names() const;
     std::string full_name() const;
     std::string full_tmp_name() const;
 
+private:
     /// The name of the table
     std::string m_name;
 
@@ -201,6 +162,60 @@ private:
     /// The SRID all geometries in this table use.
     int m_srid;
 
+}; // class flex_table_t
+
+class table_connection_t
+{
+public:
+    table_connection_t(flex_table_t *table,
+                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
+    : m_table(table), m_target(std::make_shared<db_target_descr_t>(
+                          table->name(), table->id_column_names(),
+                          table->build_sql_column_list())),
+      m_copy_mgr(copy_thread), m_db_connection(nullptr)
+    {}
+
+    void connect(std::string const &conninfo);
+
+    void start(bool append);
+
+    void stop(bool updateable, bool append);
+
+    flex_table_t const &table() const noexcept { return *m_table; }
+
+    void teardown() { m_db_connection.reset(); }
+
+    void prepare()
+    {
+        assert(m_db_connection);
+        if (table().has_id_column()) {
+            m_db_connection->exec(table().build_sql_prepare_get_wkb());
+        }
+    }
+
+    void create_id_index()
+    {
+        m_db_connection->exec(table().build_sql_create_id_index());
+    }
+
+    pg_result_t get_geom_by_id(osmium::item_type type, osmid_t id) const;
+
+    void commit() { m_copy_mgr.sync(); }
+
+    void new_line() { m_copy_mgr.new_line(m_target); }
+
+    db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr() noexcept
+    {
+        return &m_copy_mgr;
+    }
+
+    void delete_rows_with(osmium::item_type type, osmid_t id);
+
+private:
+    flex_table_t *m_table;
+
+    std::shared_ptr<db_target_descr_t> m_target;
+
     /**
      * The copy manager responsible for sending data through the COPY mechanism
      * to the database server.
@@ -210,12 +225,7 @@ private:
     /// The connection to the database server.
     std::unique_ptr<pg_conn_t> m_db_connection;
 
-    std::shared_ptr<db_target_descr_t> m_target;
-
-    /// Are we in append mode?
-    bool m_append;
-
-}; // class flex_table_t
+}; // class table_connection_t
 
 char const *type_to_char(osmium::item_type type) noexcept;
 
