@@ -1,5 +1,5 @@
 
-local table = osm2pgsql.define_table{
+local test_table = osm2pgsql.define_table{
     name = 'osm2pgsql_test_polygon',
     ids = { type = 'area', id_column = 'osm_id' },
     columns = {
@@ -28,7 +28,7 @@ function osm2pgsql.process_way(data)
         return
     end
 
-    table:add_row({
+    test_table:add_row({
         tags = data.tags,
         name = data.tags.name,
     })

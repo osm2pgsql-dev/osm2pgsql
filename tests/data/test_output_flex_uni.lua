@@ -1,5 +1,5 @@
 
-local table = osm2pgsql.define_table{
+local test_table = osm2pgsql.define_table{
     name = 'osm2pgsql_test_data',
     ids = { type = 'any', type_column = 'osm_type', id_column = 'osm_id' },
     columns = {
@@ -62,7 +62,7 @@ function osm2pgsql.process_node(data)
         return
     end
 
-    table:add_row({
+    test_table:add_row({
         tags = data.tags,
         geom = { create = 'point' }
     })
@@ -75,13 +75,13 @@ function osm2pgsql.process_way(data)
     end
 
     if is_polygon(data.tags) then
-        table:add_row({
+        test_table:add_row({
             tags = data.tags,
             name = data.tags.name,
             geom = { create = 'area' }
         })
     else
-        table:add_row({
+        test_table:add_row({
             tags = data.tags,
             name = data.tags.name,
             geom = { create = 'line' }
@@ -96,7 +96,7 @@ function osm2pgsql.process_relation(data)
     end
 
     if data.tags.type == 'multipolygon' or data.tags.type == 'boundary' then
-        table:add_row({
+        test_table:add_row({
             tags = data.tags,
             name = data.tags.name,
             geom = { create = 'area', multi = false }
@@ -105,7 +105,7 @@ function osm2pgsql.process_relation(data)
     end
 
     if data.tags.type == 'route' then
-        table:add_row({
+        test_table:add_row({
             tags = data.tags,
             name = data.tags.name,
             geom = { create = 'line' }
