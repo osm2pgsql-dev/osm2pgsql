@@ -321,8 +321,8 @@ void output_flex_t::write_column(
 db_copy_mgr_t<db_deleter_by_type_and_id_t> *
 output_flex_t::get_copy_mgr(flex_table_t *table)
 {
-    for (std::size_t n = 0; n < m_tables->size(); ++n) {
-        if (&(*m_tables)[n] == table) {
+    for (std::size_t n = 0; n < m_tables.size(); ++n) {
+        if (&(m_tables[n]) == table) {
             return &m_copy_mgrs.at(n);
         }
     }
@@ -445,18 +445,18 @@ flex_table_t &output_flex_t::create_flex_table()
 
     check_name(table_name, "table");
 
-    auto const it = std::find_if(m_tables->cbegin(), m_tables->cend(),
+    auto const it = std::find_if(m_tables.cbegin(), m_tables.cend(),
                                  [&table_name](flex_table_t const &table) {
                                      return table.name() == table_name;
                                  });
-    if (it != m_tables->cend()) {
+    if (it != m_tables.cend()) {
         throw std::runtime_error{
             "Table with that name already exists: '{}'"_format(table_name)};
     }
 
-    m_tables->emplace_back(table_name, get_options()->projection->target_srs(),
-                           get_options()->append);
-    auto &new_table = m_tables->back();
+    m_tables.emplace_back(table_name, get_options()->projection->target_srs(),
+                          get_options()->append);
+    auto &new_table = m_tables.back();
 
     lua_pop(lua_state(), 1);
 
@@ -591,7 +591,7 @@ int output_flex_t::app_define_table()
     setup_id_columns(&new_table);
     setup_flex_table_columns(&new_table);
 
-    lua_pushlightuserdata(lua_state(), (void *)(m_tables->size()));
+    lua_pushlightuserdata(lua_state(), (void *)(m_tables.size()));
     luaL_getmetatable(lua_state(), osm2pgsql_table_name);
     lua_setmetatable(lua_state(), -2);
 
@@ -619,7 +619,7 @@ flex_table_t &output_flex_t::table_func_params(int n)
     }
     lua_pop(lua_state(), 2);
 
-    auto &table = m_tables->at(reinterpret_cast<uintptr_t>(user_data) - 1);
+    auto &table = m_tables.at(reinterpret_cast<uintptr_t>(user_data) - 1);
     lua_remove(lua_state(), 1);
     return table;
 }
@@ -1019,7 +1019,7 @@ void output_flex_t::stop(osmium::thread::Pool *pool)
         copy_mgr.sync();
     }
 
-    for (auto &table : *m_tables) {
+    for (auto &table : m_tables) {
         pool->submit(
             [&]() { table.stop(m_options.slim & !m_options.droptemp); });
     }
@@ -1087,7 +1087,7 @@ void output_flex_t::delete_from_table(flex_table_t *table,
 
 void output_flex_t::delete_from_tables(osmium::item_type type, osmid_t osm_id)
 {
-    for (auto &table : *m_tables) {
+    for (auto &table : m_tables) {
         if (table.matches_type(type)) {
             delete_from_table(&table, type, osm_id);
         }
@@ -1132,7 +1132,7 @@ void output_flex_t::relation_modify(osmium::Relation const &rel)
 
 void output_flex_t::init_clone()
 {
-    for (auto &table : *m_tables) {
+    for (auto &table : m_tables) {
         table.connect(m_options.database_options.conninfo());
         table.prepare();
     }
@@ -1140,7 +1140,7 @@ void output_flex_t::init_clone()
 
 void output_flex_t::start()
 {
-    for (auto &table : *m_tables) {
+    for (auto &table : m_tables) {
         table.start(m_options.database_options.conninfo());
     }
 }
@@ -1160,7 +1160,7 @@ output_flex_t::output_flex_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread, bool is_clone,
     std::shared_ptr<lua_State> lua_state, bool has_process_node,
     bool has_process_way, bool has_process_relation,
-    std::shared_ptr<std::vector<flex_table_t>> tables,
+    std::vector<flex_table_t> tables,
     std::shared_ptr<id_tracker> ways_tracker,
     std::shared_ptr<id_tracker> rels_tracker)
 : output_t(mid, o), m_tables(std::move(tables)),
@@ -1180,7 +1180,7 @@ output_flex_t::output_flex_t(
         init_lua(m_options.style);
     }
 
-    for (auto &table : *m_tables) {
+    for (auto &table : m_tables) {
         m_copy_mgrs.emplace_back(m_copy_thread);
         table.init();
     }
@@ -1306,7 +1306,7 @@ void output_flex_t::stage2_proc()
         fmt::print(stderr, "Creating id indexes...\n");
         const std::time_t start_time = std::time(nullptr);
 
-        for (auto &table : *m_tables) {
+        for (auto &table : m_tables) {
             if ((has_marked_ways &&
                  table.matches_type(osmium::item_type::way)) ||
                 (has_marked_rels &&

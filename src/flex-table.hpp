@@ -25,6 +25,15 @@ public:
     : m_name(name), m_srid(srid), m_append(append)
     {}
 
+    // The copy constructor copys every member except m_db_connection
+    flex_table_t(flex_table_t const &other)
+    : m_name(other.m_name), m_schema(other.m_schema),
+      m_data_tablespace(other.m_data_tablespace),
+      m_index_tablespace(other.m_index_tablespace), m_columns(other.m_columns),
+      m_geom_column(other.m_geom_column), m_id_type(other.m_id_type),
+      m_srid(other.m_srid), m_target(other.m_target), m_append(other.m_append)
+    {}
+
     std::string const &name() const noexcept { return m_name; }
 
     std::string const &schema() const noexcept { return m_schema; }

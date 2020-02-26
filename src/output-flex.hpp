@@ -36,8 +36,7 @@ public:
                   std::shared_ptr<lua_State> lua_state = nullptr,
                   bool has_process_node = false, bool has_process_way = false,
                   bool has_process_relation = false,
-                  std::shared_ptr<std::vector<flex_table_t>> tables =
-                      std::make_shared<std::vector<flex_table_t>>(),
+                  std::vector<flex_table_t> tables = {},
                   std::shared_ptr<id_tracker> ways_tracker =
                       std::make_shared<id_tracker>(),
                   std::shared_ptr<id_tracker> rels_tracker =
@@ -138,7 +137,7 @@ private:
 
     lua_State *lua_state() noexcept { return m_lua_state.get(); }
 
-    std::shared_ptr<std::vector<flex_table_t>> m_tables;
+    std::vector<flex_table_t> m_tables;
     std::vector<db_copy_mgr_t<db_deleter_by_type_and_id_t>> m_copy_mgrs;
 
     id_tracker m_ways_pending_tracker;
