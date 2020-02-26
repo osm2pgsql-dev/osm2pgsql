@@ -153,13 +153,13 @@ void table_connection_t::connect(std::string const &conninfo)
     m_db_connection->exec("SET synchronous_commit TO off");
 }
 
-void table_connection_t::start()
+void table_connection_t::start(bool append)
 {
     assert(m_db_connection);
 
     m_db_connection->exec("SET client_min_messages = WARNING");
 
-    if (!m_append) {
+    if (!append) {
         m_db_connection->exec(
             "DROP TABLE IF EXISTS {} CASCADE"_format(table().full_name()));
     }
@@ -169,7 +169,7 @@ void table_connection_t::start()
         "DROP TABLE IF EXISTS {}"_format(table().full_tmp_name()));
     m_db_connection->exec("RESET client_min_messages");
 
-    if (!m_append) {
+    if (!append) {
         if (table().schema() != "public") {
             m_db_connection->exec(
                 "CREATE SCHEMA IF NOT EXISTS \"{}\""_format(table().schema()));
@@ -199,11 +199,11 @@ void table_connection_t::start()
     prepare();
 }
 
-void table_connection_t::stop(bool updateable)
+void table_connection_t::stop(bool updateable, bool append)
 {
     m_copy_mgr.sync();
 
-    if (m_append) {
+    if (append) {
         teardown();
         return;
     }

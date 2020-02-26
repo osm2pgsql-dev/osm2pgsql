@@ -168,19 +168,18 @@ class table_connection_t
 {
 public:
     table_connection_t(flex_table_t *table,
-                       std::shared_ptr<db_copy_thread_t> const &copy_thread,
-                       std::string const &conninfo, bool append)
+                       std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : m_table(table), m_target(std::make_shared<db_target_descr_t>(
                           table->name(), table->id_column_names(),
                           table->build_sql_column_list())),
-      m_copy_mgr(copy_thread), m_db_connection(nullptr), m_append(append)
+      m_copy_mgr(copy_thread), m_db_connection(nullptr)
     {}
 
     void connect(std::string const &conninfo);
 
-    void start();
+    void start(bool append);
 
-    void stop(bool updateable);
+    void stop(bool updateable, bool append);
 
     flex_table_t const &table() const noexcept { return *m_table; }
 
@@ -226,8 +225,6 @@ private:
     /// The connection to the database server.
     std::unique_ptr<pg_conn_t> m_db_connection;
 
-    /// Are we in append mode?
-    bool m_append;
 }; // class table_connection_t
 
 char const *type_to_char(osmium::item_type type) noexcept;

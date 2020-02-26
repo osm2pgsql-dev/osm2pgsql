@@ -1008,8 +1008,9 @@ void output_flex_t::commit()
 void output_flex_t::stop(osmium::thread::Pool *pool)
 {
     for (auto &table : m_table_connections) {
-        pool->submit(
-            [&]() { table.stop(m_options.slim & !m_options.droptemp); });
+        pool->submit([&]() {
+            table.stop(m_options.slim & !m_options.droptemp, m_options.append);
+        });
     }
 
     if (m_options.expire_tiles_zoom_min > 0) {
@@ -1122,7 +1123,7 @@ void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
         table.connect(m_options.database_options.conninfo());
-        table.start();
+        table.start(m_options.append);
     }
 }
 
@@ -1163,9 +1164,7 @@ output_flex_t::output_flex_t(
 
     assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
-        m_table_connections.emplace_back(&table, m_copy_thread,
-                                         m_options.database_options.conninfo(),
-                                         m_options.append);
+        m_table_connections.emplace_back(&table, m_copy_thread);
     }
 
     if (is_clone) {
