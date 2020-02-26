@@ -1121,7 +1121,8 @@ void output_flex_t::init_clone()
 void output_flex_t::start()
 {
     for (auto &table : m_table_connections) {
-        table.start(m_options.database_options.conninfo());
+        table.connect(m_options.database_options.conninfo());
+        table.start();
     }
 }
 
@@ -1160,6 +1161,7 @@ output_flex_t::output_flex_t(
         init_lua(m_options.style);
     }
 
+    assert(m_table_connections.empty());
     for (auto &table : *m_tables) {
         m_table_connections.emplace_back(&table, m_copy_thread,
                                          m_options.database_options.conninfo(),

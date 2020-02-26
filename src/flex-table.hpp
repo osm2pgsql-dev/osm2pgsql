@@ -178,7 +178,7 @@ public:
 
     void connect(std::string const &conninfo);
 
-    void start(std::string const &conninfo);
+    void start();
 
     void stop(bool updateable);
 

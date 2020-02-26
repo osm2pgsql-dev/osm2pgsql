@@ -147,18 +147,15 @@ std::string flex_table_t::build_sql_create_id_index() const
 
 void table_connection_t::connect(std::string const &conninfo)
 {
+    assert(!m_db_connection);
+
     m_db_connection.reset(new pg_conn_t{conninfo});
     m_db_connection->exec("SET synchronous_commit TO off");
 }
 
-void table_connection_t::start(std::string const &conninfo)
+void table_connection_t::start()
 {
-    if (m_db_connection) {
-        throw std::runtime_error(table().name() +
-                                 " cannot start, its already started");
-    }
-
-    connect(conninfo);
+    assert(m_db_connection);
 
     m_db_connection->exec("SET client_min_messages = WARNING");
 
