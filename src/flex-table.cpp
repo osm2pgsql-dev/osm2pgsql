@@ -139,16 +139,23 @@ std::string flex_table_t::build_sql_column_list() const
     return result;
 }
 
-void flex_table_t::connect(std::string const &conninfo)
+std::string flex_table_t::build_sql_create_id_index() const
+{
+    return "CREATE INDEX ON {} USING BTREE ({}) {}"_format(
+        full_name(), id_column_names(), tablespace_clause(index_tablespace()));
+}
+
+void table_connection_t::connect(std::string const &conninfo)
 {
     m_db_connection.reset(new pg_conn_t{conninfo});
     m_db_connection->exec("SET synchronous_commit TO off");
 }
 
-void flex_table_t::start(std::string const &conninfo)
+void table_connection_t::start(std::string const &conninfo)
 {
     if (m_db_connection) {
-        throw std::runtime_error(name() + " cannot start, its already started");
+        throw std::runtime_error(table().name() +
+                                 " cannot start, its already started");
     }
 
     connect(conninfo);
@@ -157,32 +164,34 @@ void flex_table_t::start(std::string const &conninfo)
 
     if (!m_append) {
         m_db_connection->exec(
-            "DROP TABLE IF EXISTS {} CASCADE"_format(full_name()));
+            "DROP TABLE IF EXISTS {} CASCADE"_format(table().full_name()));
     }
 
     // These _tmp tables can be left behind if we run out of disk space.
-    m_db_connection->exec("DROP TABLE IF EXISTS {}"_format(full_tmp_name()));
+    m_db_connection->exec(
+        "DROP TABLE IF EXISTS {}"_format(table().full_tmp_name()));
     m_db_connection->exec("RESET client_min_messages");
 
     if (!m_append) {
-        if (schema() != "public") {
+        if (table().schema() != "public") {
             m_db_connection->exec(
-                "CREATE SCHEMA IF NOT EXISTS \"{}\""_format(schema()));
+                "CREATE SCHEMA IF NOT EXISTS \"{}\""_format(table().schema()));
         }
-        m_db_connection->exec(build_sql_create_table(false));
+        m_db_connection->exec(table().build_sql_create_table(false));
     } else {
         //check the columns against those in the existing table
         auto const res = m_db_connection->query(
-            PGRES_TUPLES_OK, "SELECT * FROM {} LIMIT 0"_format(full_name()));
+            PGRES_TUPLES_OK,
+            "SELECT * FROM {} LIMIT 0"_format(table().full_name()));
 
-        for (auto const &column : m_columns) {
+        for (auto const &column : table()) {
             if (res.get_column_number(column.name()) < 0) {
                 fmt::print(stderr, "Adding new column '{}' to '{}'\n",
-                           column.name(), name());
+                           column.name(), table().name());
                 m_db_connection->exec(
                     "ALTER TABLE {} ADD COLUMN \"{}\" {}"_format(
-                        full_name(), column.name(),
-                        column.sql_type_name(m_srid)));
+                        table().full_name(), column.name(),
+                        column.sql_type_name(table().srid())));
             }
             // Note: we do not verify the type or delete unused columns
         }
@@ -193,7 +202,7 @@ void flex_table_t::start(std::string const &conninfo)
     prepare();
 }
 
-void flex_table_t::stop(bool updateable)
+void table_connection_t::stop(bool updateable)
 {
     m_copy_mgr.sync();
 
@@ -204,23 +213,25 @@ void flex_table_t::stop(bool updateable)
 
     std::time_t const start = std::time(nullptr);
 
-    if (has_geom_column()) {
-        fmt::print(stderr, "Clustering table '{}' by geometry...\n", name());
+    if (table().has_geom_column()) {
+        fmt::print(stderr, "Clustering table '{}' by geometry...\n",
+                   table().name());
 
         // Notices about invalid geometries are expected and can be ignored
         // because they say nothing about the validity of the geometry in OSM.
         m_db_connection->exec("SET client_min_messages = WARNING");
 
-        m_db_connection->exec(build_sql_create_table(true));
+        m_db_connection->exec(table().build_sql_create_table(true));
 
         std::string sql = "INSERT INTO {} SELECT * FROM {}"_format(
-            full_tmp_name(), full_name());
+            table().full_tmp_name(), table().full_name());
 
-        if (m_srid != 4326) {
+        if (table().srid() != 4326) {
             // libosmium assures validity of geometries in 4326.
             // Transformation to another projection could make the geometry
             // invalid. Therefore add a filter to drop those.
-            sql += " WHERE ST_IsValid(\"{}\")"_format(geom_column().name());
+            sql += " WHERE ST_IsValid(\"{}\")"_format(
+                table().geom_column().name());
         }
 
         auto const res = m_db_connection->query(
@@ -232,43 +243,44 @@ void flex_table_t::stop(bool updateable)
         sql += " ORDER BY ";
         if (postgis_major == 2 && postgis_minor < 4) {
             fmt::print(stderr, "Using GeoHash for clustering\n");
-            if (m_srid == 4326) {
-                sql += "ST_GeoHash({},10)"_format(geom_column().name());
+            if (table().srid() == 4326) {
+                sql += "ST_GeoHash({},10)"_format(table().geom_column().name());
             } else {
                 sql +=
                     "ST_GeoHash(ST_Transform(ST_Envelope({}),4326),10)"_format(
-                        geom_column().name());
+                        table().geom_column().name());
             }
             sql += " COLLATE \"C\"";
         } else {
             fmt::print(stderr, "Using native order for clustering\n");
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
-            sql += geom_column().name();
+            sql += table().geom_column().name();
         }
 
         m_db_connection->exec(sql);
 
-        m_db_connection->exec("DROP TABLE {}"_format(full_name()));
-        m_db_connection->exec(
-            "ALTER TABLE {} RENAME TO \"{}\""_format(full_tmp_name(), name()));
+        m_db_connection->exec("DROP TABLE {}"_format(table().full_name()));
+        m_db_connection->exec("ALTER TABLE {} RENAME TO \"{}\""_format(
+            table().full_tmp_name(), table().name()));
 
         fmt::print(stderr, "Creating geometry index on table '{}'...\n",
-                   name());
+                   table().name());
 
         // Use fillfactor 100 for un-updateable imports
         m_db_connection->exec(
             "CREATE INDEX ON {} USING GIST (\"{}\") {} {}"_format(
-                full_name(), geom_column().name(),
+                table().full_name(), table().geom_column().name(),
                 (updateable ? "" : "WITH (FILLFACTOR=100)"),
-                tablespace_clause(m_index_tablespace)));
+                tablespace_clause(table().index_tablespace())));
     }
 
-    if (updateable && has_id_column()) {
-        fmt::print(stderr, "Creating id index on table '{}'...\n", name());
-        create_id_index();
+    if (updateable && table().has_id_column()) {
+        fmt::print(stderr, "Creating id index on table '{}'...\n",
+                   table().name());
+        m_db_connection->exec(table().build_sql_create_id_index());
 
-        if (m_srid != 4326 && has_geom_column()) {
+        if (table().srid() != 4326 && table().has_geom_column()) {
             m_db_connection->exec(
                 "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
                 "RETURNS TRIGGER AS $$\n"
@@ -278,55 +290,50 @@ void flex_table_t::stop(bool updateable)
                 "  END IF;\n"
                 "  RETURN NULL;\n"
                 "END;"
-                "$$ LANGUAGE plpgsql;"_format(name(), geom_column().name()));
+                "$$ LANGUAGE plpgsql;"_format(table().name(),
+                                              table().geom_column().name()));
 
-            m_db_connection->exec(
-                "CREATE TRIGGER \"{0}_osm2pgsql_valid\""
-                " BEFORE INSERT OR UPDATE"
-                " ON {1}"
-                " FOR EACH ROW EXECUTE PROCEDURE"
-                " {0}_osm2pgsql_valid();"_format(name(), full_name()));
+            m_db_connection->exec("CREATE TRIGGER \"{0}_osm2pgsql_valid\""
+                                  " BEFORE INSERT OR UPDATE"
+                                  " ON {1}"
+                                  " FOR EACH ROW EXECUTE PROCEDURE"
+                                  " {0}_osm2pgsql_valid();"_format(
+                                      table().name(), table().full_name()));
         }
     }
 
-    fmt::print(stderr, "Analyzing table '{}'...\n", name());
-    m_db_connection->exec("ANALYZE \"{}\""_format(name()));
+    fmt::print(stderr, "Analyzing table '{}'...\n", table().name());
+    m_db_connection->exec("ANALYZE \"{}\""_format(table().name()));
 
     std::time_t const end = std::time(nullptr);
     fmt::print(stderr, "All postprocessing on table '{}' done in {}s.\n",
-               name(), end - start);
+               table().name(), end - start);
 
     teardown();
 }
 
-void flex_table_t::create_id_index()
+pg_result_t table_connection_t::get_geom_by_id(osmium::item_type type,
+                                               osmid_t id) const
 {
-    m_db_connection->exec("CREATE INDEX ON {} USING BTREE ({}) {}"_format(
-        full_name(), id_column_names(), tablespace_clause(m_index_tablespace)));
-}
-
-void flex_table_t::delete_rows_with(osmium::item_type type, osmid_t id)
-{
-    m_copy_mgr.new_line(m_target);
-
-    // If the table id type is some specific type, we don't care about the
-    // type of the individual object, because they all will be the same.
-    if (m_id_type != osmium::item_type::undefined) {
-        type = osmium::item_type::undefined;
-    }
-    m_copy_mgr.delete_object(type_to_char(type)[0], id);
-}
-
-pg_result_t flex_table_t::get_geom_by_id(osmium::item_type type,
-                                         osmid_t id) const
-{
-    assert(has_geom_column());
+    assert(table().has_geom_column());
     assert(m_db_connection);
     std::string const id_str = fmt::to_string(id);
-    if (has_multicolumn_id_index()) {
+    if (table().has_multicolumn_id_index()) {
         char const *param_values[] = {type_to_char(type), id_str.c_str()};
         return m_db_connection->exec_prepared("get_wkb", 2, param_values);
     }
     char const *param_values[] = {id_str.c_str()};
     return m_db_connection->exec_prepared("get_wkb", 1, param_values);
+}
+
+void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)
+{
+    m_copy_mgr.new_line(table().target());
+
+    // If the table id type is some specific type, we don't care about the
+    // type of the individual object, because they all will be the same.
+    if (table().id_type() != osmium::item_type::undefined) {
+        type = osmium::item_type::undefined;
+    }
+    m_copy_mgr.delete_object(type_to_char(type)[0], id);
 }
