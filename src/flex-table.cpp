@@ -141,18 +141,21 @@ std::string flex_table_t::build_sql_column_list() const
 
 void flex_table_t::connect(std::string const &conninfo)
 {
+    assert(!m_db_connection);
     m_db_connection.reset(new pg_conn_t{conninfo});
     m_db_connection->exec("SET synchronous_commit TO off");
 }
 
-void flex_table_t::start(std::string const &conninfo)
+void flex_table_t::prepare()
 {
-    if (m_db_connection) {
-        throw std::runtime_error(name() + " cannot start, its already started");
+    assert(m_db_connection);
+    if (has_id_column()) {
+        m_db_connection->exec(build_sql_prepare_get_wkb());
     }
+}
 
-    connect(conninfo);
-
+void flex_table_t::start()
+{
     m_db_connection->exec("SET client_min_messages = WARNING");
 
     if (!m_append) {

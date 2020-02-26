@@ -1141,7 +1141,8 @@ void output_flex_t::init_clone()
 void output_flex_t::start()
 {
     for (auto &table : m_tables) {
-        table.start(m_options.database_options.conninfo());
+        table.connect(m_options.database_options.conninfo());
+        table.start();
     }
 }
 

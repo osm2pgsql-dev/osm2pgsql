@@ -145,19 +145,9 @@ public:
     }
 
     void connect(std::string const &conninfo);
-
     void teardown() { m_db_connection.reset(); }
-
-    void prepare()
-    {
-        assert(m_db_connection);
-        if (has_id_column()) {
-            m_db_connection->exec(build_sql_prepare_get_wkb());
-        }
-    }
-
-    void start(std::string const &conninfo);
-
+    void prepare();
+    void start();
     void stop(bool updateable);
 
     void create_id_index();
