@@ -328,7 +328,7 @@ pg_result_t table_connection_t::get_geom_by_id(osmium::item_type type,
 
 void table_connection_t::delete_rows_with(osmium::item_type type, osmid_t id)
 {
-    m_copy_mgr.new_line(table().target());
+    m_copy_mgr.new_line(m_target);
 
     // If the table id type is some specific type, we don't care about the
     // type of the individual object, because they all will be the same.

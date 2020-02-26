@@ -1161,7 +1161,6 @@ output_flex_t::output_flex_t(
     }
 
     for (auto &table : *m_tables) {
-        table.init();
         m_table_connections.emplace_back(&table, m_copy_thread,
                                          m_options.database_options.conninfo(),
                                          m_options.append);

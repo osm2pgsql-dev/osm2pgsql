@@ -123,19 +123,6 @@ public:
     flex_table_column_t &add_column(std::string const &name,
                                     std::string const &type);
 
-    void init()
-    {
-        auto const columns = build_sql_column_list();
-        auto const id_columns = id_column_names();
-        m_target = std::make_shared<db_target_descr_t>(
-            name().c_str(), id_columns.c_str(), columns.c_str());
-    }
-
-    std::shared_ptr<db_target_descr_t> target() const noexcept
-    {
-        return m_target;
-    }
-
     bool has_multicolumn_id_index() const noexcept;
     std::string id_column_names() const;
     std::string full_name() const;
@@ -175,8 +162,6 @@ private:
     /// The SRID all geometries in this table use.
     int m_srid;
 
-    std::shared_ptr<db_target_descr_t> m_target;
-
 }; // class flex_table_t
 
 class table_connection_t
@@ -185,8 +170,10 @@ public:
     table_connection_t(flex_table_t *table,
                        std::shared_ptr<db_copy_thread_t> const &copy_thread,
                        std::string const &conninfo, bool append)
-    : m_table(table), m_copy_mgr(copy_thread), m_db_connection(nullptr),
-      m_append(append)
+    : m_table(table), m_target(std::make_shared<db_target_descr_t>(
+                          table->name(), table->id_column_names(),
+                          table->build_sql_column_list())),
+      m_copy_mgr(copy_thread), m_db_connection(nullptr), m_append(append)
     {}
 
     void connect(std::string const &conninfo);
@@ -216,7 +203,7 @@ public:
 
     void commit() { m_copy_mgr.sync(); }
 
-    void new_line() { m_copy_mgr.new_line(m_table->target()); }
+    void new_line() { m_copy_mgr.new_line(m_target); }
 
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr() noexcept
     {
@@ -227,6 +214,8 @@ public:
 
 private:
     flex_table_t *m_table;
+
+    std::shared_ptr<db_target_descr_t> m_target;
 
     /**
      * The copy manager responsible for sending data through the COPY mechanism

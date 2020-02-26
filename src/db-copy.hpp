@@ -35,8 +35,13 @@ struct db_target_descr_t
     }
 
     db_target_descr_t() = default;
+
     db_target_descr_t(char const *n, char const *i, char const *r = "")
     : name(n), rows(r), id(i)
+    {}
+
+    db_target_descr_t(std::string n, std::string i, std::string r)
+    : name(std::move(n)), rows(std::move(r)), id(std::move(i))
     {}
 };
 
