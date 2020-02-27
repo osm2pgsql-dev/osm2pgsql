@@ -115,7 +115,7 @@ endif()
 
 if(LUA_EXE)
     message(STATUS "Added test: lua-lib")
-    add_test(NAME lua-lib COMMAND lua lua/tests.lua
+    add_test(NAME lua-lib COMMAND ${LUA_EXE} lua/tests.lua
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     set_tests_properties(lua-lib PROPERTIES LABELS NoDB)
 else()
