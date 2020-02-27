@@ -98,7 +98,7 @@ before_install:
       export POSTGIS_PKG="$POSTGIS_PKG $PPG $PPG-scripts";
     done
   - echo $POSTGIS_PKG
-  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev
+  - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CC $POSTGIS_PKG liblua$LUA_VERSION-dev lua$LUA_VERSION
   # g++ needs extra install, clang doesn't, so ignore errors here
   - sudo -E apt-get install -yq --no-install-suggests --no-install-recommends $CXX || true
 
