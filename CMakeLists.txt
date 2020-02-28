@@ -122,6 +122,7 @@ if (WITH_LUA)
         include_directories(SYSTEM ${LUA_INCLUDE_DIR})
     endif()
     set(HAVE_LUA 1)
+    find_program(LUA_EXE lua)
 endif()
 
 find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
