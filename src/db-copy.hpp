@@ -225,7 +225,7 @@ struct db_cmd_finish_t : public db_cmd_t
 class db_copy_thread_t
 {
 public:
-    db_copy_thread_t(std::string const &conninfo);
+    explicit db_copy_thread_t(std::string const &conninfo);
 
     db_copy_thread_t(db_copy_thread_t const &) = delete;
     db_copy_thread_t &operator=(db_copy_thread_t const &) = delete;

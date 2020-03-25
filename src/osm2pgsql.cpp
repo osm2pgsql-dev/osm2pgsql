@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
          */
         parse_stats_t stats;
         //read in the input files one by one
-        for (auto const filename : options.input_files) {
+        for (auto const &filename : options.input_files) {
             //read the actual input
             fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
             time_t start = time(nullptr);

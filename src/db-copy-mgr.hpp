@@ -13,7 +13,7 @@ template <typename DELETER>
 class db_copy_mgr_t
 {
 public:
-    db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
+    explicit db_copy_mgr_t(std::shared_ptr<db_copy_thread_t> const &processor)
     : m_processor(processor)
     {}
 
@@ -49,7 +49,7 @@ public:
 
         // Expect that a column has been written last which ended in a '\t'.
         // Replace it with the row delimiter '\n'.
-        auto sz = buf.size();
+        auto const sz = buf.size();
         assert(buf[sz - 1] == '\t');
         buf[sz - 1] = '\n';
 
@@ -67,7 +67,7 @@ public:
     void add_columns(T value, ARGS &&... args)
     {
         add_column(value);
-        add_columns(args...);
+        add_columns(std::forward<ARGS>(args)...);
     }
 
     template <typename T>
@@ -79,7 +79,7 @@ public:
     /**
      * Add a column entry of simple type.
      *
-     * Writes the column with the escaping apporpriate for the type and
+     * Writes the column with the escaping appropriate for the type and
      * a column delimiter.
      */
     template <typename T>
@@ -136,7 +136,7 @@ public:
      */
     void finish_array()
     {
-        auto idx = m_current->buffer.size() - 1;
+        auto const idx = m_current->buffer.size() - 1;
         if (m_current->buffer[idx] == '{')
             m_current->buffer += '}';
         else
@@ -222,7 +222,7 @@ public:
      */
     void finish_hash()
     {
-        auto idx = m_current->buffer.size() - 1;
+        auto const idx = m_current->buffer.size() - 1;
         if (!m_current->buffer.empty() && m_current->buffer[idx] == ',') {
             m_current->buffer[idx] = '\t';
         } else {
@@ -237,7 +237,7 @@ public:
      */
     void add_hex_geom(std::string const &wkb)
     {
-        char const *lookup_hex = "0123456789ABCDEF";
+        char const *const lookup_hex = "0123456789ABCDEF";
 
         for (char c : wkb) {
             m_current->buffer += lookup_hex[(c >> 4) & 0xf];

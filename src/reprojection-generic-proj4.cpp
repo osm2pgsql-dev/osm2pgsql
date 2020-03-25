@@ -10,7 +10,7 @@ namespace {
 class generic_reprojection_t : public reprojection
 {
 public:
-    generic_reprojection_t(int srs)
+    explicit generic_reprojection_t(int srs)
     : m_target_srs(srs), pj_target(srs), pj_source(PROJ_LATLONG),
       pj_tile(
           "+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 "
@@ -58,5 +58,5 @@ private:
 
 std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 {
-    return std::shared_ptr<reprojection>(new generic_reprojection_t(srs));
+    return std::shared_ptr<reprojection>(new generic_reprojection_t{srs});
 }

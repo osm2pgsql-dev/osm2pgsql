@@ -245,7 +245,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
 
     ~pending_threaded_processor() {}
 
-    void enqueue_ways(osmid_t id)
+    void enqueue_ways(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             outs[i]->enqueue_ways(queue, id, i, ids_queued);
@@ -253,7 +253,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
     }
 
     //waits for the completion of all outstanding jobs
-    void process_ways()
+    void process_ways() override
     {
         //reset the number we've done
         ids_done = 0;
@@ -315,14 +315,14 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
     }
 
-    void enqueue_relations(osmid_t id)
+    void enqueue_relations(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             outs[i]->enqueue_relations(queue, id, i, ids_queued);
         }
     }
 
-    void process_relations()
+    void process_relations() override
     {
         //reset the number we've done
         ids_done = 0;

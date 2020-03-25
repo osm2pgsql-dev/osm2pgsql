@@ -20,17 +20,17 @@ namespace {
  */
 struct block
 {
-    block() : bits(BLOCK_SIZE >> 5, 0) {}
+    block() : bits(BLOCK_SIZE >> 5U, 0) {}
     inline bool operator[](size_t i) const
     {
-        return (bits[i >> 5] & (1 << (i & 0x1f))) > 0;
+        return (bits[i >> 5U] & (1U << (i & 0x1fU))) > 0;
     }
     //returns true if the value actually caused a bit to flip
     inline bool set(size_t i, bool value)
     {
-        uint32_t &bit = bits[i >> 5];
+        uint32_t &bit = bits[i >> 5U];
         uint32_t old = bit;
-        uint32_t mask = 1 << (i & 0x1f);
+        uint32_t mask = 1U << (i & 0x1fU);
         //allow the bit to become 1 if not already
         if (value) {
             bit |= mask;
@@ -48,20 +48,20 @@ struct block
     // returns BLOCK_SIZE if a set bit isn't found
     size_t next_set(size_t start) const
     {
-        uint32_t bit_i = start >> 5;
+        uint32_t bit_i = start >> 5U;
 
-        while ((bit_i < (BLOCK_SIZE >> 5)) && (bits[bit_i] == 0)) {
+        while ((bit_i < (BLOCK_SIZE >> 5U)) && (bits[bit_i] == 0)) {
             ++bit_i;
         }
 
-        if (bit_i >= (BLOCK_SIZE >> 5)) {
+        if (bit_i >= (BLOCK_SIZE >> 5U)) {
             return BLOCK_SIZE;
         }
         uint32_t bit = bits[bit_i];
-        size_t idx = bit_i << 5;
-        while ((bit & 1) == 0) {
+        size_t idx = bit_i << 5U;
+        while ((bit & 1U) == 0) {
             ++idx;
-            bit >>= 1;
+            bit >>= 1U;
         }
         return idx;
     }
@@ -80,7 +80,7 @@ struct id_tracker::pimpl
     bool set(osmid_t id, bool value);
     osmid_t pop_min();
 
-    typedef std::map<osmid_t, block> map_t;
+    using map_t = std::map<osmid_t, block>;
     map_t pending;
     osmid_t old_id;
     size_t count;
@@ -92,21 +92,22 @@ struct id_tracker::pimpl
 
 bool id_tracker::pimpl::get(osmid_t id) const
 {
-    const osmid_t block = id >> BLOCK_BITS, offset = id & BLOCK_MASK;
-    map_t::const_iterator itr = pending.find(block);
-    bool result = false;
+    osmid_t const block = id >> BLOCK_BITS;
+    osmid_t const offset = id & BLOCK_MASK;
+    auto const itr = pending.find(block);
 
-    if (itr != pending.end()) {
-        result = itr->second[offset];
+    if (itr == pending.end()) {
+        return false;
     }
 
-    return result;
+    return itr->second[offset];
 }
 
 bool id_tracker::pimpl::set(osmid_t id, bool value)
 {
-    const osmid_t block = id >> BLOCK_BITS, offset = id & BLOCK_MASK;
-    bool flipped = pending[block].set(offset, value);
+    osmid_t const block = id >> BLOCK_BITS;
+    osmid_t const offset = id & BLOCK_MASK;
+    bool const flipped = pending[block].set(offset, value);
     // a set may potentially invalidate a next_start, as the bit
     // set might be before the position of next_start.
     if (next_start) {

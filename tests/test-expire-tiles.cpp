@@ -14,12 +14,12 @@ class xyz
 public:
     xyz(uint32_t z_, int64_t x_, int64_t y_) : z(z_), x(x_), y(y_) {}
 
-    bool operator==(xyz const &other) const
+    bool operator==(xyz const &other) const noexcept
     {
         return ((z == other.z) && (x == other.x) && (y == other.y));
     }
 
-    bool operator<(xyz const &other) const
+    bool operator<(xyz const &other) const noexcept
     {
         if (z < other.z) {
             return true;
@@ -40,7 +40,7 @@ public:
         return false;
     }
 
-    void to_centroid(double &cx, double &cy) const
+    void to_centroid(double &cx, double &cy) const noexcept
     {
         double const datum = 0.5 * (1U << z);
         double const scale = EARTH_CIRCUMFERENCE / (1U << z);
@@ -55,8 +55,6 @@ private:
 
 struct tile_output_set
 {
-    ~tile_output_set() = default;
-
     bool operator==(tile_output_set const &other) const
     {
         return tiles == other.tiles;
@@ -70,7 +68,7 @@ struct tile_output_set
 
     void output_dirty_tile(int64_t x, int64_t y, uint32_t zoom)
     {
-        tiles.insert(xyz(zoom, x, y));
+        tiles.insert(xyz{zoom, x, y});
     }
 
     void expire_centroids(expire_tiles &et)
