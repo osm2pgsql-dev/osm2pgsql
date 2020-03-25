@@ -511,12 +511,12 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             reproject_area = true;
             break;
         case 'V':
-            fprintf(stderr, "Compiled using the following library versions:\n");
-            fprintf(stderr, "Libosmium %s\n", LIBOSMIUM_VERSION_STRING);
+            fmt::print(stderr, "Compiled using the following library versions:\n");
+            fmt::print(stderr, "Libosmium {}\n", LIBOSMIUM_VERSION_STRING);
 #ifdef HAVE_LUA
-            fprintf(stderr, "%s", LUA_RELEASE);
+            fmt::print(stderr, "{}", LUA_RELEASE);
 #ifdef HAVE_LUAJIT
-            fprintf(stderr, " (%s)", LUAJIT_VERSION);
+            fmt::print(stderr, " ({})", LUAJIT_VERSION);
 #endif
 #else
             fprintf(stderr, "Lua support not included");

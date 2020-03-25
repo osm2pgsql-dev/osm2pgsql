@@ -72,7 +72,7 @@ void table_t::start(std::string const &conninfo,
     m_table_space = table_space ? " TABLESPACE " + table_space.get() : "";
 
     connect();
-    fprintf(stderr, "Setting up table: %s\n", m_target->name.c_str());
+    fmt::print(stderr, "Setting up table: {}\n", m_target->name);
     m_sql_conn->exec("SET client_min_messages = WARNING");
     // we are making a new table
     if (!append) {
@@ -183,8 +183,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         time_t start, end;
         time(&start);
 
-        fprintf(stderr, "Sorting data and creating indexes for %s\n",
-                m_target->name.c_str());
+        fmt::print(stderr, "Sorting data and creating indexes for {}\n",
+                   m_target->name);
 
         // Notices about invalid geometries are expected and can be ignored
         // because they say nothing about the validity of the geometry in OSM.
@@ -209,7 +209,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         sql += " ORDER BY ";
         if (postgis_major == 2 && postgis_minor < 4) {
-            fprintf(stderr, "Using GeoHash for clustering\n");
+            fmt::print(stderr, "Using GeoHash for clustering\n");
             if (srid == "4326") {
                 sql += "ST_GeoHash(way,10)";
             } else {
@@ -217,7 +217,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             }
             sql += " COLLATE \"C\"";
         } else {
-            fprintf(stderr, "Using native order for clustering\n");
+            fmt::print(stderr, "Using native order for clustering\n");
             // Since Postgis 2.4 the order function for geometries gives
             // useful results.
             sql += "way";
@@ -228,10 +228,9 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         m_sql_conn->exec("DROP TABLE {}"_format(m_target->name));
         m_sql_conn->exec(
             "ALTER TABLE {0}_tmp RENAME TO {0}"_format(m_target->name));
-        fprintf(stderr, "Copying %s to cluster by geometry finished\n",
-                m_target->name.c_str());
-        fprintf(stderr, "Creating geometry index on %s\n",
-                m_target->name.c_str());
+        fmt::print(stderr, "Copying {} to cluster by geometry finished\n",
+                   m_target->name);
+        fmt::print(stderr, "Creating geometry index on {}\n", m_target->name);
 
         std::string tblspc_sql =
             table_space_index ? "TABLESPACE " + table_space_index.get() : "";
@@ -242,8 +241,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
-            fprintf(stderr, "Creating osm_id index on %s\n",
-                    m_target->name.c_str());
+            fmt::print(stderr, "Creating osm_id index on {}\n", m_target->name);
             m_sql_conn->exec(
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
                     m_target->name, tblspc_sql));
@@ -269,8 +267,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
         /* Create hstore index if selected */
         if (enable_hstore_index) {
-            fprintf(stderr, "Creating hstore indexes on %s\n",
-                    m_target->name.c_str());
+            fmt::print(stderr, "Creating hstore indexes on {}\n",
+                       m_target->name);
             if (hstore_mode != HSTORE_NONE) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (tags) {}"_format(
@@ -288,16 +286,15 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                              : "")));
             }
         }
-        fprintf(stderr, "Creating indexes on %s finished\n",
-                m_target->name.c_str());
+        fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);
         m_sql_conn->exec("ANALYZE {}"_format(m_target->name));
         time(&end);
-        fprintf(stderr, "All indexes on %s created in %ds\n",
-                m_target->name.c_str(), (int)(end - start));
+        fmt::print(stderr, "All indexes on {} created in {}s\n", m_target->name,
+                   end - start);
     }
     teardown();
 
-    fprintf(stderr, "Completed %s\n", m_target->name.c_str());
+    fmt::print(stderr, "Completed {}\n", m_target->name);
 }
 
 void table_t::delete_row(const osmid_t id)

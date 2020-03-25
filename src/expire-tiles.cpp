@@ -31,10 +31,10 @@ tile_output_t::tile_output_t(const char *filename)
 : outfile(fopen(filename, "a"))
 {
     if (outfile == nullptr) {
-        fprintf(stderr,
-                "Failed to open expired tiles file (%s).  Tile expiry "
-                "list will not be written!\n",
-                strerror(errno));
+        fmt::print(stderr,
+                   "Failed to open expired tiles file ({}).  Tile expiry "
+                   "list will not be written!\n",
+                   std::strerror(errno));
     }
 }
 
@@ -47,12 +47,14 @@ tile_output_t::~tile_output_t()
 
 void tile_output_t::output_dirty_tile(uint32_t x, uint32_t y, uint32_t zoom)
 {
-    if (outfile) {
-        fprintf(outfile, "%i/%i/%i\n", zoom, x, y);
-        ++outcount;
-        if (outcount % 1000 == 0) {
-            fprintf(stderr, "\rWriting dirty tile list (%iK)", outcount / 1000);
-        }
+    if (!outfile) {
+        return;
+    }
+
+    fmt::print(outfile, "{}/{}/{}\n", zoom, x, y);
+    ++outcount;
+    if (outcount % 1000 == 0) {
+        fmt::print(stderr, "\rWriting dirty tile list ({}K)", outcount / 1000);
     }
 }
 
@@ -308,10 +310,8 @@ void expire_tiles::from_wkb(const char *wkb, osmid_t osm_id)
         break;
     }
     default:
-        fprintf(stderr,
-                "OSM id %" PRIdOSMID
-                ": Unknown geometry type, cannot expire.\n",
-                osm_id);
+        fmt::print(stderr, "OSM id {}: Unknown geometry type, cannot expire.\n",
+                   osm_id);
     }
 }
 
@@ -371,10 +371,10 @@ void expire_tiles::from_wkb_polygon(ewkb::parser_t *wkb, osmid_t osm_id)
 
     if (from_bbox(min.x, min.y, max.x, max.y)) {
         /* Bounding box too big - just expire tiles on the line */
-        fprintf(stderr,
-                "\rLarge polygon (%.0f x %.0f metres, OSM ID %" PRIdOSMID
-                ") - only expiring perimeter\n",
-                max.x - min.x, max.y - min.y, osm_id);
+        fmt::print(stderr,
+                   "\rLarge polygon ({:.0f} x {:.0f} metres, OSM ID {}"
+                   ") - only expiring perimeter\n",
+                   max.x - min.x, max.y - min.y, osm_id);
         wkb->rewind(start);
         for (unsigned ring = 0; ring < num_rings; ++ring) {
             from_wkb_line(wkb);

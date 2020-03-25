@@ -171,7 +171,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
 {
     time_t start, end;
 
-    fprintf(stderr, "Stopping table: %s\n", name());
+    fmt::print(stderr, "Stopping table: {}\n", name());
     time(&start);
 
     // Use a temporary connection here because we might run in a separate
@@ -181,13 +181,13 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
     if (droptemp) {
         sql_conn.exec("DROP TABLE {}"_format(name()));
     } else if (build_indexes && !m_array_indexes.empty()) {
-        fprintf(stderr, "Building index on table: %s\n", name());
+        fmt::print(stderr, "Building index on table: {}\n", name());
         sql_conn.exec(m_array_indexes);
     }
 
     time(&end);
 
-    fprintf(stderr, "Stopped table: %s in %is\n", name(), (int)(end - start));
+    fmt::print(stderr, "Stopped table: {} in {}s\n", name(), end - start);
 }
 
 namespace {
@@ -708,7 +708,7 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_query_conn->exec("SET client_min_messages = WARNING");
         for (auto &table : tables) {
-            fprintf(stderr, "Setting up table: %s\n", table.name());
+            fmt::print(stderr, "Setting up table: {}\n", table.name());
             m_query_conn->exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(table.name()));
             m_query_conn->exec(table.m_create);
@@ -765,7 +765,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
         persistent_cache.reset(new node_persistent_cache(options, cache));
     }
 
-    fprintf(stderr, "Mid: pgsql, cache=%d\n", options->cache);
+    fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
 
     // clang-format off
     /*table = t_node,*/
