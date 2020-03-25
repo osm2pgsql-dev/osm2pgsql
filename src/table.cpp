@@ -472,9 +472,8 @@ void table_t::escape_type(const std::string &value, ColumnType flags)
 
 table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
 {
-    char tmp[32];
-    snprintf(tmp, sizeof(tmp), "%" PRIdOSMID, id);
-    char const *param_values[] = {tmp};
+    util::integer_to_buffer tmp{id};
+    char const *param_values[] = {tmp.c_str()};
 
     // the prepared statement get_wkb will behave differently depending on the
     // sql_conn

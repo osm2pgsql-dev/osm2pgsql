@@ -147,17 +147,15 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 osmid_t osm_id) const
 {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    return exec_prepared(stmt, buffer);
+    util::integer_to_buffer buffer{osm_id};
+    return exec_prepared(stmt, buffer.c_str());
 }
 
 pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
                                           osmid_t osm_id) const
 {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    char const *const bptr = buffer;
+    util::integer_to_buffer buffer{osm_id};
+    char const *const bptr = buffer.c_str();
     return m_query_conn->exec_prepared(stmt, 1, &bptr);
 }
 

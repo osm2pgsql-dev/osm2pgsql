@@ -20,7 +20,6 @@
 
 using osmid_t = std::int64_t;
 #define strtoosmid strtoll
-#define PRIdOSMID PRId64
 #define POSTGRES_OSMID_TYPE "int8"
 
 struct member
