@@ -464,25 +464,21 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           rolelist_t *roles,
                                           osmium::memory::Buffer &buffer) const
 {
-    char tmp[16];
-
-    // create a list of ids in tmp2 to query the database
-    std::string tmp2("{");
+    // create a list of ids in id_list to query the database
+    std::string id_list("{");
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
-            snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", m.ref());
-            tmp2.append(tmp);
+            fmt::format_to(std::back_inserter(id_list), "{},", m.ref());
         }
     }
 
-    if (tmp2.length() == 1) {
+    if (id_list.size() == 1) {
         return 0; // no ways found
     }
     // replace last , with } to complete list of ids
-    tmp2[tmp2.length() - 1] = '}';
+    id_list.back() = '}';
 
-    // Make sures all ways have been written back.
-    auto const res = exec_prepared("get_way_list", tmp2.c_str());
+    auto const res = exec_prepared("get_way_list", id_list.c_str());
     idlist_t wayidspg;
     for (int i = 0; i < res.num_tuples(); ++i) {
         wayidspg.push_back(osmium::string_to_object_id(res.get_value(i, 0)));
