@@ -212,7 +212,7 @@ void output_multi_t::relation_add(osmium::Relation const &rel)
 {
     if (m_processor->interests(geometry_processor::interest_relation) &&
         !rel.members().empty()) {
-        process_relation(rel, 0);
+        process_relation(rel, false);
     }
 }
 
@@ -299,11 +299,9 @@ void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     if (m_processor->interests(geometry_processor::interest_relation) &&
         exists) {
         way_delete(way->id());
-        const std::vector<osmid_t> rel_ids =
-            m_mid->relations_using_way(way->id());
-        for (std::vector<osmid_t>::const_iterator itr = rel_ids.begin();
-             itr != rel_ids.end(); ++itr) {
-            rels_pending_tracker.mark(*itr);
+        auto const rel_ids = m_mid->relations_using_way(way->id());
+        for (auto const rel_id : rel_ids) {
+            rels_pending_tracker.mark(rel_id);
         }
     }
 
@@ -382,7 +380,7 @@ void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             m_relation_helper.add_way_locations(m_mid.get());
             auto geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
-            for (const auto geom : geoms) {
+            for (const auto &geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
             }
         }

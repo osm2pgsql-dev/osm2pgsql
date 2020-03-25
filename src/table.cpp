@@ -24,7 +24,7 @@ table_t::table_t(std::string const &name, std::string const &type,
   m_copy(copy_thread)
 {
     // if we dont have any columns
-    if (columns.size() == 0 && hstore_mode != HSTORE_ALL) {
+    if (columns.empty() && hstore_mode != HSTORE_ALL) {
         throw std::runtime_error{
             "No columns provided for table {}"_format(name)};
     }
@@ -450,13 +450,13 @@ void table_t::escape_type(const std::string &value, ColumnType flags)
             int items = sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
             if (items == 1) {
                 if (escaped.size() > 1 &&
-                    escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                    escaped.substr(escaped.size() - 2) == "ft") {
                     from *= 0.3048;
                 }
                 m_copy.add_column(from);
             } else if (items == 2) {
                 if (escaped.size() > 1 &&
-                    escaped.substr(escaped.size() - 2).compare("ft") == 0) {
+                    escaped.substr(escaped.size() - 2) == "ft") {
                     from *= 0.3048;
                     to *= 0.3048;
                 }

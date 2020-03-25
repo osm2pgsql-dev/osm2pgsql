@@ -378,28 +378,28 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
     try {
         size_t num_rings = 0;
 
-        for (auto it = area.cbegin(); it != area.cend(); ++it) {
-            if (it->type() == osmium::item_type::outer_ring) {
-                auto &ring = static_cast<const osmium::OuterRing &>(*it);
+        for (const auto &item : area) {
+            if (item.type() == osmium::item_type::outer_ring) {
+                auto const &ring = static_cast<const osmium::OuterRing &>(item);
                 if (num_rings > 0) {
                     ret.push_back(m_writer.polygon_finish(num_rings));
                     num_rings = 0;
                 }
                 m_writer.polygon_start();
                 m_writer.polygon_ring_start();
-                auto num_points = add_mp_points(ring);
+                auto const num_points = add_mp_points(ring);
                 m_writer.polygon_ring_finish(num_points);
                 ++num_rings;
-            } else if (it->type() == osmium::item_type::inner_ring) {
-                auto &ring = static_cast<const osmium::InnerRing &>(*it);
+            } else if (item.type() == osmium::item_type::inner_ring) {
+                auto const &ring = static_cast<const osmium::InnerRing &>(item);
                 m_writer.polygon_ring_start();
-                auto num_points = add_mp_points(ring);
+                auto const num_points = add_mp_points(ring);
                 m_writer.polygon_ring_finish(num_points);
                 ++num_rings;
             }
         }
 
-        auto wkb = m_writer.polygon_finish(num_rings);
+        auto const wkb = m_writer.polygon_finish(num_rings);
         if (num_rings > 0) {
             ret.push_back(wkb);
         }

@@ -14,6 +14,7 @@ public:
     wkbs_t process_relation(osmium::Relation const &rel,
                             osmium::memory::Buffer const &ways,
                             geom::osmium_builder_t *builder) override;
+
 private:
     bool m_build_multigeoms;
 };

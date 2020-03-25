@@ -64,14 +64,15 @@ public:
      */
     std::string get_value_as_string(int row, int col) const noexcept
     {
-        return std::string(get_value(row, col), (std::size_t)get_length(row, col));
+        return std::string(get_value(row, col),
+                           (std::size_t)get_length(row, col));
     }
 
     /**
      * Get the column number from the name. Returns -1 if there is no column
      * of that name.
      */
-    int get_column_number(std::string const& name) const noexcept
+    int get_column_number(std::string const &name) const noexcept
     {
         return PQfnumber(m_result.get(), ('"' + name + '"').c_str());
     }

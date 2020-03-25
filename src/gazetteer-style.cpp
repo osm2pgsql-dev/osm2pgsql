@@ -17,7 +17,7 @@ enum : int
     MAX_ADMINLEVEL = 15
 };
 
-}
+} // anonymous namespace
 
 namespace pt = boost::property_tree;
 

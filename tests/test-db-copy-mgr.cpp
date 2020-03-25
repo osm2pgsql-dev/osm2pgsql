@@ -43,7 +43,7 @@ void add_array(copy_mgr_t &mgr, std::shared_ptr<db_target_descr_t> t, int id,
     mgr.new_line(t);
     mgr.add_column(id);
     mgr.new_array();
-    for (auto v : values) {
+    for (auto const &v : values) {
         mgr.add_array_elem(v);
     }
     mgr.finish_array();

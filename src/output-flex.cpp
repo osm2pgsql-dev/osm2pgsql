@@ -913,8 +913,8 @@ void output_flex_t::pending_way(osmid_t id, int exists)
     if (exists) {
         way_delete(id);
         auto const rel_ids = m_mid->relations_using_way(id);
-        for (auto const id : rel_ids) {
-            m_rels_pending_tracker.mark(id);
+        for (auto const rel_id : rel_ids) {
+            m_rels_pending_tracker.mark(rel_id);
         }
     }
 

@@ -565,8 +565,8 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
 
     // parts
     m_db_copy.new_array();
-    for (int i = 0; i < 3; ++i) {
-        for (auto it : parts[i]) {
+    for (auto const &part : parts) {
+        for (auto it : part) {
             m_db_copy.add_array_elem(it);
         }
     }
@@ -813,9 +813,9 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
 
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
-    std::unique_ptr<middle_query_pgsql_t> mid(new middle_query_pgsql_t(
-        src->out_options->database_options.conninfo().c_str(), src->cache,
-        src->persistent_cache));
+    std::unique_ptr<middle_query_pgsql_t> mid(new middle_query_pgsql_t{
+        src->out_options->database_options.conninfo(), src->cache,
+        src->persistent_cache});
 
     // We use a connection per table to enable the use of COPY
     for (int i = 0; i < NUM_TABLES; ++i) {

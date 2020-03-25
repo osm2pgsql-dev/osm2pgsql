@@ -6,7 +6,6 @@
 #include <cstring>
 #include <string>
 
-
 /**
  * Returns the tag specific name, if applicable.
  *
