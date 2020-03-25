@@ -24,6 +24,7 @@
 */
 
 #include "db-copy.hpp"
+#include "format.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
@@ -46,8 +47,8 @@
 
 int main(int argc, char *argv[])
 {
-    fprintf(stderr, "osm2pgsql version %s (%zu bit id space)\n\n",
-            get_osm2pgsql_version(), 8 * sizeof(osmid_t));
+    fmt::print(stderr, "osm2pgsql version {}\n\n", get_osm2pgsql_version());
+
     try {
         //parse the args into the different options members
         options_t options = options_t(argc, argv);
