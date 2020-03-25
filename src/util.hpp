@@ -32,6 +32,25 @@ private:
     std::array<char, buffer_size> m_buffer;
 };
 
+class double_to_buffer
+{
+    static constexpr std::size_t buffer_size = 32;
+
+public:
+    double_to_buffer(double value)
+    {
+        auto const result =
+            fmt::format_to_n(m_buffer.begin(), buffer_size - 1, "{:g}", value);
+        assert(result.size < buffer_size);
+        *result.out = '\0';
+    }
+
+    char const *c_str() const noexcept { return m_buffer.data(); }
+
+private:
+    std::array<char, buffer_size> m_buffer;
+};
+
 } // namespace util
 
 #endif // OSM2PGSQL_UTIL_HPP

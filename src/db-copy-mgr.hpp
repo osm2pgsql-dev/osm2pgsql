@@ -5,6 +5,7 @@
 #include <string>
 
 #include "db-copy.hpp"
+#include "util.hpp"
 
 /**
  * Management class that fills and manages copy buffers.
@@ -283,9 +284,8 @@ private:
 
     void add_value(double value)
     {
-        char tmp[32];
-        snprintf(tmp, sizeof(tmp), "%g", value);
-        m_current->buffer += tmp;
+        util::double_to_buffer tmp{value};
+        m_current->buffer += tmp.c_str();
     }
 
     void add_value(std::string const &s) { add_value(s.c_str()); }
