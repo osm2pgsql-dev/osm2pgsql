@@ -56,10 +56,10 @@ tables.polygons = osm2pgsql.define_area_table('polygons', {
 })
 
 -- Debug output: Show definition of tables
-for name, table in pairs(tables) do
+for name, dtable in pairs(tables) do
     print("\ntable '" .. name .. "':")
-    print("  name='" .. table:name() .. "'")
-    print("  columns=" .. inspect(table:columns()))
+    print("  name='" .. dtable:name() .. "'")
+    print("  columns=" .. inspect(dtable:columns()))
 end
 
 -- Helper function to remove some of the tags we usually are not interested in.

@@ -201,6 +201,8 @@ void table_connection_t::start(bool append)
 
 void table_connection_t::stop(bool updateable, bool append)
 {
+    assert(m_db_connection);
+
     m_copy_mgr.sync();
 
     if (append) {
