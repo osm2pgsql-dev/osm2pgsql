@@ -587,38 +587,45 @@ int output_flex_t::app_define_table()
     return 1;
 }
 
-// Check function parameters of all osm2pgsql.table functions and return the
-// flex table this function is on.
-table_connection_t &output_flex_t::table_func_params(int n)
+// Check that the first element on the Lua stack is an osm2pgsql.table
+// parameter and return its internal table index.
+static std::size_t table_idx_from_param(lua_State *lua_state)
 {
-    if (lua_gettop(lua_state()) != n) {
-        throw std::runtime_error{"Need {} parameter(s)"_format(n)};
-    }
+    void const *const user_data = lua_touserdata(lua_state, 1);
 
-    void *user_data = lua_touserdata(lua_state(), 1);
-    if (user_data == nullptr || !lua_getmetatable(lua_state(), 1)) {
+    if (user_data == nullptr || !lua_getmetatable(lua_state, 1)) {
         throw std::runtime_error{
-            "first parameter must be of type osm2pgsql.table"};
+            "First parameter must be of type osm2pgsql.table"};
     }
 
-    luaL_getmetatable(lua_state(), osm2pgsql_table_name);
-    if (!lua_rawequal(lua_state(), -1, -2)) {
+    luaL_getmetatable(lua_state, osm2pgsql_table_name);
+    if (!lua_rawequal(lua_state, -1, -2)) {
         throw std::runtime_error{
-            "first parameter must be of type osm2pgsql.table"};
+            "First parameter must be of type osm2pgsql.table"};
     }
-    lua_pop(lua_state(), 2);
+    lua_pop(lua_state, 2);
 
-    auto &table =
-        m_table_connections.at(reinterpret_cast<uintptr_t>(user_data) - 1);
+    return reinterpret_cast<uintptr_t>(user_data) - 1;
+}
+
+// Get the flex table that is as first parameter on the Lua stack.
+flex_table_t const &output_flex_t::get_table_from_param()
+{
+    if (lua_gettop(lua_state()) != 1) {
+        throw std::runtime_error{
+            "Need exactly one parameter of type osm2pgsql.table"};
+    }
+
+    auto const &table = m_tables->at(table_idx_from_param(lua_state()));
     lua_remove(lua_state(), 1);
     return table;
 }
 
 int output_flex_t::table_tostring()
 {
-    auto const &table = table_func_params(1);
+    auto const &table = get_table_from_param();
 
-    std::string const str{"osm2pgsql.table[{}]"_format(table.table().name())};
+    std::string const str{"osm2pgsql.table[{}]"_format(table.name())};
     lua_pushstring(lua_state(), str.c_str());
 
     return 1;
@@ -626,9 +633,15 @@ int output_flex_t::table_tostring()
 
 int output_flex_t::table_add_row()
 {
-    auto &table_connection = table_func_params(2);
+    if (lua_gettop(lua_state()) != 2) {
+        throw std::runtime_error{"Need two parameters: The osm2pgsql.table and the row data"};
+    }
+
+    auto &table_connection =
+        m_table_connections.at(table_idx_from_param(lua_state()));
     auto &table = table_connection.table();
-    luaL_checktype(lua_state(), 1, LUA_TTABLE);
+    luaL_checktype(lua_state(), 2, LUA_TTABLE);
+    lua_remove(lua_state(), 1);
 
     if (m_context_node) {
         if (!table.matches_type(osmium::item_type::node)) {
@@ -666,19 +679,19 @@ int output_flex_t::table_add_row()
 
 int output_flex_t::table_columns()
 {
-    auto const &table = table_func_params(1);
+    auto const &table = get_table_from_param();
 
-    lua_createtable(lua_state(), (int)table.table().num_columns(), 0);
+    lua_createtable(lua_state(), (int)table.num_columns(), 0);
 
     int n = 0;
-    for (auto const &column : table.table()) {
+    for (auto const &column : table) {
         lua_pushinteger(lua_state(), ++n);
         lua_newtable(lua_state());
 
         luaX_add_table_str(lua_state(), "name", column.name().c_str());
         luaX_add_table_str(lua_state(), "type", column.type_name().c_str());
         luaX_add_table_str(lua_state(), "sql_type",
-                           column.sql_type_name(table.table().srid()).c_str());
+                           column.sql_type_name(table.srid()).c_str());
         luaX_add_table_str(lua_state(), "sql_modifiers",
                            column.sql_modifiers().c_str());
         luaX_add_table_bool(lua_state(), "not_null", column.not_null());
@@ -691,15 +704,15 @@ int output_flex_t::table_columns()
 
 int output_flex_t::table_name()
 {
-    auto const &table = table_func_params(1);
-    lua_pushstring(lua_state(), table.table().name().c_str());
+    auto const &table = get_table_from_param();
+    lua_pushstring(lua_state(), table.name().c_str());
     return 1;
 }
 
 int output_flex_t::table_schema()
 {
-    auto const &table = table_func_params(1);
-    lua_pushstring(lua_state(), table.table().schema().c_str());
+    auto const &table = get_table_from_param();
+    lua_pushstring(lua_state(), table.schema().c_str());
     return 1;
 }
 

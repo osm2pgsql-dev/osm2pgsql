@@ -107,7 +107,7 @@ private:
     void setup_id_columns(flex_table_t *table);
     void setup_flex_table_columns(flex_table_t *table);
 
-    table_connection_t &table_func_params(int n);
+    flex_table_t const &get_table_from_param();
 
     void write_column(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                       flex_table_column_t const &column);
