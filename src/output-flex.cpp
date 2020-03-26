@@ -453,7 +453,7 @@ flex_table_t &output_flex_t::create_flex_table()
     lua_getfield(lua_state(), -1, "schema");
     if (lua_isstring(lua_state(), -1)) {
         std::string const schema = lua_tostring(lua_state(), -1);
-        check_name(schema, "schame");
+        check_name(schema, "schema");
         new_table.set_schema(schema);
     }
     lua_pop(lua_state(), 1);
