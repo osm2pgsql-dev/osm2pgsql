@@ -38,7 +38,6 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <ctime>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -78,7 +77,7 @@ int main(int argc, char *argv[])
                    options.projection->target_desc());
 
         //start it up
-        time_t overall_start = time(nullptr);
+        util::timer_t timer_overall;
         osmdata.start();
 
         /* Processing
@@ -91,14 +90,14 @@ int main(int argc, char *argv[])
         for (auto const &filename : options.input_files) {
             //read the actual input
             fmt::print(stderr, "\nReading in file: {}\n", filename);
-            time_t start = time(nullptr);
+            util::timer_t timer_parse;
 
             parse_osmium_t parser(options.bbox, options.append, &osmdata);
             parser.stream_file(filename, options.input_reader);
 
             stats.update(parser.stats());
 
-            fmt::print(stderr, "  parse time: {}s\n", time(nullptr) - start);
+            fmt::print(stderr, "  parse time: {}s\n", timer_parse.stop());
         }
 
         //show stats
@@ -108,7 +107,7 @@ int main(int argc, char *argv[])
         osmdata.stop();
 
         fmt::print(stderr, "\nOsm2pgsql took {}s overall\n",
-                   time(nullptr) - overall_start);
+                   timer_overall.stop());
 
         return 0;
     } catch (const std::runtime_error &e) {

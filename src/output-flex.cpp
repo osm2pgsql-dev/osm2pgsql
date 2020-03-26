@@ -12,6 +12,7 @@
 #include "pgsql.hpp"
 #include "reprojection.hpp"
 #include "taginfo-impl.hpp"
+#include "util.hpp"
 #include "version.hpp"
 #include "wkb.hpp"
 
@@ -27,7 +28,6 @@ extern "C"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -1299,7 +1299,7 @@ void output_flex_t::stage2_proc()
 
     if (!m_options.append) {
         fmt::print(stderr, "Creating id indexes...\n");
-        const std::time_t start_time = std::time(nullptr);
+        util::timer_t timer;
 
         for (auto &table : m_table_connections) {
             if ((has_marked_ways &&
@@ -1313,7 +1313,7 @@ void output_flex_t::stage2_proc()
         }
 
         fmt::print(stderr, "  Creating id indexes took {} seconds\n"_format(
-                               std::time(nullptr) - start_time));
+                               timer.stop()));
     }
 
     lua_gc(lua_state(), LUA_GCCOLLECT, 0);

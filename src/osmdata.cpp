@@ -14,6 +14,7 @@
 #include "middle.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
+#include "util.hpp"
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
                      std::shared_ptr<output_t> const &out_)
@@ -262,7 +263,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         fmt::print(stderr, "\nGoing over pending ways...\n");
         fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
-        time_t start = time(nullptr);
+        util::timer_t timer;
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
@@ -288,14 +289,13 @@ struct pending_threaded_processor : public middle_t::pending_processor
             }
         }
 
-        time_t finish = time(nullptr);
+        timer.stop();
         fmt::print(stderr, "\rFinished processing {} ways in {} s\n\n",
-                   ids_queued, finish - start);
-        if (finish - start > 0) {
-            fmt::print(stderr,
-                       "{} Pending ways took {}s at a rate of {:.2f}/s\n",
-                       ids_queued, finish - start,
-                       ((double)ids_queued / (double)(finish - start)));
+                   ids_queued, timer.elapsed());
+        if (timer.elapsed() > 0) {
+            fmt::print(
+                stderr, "{} Pending ways took {}s at a rate of {:.2f}/s\n",
+                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
         ids_queued = 0;
         ids_done = 0;
@@ -332,7 +332,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
-        time_t start = time(nullptr);
+        util::timer_t timer;
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
@@ -358,14 +358,13 @@ struct pending_threaded_processor : public middle_t::pending_processor
             }
         }
 
-        time_t finish = time(nullptr);
+        timer.stop();
         fmt::print(stderr, "\rFinished processing {} relations in {} s\n\n",
-                   ids_queued, finish - start);
-        if (finish - start > 0) {
-            fmt::print(stderr,
-                       "{} Pending relations took {}s at a rate of {:.2f}/s\n",
-                       ids_queued, finish - start,
-                       ((double)ids_queued / (double)(finish - start)));
+                   ids_queued, timer.elapsed());
+        if (timer.elapsed() > 0) {
+            fmt::print(
+                stderr, "{} Pending relations took {}s at a rate of {:.2f}/s\n",
+                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
         ids_queued = 0;
         ids_done = 0;

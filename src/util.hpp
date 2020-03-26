@@ -5,7 +5,9 @@
 #include "osmtypes.hpp"
 
 #include <array>
+#include <cstdint>
 #include <cstdlib>
+#include <ctime>
 
 namespace util {
 
@@ -50,6 +52,45 @@ public:
 private:
     std::array<char, buffer_size> m_buffer;
 };
+
+/**
+ * Helper class for timing with a granularity of seconds. The timer will
+ * start on construction and is stopped by calling stop().
+ */
+class timer_t
+{
+public:
+    timer_t() noexcept : m_start(std::time(nullptr)) {}
+
+    /// Stop timer and return elapsed time
+    uint64_t stop() noexcept
+    {
+        m_stop = std::time(nullptr);
+        return m_stop - m_start;
+    }
+
+    /// Return elapsed time
+    uint64_t elapsed() const noexcept { return m_stop - m_start; }
+
+    /**
+     * Calculate ratio: value divided by elapsed time.
+     *
+     * Returns 0 if the elapsed time is 0.
+     */
+    double per_second(double value) const noexcept
+    {
+        auto const seconds = elapsed();
+        if (seconds == 0) {
+            return 0.0;
+        }
+        return value / static_cast<double>(seconds);
+    }
+
+private:
+    std::time_t m_start;
+    std::time_t m_stop = 0;
+
+}; // class timer_t
 
 } // namespace util
 
