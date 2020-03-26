@@ -266,10 +266,10 @@ void node_ram_cache::set_dense(osmid_t id, const osmium::Location &coord)
 
         if (queue[expectedpos] != &blocks[block]) {
             if (!warn_node_order) {
-                fprintf(stderr,
-                        "WARNING: Found Out of order node %" PRIdOSMID
-                        " (%d,%d) - this will impact the cache efficiency\n",
-                        id, block, offset);
+                fmt::print(stderr,
+                           "WARNING: Found Out of order node {}"
+                           " ({},{}) - this will impact the cache efficiency\n",
+                           id, block, offset);
                 warn_node_order++;
             }
             return;
@@ -388,11 +388,11 @@ node_ram_cache::node_ram_cache(int strategy, int cacheSizeMB)
         }
     }
 
-    fprintf(stderr,
-            "Node-cache: cache=%" PRId64 "MB, maxblocks=%d*%" PRId64
-            ", allocation method=%i\n",
-            (cacheSize >> 20), maxBlocks,
-            (int64_t)PER_BLOCK * sizeof(osmium::Location), allocStrategy);
+    fmt::print(
+        stderr,
+        "Node-cache: cache={}MB, maxblocks={}*{}, allocation method={}\n",
+        (cacheSize >> 20U), maxBlocks,
+        PER_BLOCK * sizeof(osmium::Location), allocStrategy);
 }
 
 node_ram_cache::~node_ram_cache()
@@ -401,11 +401,11 @@ node_ram_cache::~node_ram_cache()
         return;
     }
 
-    fprintf(
+    fmt::print(
         stderr,
-        "node cache: stored: %" PRIdOSMID
-        "(%.2f%%), storage efficiency: %.2f%% (dense blocks: %i, "
-        "sparse nodes: %" PRId64 "), hit rate: %.2f%%\n",
+        "node cache: stored: {}"
+        "({:.2f}%), storage efficiency: {:.2f}% (dense blocks: {}, "
+        "sparse nodes: {}), hit rate: {:.2f}%\n",
         storedNodes, totalNodes == 0 ? 0.0f : 100.0f * storedNodes / totalNodes,
         cacheUsed == 0
             ? 0.0f
@@ -441,10 +441,10 @@ void node_ram_cache::set(osmid_t id, const osmium::Location &coord)
 
     if ((id > 0 && id >> BLOCK_SHIFT >> 32) ||
         (id < 0 && ~id >> BLOCK_SHIFT >> 32)) {
-        fprintf(stderr,
-                "\nAbsolute node IDs must not be larger than %" PRId64
-                " (got%" PRId64 " )\n",
-                (int64_t)1 << 42, (int64_t)id);
+        fmt::print(stderr,
+                   "\nAbsolute node IDs must not be larger than {}"
+                   " (got {})\n",
+                   (int64_t)1 << 42U, id);
         util::exit_nicely();
     }
     totalNodes++;

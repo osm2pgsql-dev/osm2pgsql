@@ -147,17 +147,15 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
                                                 osmid_t osm_id) const
 {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    return exec_prepared(stmt, buffer);
+    util::integer_to_buffer buffer{osm_id};
+    return exec_prepared(stmt, buffer.c_str());
 }
 
 pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
                                           osmid_t osm_id) const
 {
-    char buffer[64];
-    snprintf(buffer, sizeof(buffer), "%" PRIdOSMID, osm_id);
-    char const *const bptr = buffer;
+    util::integer_to_buffer buffer{osm_id};
+    char const *const bptr = buffer.c_str();
     return m_query_conn->exec_prepared(stmt, 1, &bptr);
 }
 
@@ -171,7 +169,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
 {
     time_t start, end;
 
-    fprintf(stderr, "Stopping table: %s\n", name());
+    fmt::print(stderr, "Stopping table: {}\n", name());
     time(&start);
 
     // Use a temporary connection here because we might run in a separate
@@ -181,13 +179,13 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
     if (droptemp) {
         sql_conn.exec("DROP TABLE {}"_format(name()));
     } else if (build_indexes && !m_array_indexes.empty()) {
-        fprintf(stderr, "Building index on table: %s\n", name());
+        fmt::print(stderr, "Building index on table: {}\n", name());
         sql_conn.exec(m_array_indexes);
     }
 
     time(&end);
 
-    fprintf(stderr, "Stopped table: %s in %is\n", name(), (int)(end - start));
+    fmt::print(stderr, "Stopped table: {} in {}s\n", name(), end - start);
 }
 
 namespace {
@@ -464,25 +462,21 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           rolelist_t *roles,
                                           osmium::memory::Buffer &buffer) const
 {
-    char tmp[16];
-
-    // create a list of ids in tmp2 to query the database
-    std::string tmp2("{");
+    // create a list of ids in id_list to query the database
+    std::string id_list("{");
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
-            snprintf(tmp, sizeof(tmp), "%" PRIdOSMID ",", m.ref());
-            tmp2.append(tmp);
+            fmt::format_to(std::back_inserter(id_list), "{},", m.ref());
         }
     }
 
-    if (tmp2.length() == 1) {
+    if (id_list.size() == 1) {
         return 0; // no ways found
     }
     // replace last , with } to complete list of ids
-    tmp2[tmp2.length() - 1] = '}';
+    id_list.back() = '}';
 
-    // Make sures all ways have been written back.
-    auto const res = exec_prepared("get_way_list", tmp2.c_str());
+    auto const res = exec_prepared("get_way_list", id_list.c_str());
     idlist_t wayidspg;
     for (int i = 0; i < res.num_tuples(); ++i) {
         wayidspg.push_back(osmium::string_to_object_id(res.get_value(i, 0)));
@@ -708,7 +702,7 @@ void middle_pgsql_t::start()
         // (Re)create tables.
         m_query_conn->exec("SET client_min_messages = WARNING");
         for (auto &table : tables) {
-            fprintf(stderr, "Setting up table: %s\n", table.name());
+            fmt::print(stderr, "Setting up table: {}\n", table.name());
             m_query_conn->exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(table.name()));
             m_query_conn->exec(table.m_create);
@@ -765,7 +759,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
         persistent_cache.reset(new node_persistent_cache(options, cache));
     }
 
-    fprintf(stderr, "Mid: pgsql, cache=%d\n", options->cache);
+    fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
 
     // clang-format off
     /*table = t_node,*/

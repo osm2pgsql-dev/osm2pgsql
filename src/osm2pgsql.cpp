@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
 
-        fprintf(stderr, "Using projection SRS %d (%s)\n",
-                options.projection->target_srs(),
-                options.projection->target_desc());
+        fmt::print(stderr, "Using projection SRS {} ({})\n",
+                   options.projection->target_srs(),
+                   options.projection->target_desc());
 
         //start it up
         time_t overall_start = time(nullptr);
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
         //read in the input files one by one
         for (auto const &filename : options.input_files) {
             //read the actual input
-            fprintf(stderr, "\nReading in file: %s\n", filename.c_str());
+            fmt::print(stderr, "\nReading in file: {}\n", filename);
             time_t start = time(nullptr);
 
             parse_osmium_t parser(options.bbox, options.append, &osmdata);
@@ -98,8 +98,7 @@ int main(int argc, char *argv[])
 
             stats.update(parser.stats());
 
-            fprintf(stderr, "  parse time: %ds\n",
-                    (int)(time(nullptr) - start));
+            fmt::print(stderr, "  parse time: {}s\n", time(nullptr) - start);
         }
 
         //show stats
@@ -108,13 +107,12 @@ int main(int argc, char *argv[])
         //Process pending ways, relations, cluster, and create indexes
         osmdata.stop();
 
-        fprintf(stderr, "\nOsm2pgsql took %ds overall\n",
-                (int)(time(nullptr) - overall_start));
+        fmt::print(stderr, "\nOsm2pgsql took {}s overall\n",
+                   time(nullptr) - overall_start);
 
         return 0;
-    } //something went wrong along the way
-    catch (const std::runtime_error &e) {
-        fprintf(stderr, "Osm2pgsql failed due to ERROR: %s\n", e.what());
+    } catch (const std::runtime_error &e) {
+        fmt::print(stderr, "Osm2pgsql failed due to ERROR: {}\n", e.what());
         exit(EXIT_FAILURE);
     }
 }

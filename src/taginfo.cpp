@@ -95,8 +95,8 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
         if (it != tagflags.end()) {
             temp_flags |= it->second;
         } else {
-            fprintf(stderr, "Unknown flag '%s' line %d, ignored\n",
-                    flag_name.c_str(), lineno);
+            fmt::print(stderr, "Unknown flag '{}' line {}, ignored\n",
+                       flag_name, lineno);
         }
     }
 
@@ -141,8 +141,8 @@ int read_style_file(const std::string &filename, export_list *exlist)
             continue;
         }
         if (fields < 3) {
-            fprintf(stderr, "Error reading style file line %d (fields=%d)\n",
-                    lineno, fields);
+            fmt::print(stderr, "Error reading style file line {} (fields={})\n",
+                       lineno, fields);
             fclose(in);
             util::exit_nicely();
         }
@@ -167,8 +167,8 @@ int read_style_file(const std::string &filename, export_list *exlist)
         if ((temp.flags != FLAG_DELETE) &&
             ((temp.name.find('?') != std::string::npos) ||
              (temp.name.find('*') != std::string::npos))) {
-            fprintf(stderr, "wildcard '%s' in non-delete style entry\n",
-                    temp.name.c_str());
+            fmt::print(stderr, "wildcard '{}' in non-delete style entry\n",
+                       temp.name);
             fclose(in);
             util::exit_nicely();
         }

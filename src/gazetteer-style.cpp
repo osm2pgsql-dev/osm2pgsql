@@ -80,7 +80,7 @@ std::string gazetteer_style_t::class_list() const
 
 void gazetteer_style_t::load_style(std::string const &filename)
 {
-    fprintf(stderr, "Parsing gazetteer style file '%s'.\n", filename.c_str());
+    fmt::print(stderr, "Parsing gazetteer style file '{}'.\n", filename);
     pt::ptree root;
 
     pt::read_json(filename, root);

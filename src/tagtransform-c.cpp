@@ -5,6 +5,7 @@
 #include "options.hpp"
 #include "taginfo-impl.hpp"
 #include "tagtransform-c.hpp"
+#include "util.hpp"
 #include "wildcmp.hpp"
 
 namespace {
@@ -75,9 +76,8 @@ void add_z_order(taglist_t &tags, int *roads)
         z_order -= 100;
     }
 
-    char z[13];
-    snprintf(z, sizeof(z), "%d", z_order);
-    tags.add_tag("z_order", z);
+    util::integer_to_buffer z{z_order};
+    tags.add_tag("z_order", z.c_str());
 }
 
 } // anonymous namespace

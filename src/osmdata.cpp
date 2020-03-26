@@ -10,6 +10,7 @@
 #include <osmium/thread/pool.hpp>
 
 #include "db-copy.hpp"
+#include "format.hpp"
 #include "middle.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
@@ -208,7 +209,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
             queue_size = queue.size();
             mutex.unlock();
 
-            fprintf(stderr, "\rLeft to process: %zu...", queue_size);
+            fmt::print(stderr, "\rLeft to process: {}...", queue_size);
 
             std::this_thread::sleep_for(std::chrono::seconds(1));
         } while (queue_size > 0);
@@ -258,9 +259,9 @@ struct pending_threaded_processor : public middle_t::pending_processor
         //reset the number we've done
         ids_done = 0;
 
-        fprintf(stderr, "\nGoing over pending ways...\n");
-        fprintf(stderr, "\t%zu ways are pending\n", ids_queued);
-        fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
+        fmt::print(stderr, "\nGoing over pending ways...\n");
+        fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
+        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
         time_t start = time(nullptr);
 
         //make the threads and start them
@@ -288,12 +289,13 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu ways in %i s\n\n",
-                ids_queued, (int)(finish - start));
+        fmt::print(stderr, "\rFinished processing {} ways in {} s\n\n",
+                   ids_queued, finish - start);
         if (finish - start > 0) {
-            fprintf(stderr, "%zu Pending ways took %ds at a rate of %.2f/s\n",
-                    ids_queued, (int)(finish - start),
-                    ((double)ids_queued / (double)(finish - start)));
+            fmt::print(stderr,
+                       "{} Pending ways took {}s at a rate of {:.2f}/s\n",
+                       ids_queued, finish - start,
+                       ((double)ids_queued / (double)(finish - start)));
         }
         ids_queued = 0;
         ids_done = 0;
@@ -327,9 +329,9 @@ struct pending_threaded_processor : public middle_t::pending_processor
         //reset the number we've done
         ids_done = 0;
 
-        fprintf(stderr, "\nGoing over pending relations...\n");
-        fprintf(stderr, "\t%zu relations are pending\n", ids_queued);
-        fprintf(stderr, "\nUsing %zu helper-processes\n", clones.size());
+        fmt::print(stderr, "\nGoing over pending relations...\n");
+        fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
+        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
         time_t start = time(nullptr);
 
         //make the threads and start them
@@ -357,13 +359,13 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
 
         time_t finish = time(nullptr);
-        fprintf(stderr, "\rFinished processing %zu relations in %i s\n\n",
-                ids_queued, (int)(finish - start));
+        fmt::print(stderr, "\rFinished processing {} relations in {} s\n\n",
+                   ids_queued, finish - start);
         if (finish - start > 0) {
-            fprintf(stderr,
-                    "%zu Pending relations took %ds at a rate of %.2f/s\n",
-                    ids_queued, (int)(finish - start),
-                    ((double)ids_queued / (double)(finish - start)));
+            fmt::print(stderr,
+                       "{} Pending relations took {}s at a rate of {:.2f}/s\n",
+                       ids_queued, finish - start,
+                       ((double)ids_queued / (double)(finish - start)));
         }
         ids_queued = 0;
         ids_done = 0;

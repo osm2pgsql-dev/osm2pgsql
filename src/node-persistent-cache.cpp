@@ -1,5 +1,6 @@
 #define _LARGEFILE64_SOURCE /* See feature_test_macros(7) */
 
+#include "format.hpp"
 #include "node-persistent-cache.hpp"
 #include "options.hpp"
 
@@ -58,12 +59,12 @@ node_persistent_cache::node_persistent_cache(
 
     m_fname = options->flat_node_file->c_str();
     m_remove_file = options->droptemp;
-    fprintf(stderr, "Mid: loading persistent node cache from %s\n", m_fname);
+    fmt::print(stderr, "Mid: loading persistent node cache from {}\n", m_fname);
 
     m_fd = open(m_fname, O_RDWR | O_CREAT, 0644);
     if (m_fd < 0) {
-        fprintf(stderr, "Cannot open location cache file '%s': %s\n", m_fname,
-                std::strerror(errno));
+        fmt::print(stderr, "Cannot open location cache file '{}': {}\n",
+                   m_fname, std::strerror(errno));
         throw std::runtime_error("Unable to open flatnode file\n");
     }
 
@@ -78,7 +79,8 @@ node_persistent_cache::~node_persistent_cache()
     }
 
     if (m_remove_file) {
-        fprintf(stderr, "Mid: removing persistent node cache at %s\n", m_fname);
+        fmt::print(stderr, "Mid: removing persistent node cache at {}\n",
+                   m_fname);
         unlink(m_fname);
     }
 }
