@@ -70,13 +70,17 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
             copied = false;
             source++;
             continue;
-        } else if (*source == '}') {
+        }
+
+        if (*source == '}') {
             if (!copied && openbrace) {
                 dest = openbrace;
             }
             source++;
             continue;
-        } else if (*source == '%') {
+        }
+
+        if (*source == '%') {
             if (*(source + 1) == 'p') {
                 if (!options->prefix.empty()) {
                     strcpy(dest, options->prefix.c_str());
@@ -85,7 +89,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
                 }
                 source += 2;
                 continue;
-            } else if (*(source + 1) == 't') {
+            }
+
+            if (*(source + 1) == 't') {
                 if (options->tblsslim_data) {
                     strcpy(dest, options->tblsslim_data->c_str());
                     dest += strlen(options->tblsslim_data->c_str());
@@ -93,7 +99,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
                 }
                 source += 2;
                 continue;
-            } else if (*(source + 1) == 'i') {
+            }
+
+            if (*(source + 1) == 'i') {
                 if (options->tblsslim_index) {
                     strcpy(dest, options->tblsslim_index->c_str());
                     dest += strlen(options->tblsslim_index->c_str());
@@ -101,7 +109,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
                 }
                 source += 2;
                 continue;
-            } else if (*(source + 1) == 'm') {
+            }
+
+            if (*(source + 1) == 'm') {
                 if (options->droptemp) {
                     strcpy(dest, "UNLOGGED");
                     dest += 8;

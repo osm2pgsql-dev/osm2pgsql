@@ -183,10 +183,9 @@ struct pending_threaded_processor : public middle_t::pending_processor
             if (queue.empty()) {
                 mutex.unlock();
                 break;
-            } else {
-                job = queue.top();
-                queue.pop();
             }
+            job = queue.top();
+            queue.pop();
             mutex.unlock();
 
             //process it

@@ -132,16 +132,15 @@ osmid_t id_tracker::pimpl::pop_min()
             id = (itr->first << BLOCK_BITS) | b_itr;
             next_start = b_itr;
             break;
-
-        } else {
-            // no elements in this block - might as well delete
-            // the whole thing.
-            pending.erase(itr);
-            // since next_start is relative to the current
-            // block, which is ceasing to exist, then we need to
-            // reset it.
-            next_start = boost::none;
         }
+
+        // no elements in this block - might as well delete
+        // the whole thing.
+        pending.erase(itr);
+        // since next_start is relative to the current
+        // block, which is ceasing to exist, then we need to
+        // reset it.
+        next_start = boost::none;
     }
 
     return id;

@@ -122,7 +122,9 @@ bool c_tagtransform_t::check_key(std::vector<taginfo> const &infos,
             }
             /* with hstore, copy all tags... */
             return true;
-        } else if (!m_options->hstore_columns.empty()) {
+        }
+
+        if (!m_options->hstore_columns.empty()) {
             /* does this column match any of the hstore column prefixes? */
             for (auto const &column : m_options->hstore_columns) {
                 if (boost::starts_with(k, column)) {
