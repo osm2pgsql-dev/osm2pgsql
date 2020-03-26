@@ -24,7 +24,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
 
     db_copy_thread_t t(db.conninfo());
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_by_id_t>;
-    auto cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+    auto cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
 
     SECTION("simple copy command")
     {
@@ -68,7 +68,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
         t.sync_and_wait();
 
-        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
 
         SECTION("simple delete of existing rows")
         {
@@ -111,7 +111,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
         cmd->buffer += "542\n5543\n10133\n";
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
 
-        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
         cmd->buffer += "12\n784\n523\n";
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
 
@@ -127,7 +127,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_by_id_t")
         cmd->buffer += "542\n5543\n10133\n";
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
 
-        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
         cmd->add_deletable(542);
         cmd->buffer += "12\n";
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
@@ -155,7 +155,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_place_t")
 
     db_copy_thread_t t(db.conninfo());
     using cmd_copy_t = db_cmd_copy_delete_t<db_deleter_place_t>;
-    auto cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+    auto cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
 
     SECTION("simple delete")
     {
@@ -167,7 +167,7 @@ TEST_CASE("db_copy_thread_t with db_deleter_place_t")
         t.add_buffer(std::unique_ptr<db_cmd_t>(cmd.release()));
         t.sync_and_wait();
 
-        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t(table));
+        cmd = std::unique_ptr<cmd_copy_t>(new cmd_copy_t{table});
 
         SECTION("full delete of existing rows")
         {

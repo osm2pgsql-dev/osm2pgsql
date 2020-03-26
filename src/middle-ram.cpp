@@ -40,12 +40,12 @@ void middle_ram_t::nodes_set(osmium::Node const &node)
 
 void middle_ram_t::ways_set(osmium::Way const &way)
 {
-    ways.set(way.id(), new ramWay(way, extra_attributes));
+    ways.set(way.id(), new ramWay{way, extra_attributes});
 }
 
 void middle_ram_t::relations_set(osmium::Relation const &rel)
 {
-    rels.set(rel.id(), new ramRel(rel, extra_attributes));
+    rels.set(rel.id(), new ramRel{rel, extra_attributes});
 }
 
 size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
@@ -162,7 +162,7 @@ void middle_ram_t::commit() {}
 
 middle_ram_t::middle_ram_t(options_t const *options)
 : ways(), rels(),
-  cache(new node_ram_cache(options->alloc_chunkwise, options->cache)),
+  cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
   extra_attributes(options->extra_attributes), simulate_ways_deleted(false)
 {}
 
@@ -176,10 +176,10 @@ idlist_t middle_ram_t::relations_using_way(osmid_t) const
     // this function shouldn't be called - relations_using_way is only used in
     // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode
     // option is set.
-    throw std::runtime_error(
+    throw std::runtime_error{
         "middle_ram_t::relations_using_way is unimlpemented, and "
         "should not have been called. This is probably a bug, please "
-        "report it at https://github.com/openstreetmap/osm2pgsql/issues");
+        "report it at https://github.com/openstreetmap/osm2pgsql/issues"};
 }
 
 std::shared_ptr<middle_query_t>

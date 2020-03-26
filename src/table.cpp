@@ -63,8 +63,8 @@ void table_t::start(std::string const &conninfo,
                     boost::optional<std::string> const &table_space)
 {
     if (m_sql_conn) {
-        throw std::runtime_error(m_target->name +
-                                 " cannot start, its already started");
+        throw std::runtime_error{m_target->name +
+                                 " cannot start, its already started"};
     }
 
     m_conninfo = conninfo;

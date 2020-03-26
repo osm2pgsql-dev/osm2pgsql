@@ -331,8 +331,9 @@ void output_pgsql_t::relation_add(osmium::Relation const &rel)
     }
 
     /* Only a limited subset of type= is supported, ignore other */
-    if (strcmp(type, "route") != 0 && strcmp(type, "multipolygon") != 0 &&
-        strcmp(type, "boundary") != 0) {
+    if (std::strcmp(type, "route") != 0 &&
+        std::strcmp(type, "multipolygon") != 0 &&
+        std::strcmp(type, "boundary") != 0) {
         return;
     }
 
@@ -427,7 +428,7 @@ std::shared_ptr<output_t> output_pgsql_t::clone(
     std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
     return std::shared_ptr<output_t>(
-        new output_pgsql_t(this, mid, copy_thread));
+        new output_pgsql_t{this, mid, copy_thread});
 }
 
 output_pgsql_t::output_pgsql_t(
@@ -435,7 +436,7 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-  ways_done_tracker(new id_tracker()),
+  ways_done_tracker(new id_tracker{}),
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
@@ -479,9 +480,9 @@ output_pgsql_t::output_pgsql_t(
         }
 
         m_tables[i].reset(
-            new table_t(name, type, columns, m_options.hstore_columns,
+            new table_t{name, type, columns, m_options.hstore_columns,
                         m_options.projection->target_srs(), m_options.append,
-                        m_options.hstore_mode, copy_thread));
+                        m_options.hstore_mode, copy_thread});
     }
 }
 
@@ -503,7 +504,7 @@ output_pgsql_t::output_pgsql_t(
     for (size_t i = 0; i < t_MAX; ++i) {
         //copy constructor will just connect to the already there table
         m_tables[i].reset(
-            new table_t(*(other->m_tables[i].get()), copy_thread));
+            new table_t{*(other->m_tables[i].get()), copy_thread});
     }
 }
 

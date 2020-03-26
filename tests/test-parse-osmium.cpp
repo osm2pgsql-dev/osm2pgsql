@@ -15,8 +15,6 @@ struct type_stats_t
 
 struct counting_slim_middle_t : public slim_middle_t
 {
-    ~counting_slim_middle_t() = default;
-
     void start() override {}
     void stop(osmium::thread::Pool &) override {}
     void flush(osmium::item_type) override {}
@@ -56,13 +54,11 @@ struct counting_output_t : public output_null_t
     : output_null_t(nullptr, options)
     {}
 
-    virtual ~counting_output_t() = default;
-
     std::shared_ptr<output_t>
     clone(std::shared_ptr<middle_query_t> const &,
           std::shared_ptr<db_copy_thread_t> const &) const override
     {
-        return std::shared_ptr<output_t>(new counting_output_t(m_options));
+        return std::shared_ptr<output_t>(new counting_output_t{m_options});
     }
 
     void node_add(osmium::Node const &n) override
@@ -108,14 +104,14 @@ struct counting_output_t : public output_null_t
 
 TEST_CASE("parse xml file")
 {
-    options_t options = testing::opt_t().slim();
+    options_t const options = testing::opt_t().slim();
 
-    auto middle = std::make_shared<counting_slim_middle_t>();
-    std::shared_ptr<output_t> output(new counting_output_t(options));
+    auto const middle = std::make_shared<counting_slim_middle_t>();
+    std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
 
-    auto *out_test = static_cast<counting_output_t *>(output.get());
+    auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 4728);
     REQUIRE(out_test->sum_nds == 186);
     REQUIRE(out_test->sum_members == 146);
@@ -129,7 +125,7 @@ TEST_CASE("parse xml file")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
+    auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
     REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);
@@ -143,14 +139,14 @@ TEST_CASE("parse xml file")
 
 TEST_CASE("parse diff file")
 {
-    options_t options = testing::opt_t().slim().append();
+    options_t const options = testing::opt_t().slim().append();
 
-    auto middle = std::make_shared<counting_slim_middle_t>();
-    std::shared_ptr<output_t> output(new counting_output_t(options));
+    auto const middle = std::make_shared<counting_slim_middle_t>();
+    std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     testing::parse_file(options, middle, {output}, "008-ch.osc.gz");
 
-    auto *out_test = static_cast<counting_output_t *>(output.get());
+    auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->node.added == 0);
     REQUIRE(out_test->node.modified == 1176);
     REQUIRE(out_test->node.deleted == 16773);
@@ -178,12 +174,12 @@ TEST_CASE("parse xml file with extra args")
     options_t options = testing::opt_t().slim().srs(PROJ_SPHERE_MERC);
     options.extra_attributes = true;
 
-    auto middle = std::make_shared<counting_slim_middle_t>();
-    std::shared_ptr<output_t> output(new counting_output_t(options));
+    auto const middle = std::make_shared<counting_slim_middle_t>();
+    std::shared_ptr<output_t> output{new counting_output_t{options}};
 
     testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
 
-    auto *out_test = static_cast<counting_output_t *>(output.get());
+    auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 73514);
     REQUIRE(out_test->sum_nds == 495);
     REQUIRE(out_test->sum_members == 146);
@@ -197,7 +193,7 @@ TEST_CASE("parse xml file with extra args")
     REQUIRE(out_test->relation.modified == 0);
     REQUIRE(out_test->relation.deleted == 0);
 
-    auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
+    auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
     REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);

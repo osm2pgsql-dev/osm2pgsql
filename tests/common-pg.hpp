@@ -80,7 +80,7 @@ public:
     tempdb_t() noexcept
     {
         try {
-            conn_t conn("dbname=postgres");
+            conn_t conn{"dbname=postgres"};
 
             m_db_name = "osm2pgsql-test-{}-{}"_format(getpid(), time(nullptr));
             conn.exec("DROP DATABASE IF EXISTS \"{}\""_format(m_db_name));
@@ -109,7 +109,7 @@ public:
             // Disable removal of the test database by setting the environment
             // variable OSM2PGSQL_KEEP_TEST_DB to anything. This can be useful
             // when debugging tests.
-            const char *const keep_db = std::getenv("OSM2PGSQL_KEEP_TEST_DB");
+            char const *const keep_db = std::getenv("OSM2PGSQL_KEEP_TEST_DB");
             if (keep_db != nullptr) {
                 return;
             }

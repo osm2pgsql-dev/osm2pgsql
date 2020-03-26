@@ -54,7 +54,7 @@ public:
     void coords_to_tile(double *tilex, double *tiley, double lon, double lat,
                         int map_width);
     virtual int target_srs() const = 0;
-    virtual const char *target_desc() const = 0;
+    virtual char const *target_desc() const = 0;
 
     bool target_latlon() const { return target_srs() == PROJ_LATLONG; }
 

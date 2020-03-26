@@ -84,7 +84,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
                 // length of the line in `segment` over the `split_at` distance.
 
                 if (dist + delta > split_at) {
-                    size_t const splits =
+                    auto const splits =
                         (size_t)std::floor((dist + delta) / split_at);
                     // use the splitting distance to split the current segment up
                     // into as many parts as necessary to keep each part below
@@ -123,7 +123,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
         prev_pt = this_pt;
     }
 
-    auto wkb = m_writer.linestring_finish(curlen);
+    auto const wkb = m_writer.linestring_finish(curlen);
     if (curlen > 1) {
         ret.push_back(wkb);
     }
@@ -143,7 +143,7 @@ osmium_builder_t::get_wkb_polygon(osmium::Way const &way)
         return wkb_t();
     }
 
-    auto wkbs = create_polygons(m_buffer.get<osmium::Area>(0));
+    auto const wkbs = create_polygons(m_buffer.get<osmium::Area>(0));
 
     return wkbs.empty() ? wkb_t() : wkbs[0];
 }
@@ -200,8 +200,8 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
         for (auto const &pt : endpoints) {
             if (prev) {
                 if (std::get<0>(*prev) == std::get<0>(pt)) {
-                    auto previd = std::get<1>(*prev);
-                    auto ptid = std::get<1>(pt);
+                    auto const previd = std::get<1>(*prev);
+                    auto const ptid = std::get<1>(pt);
                     if (std::get<2>(*prev)) {
                         std::get<0>(conns[previd]) = ptid;
                     } else {

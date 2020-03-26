@@ -13,7 +13,7 @@ namespace {
 static const struct
 {
     int offset;
-    const char *highway;
+    char const *highway;
     int roads;
 } layers[] = {{1, "proposed", 0},       {2, "construction", 0},
               {10, "steps", 0},         {10, "cycleway", 0},
@@ -51,7 +51,7 @@ void add_z_order(taglist_t &tags, int *roads)
 
     if (highway) {
         for (unsigned i = 0; i < nLayers; i++) {
-            if (!strcmp(layers[i].highway, highway->c_str())) {
+            if (!std::strcmp(layers[i].highway, highway->c_str())) {
                 z_order += layers[i].offset;
                 *roads = layers[i].roads;
                 break;

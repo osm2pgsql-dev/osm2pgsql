@@ -27,7 +27,7 @@ void latlon2merc(double *lat, double *lon)
     }
 
     using namespace osmium::geom;
-    auto coord = lonlat_to_mercator(Coordinates(*lon, *lat));
+    auto const coord = lonlat_to_mercator(Coordinates{*lon, *lat});
     *lon = coord.x;
     *lat = coord.y;
 }
@@ -37,8 +37,8 @@ class latlon_reprojection_t : public reprojection
 public:
     osmium::geom::Coordinates reproject(osmium::Location loc) const override
     {
-        return osmium::geom::Coordinates(loc.lon_without_check(),
-                                         loc.lat_without_check());
+        return osmium::geom::Coordinates{loc.lon_without_check(),
+                                         loc.lat_without_check()};
     }
 
     void target_to_tile(double *lat, double *lon) const override
@@ -47,7 +47,7 @@ public:
     }
 
     int target_srs() const override { return PROJ_LATLONG; }
-    const char *target_desc() const override { return "Latlong"; }
+    char const *target_desc() const override { return "Latlong"; }
 };
 
 class merc_reprojection_t : public reprojection
@@ -60,7 +60,7 @@ public:
 
         latlon2merc(&lat, &lon);
 
-        return osmium::geom::Coordinates(lon, lat);
+        return osmium::geom::Coordinates{lon, lat};
     }
 
     void target_to_tile(double *, double *) const override
@@ -68,7 +68,7 @@ public:
     }
 
     int target_srs() const override { return PROJ_SPHERE_MERC; }
-    const char *target_desc() const override { return "Spherical Mercator"; }
+    char const *target_desc() const override { return "Spherical Mercator"; }
 };
 
 } // anonymous namespace
@@ -77,9 +77,9 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
 {
     switch (srs) {
     case PROJ_LATLONG:
-        return std::shared_ptr<reprojection>(new latlon_reprojection_t());
+        return std::shared_ptr<reprojection>(new latlon_reprojection_t{});
     case PROJ_SPHERE_MERC:
-        return std::shared_ptr<reprojection>(new merc_reprojection_t());
+        return std::shared_ptr<reprojection>(new merc_reprojection_t{});
     }
 
     return make_generic_projection(srs);

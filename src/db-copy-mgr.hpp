@@ -1,6 +1,7 @@
 #ifndef OSM2PGSQL_DB_COPY_MGR_HPP
 #define OSM2PGSQL_DB_COPY_MGR_HPP
 
+#include <cassert>
 #include <memory>
 #include <string>
 
@@ -31,7 +32,7 @@ public:
                 m_processor->add_buffer(std::move(m_current));
             }
 
-            m_current.reset(new db_cmd_copy_delete_t<DELETER>(table));
+            m_current.reset(new db_cmd_copy_delete_t<DELETER>{table});
         }
     }
 
@@ -50,9 +51,8 @@ public:
 
         // Expect that a column has been written last which ended in a '\t'.
         // Replace it with the row delimiter '\n'.
-        auto const sz = buf.size();
-        assert(buf[sz - 1] == '\t');
-        buf[sz - 1] = '\n';
+        assert(buf.back() == '\t');
+        buf.back() = '\n';
 
         if (m_current->is_full()) {
             m_processor->add_buffer(std::move(m_current));
@@ -137,11 +137,12 @@ public:
      */
     void finish_array()
     {
-        auto const idx = m_current->buffer.size() - 1;
-        if (m_current->buffer[idx] == '{')
+        assert(!m_current->buffer.empty());
+        if (m_current->buffer.back() == '{') {
             m_current->buffer += '}';
-        else
-            m_current->buffer[idx] = '}';
+        } else {
+            m_current->buffer.back() = '}';
+        }
         m_current->buffer += '\t';
     }
 
@@ -241,8 +242,8 @@ public:
         char const *const lookup_hex = "0123456789ABCDEF";
 
         for (char c : wkb) {
-            m_current->buffer += lookup_hex[(c >> 4) & 0xf];
-            m_current->buffer += lookup_hex[c & 0xf];
+            m_current->buffer += lookup_hex[(c >> 4U) & 0xfU];
+            m_current->buffer += lookup_hex[c & 0xfU];
         }
         m_current->buffer += '\t';
     }

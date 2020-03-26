@@ -196,7 +196,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
 namespace {
 // Decodes a portion of an array literal from postgres */
 // Argument should point to beginning of literal, on return points to delimiter */
-inline const char *decode_upto(const char *src, char *dst)
+inline char const *decode_upto(char const *src, char *dst)
 {
     int quoted = (*src == '"');
     if (quoted) {
@@ -229,7 +229,7 @@ inline const char *decode_upto(const char *src, char *dst)
 }
 
 template <typename T>
-void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
+void pgsql_parse_tags(char const *string, osmium::memory::Buffer &buffer,
                       T &obuilder)
 {
     if (*string++ != '{') {
@@ -253,7 +253,7 @@ void pgsql_parse_tags(const char *string, osmium::memory::Buffer &buffer,
     }
 }
 
-void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
+void pgsql_parse_members(char const *string, osmium::memory::Buffer &buffer,
                          osmium::builder::RelationBuilder &obuilder)
 {
     if (*string++ != '{') {
@@ -277,7 +277,7 @@ void pgsql_parse_members(const char *string, osmium::memory::Buffer &buffer,
     }
 }
 
-void pgsql_parse_nodes(const char *string, osmium::memory::Buffer &buffer,
+void pgsql_parse_nodes(char const *string, osmium::memory::Buffer &buffer,
                        osmium::builder::WayBuilder &builder)
 {
     if (*string++ == '{') {
@@ -812,9 +812,9 @@ middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
 
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
-    std::unique_ptr<middle_query_pgsql_t> mid(new middle_query_pgsql_t{
-        src->out_options->database_options.conninfo(), src->cache,
-        src->persistent_cache});
+    std::unique_ptr<middle_query_pgsql_t> mid(
+        new middle_query_pgsql_t{src->out_options->database_options.conninfo(),
+                                 src->cache, src->persistent_cache});
 
     // We use a connection per table to enable the use of COPY
     for (int i = 0; i < NUM_TABLES; ++i) {

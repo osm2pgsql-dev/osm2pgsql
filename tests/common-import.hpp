@@ -73,14 +73,14 @@ public:
 
         if (options.slim) {
             // middle gets its own copy-in thread
-            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t{&options});
         } else {
-            middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
+            middle = std::shared_ptr<middle_t>(new middle_ram_t{&options});
         }
         middle->start();
 
         // setup the output
-        auto outputs = output_t::create_outputs(
+        auto const outputs = output_t::create_outputs(
             middle->get_query_instance(middle), options);
 
         //let osmdata orchestrate between the middle and the outs
@@ -131,7 +131,7 @@ public:
 
         // This actually uses the multi-backend with C transforms,
         // not Lua transforms. This is unusual and doesn't reflect real practice.
-        auto out_test = std::make_shared<output_multi_t>(
+        auto const out_test = std::make_shared<output_multi_t>(
             table_name, proc, columns, midq, options,
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));

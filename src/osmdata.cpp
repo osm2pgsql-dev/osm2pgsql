@@ -29,8 +29,8 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
 : mid(mid_), outs(outs_)
 {
     if (outs.empty()) {
-        throw std::runtime_error("Must have at least one output, but none have "
-                                 "been configured.");
+        throw std::runtime_error{"Must have at least one output, but none have "
+                                 "been configured."};
     }
 
     with_extra = outs[0]->get_options()->extra_attributes;
@@ -71,7 +71,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     slim->nodes_delete(node.id());
@@ -86,7 +86,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     slim->ways_delete(way->id());
@@ -101,7 +101,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     slim->relations_delete(rel.id());
@@ -116,7 +116,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -128,7 +128,7 @@ void osmdata_t::node_delete(osmid_t id) const
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -140,7 +140,7 @@ void osmdata_t::way_delete(osmid_t id) const
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    slim_middle_t *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -243,8 +243,6 @@ struct pending_threaded_processor : public middle_t::pending_processor
             clones.push_back(out_clones);
         }
     }
-
-    ~pending_threaded_processor() {}
 
     void enqueue_ways(osmid_t id) override
     {

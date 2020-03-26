@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
     try {
         //parse the args into the different options members
-        options_t options = options_t(argc, argv);
+        options_t const options = options_t(argc, argv);
         if (options.long_usage_bool) {
             return 0;
         }
@@ -60,14 +60,14 @@ int main(int argc, char *argv[])
 
         if (options.slim) {
             // middle gets its own copy-in thread
-            middle = std::shared_ptr<middle_t>(new middle_pgsql_t(&options));
+            middle = std::shared_ptr<middle_t>(new middle_pgsql_t{&options});
         } else {
-            middle = std::shared_ptr<middle_t>(new middle_ram_t(&options));
+            middle = std::shared_ptr<middle_t>(new middle_ram_t{&options});
         }
 
         middle->start();
 
-        auto outputs = output_t::create_outputs(
+        auto const outputs = output_t::create_outputs(
             middle->get_query_instance(middle), options);
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
