@@ -25,7 +25,7 @@ public:
     {}
 
     wkb_t get_wkb_node(osmium::Location const &loc) const;
-    wkbs_t get_wkb_line(osmium::WayNodeList const &way, double split_at);
+    wkbs_t get_wkb_line(osmium::WayNodeList const &nodes, double split_at);
     wkb_t get_wkb_polygon(osmium::Way const &way);
 
     wkbs_t get_wkb_multipolygon(osmium::Relation const &rel,
