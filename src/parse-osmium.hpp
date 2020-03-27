@@ -18,22 +18,30 @@ class parse_stats_t
     {
         osmid_t count = 0;
         osmid_t max = 0;
-        time_t start = 0;
+        std::time_t start = 0;
+        int m_frac;
 
-        bool add(osmid_t id, int frac)
+        Counter(int frac) : m_frac(frac) {
+        }
+
+        osmid_t count_k() const noexcept {
+            return count / 1000;
+        }
+
+        bool add(osmid_t id)
         {
             if (id > max) {
                 max = id;
             }
             if (count == 0) {
-                time(&start);
+                start = std::time(nullptr);
             }
-            count++;
+            ++count;
 
-            return (count % frac == 0);
+            return count % m_frac == 0;
         }
 
-        Counter &operator+=(const Counter &rhs)
+        Counter &operator+=(Counter const &rhs)
         {
             count += rhs.count;
             if (rhs.max > max) {
@@ -48,36 +56,75 @@ class parse_stats_t
     };
 
 public:
-    parse_stats_t() : print_time(time(nullptr)) {}
+    parse_stats_t() : m_last_print_time(std::time(nullptr)) {}
 
     void update(const parse_stats_t &other);
     void print_summary() const;
     void print_status();
 
-    inline void add_node(osmid_t id)
+    void add_node(osmid_t id)
     {
-        if (node.add(id, 10000)) {
+        if (m_node.add(id)) {
             print_status();
         }
     }
 
-    inline void add_way(osmid_t id)
+    void add_way(osmid_t id)
     {
-        if (way.add(id, 1000)) {
+        if (m_way.add(id)) {
             print_status();
         }
     }
 
-    inline void add_rel(osmid_t id)
+    void add_rel(osmid_t id)
     {
-        if (rel.add(id, 10)) {
+        if (m_rel.add(id)) {
             print_status();
         }
     }
 
 private:
-    Counter node, way, rel;
-    time_t print_time;
+    static double count_per_second(osmid_t count, uint64_t elapsed) noexcept
+    {
+        if (count == 0) {
+            return 0.0;
+        }
+
+        if (elapsed == 0) {
+            return count;
+        }
+
+        return static_cast<double>(count) / elapsed;
+    }
+
+    uint64_t nodes_time(std::time_t now) const noexcept
+    {
+        if (m_node.count == 0) {
+            return 0;
+        }
+        return (m_way.start > 0 ? m_way.start : now) - m_node.start;
+    }
+
+    uint64_t ways_time(std::time_t now) const noexcept
+    {
+        if (m_way.count == 0) {
+            return 0;
+        }
+        return (m_rel.start > 0 ? m_rel.start : now) - m_way.start;
+    }
+
+    uint64_t rels_time(std::time_t now) const noexcept
+    {
+        if (m_rel.count == 0) {
+            return 0;
+        }
+        return now - m_rel.start;
+    }
+
+    Counter m_node{10000};
+    Counter m_way{1000};
+    Counter m_rel{10};
+    std::time_t m_last_print_time;
 };
 
 class parse_osmium_t : public osmium::handler::Handler
