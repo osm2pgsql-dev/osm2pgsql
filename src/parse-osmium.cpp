@@ -30,62 +30,41 @@
 #include <osmium/osm.hpp>
 #include <osmium/visitor.hpp>
 
-void parse_stats_t::update(const parse_stats_t &other)
+void parse_stats_t::update(parse_stats_t const &other)
 {
-    node += other.node;
-    way += other.way;
-    rel += other.rel;
+    m_node += other.m_node;
+    m_way += other.m_way;
+    m_rel += other.m_rel;
 }
 
 void parse_stats_t::print_summary() const
 {
-    time_t const now = time(nullptr);
-    time_t const end_nodes = way.start > 0 ? way.start : now;
-    time_t const end_way = rel.start > 0 ? rel.start : now;
-    time_t const end_rel = now;
+    std::time_t const now = std::time(nullptr);
 
-    fmt::print(stderr, "Node stats: total({}), max({}) in {}s\n", node.count,
-               node.max, node.count > 0 ? (int)(end_nodes - node.start) : 0);
-    fmt::print(stderr, "Way stats: total({}), max({}) in {}s\n", way.count,
-               way.max, way.count > 0 ? (int)(end_way - way.start) : 0);
+    fmt::print(stderr, "Node stats: total({}), max({}) in {}s\n", m_node.count,
+               m_node.max, nodes_time(now));
+    fmt::print(stderr, "Way stats: total({}), max({}) in {}s\n", m_way.count,
+               m_way.max, ways_time(now));
     fmt::print(stderr, "Relation stats: total({}), max({}) in {}s\n",
-               rel.count, rel.max,
-               rel.count > 0 ? (int)(end_rel - rel.start) : 0);
+               m_rel.count, m_rel.max, rels_time(now));
 }
 
 void parse_stats_t::print_status()
 {
-    time_t const now = time(nullptr);
+    std::time_t const now = std::time(nullptr);
 
-    if (print_time >= now) {
+    if (m_last_print_time >= now) {
         return;
     }
+    m_last_print_time = now;
 
-    time_t const end_nodes = way.start > 0 ? way.start : now;
-    time_t const end_way = rel.start > 0 ? rel.start : now;
-    time_t const end_rel = now;
-    fmt::print(stderr,
-               "\rProcessing: Node({}k {:.1f}k/s) Way({}k"
-               " {:.2f}k/s) Relation({} {:.2f}/s)",
-               node.count / 1000,
-               (double)node.count / 1000.0 /
-                   ((int)(end_nodes - node.start) > 0
-                        ? (double)(end_nodes - node.start)
-                        : 1.0),
-               way.count / 1000,
-               way.count > 0 ? (double)way.count / 1000.0 /
-                                   ((double)(end_way - way.start) > 0.0
-                                        ? (double)(end_way - way.start)
-                                        : 1.0)
-                             : 0.0,
-               rel.count,
-               rel.count > 0
-                   ? (double)rel.count / ((double)(end_rel - rel.start) > 0.0
-                                              ? (double)(end_rel - rel.start)
-                                              : 1.0)
-                   : 0.0);
-
-    print_time = now;
+    fmt::print(
+        stderr,
+        "\rProcessing: Node({}k {:.1f}k/s) Way({}k {:.2f}k/s)"
+        " Relation({} {:.1f}/s)",
+        m_node.count_k(), count_per_second(m_node.count_k(), nodes_time(now)),
+        m_way.count_k(), count_per_second(m_way.count_k(), ways_time(now)),
+        m_rel.count, count_per_second(m_rel.count, rels_time(now)));
 }
 
 parse_osmium_t::parse_osmium_t(const boost::optional<std::string> &bbox,

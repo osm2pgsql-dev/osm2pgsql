@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <ctime>
 #include <exception>
 #include <utility>
 
@@ -180,8 +179,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     m_copy.sync();
 
     if (!append) {
-        time_t start, end;
-        time(&start);
+        util::timer_t timer;
 
         fmt::print(stderr, "Sorting data and creating indexes for {}\n",
                    m_target->name);
@@ -288,9 +286,8 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         }
         fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);
         m_sql_conn->exec("ANALYZE {}"_format(m_target->name));
-        time(&end);
         fmt::print(stderr, "All indexes on {} created in {}s\n", m_target->name,
-                   end - start);
+                   timer.stop());
     }
     teardown();
 

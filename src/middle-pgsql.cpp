@@ -13,7 +13,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <ctime>
 #include <functional>
 
 #include <osmium/builder/osm_object_builder.hpp>
@@ -167,10 +166,8 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
 void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
                                       bool build_indexes)
 {
-    time_t start, end;
-
     fmt::print(stderr, "Stopping table: {}\n", name());
-    time(&start);
+    util::timer_t timer;
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
@@ -183,9 +180,7 @@ void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
         sql_conn.exec(m_array_indexes);
     }
 
-    time(&end);
-
-    fmt::print(stderr, "Stopped table: {} in {}s\n", name(), end - start);
+    fmt::print(stderr, "Stopped table: {} in {}s\n", name(), timer.stop());
 }
 
 namespace {

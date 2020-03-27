@@ -1,5 +1,6 @@
 #include "flex-table.hpp"
 #include "format.hpp"
+#include "util.hpp"
 
 #include <cassert>
 #include <stdexcept>
@@ -210,7 +211,7 @@ void table_connection_t::stop(bool updateable, bool append)
         return;
     }
 
-    std::time_t const start = std::time(nullptr);
+    util::timer_t timer;
 
     if (table().has_geom_column()) {
         fmt::print(stderr, "Clustering table '{}' by geometry...\n",
@@ -304,9 +305,8 @@ void table_connection_t::stop(bool updateable, bool append)
     fmt::print(stderr, "Analyzing table '{}'...\n", table().name());
     m_db_connection->exec("ANALYZE \"{}\""_format(table().name()));
 
-    std::time_t const end = std::time(nullptr);
     fmt::print(stderr, "All postprocessing on table '{}' done in {}s.\n",
-               table().name(), end - start);
+               table().name(), timer.stop());
 
     teardown();
 }
