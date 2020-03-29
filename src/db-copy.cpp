@@ -95,14 +95,14 @@ void db_copy_thread_t::sync_and_wait()
     std::promise<void> barrier;
     std::future<void> sync = barrier.get_future();
     add_buffer(
-        std::unique_ptr<db_cmd_t>(new db_cmd_sync_t(std::move(barrier))));
+        std::unique_ptr<db_cmd_t>(new db_cmd_sync_t{std::move(barrier)}));
     sync.wait();
 }
 
 void db_copy_thread_t::finish()
 {
     if (m_worker.joinable()) {
-        add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_finish_t()));
+        add_buffer(std::unique_ptr<db_cmd_t>(new db_cmd_finish_t{}));
         m_worker.join();
     }
 }

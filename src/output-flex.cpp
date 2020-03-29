@@ -605,6 +605,7 @@ static std::size_t table_idx_from_param(lua_State *lua_state)
     }
     lua_pop(lua_state, 2);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return reinterpret_cast<uintptr_t>(user_data) - 1;
 }
 

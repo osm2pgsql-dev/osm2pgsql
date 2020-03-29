@@ -1,8 +1,8 @@
 #include <catch.hpp>
 
 #include <random>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "common-import.hpp"
 #include "common-options.hpp"
@@ -12,7 +12,7 @@ static testing::db::import_t db;
 // Use a random device with a fixed seed. We don't really care about
 // the quality of random numbers here, we just need to generate valid
 // OSM test data. The fixed seed ensures that the results are reproducible.
-static std::mt19937_64 rng(47382);
+static std::mt19937_64 rng{47382}; // NOLINT(cert-msc32-c)
 
 class node_opl_t
 {
@@ -186,7 +186,7 @@ public:
 
     void update()
     {
-        auto opt = testing::opt_t().gazetteer().slim().append();
+        auto const opt = testing::opt_t().gazetteer().slim().append();
         std::string const opl = m_opl_factory.get_and_clear_opl();
         REQUIRE_NOTHROW(db.run_import(opt, opl.c_str()));
     }

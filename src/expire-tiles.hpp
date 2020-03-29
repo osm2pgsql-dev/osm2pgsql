@@ -33,7 +33,7 @@ class tile_output_t
     uint32_t outcount = 0;
 
 public:
-    tile_output_t(const char *filename);
+    tile_output_t(char const *filename);
 
     ~tile_output_t();
 
@@ -54,7 +54,7 @@ struct expire_tiles
 
     int from_bbox(double min_lon, double min_lat, double max_lon,
                   double max_lat);
-    void from_wkb(const char *wkb, osmid_t osm_id);
+    void from_wkb(char const *wkb, osmid_t osm_id);
     int from_db(table_t *table, osmid_t osm_id);
     int from_result(pg_result_t const &result, osmid_t osm_id);
 
@@ -67,7 +67,7 @@ struct expire_tiles
      * \param filename name of the file
      * \param minzoom minimum zoom level
      */
-    void output_and_destroy(const char *filename, uint32_t minzoom);
+    void output_and_destroy(char const *filename, uint32_t minzoom);
 
     /**
      * Output expired tiles on all requested zoom levels.

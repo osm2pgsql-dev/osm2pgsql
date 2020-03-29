@@ -20,9 +20,9 @@
 #-----------------------------------------------------------------------------
 */
 
+#include "parse-osmium.hpp"
 #include "format.hpp"
 #include "osmdata.hpp"
-#include "parse-osmium.hpp"
 #include "reprojection.hpp"
 
 #include <osmium/handler.hpp>
@@ -79,21 +79,21 @@ parse_osmium_t::parse_osmium_t(const boost::optional<std::string> &bbox,
 osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
 {
     double minx, maxx, miny, maxy;
-    int n =
+    int const n =
         sscanf(bbox->c_str(), "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
     if (n != 4) {
-        throw std::runtime_error("Bounding box must be specified like: "
-                                 "minlon,minlat,maxlon,maxlat\n");
+        throw std::runtime_error{"Bounding box must be specified like: "
+                                 "minlon,minlat,maxlon,maxlat\n"};
     }
 
     if (maxx <= minx) {
-        throw std::runtime_error(
-            "Bounding box failed due to maxlon <= minlon\n");
+        throw std::runtime_error{
+            "Bounding box failed due to maxlon <= minlon\n"};
     }
 
     if (maxy <= miny) {
-        throw std::runtime_error(
-            "Bounding box failed due to maxlat <= minlat\n");
+        throw std::runtime_error{
+            "Bounding box failed due to maxlat <= minlat\n"};
     }
 
     fmt::print(stderr, "Applying Bounding box: {},{} to {},{}\n", minx, miny,
@@ -105,8 +105,8 @@ osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
 void parse_osmium_t::stream_file(const std::string &filename,
                                  const std::string &fmt)
 {
-    const char *osmium_format = fmt == "auto" ? "" : fmt.c_str();
-    osmium::io::File infile(filename, osmium_format);
+    std::string const &osmium_format = (fmt == "auto" ? "" : fmt);
+    osmium::io::File infile{filename, osmium_format};
 
     if (infile.format() == osmium::io::file_format::unknown) {
         throw std::runtime_error{
@@ -119,7 +119,7 @@ void parse_osmium_t::stream_file(const std::string &filename,
                osmium::io::as_string(infile.format()));
 
     m_type = osmium::item_type::node;
-    osmium::io::Reader reader(infile);
+    osmium::io::Reader reader{infile};
     osmium::apply(reader, *this);
     reader.close();
 }

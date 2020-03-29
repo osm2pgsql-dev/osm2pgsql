@@ -39,7 +39,7 @@ public:
           std::shared_ptr<db_copy_thread_t> const &copy_thread) const override
     {
         return std::shared_ptr<output_t>(
-            new output_gazetteer_t(this, mid, copy_thread));
+            new output_gazetteer_t{this, mid, copy_thread});
     }
 
     void start() override;

@@ -93,11 +93,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_dense_cache, options_ram_optimized,
                    options_ram_flatnode)
 {
-    options_t options = TestType::options(db);
+    options_t const options = TestType::options(db);
 
     auto mid = options.slim
-                   ? std::shared_ptr<middle_t>(new middle_pgsql_t(&options))
-                   : std::shared_ptr<middle_t>(new middle_ram_t(&options));
+                   ? std::shared_ptr<middle_t>(new middle_pgsql_t{&options})
+                   : std::shared_ptr<middle_t>(new middle_ram_t{&options});
 
     mid->start();
 
@@ -130,9 +130,9 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single way")
     {
-        osmid_t way_id = 1;
-        double lat = 12.3456789;
-        double lon = 98.7654321;
+        osmid_t const way_id = 1;
+        double const lat = 12.3456789;
+        double const lon = 98.7654321;
         idlist_t nds;
         std::vector<size_t> nodes;
 
@@ -185,7 +185,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // set the relation
-        auto pos = buffer.buf.committed();
+        auto const pos = buffer.buf.committed();
         {
             using namespace osmium::builder::attr;
             using otype = osmium::item_type;

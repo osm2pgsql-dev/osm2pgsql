@@ -72,7 +72,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         lua_getglobal(L, m_rel_func.c_str());
         break;
     default:
-        throw std::runtime_error("Unknown OSM type");
+        throw std::runtime_error{"Unknown OSM type"};
     }
 
     lua_newtable(L); /* key value table */
@@ -116,17 +116,17 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
 
     lua_pushnil(L);
     while (lua_next(L, -2) != 0) {
-        const char *key = lua_tostring(L, -2);
-        const char *value = lua_tostring(L, -1);
+        char const *const key = lua_tostring(L, -2);
+        char const *const value = lua_tostring(L, -1);
         if (key == nullptr) {
-            int ltype = lua_type(L, -2);
+            int const ltype = lua_type(L, -2);
             throw std::runtime_error{
                 "Basic tag processing returned NULL key. Possibly this is "
                 "due an incorrect data type '{}'."_format(
                     lua_typename(L, ltype))};
         }
         if (value == nullptr) {
-            int ltype = lua_type(L, -1);
+            int const ltype = lua_type(L, -1);
             throw std::runtime_error{
                 "Basic tag processing returned NULL value. Possibly this "
                 "is due an incorrect data type '{}'."_format(
@@ -136,7 +136,7 @@ bool lua_tagtransform_t::filter_tags(osmium::OSMObject const &o, int *polygon,
         lua_pop(L, 1);
     }
 
-    bool filter = lua_tointeger(L, -2);
+    bool const filter = lua_tointeger(L, -2);
 
     lua_pop(L, 2);
 
@@ -148,7 +148,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     rolelist_t const &member_roles, int *make_boundary, int *make_polygon,
     int *roads, taglist_t &out_tags, bool)
 {
-    size_t num_members = member_roles.size();
+    size_t const num_members = member_roles.size();
     lua_getglobal(L, m_rel_mem_func.c_str());
 
     lua_newtable(L); /* relations key value table */
@@ -209,7 +209,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
     }
     lua_pop(L, 1);
 
-    bool filter = lua_tointeger(L, -1);
+    bool const filter = lua_tointeger(L, -1);
 
     lua_pop(L, 1);
 

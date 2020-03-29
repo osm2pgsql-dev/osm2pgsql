@@ -83,7 +83,7 @@ struct id_tracker::pimpl
     using map_t = std::map<osmid_t, block>;
     map_t pending;
     osmid_t old_id;
-    size_t count;
+    size_t count = 0;
     // a cache of the next starting point to search for in the block.
     // this significantly speeds up pop_min() because it doesn't need
     // to repeatedly search the beginning of the block each time.
@@ -122,26 +122,25 @@ osmid_t id_tracker::pimpl::pop_min()
     osmid_t id = max();
 
     while (next_start || !pending.empty()) {
-        map_t::iterator itr = pending.begin();
+        auto const itr = pending.begin();
         block &b = itr->second;
-        size_t start = next_start.get_value_or(0);
+        std::size_t const start = next_start.get_value_or(0);
 
-        size_t b_itr = b.next_set(start);
+        std::size_t const b_itr = b.next_set(start);
         if (b_itr != BLOCK_SIZE) {
             b.set(b_itr, false);
             id = (itr->first << BLOCK_BITS) | b_itr;
             next_start = b_itr;
             break;
-
-        } else {
-            // no elements in this block - might as well delete
-            // the whole thing.
-            pending.erase(itr);
-            // since next_start is relative to the current
-            // block, which is ceasing to exist, then we need to
-            // reset it.
-            next_start = boost::none;
         }
+
+        // no elements in this block - might as well delete
+        // the whole thing.
+        pending.erase(itr);
+        // since next_start is relative to the current
+        // block, which is ceasing to exist, then we need to
+        // reset it.
+        next_start = boost::none;
     }
 
     return id;
@@ -153,7 +152,7 @@ id_tracker::pimpl::pimpl()
 
 id_tracker::pimpl::~pimpl() {}
 
-id_tracker::id_tracker() : impl() { impl.reset(new pimpl()); }
+id_tracker::id_tracker() : impl() { impl.reset(new pimpl{}); }
 
 id_tracker::~id_tracker() = default;
 

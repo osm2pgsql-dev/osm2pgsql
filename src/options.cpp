@@ -33,7 +33,7 @@ static char const *program_name(char const *name)
 }
 
 namespace {
-const char *short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
+char const *short_options = "ab:cd:KhlmMp:suvU:WH:P:i:IE:C:S:e:o:O:xkjGz:r:VF:";
 const struct option long_options[] = {
     {"append", no_argument, nullptr, 'a'},
     {"bbox", required_argument, nullptr, 'b'},
@@ -86,9 +86,9 @@ void short_usage(char *arg0)
                              "\t{} -h|--help\n"_format(program_name(arg0))};
 }
 
-void long_usage(char *arg0, bool verbose = false)
+void long_usage(char const *arg0, bool verbose = false)
 {
-    const char *name = program_name(arg0);
+    char const *const name = program_name(arg0);
 
     printf("Usage:\n");
     printf("\t%s [options] planet.osm\n", name);

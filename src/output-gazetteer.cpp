@@ -171,11 +171,11 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
         return false;
     }
 
-    bool is_waterway = strcmp(type, "waterway") == 0;
+    bool const is_waterway = std::strcmp(type, "waterway") == 0;
 
-    if (strcmp(type, "associatedStreet") == 0 ||
-        !(strcmp(type, "boundary") == 0 || strcmp(type, "multipolygon") == 0 ||
-          is_waterway)) {
+    if (std::strcmp(type, "associatedStreet") == 0 ||
+        !(std::strcmp(type, "boundary") == 0 ||
+          std::strcmp(type, "multipolygon") == 0 || is_waterway)) {
         return false;
     }
 

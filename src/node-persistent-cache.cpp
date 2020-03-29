@@ -7,7 +7,7 @@
 void node_persistent_cache::set(osmid_t id, const osmium::Location &coord)
 {
     if (id < 0) {
-        throw std::runtime_error("Flatnode store cannot save negative IDs.");
+        throw std::runtime_error{"Flatnode store cannot save negative IDs."};
     }
     m_index->set(static_cast<osmium::unsigned_object_id_type>(id), coord);
 }
@@ -53,8 +53,8 @@ node_persistent_cache::node_persistent_cache(
 : m_ram_cache(ptr)
 {
     if (!options->flat_node_file) {
-        throw std::runtime_error("Unable to set up persistent cache: the name "
-                                 "of the flat node file was not set.");
+        throw std::runtime_error{"Unable to set up persistent cache: the name "
+                                 "of the flat node file was not set."};
     }
 
     m_fname = options->flat_node_file->c_str();
@@ -65,7 +65,7 @@ node_persistent_cache::node_persistent_cache(
     if (m_fd < 0) {
         fmt::print(stderr, "Cannot open location cache file '{}': {}\n",
                    m_fname, std::strerror(errno));
-        throw std::runtime_error("Unable to open flatnode file\n");
+        throw std::runtime_error{"Unable to open flatnode file\n"};
     }
 
     m_index.reset(new index_t{m_fd});

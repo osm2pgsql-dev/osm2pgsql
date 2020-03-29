@@ -21,21 +21,21 @@ public:
     {
         using namespace osmium::geom;
         return transform(pj_source, pj_target,
-                         Coordinates(deg_to_rad(loc.lon_without_check()),
-                                     deg_to_rad(loc.lat_without_check())));
+                         Coordinates{deg_to_rad(loc.lon_without_check()),
+                                     deg_to_rad(loc.lat_without_check())});
     }
 
     void target_to_tile(double *lat, double *lon) const override
     {
-        auto c = transform(pj_target, pj_tile,
-                           osmium::geom::Coordinates(*lon, *lat));
+        auto const c = transform(pj_target, pj_tile,
+                                 osmium::geom::Coordinates{*lon, *lat});
 
         *lon = c.x;
         *lat = c.y;
     }
 
     int target_srs() const override { return m_target_srs; }
-    const char *target_desc() const override
+    char const *target_desc() const override
     {
         return pj_get_def(pj_target.get(), 0);
     }

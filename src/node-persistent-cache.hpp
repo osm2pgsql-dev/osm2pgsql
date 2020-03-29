@@ -33,7 +33,7 @@ private:
     int m_fd = -1;
     std::unique_ptr<index_t> m_index;
     bool m_remove_file;
-    const char *m_fname;
+    char const *m_fname;
 };
 
 #endif // OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP

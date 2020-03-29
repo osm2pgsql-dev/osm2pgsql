@@ -120,7 +120,7 @@ void node_ram_cache::set_sparse(osmid_t id, const osmium::Location &coord)
                     "\nNode cache size is too small to fit all nodes. Please "
                     "increase cache size\n");
             }
-            throw std::runtime_error("Using RAM cache.");
+            throw std::runtime_error{"Using RAM cache."};
         }
     }
     maxSparseId = id;

@@ -24,11 +24,11 @@ output_multi_t::output_multi_t(
   m_osm_type(m_processor->interests(geometry_processor::interest_node)
                  ? osmium::item_type::node
                  : osmium::item_type::way),
-  m_table(new table_t(name, m_processor->column_type(),
+  m_table(new table_t{name, m_processor->column_type(),
                       export_list.normal_columns(m_osm_type),
                       m_options.hstore_columns, m_processor->srid(),
-                      m_options.append, m_options.hstore_mode, copy_thread)),
-  ways_done_tracker(new id_tracker()),
+                      m_options.append, m_options.hstore_mode, copy_thread}),
+  ways_done_tracker(new id_tracker{}),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -43,7 +43,7 @@ output_multi_t::output_multi_t(
   m_tagtransform(other->m_tagtransform->clone()),
   m_processor(other->m_processor), m_proj(other->m_proj),
   m_osm_type(other->m_osm_type),
-  m_table(new table_t(*other->m_table, copy_thread)),
+  m_table(new table_t{*other->m_table, copy_thread}),
   // NOTE: we need to know which ways were used by relations so each thread
   // must have a copy of the original marked done ways, its read only so its
   // ok
@@ -51,8 +51,7 @@ output_multi_t::output_multi_t(
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
-  m_builder(m_options.projection),
-  m_way_area(other->m_way_area)
+  m_builder(m_options.projection), m_way_area(other->m_way_area)
 {}
 
 output_multi_t::~output_multi_t() = default;
@@ -62,7 +61,7 @@ std::shared_ptr<output_t> output_multi_t::clone(
     std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
     return std::shared_ptr<output_t>(
-        new output_multi_t(this, mid, copy_thread));
+        new output_multi_t{this, mid, copy_thread});
 }
 
 void output_multi_t::start()
@@ -307,7 +306,7 @@ void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
 
     //check if we are keeping this way
     taglist_t outtags;
-    unsigned int filter =
+    auto const filter =
         m_tagtransform->filter_tags(*way, nullptr, nullptr, outtags, true);
     if (!filter) {
         m_mid->nodes_get_list(&(way->nodes()));
@@ -322,7 +321,7 @@ void output_multi_t::process_way(osmium::Way *way)
 {
     //check if we are keeping this way
     taglist_t outtags;
-    auto filter =
+    auto const filter =
         m_tagtransform->filter_tags(*way, nullptr, nullptr, outtags, true);
     if (!filter) {
         //get the geom from the middle
@@ -330,7 +329,7 @@ void output_multi_t::process_way(osmium::Way *way)
             return;
         }
         //grab its geom
-        auto geom = m_processor->process_way(*way, &m_builder);
+        auto const geom = m_processor->process_way(*way, &m_builder);
 
         if (!geom.empty()) {
             //if we are also interested in relations we need to mark
@@ -378,7 +377,7 @@ void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             &make_boundary, &make_polygon, &roads, outtags, true);
         if (!filter) {
             m_relation_helper.add_way_locations(m_mid.get());
-            auto geoms = m_processor->process_relation(
+            auto const geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
             for (const auto &geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
@@ -429,7 +428,7 @@ void output_multi_t::delete_from_output(osmid_t id)
 
 void output_multi_t::merge_pending_relations(output_t *other)
 {
-    auto *omulti = dynamic_cast<output_multi_t *>(other);
+    auto *const omulti = dynamic_cast<output_multi_t *>(other);
 
     if (omulti) {
         osmid_t id;
@@ -442,7 +441,7 @@ void output_multi_t::merge_pending_relations(output_t *other)
 
 void output_multi_t::merge_expire_trees(output_t *other)
 {
-    auto *omulti = dynamic_cast<output_multi_t *>(other);
+    auto *const omulti = dynamic_cast<output_multi_t *>(other);
 
     if (omulti) {
         m_expire.merge_and_destroy(omulti->m_expire);

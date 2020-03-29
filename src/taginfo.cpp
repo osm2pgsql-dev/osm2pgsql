@@ -35,7 +35,7 @@ void export_list::add(osmium::item_type id, const taginfo &info)
 
 std::vector<taginfo> &export_list::get(osmium::item_type id)
 {
-    auto idx = item_type_to_nwr_index(id);
+    auto const idx = item_type_to_nwr_index(id);
     if (idx >= exportList.size()) {
         exportList.resize(idx + 1);
     }
@@ -49,17 +49,17 @@ const std::vector<taginfo> &export_list::get(osmium::item_type id) const
     // the info object has been assigned.
     static const std::vector<taginfo> empty;
 
-    auto idx = item_type_to_nwr_index(id);
+    auto const idx = item_type_to_nwr_index(id);
     if (idx < exportList.size()) {
         return exportList[idx];
-    } else {
-        return empty;
     }
+
+    return empty;
 }
 
 bool export_list::has_column(osmium::item_type id, char const *name) const
 {
-    auto idx = item_type_to_nwr_index(id);
+    auto const idx = item_type_to_nwr_index(id);
     if (idx >= exportList.size()) {
         return false;
     }
@@ -129,7 +129,7 @@ int read_style_file(const std::string &filename, export_list *exlist)
         lineno++;
 
         //find where a comment starts and terminate the string there
-        str = strchr(buffer, '#');
+        str = std::strchr(buffer, '#');
         if (str) {
             *str = '\0';
         }
@@ -177,17 +177,16 @@ int read_style_file(const std::string &filename, export_list *exlist)
             enable_way_area = 0;
         }
 
-        /*    printf("%s %s %d %d\n", temp.name, temp.type, temp.polygon, offset ); */
         bool kept = false;
 
         //keep this tag info if it applies to nodes
-        if (strstr(osmtype, "node")) {
+        if (std::strstr(osmtype, "node")) {
             exlist->add(osmium::item_type::node, temp);
             kept = true;
         }
 
         //keep this tag info if it applies to ways
-        if (strstr(osmtype, "way")) {
+        if (std::strstr(osmtype, "way")) {
             exlist->add(osmium::item_type::way, temp);
             kept = true;
         }
@@ -208,8 +207,8 @@ int read_style_file(const std::string &filename, export_list *exlist)
     }
     fclose(in);
     if (num_read == 0) {
-        throw std::runtime_error("Unable to parse any valid columns from "
-                                 "the style file. Aborting.");
+        throw std::runtime_error{"Unable to parse any valid columns from "
+                                 "the style file. Aborting."};
     }
     return enable_way_area;
 }

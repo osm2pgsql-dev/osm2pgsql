@@ -42,7 +42,7 @@ public:
         friend table_t;
 
     public:
-        const char *get_next()
+        char const *get_next()
         {
             if (m_current < m_count) {
                 return m_result.get_value(m_current++, 0);

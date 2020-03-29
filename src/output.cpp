@@ -126,8 +126,8 @@ parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
     std::vector<std::shared_ptr<output_t>> outputs;
 
     if (options.style.empty()) {
-        throw std::runtime_error("Style file is required for `multi' backend, "
-                                 "but was not specified.");
+        throw std::runtime_error{"Style file is required for `multi' backend, "
+                                 "but was not specified."};
     }
 
     const std::string file_name(options.style);

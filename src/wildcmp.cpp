@@ -10,7 +10,7 @@
  *
  * Returns if a match was found.
  */
-bool wildMatch(const char *first, const char *second)
+bool wildMatch(char const *first, char const *second)
 {
     // Code borrowed from
     // http://www.geeksforgeeks.org/wildcard-character-matching/

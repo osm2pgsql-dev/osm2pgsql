@@ -146,7 +146,7 @@ gazetteer_style_t::flag_t gazetteer_style_t::parse_flags(std::string const &str)
         } else if (item == "interpolation") {
             out |= SF_INTERPOLATION;
         } else {
-            throw std::runtime_error("Unknown flag in style file.");
+            throw std::runtime_error{"Unknown flag in style file."};
         }
     }
 
@@ -187,11 +187,11 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
     // prefix: works on empty key only
     if (key[key.size() - 1] == '*') {
         if (key.size() == 1) {
-            throw std::runtime_error("Style error. Ambiguous key '*'.");
+            throw std::runtime_error{"Style error. Ambiguous key '*'."};
         }
         if (!value.empty()) {
-            throw std::runtime_error(
-                "Style error. Prefix key can only be used with empty value.\n");
+            throw std::runtime_error{
+                "Style error. Prefix key can only be used with empty value.\n"};
         }
         m_matcher.emplace_back(key.substr(0, key.size() - 1), flags,
                                matcher_t::MT_PREFIX);
@@ -201,8 +201,8 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
     // suffix: dito
     if (key[0] == '*') {
         if (!value.empty()) {
-            throw std::runtime_error(
-                "Style error. Suffix key can only be used with empty value.\n");
+            throw std::runtime_error{
+                "Style error. Suffix key can only be used with empty value.\n"};
         }
         m_matcher.emplace_back(key.substr(1), flags, matcher_t::MT_SUFFIX);
         return;
@@ -216,13 +216,13 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
 
     if (add_metadata_style_entry(key)) {
         if (!value.empty()) {
-            throw std::runtime_error("Style error. Rules for OSM metadata "
-                                     "attributes must have an empty value.\n");
+            throw std::runtime_error{"Style error. Rules for OSM metadata "
+                                     "attributes must have an empty value.\n"};
         }
         if (flags != SF_EXTRA) {
-            throw std::runtime_error("Style error. Rules for OSM metadata "
+            throw std::runtime_error{"Style error. Rules for OSM metadata "
                                      "attributes must have the style flag "
-                                     "\"extra\" and no other flag.\n");
+                                     "\"extra\" and no other flag.\n"};
         }
         return;
     }
@@ -244,7 +244,8 @@ gazetteer_style_t::flag_t gazetteer_style_t::find_flag(char const *k,
     for (auto const &e : m_matcher) {
         switch (e.type) {
         case matcher_t::MT_FULL:
-            if (e.name.size() == fulllen && strcmp(k, e.name.c_str()) == 0 &&
+            if (e.name.size() == fulllen &&
+                std::strcmp(k, e.name.c_str()) == 0 &&
                 memcmp(v, e.name.data() + klen + 1, vlen) == 0) {
                 return e.flag;
             }
@@ -296,7 +297,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         char const *k = item.key();
         char const *v = item.value();
 
-        if (strcmp(k, "admin_level") == 0) {
+        if (std::strcmp(k, "admin_level") == 0) {
             m_admin_level = atoi(v);
             if (m_admin_level <= 0 || m_admin_level > MAX_ADMINLEVEL) {
                 m_admin_level = MAX_ADMINLEVEL;
@@ -304,7 +305,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             continue;
         }
 
-        if (m_any_operator_matches && strcmp(k, "operator") == 0) {
+        if (m_any_operator_matches && std::strcmp(k, "operator") == 0) {
             m_operator = v;
         }
 
@@ -315,12 +316,13 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
         }
 
         if (flag & SF_MAIN) {
-            if (strcmp(k, "place") == 0) {
+            if (std::strcmp(k, "place") == 0) {
                 place = v;
                 place_flag = flag;
             } else {
                 m_main.emplace_back(k, v, flag);
-                if ((flag & SF_BOUNDARY) && strcmp(v, "administrative") == 0) {
+                if ((flag & SF_BOUNDARY) &&
+                    std::strcmp(v, "administrative") == 0) {
                     admin_boundary = true;
                 }
             }
@@ -335,20 +337,20 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
 
         if (flag & SF_ADDRESS) {
             char const *addr_key;
-            if (strncmp(k, "addr:", 5) == 0) {
+            if (std::strncmp(k, "addr:", 5) == 0) {
                 addr_key = k + 5;
-            } else if (strncmp(k, "is_in:", 6) == 0) {
+            } else if (std::strncmp(k, "is_in:", 6) == 0) {
                 addr_key = k + 6;
             } else {
                 addr_key = k;
             }
 
             // country and postcode are handled specially, ignore them here
-            if (strcmp(addr_key, "country") != 0 &&
-                strcmp(addr_key, "postcode") != 0) {
+            if (std::strcmp(addr_key, "country") != 0 &&
+                std::strcmp(addr_key, "postcode") != 0) {
                 bool first = std::none_of(
                     m_address.begin(), m_address.end(), [&](ptag_t const &t) {
-                        return strcmp(t.first, addr_key) == 0;
+                        return std::strcmp(t.first, addr_key) == 0;
                     });
                 if (first) {
                     m_address.emplace_back(addr_key, v);
@@ -385,7 +387,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     }
 
     if (place) {
-        if (interpolation || (admin_boundary && strncmp(place, "isl", 3) !=
+        if (interpolation || (admin_boundary && std::strncmp(place, "isl", 3) !=
                                                     0)) { // island or islet
             m_extra.emplace_back("place", place);
         } else {
@@ -503,7 +505,7 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
         } else {
             buffer.new_hash();
             for (auto const &a : m_address) {
-                if (strcmp(a.first, "tiger:county") == 0) {
+                if (std::strcmp(a.first, "tiger:county") == 0) {
                     std::string term;
                     auto *end = strchr(a.second, ',');
                     if (end) {
