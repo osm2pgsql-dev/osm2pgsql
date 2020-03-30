@@ -27,7 +27,7 @@ TEST_CASE("parse point")
 
     auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
     mid_pgsql->start();
-    auto midq = mid_pgsql->get_query_instance(mid_pgsql);
+    auto const midq = mid_pgsql->get_query_instance();
 
     std::vector<std::shared_ptr<output_t>> outputs;
 

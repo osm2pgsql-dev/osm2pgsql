@@ -805,20 +805,17 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 }
 
 std::shared_ptr<middle_query_t>
-middle_pgsql_t::get_query_instance(std::shared_ptr<middle_t> const &from) const
+middle_pgsql_t::get_query_instance()
 {
-    auto *src = dynamic_cast<middle_pgsql_t *>(from.get());
-    assert(src);
-
     // NOTE: this is thread safe for use in pending async processing only because
     // during that process they are only read from
-    std::unique_ptr<middle_query_pgsql_t> mid(
-        new middle_query_pgsql_t{src->out_options->database_options.conninfo(),
-                                 src->cache, src->persistent_cache});
+    std::unique_ptr<middle_query_pgsql_t> mid{
+        new middle_query_pgsql_t{out_options->database_options.conninfo(),
+                                 cache, persistent_cache}};
 
     // We use a connection per table to enable the use of COPY
     for (int i = 0; i < NUM_TABLES; ++i) {
-        mid->exec_sql(src->tables[i].m_prepare_query);
+        mid->exec_sql(tables[i].m_prepare_query);
     }
 
     return std::shared_ptr<middle_query_t>(mid.release());

@@ -177,16 +177,13 @@ idlist_t middle_ram_t::relations_using_way(osmid_t) const
     // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode
     // option is set.
     throw std::runtime_error{
-        "middle_ram_t::relations_using_way is unimlpemented, and "
+        "middle_ram_t::relations_using_way is unimplemented, and "
         "should not have been called. This is probably a bug, please "
         "report it at https://github.com/openstreetmap/osm2pgsql/issues"};
 }
 
 std::shared_ptr<middle_query_t>
-middle_ram_t::get_query_instance(std::shared_ptr<middle_t> const &mid) const
+middle_ram_t::get_query_instance()
 {
-    auto me = std::dynamic_pointer_cast<middle_ram_t>(mid);
-    assert(me);
-    // No copy here because readonly access is thread safe.
-    return std::static_pointer_cast<middle_query_t>(me);
+    return shared_from_this();
 }
