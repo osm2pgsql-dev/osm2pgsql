@@ -182,26 +182,7 @@ static void push_osm_object_to_lua_stack(lua_State *lua_state,
     lua_setmetatable(lua_state, -2);
 }
 
-static bool str2bool(char const *str) noexcept
-{
-    return (std::strcmp(str, "yes") == 0) || (std::strcmp(str, "true") == 0);
-}
-
-static int str2direction(char const *str) noexcept
-{
-    if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "true") == 0) ||
-        (std::strcmp(str, "1") == 0)) {
-        return 1;
-    }
-
-    if (std::strcmp(str, "-1") == 0) {
-        return -1;
-    }
-
-    return 0;
-}
-
-static int sgn(int val) noexcept
+static int sgn(double val) noexcept
 {
     if (val > 0) {
         return 1;
@@ -212,6 +193,71 @@ static int sgn(int val) noexcept
     return 0;
 }
 
+static void write_null(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                       flex_table_column_t const &column)
+{
+    if (column.not_null()) {
+        throw std::runtime_error{
+            "Can not add NULL to column '{}' declared NOT NULL."_format(
+                column.name())};
+    }
+    copy_mgr->add_null_column();
+}
+
+static void write_boolean(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                          flex_table_column_t const &column, char const *str)
+{
+    if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "true") == 0) ||
+        std::strcmp(str, "1")) {
+        copy_mgr->add_column(true);
+        return;
+    }
+
+    if ((std::strcmp(str, "no") == 0) || (std::strcmp(str, "false") == 0) ||
+        std::strcmp(str, "0")) {
+        copy_mgr->add_column(false);
+        return;
+    }
+
+    write_null(copy_mgr, column);
+}
+
+static void
+write_direction(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                flex_table_column_t const &column, char const *str)
+{
+    if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "1") == 0)) {
+        copy_mgr->add_column(1);
+        return;
+    }
+
+    if ((std::strcmp(str, "no") == 0) || (std::strcmp(str, "0") == 0)) {
+        copy_mgr->add_column(0);
+        return;
+    }
+
+    if (std::strcmp(str, "-1") == 0) {
+        copy_mgr->add_column(-1);
+        return;
+    }
+
+    write_null(copy_mgr, column);
+}
+
+static void write_double(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
+                         flex_table_column_t const &column, char const *str)
+{
+    char *end = nullptr;
+    double const value = std::strtod(str, &end);
+
+    if (end && *end != '\0') {
+        write_null(copy_mgr, column);
+        return;
+    }
+
+    copy_mgr->add_column(value);
+}
+
 void output_flex_t::write_column(
     db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
     flex_table_column_t const &column)
@@ -219,9 +265,16 @@ void output_flex_t::write_column(
     lua_getfield(lua_state(), -1, column.name().c_str());
     int const ltype = lua_type(lua_state(), -1);
 
+    // Certain Lua types can never be added to the database
+    if (ltype == LUA_TFUNCTION || ltype == LUA_TUSERDATA ||
+        ltype == LUA_TTHREAD) {
+        throw std::runtime_error{
+            "Can not add Lua objects of type function, userdata, or thread."};
+    }
+
     // A Lua nil value is always translated to a database NULL
     if (ltype == LUA_TNIL) {
-        copy_mgr->add_null_column();
+        write_null(copy_mgr, column);
         lua_pop(lua_state(), 1);
         return;
     }
@@ -240,11 +293,11 @@ void output_flex_t::write_column(
             copy_mgr->add_column(lua_toboolean(lua_state(), -1) != 0);
             break;
         case LUA_TNUMBER:
-            copy_mgr->add_column(lua_tointeger(lua_state(), -1) != 0);
+            copy_mgr->add_column(lua_tonumber(lua_state(), -1) != 0);
             break;
         case LUA_TSTRING:
-            copy_mgr->add_column(
-                str2bool(lua_tolstring(lua_state(), -1, nullptr)));
+            write_boolean(copy_mgr, column,
+                          lua_tolstring(lua_state(), -1, nullptr));
             break;
         default:
             throw std::runtime_error{
@@ -252,15 +305,58 @@ void output_flex_t::write_column(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int2) {
-        // cast here is on okay, because the database column is only 16bit
-        copy_mgr->add_column((int16_t)lua_tointeger(lua_state(), -1));
+        if (ltype == LUA_TNUMBER) {
+            int64_t const value = lua_tointeger(lua_state(), -1);
+            if (value >= std::numeric_limits<int16_t>::min() &&
+                value <= std::numeric_limits<int16_t>::max()) {
+                copy_mgr->add_column(value);
+            } else {
+                write_null(copy_mgr, column);
+            }
+        } else if (ltype == LUA_TBOOLEAN) {
+            copy_mgr->add_column(lua_toboolean(lua_state(), -1));
+        } else {
+            throw std::runtime_error{
+                "Invalid type '{}' for int2 column"_format(
+                    lua_typename(lua_state(), ltype))};
+        }
     } else if (column.type() == table_column_type::int4) {
-        // cast here is on okay, because the database column is only 32bit
-        copy_mgr->add_column((int32_t)lua_tointeger(lua_state(), -1));
+        if (ltype == LUA_TNUMBER) {
+            int64_t const value = lua_tointeger(lua_state(), -1);
+            if (value >= std::numeric_limits<int32_t>::min() &&
+                value <= std::numeric_limits<int32_t>::max()) {
+                copy_mgr->add_column(value);
+            } else {
+                write_null(copy_mgr, column);
+            }
+        } else if (ltype == LUA_TBOOLEAN) {
+            copy_mgr->add_column(lua_toboolean(lua_state(), -1));
+        } else {
+            throw std::runtime_error{
+                "Invalid type '{}' for int4 column"_format(
+                    lua_typename(lua_state(), ltype))};
+        }
     } else if (column.type() == table_column_type::int8) {
-        copy_mgr->add_column(lua_tointeger(lua_state(), -1));
+        if (ltype == LUA_TNUMBER) {
+            copy_mgr->add_column(lua_tointeger(lua_state(), -1));
+        } else if (ltype == LUA_TBOOLEAN) {
+            copy_mgr->add_column(lua_toboolean(lua_state(), -1));
+        } else {
+            throw std::runtime_error{
+                "Invalid type '{}' for int8 column"_format(
+                    lua_typename(lua_state(), ltype))};
+        }
     } else if (column.type() == table_column_type::real) {
-        copy_mgr->add_column(lua_tonumber(lua_state(), -1));
+        if (ltype == LUA_TNUMBER) {
+            copy_mgr->add_column(lua_tonumber(lua_state(), -1));
+        } else if (ltype == LUA_TSTRING) {
+            write_double(copy_mgr, column,
+                         lua_tolstring(lua_state(), -1, nullptr));
+        } else {
+            throw std::runtime_error{
+                "Invalid type '{}' for real column"_format(
+                    lua_typename(lua_state(), ltype))};
+        }
     } else if (column.type() == table_column_type::hstore) {
         if (ltype == LUA_TTABLE) {
             copy_mgr->new_hash();
@@ -299,11 +395,11 @@ void output_flex_t::write_column(
             copy_mgr->add_column(lua_toboolean(lua_state(), -1));
             break;
         case LUA_TNUMBER:
-            copy_mgr->add_column(sgn(lua_tointeger(lua_state(), -1)));
+            copy_mgr->add_column(sgn(lua_tonumber(lua_state(), -1)));
             break;
         case LUA_TSTRING:
-            copy_mgr->add_column(
-                str2direction(lua_tolstring(lua_state(), -1, nullptr)));
+            write_direction(copy_mgr, column,
+                            lua_tolstring(lua_state(), -1, nullptr));
             break;
         default:
             throw std::runtime_error{
@@ -339,7 +435,7 @@ void output_flex_t::write_row(table_connection_t *table_connection,
             copy_mgr->add_hex_geom(geom);
         } else if (column.type() == table_column_type::area) {
             if (geom.empty()) {
-                copy_mgr->add_null_column();
+                write_null(copy_mgr, column);
             } else {
                 double const area =
                     get_options()->reproject_area

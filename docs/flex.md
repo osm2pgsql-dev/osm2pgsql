@@ -96,23 +96,9 @@ geometry. This will only work for (multi)polygons.
 
 In addition to id and geometry columns, each table can have any number of
 "normal" columns using any type supported by PostgreSQL. Some types are
-specially recognized by osm2pgsql:
-
-* `text`: A text string.
-* `boolean`: Interprets string values `"true"`, `"yes"` as `true` and all
-   others as `false`. Boolean and integer values will also work in the usual
-   way.
-* `int2`, `smallint`: 16bit signed integer. Values too large to fit will be
-  truncated in some unspecified way.
-* `int4`, `int`, `integer`: 32bit signed integer. Values too large to fit will
-  be truncated in some unspecified way.
-* `int8`, `bigint`: 64bit signed integer. Values too large to fit will be
-  truncated in some unspecified way.
-* `real`: A real number.
-* `hstore`: Automatically filled from a Lua table with only strings as keys
-  and values.
-* `direction`: Interprets values `"true"`, `"yes"`, and `"1"` as 1, `"-1"` as
-  `-1`, and everything else as `0`. Useful for `oneway` tags etc.
+specially recognized by osm2pgsql: `text`, `boolean`, `int2` (`smallint`),
+`int4` (`int`, `integer`), `int8` (`bigint`), `real`, `hstore`, and
+`direction`. See the "Type conversion" section for details.
 
 Instead of the above types you can use any SQL type you want. If you do that
 you have to supply the PostgreSQL string representation for that type when
@@ -288,4 +274,41 @@ flex backend, because they don't make sense in that context:
 * The command line options to set the tablespace are ignored by the flex
   backend, instead use the `data_tablespace` or `index_tablespace` options
   when defining your table.
+
+## Type conversions
+
+The `add_row()` command will try its best to convert Lua values into
+corresponding PostgreSQL values. But not all conversions make sense. Here
+are the detailed rules:
+
+1. Lua values of type `function`, `userdata`, or `thread` will always result in
+   an error.
+2. The Lua type `nil` is always converted to `NULL`.
+3. If the result of a conversion is `NULL` and the column is defined as `NOT
+   NULL`, an error is thrown.
+4. The Lua type `table` is converted to the PostgreSQL type `hstore` if and
+   only if all keys and values in the table are string values. A Lua `table`
+   can not be converted to any other PostgreSQL type.
+5. For `boolean` columns: The number `0` is converted to `false`, all other
+   numbers are `true`. Strings are converted as follows: `"yes"`, `"true"`,
+   `"1"` are `true`; `"no"`, `"false"`, `"0"` are `false`, all others are
+   `NULL`.
+6. For integer columns (`int2`, `int4`, `int8`): Boolean `true` is converted
+   to `1`, `false` to `0`. Numbers that are not integers or outside the range
+   of the type result in `NULL`. Strings are converted to integers if possible
+   otherwise the result is `NULL`.
+7. For `real` columns: Booleans result in an error, all numbers are used as
+   is, strings are converted to a number, if that is not possible the result
+   is `NULL`.
+8. For `direction` columns (stored as `int2` in the database): Boolean `true`
+   is converted to `1`, `false` to `0`. The number `0` results in `0`, all
+   positive numbers in `1`, all negative numbers in `-1`. Strings `"yes"` and
+   `"1"` will result in `1`, `"no"` and `"0"` in `0`, `"-1"` in `-1`. All
+   other strings will result in `NULL`.
+9. For text columns and any other not specially recognized column types,
+   booleans result in an error and numbers are converted to strings.
+
+If you want any other conversions, you have to do them yourself in your Lua
+code. Osm2pgsql provides some helper functions for other conversions, see
+the (lua-lib Documentation)[lua-lib.md].
 
