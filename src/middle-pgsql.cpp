@@ -667,8 +667,8 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 
 void middle_pgsql_t::analyze()
 {
-    for (auto &t : tables) {
-        m_query_conn->exec("ANALYZE {}"_format(t.name()));
+    for (auto &table : tables) {
+        m_query_conn->exec("ANALYZE {}"_format(table.name()));
     }
 }
 
@@ -739,13 +739,13 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
     if (out_options->droptemp) {
         // Dropping the tables is fast, so do it synchronously to guarantee
         // that the space is freed before creating the other indices.
-        for (auto &t : tables) {
-            t.stop(out_options->database_options.conninfo(),
-                   out_options->droptemp, !append);
+        for (auto &table : tables) {
+            table.stop(out_options->database_options.conninfo(),
+                       out_options->droptemp, !append);
         }
     } else {
-        for (auto &t : tables) {
-            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &t,
+        for (auto &table : tables) {
+            pool.submit(std::bind(&middle_pgsql_t::table_desc::stop, &table,
                                   out_options->database_options.conninfo(),
                                   out_options->droptemp, !append));
         }
@@ -814,8 +814,8 @@ middle_pgsql_t::get_query_instance()
                                  cache, persistent_cache}};
 
     // We use a connection per table to enable the use of COPY
-    for (int i = 0; i < NUM_TABLES; ++i) {
-        mid->exec_sql(tables[i].m_prepare_query);
+    for (auto &table : tables) {
+        mid->exec_sql(table.m_prepare_query);
     }
 
     return std::shared_ptr<middle_query_t>(mid.release());
