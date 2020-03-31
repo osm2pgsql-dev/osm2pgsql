@@ -18,21 +18,21 @@
 #include "reprojection.hpp"
 
 /**
- * Infterface for returning information about raw OSM input data from a cache.
+ * Interface for returning information about raw OSM input data from a cache.
  */
-struct middle_query_t
+struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 {
-    virtual ~middle_query_t() = 0;
+    virtual ~middle_query_t() = default;
 
     /**
-     * Retrives node locations for the given node list.
+     * Retrieves node locations for the given node list.
      *
      * The locations are saved directly in the input list.
      */
     virtual size_t nodes_get_list(osmium::WayNodeList *nodes) const = 0;
 
     /**
-     * Retrives a single way from the ways storage
+     * Retrieves a single way from the ways storage
      * and stores it in the given osmium buffer.
      *
      * \param id     id of the way to retrive
@@ -45,7 +45,7 @@ struct middle_query_t
     virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /**
-     * Retrives the way members of a relation and stores them in
+     * Retrieves the way members of a relation and stores them in
      * the given osmium buffer.
      *
      * \param      rel    Relation to get the members for.
@@ -75,14 +75,12 @@ struct middle_query_t
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 };
 
-inline middle_query_t::~middle_query_t() = default;
-
 /**
  * Interface for storing raw OSM data in an intermediate cache.
  */
 struct middle_t
 {
-    virtual ~middle_t() = 0;
+    virtual ~middle_t() = default;
 
     virtual void start() = 0;
     virtual void stop(osmium::thread::Pool &pool) = 0;
@@ -110,11 +108,8 @@ struct middle_t
 
     virtual size_t pending_count() const = 0;
 
-    virtual std::shared_ptr<middle_query_t>
-    get_query_instance(std::shared_ptr<middle_t> const &mid) const = 0;
+    virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };
-
-inline middle_t::~middle_t() = default;
 
 /**
  * Extended interface for permanent caching of raw OSM data.
@@ -122,7 +117,7 @@ inline middle_t::~middle_t() = default;
  */
 struct slim_middle_t : public middle_t
 {
-    virtual ~slim_middle_t() = 0;
+    virtual ~slim_middle_t() = default;
 
     virtual void nodes_delete(osmid_t id) = 0;
     virtual void node_changed(osmid_t id) = 0;
@@ -133,7 +128,5 @@ struct slim_middle_t : public middle_t
     virtual void relations_delete(osmid_t id) = 0;
     virtual void relation_changed(osmid_t id) = 0;
 };
-
-inline slim_middle_t::~slim_middle_t() = default;
 
 #endif // OSM2PGSQL_MIDDLE_HPP

@@ -10,18 +10,17 @@
 #include "osmtypes.hpp"
 
 struct options_t;
-class reprojection;
 
 class node_persistent_cache
 {
 public:
     node_persistent_cache(options_t const *options,
                           std::shared_ptr<node_ram_cache> ptr);
-    ~node_persistent_cache();
+    ~node_persistent_cache() noexcept;
 
-    void set(osmid_t id, osmium::Location const &coord);
-    osmium::Location get(osmid_t id);
-    size_t get_list(osmium::WayNodeList *nodes);
+    void set(osmid_t id, osmium::Location location);
+    osmium::Location get(osmid_t id) const noexcept;
+    std::size_t get_list(osmium::WayNodeList *nodes) const;
 
 private:
     // Dense node cache for unsigned IDs only
@@ -32,8 +31,8 @@ private:
     std::shared_ptr<node_ram_cache> m_ram_cache;
     int m_fd = -1;
     std::unique_ptr<index_t> m_index;
-    bool m_remove_file;
-    char const *m_fname;
+    bool m_remove_file = false;
+    char const *m_fname = nullptr;
 };
 
 #endif // OSM2PGSQL_NODE_PERSISTENT_CACHE_HPP

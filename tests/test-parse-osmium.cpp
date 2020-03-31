@@ -30,10 +30,9 @@ struct counting_slim_middle_t : public slim_middle_t
     void iterate_relations(pending_processor &) override {}
     size_t pending_count() const override { return 0; }
 
-    std::shared_ptr<middle_query_t>
-    get_query_instance(std::shared_ptr<middle_t> const &) const override
+    std::shared_ptr<middle_query_t> get_query_instance() override
     {
-        return std::shared_ptr<middle_query_t>();
+        return std::shared_ptr<middle_query_t>{};
     }
 
     void nodes_delete(osmid_t) override { node.deleted++; }

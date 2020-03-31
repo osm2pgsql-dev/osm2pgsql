@@ -80,8 +80,8 @@ public:
         middle->start();
 
         // setup the output
-        auto const outputs = output_t::create_outputs(
-            middle->get_query_instance(middle), options);
+        auto const outputs =
+            output_t::create_outputs(middle->get_query_instance(), options);
 
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
@@ -104,8 +104,8 @@ public:
         middle->start();
 
         // setup the output
-        auto outputs = output_t::create_outputs(
-            middle->get_query_instance(middle), options);
+        auto const outputs =
+            output_t::create_outputs(middle->get_query_instance(), options);
 
         parse_file(options, middle, outputs, file);
     }
@@ -127,7 +127,7 @@ public:
 
         auto mid_pgsql = std::make_shared<middle_pgsql_t>(&options);
         mid_pgsql->start();
-        auto midq = mid_pgsql->get_query_instance(mid_pgsql);
+        auto const midq = mid_pgsql->get_query_instance();
 
         // This actually uses the multi-backend with C transforms,
         // not Lua transforms. This is unusual and doesn't reflect real practice.

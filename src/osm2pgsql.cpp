@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
 
         middle->start();
 
-        auto const outputs = output_t::create_outputs(
-            middle->get_query_instance(middle), options);
+        auto const outputs =
+            output_t::create_outputs(middle->get_query_instance(), options);
         //let osmdata orchestrate between the middle and the outs
         osmdata_t osmdata(middle, outputs);
 

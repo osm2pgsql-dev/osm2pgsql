@@ -64,7 +64,6 @@ struct options_slim_dense_cache : options_slim_default
     {
         options_t o = options_slim_default::options(tmpdb);
         o.alloc_chunkwise = ALLOC_DENSE;
-
         return o;
     }
 };
@@ -89,6 +88,25 @@ struct options_ram_flatnode
     }
 };
 
+TEST_CASE("elem_cache_t")
+{
+    elem_cache_t<int, 10> cache;
+
+    cache.set(3, new int{23});
+    cache.set(5, new int{42});
+    REQUIRE(*cache.get(3) == 23);
+    REQUIRE(*cache.get(5) == 42);
+    REQUIRE(cache.get(2) == nullptr);
+    cache.set(2, new int{56});
+    REQUIRE(*cache.get(2) == 56);
+    cache.set(3, new int{0});
+    REQUIRE(*cache.get(3) == 0);
+    cache.clear();
+    REQUIRE(cache.get(1) == nullptr);
+    REQUIRE(cache.get(2) == nullptr);
+    REQUIRE(cache.get(3) == nullptr);
+}
+
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_dense_cache, options_ram_optimized,
                    options_ram_flatnode)
@@ -101,7 +119,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     mid->start();
 
-    auto mid_q = mid->get_query_instance(mid);
+    auto const mid_q = mid->get_query_instance();
 
     test_buffer_t buffer;
 
@@ -119,13 +137,13 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             buffer.get<osmium::Way>(buffer.add_way(3, {1234})).nodes();
 
         // get it back
-        REQUIRE(mid_q->nodes_get_list(&(nodes)) == nodes.size());
+        REQUIRE(mid_q->nodes_get_list(&nodes) == nodes.size());
         expect_location(nodes[0].location(), node);
 
         // other nodes are not retrievable
         auto &n2 =
             buffer.get<osmium::Way>(buffer.add_way(3, {1, 2, 1235})).nodes();
-        REQUIRE(mid_q->nodes_get_list(&(n2)) == 0);
+        REQUIRE(mid_q->nodes_get_list(&n2) == 0);
     }
 
     SECTION("Set and retrieve a single way")
@@ -202,7 +220,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         mid->flush(osmium::item_type::relation);
 
-        // retrive the relation
+        // retrieve the relation
         buffer.buf.clear();
         auto const &rel = buffer.get<osmium::Relation>(0);
         REQUIRE(mid_q->relations_get(123, buffer.buf));

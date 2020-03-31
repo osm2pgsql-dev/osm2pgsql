@@ -99,8 +99,7 @@ struct middle_pgsql_t : public slim_middle_t
         std::shared_ptr<db_target_descr_t> m_copy_target;
     };
 
-    std::shared_ptr<middle_query_t>
-    get_query_instance(std::shared_ptr<middle_t> const &from) const override;
+    std::shared_ptr<middle_query_t> get_query_instance() override;
 
 private:
     enum middle_tables
