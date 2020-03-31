@@ -88,6 +88,25 @@ struct options_ram_flatnode
     }
 };
 
+TEST_CASE("elem_cache_t")
+{
+    elem_cache_t<int, 10> cache;
+
+    cache.set(3, new int{23});
+    cache.set(5, new int{42});
+    REQUIRE(*cache.get(3) == 23);
+    REQUIRE(*cache.get(5) == 42);
+    REQUIRE(cache.get(2) == nullptr);
+    cache.set(2, new int{56});
+    REQUIRE(*cache.get(2) == 56);
+    cache.set(3, new int{0});
+    REQUIRE(*cache.get(3) == 0);
+    cache.clear();
+    REQUIRE(cache.get(1) == nullptr);
+    REQUIRE(cache.get(2) == nullptr);
+    REQUIRE(cache.get(3) == nullptr);
+}
+
 TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_slim_dense_cache, options_ram_optimized,
                    options_ram_flatnode)

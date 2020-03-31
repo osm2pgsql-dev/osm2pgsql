@@ -21,62 +21,69 @@ struct options_t;
 template <typename T, size_t N>
 class cache_block_t
 {
-    std::array<std::unique_ptr<T>, N> arr;
+    std::array<std::unique_ptr<T>, N> m_arr;
 
 public:
-    void set(size_t idx, T *ele) { arr[idx].reset(ele); }
+    void set(size_t idx, T *ele) noexcept { m_arr[idx].reset(ele); }
 
-    T const *get(size_t idx) const { return arr[idx].get(); }
+    T const *get(size_t idx) const noexcept { return m_arr[idx].get(); }
 };
 
 template <typename T, size_t BLOCK_SHIFT>
 class elem_cache_t
 {
-    constexpr static size_t per_block() { return 1 << BLOCK_SHIFT; }
-    constexpr static size_t num_blocks() { return 1 << (32 - BLOCK_SHIFT); }
+    constexpr static size_t per_block() noexcept { return 1ULL << BLOCK_SHIFT; }
 
-    constexpr static size_t id2block(osmid_t id)
+    constexpr static size_t num_blocks() noexcept
+    {
+        return 1ULL << (32U - BLOCK_SHIFT);
+    }
+
+    constexpr static size_t id2block(osmid_t id) noexcept
     {
         /* + NUM_BLOCKS/2 allows for negative IDs */
-        return (id >> BLOCK_SHIFT) + num_blocks() / 2;
+        return (static_cast<size_t>(id) >> BLOCK_SHIFT) + num_blocks() / 2;
     }
 
-    constexpr static size_t id2offset(osmid_t id)
+    constexpr static size_t id2offset(osmid_t id) noexcept
     {
-        return id & (per_block() - 1);
+        return static_cast<size_t>(id) & (per_block() - 1U);
     }
 
-    typedef cache_block_t<T, 1 << BLOCK_SHIFT> element_t;
-    std::vector<std::unique_ptr<element_t>> arr;
+    using element_t = cache_block_t<T, 1U << BLOCK_SHIFT>;
+
+    std::vector<std::unique_ptr<element_t>> m_blocks;
 
 public:
-    elem_cache_t() : arr(num_blocks()) {}
+    elem_cache_t() : m_blocks(num_blocks()) {}
 
     void set(osmid_t id, T *ele)
     {
-        const size_t block = id2block(id);
+        size_t const block = id2block(id);
+        assert(block < m_blocks.size());
 
-        if (!arr[block]) {
-            arr[block].reset(new element_t());
+        if (!m_blocks[block]) {
+            m_blocks[block].reset(new element_t{});
         }
 
-        arr[block]->set(id2offset(id), ele);
+        m_blocks[block]->set(id2offset(id), ele);
     }
 
     T const *get(osmid_t id) const
     {
-        const size_t block = id2block(id);
+        size_t const block = id2block(id);
+        assert(block < m_blocks.size());
 
-        if (!arr[block]) {
+        if (!m_blocks[block]) {
             return 0;
         }
 
-        return arr[block]->get(id2offset(id));
+        return m_blocks[block]->get(id2offset(id));
     }
 
     void clear()
     {
-        for (auto &ele : arr) {
+        for (auto &ele : m_blocks) {
             ele.reset();
         }
     }
