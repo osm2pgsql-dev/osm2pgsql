@@ -73,25 +73,25 @@ TEST_CASE("type number")
     CHECK(19 == conn.get_count("nodes"));
 
     // clang-format off
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-2147483649.0' AND ttext = '-2147483649.0' AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = -2147483649               AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-2147483648.0' AND ttext = '-2147483648.0' AND tbool = true  AND tint2 IS NULL  AND tint4 = -2147483648 AND tint8 = -2147483648               AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-2147483647.0' AND ttext = '-2147483647.0' AND tbool = true  AND tint2 IS NULL  AND tint4 = -2147483647 AND tint8 = -2147483647               AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-32769.0'      AND ttext = '-32769.0'      AND tbool = true  AND tint2 IS NULL  AND tint4 = -32769      AND tint8 = -32769 AND treal = -32769 AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-32768.0'      AND ttext = '-32768.0'      AND tbool = true  AND tint2 = -32768 AND tint4 = -32768      AND tint8 = -32768 AND treal = -32768 AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-32767.0'      AND ttext = '-32767.0'      AND tbool = true  AND tint2 = -32767 AND tint4 = -32767      AND tint8 = -32767 AND treal = -32767 AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-2'            AND ttext = '-2'            AND tbool = true  AND tint2 = -2     AND tint4 = -2          AND tint8 = -2     AND treal =   -2   AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-1'            AND ttext = '-1'            AND tbool = true  AND tint2 = -1     AND tint4 = -1          AND tint8 = -1     AND treal =   -1   AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '-0.5'          AND ttext = '-0.5'          AND tbool = true  AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal = -0.5   AND tdirn = -1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '0'             AND ttext = '0'             AND tbool = false AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal =    0   AND tdirn = 0"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '0.5'           AND ttext = '0.5'           AND tbool = true  AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal =  0.5   AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '1'             AND ttext = '1'             AND tbool = true  AND tint2 =  1     AND tint4 =  1          AND tint8 =  1     AND treal =    1   AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '2'             AND ttext = '2'             AND tbool = true  AND tint2 =  2     AND tint4 =  2          AND tint8 =  2     AND treal =    2   AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '32767.0'       AND ttext = '32767.0'       AND tbool = true  AND tint2 = 32767  AND tint4 = 32767       AND tint8 = 32767  AND treal = 32767  AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '32768.0'       AND ttext = '32768.0'       AND tbool = true  AND tint2 IS NULL  AND tint4 = 32768       AND tint8 = 32768  AND treal = 32768  AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '32769.0'       AND ttext = '32769.0'       AND tbool = true  AND tint2 IS NULL  AND tint4 = 32769       AND tint8 = 32769  AND treal = 32769  AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '2147483647.0'  AND ttext = '2147483647.0'  AND tbool = true  AND tint2 IS NULL  AND tint4 = 2147483647  AND tint8 = 2147483647                AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '2147483648.0'  AND ttext = '2147483648.0'  AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = 2147483648                AND tdirn = 1"));
-    CHECK(1 == conn.get_count("nodes", "tsqlt = '2147483649.0'  AND ttext = '2147483649.0'  AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = 2147483649                AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-2147483649' AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = -2147483649               AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-2147483648' AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = -2147483648 AND tint8 = -2147483648               AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-2147483647' AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = -2147483647 AND tint8 = -2147483647               AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-32769'      AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = -32769      AND tint8 = -32769 AND treal = -32769 AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-32768'      AND ttext = tsqlt AND tbool = true  AND tint2 = -32768 AND tint4 = -32768      AND tint8 = -32768 AND treal = -32768 AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-32767'      AND ttext = tsqlt AND tbool = true  AND tint2 = -32767 AND tint4 = -32767      AND tint8 = -32767 AND treal = -32767 AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-2'          AND ttext = tsqlt AND tbool = true  AND tint2 = -2     AND tint4 = -2          AND tint8 = -2     AND treal =   -2   AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '-1'          AND ttext = tsqlt AND tbool = true  AND tint2 = -1     AND tint4 = -1          AND tint8 = -1     AND treal =   -1   AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "           tsqlt          = '-0.5'        AND ttext = tsqlt AND tbool = true  AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal = -0.5   AND tdirn = -1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '0'           AND ttext = tsqlt AND tbool = false AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal =    0   AND tdirn = 0"));
+    CHECK(1 == conn.get_count("nodes", "           tsqlt          = '0.5'         AND ttext = tsqlt AND tbool = true  AND tint2 =  0     AND tint4 =  0          AND tint8 =  0     AND treal =  0.5   AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '1'           AND ttext = tsqlt AND tbool = true  AND tint2 =  1     AND tint4 =  1          AND tint8 =  1     AND treal =    1   AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '2'           AND ttext = tsqlt AND tbool = true  AND tint2 =  2     AND tint4 =  2          AND tint8 =  2     AND treal =    2   AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '32767'       AND ttext = tsqlt AND tbool = true  AND tint2 = 32767  AND tint4 = 32767       AND tint8 = 32767  AND treal = 32767  AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '32768'       AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = 32768       AND tint8 = 32768  AND treal = 32768  AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '32769'       AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = 32769       AND tint8 = 32769  AND treal = 32769  AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '2147483647'  AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 = 2147483647  AND tint8 = 2147483647                AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '2147483648'  AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = 2147483648                AND tdirn = 1"));
+    CHECK(1 == conn.get_count("nodes", "split_part(tsqlt, '.', 1) = '2147483649'  AND ttext = tsqlt AND tbool = true  AND tint2 IS NULL  AND tint4 IS NULL       AND tint8 = 2147483649                AND tdirn = 1"));
     // clang-format on
 }
 
