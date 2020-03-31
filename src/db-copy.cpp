@@ -117,7 +117,7 @@ void db_copy_thread_t::thread_t::operator()()
         m_conn.reset(new pg_conn_t{m_conninfo});
 
         // Let commits happen faster by delaying when they actually occur.
-        m_conn->exec("SET synchronous_commit TO off");
+        m_conn->exec("SET synchronous_commit = off");
 
         bool done = false;
         while (!done) {

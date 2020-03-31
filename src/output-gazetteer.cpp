@@ -48,14 +48,14 @@ void output_gazetteer_t::start()
 
         std::string sql =
             "CREATE TABLE place ("
-            "  osm_id " POSTGRES_OSMID_TYPE " NOT NULL,"
+            "  osm_id int8 NOT NULL,"
             "  osm_type char(1) NOT NULL,"
-            "  class TEXT NOT NULL,"
-            "  type TEXT NOT NULL,"
-            "  name HSTORE,"
-            "  admin_level SMALLINT,"
-            "  address HSTORE,"
-            "  extratags HSTORE," +
+            "  class text NOT NULL,"
+            "  type text NOT NULL,"
+            "  name hstore,"
+            "  admin_level smallint,"
+            "  address hstore,"
+            "  extratags hstore," +
             "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")";
         if (m_options.tblsmain_data) {
             sql += " TABLESPACE " + m_options.tblsmain_data.get();

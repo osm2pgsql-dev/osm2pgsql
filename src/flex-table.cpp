@@ -86,16 +86,16 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
 {
     if (has_geom_column()) {
         if (has_multicolumn_id_index()) {
-            return "PREPARE get_wkb (TEXT, BIGINT) AS"
+            return "PREPARE get_wkb(text, bigint) AS"
                    " SELECT \"{}\" FROM {} WHERE \"{}\" = '$1' AND \"{}\" = $2"_format(
                        geom_column().name(), full_name(), m_columns[0].name(),
                        m_columns[1].name());
         }
-        return "PREPARE get_wkb (BIGINT) AS"
+        return "PREPARE get_wkb(bigint) AS"
                " SELECT \"{}\" FROM {} WHERE \"{}\" = $1"_format(
                    geom_column().name(), full_name(), id_column_names());
     }
-    return "PREPARE get_wkb (BIGINT) AS SELECT ''";
+    return "PREPARE get_wkb(bigint) AS SELECT ''";
 }
 
 std::string flex_table_t::build_sql_create_table(bool final_table) const
@@ -114,7 +114,7 @@ std::string flex_table_t::build_sql_create_table(bool final_table) const
     sql.back() = ')';
 
     if (!final_table) {
-        sql += " WITH ( autovacuum_enabled = FALSE )";
+        sql += " WITH (autovacuum_enabled = off)";
     }
 
     sql += tablespace_clause(m_data_tablespace);
@@ -151,7 +151,7 @@ void table_connection_t::connect(std::string const &conninfo)
     assert(!m_db_connection);
 
     m_db_connection.reset(new pg_conn_t{conninfo});
-    m_db_connection->exec("SET synchronous_commit TO off");
+    m_db_connection->exec("SET synchronous_commit = off");
 }
 
 void table_connection_t::start(bool append)
@@ -271,7 +271,7 @@ void table_connection_t::stop(bool updateable, bool append)
         m_db_connection->exec(
             "CREATE INDEX ON {} USING GIST (\"{}\") {} {}"_format(
                 table().full_name(), table().geom_column().name(),
-                (updateable ? "" : "WITH (FILLFACTOR=100)"),
+                (updateable ? "" : "WITH (fillfactor = 100)"),
                 tablespace_clause(table().index_tablespace())));
     }
 
