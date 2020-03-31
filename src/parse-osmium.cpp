@@ -128,7 +128,7 @@ void parse_osmium_t::node(osmium::Node const &node)
 {
     if (m_type != osmium::item_type::node) {
         m_type = osmium::item_type::node;
-        m_data->type_changed(osmium::item_type::node);
+        m_data->flush();
     }
 
     if (node.deleted()) {
@@ -163,7 +163,7 @@ void parse_osmium_t::way(osmium::Way &way)
 {
     if (m_type != osmium::item_type::way) {
         m_type = osmium::item_type::way;
-        m_data->type_changed(osmium::item_type::way);
+        m_data->flush();
     }
 
     if (way.deleted()) {
@@ -182,7 +182,7 @@ void parse_osmium_t::relation(osmium::Relation const &rel)
 {
     if (m_type != osmium::item_type::relation) {
         m_type = osmium::item_type::relation;
-        m_data->type_changed(osmium::item_type::relation);
+        m_data->flush();
     }
 
     if (rel.deleted()) {

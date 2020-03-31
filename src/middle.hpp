@@ -92,7 +92,7 @@ struct middle_t
     virtual void relations_set(osmium::Relation const &rel) = 0;
 
     /// Write all pending data to permanent storage.
-    virtual void flush(osmium::item_type new_type) = 0;
+    virtual void flush() = 0;
 
     struct pending_processor
     {

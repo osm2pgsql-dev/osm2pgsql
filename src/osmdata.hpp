@@ -18,7 +18,7 @@ public:
               std::vector<std::shared_ptr<output_t>> const &outs_);
 
     void start() const;
-    void type_changed(osmium::item_type new_type) const;
+    void flush() const;
     void stop() const;
 
     void node_add(osmium::Node const &node) const;

@@ -727,7 +727,7 @@ void middle_pgsql_t::commit()
     m_query_conn.reset();
 }
 
-void middle_pgsql_t::flush(osmium::item_type) { m_db_copy.sync(); }
+void middle_pgsql_t::flush() { m_db_copy.sync(); }
 
 void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 {

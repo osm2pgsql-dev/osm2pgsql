@@ -17,7 +17,7 @@ struct counting_slim_middle_t : public slim_middle_t
 {
     void start() override {}
     void stop(osmium::thread::Pool &) override {}
-    void flush(osmium::item_type) override {}
+    void flush() override {}
     void cleanup() {}
     void analyze() override {}
     void commit() override {}

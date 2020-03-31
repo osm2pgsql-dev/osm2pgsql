@@ -111,7 +111,7 @@ struct middle_ram_t : public middle_t, public middle_query_t
                        osmium::memory::Buffer &buffer) const override;
     void relations_set(osmium::Relation const &rel) override;
 
-    void flush(osmium::item_type) override {}
+    void flush() override {}
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 

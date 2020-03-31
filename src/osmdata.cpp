@@ -157,9 +157,9 @@ void osmdata_t::start() const
     }
 }
 
-void osmdata_t::type_changed(osmium::item_type new_type) const
+void osmdata_t::flush() const
 {
-    mid->flush(new_type);
+    mid->flush();
 }
 
 namespace {

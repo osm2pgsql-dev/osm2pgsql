@@ -130,7 +130,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // set the node
         mid->nodes_set(node);
-        mid->flush(osmium::item_type::way);
+        mid->flush();
 
         // getting it back works only via a waylist
         auto &nodes =
@@ -165,7 +165,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         // set the way
         mid->ways_set(buffer.get<osmium::Way>(buffer.add_way(way_id, nds)));
 
-        mid->flush(osmium::item_type::relation);
+        mid->flush();
 
         // get it back
         osmium::memory::Buffer outbuf{4096,
@@ -218,7 +218,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         mid->relations_set(buffer.get<osmium::Relation>(pos));
 
-        mid->flush(osmium::item_type::relation);
+        mid->flush();
 
         // retrieve the relation
         buffer.buf.clear();
