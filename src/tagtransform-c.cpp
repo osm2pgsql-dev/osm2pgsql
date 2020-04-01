@@ -50,7 +50,7 @@ void add_z_order(taglist_t &tags, int *roads)
     *roads = 0;
 
     if (highway) {
-        for (unsigned i = 0; i < nLayers; i++) {
+        for (unsigned i = 0; i < nLayers; ++i) {
             if (!std::strcmp(layers[i].highway, highway->c_str())) {
                 z_order += layers[i].offset;
                 *roads = layers[i].roads;

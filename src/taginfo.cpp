@@ -126,7 +126,7 @@ int read_style_file(std::string const &filename, export_list *exlist)
 
     //for each line of the style file
     while (fgets(buffer, sizeof(buffer), in) != nullptr) {
-        lineno++;
+        ++lineno;
 
         //find where a comment starts and terminate the string there
         str = std::strchr(buffer, '#');
@@ -197,7 +197,7 @@ int read_style_file(std::string const &filename, export_list *exlist)
             throw std::runtime_error{
                 "Weird style line {}:{}"_format(filename, lineno)};
         }
-        num_read++;
+        ++num_read;
     }
 
     if (ferror(in)) {

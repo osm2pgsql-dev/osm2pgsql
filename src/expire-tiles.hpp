@@ -95,7 +95,7 @@ struct expire_tiles
         uint64_t last_quadkey = 1ULL << (2 * maxzoom);
         for (std::vector<uint64_t>::const_iterator it = tiles_maxzoom.cbegin();
              it != tiles_maxzoom.cend(); ++it) {
-            for (uint32_t dz = 0; dz <= maxzoom - minzoom; dz++) {
+            for (uint32_t dz = 0; dz <= maxzoom - minzoom; ++dz) {
                 // scale down to the current zoom level
                 uint64_t qt_current = *it >> (dz * 2);
                 /* If dz > 0, there are propably multiple elements whose quadkey

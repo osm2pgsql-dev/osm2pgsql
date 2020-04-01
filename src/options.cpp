@@ -545,7 +545,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
     //get the input files
     while (optind < argc) {
         input_files.emplace_back(argv[optind]);
-        optind++;
+        ++optind;
     }
 
     if (!projection) {

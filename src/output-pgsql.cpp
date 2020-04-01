@@ -81,7 +81,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -94,7 +94,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
         popped = ways_pending_tracker.pop_mark();
     }
@@ -104,7 +104,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
         if (!ways_done_tracker->is_marked(popped) &&
             id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -155,7 +155,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -167,7 +167,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //get all the ones up to the id that was passed in
     while (popped < id) {
         job_queue.push(pending_job_t(popped, output_id));
-        added++;
+        ++added;
         popped = rels_pending_tracker.pop_mark();
     }
 
@@ -175,7 +175,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     if (popped > id) {
         if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -447,7 +447,7 @@ output_pgsql_t::output_pgsql_t(
     m_tagtransform = tagtransform_t::make_tagtransform(&m_options, exlist);
 
     //for each table
-    for (size_t i = 0; i < t_MAX; i++) {
+    for (size_t i = 0; i < t_MAX; ++i) {
 
         //figure out the columns this table needs
         columns_t columns = exlist.normal_columns(

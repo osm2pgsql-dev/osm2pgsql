@@ -68,7 +68,7 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
         if (*source == '{') {
             openbrace = dest;
             copied = false;
-            source++;
+            ++source;
             continue;
         }
 
@@ -76,7 +76,7 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
             if (!copied && openbrace) {
                 dest = openbrace;
             }
-            source++;
+            ++source;
             continue;
         }
 
@@ -200,7 +200,7 @@ inline char const *decode_upto(char const *src, char *dst)
 {
     int quoted = (*src == '"');
     if (quoted) {
-        src++;
+        ++src;
     }
 
     while (quoted ? (*src != '"') : (*src != ',' && *src != '}')) {
@@ -222,7 +222,7 @@ inline char const *decode_upto(char const *src, char *dst)
         }
     }
     if (quoted) {
-        src++;
+        ++src;
     }
     *dst = 0;
     return src;
@@ -243,12 +243,12 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer &buffer,
     while (*string != '}') {
         string = decode_upto(string, key);
         // String points to the comma */
-        string++;
+        ++string;
         string = decode_upto(string, val);
         builder.add_tag(key, val);
         // String points to the comma or closing '}' */
         if (*string == ',') {
-            string++;
+            ++string;
         }
     }
 }
@@ -272,7 +272,7 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer &buffer,
         builder.add_member(osmium::char_to_item_type(type), id, role);
         // String points to the comma or closing '}' */
         if (*string == ',') {
-            string++;
+            ++string;
         }
     }
 }
@@ -287,7 +287,7 @@ void pgsql_parse_nodes(char const *string, osmium::memory::Buffer &buffer,
             wnl_builder.add_node_ref(strtoosmid(string, &ptr, 10));
             string = ptr;
             if (*string == ',') {
-                string++;
+                ++string;
             }
         }
     }
