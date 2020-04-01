@@ -38,13 +38,19 @@ geometry_processor::geometry_processor(int srid, std::string const &type,
 
 geometry_processor::~geometry_processor() = default;
 
-int geometry_processor::srid() const { return m_srid; }
+int geometry_processor::srid() const noexcept { return m_srid; }
 
-const std::string &geometry_processor::column_type() const { return m_type; }
+std::string const &geometry_processor::column_type() const noexcept
+{
+    return m_type;
+}
 
-unsigned int geometry_processor::interests() const { return m_interests; }
+unsigned int geometry_processor::interests() const noexcept
+{
+    return m_interests;
+}
 
-bool geometry_processor::interests(unsigned int interested) const
+bool geometry_processor::interests(unsigned int interested) const noexcept
 {
     return (interested & m_interests) == interested;
 }

@@ -50,7 +50,7 @@ public:
             return nullptr;
         }
 
-        int get_count() const { return m_count; }
+        int get_count() const noexcept { return m_count; }
 
     private:
         wkb_reader(pg_result_t &&result)

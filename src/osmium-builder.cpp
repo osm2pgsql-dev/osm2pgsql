@@ -19,7 +19,7 @@ inline double distance(osmium::geom::Coordinates p1,
 
 inline osmium::geom::Coordinates interpolate(osmium::geom::Coordinates p1,
                                              osmium::geom::Coordinates p2,
-                                             double frac)
+                                             double frac) noexcept
 {
     return osmium::geom::Coordinates{frac * (p1.x - p2.x) + p2.x,
                                      frac * (p1.y - p2.y) + p2.y};

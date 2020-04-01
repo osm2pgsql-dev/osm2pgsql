@@ -37,14 +37,14 @@ struct geometry_processor
 
     // return bit-mask of the type of elements this processor is
     // interested in.
-    unsigned int interests() const;
+    unsigned int interests() const noexcept;
 
     // return true if provided intrest is an interest of this processor
-    bool interests(unsigned int interested) const;
+    bool interests(unsigned int interested) const noexcept;
 
     // the postgis column type for the kind of geometry (i.e: POINT,
     // LINESTRING, etc...) that this processor outputs
-    const std::string &column_type() const;
+    std::string const &column_type() const noexcept;
 
     // process a node, optionally returning a WKB string describing
     // geometry to be inserted into the table.
@@ -65,7 +65,7 @@ struct geometry_processor
                                     geom::osmium_builder_t *builder);
 
     // returns the SRID of the output geometry.
-    int srid() const;
+    int srid() const noexcept;
 
 protected:
     // SRID of the geometry output
