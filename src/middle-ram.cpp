@@ -50,6 +50,7 @@ void middle_ram_t::relations_set(osmium::Relation const &rel)
 
 size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 {
+    assert(nodes);
     size_t count = 0;
 
     for (auto &n : *nodes) {

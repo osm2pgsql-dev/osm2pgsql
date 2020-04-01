@@ -198,7 +198,7 @@ namespace {
 // Argument should point to beginning of literal, on return points to delimiter */
 inline char const *decode_upto(char const *src, char *dst)
 {
-    int quoted = (*src == '"');
+    bool const quoted = (*src == '"');
     if (quoted) {
         ++src;
     }

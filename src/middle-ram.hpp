@@ -134,8 +134,9 @@ private:
         ramWay(osmium::Way const &way, bool add_attributes)
         : tags(way.tags()), ndids(way.nodes())
         {
-            if (add_attributes)
+            if (add_attributes) {
                 tags.add_attributes(way);
+            }
         }
     };
 
@@ -147,8 +148,9 @@ private:
         ramRel(osmium::Relation const &rel, bool add_attributes)
         : tags(rel.tags()), members(rel.members())
         {
-            if (add_attributes)
+            if (add_attributes) {
                 tags.add_attributes(rel);
+            }
         }
     };
 
