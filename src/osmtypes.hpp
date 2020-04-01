@@ -242,6 +242,6 @@ struct idlist_t : public std::vector<osmid_t>
     }
 };
 
-typedef std::vector<char const *> rolelist_t;
+using rolelist_t = std::vector<char const *>;
 
 #endif // OSM2PGSQL_OSMTYPES_HPP

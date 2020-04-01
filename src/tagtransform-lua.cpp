@@ -47,7 +47,7 @@ std::unique_ptr<tagtransform_t> lua_tagtransform_t::clone() const
     return std::unique_ptr<tagtransform_t>(c.release());
 }
 
-void lua_tagtransform_t::check_lua_function_exists(const std::string &func_name)
+void lua_tagtransform_t::check_lua_function_exists(std::string const &func_name)
 {
     lua_getglobal(L, func_name.c_str());
     if (!lua_isfunction(L, -1)) {
@@ -153,7 +153,7 @@ bool lua_tagtransform_t::filter_rel_member_tags(
 
     lua_newtable(L); /* relations key value table */
 
-    for (const auto &rel_tag : rel_tags) {
+    for (auto const &rel_tag : rel_tags) {
         lua_pushstring(L, rel_tag.key.c_str());
         lua_pushstring(L, rel_tag.value.c_str());
         lua_rawset(L, -3);
@@ -202,8 +202,8 @@ bool lua_tagtransform_t::filter_rel_member_tags(
 
     lua_pushnil(L);
     while (lua_next(L, -2) != 0) {
-        char const *key = lua_tostring(L, -2);
-        char const *value = lua_tostring(L, -1);
+        char const *const key = lua_tostring(L, -2);
+        char const *const value = lua_tostring(L, -1);
         out_tags.add_tag(key, value);
         lua_pop(L, 1);
     }

@@ -379,7 +379,7 @@ void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             m_relation_helper.add_way_locations(m_mid.get());
             auto const geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
-            for (const auto &geom : geoms) {
+            for (auto const &geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
             }
         }
@@ -401,7 +401,7 @@ void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,
  *
  * \pre geom must be valid.
  */
-void output_multi_t::copy_to_table(const osmid_t id,
+void output_multi_t::copy_to_table(osmid_t const id,
                                    geometry_processor::wkb_t const &geom,
                                    taglist_t &tags)
 {

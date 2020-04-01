@@ -79,7 +79,7 @@ protected:
     void process_relation(osmium::Relation const &rel, bool exists);
     void copy_node_to_table(osmid_t id, const std::string &geom,
                             taglist_t &tags);
-    void copy_to_table(const osmid_t id, geometry_processor::wkb_t const &geom,
+    void copy_to_table(osmid_t const id, geometry_processor::wkb_t const &geom,
                        taglist_t &tags);
 
     std::unique_ptr<tagtransform_t> m_tagtransform;

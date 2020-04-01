@@ -89,7 +89,8 @@ struct middle_pgsql_t : public slim_middle_t
         char const *name() const { return m_copy_target->name.c_str(); }
         void clear_array_indexes() { m_array_indexes.clear(); }
 
-        void stop(std::string conninfo, bool droptemp, bool build_indexes);
+        void stop(std::string const &conninfo, bool droptemp,
+                  bool build_indexes);
 
         std::string m_create;
         std::string m_prepare_query;

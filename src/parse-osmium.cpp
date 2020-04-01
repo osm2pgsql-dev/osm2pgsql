@@ -67,7 +67,7 @@ void parse_stats_t::print_status()
         m_rel.count, count_per_second(m_rel.count, rels_time(now)));
 }
 
-parse_osmium_t::parse_osmium_t(const boost::optional<std::string> &bbox,
+parse_osmium_t::parse_osmium_t(boost::optional<std::string> const &bbox,
                                bool do_append, osmdata_t *osmdata)
 : m_data(osmdata), m_append(do_append)
 {
@@ -76,7 +76,7 @@ parse_osmium_t::parse_osmium_t(const boost::optional<std::string> &bbox,
     }
 }
 
-osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
+osmium::Box parse_osmium_t::parse_bbox(boost::optional<std::string> const &bbox)
 {
     double minx, maxx, miny, maxy;
     int const n =
@@ -102,8 +102,8 @@ osmium::Box parse_osmium_t::parse_bbox(const boost::optional<std::string> &bbox)
     return osmium::Box(minx, miny, maxx, maxy);
 }
 
-void parse_osmium_t::stream_file(const std::string &filename,
-                                 const std::string &fmt)
+void parse_osmium_t::stream_file(std::string const &filename,
+                                 std::string const &fmt)
 {
     std::string const &osmium_format = (fmt == "auto" ? "" : fmt);
     osmium::io::File infile{filename, osmium_format};

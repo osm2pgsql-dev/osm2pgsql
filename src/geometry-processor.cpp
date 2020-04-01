@@ -11,7 +11,7 @@
 #include <stdexcept>
 
 std::shared_ptr<geometry_processor>
-geometry_processor::create(const std::string &type, const options_t *options)
+geometry_processor::create(std::string const &type, options_t const *options)
 {
     std::shared_ptr<geometry_processor> ptr;
 
@@ -31,7 +31,7 @@ geometry_processor::create(const std::string &type, const options_t *options)
     return ptr;
 }
 
-geometry_processor::geometry_processor(int srid, const std::string &type,
+geometry_processor::geometry_processor(int srid, std::string const &type,
                                        unsigned int interests)
 : m_srid(srid), m_type(type), m_interests(interests)
 {}
@@ -53,13 +53,13 @@ geometry_processor::wkb_t
 geometry_processor::process_node(osmium::Location const &,
                                  geom::osmium_builder_t *)
 {
-    return wkb_t();
+    return wkb_t{};
 }
 
 geometry_processor::wkb_t
 geometry_processor::process_way(osmium::Way const &, geom::osmium_builder_t *)
 {
-    return wkb_t();
+    return wkb_t{};
 }
 
 geometry_processor::wkbs_t
@@ -67,7 +67,7 @@ geometry_processor::process_relation(osmium::Relation const &,
                                      osmium::memory::Buffer const &,
                                      geom::osmium_builder_t *)
 {
-    return wkbs_t();
+    return wkbs_t{};
 }
 
 relation_helper::relation_helper()
@@ -82,9 +82,7 @@ size_t relation_helper::set(osmium::Relation const &rel,
     roles.clear();
 
     // get the nodes and roles of the ways
-    auto num_ways = mid->rel_way_members_get(rel, &roles, data);
-
-    return num_ways;
+    return mid->rel_way_members_get(rel, &roles, data);
 }
 
 void relation_helper::add_way_locations(middle_query_t const *mid)

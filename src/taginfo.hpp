@@ -22,7 +22,7 @@ struct Column
     ColumnType type;
 };
 
-typedef std::vector<Column> columns_t;
+using columns_t = std::vector<Column>;
 
 /* Table columns, representing key= tags */
 struct taginfo;

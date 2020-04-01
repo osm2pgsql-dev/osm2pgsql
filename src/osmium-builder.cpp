@@ -12,8 +12,8 @@ namespace {
 inline double distance(osmium::geom::Coordinates p1,
                        osmium::geom::Coordinates p2)
 {
-    double dx = p1.x - p2.x;
-    double dy = p1.y - p2.y;
+    double const dx = p1.x - p2.x;
+    double const dy = p1.y - p2.y;
     return std::sqrt(dx * dx + dy * dy);
 }
 
@@ -21,14 +21,14 @@ inline osmium::geom::Coordinates interpolate(osmium::geom::Coordinates p1,
                                              osmium::geom::Coordinates p2,
                                              double frac)
 {
-    return osmium::geom::Coordinates(frac * (p1.x - p2.x) + p2.x,
-                                     frac * (p1.y - p2.y) + p2.y);
+    return osmium::geom::Coordinates{frac * (p1.x - p2.x) + p2.x,
+                                     frac * (p1.y - p2.y) + p2.y};
 }
 
 template <typename ITERATOR>
-inline void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
-                                 ITERATOR const &begin, ITERATOR const &end,
-                                 bool skip_first)
+void add_nodes_to_builder(osmium::builder::WayNodeListBuilder &builder,
+                          ITERATOR const &begin, ITERATOR const &end,
+                          bool skip_first)
 {
     auto it = begin;
     if (skip_first) {
@@ -59,7 +59,7 @@ osmium_builder_t::get_wkb_line(osmium::WayNodeList const &nodes,
 {
     wkbs_t ret;
 
-    bool do_split = split_at > 0.0;
+    bool const do_split = split_at > 0.0;
 
     double dist = 0;
     osmium::geom::Coordinates prev_pt;
@@ -224,7 +224,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
     wkbs_t ret;
 
     size_t done_ways = 0;
-    size_t todo_ways = conns.size();
+    size_t const todo_ways = conns.size();
     for (size_t i = 0; i < todo_ways; ++i) {
         if (!std::get<1>(conns[i]) || (std::get<0>(conns[i]) != NOCONN &&
                                        std::get<2>(conns[i]) != NOCONN)) {
@@ -233,7 +233,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
 
         m_buffer.clear();
         {
-            osmium::builder::WayNodeListBuilder wnl_builder(m_buffer);
+            osmium::builder::WayNodeListBuilder wnl_builder{m_buffer};
             size_t prev = NOCONN;
             size_t cur = i;
 
@@ -241,8 +241,8 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
                 auto &conn = conns[cur];
                 assert(std::get<1>(conn));
                 auto &nl = std::get<1>(conn)->nodes();
-                bool skip_first = prev != NOCONN;
-                bool forward = std::get<0>(conn) == prev;
+                bool const skip_first = prev != NOCONN;
+                bool const forward = std::get<0>(conn) == prev;
                 prev = cur;
                 // add way nodes
                 if (forward) {
@@ -279,7 +279,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
             m_buffer.clear();
 
             {
-                osmium::builder::WayNodeListBuilder wnl_builder(m_buffer);
+                osmium::builder::WayNodeListBuilder wnl_builder{m_buffer};
                 size_t prev = std::get<0>(conns[i]);
                 size_t cur = i;
                 bool skip_first = false;
@@ -287,8 +287,8 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
                 do {
                     auto &conn = conns[cur];
                     assert(std::get<1>(conn));
-                    auto &nl = std::get<1>(conn)->nodes();
-                    bool forward = std::get<0>(conn) == prev;
+                    auto const &nl = std::get<1>(conn)->nodes();
+                    bool const forward = std::get<0>(conn) == prev;
                     prev = cur;
                     if (forward) {
                         // add way forwards
@@ -317,7 +317,7 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
     }
 
     if (split_at <= 0.0 && !ret.empty()) {
-        auto num_lines = ret.size();
+        auto const num_lines = ret.size();
         m_writer.multilinestring_start();
         for (auto const &line : ret) {
             m_writer.add_sub_geometry(line);
@@ -329,11 +329,11 @@ osmium_builder_t::get_wkb_multiline(osmium::memory::Buffer const &ways,
     return ret;
 }
 
-size_t osmium_builder_t::add_mp_points(const osmium::NodeRefList &nodes)
+size_t osmium_builder_t::add_mp_points(osmium::NodeRefList const &nodes)
 {
     size_t num_points = 0;
     osmium::Location last_location;
-    for (const osmium::NodeRef &node_ref : nodes) {
+    for (auto const &node_ref : nodes) {
         if (node_ref.location().valid() &&
             last_location != node_ref.location()) {
             last_location = node_ref.location();
@@ -350,7 +350,7 @@ osmium_builder_t::create_multipolygon(osmium::Area const &area)
 {
     wkb_t ret;
 
-    auto polys = create_polygons(area);
+    auto const polys = create_polygons(area);
 
     switch (polys.size()) {
     case 0:
@@ -378,9 +378,9 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
     try {
         size_t num_rings = 0;
 
-        for (const auto &item : area) {
+        for (auto const &item : area) {
             if (item.type() == osmium::item_type::outer_ring) {
-                auto const &ring = static_cast<const osmium::OuterRing &>(item);
+                auto const &ring = static_cast<osmium::OuterRing const &>(item);
                 if (num_rings > 0) {
                     ret.push_back(m_writer.polygon_finish(num_rings));
                     num_rings = 0;
@@ -391,7 +391,7 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
                 m_writer.polygon_ring_finish(num_points);
                 ++num_rings;
             } else if (item.type() == osmium::item_type::inner_ring) {
-                auto const &ring = static_cast<const osmium::InnerRing &>(item);
+                auto const &ring = static_cast<osmium::InnerRing const &>(item);
                 m_writer.polygon_ring_start();
                 auto const num_points = add_mp_points(ring);
                 m_writer.polygon_ring_finish(num_points);
@@ -404,7 +404,7 @@ osmium_builder_t::create_polygons(osmium::Area const &area)
             ret.push_back(wkb);
         }
 
-    } catch (const osmium::geometry_error &) { /* ignored */
+    } catch (osmium::geometry_error const &) { /* ignored */
     }
 
     return ret;

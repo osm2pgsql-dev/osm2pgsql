@@ -10,12 +10,12 @@
 
 #include <osmium/util/string.hpp>
 
-static const std::map<std::string, unsigned> tagflags = {
+static std::map<std::string, unsigned> const tagflags = {
     {"polygon", FLAG_POLYGON}, {"linear", FLAG_LINEAR},
     {"nocache", FLAG_NOCACHE}, {"delete", FLAG_DELETE},
     {"phstore", FLAG_PHSTORE}, {"nocolumn", FLAG_NOCOLUMN}};
 
-static const std::map<std::string, unsigned> tagtypes = {
+static std::map<std::string, unsigned> const tagtypes = {
     {"smallint", FLAG_INT_TYPE}, {"integer", FLAG_INT_TYPE},
     {"bigint", FLAG_INT_TYPE},   {"int2", FLAG_INT_TYPE},
     {"int4", FLAG_INT_TYPE},     {"int8", FLAG_INT_TYPE},
@@ -23,11 +23,11 @@ static const std::map<std::string, unsigned> tagtypes = {
 
 taginfo::taginfo() : name(), type(), flags(0) {}
 
-taginfo::taginfo(const taginfo &other)
+taginfo::taginfo(taginfo const &other)
 : name(other.name), type(other.type), flags(other.flags)
 {}
 
-void export_list::add(osmium::item_type id, const taginfo &info)
+void export_list::add(osmium::item_type id, taginfo const &info)
 {
     std::vector<taginfo> &infos = get(id);
     infos.push_back(info);
@@ -42,7 +42,7 @@ std::vector<taginfo> &export_list::get(osmium::item_type id)
     return exportList[idx];
 }
 
-const std::vector<taginfo> &export_list::get(osmium::item_type id) const
+std::vector<taginfo> const &export_list::get(osmium::item_type id) const
 {
     // this fakes as if we have infinite taginfo vectors, but
     // means we don't actually have anything allocated unless
@@ -103,7 +103,7 @@ unsigned parse_tag_flags(std::string const &flags, int lineno)
     return temp_flags;
 }
 
-int read_style_file(const std::string &filename, export_list *exlist)
+int read_style_file(std::string const &filename, export_list *exlist)
 {
     FILE *in;
     int lineno = 0;

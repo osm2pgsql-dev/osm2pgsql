@@ -16,8 +16,8 @@ namespace geom {
 class osmium_builder_t
 {
 public:
-    typedef std::string wkb_t;
-    typedef std::vector<std::string> wkbs_t;
+    using wkb_t = std::string;
+    using wkbs_t = std::vector<std::string>;
 
     explicit osmium_builder_t(std::shared_ptr<reprojection> const &proj)
     : m_proj(proj), m_buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -38,7 +38,7 @@ public:
 private:
     wkb_t create_multipolygon(osmium::Area const &area);
     wkbs_t create_polygons(osmium::Area const &area);
-    size_t add_mp_points(const osmium::NodeRefList &nodes);
+    size_t add_mp_points(osmium::NodeRefList const &nodes);
 
     std::shared_ptr<reprojection> m_proj;
     // internal buffer for creating areas

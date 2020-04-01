@@ -173,15 +173,15 @@ void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
     m_sql_conn.exec(sql_cmd);
 }
 
-void middle_pgsql_t::table_desc::stop(std::string conninfo, bool droptemp,
-                                      bool build_indexes)
+void middle_pgsql_t::table_desc::stop(std::string const &conninfo,
+                                      bool droptemp, bool build_indexes)
 {
     fmt::print(stderr, "Stopping table: {}\n", name());
     util::timer_t timer;
 
     // Use a temporary connection here because we might run in a separate
     // thread context.
-    pg_conn_t sql_conn(conninfo);
+    pg_conn_t sql_conn{conninfo};
 
     if (droptemp) {
         sql_conn.exec("DROP TABLE {}"_format(name()));
@@ -238,7 +238,7 @@ void pgsql_parse_tags(char const *string, osmium::memory::Buffer &buffer,
 
     char key[1024];
     char val[1024];
-    osmium::builder::TagListBuilder builder(buffer, &obuilder);
+    osmium::builder::TagListBuilder builder{buffer, &obuilder};
 
     while (*string != '}') {
         string = decode_upto(string, key);
@@ -261,7 +261,7 @@ void pgsql_parse_members(char const *string, osmium::memory::Buffer &buffer,
     }
 
     char role[1024];
-    osmium::builder::RelationMemberListBuilder builder(buffer, &obuilder);
+    osmium::builder::RelationMemberListBuilder builder{buffer, &obuilder};
 
     while (*string != '}') {
         char type = string[0];
@@ -281,7 +281,7 @@ void pgsql_parse_nodes(char const *string, osmium::memory::Buffer &buffer,
                        osmium::builder::WayBuilder &builder)
 {
     if (*string++ == '{') {
-        osmium::builder::WayNodeListBuilder wnl_builder(buffer, &builder);
+        osmium::builder::WayNodeListBuilder wnl_builder{buffer, &builder};
         while (*string != '}') {
             char *ptr;
             wnl_builder.add_node_ref(strtoosmid(string, &ptr, 10));
@@ -324,13 +324,13 @@ size_t
 middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 {
     size_t count = 0;
-    std::string buffer("{");
+    std::string buffer{"{"};
 
     // get nodes where possible from cache,
     // at the same time build a list for querying missing nodes from DB
     size_t pos = 0;
     for (auto &n : *nodes) {
-        auto loc = m_cache->get(n.ref());
+        auto const loc = m_cache->get(n.ref());
         if (loc.valid()) {
             n.set_location(loc);
             ++count;
@@ -359,7 +359,7 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     }
 
     for (auto &n : *nodes) {
-        auto el = locs.find(n.ref());
+        auto const el = locs.find(n.ref());
         if (el != locs.end()) {
             n.set_location(el->second);
             ++count;
@@ -394,7 +394,7 @@ size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(osm_id, osmium::Location());
+        persistent_cache->set(osm_id, osmium::Location{});
     } else {
         m_db_copy.new_line(tables[NODE_TABLE].m_copy_target);
         m_db_copy.delete_object(osm_id);
@@ -450,7 +450,7 @@ bool middle_query_pgsql_t::ways_get(osmid_t id,
     }
 
     {
-        osmium::builder::WayBuilder builder(buffer);
+        osmium::builder::WayBuilder builder{buffer};
         builder.set_id(id);
 
         pgsql_parse_nodes(res.get_value(0, 0), buffer, builder);
@@ -468,7 +468,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                                           osmium::memory::Buffer &buffer) const
 {
     // create a list of ids in id_list to query the database
-    std::string id_list("{");
+    std::string id_list{"{"};
     for (auto const &m : rel.members()) {
         if (m.type() == osmium::item_type::way) {
             fmt::format_to(std::back_inserter(id_list), "{},", m.ref());
@@ -497,7 +497,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
         for (int j = 0; j < res.num_tuples(); ++j) {
             if (m.ref() == wayidspg[j]) {
                 {
-                    osmium::builder::WayBuilder builder(buffer);
+                    osmium::builder::WayBuilder builder{buffer};
                     builder.set_id(m.ref());
 
                     pgsql_parse_nodes(res.get_value(j, 1), buffer, builder);
@@ -508,7 +508,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
                 if (roles) {
                     roles->emplace_back(m.role());
                 }
-                outres++;
+                ++outres;
                 break;
             }
         }
@@ -601,7 +601,7 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
     }
 
     {
-        osmium::builder::RelationBuilder builder(buffer);
+        osmium::builder::RelationBuilder builder{buffer};
         builder.set_id(id);
 
         pgsql_parse_members(res.get_value(0, 0), buffer, builder);
@@ -680,8 +680,8 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    ways_pending_tracker.reset(new id_tracker());
-    rels_pending_tracker.reset(new id_tracker());
+    ways_pending_tracker.reset(new id_tracker{});
+    rels_pending_tracker.reset(new id_tracker{});
 
     // Gazetter doesn't use mark-pending processing and consequently
     // needs no way-node index.
@@ -754,14 +754,14 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : append(options->append), mark_pending(true), out_options(options),
-  cache(new node_ram_cache(options->alloc_chunkwise | ALLOC_LOSSY,
-                           options->cache)),
+  cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
+                           options->cache}),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
 {
     if (options->flat_node_cache_enabled) {
-        persistent_cache.reset(new node_persistent_cache(options, cache));
+        persistent_cache.reset(new node_persistent_cache{options, cache});
     }
 
     fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);

@@ -58,7 +58,7 @@ class parse_stats_t
 public:
     parse_stats_t() : m_last_print_time(std::time(nullptr)) {}
 
-    void update(const parse_stats_t &other);
+    void update(parse_stats_t const &other);
     void print_summary() const;
     void print_status();
 
@@ -130,10 +130,10 @@ private:
 class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(const boost::optional<std::string> &bbox, bool do_append,
+    parse_osmium_t(boost::optional<std::string> const &bbox, bool do_append,
                    osmdata_t *osmdata);
 
-    void stream_file(const std::string &filename, const std::string &fmt);
+    void stream_file(std::string const &filename, std::string const &fmt);
 
     void node(osmium::Node const &node);
     void way(osmium::Way &way);
@@ -142,7 +142,7 @@ public:
     parse_stats_t const &stats() const { return m_stats; }
 
 private:
-    osmium::Box parse_bbox(const boost::optional<std::string> &bbox);
+    osmium::Box parse_bbox(boost::optional<std::string> const &bbox);
 
     osmdata_t *m_data;
     bool m_append;

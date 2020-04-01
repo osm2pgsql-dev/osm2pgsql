@@ -120,7 +120,7 @@ void output_pgsql_t::pending_way(osmid_t id, int exists)
             // TODO: this now only has an effect when called from the iterate_ways
             // call-back, so we need some alternative way to trigger this within
             // osmdata_t.
-            const idlist_t rel_ids = m_mid->relations_using_way(id);
+            idlist_t const rel_ids = m_mid->relations_using_way(id);
             for (auto &mid : rel_ids) {
                 rels_pending_tracker.mark(mid);
             }
@@ -200,7 +200,7 @@ void output_pgsql_t::pending_relation(osmid_t id, int exists)
 
 void output_pgsql_t::commit()
 {
-    for (const auto &t : m_tables) {
+    for (auto const &t : m_tables) {
         t->commit();
     }
 }
@@ -323,7 +323,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
 void output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
-    char const *type = rel.tags()["type"];
+    char const *const type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
     if (!type) {
@@ -517,7 +517,7 @@ size_t output_pgsql_t::pending_count() const
 
 void output_pgsql_t::merge_pending_relations(output_t *other)
 {
-    auto opgsql = dynamic_cast<output_pgsql_t *>(other);
+    auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
         osmid_t id;
         while (id_tracker::is_valid(
@@ -526,9 +526,10 @@ void output_pgsql_t::merge_pending_relations(output_t *other)
         }
     }
 }
+
 void output_pgsql_t::merge_expire_trees(output_t *other)
 {
-    auto *opgsql = dynamic_cast<output_pgsql_t *>(other);
+    auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
         expire.merge_and_destroy(opgsql->expire);
     }
