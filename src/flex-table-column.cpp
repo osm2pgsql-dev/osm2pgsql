@@ -82,58 +82,58 @@ std::string flex_table_column_t::sql_type_name(int srid) const
         return m_type_name;
         break;
     case table_column_type::text:
-        return "TEXT";
+        return "text";
         break;
     case table_column_type::boolean:
-        return "BOOLEAN";
+        return "boolean";
         break;
     case table_column_type::int2:
-        return "INT2";
+        return "int2";
         break;
     case table_column_type::int4:
-        return "INT4";
+        return "int4";
         break;
     case table_column_type::int8:
-        return "INT8";
+        return "int8";
         break;
     case table_column_type::real:
-        return "REAL";
+        return "real";
         break;
     case table_column_type::hstore:
-        return "HSTORE";
+        return "hstore";
         break;
     case table_column_type::direction:
-        return "INT2";
+        return "int2";
         break;
     case table_column_type::geometry:
-        return "GEOMETRY(GEOMETRY, {})"_format(srid);
+        return "Geometry(GEOMETRY, {})"_format(srid);
         break;
     case table_column_type::point:
-        return "GEOMETRY(POINT, {})"_format(srid);
+        return "Geometry(POINT, {})"_format(srid);
         break;
     case table_column_type::linestring:
-        return "GEOMETRY(LINESTRING, {})"_format(srid);
+        return "Geometry(LINESTRING, {})"_format(srid);
         break;
     case table_column_type::polygon:
-        return "GEOMETRY(POLYGON, {})"_format(srid);
+        return "Geometry(POLYGON, {})"_format(srid);
         break;
     case table_column_type::multipoint:
-        return "GEOMETRY(MULTIPOINT, {})"_format(srid);
+        return "Geometry(MULTIPOINT, {})"_format(srid);
         break;
     case table_column_type::multilinestring:
-        return "GEOMETRY(MULTILINESTRING, {})"_format(srid);
+        return "Geometry(MULTILINESTRING, {})"_format(srid);
         break;
     case table_column_type::multipolygon:
-        return "GEOMETRY(MULTIPOLYGON, {})"_format(srid);
+        return "Geometry(MULTIPOLYGON, {})"_format(srid);
         break;
     case table_column_type::area:
-        return "REAL";
+        return "real";
         break;
     case table_column_type::id_type:
-        return "CHAR(1)";
+        return "char(1)";
         break;
     case table_column_type::id_num:
-        return "INT8";
+        return "int8";
         break;
     }
     throw std::runtime_error{"Unknown column type"};
