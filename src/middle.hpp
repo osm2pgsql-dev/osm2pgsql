@@ -22,7 +22,7 @@
  */
 struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 {
-    virtual ~middle_query_t() = default;
+    virtual ~middle_query_t() = 0;
 
     /**
      * Retrieves node locations for the given node list.
@@ -75,12 +75,14 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
     virtual idlist_t relations_using_way(osmid_t way_id) const = 0;
 };
 
+inline middle_query_t::~middle_query_t() = default;
+
 /**
  * Interface for storing raw OSM data in an intermediate cache.
  */
 struct middle_t
 {
-    virtual ~middle_t() = default;
+    virtual ~middle_t() = 0;
 
     virtual void start() = 0;
     virtual void stop(osmium::thread::Pool &pool) = 0;
@@ -111,13 +113,15 @@ struct middle_t
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };
 
+inline middle_t::~middle_t() = default;
+
 /**
  * Extended interface for permanent caching of raw OSM data.
  * It also allows updates.
  */
 struct slim_middle_t : public middle_t
 {
-    virtual ~slim_middle_t() = default;
+    virtual ~slim_middle_t() = 0;
 
     virtual void nodes_delete(osmid_t id) = 0;
     virtual void node_changed(osmid_t id) = 0;
@@ -128,5 +132,7 @@ struct slim_middle_t : public middle_t
     virtual void relations_delete(osmid_t id) = 0;
     virtual void relation_changed(osmid_t id) = 0;
 };
+
+inline slim_middle_t::~slim_middle_t() = default;
 
 #endif // OSM2PGSQL_MIDDLE_HPP
