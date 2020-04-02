@@ -15,7 +15,7 @@
 
 #include "middle.hpp"
 
-struct node_ram_cache;
+class node_ram_cache;
 struct options_t;
 
 template <typename T, size_t N>
