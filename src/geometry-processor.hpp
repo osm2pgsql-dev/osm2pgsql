@@ -21,8 +21,8 @@ struct geometry_processor
     using wkb_t = geom::osmium_builder_t::wkb_t;
     using wkbs_t = geom::osmium_builder_t::wkbs_t;
     // factory method for creating various types of geometry processors either by name or by geometry column type
-    static std::shared_ptr<geometry_processor> create(const std::string &type,
-                                                      const options_t *options);
+    static std::shared_ptr<geometry_processor> create(std::string const &type,
+                                                      options_t const *options);
 
     virtual ~geometry_processor();
 
@@ -37,14 +37,14 @@ struct geometry_processor
 
     // return bit-mask of the type of elements this processor is
     // interested in.
-    unsigned int interests() const;
+    unsigned int interests() const noexcept;
 
     // return true if provided intrest is an interest of this processor
-    bool interests(unsigned int interested) const;
+    bool interests(unsigned int interested) const noexcept;
 
     // the postgis column type for the kind of geometry (i.e: POINT,
     // LINESTRING, etc...) that this processor outputs
-    const std::string &column_type() const;
+    std::string const &column_type() const noexcept;
 
     // process a node, optionally returning a WKB string describing
     // geometry to be inserted into the table.
@@ -65,20 +65,20 @@ struct geometry_processor
                                     geom::osmium_builder_t *builder);
 
     // returns the SRID of the output geometry.
-    int srid() const;
+    int srid() const noexcept;
 
 protected:
     // SRID of the geometry output
-    const int m_srid;
+    int const m_srid;
 
     // WKT type of the geometry output
-    const std::string m_type;
+    std::string const m_type;
 
     // mask of elements that this processor is interested in
-    const unsigned int m_interests;
+    unsigned int const m_interests;
 
     // constructor for use by implementing classes only
-    geometry_processor(int srid, const std::string &type,
+    geometry_processor(int srid, std::string const &type,
                        unsigned int interests);
 };
 

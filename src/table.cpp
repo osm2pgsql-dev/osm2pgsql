@@ -294,7 +294,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     fmt::print(stderr, "Completed {}\n", m_target->name);
 }
 
-void table_t::delete_row(const osmid_t id)
+void table_t::delete_row(osmid_t const id)
 {
     m_copy.new_line(m_target);
     m_copy.delete_object(id);
@@ -369,7 +369,7 @@ void table_t::write_tags_column(taglist_t const &tags,
 }
 
 /* write an hstore column to the database */
-void table_t::write_hstore_columns(const taglist_t &tags)
+void table_t::write_hstore_columns(taglist_t const &tags)
 {
     //iterate over all configured hstore columns in the options
     for (auto const &hstore_column : hstore_columns) {
@@ -403,7 +403,7 @@ void table_t::write_hstore_columns(const taglist_t &tags)
 }
 
 /* Escape data appropriate to the type */
-void table_t::escape_type(const std::string &value, ColumnType flags)
+void table_t::escape_type(std::string const &value, ColumnType flags)
 {
     switch (flags) {
     case COLUMN_TYPE_INT: {
@@ -467,7 +467,7 @@ void table_t::escape_type(const std::string &value, ColumnType flags)
     }
 }
 
-table_t::wkb_reader table_t::get_wkb_reader(const osmid_t id)
+table_t::wkb_reader table_t::get_wkb_reader(osmid_t const id)
 {
     util::integer_to_buffer tmp{id};
     char const *param_values[] = {tmp.c_str()};

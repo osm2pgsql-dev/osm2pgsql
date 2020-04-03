@@ -36,7 +36,7 @@ namespace pt = boost::property_tree;
 namespace {
 
 template <typename T>
-void override_if(T &t, const std::string &key, const pt::ptree &conf)
+void override_if(T &t, std::string const &key, pt::ptree const &conf)
 {
     boost::optional<T> opt = conf.get_optional<T>(key);
     if (opt) {
@@ -52,8 +52,8 @@ parse_multi_single(pt::ptree const &conf,
 {
     options_t new_opts = options;
 
-    std::string name = conf.get<std::string>("name");
-    std::string proc_type = conf.get<std::string>("type");
+    auto const name = conf.get<std::string>("name");
+    auto const proc_type = conf.get<std::string>("type");
 
     auto const opt_script = conf.get_optional<std::string>("tagtransform");
     if (opt_script) {
@@ -83,7 +83,7 @@ parse_multi_single(pt::ptree const &conf,
     boost::optional<const pt::ptree &> hstores =
         conf.get_child_optional("hstores");
     if (hstores) {
-        for (const pt::ptree::value_type &val : *hstores) {
+        for (pt::ptree::value_type const &val : *hstores) {
             hstore_columns.push_back(val.second.get_value<std::string>());
         }
     }
@@ -99,14 +99,14 @@ parse_multi_single(pt::ptree const &conf,
             : osmium::item_type::way;
 
     export_list columns;
-    const pt::ptree &tags = conf.get_child("tags");
-    for (const pt::ptree::value_type &val : tags) {
-        const pt::ptree &tag = val.second;
+    pt::ptree const &tags = conf.get_child("tags");
+    for (pt::ptree::value_type const &val : tags) {
+        pt::ptree const &tag = val.second;
         taginfo info;
         info.name = tag.get<std::string>("name");
         info.type = tag.get<std::string>("type");
-        std::string flags =
-            tag.get_optional<std::string>("flags").get_value_or(std::string());
+        std::string const flags =
+            tag.get_optional<std::string>("flags").get_value_or(std::string{});
         // TODO: we fake the line number here - any way to get the right one
         // from the JSON parser?
         info.flags = parse_tag_flags(flags, -1);
@@ -130,18 +130,18 @@ parse_multi_config(std::shared_ptr<middle_query_t> const &mid,
                                  "but was not specified."};
     }
 
-    const std::string file_name(options.style);
+    std::string const file_name{options.style};
 
     try {
         pt::ptree conf;
         pt::read_json(file_name, conf);
 
-        for (const pt::ptree::value_type &val : conf) {
+        for (pt::ptree::value_type const &val : conf) {
             outputs.push_back(
                 parse_multi_single(val.second, mid, options, copy_thread));
         }
 
-    } catch (const std::exception &e) {
+    } catch (std::exception const &e) {
         throw std::runtime_error{
             "Unable to parse multi config file `{}': {}"_format(file_name,
                                                                 e.what())};
@@ -199,7 +199,7 @@ output_t::~output_t() = default;
 
 size_t output_t::pending_count() const { return 0; }
 
-const options_t *output_t::get_options() const { return &m_options; }
+options_t const *output_t::get_options() const { return &m_options; }
 
 void output_t::merge_pending_relations(output_t *) {}
 

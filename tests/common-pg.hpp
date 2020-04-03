@@ -91,9 +91,11 @@ public:
             local.exec("CREATE EXTENSION postgis");
             local.exec("CREATE EXTENSION hstore");
         } catch (std::runtime_error const &e) {
-            fprintf(stderr, "Test database cannot be created: %s\n", e.what());
-            fprintf(stderr, "Did you mean to run 'pg_virtualenv ctest'?\n");
-            exit(1);
+            fmt::print(stderr,
+                       "Test database cannot be created: {}\n"
+                       "Did you mean to run 'pg_virtualenv ctest'?\n",
+                       e.what());
+            std::exit(1);
         }
     }
 

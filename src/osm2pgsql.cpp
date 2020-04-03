@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
                    timer_overall.stop());
 
         return 0;
-    } catch (const std::runtime_error &e) {
+    } catch (std::runtime_error const &e) {
         fmt::print(stderr, "Osm2pgsql failed due to ERROR: {}\n", e.what());
         exit(EXIT_FAILURE);
     }

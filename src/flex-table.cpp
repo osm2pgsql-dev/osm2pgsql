@@ -21,7 +21,7 @@ char const *type_to_char(osmium::item_type type) noexcept
     return "X";
 }
 
-static std::string tablespace_clause(const std::string &tablespace)
+static std::string tablespace_clause(std::string const &tablespace)
 {
     if (tablespace.empty()) {
         return "";

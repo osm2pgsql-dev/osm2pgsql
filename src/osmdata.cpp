@@ -217,7 +217,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
 
     //starts up count threads and works on the queue
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
-                               const output_vec_t &outs, size_t thread_count,
+                               output_vec_t const &outs, size_t thread_count,
                                int append)
     //note that we cant hint to the stack how large it should be ahead of time
     //we could use a different datastructure like a deque or vector but then
@@ -234,7 +234,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
 
             //clone the outs
             output_vec_t out_clones;
-            for (const auto &out : outs) {
+            for (auto const &out : outs) {
                 out_clones.push_back(out->clone(midq, copy_thread));
             }
 

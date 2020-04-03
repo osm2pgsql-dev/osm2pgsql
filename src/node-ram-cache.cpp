@@ -105,9 +105,9 @@ void node_ram_cache::set_sparse(osmid_t id, osmium::Location location)
     sparseBlock[sizeSparseTuples].id = id;
     sparseBlock[sizeSparseTuples].coord = location;
 
-    sizeSparseTuples++;
+    ++sizeSparseTuples;
     cacheUsed += sizeof(ramNodeID);
-    storedNodes++;
+    ++storedNodes;
 }
 
 void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
@@ -151,7 +151,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
                 } else {
                     /* previous block was not dense enough, so push it into the sparse
                      * node cache instead */
-                    for (int i = 0; i < (1 << BLOCK_SHIFT); i++) {
+                    for (int i = 0; i < (1 << BLOCK_SHIFT); ++i) {
                         if (queue[usedBlocks - 1]->nodes[i].valid()) {
                             set_sparse(
                                 block2id(queue[usedBlocks - 1]->block_offset,
@@ -181,7 +181,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
                 util::exit_nicely();
             }
             queue[usedBlocks] = &blocks[block];
-            usedBlocks++;
+            ++usedBlocks;
             cacheUsed += per_block() * sizeof(osmium::Location);
 
             /* If we've just used up the last possible block we enter the
@@ -251,7 +251,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
                            "WARNING: Found Out of order node {}"
                            " ({},{}) - this will impact the cache efficiency\n",
                            id, block, offset);
-                warn_node_order++;
+                ++warn_node_order;
             }
             return;
         }
@@ -259,7 +259,7 @@ void node_ram_cache::set_dense(osmid_t id, osmium::Location location)
 
     blocks[block].nodes[offset] = location;
     blocks[block].inc_used();
-    storedNodes++;
+    ++storedNodes;
 }
 
 osmium::Location node_ram_cache::get_sparse(osmid_t id) const
@@ -427,7 +427,7 @@ void node_ram_cache::set(osmid_t id, osmium::Location location)
                    (int64_t)1 << 42U, id);
         util::exit_nicely();
     }
-    totalNodes++;
+    ++totalNodes;
     /* if ALLOC_DENSE and ALLOC_SPARSE are set, send it through
      * ram_nodes_set_dense. If a block is non dense, it will automatically
      * get pushed to the sparse cache if a block is sparse and ALLOC_SPARSE is set

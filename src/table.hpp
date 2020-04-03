@@ -14,16 +14,16 @@
 
 #include <boost/optional.hpp>
 
-typedef std::vector<std::string> hstores_t;
+using hstores_t = std::vector<std::string>;
 
 class table_t
 {
 public:
     table_t(std::string const &name, std::string const &type,
             columns_t const &columns, hstores_t const &hstore_columns,
-            const int srid, const bool append, const int hstore_mode,
+            int const srid, bool const append, int const hstore_mode,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
-    table_t(const table_t &other,
+    table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
     void start(std::string const &conninfo,
@@ -34,7 +34,7 @@ public:
     void commit();
 
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
-    void delete_row(const osmid_t id);
+    void delete_row(osmid_t const id);
 
     // interface for retrieving well known binary geometry from the table
     class wkb_reader
@@ -50,7 +50,7 @@ public:
             return nullptr;
         }
 
-        int get_count() const { return m_count; }
+        int get_count() const noexcept { return m_count; }
 
     private:
         wkb_reader(pg_result_t &&result)
@@ -62,7 +62,7 @@ public:
         int m_count;
         int m_current;
     };
-    wkb_reader get_wkb_reader(const osmid_t id);
+    wkb_reader get_wkb_reader(osmid_t const id);
 
 protected:
     void connect();

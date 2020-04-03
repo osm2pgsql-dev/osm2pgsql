@@ -90,7 +90,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -103,7 +103,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
         popped = ways_pending_tracker.pop_mark();
     }
@@ -113,7 +113,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
         if (!ways_done_tracker->is_marked(popped) &&
             id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -143,7 +143,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -155,7 +155,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //get all the ones up to the id that was passed in
     while (popped < id) {
         job_queue.push(pending_job_t(popped, output_id));
-        added++;
+        ++added;
         popped = rels_pending_tracker.pop_mark();
     }
 
@@ -163,7 +163,7 @@ void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     if (popped > id) {
         if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -379,7 +379,7 @@ void output_multi_t::process_relation(osmium::Relation const &rel, bool exists)
             m_relation_helper.add_way_locations(m_mid.get());
             auto const geoms = m_processor->process_relation(
                 rel, m_relation_helper.data, &m_builder);
-            for (const auto &geom : geoms) {
+            for (auto const &geom : geoms) {
                 copy_to_table(-rel.id(), geom, outtags);
             }
         }
@@ -401,7 +401,7 @@ void output_multi_t::copy_node_to_table(osmid_t id, std::string const &geom,
  *
  * \pre geom must be valid.
  */
-void output_multi_t::copy_to_table(const osmid_t id,
+void output_multi_t::copy_to_table(osmid_t const id,
                                    geometry_processor::wkb_t const &geom,
                                    taglist_t &tags)
 {

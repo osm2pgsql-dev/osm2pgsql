@@ -30,7 +30,7 @@ struct pending_job_t
     pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
 };
 
-typedef std::stack<pending_job_t> pending_queue_t;
+using pending_queue_t = std::stack<pending_job_t>;
 
 class output_t
 {

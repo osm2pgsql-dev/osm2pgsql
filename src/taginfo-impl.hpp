@@ -24,7 +24,7 @@ enum column_flags
 struct taginfo
 {
     taginfo();
-    taginfo(const taginfo &);
+    taginfo(taginfo const &);
 
     ColumnType column_type() const
     {
@@ -43,9 +43,9 @@ struct taginfo
 
 struct export_list
 {
-    void add(osmium::item_type id, const taginfo &info);
+    void add(osmium::item_type id, taginfo const &info);
     std::vector<taginfo> &get(osmium::item_type id);
-    const std::vector<taginfo> &get(osmium::item_type id) const;
+    std::vector<taginfo> const &get(osmium::item_type id) const;
 
     columns_t normal_columns(osmium::item_type id) const;
     bool has_column(osmium::item_type id, char const *name) const;
@@ -64,6 +64,6 @@ unsigned parse_tag_flags(std::string const &flags, int lineno);
  * Returns 1 if the 'way_area' column should (implicitly) exist, or
  * 0 if it should be suppressed.
  */
-int read_style_file(const std::string &filename, export_list *exlist);
+int read_style_file(std::string const &filename, export_list *exlist);
 
 #endif // OSM2PGSQL_TAGINFO_IMPL_HPP

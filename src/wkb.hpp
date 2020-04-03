@@ -62,7 +62,7 @@ class writer_t
         return offset;
     }
 
-    void set_size(const size_t offset, const size_t size)
+    void set_size(size_t const offset, size_t const size)
     {
         uint32_t s = static_cast<uint32_t>(size);
         std::copy_n(reinterpret_cast<char *>(&s), sizeof(uint32_t),
@@ -80,7 +80,7 @@ public:
 
     void add_sub_geometry(std::string const &part) { m_data.append(part); }
 
-    void add_location(const osmium::geom::Coordinates &xy)
+    void add_location(osmium::geom::Coordinates const &xy)
     {
         str_push(m_data, xy.x);
         str_push(m_data, xy.y);
@@ -88,7 +88,7 @@ public:
 
     /* Point */
 
-    std::string make_point(const osmium::geom::Coordinates &xy) const
+    std::string make_point(osmium::geom::Coordinates const &xy) const
     {
         std::string data;
         header(data, wkb_point, false);

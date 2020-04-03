@@ -981,7 +981,7 @@ void output_flex_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (!m_ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -994,7 +994,7 @@ void output_flex_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     while (popped < id) {
         if (!m_ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
         popped = m_ways_pending_tracker.pop_mark();
     }
@@ -1004,7 +1004,7 @@ void output_flex_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
         if (!m_ways_done_tracker->is_marked(popped) &&
             id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }

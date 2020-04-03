@@ -21,14 +21,14 @@ class parse_stats_t
         std::time_t start = 0;
         int m_frac;
 
-        Counter(int frac) : m_frac(frac) {
+        Counter(int frac) noexcept : m_frac(frac) {
         }
 
         osmid_t count_k() const noexcept {
             return count / 1000;
         }
 
-        bool add(osmid_t id)
+        bool add(osmid_t id) noexcept
         {
             if (id > max) {
                 max = id;
@@ -41,7 +41,7 @@ class parse_stats_t
             return count % m_frac == 0;
         }
 
-        Counter &operator+=(Counter const &rhs)
+        Counter &operator+=(Counter const &rhs) noexcept
         {
             count += rhs.count;
             if (rhs.max > max) {
@@ -56,9 +56,9 @@ class parse_stats_t
     };
 
 public:
-    parse_stats_t() : m_last_print_time(std::time(nullptr)) {}
+    parse_stats_t() noexcept : m_last_print_time(std::time(nullptr)) {}
 
-    void update(const parse_stats_t &other);
+    void update(parse_stats_t const &other);
     void print_summary() const;
     void print_status();
 
@@ -130,19 +130,19 @@ private:
 class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(const boost::optional<std::string> &bbox, bool do_append,
+    parse_osmium_t(boost::optional<std::string> const &bbox, bool do_append,
                    osmdata_t *osmdata);
 
-    void stream_file(const std::string &filename, const std::string &fmt);
+    void stream_file(std::string const &filename, std::string const &fmt);
 
     void node(osmium::Node const &node);
     void way(osmium::Way &way);
     void relation(osmium::Relation const &rel);
 
-    parse_stats_t const &stats() const { return m_stats; }
+    parse_stats_t const &stats() const noexcept { return m_stats; }
 
 private:
-    osmium::Box parse_bbox(const boost::optional<std::string> &bbox);
+    osmium::Box parse_bbox(boost::optional<std::string> const &bbox);
 
     osmdata_t *m_data;
     bool m_append;

@@ -81,7 +81,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -94,7 +94,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     while (popped < id) {
         if (!ways_done_tracker->is_marked(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
         popped = ways_pending_tracker.pop_mark();
     }
@@ -104,7 +104,7 @@ void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
         if (!ways_done_tracker->is_marked(popped) &&
             id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -120,7 +120,7 @@ void output_pgsql_t::pending_way(osmid_t id, int exists)
             // TODO: this now only has an effect when called from the iterate_ways
             // call-back, so we need some alternative way to trigger this within
             // osmdata_t.
-            const idlist_t rel_ids = m_mid->relations_using_way(id);
+            idlist_t const rel_ids = m_mid->relations_using_way(id);
             for (auto &mid : rel_ids) {
                 rels_pending_tracker.mark(mid);
             }
@@ -155,7 +155,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //make sure we get the one passed in
     if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
-        added++;
+        ++added;
     }
 
     //grab the first one or bail if its not valid
@@ -167,7 +167,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     //get all the ones up to the id that was passed in
     while (popped < id) {
         job_queue.push(pending_job_t(popped, output_id));
-        added++;
+        ++added;
         popped = rels_pending_tracker.pop_mark();
     }
 
@@ -175,7 +175,7 @@ void output_pgsql_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
     if (popped > id) {
         if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
-            added++;
+            ++added;
         }
     }
 }
@@ -200,7 +200,7 @@ void output_pgsql_t::pending_relation(osmid_t id, int exists)
 
 void output_pgsql_t::commit()
 {
-    for (const auto &t : m_tables) {
+    for (auto const &t : m_tables) {
         t->commit();
     }
 }
@@ -323,7 +323,7 @@ void output_pgsql_t::pgsql_process_relation(osmium::Relation const &rel)
 
 void output_pgsql_t::relation_add(osmium::Relation const &rel)
 {
-    char const *type = rel.tags()["type"];
+    char const *const type = rel.tags()["type"];
 
     /* Must have a type field or we ignore it */
     if (!type) {
@@ -447,7 +447,7 @@ output_pgsql_t::output_pgsql_t(
     m_tagtransform = tagtransform_t::make_tagtransform(&m_options, exlist);
 
     //for each table
-    for (size_t i = 0; i < t_MAX; i++) {
+    for (size_t i = 0; i < t_MAX; ++i) {
 
         //figure out the columns this table needs
         columns_t columns = exlist.normal_columns(
@@ -517,7 +517,7 @@ size_t output_pgsql_t::pending_count() const
 
 void output_pgsql_t::merge_pending_relations(output_t *other)
 {
-    auto opgsql = dynamic_cast<output_pgsql_t *>(other);
+    auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
         osmid_t id;
         while (id_tracker::is_valid(
@@ -526,9 +526,10 @@ void output_pgsql_t::merge_pending_relations(output_t *other)
         }
     }
 }
+
 void output_pgsql_t::merge_expire_trees(output_t *other)
 {
-    auto *opgsql = dynamic_cast<output_pgsql_t *>(other);
+    auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);
     if (opgsql) {
         expire.merge_and_destroy(opgsql->expire);
     }
