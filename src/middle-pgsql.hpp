@@ -114,11 +114,11 @@ private:
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
     pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
 
-    table_desc tables[NUM_TABLES];
+    table_desc m_tables[NUM_TABLES];
 
-    bool append;
-    bool mark_pending;
-    options_t const *out_options;
+    bool m_append;
+    bool m_mark_pending;
+    options_t const *m_out_options;
 
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
