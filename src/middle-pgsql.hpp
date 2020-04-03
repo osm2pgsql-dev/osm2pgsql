@@ -120,10 +120,10 @@ private:
     bool mark_pending;
     options_t const *out_options;
 
-    std::shared_ptr<node_ram_cache> cache;
-    std::shared_ptr<node_persistent_cache> persistent_cache;
+    std::shared_ptr<node_ram_cache> m_cache;
+    std::shared_ptr<node_persistent_cache> m_persistent_cache;
 
-    std::shared_ptr<id_tracker> ways_pending_tracker, rels_pending_tracker;
+    std::shared_ptr<id_tracker> m_ways_pending_tracker, m_rels_pending_tracker;
 
     std::unique_ptr<pg_conn_t> m_query_conn;
     // middle keeps its own thread for writing to the database.

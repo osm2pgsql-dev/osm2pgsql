@@ -371,10 +371,10 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
 
 void middle_pgsql_t::nodes_set(osmium::Node const &node)
 {
-    cache->set(node.id(), node.location());
+    m_cache->set(node.id(), node.location());
 
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(node.id(), node.location());
+        m_persistent_cache->set(node.id(), node.location());
     } else {
         m_db_copy.new_line(tables[NODE_TABLE].m_copy_target);
 
@@ -394,7 +394,7 @@ size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache->set(osm_id, osmium::Location{});
+        m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
         m_db_copy.new_line(tables[NODE_TABLE].m_copy_target);
         m_db_copy.delete_object(osm_id);
@@ -411,14 +411,14 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     auto res = exec_prepared("mark_ways_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        ways_pending_tracker->mark(marked);
+        m_ways_pending_tracker->mark(marked);
     }
 
     //do the rels too
     res = exec_prepared("mark_rels_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        rels_pending_tracker->mark(marked);
+        m_rels_pending_tracker->mark(marked);
     }
 }
 
@@ -527,7 +527,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
 {
     // enqueue the jobs
     osmid_t id;
-    while (id_tracker::is_valid(id = ways_pending_tracker->pop_mark())) {
+    while (id_tracker::is_valid(id = m_ways_pending_tracker->pop_mark())) {
         pf.enqueue_ways(id);
     }
     // in case we had higher ones than the middle
@@ -543,7 +543,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        rels_pending_tracker->mark(marked);
+        m_rels_pending_tracker->mark(marked);
     }
 }
 
@@ -619,7 +619,7 @@ void middle_pgsql_t::relations_delete(osmid_t osm_id)
     auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        ways_pending_tracker->mark(marked);
+        m_ways_pending_tracker->mark(marked);
     }
 
     m_db_copy.new_line(tables[REL_TABLE].m_copy_target);
@@ -630,7 +630,7 @@ void middle_pgsql_t::iterate_relations(pending_processor &pf)
 {
     // enqueue the jobs
     osmid_t id;
-    while (id_tracker::is_valid(id = rels_pending_tracker->pop_mark())) {
+    while (id_tracker::is_valid(id = m_rels_pending_tracker->pop_mark())) {
         pf.enqueue_relations(id);
     }
     // in case we had higher ones than the middle
@@ -648,7 +648,7 @@ void middle_pgsql_t::relation_changed(osmid_t osm_id)
     auto const res = exec_prepared("mark_rels", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        rels_pending_tracker->mark(marked);
+        m_rels_pending_tracker->mark(marked);
     }
 }
 
@@ -680,8 +680,8 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    ways_pending_tracker.reset(new id_tracker{});
-    rels_pending_tracker.reset(new id_tracker{});
+    m_ways_pending_tracker.reset(new id_tracker{});
+    m_rels_pending_tracker.reset(new id_tracker{});
 
     // Gazetter doesn't use mark-pending processing and consequently
     // needs no way-node index.
@@ -731,9 +731,9 @@ void middle_pgsql_t::flush() { m_db_copy.sync(); }
 
 void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 {
-    cache.reset();
+    m_cache.reset();
     if (out_options->flat_node_cache_enabled) {
-        persistent_cache.reset();
+        m_persistent_cache.reset();
     }
 
     if (out_options->droptemp) {
@@ -754,14 +754,14 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : append(options->append), mark_pending(true), out_options(options),
-  cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
-                           options->cache}),
+  m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
+                             options->cache}),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
 {
     if (options->flat_node_cache_enabled) {
-        persistent_cache.reset(new node_persistent_cache{options, cache});
+        m_persistent_cache.reset(new node_persistent_cache{options, m_cache});
     }
 
     fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
@@ -811,7 +811,7 @@ middle_pgsql_t::get_query_instance()
     // during that process they are only read from
     std::unique_ptr<middle_query_pgsql_t> mid{
         new middle_query_pgsql_t{out_options->database_options.conninfo(),
-                                 cache, persistent_cache}};
+                                 m_cache, m_persistent_cache}};
 
     // We use a connection per table to enable the use of COPY
     for (auto &table : tables) {
@@ -823,5 +823,5 @@ middle_pgsql_t::get_query_instance()
 
 size_t middle_pgsql_t::pending_count() const
 {
-    return ways_pending_tracker->size() + rels_pending_tracker->size();
+    return m_ways_pending_tracker->size() + m_rels_pending_tracker->size();
 }
