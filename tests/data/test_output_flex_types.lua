@@ -54,6 +54,53 @@ function osm2pgsql.process_node(object)
         table:add_row{ [object.tags.column] = 1 }
         return
     end
+    if object.tags.type == 'string-bool' then
+        table:add_row{ tbool = '1',     ttext = 'istrue' };
+        table:add_row{ tbool = 'yes',   ttext = 'istrue' };
+        table:add_row{ tbool = 'true',  ttext = 'istrue' };
+
+        table:add_row{ tbool = '0',     ttext = 'isfalse' };
+        table:add_row{ tbool = 'no',    ttext = 'isfalse' };
+        table:add_row{ tbool = 'false', ttext = 'isfalse' };
+
+        table:add_row{ tbool = '',    ttext = 'isnull' };
+        table:add_row{ tbool = '2',   ttext = 'isnull' };
+        table:add_row{ tbool = 'YES', ttext = 'isnull' };
+        return
+    end
+    if object.tags.type == 'string-direction' then
+        table:add_row{ tdirn = '1',   tint2 = 1 };
+        table:add_row{ tdirn = 'yes', tint2 = 1 };
+
+        table:add_row{ tdirn = '0',   tint2 = 0 };
+        table:add_row{ tdirn = 'no',  tint2 = 0 };
+
+        table:add_row{ tdirn = '-1',  tint2 = -1 };
+
+        table:add_row{ tdirn = '2',   tint2 = nil };
+        table:add_row{ tdirn = '-2',  tint2 = nil };
+        table:add_row{ tdirn = '',    tint2 = nil };
+        table:add_row{ tdirn = 'FOO', tint2 = nil };
+        return
+    end
+    if object.tags.type == 'string-with-number' then
+        local numbers = { -2^31 - 1, -2^31, -2^31 + 1,
+                          -2^15 - 1, -2^15, -2^15 + 1,
+                          -2, -1, 0, 1, 2,
+                          2^15 - 1, 2^15, 2^15 + 1,
+                          2^31 - 1, 2^31, 2^31 + 1 }
+        for _, n in ipairs(numbers) do
+            table:add_row{
+                ttext = tostring(n),
+                tint2 = tostring(n),
+                tint4 = tostring(n),
+                tint8 = tostring(n),
+                treal = tostring(n),
+                tsqlt = tostring(n),
+            }
+        end
+        return
+    end
     if object.tags.type == 'function-fail' then
         table:add_row{ [object.tags.column] = table.insert }
         return
