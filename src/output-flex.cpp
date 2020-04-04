@@ -208,13 +208,13 @@ static void write_boolean(db_copy_mgr_t<db_deleter_by_type_and_id_t> *copy_mgr,
                           flex_table_column_t const &column, char const *str)
 {
     if ((std::strcmp(str, "yes") == 0) || (std::strcmp(str, "true") == 0) ||
-        std::strcmp(str, "1")) {
+        std::strcmp(str, "1") == 0) {
         copy_mgr->add_column(true);
         return;
     }
 
     if ((std::strcmp(str, "no") == 0) || (std::strcmp(str, "false") == 0) ||
-        std::strcmp(str, "0")) {
+        std::strcmp(str, "0") == 0) {
         copy_mgr->add_column(false);
         return;
     }
@@ -305,7 +305,7 @@ void output_flex_t::write_column(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int2) {
-        if (ltype == LUA_TNUMBER) {
+        if (ltype == LUA_TNUMBER || ltype == LUA_TSTRING) {
             int64_t const value = lua_tointeger(lua_state(), -1);
             if (value >= std::numeric_limits<int16_t>::min() &&
                 value <= std::numeric_limits<int16_t>::max()) {
@@ -321,7 +321,7 @@ void output_flex_t::write_column(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int4) {
-        if (ltype == LUA_TNUMBER) {
+        if (ltype == LUA_TNUMBER || ltype == LUA_TSTRING) {
             int64_t const value = lua_tointeger(lua_state(), -1);
             if (value >= std::numeric_limits<int32_t>::min() &&
                 value <= std::numeric_limits<int32_t>::max()) {
@@ -337,7 +337,7 @@ void output_flex_t::write_column(
                     lua_typename(lua_state(), ltype))};
         }
     } else if (column.type() == table_column_type::int8) {
-        if (ltype == LUA_TNUMBER) {
+        if (ltype == LUA_TNUMBER || ltype == LUA_TSTRING) {
             copy_mgr->add_column(lua_tointeger(lua_state(), -1));
         } else if (ltype == LUA_TBOOLEAN) {
             copy_mgr->add_column(lua_toboolean(lua_state(), -1));
