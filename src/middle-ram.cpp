@@ -35,17 +35,17 @@
 
 void middle_ram_t::nodes_set(osmium::Node const &node)
 {
-    cache->set(node.id(), node.location());
+    m_cache->set(node.id(), node.location());
 }
 
 void middle_ram_t::ways_set(osmium::Way const &way)
 {
-    ways.set(way.id(), new ramWay{way, extra_attributes});
+    m_ways.set(way.id(), new ramWay{way, m_extra_attributes});
 }
 
 void middle_ram_t::relations_set(osmium::Relation const &rel)
 {
-    rels.set(rel.id(), new ramRel{rel, extra_attributes});
+    m_rels.set(rel.id(), new ramRel{rel, m_extra_attributes});
 }
 
 size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
@@ -54,7 +54,7 @@ size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     size_t count = 0;
 
     for (auto &n : *nodes) {
-        auto loc = cache->get(n.ref());
+        auto loc = m_cache->get(n.ref());
         n.set_location(loc);
         if (loc.valid()) {
             ++count;
@@ -88,17 +88,17 @@ void middle_ram_t::iterate_ways(middle_t::pending_processor &pf)
     pf.process_ways();
 }
 
-void middle_ram_t::release_relations() { rels.clear(); }
+void middle_ram_t::release_relations() { m_rels.clear(); }
 
-void middle_ram_t::release_ways() { ways.clear(); }
+void middle_ram_t::release_ways() { m_ways.clear(); }
 
 bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
-    if (simulate_ways_deleted) {
+    if (m_simulate_ways_deleted) {
         return false;
     }
 
-    auto const *ele = ways.get(id);
+    auto const *ele = m_ways.get(id);
 
     if (!ele) {
         return false;
@@ -131,7 +131,7 @@ size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
 bool middle_ram_t::relations_get(osmid_t id,
                                  osmium::memory::Buffer &buffer) const
 {
-    auto const *ele = rels.get(id);
+    auto const *ele = m_rels.get(id);
 
     if (!ele) {
         return false;
@@ -153,7 +153,7 @@ void middle_ram_t::start() {}
 
 void middle_ram_t::stop(osmium::thread::Pool &)
 {
-    cache.reset(nullptr);
+    m_cache.reset(nullptr);
 
     release_ways();
     release_relations();
@@ -162,9 +162,9 @@ void middle_ram_t::stop(osmium::thread::Pool &)
 void middle_ram_t::commit() {}
 
 middle_ram_t::middle_ram_t(options_t const *options)
-: ways(), rels(),
-  cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
-  extra_attributes(options->extra_attributes), simulate_ways_deleted(false)
+: m_ways(), m_rels(),
+  m_cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
+  m_extra_attributes(options->extra_attributes), m_simulate_ways_deleted(false)
 {}
 
 middle_ram_t::~middle_ram_t()

@@ -154,18 +154,18 @@ private:
         }
     };
 
-    elem_cache_t<ramWay, 10> ways;
-    elem_cache_t<ramRel, 10> rels;
+    elem_cache_t<ramWay, 10> m_ways;
+    elem_cache_t<ramRel, 10> m_rels;
 
-    std::unique_ptr<node_ram_cache> cache;
-    bool extra_attributes;
+    std::unique_ptr<node_ram_cache> m_cache;
+    bool m_extra_attributes;
 
     /* the previous behaviour of iterate_ways was to delete all ways as they
      * were being iterated. this doesn't work now that the output handles its
      * own "done" status and output-specific "pending" status. however, the
      * tests depend on the behaviour that ways will be unavailable once
      * iterate_ways is complete, so this flag emulates that. */
-    bool simulate_ways_deleted;
+    bool m_simulate_ways_deleted;
 };
 
 #endif // OSM2PGSQL_MIDDLE_RAM_HPP
