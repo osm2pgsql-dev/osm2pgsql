@@ -6,6 +6,7 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 
+#include "common-cleanup.hpp"
 #include "common-options.hpp"
 #include "common-pg.hpp"
 
@@ -68,13 +69,21 @@ struct options_slim_default
     }
 };
 
-struct options_slim_dense_cache : options_slim_default
+struct options_slim_dense_cache
 {
     static options_t options(pg::tempdb_t const &tmpdb)
     {
         options_t o = options_slim_default::options(tmpdb);
         o.alloc_chunkwise = ALLOC_DENSE;
         return o;
+    }
+};
+
+struct options_flat_node_cache
+{
+    static options_t options(pg::tempdb_t const &tmpdb)
+    {
+        return testing::opt_t().slim(tmpdb).flatnodes();
     }
 };
 
@@ -256,5 +265,109 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // other relations are not retrievable
         REQUIRE_FALSE(mid_q->relations_get(999, buffer.buf));
+    }
+}
+
+TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
+                   options_slim_default, options_slim_dense_cache,
+                   options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    osmid_t const way_id = 20;
+
+    // create some nodes we'll use for the ways
+    test_buffer_t buffer;
+    auto const& node10 = buffer.add_node_and_get(10, 1.0, 0.0);
+    auto const& node11 = buffer.add_node_and_get(11, 1.1, 0.0);
+    auto const& node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+
+    // Set up middle in "create" mode to get a cleanly initialized database
+    // and add some nodes.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->nodes_set(node10);
+        mid->nodes_set(node11);
+        mid->nodes_set(node12);
+        mid->flush();
+
+        // create way
+        idlist_t nds{10, 11};
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE(mid_q->ways_get(way_id, outbuf));
+
+        auto &way = outbuf.get<osmium::Way>(0);
+
+        REQUIRE(way.id() == way_id);
+        REQUIRE(way.nodes().size() == nds.size());
+        REQUIRE(way.nodes()[0].ref() == 10);
+        REQUIRE(way.nodes()[1].ref() == 11);
+
+        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
+        REQUIRE(way.nodes()[0].location() == osmium::Location{1.0, 0.0});
+        REQUIRE(way.nodes()[1].location() == osmium::Location{1.1, 0.0});
+
+        mid->commit();
+    }
+
+    // Set up middle again, this time in "append" mode so we can change things.
+    {
+        options.append = true;
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        // delete way
+        mid->ways_delete(way_id);
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE_FALSE(mid_q->ways_get(way_id, outbuf));
+
+        mid->commit();
+    }
+
+    // Set up middle again, still in "append" mode.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        idlist_t nds{11, 12};
+
+        // create new version of the way
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE(mid_q->ways_get(way_id, outbuf));
+
+        auto &way = outbuf.get<osmium::Way>(0);
+
+        REQUIRE(way.id() == way_id);
+        REQUIRE(way.nodes().size() == nds.size());
+        REQUIRE(way.nodes()[0].ref() == 11);
+        REQUIRE(way.nodes()[1].ref() == 12);
+
+        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
+        REQUIRE(way.nodes()[0].location() == osmium::Location{1.1, 0.0});
+        REQUIRE(way.nodes()[1].location() == osmium::Location{1.2, 0.0});
+
+        mid->commit();
     }
 }
