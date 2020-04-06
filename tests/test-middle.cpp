@@ -16,13 +16,13 @@ namespace {
 /// Simple osmium buffer to store object with some convenience.
 struct test_buffer_t
 {
-    size_t add_node(osmid_t id, double lat, double lon)
+    size_t add_node(osmid_t id, double lon, double lat)
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_node(buf, _id(id), _location(lon, lat));
     }
 
-    size_t add_way(osmid_t wid, std::vector<osmid_t> const &ids)
+    size_t add_way(osmid_t wid, idlist_t const &ids)
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_way(buf, _id(wid), _nodes(ids));
@@ -38,6 +38,16 @@ struct test_buffer_t
     T &get(size_t pos)
     {
         return buf.get<T>(pos);
+    }
+
+    osmium::Node const &add_node_and_get(osmid_t id, double lon, double lat)
+    {
+        return get<osmium::Node>(add_node(id, lon, lat));
+    }
+
+    osmium::Way &add_way_and_get(osmid_t wid, idlist_t const &ids)
+    {
+        return get<osmium::Way>(add_way(wid, ids));
     }
 
     osmium::memory::Buffer buf{4096, osmium::memory::Buffer::auto_grow::yes};
@@ -125,32 +135,30 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single node")
     {
-        auto const &node = buffer.get<osmium::Node>(
-            buffer.add_node(1234, 12.3456789, 98.7654321));
+        auto const &node =
+            buffer.add_node_and_get(1234, 98.7654321, 12.3456789);
 
         // set the node
         mid->nodes_set(node);
         mid->flush();
 
         // getting it back works only via a waylist
-        auto &nodes =
-            buffer.get<osmium::Way>(buffer.add_way(3, {1234})).nodes();
+        auto &nodes = buffer.add_way_and_get(3, {1234}).nodes();
 
         // get it back
         REQUIRE(mid_q->nodes_get_list(&nodes) == nodes.size());
         expect_location(nodes[0].location(), node);
 
         // other nodes are not retrievable
-        auto &n2 =
-            buffer.get<osmium::Way>(buffer.add_way(3, {1, 2, 1235})).nodes();
+        auto &n2 = buffer.add_way_and_get(3, {1, 2, 1235}).nodes();
         REQUIRE(mid_q->nodes_get_list(&n2) == 0);
     }
 
     SECTION("Set and retrieve a single way")
     {
         osmid_t const way_id = 1;
-        double const lat = 12.3456789;
         double const lon = 98.7654321;
+        double const lat = 12.3456789;
         idlist_t nds;
         std::vector<size_t> nodes;
 
@@ -158,12 +166,12 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         for (osmid_t i = 1; i <= 10; ++i) {
             nds.push_back(i);
             nodes.push_back(
-                buffer.add_node(i, lat + i * 0.001, lon - i * 0.003));
+                buffer.add_node(i, lon - i * 0.003, lat + i * 0.001));
             mid->nodes_set(buffer.get<osmium::Node>(nodes.back()));
         }
 
         // set the way
-        mid->ways_set(buffer.get<osmium::Way>(buffer.add_way(way_id, nds)));
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
 
         mid->flush();
 
@@ -189,16 +197,15 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single relation with supporting ways")
     {
-        std::vector<osmid_t> const nds[] = {
-            {4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
+        idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
 
         // set the node
-        mid->nodes_set(buffer.get<osmium::Node>(buffer.add_node(1, 12.8, 4.1)));
+        mid->nodes_set(buffer.add_node_and_get(1, 4.1, 12.8));
 
         // set the ways
         osmid_t wid = 10;
         for (auto const &n : nds) {
-            mid->ways_set(buffer.get<osmium::Way>(buffer.add_way(wid, n)));
+            mid->ways_set(buffer.add_way_and_get(wid, n));
             ++wid;
         }
 
