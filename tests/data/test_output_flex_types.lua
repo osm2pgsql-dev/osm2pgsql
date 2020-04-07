@@ -91,12 +91,32 @@ function osm2pgsql.process_node(object)
                           2^31 - 1, 2^31, 2^31 + 1 }
         for _, n in ipairs(numbers) do
             table:add_row{
-                ttext = tostring(n),
-                tint2 = tostring(n),
-                tint4 = tostring(n),
-                tint8 = tostring(n),
-                treal = tostring(n),
-                tsqlt = tostring(n),
+                ttext = string.format('%d', n),
+                tint2 = string.format('%d', n),
+                tint4 = string.format('%d', n),
+                tint8 = string.format('%d', n),
+                treal = string.format('%d', n),
+                tsqlt = string.format('%d', n),
+            }
+        end
+        table:add_row{
+            ttext = ' 42',
+            tint2 = ' 42',
+            tint4 = ' 42',
+            tint8 = ' 42',
+            treal = ' 42',
+            tsqlt = ' 42',
+        }
+        return
+    end
+    if object.tags.type == 'string-with-invalid-number' then
+        local not_numbers = { '', 'abc', '0a', '0xa', '--1', '1foo', '1.2' }
+        for _, n in ipairs(not_numbers) do
+            table:add_row{
+                ttext = n,
+                tint2 = n,
+                tint4 = n,
+                tint8 = n,
             }
         end
         return
