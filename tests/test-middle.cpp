@@ -131,6 +131,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_ram_flatnode)
 {
     options_t const options = TestType::options(db);
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
 
     auto mid = options.slim
                    ? std::shared_ptr<middle_t>(new middle_pgsql_t{&options})
