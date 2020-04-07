@@ -226,10 +226,9 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             using namespace osmium::builder::attr;
             using otype = osmium::item_type;
             osmium::builder::add_relation(
-                buffer.buf, _id(123), _member(_member(otype::way, 11)),
-                _member(_member(otype::way, 10, "outer")),
-                _member(_member(otype::node, 1)),
-                _member(_member(otype::way, 12, "inner")));
+                buffer.buf, _id(123), _member(otype::way, 11),
+                _member(otype::way, 10, "outer"), _member(otype::node, 1),
+                _member(otype::way, 12, "inner"));
         }
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(buffer.get<osmium::Relation>(pos));
