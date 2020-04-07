@@ -15,8 +15,9 @@ static pg::tempdb_t db;
 namespace {
 
 /// Simple osmium buffer to store object with some convenience.
-struct test_buffer_t
+class test_buffer_t
 {
+public:
     size_t add_node(osmid_t id, double lon, double lat)
     {
         using namespace osmium::builder::attr;
@@ -27,6 +28,15 @@ struct test_buffer_t
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_way(buf, _id(wid), _nodes(ids));
+    }
+
+    size_t add_relation(
+        osmid_t rid,
+        std::initializer_list<osmium::builder::attr::member_type> members)
+    {
+        using namespace osmium::builder::attr;
+        return osmium::builder::add_relation(
+            buf, _id(rid), _members(members.begin(), members.end()));
     }
 
     template <typename T>
@@ -51,6 +61,7 @@ struct test_buffer_t
         return get<osmium::Way>(add_way(wid, ids));
     }
 
+private:
     osmium::memory::Buffer buf{4096, osmium::memory::Buffer::auto_grow::yes};
 };
 
@@ -221,15 +232,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // set the relation
-        auto const pos = buffer.buf.committed();
-        {
-            using namespace osmium::builder::attr;
-            using otype = osmium::item_type;
-            osmium::builder::add_relation(
-                buffer.buf, _id(123), _member(otype::way, 11),
-                _member(otype::way, 10, "outer"), _member(otype::node, 1),
-                _member(otype::way, 12, "inner"));
-        }
+        using otype = osmium::item_type;
+        auto const pos = buffer.add_relation(123, {{otype::way, 11, ""},
+                                                   {otype::way, 10, "outer"},
+                                                   {otype::node, 1},
+                                                   {otype::way, 12, "inner"}});
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(buffer.get<osmium::Relation>(pos));
 
@@ -238,9 +245,10 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         mid->flush();
 
         // retrieve the relation
-        buffer.buf.clear();
-        auto const &rel = buffer.get<osmium::Relation>(0);
-        REQUIRE(mid_q->relations_get(123, buffer.buf));
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+        REQUIRE(mid_q->relations_get(123, outbuf));
+        auto const &rel = outbuf.get<osmium::Relation>(0);
 
         CHECK(rel.id() == 123);
         CHECK(rel.members().size() == 4);
@@ -251,10 +259,10 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // retrive the supporting ways
         rolelist_t roles;
-        REQUIRE(mid_q->rel_way_members_get(rel, &roles, buffer.buf) == 3);
+        REQUIRE(mid_q->rel_way_members_get(rel, &roles, outbuf) == 3);
         REQUIRE(roles.size() == 3);
 
-        for (auto &w : buffer.buf.select<osmium::Way>()) {
+        for (auto &w : outbuf.select<osmium::Way>()) {
             REQUIRE(w.id() >= 10);
             REQUIRE(w.id() <= 12);
             auto const &expected = nds[w.id() - 10];
@@ -265,7 +273,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other relations are not retrievable
-        REQUIRE_FALSE(mid_q->relations_get(999, buffer.buf));
+        REQUIRE_FALSE(mid_q->relations_get(999, outbuf));
     }
 }
 
