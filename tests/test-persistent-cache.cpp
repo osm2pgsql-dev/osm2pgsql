@@ -13,8 +13,8 @@ static void write_and_read_location(node_persistent_cache &cache, osmid_t id,
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
 
-static void read_location(node_persistent_cache &cache, osmid_t id, double x,
-                          double y)
+static void read_location(node_persistent_cache const &cache, osmid_t id,
+                          double x, double y)
 {
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
