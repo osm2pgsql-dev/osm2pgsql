@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <functional>
@@ -16,32 +17,41 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
-                     std::shared_ptr<output_t> const &out_)
-: mid(mid_)
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
+                     std::vector<std::shared_ptr<output_t>> const &outs)
+: m_mid(mid), m_outs(outs)
 {
-    outs.push_back(out_);
-    with_extra = outs[0]->get_options()->extra_attributes;
-}
+    assert(m_mid);
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
-                     std::vector<std::shared_ptr<output_t>> const &outs_)
-: mid(mid_), outs(outs_)
-{
-    if (outs.empty()) {
-        throw std::runtime_error{"Must have at least one output, but none have "
-                                 "been configured."};
+    if (m_outs.empty()) {
+        throw std::runtime_error{"Must have at least one output, "
+                                 "but none have been configured."};
     }
 
-    with_extra = outs[0]->get_options()->extra_attributes;
+    // Get the "extra_attributes" option from the first output. We expect
+    // all others to be the same.
+    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
+}
+
+/**
+ * For modify and delete member functions a middle_t is not enough, an object
+ * of the derived class slim_middle_t is needed. This function does the
+ * conversion. It should always succeed, because the modify and delete
+ * functions are never called for non-slim middles.
+ */
+slim_middle_t &osmdata_t::slim_middle() const noexcept
+{
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
+    assert(slim);
+    return *slim;
 }
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
-    mid->nodes_set(node);
+    m_mid->nodes_set(node);
 
-    if (with_extra || !node.tags().empty()) {
-        for (auto &out : outs) {
+    if (m_with_extra_attrs || !node.tags().empty()) {
+        for (auto &out : m_outs) {
             out->node_add(node);
         }
     }
@@ -49,10 +59,10 @@ void osmdata_t::node_add(osmium::Node const &node) const
 
 void osmdata_t::way_add(osmium::Way *way) const
 {
-    mid->ways_set(*way);
+    m_mid->ways_set(*way);
 
-    if (with_extra || !way->tags().empty()) {
-        for (auto &out : outs) {
+    if (m_with_extra_attrs || !way->tags().empty()) {
+        for (auto &out : m_outs) {
             out->way_add(way);
         }
     }
@@ -60,10 +70,10 @@ void osmdata_t::way_add(osmium::Way *way) const
 
 void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
-    mid->relations_set(rel);
+    m_mid->relations_set(rel);
 
-    if (with_extra || !rel.tags().empty()) {
-        for (auto &out : outs) {
+    if (m_with_extra_attrs || !rel.tags().empty()) {
+        for (auto &out : m_outs) {
             out->relation_add(rel);
         }
     }
@@ -71,95 +81,83 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->nodes_delete(node.id());
-    slim->nodes_set(node);
+    slim.nodes_delete(node.id());
+    slim.nodes_set(node);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->node_modify(node);
     }
 
-    slim->node_changed(node.id());
+    slim.node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->ways_delete(way->id());
-    slim->ways_set(*way);
+    slim.ways_delete(way->id());
+    slim.ways_set(*way);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->way_modify(way);
     }
 
-    slim->way_changed(way->id());
+    slim.way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->relations_delete(rel.id());
-    slim->relations_set(rel);
+    slim.relations_delete(rel.id());
+    slim.relations_set(rel);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->relation_modify(rel);
     }
 
-    slim->relation_changed(rel.id());
+    slim.relation_changed(rel.id());
 }
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
-
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->node_delete(id);
     }
 
-    slim->nodes_delete(id);
+    slim_middle().nodes_delete(id);
 }
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
-
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->way_delete(id);
     }
 
-    slim->ways_delete(id);
+    slim_middle().ways_delete(id);
 }
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
-    assert(slim);
-
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->relation_delete(id);
     }
 
-    slim->relations_delete(id);
+    slim_middle().relations_delete(id);
 }
 
 void osmdata_t::start() const
 {
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->start();
     }
 }
 
 void osmdata_t::flush() const
 {
-    mid->flush();
+    m_mid->flush();
 }
 
 namespace {
@@ -400,62 +398,72 @@ private:
 
 } // anonymous namespace
 
+/**
+ * Is there any pending work in the middle or one of the outputs?
+ */
+bool osmdata_t::has_pending() const noexcept
+{
+    if (m_mid->pending_count() > 0) {
+        return true;
+    }
+
+    return std::any_of(m_outs.cbegin(), m_outs.cend(),
+                       [](std::shared_ptr<output_t> const &out) {
+                           return out->pending_count() > 0;
+                       });
+}
+
 void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
      * access the data simultaneously to process the rest in parallel
      * as well as see the newly created tables.
      */
-    mid->commit();
-    for (auto &out : outs) {
+    m_mid->commit();
+    for (auto &out : m_outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
     }
 
     // should be the same for all outputs
-    auto const *opts = outs[0]->get_options();
+    auto const *opts = m_outs[0]->get_options();
 
     // are there any objects left pending?
-    bool has_pending = mid->pending_count() > 0;
-    for (auto const &out : outs) {
-        has_pending |= out->pending_count() > 0;
-    }
-
-    if (has_pending) {
+    if (has_pending()) {
         //threaded pending processing
-        pending_threaded_processor ptp(mid, outs, opts->num_procs,
+        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
 
-        if (!outs.empty()) {
+        if (!m_outs.empty()) {
             //This stage takes ways which were processed earlier, but might be
             //involved in a multipolygon relation. They could also be ways that
             //were modified in diff processing.
-            mid->iterate_ways(ptp);
+            m_mid->iterate_ways(ptp);
 
             //This is like pending ways, except there aren't pending relations
             //on import, only on update.
             //TODO: Can we skip this on import?
-            mid->iterate_relations(ptp);
+            m_mid->iterate_relations(ptp);
         }
     }
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->stage2_proc();
     }
 
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
     {
-        osmium::thread::Pool pool(opts->parallel_indexing ? opts->num_procs : 1,
-                                  512);
+        osmium::thread::Pool pool{opts->parallel_indexing ? opts->num_procs : 1,
+                                  512};
 
         if (opts->droptemp) {
             // When dropping middle tables, make sure they are gone before
             // indexing starts.
-            mid->stop(pool);
+            m_mid->stop(pool);
         }
 
-        for (auto &out : outs) {
+        for (auto &out : m_outs) {
             out->stop(&pool);
         }
 
@@ -464,7 +472,7 @@ void osmdata_t::stop() const
             // which is better done after the output tables have been copied.
             // Note that --disable-parallel-indexing needs to be used to really
             // force the order.
-            mid->stop(pool);
+            m_mid->stop(pool);
         }
 
         // Waiting here for pool to execute all tasks.

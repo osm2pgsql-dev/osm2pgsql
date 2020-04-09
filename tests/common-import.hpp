@@ -26,7 +26,7 @@ inline void parse_file(options_t const &options,
                        char const *filename = nullptr)
 {
     //let osmdata orchestrate between the middle and the outs
-    osmdata_t osmdata(mid, outs);
+    osmdata_t osmdata{mid, outs};
 
     osmdata.start();
     parse_osmium_t parser(options.bbox, options.append, &osmdata);
@@ -84,7 +84,7 @@ public:
             output_t::create_outputs(middle->get_query_instance(), options);
 
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
+        osmdata_t osmdata{middle, outputs};
 
         osmdata.start();
 

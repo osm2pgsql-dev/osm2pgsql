@@ -8,14 +8,13 @@
 
 class output_t;
 struct middle_t;
+struct slim_middle_t;
 
 class osmdata_t
 {
 public:
-    osmdata_t(std::shared_ptr<middle_t> mid_,
-              std::shared_ptr<output_t> const &out_);
-    osmdata_t(std::shared_ptr<middle_t> mid_,
-              std::vector<std::shared_ptr<output_t>> const &outs_);
+    osmdata_t(std::shared_ptr<middle_t> mid,
+              std::vector<std::shared_ptr<output_t>> const &outs);
 
     void start() const;
     void flush() const;
@@ -34,9 +33,12 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
-    std::shared_ptr<middle_t> mid;
-    std::vector<std::shared_ptr<output_t>> outs;
-    bool with_extra;
+    slim_middle_t &slim_middle() const noexcept;
+    bool has_pending() const noexcept;
+
+    std::shared_ptr<middle_t> m_mid;
+    std::vector<std::shared_ptr<output_t>> m_outs;
+    bool m_with_extra_attrs;
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP

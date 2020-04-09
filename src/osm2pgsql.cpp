@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
         //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata(middle, outputs);
+        osmdata_t osmdata{middle, outputs};
 
         fmt::print(stderr, "Using projection SRS {} ({})\n",
                    options.projection->target_srs(),
