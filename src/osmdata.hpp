@@ -13,8 +13,6 @@ class osmdata_t
 {
 public:
     osmdata_t(std::shared_ptr<middle_t> mid,
-              std::shared_ptr<output_t> const &out);
-    osmdata_t(std::shared_ptr<middle_t> mid,
               std::vector<std::shared_ptr<output_t>> const &outs);
 
     void start() const;

@@ -17,14 +17,6 @@
 #include "util.hpp"
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
-                     std::shared_ptr<output_t> const &out)
-: m_mid(mid)
-{
-    m_outs.push_back(out);
-    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
-}
-
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs)
 : m_mid(mid), m_outs(outs)
 {
