@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <exception>
+#include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "format.hpp"
 #include "options.hpp"
@@ -52,7 +54,6 @@ void table_t::commit() { m_copy.sync(); }
 
 void table_t::connect()
 {
-    //connect
     m_sql_conn.reset(new pg_conn_t{m_conninfo});
     //let commits happen faster by delaying when they actually occur
     m_sql_conn->exec("SET synchronous_commit = off");
@@ -334,7 +335,6 @@ void table_t::write_row(osmid_t id, taglist_t const &tags,
 
 void table_t::write_columns(taglist_t const &tags, std::vector<bool> *used)
 {
-    //for each column
     for (auto const &column : m_columns) {
         std::size_t const idx = tags.indexof(column.name);
         if (idx != std::numeric_limits<std::size_t>::max()) {
@@ -370,11 +370,9 @@ void table_t::write_tags_column(taglist_t const &tags,
 /* write an hstore column to the database */
 void table_t::write_hstore_columns(taglist_t const &tags)
 {
-    //iterate over all configured hstore columns in the options
     for (auto const &hcolumn : m_hstore_columns) {
         bool added = false;
 
-        //iterate through the list of tags, first one is always null
         for (auto const &xtags : tags) {
             //check if the tag's key starts with the name of the hstore column
             if (xtags.key.compare(0, hcolumn.size(), hcolumn) == 0) {
@@ -408,13 +406,15 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
         // For integers we take the first number, or the average if it's a-b
         long long from, to;
         // limit number of digits parsed to avoid undefined behaviour in sscanf
-        int items = sscanf(value.c_str(), "%18lld-%18lld", &from, &to);
+        int const items =
+            std::sscanf(value.c_str(), "%18lld-%18lld", &from, &to);
         if (items == 1 && from <= std::numeric_limits<int32_t>::max() &&
             from >= std::numeric_limits<int32_t>::min()) {
             m_copy.add_column(from);
         } else if (items == 2) {
             // calculate mean while avoiding overflows
-            int64_t mean = (from / 2) + (to / 2) + ((from % 2 + to % 2) / 2);
+            int64_t const mean =
+                (from / 2) + (to / 2) + ((from % 2 + to % 2) / 2);
             if (mean <= std::numeric_limits<int32_t>::max() &&
                 mean >= std::numeric_limits<int32_t>::min()) {
                 m_copy.add_column(mean);
@@ -428,18 +428,19 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
     }
     case COLUMN_TYPE_REAL:
         /* try to "repair" real values as follows:
-             * assume "," to be a decimal mark which need to be replaced by "."
-             * like int4 take the first number, or the average if it's a-b
-             * assume SI unit (meters)
-             * convert feet to meters (1 foot = 0.3048 meters)
-             * reject anything else
-             */
+         * assume "," to be a decimal mark which need to be replaced by "."
+         * like int4 take the first number, or the average if it's a-b
+         * assume SI unit (meters)
+         * convert feet to meters (1 foot = 0.3048 meters)
+         * reject anything else
+         */
         {
             std::string escaped{value};
             std::replace(escaped.begin(), escaped.end(), ',', '.');
 
             double from, to;
-            int items = sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
+            int const items =
+                std::sscanf(escaped.c_str(), "%lf-%lf", &from, &to);
             if (items == 1) {
                 if (escaped.size() > 1 &&
                     escaped.substr(escaped.size() - 2) == "ft") {
@@ -459,7 +460,6 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
             break;
         }
     case COLUMN_TYPE_TEXT:
-        //just a string
         m_copy.add_column(value);
         break;
     }
