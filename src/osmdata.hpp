@@ -36,7 +36,7 @@ public:
 private:
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> outs;
-    bool with_extra;
+    bool m_with_extra_attrs;
 };
 
 #endif // OSM2PGSQL_OSMDATA_HPP

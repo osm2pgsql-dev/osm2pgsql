@@ -21,7 +21,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
 : m_mid(mid)
 {
     outs.push_back(out_);
-    with_extra = outs[0]->get_options()->extra_attributes;
+    m_with_extra_attrs = outs[0]->get_options()->extra_attributes;
 }
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
@@ -33,14 +33,14 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                                  "been configured."};
     }
 
-    with_extra = outs[0]->get_options()->extra_attributes;
+    m_with_extra_attrs = outs[0]->get_options()->extra_attributes;
 }
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
     m_mid->nodes_set(node);
 
-    if (with_extra || !node.tags().empty()) {
+    if (m_with_extra_attrs || !node.tags().empty()) {
         for (auto &out : outs) {
             out->node_add(node);
         }
@@ -51,7 +51,7 @@ void osmdata_t::way_add(osmium::Way *way) const
 {
     m_mid->ways_set(*way);
 
-    if (with_extra || !way->tags().empty()) {
+    if (m_with_extra_attrs || !way->tags().empty()) {
         for (auto &out : outs) {
             out->way_add(way);
         }
@@ -62,7 +62,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
     m_mid->relations_set(rel);
 
-    if (with_extra || !rel.tags().empty()) {
+    if (m_with_extra_attrs || !rel.tags().empty()) {
         for (auto &out : outs) {
             out->relation_add(rel);
         }
