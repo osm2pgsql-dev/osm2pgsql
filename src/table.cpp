@@ -276,10 +276,10 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                              ? "TABLESPACE " + table_space_index.get()
                              : "")));
             }
-            for (size_t i = 0; i < m_hstore_columns.size(); ++i) {
+            for (auto const &hcolumn : m_hstore_columns) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
-                        m_target->name, m_hstore_columns[i],
+                        m_target->name, hcolumn,
                         (table_space_index
                              ? "TABLESPACE " + table_space_index.get()
                              : "")));
@@ -373,16 +373,15 @@ void table_t::write_tags_column(taglist_t const &tags,
 void table_t::write_hstore_columns(taglist_t const &tags)
 {
     //iterate over all configured hstore columns in the options
-    for (auto const &hstore_column : m_hstore_columns) {
+    for (auto const &hcolumn : m_hstore_columns) {
         bool added = false;
 
         //iterate through the list of tags, first one is always null
         for (auto const &xtags : tags) {
             //check if the tag's key starts with the name of the hstore column
-            if (xtags.key.compare(0, hstore_column.size(), hstore_column) ==
-                0) {
+            if (xtags.key.compare(0, hcolumn.size(), hcolumn) == 0) {
                 //generate the short key name, somehow pointer arithmetic works against the key string...
-                char const *shortkey = xtags.key.c_str() + hstore_column.size();
+                char const *shortkey = xtags.key.c_str() + hcolumn.size();
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "key"=>"value"
