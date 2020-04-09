@@ -18,7 +18,7 @@ table_t::table_t(std::string const &name, std::string const &type,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
-  m_type(type), srid(fmt::to_string(srid)), append(append),
+  m_type(type), m_srid(fmt::to_string(srid)), append(append),
   hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
   m_copy(copy_thread)
 {
@@ -34,7 +34,7 @@ table_t::table_t(std::string const &name, std::string const &type,
 table_t::table_t(table_t const &other,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_conninfo(other.m_conninfo), m_target(other.m_target), m_type(other.m_type),
-  srid(other.srid), append(other.append), hstore_mode(other.hstore_mode),
+  m_srid(other.m_srid), append(other.append), hstore_mode(other.hstore_mode),
   columns(other.columns), hstore_columns(other.hstore_columns),
   m_table_space(other.m_table_space), m_copy(copy_thread)
 {
@@ -104,7 +104,7 @@ void table_t::start(std::string const &conninfo,
             sql += "\"tags\" hstore,";
         }
 
-        sql += "way geometry({},{}) )"_format(m_type, srid);
+        sql += "way geometry({},{}) )"_format(m_type, m_srid);
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't
@@ -192,7 +192,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             "CREATE TABLE {0}_tmp {1} AS SELECT * FROM {0}"_format(
                 m_target->name, m_table_space);
 
-        if (srid != "4326") {
+        if (m_srid != "4326") {
             // libosmium assures validity of geometries in 4326.
             // Transformation to another projection could make the geometry
             // invalid. Therefore add a filter to drop those.
@@ -208,7 +208,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
         sql += " ORDER BY ";
         if (postgis_major == 2 && postgis_minor < 4) {
             fmt::print(stderr, "Using GeoHash for clustering\n");
-            if (srid == "4326") {
+            if (m_srid == "4326") {
                 sql += "ST_GeoHash(way,10)";
             } else {
                 sql += "ST_GeoHash(ST_Transform(ST_Envelope(way),4326),10)";
@@ -243,7 +243,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             m_sql_conn->exec(
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
                     m_target->name, tblspc_sql));
-            if (srid != "4326") {
+            if (m_srid != "4326") {
                 m_sql_conn->exec(
                     "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
                     "RETURNS TRIGGER AS $$\n"
