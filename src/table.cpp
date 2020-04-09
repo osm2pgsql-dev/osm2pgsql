@@ -373,11 +373,10 @@ void table_t::write_hstore_columns(taglist_t const &tags)
     for (auto const &hcolumn : m_hstore_columns) {
         bool added = false;
 
-        for (auto const &xtags : tags) {
+        for (auto const &tag : tags) {
             //check if the tag's key starts with the name of the hstore column
-            if (xtags.key.compare(0, hcolumn.size(), hcolumn) == 0) {
-                //generate the short key name, somehow pointer arithmetic works against the key string...
-                char const *shortkey = xtags.key.c_str() + hcolumn.size();
+            if (tag.key.compare(0, hcolumn.size(), hcolumn) == 0) {
+                char const *const shortkey = &tag.key[hcolumn.size()];
 
                 //and pack the shortkey with its value into the hstore
                 //hstore ASCII representation looks like "key"=>"value"
@@ -386,7 +385,7 @@ void table_t::write_hstore_columns(taglist_t const &tags)
                     m_copy.new_hash();
                 }
 
-                m_copy.add_hash_elem(shortkey, xtags.value.c_str());
+                m_copy.add_hash_elem(shortkey, tag.value.c_str());
             }
         }
 
