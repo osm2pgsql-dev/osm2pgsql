@@ -86,7 +86,7 @@ protected:
     bool m_append;
     int m_hstore_mode;
     columns_t m_columns;
-    hstores_t hstore_columns;
+    hstores_t m_hstore_columns;
     std::string m_table_space;
 
     db_copy_mgr_t<db_deleter_by_id_t> m_copy;

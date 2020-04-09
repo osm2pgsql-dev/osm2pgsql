@@ -20,7 +20,7 @@ table_t::table_t(std::string const &name, std::string const &type,
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
   m_type(type), m_srid(fmt::to_string(srid)), m_append(append),
   m_hstore_mode(hstore_mode), m_columns(columns),
-  hstore_columns(hstore_columns), m_copy(copy_thread)
+  m_hstore_columns(hstore_columns), m_copy(copy_thread)
 {
     // if we dont have any columns
     if (m_columns.empty() && m_hstore_mode != HSTORE_ALL) {
@@ -36,7 +36,7 @@ table_t::table_t(table_t const &other,
 : m_conninfo(other.m_conninfo), m_target(other.m_target), m_type(other.m_type),
   m_srid(other.m_srid), m_append(other.m_append),
   m_hstore_mode(other.m_hstore_mode), m_columns(other.m_columns),
-  hstore_columns(other.hstore_columns), m_table_space(other.m_table_space),
+  m_hstore_columns(other.m_hstore_columns), m_table_space(other.m_table_space),
   m_copy(copy_thread)
 {
     // if the other table has already started, then we want to execute
@@ -96,7 +96,7 @@ void table_t::start(std::string const &conninfo,
         }
 
         //then with the hstore columns
-        for (auto const &hcolumn : hstore_columns) {
+        for (auto const &hcolumn : m_hstore_columns) {
             sql += "\"{}\" hstore,"_format(hcolumn);
         }
 
@@ -158,7 +158,7 @@ void table_t::generate_copy_column_list()
     }
 
     //then with the hstore columns
-    for (auto const &hcolumn : hstore_columns) {
+    for (auto const &hcolumn : m_hstore_columns) {
         m_target->rows += '"';
         m_target->rows += hcolumn;
         m_target->rows += "\",";
@@ -276,10 +276,10 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                              ? "TABLESPACE " + table_space_index.get()
                              : "")));
             }
-            for (size_t i = 0; i < hstore_columns.size(); ++i) {
+            for (size_t i = 0; i < m_hstore_columns.size(); ++i) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
-                        m_target->name, hstore_columns[i],
+                        m_target->name, m_hstore_columns[i],
                         (table_space_index
                              ? "TABLESPACE " + table_space_index.get()
                              : "")));
@@ -373,7 +373,7 @@ void table_t::write_tags_column(taglist_t const &tags,
 void table_t::write_hstore_columns(taglist_t const &tags)
 {
     //iterate over all configured hstore columns in the options
-    for (auto const &hstore_column : hstore_columns) {
+    for (auto const &hstore_column : m_hstore_columns) {
         bool added = false;
 
         //iterate through the list of tags, first one is always null
