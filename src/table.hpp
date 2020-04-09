@@ -85,7 +85,7 @@ protected:
     std::string m_srid;
     bool m_append;
     int m_hstore_mode;
-    columns_t columns;
+    columns_t m_columns;
     hstores_t hstore_columns;
     std::string m_table_space;
 
