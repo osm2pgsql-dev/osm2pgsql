@@ -11,8 +11,6 @@
 #include "util.hpp"
 #include "wkb.hpp"
 
-#define BUFFER_SEND_SIZE 1024
-
 table_t::table_t(std::string const &name, std::string const &type,
                  columns_t const &columns, hstores_t const &hstore_columns,
                  int const srid, bool const append, int const hstore_mode,
