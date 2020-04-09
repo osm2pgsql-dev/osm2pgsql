@@ -8,6 +8,7 @@
 
 class output_t;
 struct middle_t;
+struct slim_middle_t;
 
 class osmdata_t
 {
@@ -32,6 +33,8 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
+    slim_middle_t &slim_middle() const noexcept;
+
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;
     bool m_with_extra_attrs;

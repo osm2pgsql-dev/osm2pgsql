@@ -28,6 +28,19 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
     m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
+/**
+ * For modify and delete member functions a middle_t is not enough, an object
+ * of the derived class slim_middle_t is needed. This function does the
+ * conversion. It should always succeed, because the modify and delete
+ * functions are never called for non-slim middles.
+ */
+slim_middle_t &osmdata_t::slim_middle() const noexcept
+{
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
+    assert(slim);
+    return *slim;
+}
+
 void osmdata_t::node_add(osmium::Node const &node) const
 {
     m_mid->nodes_set(node);
@@ -63,83 +76,71 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->nodes_delete(node.id());
-    slim->nodes_set(node);
+    slim.nodes_delete(node.id());
+    slim.nodes_set(node);
 
     for (auto &out : m_outs) {
         out->node_modify(node);
     }
 
-    slim->node_changed(node.id());
+    slim.node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->ways_delete(way->id());
-    slim->ways_set(*way);
+    slim.ways_delete(way->id());
+    slim.ways_set(*way);
 
     for (auto &out : m_outs) {
         out->way_modify(way);
     }
 
-    slim->way_changed(way->id());
+    slim.way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
+    auto &slim = slim_middle();
 
-    slim->relations_delete(rel.id());
-    slim->relations_set(rel);
+    slim.relations_delete(rel.id());
+    slim.relations_set(rel);
 
     for (auto &out : m_outs) {
         out->relation_modify(rel);
     }
 
-    slim->relation_changed(rel.id());
+    slim.relation_changed(rel.id());
 }
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
-
     for (auto &out : m_outs) {
         out->node_delete(id);
     }
 
-    slim->nodes_delete(id);
+    slim_middle().nodes_delete(id);
 }
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
-
     for (auto &out : m_outs) {
         out->way_delete(id);
     }
 
-    slim->ways_delete(id);
+    slim_middle().ways_delete(id);
 }
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
-    assert(slim);
-
     for (auto &out : m_outs) {
         out->relation_delete(id);
     }
 
-    slim->relations_delete(id);
+    slim_middle().relations_delete(id);
 }
 
 void osmdata_t::start() const
