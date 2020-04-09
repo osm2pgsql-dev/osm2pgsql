@@ -16,17 +16,17 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                      std::shared_ptr<output_t> const &out_)
-: mid(mid_)
+: m_mid(mid)
 {
     outs.push_back(out_);
     with_extra = outs[0]->get_options()->extra_attributes;
 }
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
+osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs_)
-: mid(mid_), outs(outs_)
+: m_mid(mid), outs(outs_)
 {
     if (outs.empty()) {
         throw std::runtime_error{"Must have at least one output, but none have "
@@ -38,7 +38,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid_,
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
-    mid->nodes_set(node);
+    m_mid->nodes_set(node);
 
     if (with_extra || !node.tags().empty()) {
         for (auto &out : outs) {
@@ -49,7 +49,7 @@ void osmdata_t::node_add(osmium::Node const &node) const
 
 void osmdata_t::way_add(osmium::Way *way) const
 {
-    mid->ways_set(*way);
+    m_mid->ways_set(*way);
 
     if (with_extra || !way->tags().empty()) {
         for (auto &out : outs) {
@@ -60,7 +60,7 @@ void osmdata_t::way_add(osmium::Way *way) const
 
 void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
-    mid->relations_set(rel);
+    m_mid->relations_set(rel);
 
     if (with_extra || !rel.tags().empty()) {
         for (auto &out : outs) {
@@ -71,7 +71,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
 
 void osmdata_t::node_modify(osmium::Node const &node) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     slim->nodes_delete(node.id());
@@ -86,7 +86,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
 
 void osmdata_t::way_modify(osmium::Way *way) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     slim->ways_delete(way->id());
@@ -101,7 +101,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     slim->relations_delete(rel.id());
@@ -116,7 +116,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 
 void osmdata_t::node_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -128,7 +128,7 @@ void osmdata_t::node_delete(osmid_t id) const
 
 void osmdata_t::way_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -140,7 +140,7 @@ void osmdata_t::way_delete(osmid_t id) const
 
 void osmdata_t::relation_delete(osmid_t id) const
 {
-    auto *slim = dynamic_cast<slim_middle_t *>(mid.get());
+    auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
     for (auto &out : outs) {
@@ -159,7 +159,7 @@ void osmdata_t::start() const
 
 void osmdata_t::flush() const
 {
-    mid->flush();
+    m_mid->flush();
 }
 
 namespace {
@@ -406,7 +406,7 @@ void osmdata_t::stop() const
      * access the data simultaneously to process the rest in parallel
      * as well as see the newly created tables.
      */
-    mid->commit();
+    m_mid->commit();
     for (auto &out : outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
@@ -416,26 +416,26 @@ void osmdata_t::stop() const
     auto const *opts = outs[0]->get_options();
 
     // are there any objects left pending?
-    bool has_pending = mid->pending_count() > 0;
+    bool has_pending = m_mid->pending_count() > 0;
     for (auto const &out : outs) {
         has_pending |= out->pending_count() > 0;
     }
 
     if (has_pending) {
         //threaded pending processing
-        pending_threaded_processor ptp(mid, outs, opts->num_procs,
+        pending_threaded_processor ptp(m_mid, outs, opts->num_procs,
                                        opts->append);
 
         if (!outs.empty()) {
             //This stage takes ways which were processed earlier, but might be
             //involved in a multipolygon relation. They could also be ways that
             //were modified in diff processing.
-            mid->iterate_ways(ptp);
+            m_mid->iterate_ways(ptp);
 
             //This is like pending ways, except there aren't pending relations
             //on import, only on update.
             //TODO: Can we skip this on import?
-            mid->iterate_relations(ptp);
+            m_mid->iterate_relations(ptp);
         }
     }
 
@@ -452,7 +452,7 @@ void osmdata_t::stop() const
         if (opts->droptemp) {
             // When dropping middle tables, make sure they are gone before
             // indexing starts.
-            mid->stop(pool);
+            m_mid->stop(pool);
         }
 
         for (auto &out : outs) {
@@ -464,7 +464,7 @@ void osmdata_t::stop() const
             // which is better done after the output tables have been copied.
             // Note that --disable-parallel-indexing needs to be used to really
             // force the order.
-            mid->stop(pool);
+            m_mid->stop(pool);
         }
 
         // Waiting here for pool to execute all tasks.

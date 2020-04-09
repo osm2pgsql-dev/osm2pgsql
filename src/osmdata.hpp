@@ -12,9 +12,9 @@ struct middle_t;
 class osmdata_t
 {
 public:
-    osmdata_t(std::shared_ptr<middle_t> mid_,
+    osmdata_t(std::shared_ptr<middle_t> mid,
               std::shared_ptr<output_t> const &out_);
-    osmdata_t(std::shared_ptr<middle_t> mid_,
+    osmdata_t(std::shared_ptr<middle_t> mid,
               std::vector<std::shared_ptr<output_t>> const &outs_);
 
     void start() const;
@@ -34,7 +34,7 @@ public:
     void relation_delete(osmid_t id) const;
 
 private:
-    std::shared_ptr<middle_t> mid;
+    std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> outs;
     bool with_extra;
 };
