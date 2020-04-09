@@ -84,7 +84,7 @@ protected:
     std::unique_ptr<pg_conn_t> m_sql_conn;
     std::string m_srid;
     bool m_append;
-    int hstore_mode;
+    int m_hstore_mode;
     columns_t columns;
     hstores_t hstore_columns;
     std::string m_table_space;
