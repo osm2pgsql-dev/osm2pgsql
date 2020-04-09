@@ -18,7 +18,7 @@ table_t::table_t(std::string const &name, std::string const &type,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
-  m_type(type), m_srid(fmt::to_string(srid)), append(append),
+  m_type(type), m_srid(fmt::to_string(srid)), m_append(append),
   hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
   m_copy(copy_thread)
 {
@@ -34,9 +34,10 @@ table_t::table_t(std::string const &name, std::string const &type,
 table_t::table_t(table_t const &other,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_conninfo(other.m_conninfo), m_target(other.m_target), m_type(other.m_type),
-  m_srid(other.m_srid), append(other.append), hstore_mode(other.hstore_mode),
-  columns(other.columns), hstore_columns(other.hstore_columns),
-  m_table_space(other.m_table_space), m_copy(copy_thread)
+  m_srid(other.m_srid), m_append(other.m_append),
+  hstore_mode(other.hstore_mode), columns(other.columns),
+  hstore_columns(other.hstore_columns), m_table_space(other.m_table_space),
+  m_copy(copy_thread)
 {
     // if the other table has already started, then we want to execute
     // the same stuff to get into the same state. but if it hasn't, then
@@ -74,7 +75,7 @@ void table_t::start(std::string const &conninfo,
     fmt::print(stderr, "Setting up table: {}\n", m_target->name);
     m_sql_conn->exec("SET client_min_messages = WARNING");
     // we are making a new table
-    if (!append) {
+    if (!m_append) {
         m_sql_conn->exec(
             "DROP TABLE IF EXISTS {} CASCADE"_format(m_target->name));
     }
@@ -84,7 +85,7 @@ void table_t::start(std::string const &conninfo,
     m_sql_conn->exec("RESET client_min_messages");
 
     //making a new table
-    if (!append) {
+    if (!m_append) {
         //define the new table
         auto sql =
             "CREATE UNLOGGED TABLE {} (osm_id int8,"_format(m_target->name);
@@ -178,7 +179,7 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
     // make sure that all data is written to the DB before continuing
     m_copy.sync();
 
-    if (!append) {
+    if (!m_append) {
         util::timer_t timer;
 
         fmt::print(stderr, "Sorting data and creating indexes for {}\n",
