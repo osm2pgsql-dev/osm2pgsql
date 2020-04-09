@@ -21,11 +21,15 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs)
 : m_mid(mid), m_outs(outs)
 {
+    assert(m_mid);
+
     if (m_outs.empty()) {
-        throw std::runtime_error{"Must have at least one output, but none have "
-                                 "been configured."};
+        throw std::runtime_error{"Must have at least one output, "
+                                 "but none have been configured."};
     }
 
+    // Get the "extra_attributes" option from the first output. We expect
+    // all others to be the same.
     m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
@@ -450,8 +454,8 @@ void osmdata_t::stop() const
     // Clustering, index creation, and cleanup.
     // All the intensive parts of this are long-running PostgreSQL commands
     {
-        osmium::thread::Pool pool(opts->parallel_indexing ? opts->num_procs : 1,
-                                  512);
+        osmium::thread::Pool pool{opts->parallel_indexing ? opts->num_procs : 1,
+                                  512};
 
         if (opts->droptemp) {
             // When dropping middle tables, make sure they are gone before
