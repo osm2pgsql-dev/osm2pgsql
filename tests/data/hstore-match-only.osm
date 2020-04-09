@@ -140,15 +140,6 @@ gis=> select count(*) from planet_osm_line;
   <node id='1143' visible='true' version='1' lat='48.95200639595' lon='8.00379105913' />
   <node id='1145' visible='true' version='1' lat='49.03381156891' lon='7.95894426887' />
   <node id='1147' visible='true' version='1' lat='49.0861198919' lon='7.97508911336' />
-  <way id='107' visible='true' version='1'>
-    <nd ref='46' />
-    <nd ref='32' />
-    <nd ref='34' />
-    <nd ref='44' />
-    <nd ref='36' />
-    <tag k='admin_level' v='3' />
-    <tag k='boundary' v='administrative' />
-  </way>
   <way id='98' visible='true' version='1'>
     <nd ref='14' />
     <nd ref='12' />
@@ -184,6 +175,15 @@ gis=> select count(*) from planet_osm_line;
     <nd ref='82' />
     <tag k='addr:housenumber' v='23' />
     <tag k='building' v='yes' />
+  </way>
+  <way id='107' visible='true' version='1'>
+    <nd ref='46' />
+    <nd ref='32' />
+    <nd ref='34' />
+    <nd ref='44' />
+    <nd ref='36' />
+    <tag k='admin_level' v='3' />
+    <tag k='boundary' v='administrative' />
   </way>
   <way id='108' visible='true' version='1'>
     <nd ref='88' />
