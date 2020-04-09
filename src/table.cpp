@@ -18,7 +18,7 @@ table_t::table_t(std::string const &name, std::string const &type,
                  int const srid, bool const append, int const hstore_mode,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : m_target(std::make_shared<db_target_descr_t>(name.c_str(), "osm_id")),
-  type(type), srid(fmt::to_string(srid)), append(append),
+  m_type(type), srid(fmt::to_string(srid)), append(append),
   hstore_mode(hstore_mode), columns(columns), hstore_columns(hstore_columns),
   m_copy(copy_thread)
 {
@@ -33,7 +33,7 @@ table_t::table_t(std::string const &name, std::string const &type,
 
 table_t::table_t(table_t const &other,
                  std::shared_ptr<db_copy_thread_t> const &copy_thread)
-: m_conninfo(other.m_conninfo), m_target(other.m_target), type(other.type),
+: m_conninfo(other.m_conninfo), m_target(other.m_target), m_type(other.m_type),
   srid(other.srid), append(other.append), hstore_mode(other.hstore_mode),
   columns(other.columns), hstore_columns(other.hstore_columns),
   m_table_space(other.m_table_space), m_copy(copy_thread)
@@ -104,7 +104,7 @@ void table_t::start(std::string const &conninfo,
             sql += "\"tags\" hstore,";
         }
 
-        sql += "way geometry({},{}) )"_format(type, srid);
+        sql += "way geometry({},{}) )"_format(m_type, srid);
 
         // The final tables are created with CREATE TABLE AS ... SELECT * FROM ...
         // This means that they won't get this autovacuum setting, so it doesn't

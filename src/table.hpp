@@ -80,7 +80,7 @@ protected:
 
     std::string m_conninfo;
     std::shared_ptr<db_target_descr_t> m_target;
-    std::string type;
+    std::string m_type;
     std::unique_ptr<pg_conn_t> m_sql_conn;
     std::string srid;
     bool append;
