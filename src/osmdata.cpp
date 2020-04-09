@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <functional>
@@ -393,6 +394,21 @@ private:
 
 } // anonymous namespace
 
+/**
+ * Is there any pending work in the middle or one of the outputs?
+ */
+bool osmdata_t::has_pending() const noexcept
+{
+    if (m_mid->pending_count() > 0) {
+        return true;
+    }
+
+    return std::any_of(m_outs.cbegin(), m_outs.cend(),
+                       [](std::shared_ptr<output_t> const &out) {
+                           return out->pending_count() > 0;
+                       });
+}
+
 void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
@@ -409,12 +425,7 @@ void osmdata_t::stop() const
     auto const *opts = m_outs[0]->get_options();
 
     // are there any objects left pending?
-    bool has_pending = m_mid->pending_count() > 0;
-    for (auto const &out : m_outs) {
-        has_pending |= out->pending_count() > 0;
-    }
-
-    if (has_pending) {
+    if (has_pending()) {
         //threaded pending processing
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
