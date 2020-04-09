@@ -17,23 +17,23 @@
 #include "util.hpp"
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
-                     std::shared_ptr<output_t> const &out_)
+                     std::shared_ptr<output_t> const &out)
 : m_mid(mid)
 {
-    outs.push_back(out_);
-    m_with_extra_attrs = outs[0]->get_options()->extra_attributes;
+    m_outs.push_back(out);
+    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
 osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> const &outs_)
-: m_mid(mid), outs(outs_)
+                     std::vector<std::shared_ptr<output_t>> const &outs)
+: m_mid(mid), m_outs(outs)
 {
-    if (outs.empty()) {
+    if (m_outs.empty()) {
         throw std::runtime_error{"Must have at least one output, but none have "
                                  "been configured."};
     }
 
-    m_with_extra_attrs = outs[0]->get_options()->extra_attributes;
+    m_with_extra_attrs = m_outs[0]->get_options()->extra_attributes;
 }
 
 void osmdata_t::node_add(osmium::Node const &node) const
@@ -41,7 +41,7 @@ void osmdata_t::node_add(osmium::Node const &node) const
     m_mid->nodes_set(node);
 
     if (m_with_extra_attrs || !node.tags().empty()) {
-        for (auto &out : outs) {
+        for (auto &out : m_outs) {
             out->node_add(node);
         }
     }
@@ -52,7 +52,7 @@ void osmdata_t::way_add(osmium::Way *way) const
     m_mid->ways_set(*way);
 
     if (m_with_extra_attrs || !way->tags().empty()) {
-        for (auto &out : outs) {
+        for (auto &out : m_outs) {
             out->way_add(way);
         }
     }
@@ -63,7 +63,7 @@ void osmdata_t::relation_add(osmium::Relation const &rel) const
     m_mid->relations_set(rel);
 
     if (m_with_extra_attrs || !rel.tags().empty()) {
-        for (auto &out : outs) {
+        for (auto &out : m_outs) {
             out->relation_add(rel);
         }
     }
@@ -77,7 +77,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
     slim->nodes_delete(node.id());
     slim->nodes_set(node);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->node_modify(node);
     }
 
@@ -92,7 +92,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
     slim->ways_delete(way->id());
     slim->ways_set(*way);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->way_modify(way);
     }
 
@@ -107,7 +107,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
     slim->relations_delete(rel.id());
     slim->relations_set(rel);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->relation_modify(rel);
     }
 
@@ -119,7 +119,7 @@ void osmdata_t::node_delete(osmid_t id) const
     auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->node_delete(id);
     }
 
@@ -131,7 +131,7 @@ void osmdata_t::way_delete(osmid_t id) const
     auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->way_delete(id);
     }
 
@@ -143,7 +143,7 @@ void osmdata_t::relation_delete(osmid_t id) const
     auto *slim = dynamic_cast<slim_middle_t *>(m_mid.get());
     assert(slim);
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->relation_delete(id);
     }
 
@@ -152,7 +152,7 @@ void osmdata_t::relation_delete(osmid_t id) const
 
 void osmdata_t::start() const
 {
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->start();
     }
 }
@@ -407,26 +407,26 @@ void osmdata_t::stop() const
      * as well as see the newly created tables.
      */
     m_mid->commit();
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         //TODO: each of the outs can be in parallel
         out->commit();
     }
 
     // should be the same for all outputs
-    auto const *opts = outs[0]->get_options();
+    auto const *opts = m_outs[0]->get_options();
 
     // are there any objects left pending?
     bool has_pending = m_mid->pending_count() > 0;
-    for (auto const &out : outs) {
+    for (auto const &out : m_outs) {
         has_pending |= out->pending_count() > 0;
     }
 
     if (has_pending) {
         //threaded pending processing
-        pending_threaded_processor ptp(m_mid, outs, opts->num_procs,
+        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
 
-        if (!outs.empty()) {
+        if (!m_outs.empty()) {
             //This stage takes ways which were processed earlier, but might be
             //involved in a multipolygon relation. They could also be ways that
             //were modified in diff processing.
@@ -439,7 +439,7 @@ void osmdata_t::stop() const
         }
     }
 
-    for (auto &out : outs) {
+    for (auto &out : m_outs) {
         out->stage2_proc();
     }
 
@@ -455,7 +455,7 @@ void osmdata_t::stop() const
             m_mid->stop(pool);
         }
 
-        for (auto &out : outs) {
+        for (auto &out : m_outs) {
             out->stop(&pool);
         }
 

@@ -13,9 +13,9 @@ class osmdata_t
 {
 public:
     osmdata_t(std::shared_ptr<middle_t> mid,
-              std::shared_ptr<output_t> const &out_);
+              std::shared_ptr<output_t> const &out);
     osmdata_t(std::shared_ptr<middle_t> mid,
-              std::vector<std::shared_ptr<output_t>> const &outs_);
+              std::vector<std::shared_ptr<output_t>> const &outs);
 
     void start() const;
     void flush() const;
@@ -35,7 +35,7 @@ public:
 
 private:
     std::shared_ptr<middle_t> m_mid;
-    std::vector<std::shared_ptr<output_t>> outs;
+    std::vector<std::shared_ptr<output_t>> m_outs;
     bool m_with_extra_attrs;
 };
 
