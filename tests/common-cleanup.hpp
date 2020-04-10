@@ -1,6 +1,8 @@
 #ifndef OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP
 #define OSM2PGSQL_TESTS_COMMON_CLEANUP_HPP
 
+#include "format.hpp"
+
 #include <string>
 
 #include <boost/filesystem.hpp>
@@ -28,13 +30,17 @@ public:
     ~file_t() noexcept { delete_file(true); }
 
 private:
-    void delete_file(bool warn) noexcept
+    void delete_file(bool warn) const noexcept
     {
+        if (m_filename.empty()) {
+            return;
+        }
+
         boost::system::error_code ec;
         boost::filesystem::remove(m_filename, ec);
         if (ec && warn) {
-            fprintf(stderr, "WARNING: Unable to remove \"%s\": %s\n",
-                    m_filename.c_str(), ec.message().c_str());
+            fmt::print(stderr, "WARNING: Unable to remove \"{}\": {}\n",
+                       m_filename, ec.message());
         }
     }
 

@@ -13,8 +13,8 @@ static void write_and_read_location(node_persistent_cache &cache, osmid_t id,
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
 
-static void read_location(node_persistent_cache &cache, osmid_t id, double x,
-                          double y)
+static void read_location(node_persistent_cache const &cache, osmid_t id,
+                          double x, double y)
 {
     REQUIRE(osmium::Location(x, y) == cache.get(id));
 }
@@ -29,7 +29,7 @@ TEST_CASE("Persistent cache", "[NoDB]")
 {
     options_t const options = testing::opt_t().flatnodes();
     testing::cleanup::file_t flatnode_cleaner{options.flat_node_file.get()};
-    auto ram_cache = std::make_shared<node_ram_cache>(0, 0); // empty cache
+    auto ram_cache = std::make_shared<node_ram_cache>(); // dummy cache
 
     // create a new cache
     {

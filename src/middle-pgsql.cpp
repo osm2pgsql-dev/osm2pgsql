@@ -163,6 +163,7 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
 pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
                                           osmid_t osm_id) const
 {
+    assert(m_query_conn);
     util::integer_to_buffer buffer{osm_id};
     char const *const bptr = buffer.c_str();
     return m_query_conn->exec_prepared(stmt, 1, &bptr);
@@ -393,6 +394,8 @@ size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
 
 void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 {
+    assert(m_append);
+
     if (m_out_options->flat_node_cache_enabled) {
         m_persistent_cache->set(osm_id, osmium::Location{});
     } else {
@@ -403,6 +406,7 @@ void middle_pgsql_t::nodes_delete(osmid_t osm_id)
 
 void middle_pgsql_t::node_changed(osmid_t osm_id)
 {
+    assert(m_append);
     if (!m_mark_pending) {
         return;
     }
@@ -519,6 +523,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
 void middle_pgsql_t::ways_delete(osmid_t osm_id)
 {
+    assert(m_append);
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
     m_db_copy.delete_object(osm_id);
 }
@@ -539,6 +544,7 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
 
 void middle_pgsql_t::way_changed(osmid_t osm_id)
 {
+    assert(m_append);
     //keep track of whatever rels this way intersects
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
@@ -615,6 +621,7 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
 
 void middle_pgsql_t::relations_delete(osmid_t osm_id)
 {
+    assert(m_append);
     //keep track of whatever ways this relation interesects
     auto const res = exec_prepared("mark_ways_by_rel", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
@@ -642,6 +649,7 @@ void middle_pgsql_t::iterate_relations(pending_processor &pf)
 
 void middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
+    assert(m_append);
     //keep track of whatever ways and rels these nodes intersect
     //TODO: dont need to stop the copy above since we are only reading?
     //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
@@ -667,7 +675,8 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 
 void middle_pgsql_t::analyze()
 {
-    for (auto &table : m_tables) {
+    assert(m_query_conn);
+    for (auto const &table : m_tables) {
         m_query_conn->exec("ANALYZE {}"_format(table.name()));
     }
 }

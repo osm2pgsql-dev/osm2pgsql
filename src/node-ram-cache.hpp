@@ -48,6 +48,12 @@ class node_ram_cache
     };
 
 public:
+    /**
+     * The default constructor creates a "dummy" cache which will never
+     * cache anything. It is used for testing.
+     */
+    node_ram_cache() = default;
+
     node_ram_cache(int strategy, int cacheSizeMB);
 
     node_ram_cache(node_ram_cache const &) = delete;
@@ -96,7 +102,7 @@ private:
     osmium::Location get_sparse(osmid_t id) const;
     osmium::Location get_dense(osmid_t id) const;
 
-    int allocStrategy;
+    int allocStrategy = 0;
 
     ramNodeBlock *blocks = nullptr;
     int usedBlocks = 0;
@@ -113,7 +119,7 @@ private:
     osmid_t maxSparseId = 0;
 
     int64_t cacheUsed = 0;
-    int64_t cacheSize;
+    int64_t cacheSize = 0;
     osmid_t storedNodes = 0;
     osmid_t totalNodes = 0;
     long nodesCacheHits = 0;

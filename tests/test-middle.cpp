@@ -6,6 +6,7 @@
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 
+#include "common-cleanup.hpp"
 #include "common-options.hpp"
 #include "common-pg.hpp"
 
@@ -14,18 +15,28 @@ static pg::tempdb_t db;
 namespace {
 
 /// Simple osmium buffer to store object with some convenience.
-struct test_buffer_t
+class test_buffer_t
 {
-    size_t add_node(osmid_t id, double lat, double lon)
+public:
+    size_t add_node(osmid_t id, double lon, double lat)
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_node(buf, _id(id), _location(lon, lat));
     }
 
-    size_t add_way(osmid_t wid, std::vector<osmid_t> const &ids)
+    size_t add_way(osmid_t wid, idlist_t const &ids)
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_way(buf, _id(wid), _nodes(ids));
+    }
+
+    size_t add_relation(
+        osmid_t rid,
+        std::initializer_list<osmium::builder::attr::member_type> members)
+    {
+        using namespace osmium::builder::attr;
+        return osmium::builder::add_relation(
+            buf, _id(rid), _members(members.begin(), members.end()));
     }
 
     template <typename T>
@@ -40,6 +51,17 @@ struct test_buffer_t
         return buf.get<T>(pos);
     }
 
+    osmium::Node const &add_node_and_get(osmid_t id, double lon, double lat)
+    {
+        return get<osmium::Node>(add_node(id, lon, lat));
+    }
+
+    osmium::Way &add_way_and_get(osmid_t wid, idlist_t const &ids)
+    {
+        return get<osmium::Way>(add_way(wid, ids));
+    }
+
+private:
     osmium::memory::Buffer buf{4096, osmium::memory::Buffer::auto_grow::yes};
 };
 
@@ -58,13 +80,21 @@ struct options_slim_default
     }
 };
 
-struct options_slim_dense_cache : options_slim_default
+struct options_slim_dense_cache
 {
     static options_t options(pg::tempdb_t const &tmpdb)
     {
         options_t o = options_slim_default::options(tmpdb);
         o.alloc_chunkwise = ALLOC_DENSE;
         return o;
+    }
+};
+
+struct options_flat_node_cache
+{
+    static options_t options(pg::tempdb_t const &tmpdb)
+    {
+        return testing::opt_t().slim(tmpdb).flatnodes();
     }
 };
 
@@ -112,6 +142,8 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
                    options_ram_flatnode)
 {
     options_t const options = TestType::options(db);
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
 
     auto mid = options.slim
                    ? std::shared_ptr<middle_t>(new middle_pgsql_t{&options})
@@ -125,32 +157,30 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single node")
     {
-        auto const &node = buffer.get<osmium::Node>(
-            buffer.add_node(1234, 12.3456789, 98.7654321));
+        auto const &node =
+            buffer.add_node_and_get(1234, 98.7654321, 12.3456789);
 
         // set the node
         mid->nodes_set(node);
         mid->flush();
 
         // getting it back works only via a waylist
-        auto &nodes =
-            buffer.get<osmium::Way>(buffer.add_way(3, {1234})).nodes();
+        auto &nodes = buffer.add_way_and_get(3, {1234}).nodes();
 
         // get it back
         REQUIRE(mid_q->nodes_get_list(&nodes) == nodes.size());
         expect_location(nodes[0].location(), node);
 
         // other nodes are not retrievable
-        auto &n2 =
-            buffer.get<osmium::Way>(buffer.add_way(3, {1, 2, 1235})).nodes();
+        auto &n2 = buffer.add_way_and_get(3, {1, 2, 1235}).nodes();
         REQUIRE(mid_q->nodes_get_list(&n2) == 0);
     }
 
     SECTION("Set and retrieve a single way")
     {
         osmid_t const way_id = 1;
-        double const lat = 12.3456789;
         double const lon = 98.7654321;
+        double const lat = 12.3456789;
         idlist_t nds;
         std::vector<size_t> nodes;
 
@@ -158,12 +188,12 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         for (osmid_t i = 1; i <= 10; ++i) {
             nds.push_back(i);
             nodes.push_back(
-                buffer.add_node(i, lat + i * 0.001, lon - i * 0.003));
+                buffer.add_node(i, lon - i * 0.003, lat + i * 0.001));
             mid->nodes_set(buffer.get<osmium::Node>(nodes.back()));
         }
 
         // set the way
-        mid->ways_set(buffer.get<osmium::Way>(buffer.add_way(way_id, nds)));
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
 
         mid->flush();
 
@@ -189,30 +219,24 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
     SECTION("Set and retrieve a single relation with supporting ways")
     {
-        std::vector<osmid_t> const nds[] = {
-            {4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
+        idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
 
         // set the node
-        mid->nodes_set(buffer.get<osmium::Node>(buffer.add_node(1, 12.8, 4.1)));
+        mid->nodes_set(buffer.add_node_and_get(1, 4.1, 12.8));
 
         // set the ways
         osmid_t wid = 10;
         for (auto const &n : nds) {
-            mid->ways_set(buffer.get<osmium::Way>(buffer.add_way(wid, n)));
+            mid->ways_set(buffer.add_way_and_get(wid, n));
             ++wid;
         }
 
         // set the relation
-        auto const pos = buffer.buf.committed();
-        {
-            using namespace osmium::builder::attr;
-            using otype = osmium::item_type;
-            osmium::builder::add_relation(
-                buffer.buf, _id(123), _member(_member(otype::way, 11)),
-                _member(_member(otype::way, 10, "outer")),
-                _member(_member(otype::node, 1)),
-                _member(_member(otype::way, 12, "inner")));
-        }
+        using otype = osmium::item_type;
+        auto const pos = buffer.add_relation(123, {{otype::way, 11, ""},
+                                                   {otype::way, 10, "outer"},
+                                                   {otype::node, 1},
+                                                   {otype::way, 12, "inner"}});
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(buffer.get<osmium::Relation>(pos));
 
@@ -221,9 +245,10 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         mid->flush();
 
         // retrieve the relation
-        buffer.buf.clear();
-        auto const &rel = buffer.get<osmium::Relation>(0);
-        REQUIRE(mid_q->relations_get(123, buffer.buf));
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+        REQUIRE(mid_q->relations_get(123, outbuf));
+        auto const &rel = outbuf.get<osmium::Relation>(0);
 
         CHECK(rel.id() == 123);
         CHECK(rel.members().size() == 4);
@@ -234,10 +259,10 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // retrive the supporting ways
         rolelist_t roles;
-        REQUIRE(mid_q->rel_way_members_get(rel, &roles, buffer.buf) == 3);
+        REQUIRE(mid_q->rel_way_members_get(rel, &roles, outbuf) == 3);
         REQUIRE(roles.size() == 3);
 
-        for (auto &w : buffer.buf.select<osmium::Way>()) {
+        for (auto &w : outbuf.select<osmium::Way>()) {
             REQUIRE(w.id() >= 10);
             REQUIRE(w.id() <= 12);
             auto const &expected = nds[w.id() - 10];
@@ -248,6 +273,110 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other relations are not retrievable
-        REQUIRE_FALSE(mid_q->relations_get(999, buffer.buf));
+        REQUIRE_FALSE(mid_q->relations_get(999, outbuf));
+    }
+}
+
+TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
+                   options_slim_default, options_slim_dense_cache,
+                   options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    osmid_t const way_id = 20;
+
+    // create some nodes we'll use for the ways
+    test_buffer_t buffer;
+    auto const& node10 = buffer.add_node_and_get(10, 1.0, 0.0);
+    auto const& node11 = buffer.add_node_and_get(11, 1.1, 0.0);
+    auto const& node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+
+    // Set up middle in "create" mode to get a cleanly initialized database
+    // and add some nodes.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->nodes_set(node10);
+        mid->nodes_set(node11);
+        mid->nodes_set(node12);
+        mid->flush();
+
+        // create way
+        idlist_t nds{10, 11};
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE(mid_q->ways_get(way_id, outbuf));
+
+        auto &way = outbuf.get<osmium::Way>(0);
+
+        REQUIRE(way.id() == way_id);
+        REQUIRE(way.nodes().size() == nds.size());
+        REQUIRE(way.nodes()[0].ref() == 10);
+        REQUIRE(way.nodes()[1].ref() == 11);
+
+        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
+        REQUIRE(way.nodes()[0].location() == osmium::Location{1.0, 0.0});
+        REQUIRE(way.nodes()[1].location() == osmium::Location{1.1, 0.0});
+
+        mid->commit();
+    }
+
+    // Set up middle again, this time in "append" mode so we can change things.
+    {
+        options.append = true;
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        // delete way
+        mid->ways_delete(way_id);
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE_FALSE(mid_q->ways_get(way_id, outbuf));
+
+        mid->commit();
+    }
+
+    // Set up middle again, still in "append" mode.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        idlist_t nds{11, 12};
+
+        // create new version of the way
+        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->flush();
+
+        osmium::memory::Buffer outbuf{4096,
+                                      osmium::memory::Buffer::auto_grow::yes};
+
+        auto const mid_q = mid->get_query_instance();
+        REQUIRE(mid_q->ways_get(way_id, outbuf));
+
+        auto &way = outbuf.get<osmium::Way>(0);
+
+        REQUIRE(way.id() == way_id);
+        REQUIRE(way.nodes().size() == nds.size());
+        REQUIRE(way.nodes()[0].ref() == 11);
+        REQUIRE(way.nodes()[1].ref() == 12);
+
+        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
+        REQUIRE(way.nodes()[0].location() == osmium::Location{1.1, 0.0});
+        REQUIRE(way.nodes()[1].location() == osmium::Location{1.2, 0.0});
+
+        mid->commit();
     }
 }

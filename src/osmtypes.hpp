@@ -232,7 +232,12 @@ private:
 
 struct idlist_t : public std::vector<osmid_t>
 {
-    idlist_t() {}
+    // Get all constructors from std::vector
+    using vector<osmid_t>::vector;
+
+    // Even though we got all constructors from std::vector we need this on
+    // some compilers/libraries for some reason.
+    idlist_t() = default;
 
     explicit idlist_t(osmium::NodeRefList const &list)
     {
