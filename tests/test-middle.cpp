@@ -61,6 +61,13 @@ public:
         return get<osmium::Way>(add_way(wid, ids));
     }
 
+    osmium::Relation &add_relation_and_get(
+        osmid_t rid,
+        std::initializer_list<osmium::builder::attr::member_type> members)
+    {
+        return get<osmium::Relation>(add_relation(rid, members));
+    }
+
 private:
     osmium::memory::Buffer buf{4096, osmium::memory::Buffer::auto_grow::yes};
 };
@@ -233,14 +240,15 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // set the relation
         using otype = osmium::item_type;
-        auto const pos = buffer.add_relation(123, {{otype::way, 11, ""},
-                                                   {otype::way, 10, "outer"},
-                                                   {otype::node, 1},
-                                                   {otype::way, 12, "inner"}});
+        auto const &relation =
+            buffer.add_relation_and_get(123, {{otype::way, 11, ""},
+                                              {otype::way, 10, "outer"},
+                                              {otype::node, 1},
+                                              {otype::way, 12, "inner"}});
         osmium::CRC<osmium::CRC_zlib> orig_crc;
-        orig_crc.update(buffer.get<osmium::Relation>(pos));
+        orig_crc.update(relation);
 
-        mid->relations_set(buffer.get<osmium::Relation>(pos));
+        mid->relations_set(relation);
 
         mid->flush();
 
