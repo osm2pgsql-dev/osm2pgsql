@@ -14,7 +14,10 @@ static pg::tempdb_t db;
 
 namespace {
 
-/// Simple osmium buffer to store object with some convenience.
+/**
+ * Wrapper around an Osmium buffer to create test objects in with some
+ * convenience.
+ */
 class test_buffer_t
 {
 public:
@@ -24,10 +27,13 @@ public:
         return osmium::builder::add_node(buf, _id(id), _location(lon, lat));
     }
 
-    size_t add_way(osmid_t wid, idlist_t const &ids)
+    size_t
+    add_way(osmid_t wid, idlist_t const &ids,
+            std::initializer_list<std::pair<char const *, char const *>> tags)
     {
         using namespace osmium::builder::attr;
-        return osmium::builder::add_way(buf, _id(wid), _nodes(ids));
+        return osmium::builder::add_way(buf, _id(wid), _nodes(ids),
+                                        _tags(tags));
     }
 
     size_t add_relation(
@@ -62,9 +68,11 @@ public:
         return get<osmium::Node>(add_node(id, lon, lat));
     }
 
-    osmium::Way &add_way_and_get(osmid_t wid, idlist_t const &ids)
+    osmium::Way &add_way_and_get(
+        osmid_t wid, idlist_t const &ids,
+        std::initializer_list<std::pair<char const *, char const *>> tags = {})
     {
-        return get<osmium::Way>(add_way(wid, ids));
+        return get<osmium::Way>(add_way(wid, ids, tags));
     }
 
     osmium::Relation &add_relation_and_get(
@@ -464,6 +472,36 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
     }
 }
 
+/**
+ * Check that the way is in the mid with the right attributes and tags.
+ * Does not check node locations.
+ */
+static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
+                      osmium::Way const &orig_way)
+{
+    auto const mid_q = mid->get_query_instance();
+
+    osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
+    REQUIRE(mid_q->ways_get(orig_way.id(), outbuf));
+    auto const &way = outbuf.get<osmium::Way>(0);
+
+    osmium::CRC<osmium::CRC_zlib> orig_way_crc;
+    orig_way_crc.update(orig_way);
+
+    osmium::CRC<osmium::CRC_zlib> test_way_crc;
+    test_way_crc.update(way);
+
+    REQUIRE(orig_way_crc().checksum() == test_way_crc().checksum());
+}
+
+/// Return true if the way with the specified id is not in the mid
+static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+{
+    auto const mid_q = mid->get_query_instance();
+    osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
+    return !mid_q->ways_get(id, outbuf);
+}
+
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
                    options_slim_default, options_slim_dense_cache,
                    options_flat_node_cache)
@@ -473,96 +511,210 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    osmid_t const way_id = 20;
-
-    // create some nodes we'll use for the ways
+    // create some ways we'll use for the tests
     test_buffer_t buffer;
-    auto const& node10 = buffer.add_node_and_get(10, 1.0, 0.0);
-    auto const& node11 = buffer.add_node_and_get(11, 1.1, 0.0);
-    auto const& node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+    auto const &way20 = buffer.add_way_and_get(
+        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
 
-    // Set up middle in "create" mode to get a cleanly initialized database
-    // and add some nodes.
+    auto const &way21 = buffer.add_way_and_get(21, {11, 12});
+
+    auto const &way22 =
+        buffer.add_way_and_get(22, {12, 10}, {{"power", "line"}});
+
+    auto const &way20a = buffer.add_way_and_get(
+        20, {10, 12}, {{"highway", "primary"}, {"name", "High Street"}});
+
+    // Set up middle in "create" mode to get a cleanly initialized database and
+    // add some ways. Does this in its own scope so that the mid is closed
+    // properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->nodes_set(node10);
-        mid->nodes_set(node11);
-        mid->nodes_set(node12);
+        mid->ways_set(way20);
+        mid->ways_set(way21);
         mid->flush();
 
-        // create way
-        idlist_t nds{10, 11};
-        mid->ways_set(buffer.add_way_and_get(way_id, nds));
-        mid->flush();
-
-        osmium::memory::Buffer outbuf{4096,
-                                      osmium::memory::Buffer::auto_grow::yes};
-
-        auto const mid_q = mid->get_query_instance();
-        REQUIRE(mid_q->ways_get(way_id, outbuf));
-
-        auto &way = outbuf.get<osmium::Way>(0);
-
-        REQUIRE(way.id() == way_id);
-        REQUIRE(way.nodes().size() == nds.size());
-        REQUIRE(way.nodes()[0].ref() == 10);
-        REQUIRE(way.nodes()[1].ref() == 11);
-
-        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
-        REQUIRE(way.nodes()[0].location() == osmium::Location{1.0, 0.0});
-        REQUIRE(way.nodes()[1].location() == osmium::Location{1.1, 0.0});
+        check_way(mid, way20);
+        check_way(mid, way21);
 
         mid->commit();
     }
 
-    // Set up middle again, this time in "append" mode so we can change things.
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
+
+    SECTION("Check that added ways are there and no others")
     {
-        options.append = true;
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        // delete way
-        mid->ways_delete(way_id);
-        mid->flush();
-
-        osmium::memory::Buffer outbuf{4096,
-                                      osmium::memory::Buffer::auto_grow::yes};
-
-        auto const mid_q = mid->get_query_instance();
-        REQUIRE_FALSE(mid_q->ways_get(way_id, outbuf));
+        REQUIRE(no_way(mid, 5));
+        check_way(mid, way20);
+        check_way(mid, way21);
+        REQUIRE(no_way(mid, 22));
 
         mid->commit();
     }
 
-    // Set up middle again, still in "append" mode.
+    SECTION("Delete existing and non-existing way")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->ways_delete(5);
+            mid->ways_delete(20);
+            mid->ways_delete(42);
+            mid->flush();
+
+            REQUIRE(no_way(mid, 5));
+            REQUIRE(no_way(mid, 20));
+            check_way(mid, way21);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_way(mid, 5));
+            REQUIRE(no_way(mid, 20));
+            check_way(mid, way21);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+    }
+
+    SECTION("Change (delete and set) existing way and non-existing way")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->ways_delete(20);
+            mid->ways_set(way20a);
+            mid->ways_delete(22);
+            mid->ways_set(way22);
+            mid->flush();
+
+            REQUIRE(no_way(mid, 5));
+            check_way(mid, way20a);
+            check_way(mid, way21);
+            check_way(mid, way22);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_way(mid, 5));
+            check_way(mid, way20a);
+            check_way(mid, way21);
+            check_way(mid, way22);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+    }
+
+    SECTION("Add new way")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->ways_set(way22);
+            mid->flush();
+
+            REQUIRE(no_way(mid, 5));
+            check_way(mid, way20);
+            check_way(mid, way21);
+            check_way(mid, way22);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_way(mid, 5));
+            check_way(mid, way20);
+            check_way(mid, way21);
+            check_way(mid, way22);
+            REQUIRE(no_way(mid, 42));
+
+            mid->commit();
+        }
+    }
+}
+
+TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
+                   options_slim_dense_cache, options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    SECTION("with attributes") { options.extra_attributes = true; }
+    SECTION("no attributes") { options.extra_attributes = false; }
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // create some ways we'll use for the tests
+    test_buffer_t buffer;
+    auto &way20 = buffer.add_way_and_get(
+        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
+    way20.set_version(123);
+    way20.set_timestamp(1234567890);
+    way20.set_changeset(456);
+    way20.set_uid(789);
+
+    // the same way but with default attributes
+    auto &way20_no_attr = buffer.add_way_and_get(
+        20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
+
+    // the same way but with attributes in tags
+    // the order of the tags is important here
+    auto &way20_attr_tags =
+        buffer.add_way_and_get(20, {10, 11},
+                               {{"highway", "residential"},
+                                {"name", "High Street"},
+                                {"osm_user", ""},
+                                {"osm_uid", "789"},
+                                {"osm_version", "123"},
+                                {"osm_timestamp", "2009-02-13T23:31:30Z"},
+                                {"osm_changeset", "456"}});
+
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        idlist_t nds{11, 12};
-
-        // create new version of the way
-        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->ways_set(way20);
         mid->flush();
 
-        osmium::memory::Buffer outbuf{4096,
-                                      osmium::memory::Buffer::auto_grow::yes};
+        check_way(mid,
+                  options.extra_attributes ? way20_attr_tags : way20_no_attr);
 
-        auto const mid_q = mid->get_query_instance();
-        REQUIRE(mid_q->ways_get(way_id, outbuf));
+        mid->commit();
+    }
 
-        auto &way = outbuf.get<osmium::Way>(0);
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
 
-        REQUIRE(way.id() == way_id);
-        REQUIRE(way.nodes().size() == nds.size());
-        REQUIRE(way.nodes()[0].ref() == 11);
-        REQUIRE(way.nodes()[1].ref() == 12);
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
 
-        REQUIRE(mid_q->nodes_get_list(&(way.nodes())) == nds.size());
-        REQUIRE(way.nodes()[0].location() == osmium::Location{1.1, 0.0});
-        REQUIRE(way.nodes()[1].location() == osmium::Location{1.2, 0.0});
+        check_way(mid,
+                  options.extra_attributes ? way20_attr_tags : way20_no_attr);
 
         mid->commit();
     }
