@@ -21,15 +21,6 @@ char const *type_to_char(osmium::item_type type) noexcept
     return "X";
 }
 
-static std::string tablespace_clause(std::string const &tablespace)
-{
-    if (tablespace.empty()) {
-        return "";
-    }
-
-    return " TABLESPACE \"{}\" "_format(tablespace);
-}
-
 bool flex_table_t::has_multicolumn_id_index() const noexcept
 {
     return m_columns[0].type() == table_column_type::id_type;

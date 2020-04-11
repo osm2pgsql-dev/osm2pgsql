@@ -92,9 +92,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
             }
 
             if (*(source + 1) == 't') {
-                if (options->tblsslim_data) {
-                    strcpy(dest, options->tblsslim_data->c_str());
-                    dest += strlen(options->tblsslim_data->c_str());
+                if (!options->tblsslim_data.empty()) {
+                    strcpy(dest, options->tblsslim_data.c_str());
+                    dest += strlen(options->tblsslim_data.c_str());
                     copied = true;
                 }
                 source += 2;
@@ -102,9 +102,9 @@ static void set_prefix_and_tbls(options_t const *options, std::string *string)
             }
 
             if (*(source + 1) == 'i') {
-                if (options->tblsslim_index) {
-                    strcpy(dest, options->tblsslim_index->c_str());
-                    dest += strlen(options->tblsslim_index->c_str());
+                if (!options->tblsslim_index.empty()) {
+                    strcpy(dest, options->tblsslim_index.c_str());
+                    dest += strlen(options->tblsslim_index.c_str());
                     copied = true;
                 }
                 source += 2;

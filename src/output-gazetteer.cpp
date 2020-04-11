@@ -57,17 +57,15 @@ void output_gazetteer_t::start()
             "  address hstore,"
             "  extratags hstore," +
             "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")";
-        if (m_options.tblsmain_data) {
-            sql += " TABLESPACE " + m_options.tblsmain_data.get();
-        }
+
+        sql += tablespace_clause(m_options.tblsmain_data);
 
         conn.exec(sql);
 
-        std::string index_sql =
-            "CREATE INDEX place_id_idx ON place USING BTREE (osm_type, osm_id)";
-        if (m_options.tblsmain_index) {
-            index_sql += " TABLESPACE " + m_options.tblsmain_index.get();
-        }
+        std::string const index_sql =
+            "CREATE INDEX place_id_idx ON place "
+            "USING BTREE (osm_type, osm_id)" +
+            tablespace_clause(m_options.tblsmain_index);
         conn.exec(index_sql);
     }
 }

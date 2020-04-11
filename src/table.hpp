@@ -12,8 +12,6 @@
 #include <utility>
 #include <vector>
 
-#include <boost/optional.hpp>
-
 using hstores_t = std::vector<std::string>;
 
 class table_t
@@ -26,10 +24,9 @@ public:
     table_t(table_t const &other,
             std::shared_ptr<db_copy_thread_t> const &copy_thread);
 
-    void start(std::string const &conninfo,
-               boost::optional<std::string> const &table_space);
+    void start(std::string const &conninfo, std::string const &table_space);
     void stop(bool updateable, bool enable_hstore_index,
-              boost::optional<std::string> const &table_space_index);
+              std::string const &table_space_index);
 
     void commit();
 

@@ -125,4 +125,6 @@ private:
     std::unique_ptr<PGconn, pg_conn_deleter_t> m_conn;
 };
 
+std::string tablespace_clause(std::string const &name);
+
 #endif // OSM2PGSQL_PGSQL_HPP

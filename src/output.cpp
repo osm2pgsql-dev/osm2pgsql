@@ -70,9 +70,9 @@ parse_multi_single(pt::ptree const &conf,
     new_opts.tag_transform_rel_mem_func =
         conf.get_optional<std::string>("tagtransform-relation-member-function");
 
-    new_opts.tblsmain_index =
-        conf.get_optional<std::string>("tablespace-index");
-    new_opts.tblsmain_data = conf.get_optional<std::string>("tablespace-data");
+    new_opts.tblsmain_index = conf.get("tablespace-index", "");
+    new_opts.tblsmain_data = conf.get("tablespace-data", "");
+
     override_if<int>(new_opts.hstore_mode, "enable-hstore", conf);
     override_if<bool>(new_opts.enable_hstore_index, "enable-hstore-index",
                       conf);

@@ -59,8 +59,7 @@ void table_t::connect()
     m_sql_conn->exec("SET synchronous_commit = off");
 }
 
-void table_t::start(std::string const &conninfo,
-                    boost::optional<std::string> const &table_space)
+void table_t::start(std::string const &conninfo, std::string const &table_space)
 {
     if (m_sql_conn) {
         throw std::runtime_error{m_target->name +
@@ -68,7 +67,7 @@ void table_t::start(std::string const &conninfo,
     }
 
     m_conninfo = conninfo;
-    m_table_space = table_space ? " TABLESPACE " + table_space.get() : "";
+    m_table_space = tablespace_clause(table_space);
 
     connect();
     fmt::print(stderr, "Setting up table: {}\n", m_target->name);
@@ -173,7 +172,7 @@ void table_t::generate_copy_column_list()
 }
 
 void table_t::stop(bool updateable, bool enable_hstore_index,
-                   boost::optional<std::string> const &table_space_index)
+                   std::string const &table_space_index)
 {
     // make sure that all data is written to the DB before continuing
     m_copy.sync();
@@ -230,19 +229,17 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
                    m_target->name);
         fmt::print(stderr, "Creating geometry index on {}\n", m_target->name);
 
-        std::string tblspc_sql =
-            table_space_index ? "TABLESPACE " + table_space_index.get() : "";
         // Use fillfactor 100 for un-updatable imports
         m_sql_conn->exec("CREATE INDEX ON {} USING GIST (way) {} {}"_format(
             m_target->name, (updateable ? "" : "WITH (fillfactor = 100)"),
-            tblspc_sql));
+            tablespace_clause(table_space_index)));
 
         /* slim mode needs this to be able to apply diffs */
         if (updateable) {
             fmt::print(stderr, "Creating osm_id index on {}\n", m_target->name);
             m_sql_conn->exec(
                 "CREATE INDEX ON {} USING BTREE (osm_id) {}"_format(
-                    m_target->name, tblspc_sql));
+                    m_target->name, tablespace_clause(table_space_index)));
             if (m_srid != "4326") {
                 m_sql_conn->exec(
                     "CREATE OR REPLACE FUNCTION {}_osm2pgsql_valid()\n"
@@ -270,18 +267,13 @@ void table_t::stop(bool updateable, bool enable_hstore_index,
             if (m_hstore_mode != HSTORE_NONE) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (tags) {}"_format(
-                        m_target->name,
-                        (table_space_index
-                             ? "TABLESPACE " + table_space_index.get()
-                             : "")));
+                        m_target->name, tablespace_clause(table_space_index)));
             }
             for (auto const &hcolumn : m_hstore_columns) {
                 m_sql_conn->exec(
                     "CREATE INDEX ON {} USING GIN (\"{}\") {}"_format(
                         m_target->name, hcolumn,
-                        (table_space_index
-                             ? "TABLESPACE " + table_space_index.get()
-                             : "")));
+                        tablespace_clause(table_space_index)));
             }
         }
         fmt::print(stderr, "Creating indexes on {} finished\n", m_target->name);

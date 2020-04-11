@@ -54,16 +54,16 @@ public:
     int cache = 800;                          ///< Memory usable for cache in MB
 
     /// Pg Tablespace to store indexes on main tables (no default TABLESPACE)
-    boost::optional<std::string> tblsmain_index{boost::none};
+    std::string tblsmain_index{};
 
     /// Pg Tablespace to store indexes on slim tables (no default TABLESPACE)
-    boost::optional<std::string> tblsslim_index{boost::none};
+    std::string tblsslim_index{};
 
     /// Pg Tablespace to store main tables (no default TABLESPACE)
-    boost::optional<std::string> tblsmain_data{boost::none};
+    std::string tblsmain_data{};
 
     /// Pg Tablespace to store slim tables (no default TABLESPACE)
-    boost::optional<std::string> tblsslim_data{boost::none};
+    std::string tblsslim_data{};
 
     std::string style{DEFAULT_STYLE}; ///< style file to use
     uint32_t expire_tiles_zoom = 0;   ///< Zoom level for tile expiry list

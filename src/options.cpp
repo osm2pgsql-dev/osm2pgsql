@@ -374,7 +374,8 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             style = optarg;
             break;
         case 'i':
-            tblsmain_index = tblsslim_index = optarg;
+            tblsmain_index = optarg;
+            tblsslim_index = tblsmain_index;
             break;
         case 200:
             tblsslim_data = optarg;
