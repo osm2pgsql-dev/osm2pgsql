@@ -125,7 +125,7 @@ private:
     long nodesCacheHits = 0;
     long nodesCacheLookups = 0;
 
-    int warn_node_order = 0;
+    bool m_warn_node_order = true;
 };
 
 #endif // OSM2PGSQL_NODE_RAM_CACHE_HPP
