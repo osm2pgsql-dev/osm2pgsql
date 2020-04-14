@@ -49,7 +49,18 @@ void parse_stats_t::print_summary() const
                m_rel.count, m_rel.max, rels_time(now));
 }
 
-void parse_stats_t::print_status()
+void parse_stats_t::print_status(time_t now) const
+{
+    fmt::print(
+        stderr,
+        "\rProcessing: Node({}k {:.1f}k/s) Way({}k {:.2f}k/s)"
+        " Relation({} {:.1f}/s)",
+        m_node.count_k(), count_per_second(m_node.count_k(), nodes_time(now)),
+        m_way.count_k(), count_per_second(m_way.count_k(), ways_time(now)),
+        m_rel.count, count_per_second(m_rel.count, rels_time(now)));
+}
+
+void parse_stats_t::possibly_print_status()
 {
     std::time_t const now = std::time(nullptr);
 
@@ -58,13 +69,7 @@ void parse_stats_t::print_status()
     }
     m_last_print_time = now;
 
-    fmt::print(
-        stderr,
-        "\rProcessing: Node({}k {:.1f}k/s) Way({}k {:.2f}k/s)"
-        " Relation({} {:.1f}/s)",
-        m_node.count_k(), count_per_second(m_node.count_k(), nodes_time(now)),
-        m_way.count_k(), count_per_second(m_way.count_k(), ways_time(now)),
-        m_rel.count, count_per_second(m_rel.count, rels_time(now)));
+    print_status(now);
 }
 
 parse_osmium_t::parse_osmium_t(boost::optional<std::string> const &bbox,

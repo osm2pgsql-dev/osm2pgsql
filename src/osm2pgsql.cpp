@@ -80,27 +80,22 @@ int main(int argc, char *argv[])
         util::timer_t timer_overall;
         osmdata.start();
 
-        /* Processing
-         * In this phase the input file(s) are read and parsed, populating some of the
-         * tables. Not all ways can be handled before relations are processed, so they're
-         * set as pending, to be handled in the next stage.
-         */
+        // Processing: In this phase the input file(s) are read and parsed,
+        // populating some of the tables.
         parse_stats_t stats;
-        //read in the input files one by one
         for (auto const &filename : options.input_files) {
-            //read the actual input
             fmt::print(stderr, "\nReading in file: {}\n", filename);
             util::timer_t timer_parse;
 
-            parse_osmium_t parser(options.bbox, options.append, &osmdata);
+            parse_osmium_t parser{options.bbox, options.append, &osmdata};
             parser.stream_file(filename, options.input_reader);
 
             stats.update(parser.stats());
 
+            stats.print_status(std::time(nullptr));
             fmt::print(stderr, "  parse time: {}s\n", timer_parse.stop());
         }
 
-        //show stats
         stats.print_summary();
 
         //Process pending ways, relations, cluster, and create indexes

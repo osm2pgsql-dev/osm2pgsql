@@ -60,26 +60,27 @@ public:
 
     void update(parse_stats_t const &other);
     void print_summary() const;
-    void print_status();
+    void print_status(time_t now) const;
+    void possibly_print_status();
 
     void add_node(osmid_t id)
     {
         if (m_node.add(id)) {
-            print_status();
+            possibly_print_status();
         }
     }
 
     void add_way(osmid_t id)
     {
         if (m_way.add(id)) {
-            print_status();
+            possibly_print_status();
         }
     }
 
     void add_rel(osmid_t id)
     {
         if (m_rel.add(id)) {
-            print_status();
+            possibly_print_status();
         }
     }
 
