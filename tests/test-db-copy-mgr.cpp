@@ -158,15 +158,15 @@ TEST_CASE("copy_mgr_t")
                         "\"rr\rrr\",\"s\\\\l\"}"});
 
         auto c = db.connect();
-        CHECK(c.require_scalar<std::string>("SELECT a[4] from test_copy_mgr") ==
+        CHECK(c.require_scalar<std::string>("SELECT a[4] FROM test_copy_mgr") ==
               "with \"quote\"");
-        CHECK(c.require_scalar<std::string>("SELECT a[5] from test_copy_mgr") ==
+        CHECK(c.require_scalar<std::string>("SELECT a[5] FROM test_copy_mgr") ==
               "the\t");
-        CHECK(c.require_scalar<std::string>("SELECT a[6] from test_copy_mgr") ==
+        CHECK(c.require_scalar<std::string>("SELECT a[6] FROM test_copy_mgr") ==
               "line\nbreak");
-        CHECK(c.require_scalar<std::string>("SELECT a[7] from test_copy_mgr") ==
+        CHECK(c.require_scalar<std::string>("SELECT a[7] FROM test_copy_mgr") ==
               "rr\rrr");
-        CHECK(c.require_scalar<std::string>("SELECT a[8] from test_copy_mgr") ==
+        CHECK(c.require_scalar<std::string>("SELECT a[8] FROM test_copy_mgr") ==
               "s\\l");
     }
 

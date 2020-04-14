@@ -27,8 +27,8 @@ TEST_CASE("multi backend trivial polygon import")
         // although there are 2 rows, they should both be 5-pointed polygons (note
         // that it's 5 points including the duplicated first/last point)
         REQUIRE(5 == conn.require_scalar<int>(
-                         "select distinct st_numpoints(st_exteriorring(way)) "
-                         "from test_poly"));
+                         "SELECT DISTINCT ST_NumPoints(ST_ExteriorRing(way)) "
+                         "FROM test_poly"));
     }
 
     SECTION("With multi-polygons")
@@ -49,10 +49,10 @@ TEST_CASE("multi backend trivial polygon import")
         // it's 5 points including the duplicated first/last point)
         REQUIRE(2 ==
                 conn.get_count(
-                    "(select (st_dump(way)).geom as way from test_poly) x"));
+                    "(SELECT (ST_Dump(way)).geom AS way FROM test_poly) x"));
         REQUIRE(5 ==
                 conn.require_scalar<int>(
-                    "select distinct st_numpoints(st_exteriorring(way)) from "
-                    "(select (st_dump(way)).geom as way from test_poly) x"));
+                    "SELECT DISTINCT ST_NumPoints(ST_ExteriorRing(way)) FROM "
+                    "(SELECT (ST_Dump(way)).geom AS way FROM test_poly) x"));
     }
 }
