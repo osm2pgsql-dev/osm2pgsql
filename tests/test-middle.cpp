@@ -39,6 +39,12 @@ public:
             buf, _id(rid), _members(members.begin(), members.end()));
     }
 
+    size_t add_nodes(idlist_t const &ids)
+    {
+        using namespace osmium::builder::attr;
+        return osmium::builder::add_way_node_list(buf, _nodes(ids));
+    }
+
     template <typename T>
     T const &get(size_t pos) const
     {
@@ -66,6 +72,11 @@ public:
         std::initializer_list<osmium::builder::attr::member_type> members)
     {
         return get<osmium::Relation>(add_relation(rid, members));
+    }
+
+    osmium::WayNodeList &add_nodes_and_get(idlist_t const &nodes)
+    {
+        return get<osmium::WayNodeList>(add_nodes(nodes));
     }
 
 private:
@@ -282,6 +293,174 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 
         // other relations are not retrievable
         REQUIRE_FALSE(mid_q->relations_get(999, outbuf));
+    }
+}
+
+/**
+ * Check that the node is in the mid with the right id and location
+ */
+static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
+                       osmium::Node const &node)
+{
+    test_buffer_t buffer;
+    auto &nodes = buffer.add_nodes_and_get({node.id()});
+    auto const mid_q = mid->get_query_instance();
+    REQUIRE(mid_q->nodes_get_list(&nodes) == 1);
+    REQUIRE(nodes[0].ref() == node.id());
+    REQUIRE(nodes[0].location() == node.location());
+}
+
+/// Return true if the node with the specified id is not in the mid
+static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+{
+    test_buffer_t buffer;
+    auto &nodes = buffer.add_nodes_and_get({id});
+    auto const mid_q = mid->get_query_instance();
+    return mid_q->nodes_get_list(&nodes) == 0;
+}
+
+TEMPLATE_TEST_CASE("middle add, delete and update node", "",
+                   options_slim_default, options_slim_dense_cache,
+                   options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // Prepare a buffer with some nodes which we will add and change
+    test_buffer_t buffer;
+    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
+    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
+    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+
+    auto const &node10a = buffer.add_node_and_get(10, 1.0, 1.0);
+
+    // Set up middle in "create" mode to get a cleanly initialized database
+    // and add some nodes. Does this in its own scope so that the mid is
+    // closed up properly.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->nodes_set(node10);
+        mid->nodes_set(node11);
+        mid->flush();
+
+        check_node(mid, node10);
+        check_node(mid, node11);
+        mid->commit();
+    }
+
+    // From now on use append mode to not destroy the data we just added
+    options.append = true;
+
+    SECTION("Check that added nodes are there and no others")
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        check_node(mid, node10);
+        check_node(mid, node11);
+        REQUIRE(no_node(mid, 5));
+        REQUIRE(no_node(mid, 42));
+
+        mid->commit();
+    }
+
+    SECTION("Delete existing and non-existing node")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->nodes_delete(5);
+            mid->nodes_delete(10);
+            mid->nodes_delete(42);
+            mid->flush();
+
+            REQUIRE(no_node(mid, 5));
+            REQUIRE(no_node(mid, 10));
+            check_node(mid, node11);
+            REQUIRE(no_node(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_node(mid, 5));
+            REQUIRE(no_node(mid, 10));
+            check_node(mid, node11);
+            REQUIRE(no_node(mid, 42));
+
+            mid->commit();
+        }
+    }
+
+    SECTION("Change (delete and set) existing node and non-existing node")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->nodes_delete(10);
+            mid->nodes_set(node10a);
+            mid->nodes_delete(12);
+            mid->nodes_set(node12);
+            mid->flush();
+
+            check_node(mid, node10a);
+            check_node(mid, node11);
+            check_node(mid, node12);
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            check_node(mid, node10a);
+            check_node(mid, node11);
+            check_node(mid, node12);
+
+            mid->commit();
+        }
+    }
+
+    SECTION("Add new node")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->nodes_set(node12);
+            mid->flush();
+
+            REQUIRE(no_node(mid, 5));
+            check_node(mid, node10);
+            check_node(mid, node11);
+            check_node(mid, node12);
+            REQUIRE(no_node(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_node(mid, 5));
+            check_node(mid, node10);
+            check_node(mid, node11);
+            check_node(mid, node12);
+            REQUIRE(no_node(mid, 42));
+
+            mid->commit();
+        }
     }
 }
 
