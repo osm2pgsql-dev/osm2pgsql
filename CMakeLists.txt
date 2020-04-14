@@ -66,12 +66,12 @@ option(EXTERNAL_FMT       "Do not use the bundled fmt"       OFF)
 
 find_package(Git)
 
-if(GIT_FOUND)
+if (GIT_FOUND)
     execute_process(COMMAND "${GIT_EXECUTABLE}" describe --tags --dirty=-changed
                     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
                     OUTPUT_VARIABLE VERSION_FROM_GIT
                     ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-    if(VERSION_FROM_GIT)
+    if (VERSION_FROM_GIT)
         set(VERSION_FROM_GIT " (${VERSION_FROM_GIT})")
     endif()
 endif()
@@ -199,7 +199,7 @@ set(LIBS ${Boost_LIBRARIES} ${PostgreSQL_LIBRARY} ${OSMIUM_LIBRARIES})
 
 find_path(PROJ4_INCLUDE_DIR proj_api.h)
 find_library(PROJ_LIBRARY NAMES proj)
-if(PROJ4_INCLUDE_DIR AND PROJ_LIBRARY)
+if (PROJ4_INCLUDE_DIR AND PROJ_LIBRARY)
     message(STATUS "Found Proj4 ${PROJ_LIBRARY}")
     set(HAVE_GENERIC_PROJ 1)
     set(HAVE_PROJ4 1)
@@ -225,7 +225,7 @@ if (WIN32)
             include_directories(SYSTEM ${GETOPT_INCLUDE_DIR})
             list(APPEND LIBS ${GETOPT_LIBRARY})
         else()
-            message(ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
+            message(FATAL_ERROR "Can not find getopt library for Windows. Please get it from https://github.com/alex85k/wingetopt or alternative source.")
         endif()
     endif()
 endif()
@@ -255,7 +255,7 @@ message(STATUS "Looking for clang-tidy")
 find_program(CLANG_TIDY
              NAMES clang-tidy clang-tidy-10 clang-tidy-9 clang-tidy-8 clang-tidy-7)
 
-if(CLANG_TIDY)
+if (CLANG_TIDY)
     message(STATUS "Looking for clang-tidy - found ${CLANG_TIDY}")
 
     file(GLOB CT_CHECK_FILES src/*.cpp tests/*cpp)
