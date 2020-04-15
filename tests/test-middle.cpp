@@ -38,11 +38,13 @@ public:
 
     size_t add_relation(
         osmid_t rid,
-        std::initializer_list<osmium::builder::attr::member_type> members)
+        std::initializer_list<osmium::builder::attr::member_type> members,
+        std::initializer_list<std::pair<char const *, char const *>> tags)
     {
         using namespace osmium::builder::attr;
         return osmium::builder::add_relation(
-            buf, _id(rid), _members(members.begin(), members.end()));
+            buf, _id(rid), _members(members.begin(), members.end()),
+            _tags(tags));
     }
 
     size_t add_nodes(idlist_t const &ids)
@@ -77,9 +79,10 @@ public:
 
     osmium::Relation &add_relation_and_get(
         osmid_t rid,
-        std::initializer_list<osmium::builder::attr::member_type> members)
+        std::initializer_list<osmium::builder::attr::member_type> members,
+        std::initializer_list<std::pair<char const *, char const *>> tags = {})
     {
-        return get<osmium::Relation>(add_relation(rid, members));
+        return get<osmium::Relation>(add_relation(rid, members, tags));
     }
 
     osmium::WayNodeList &add_nodes_and_get(idlist_t const &nodes)
@@ -715,6 +718,263 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 
         check_way(mid,
                   options.extra_attributes ? way20_attr_tags : way20_no_attr);
+
+        mid->commit();
+    }
+}
+
+/**
+ * Check that the relation is in the mid with the right attributes and tags.
+ * Does not check members.
+ */
+static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
+                           osmium::Relation const &orig_relation)
+{
+    auto const mid_q = mid->get_query_instance();
+
+    osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
+    REQUIRE(mid_q->relations_get(orig_relation.id(), outbuf));
+    auto const &relation = outbuf.get<osmium::Relation>(0);
+
+    osmium::CRC<osmium::CRC_zlib> orig_relation_crc;
+    orig_relation_crc.update(orig_relation);
+
+    osmium::CRC<osmium::CRC_zlib> test_relation_crc;
+    test_relation_crc.update(relation);
+
+    REQUIRE(orig_relation_crc().checksum() == test_relation_crc().checksum());
+}
+
+/// Return true if the relation with the specified id is not in the mid
+static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
+{
+    auto const mid_q = mid->get_query_instance();
+    osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
+    return !mid_q->relations_get(id, outbuf);
+}
+
+TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
+                   options_slim_default, options_slim_dense_cache,
+                   options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // create some relations we'll use for the tests
+    test_buffer_t buffer;
+    using otype = osmium::item_type;
+    auto const &relation30 = buffer.add_relation_and_get(
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
+
+    auto const &relation31 =
+        buffer.add_relation_and_get(31, {{otype::node, 10, ""}});
+
+    auto const &relation32 = buffer.add_relation_and_get(
+        32, {{otype::relation, 39, ""}}, {{"type", "site"}});
+
+    auto const &relation30a = buffer.add_relation_and_get(
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        {{"type", "multipolygon"}, {"name", "Pigeon Park"}});
+
+    // Set up middle in "create" mode to get a cleanly initialized database and
+    // add some relations. Does this in its own scope so that the mid is closed
+    // properly.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->relations_set(relation30);
+        mid->relations_set(relation31);
+        mid->flush();
+
+        check_relation(mid, relation30);
+        check_relation(mid, relation31);
+
+        mid->commit();
+    }
+
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
+
+    SECTION("Check that added relations are there and no others")
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        REQUIRE(no_relation(mid, 5));
+        check_relation(mid, relation30);
+        check_relation(mid, relation31);
+        REQUIRE(no_relation(mid, 32));
+
+        mid->commit();
+    }
+
+    SECTION("Delete existing and non-existing relation")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->relations_delete(5);
+            mid->relations_delete(30);
+            mid->relations_delete(42);
+            mid->flush();
+
+            REQUIRE(no_relation(mid, 5));
+            REQUIRE(no_relation(mid, 30));
+            check_relation(mid, relation31);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_relation(mid, 5));
+            REQUIRE(no_relation(mid, 30));
+            check_relation(mid, relation31);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+    }
+
+    SECTION(
+        "Change (delete and set) existing relation and non-existing relation")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->relations_delete(30);
+            mid->relations_set(relation30a);
+            mid->relations_delete(32);
+            mid->relations_set(relation32);
+            mid->flush();
+
+            REQUIRE(no_relation(mid, 5));
+            check_relation(mid, relation30a);
+            check_relation(mid, relation31);
+            check_relation(mid, relation32);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_relation(mid, 5));
+            check_relation(mid, relation30a);
+            check_relation(mid, relation31);
+            check_relation(mid, relation32);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+    }
+
+    SECTION("Add new relation")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->relations_set(relation32);
+            mid->flush();
+
+            REQUIRE(no_relation(mid, 5));
+            check_relation(mid, relation30);
+            check_relation(mid, relation31);
+            check_relation(mid, relation32);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+        {
+            // Check with a new mid
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            REQUIRE(no_relation(mid, 5));
+            check_relation(mid, relation30);
+            check_relation(mid, relation31);
+            check_relation(mid, relation32);
+            REQUIRE(no_relation(mid, 42));
+
+            mid->commit();
+        }
+    }
+}
+
+TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
+                   options_slim_default, options_slim_dense_cache,
+                   options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    SECTION("with attributes") { options.extra_attributes = true; }
+    SECTION("no attributes") { options.extra_attributes = false; }
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // create some relations we'll use for the tests
+    test_buffer_t buffer;
+    using otype = osmium::item_type;
+    auto &relation30 = buffer.add_relation_and_get(
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
+    relation30.set_version(123);
+    relation30.set_timestamp(1234567890);
+    relation30.set_changeset(456);
+    relation30.set_uid(789);
+
+    // the same relation but with default attributes
+    auto &relation30_no_attr = buffer.add_relation_and_get(
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        {{"type", "multipolygon"}, {"name", "Penguin Park"}});
+
+    // the same relation but with attributes in tags
+    // the order of the tags is important here
+    auto &relation30_attr_tags = buffer.add_relation_and_get(
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        {{"type", "multipolygon"},
+         {"name", "Penguin Park"},
+         {"osm_user", ""},
+         {"osm_uid", "789"},
+         {"osm_version", "123"},
+         {"osm_timestamp", "2009-02-13T23:31:30Z"},
+         {"osm_changeset", "456"}});
+
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->relations_set(relation30);
+        mid->flush();
+
+        check_relation(mid, options.extra_attributes ? relation30_attr_tags
+                                                     : relation30_no_attr);
+
+        mid->commit();
+    }
+
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
+
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        check_relation(mid, options.extra_attributes ? relation30_attr_tags
+                                                     : relation30_no_attr);
 
         mid->commit();
     }
