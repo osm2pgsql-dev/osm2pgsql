@@ -30,121 +30,18 @@
 #include "output-pgsql.hpp"
 #include "util.hpp"
 
-/**
- * Helper to create SQL queries.
- *
- * The input string is mangled as follows:
- * %p replaced by the content of the "prefix" option
- * %i replaced by the content of the "tblsslim_data" option
- * %t replaced by the content of the "tblssslim_index" option
- * %m replaced by "UNLOGGED" if the "droptemp" option is set
- * other occurrences of the "%" char are treated normally.
- * any occurrence of { or } will be ignored (not copied to output string);
- * anything inside {} is only copied if it contained at least one of
- * %p, %i, %t, %m that was not NULL.
- *
- * So, the input string
- *    Hello{ dear %i}!
- * will, if i is set to "John", translate to
- *    Hello dear John!
- * but if i is unset, translate to
- *    Hello!
- *
- * This is used for constructing SQL queries with proper tablespace settings.
- */
-static void set_prefix_and_tbls(options_t const *options, std::string *string)
-{
-    if (string->empty()) {
-        return;
-    }
-
-    char buffer[1024];
-    char *openbrace = nullptr;
-    bool copied = false;
-    char const *source = string->c_str();
-    char *dest = buffer;
-
-    while (*source) {
-        if (*source == '{') {
-            openbrace = dest;
-            copied = false;
-            ++source;
-            continue;
-        }
-
-        if (*source == '}') {
-            if (!copied && openbrace) {
-                dest = openbrace;
-            }
-            ++source;
-            continue;
-        }
-
-        if (*source == '%') {
-            if (*(source + 1) == 'p') {
-                if (!options->prefix.empty()) {
-                    strcpy(dest, options->prefix.c_str());
-                    dest += strlen(options->prefix.c_str());
-                    copied = true;
-                }
-                source += 2;
-                continue;
-            }
-
-            if (*(source + 1) == 't') {
-                if (!options->tblsslim_data.empty()) {
-                    strcpy(dest, options->tblsslim_data.c_str());
-                    dest += strlen(options->tblsslim_data.c_str());
-                    copied = true;
-                }
-                source += 2;
-                continue;
-            }
-
-            if (*(source + 1) == 'i') {
-                if (!options->tblsslim_index.empty()) {
-                    strcpy(dest, options->tblsslim_index.c_str());
-                    dest += strlen(options->tblsslim_index.c_str());
-                    copied = true;
-                }
-                source += 2;
-                continue;
-            }
-
-            if (*(source + 1) == 'm') {
-                if (options->droptemp) {
-                    strcpy(dest, "UNLOGGED");
-                    dest += 8;
-                    copied = true;
-                }
-                source += 2;
-                continue;
-            }
-        }
-        *(dest++) = *(source++);
-    }
-    *dest = 0;
-
-    string->assign(buffer);
-}
-
 middle_pgsql_t::table_desc::table_desc(options_t const *options,
-                                       char const *name, char const *create,
-                                       char const *prepare_query,
-                                       char const *prepare_intarray,
-                                       char const *array_indexes)
+                                       std::string const &name,
+                                       std::string const &create,
+                                       std::string const &prepare_query,
+                                       std::string const &prepare_intarray,
+                                       std::string const &array_indexes)
 : m_create(create), m_prepare_query(prepare_query),
   m_prepare_intarray(prepare_intarray), m_array_indexes(array_indexes),
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
     m_copy_target->name = name;
     m_copy_target->id = "id"; // XXX hardcoded column name
-
-    set_prefix_and_tbls(options, &m_copy_target->name);
-    set_prefix_and_tbls(options, &m_create);
-    set_prefix_and_tbls(options, &m_prepare_query);
-    set_prefix_and_tbls(options, &m_prepare_intarray);
-    set_prefix_and_tbls(options, &m_array_indexes);
 }
 
 pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
@@ -776,40 +673,47 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 
     fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
 
+    std::string const index_tablespace{options->tblsslim_index.empty()
+                                           ? ""
+                                           : "USING INDEX TABLESPACE " +
+                                                 options->tblsslim_index};
+
+    std::string const unlogged{options->droptemp ? "UNLOGGED" : ""};
+
     // clang-format off
     /*table = t_node,*/
     m_tables[NODE_TABLE] = table_desc(options,
-            /*name*/ "%p_nodes",
-          /*create*/ "CREATE %m TABLE %p_nodes (id int8 PRIMARY KEY {USING INDEX TABLESPACE %i}, lat int4 NOT NULL, lon int4 NOT NULL) {TABLESPACE %t};\n",
+            /*name*/ "{}_nodes"_format(options->prefix),
+          /*create*/ "CREATE {} TABLE {}_nodes (id int8 PRIMARY KEY {}, lat int4 NOT NULL, lon int4 NOT NULL) {};\n"_format(unlogged, options->prefix, index_tablespace, tablespace_clause(options->tblsslim_data)),
          /*prepare_query */
-               "PREPARE get_node_list(int8[]) AS SELECT id, lat, lon FROM %p_nodes WHERE id = ANY($1::int8[]);\n"
+               "PREPARE get_node_list(int8[]) AS SELECT id, lat, lon FROM {}_nodes WHERE id = ANY($1::int8[]);\n"_format(options->prefix)
                          );
     m_tables[WAY_TABLE] = table_desc(options,
         /*table t_way,*/
-            /*name*/ "%p_ways",
-          /*create*/ "CREATE %m TABLE %p_ways (id int8 PRIMARY KEY {USING INDEX TABLESPACE %i}, nodes int8[] NOT NULL, tags text[]) {TABLESPACE %t};\n",
+            /*name*/ "{}_ways"_format(options->prefix),
+          /*create*/ "CREATE {} TABLE {}_ways (id int8 PRIMARY KEY {}, nodes int8[] NOT NULL, tags text[]) {};\n"_format(unlogged, options->prefix, index_tablespace, tablespace_clause(options->tblsslim_data)),
          /*prepare_query */
-               "PREPARE get_way(int8) AS SELECT nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = $1;\n"
-               "PREPARE get_way_list(int8[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM %p_ways WHERE id = ANY($1::int8[]);\n",
+               "PREPARE get_way(int8) AS SELECT nodes, tags, array_upper(nodes,1) FROM {0}_ways WHERE id = $1;\n"
+               "PREPARE get_way_list(int8[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM {0}_ways WHERE id = ANY($1::int8[]);\n"_format(options->prefix),
 /*prepare_intarray*/
-               "PREPARE mark_ways_by_node(int8) AS SELECT id FROM %p_ways WHERE nodes && ARRAY[$1];\n"
-               "PREPARE mark_ways_by_rel(int8) AS SELECT id FROM %p_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM %p_rels WHERE id = $1);\n",
+               "PREPARE mark_ways_by_node(int8) AS SELECT id FROM {0}_ways WHERE nodes && ARRAY[$1];\n"
+               "PREPARE mark_ways_by_rel(int8) AS SELECT id FROM {0}_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM {0}_rels WHERE id = $1);\n"_format(options->prefix),
 
-   /*array_indexes*/ "CREATE INDEX %p_ways_nodes ON %p_ways USING GIN (nodes) WITH (fastupdate = off) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX {0}_ways_nodes ON {0}_ways USING GIN (nodes) WITH (fastupdate = off) {1};\n"_format(options->prefix, tablespace_clause(options->tblsslim_index))
                          );
     m_tables[REL_TABLE] = table_desc(options,
         /*table = t_rel,*/
-            /*name*/ "%p_rels",
-          /*create*/ "CREATE %m TABLE %p_rels(id int8 PRIMARY KEY {USING INDEX TABLESPACE %i}, way_off int2, rel_off int2, parts int8[], members text[], tags text[]) {TABLESPACE %t};\n",
+            /*name*/ "{}_rels"_format(options->prefix),
+          /*create*/ "CREATE {} TABLE {}_rels(id int8 PRIMARY KEY {}, way_off int2, rel_off int2, parts int8[], members text[], tags text[]) {};\n"_format(unlogged, options->prefix, index_tablespace, tablespace_clause(options->tblsslim_data)),
          /*prepare_query */
-               "PREPARE get_rel(int8) AS SELECT members, tags, array_upper(members,1)/2 FROM %p_rels WHERE id = $1;\n"
-                "PREPARE rels_using_way(int8) AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n",
+               "PREPARE get_rel(int8) AS SELECT members, tags, array_upper(members,1)/2 FROM {0}_rels WHERE id = $1;\n"
+                "PREPARE rels_using_way(int8) AS SELECT id FROM {0}_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"_format(options->prefix),
 /*prepare_intarray*/
-                "PREPARE mark_rels_by_node(int8) AS SELECT id FROM %p_ways WHERE nodes && ARRAY[$1];\n"
-                "PREPARE mark_rels_by_way(int8) AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
-                "PREPARE mark_rels(int8) AS SELECT id FROM %p_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n",
+                "PREPARE mark_rels_by_node(int8) AS SELECT id FROM {0}_ways WHERE nodes && ARRAY[$1];\n"
+                "PREPARE mark_rels_by_way(int8) AS SELECT id FROM {0}_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
+                "PREPARE mark_rels(int8) AS SELECT id FROM {0}_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n"_format(options->prefix),
 
-   /*array_indexes*/ "CREATE INDEX %p_rels_parts ON %p_rels USING GIN (parts) WITH (fastupdate = off) {TABLESPACE %i};\n"
+   /*array_indexes*/ "CREATE INDEX {0}_rels_parts ON {0}_rels USING GIN (parts) WITH (fastupdate = off) {1};\n"_format(options->prefix, tablespace_clause(options->tblsslim_index))
                          );
     // clang-format on
 }
