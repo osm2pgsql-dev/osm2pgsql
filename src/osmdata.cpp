@@ -403,7 +403,7 @@ private:
  */
 bool osmdata_t::has_pending() const noexcept
 {
-    if (m_mid->pending_count() > 0) {
+    if (m_mid->has_pending()) {
         return true;
     }
 

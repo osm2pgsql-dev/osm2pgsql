@@ -76,8 +76,6 @@ void middle_ram_t::iterate_relations(pending_processor &pf)
     pf.process_relations();
 }
 
-size_t middle_ram_t::pending_count() const { return 0; }
-
 void middle_ram_t::iterate_ways(middle_t::pending_processor &pf)
 {
     //let the outputs enqueue everything they have the non slim middle

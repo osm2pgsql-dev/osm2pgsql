@@ -804,7 +804,8 @@ middle_pgsql_t::get_query_instance()
     return std::shared_ptr<middle_query_t>(mid.release());
 }
 
-size_t middle_pgsql_t::pending_count() const
+bool middle_pgsql_t::has_pending() const
 {
-    return m_ways_pending_tracker->size() + m_rels_pending_tracker->size();
+    return (m_ways_pending_tracker->size() > 0) ||
+           (m_rels_pending_tracker->size() > 0);
 }

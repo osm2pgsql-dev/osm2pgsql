@@ -10,6 +10,8 @@
 #include "common-options.hpp"
 #include "common-pg.hpp"
 
+#include <algorithm>
+
 static pg::tempdb_t db;
 
 namespace {
@@ -497,6 +499,32 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(orig_crc().checksum() == test_crc().checksum());
 }
 
+/**
+ * Check that the nodes (ids and locations) of the way with the way_id in the
+ * mid are identical to the nodes in the nodes vector.
+ */
+static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
+                            osmid_t way_id,
+                            std::vector<osmium::Node const *> nodes)
+{
+    auto const mid_q = mid->get_query_instance();
+
+    osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
+    REQUIRE(mid_q->way_get(way_id, outbuf));
+    auto &way = outbuf.get<osmium::Way>(0);
+
+    REQUIRE(mid_q->nodes_get_list(&way.nodes()) == way.nodes().size());
+    REQUIRE(way.nodes().size() == nodes.size());
+
+    auto it = way.nodes().cbegin();
+    for (auto const *nptr : nodes) {
+        REQUIRE(nptr->id() == it->ref());
+        REQUIRE(nptr->location() == it->location());
+        ++it;
+    }
+    REQUIRE(it == way.nodes().cend());
+}
+
 /// Return true if the way with the specified id is not in the mid.
 static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
@@ -976,5 +1004,178 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
                                                      : relation30_no_attr);
 
         mid->commit();
+    }
+}
+
+class test_pending_processor : public middle_t::pending_processor
+{
+public:
+    test_pending_processor() = default;
+
+    void enqueue_ways(osmid_t id) override { m_way_ids.push_back(id); }
+
+    void process_ways() override{};
+    void enqueue_relations(osmid_t) override{};
+    void process_relations() override{};
+
+    void check_way_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
+    {
+        REQUIRE(!m_way_ids.empty());
+
+        // The last tracked id is always the invalid id, which we ignore
+        REQUIRE_FALSE(id_tracker::is_valid(m_way_ids.back()));
+        m_way_ids.pop_back();
+
+        REQUIRE(m_way_ids.size() == list.size());
+        REQUIRE(std::equal(m_way_ids.cbegin(), m_way_ids.cend(), list.begin()));
+    }
+
+private:
+    std::vector<osmid_t> m_way_ids;
+};
+
+TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
+                   options_slim_dense_cache, options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // create some nodes and ways we'll use for the tests
+    test_buffer_t buffer;
+    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
+    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
+    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+    auto const &node10a = buffer.add_node_and_get(10, 2.0, 0.0);
+
+    auto const &way20 = buffer.add_way_and_get(20, {10, 11});
+    auto const &way21 = buffer.add_way_and_get(21, {11, 12});
+    auto const &way22 = buffer.add_way_and_get(22, {12, 10});
+    auto const &way20a = buffer.add_way_and_get(20, {11, 12});
+
+    // Set up middle in "create" mode to get a cleanly initialized database and
+    // add some nodes and ways. Does this in its own scope so that the mid is
+    // closed properly.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->node_set(node10);
+        mid->node_set(node11);
+        mid->node_set(node12);
+        mid->flush();
+        mid->way_set(way20);
+        mid->way_set(way21);
+        mid->flush();
+
+        check_node(mid, node10);
+        check_node(mid, node11);
+        check_node(mid, node12);
+        check_way(mid, way20);
+        check_way_nodes(mid, way20.id(), {&node10, &node11});
+        check_way(mid, way21);
+        check_way_nodes(mid, way21.id(), {&node11, &node12});
+
+        // Nothing pending yet
+        REQUIRE_FALSE(mid->has_pending());
+        test_pending_processor proc;
+        mid->iterate_ways(proc);
+        proc.check_way_ids_equal_to({});
+
+        mid->commit();
+    }
+
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
+
+    SECTION("single way affected")
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->node_delete(10);
+        mid->node_set(node10a);
+        mid->node_changed(10);
+        mid->flush();
+
+        REQUIRE(mid->has_pending());
+        test_pending_processor proc;
+        mid->iterate_ways(proc);
+        proc.check_way_ids_equal_to({20});
+
+        check_way(mid, way20);
+        check_way_nodes(mid, way20.id(), {&node10a, &node11});
+
+        mid->commit();
+    }
+
+    SECTION("two ways affected")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->way_set(way22);
+            mid->flush();
+            check_way(mid, way22);
+
+            mid->commit();
+        }
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->node_delete(10);
+            mid->node_set(node10a);
+            mid->node_changed(10);
+            mid->flush();
+
+            REQUIRE(mid->has_pending());
+            test_pending_processor proc;
+            mid->iterate_ways(proc);
+            proc.check_way_ids_equal_to({20, 22});
+
+            check_way(mid, way20);
+            check_way_nodes(mid, way20.id(), {&node10a, &node11});
+            check_way(mid, way22);
+            check_way_nodes(mid, way22.id(), {&node12, &node10a});
+
+            mid->commit();
+        }
+    }
+
+    SECTION("change way so the changing node isn't in it any more")
+    {
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->way_delete(20);
+            mid->way_set(way20a);
+            mid->flush();
+
+            check_way(mid, way20a);
+            check_way_nodes(mid, way20.id(), {&node11, &node12});
+
+            mid->commit();
+        }
+
+        {
+            auto mid = std::make_shared<middle_pgsql_t>(&options);
+            mid->start();
+
+            mid->node_delete(10);
+            mid->node_set(node10a);
+            mid->node_changed(10);
+            mid->flush();
+
+            REQUIRE_FALSE(mid->has_pending());
+            test_pending_processor proc;
+            mid->iterate_ways(proc);
+            proc.check_way_ids_equal_to({});
+
+            mid->commit();
+        }
     }
 }
