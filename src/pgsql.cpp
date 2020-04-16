@@ -119,3 +119,16 @@ pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
 
     return res;
 }
+
+std::string tablespace_clause(std::string const &name)
+{
+    std::string sql;
+
+    if (!name.empty()) {
+        sql += " TABLESPACE ";
+        sql += name;
+    }
+
+    return sql;
+}
+
