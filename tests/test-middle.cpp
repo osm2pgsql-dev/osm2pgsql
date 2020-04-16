@@ -776,7 +776,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         32, {{otype::relation, 39, ""}}, {{"type", "site"}});
 
     auto const &relation30a = buffer.add_relation_and_get(
-        30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
+        30, {{otype::way, 10, "outer"}, {otype::way, 11, "outer"}},
         {{"type", "multipolygon"}, {"name", "Pigeon Park"}});
 
     // Set up middle in "create" mode to get a cleanly initialized database and
