@@ -42,7 +42,7 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      *
      * \return true if the way was retrieved
      */
-    virtual bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
+    virtual bool way_get(osmid_t id, osmium::memory::Buffer &buffer) const = 0;
 
     /**
      * Retrieves the way members of a relation and stores them in
@@ -65,8 +65,8 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
      *
      * \return true if the relation was retrieved
      */
-    virtual bool relations_get(osmid_t id,
-                               osmium::memory::Buffer &buffer) const = 0;
+    virtual bool relation_get(osmid_t id,
+                              osmium::memory::Buffer &buffer) const = 0;
 
     /*
      * Retrieve a list of relations with a particular way as a member
@@ -78,7 +78,10 @@ struct middle_query_t : std::enable_shared_from_this<middle_query_t>
 inline middle_query_t::~middle_query_t() = default;
 
 /**
- * Interface for storing raw OSM data in an intermediate cache.
+ * Interface for storing raw OSM data in an intermediate object store.
+ *
+ * This interface only allows for setting OSM data once, not changing it.
+ * If you need updates and deletions, look at the derived class slim_middle_t.
  */
 struct middle_t
 {
@@ -89,11 +92,33 @@ struct middle_t
     virtual void analyze(void) = 0;
     virtual void commit(void) = 0;
 
-    virtual void nodes_set(osmium::Node const &node) = 0;
-    virtual void ways_set(osmium::Way const &way) = 0;
-    virtual void relations_set(osmium::Relation const &rel) = 0;
+    /**
+     * Add a node to data storage. The node must not already be in the
+     * data storage.
+     */
+    virtual void node_set(osmium::Node const &node) = 0;
 
-    /// Write all pending data to permanent storage.
+    /**
+     * Add a way to data storage. The way must not already be in the data
+     * storage.
+     */
+    virtual void way_set(osmium::Way const &way) = 0;
+
+    /**
+     * Add a relation to data storage. The way must not already be in the
+     * data storage.
+     */
+    virtual void relation_set(osmium::Relation const &rel) = 0;
+
+    /**
+     * Ensure all pending data is written to the storage.
+     *
+     * You can only query objects from the storage after they have been
+     * flushed.
+     *
+     * The function is called after setting all the nodes, then after setting
+     * all the ways, and again after setting all the relations.
+     */
     virtual void flush() = 0;
 
     struct pending_processor
@@ -116,20 +141,49 @@ struct middle_t
 inline middle_t::~middle_t() = default;
 
 /**
- * Extended interface for permanent caching of raw OSM data.
- * It also allows updates.
+ * Extends the middle_t interface to allow updates and deletions of objects.
  */
 struct slim_middle_t : public middle_t
 {
     virtual ~slim_middle_t() = 0;
 
-    virtual void nodes_delete(osmid_t id) = 0;
+    /**
+     * Delete a node from data storage. Either because you want it removed
+     * entirely or before you can node_set() a new version of it.
+     */
+    virtual void node_delete(osmid_t id) = 0;
+
+    /**
+     * Mark a node as changed. This has to be called *after* node_delete()
+     * and node_set() is called to trigger the propagation of this change
+     * to ways and relations.
+     */
     virtual void node_changed(osmid_t id) = 0;
 
-    virtual void ways_delete(osmid_t id) = 0;
+    /**
+     * Delete a way from data storage. Either because you want it removed
+     * entirely or before you can way_set() a new version of it.
+     */
+    virtual void way_delete(osmid_t id) = 0;
+
+    /**
+     * Mark a way as changed. This has to be called *after* way_delete()
+     * and way_set() is called to trigger the propagation of this change
+     * to relations.
+     */
     virtual void way_changed(osmid_t id) = 0;
 
-    virtual void relations_delete(osmid_t id) = 0;
+    /**
+     * Delete a relation from data storage. Either because you want it removed
+     * entirely or before you can relation_set() a new version of it.
+     */
+    virtual void relation_delete(osmid_t id) = 0;
+
+    /**
+     * Mark a relation as changed. This has to be called *after*
+     * relation_delete() and relation_set() is called to trigger the
+     * propagation of this change to other relations.
+     */
     virtual void relation_changed(osmid_t id) = 0;
 };
 

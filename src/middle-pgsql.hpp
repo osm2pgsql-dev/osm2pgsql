@@ -28,13 +28,13 @@ public:
 
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
-    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    bool way_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
                                osmium::memory::Buffer &buffer) const override;
 
     idlist_t relations_using_way(osmid_t way_id) const override;
-    bool relations_get(osmid_t id,
-                       osmium::memory::Buffer &buffer) const override;
+    bool relation_get(osmid_t id,
+                      osmium::memory::Buffer &buffer) const override;
 
     void exec_sql(std::string const &sql_cmd) const;
 
@@ -58,16 +58,16 @@ struct middle_pgsql_t : public slim_middle_t
     void analyze() override;
     void commit() override;
 
-    void nodes_set(osmium::Node const &node) override;
-    void nodes_delete(osmid_t id) override;
+    void node_set(osmium::Node const &node) override;
+    void node_delete(osmid_t id) override;
     void node_changed(osmid_t id) override;
 
-    void ways_set(osmium::Way const &way) override;
-    void ways_delete(osmid_t id) override;
+    void way_set(osmium::Way const &way) override;
+    void way_delete(osmid_t id) override;
     void way_changed(osmid_t id) override;
 
-    void relations_set(osmium::Relation const &rel) override;
-    void relations_delete(osmid_t id) override;
+    void relation_set(osmium::Relation const &rel) override;
+    void relation_delete(osmid_t id) override;
     void relation_changed(osmid_t id) override;
 
     void flush() override;

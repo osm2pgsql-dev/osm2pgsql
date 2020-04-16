@@ -99,17 +99,17 @@ struct middle_ram_t : public middle_t, public middle_query_t
     void analyze(void) override;
     void commit(void) override;
 
-    void nodes_set(osmium::Node const &node) override;
+    void node_set(osmium::Node const &node) override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
 
-    void ways_set(osmium::Way const &way) override;
-    bool ways_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
+    void way_set(osmium::Way const &way) override;
+    bool way_get(osmid_t id, osmium::memory::Buffer &buffer) const override;
     size_t rel_way_members_get(osmium::Relation const &rel, rolelist_t *roles,
                                osmium::memory::Buffer &buffer) const override;
 
-    bool relations_get(osmid_t id,
-                       osmium::memory::Buffer &buffer) const override;
-    void relations_set(osmium::Relation const &rel) override;
+    bool relation_get(osmid_t id,
+                      osmium::memory::Buffer &buffer) const override;
+    void relation_set(osmium::Relation const &rel) override;
 
     void flush() override {}
 

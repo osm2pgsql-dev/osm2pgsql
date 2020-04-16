@@ -1052,7 +1052,7 @@ void output_flex_t::pending_way(osmid_t id, int exists)
     }
 
     m_buffer.clear();
-    if (!m_mid->ways_get(id, m_buffer)) {
+    if (!m_mid->way_get(id, m_buffer)) {
         return;
     }
 
@@ -1127,7 +1127,7 @@ void output_flex_t::pending_relation(osmid_t id, int exists)
     // Note that we cannot use the global buffer here because
     // we cannot keep a reference to the relation and an autogrow buffer
     // might be relocated when more data is added.
-    if (!m_mid->relations_get(id, m_rels_buffer)) {
+    if (!m_mid->relation_get(id, m_rels_buffer)) {
         return;
     }
 
@@ -1465,7 +1465,7 @@ void output_flex_t::stage2_proc()
 
     while (id_tracker::is_valid((id = m_stage2_ways_tracker->pop_mark()))) {
         m_buffer.clear();
-        if (!m_mid->ways_get(id, m_buffer)) {
+        if (!m_mid->way_get(id, m_buffer)) {
             continue;
         }
         auto &way = m_buffer.get<osmium::Way>(0);
@@ -1478,7 +1478,7 @@ void output_flex_t::stage2_proc()
 
     while (id_tracker::is_valid((id = m_stage2_rels_tracker->pop_mark()))) {
         m_rels_buffer.clear();
-        if (!m_mid->relations_get(id, m_rels_buffer)) {
+        if (!m_mid->relation_get(id, m_rels_buffer)) {
             continue;
         }
         auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
