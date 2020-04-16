@@ -718,8 +718,7 @@ static table_sql sql_for_ways() noexcept
                        "        FROM {prefix}_rels WHERE id = $1"
                        "    );\n";
 
-    sql.create_index = "CREATE INDEX {prefix}_ways_nodes"
-                       "  ON {prefix}_ways USING GIN (nodes)"
+    sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
@@ -761,8 +760,7 @@ static table_sql sql_for_relations() noexcept
                        "      AND parts[rel_off+1:array_length(parts,1)]"
                        "        && ARRAY[$1];\n";
 
-    sql.create_index = "CREATE INDEX {prefix}_rels_parts"
-                       "  ON {prefix}_rels USING GIN (parts)"
+    sql.create_index = "CREATE INDEX ON {prefix}_rels USING GIN (parts)"
                        "  WITH (fastupdate = off) {index_tablespace};\n";
 
     return sql;
