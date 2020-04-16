@@ -308,7 +308,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
 }
 
 /**
- * Check that the node is in the mid with the right id and location
+ * Check that the node is in the mid with the right id and location.
  */
 static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
                        osmium::Node const &node)
@@ -321,7 +321,7 @@ static void check_node(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(nodes[0].location() == node.location());
 }
 
-/// Return true if the node with the specified id is not in the mid
+/// Return true if the node with the specified id is not in the mid.
 static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     test_buffer_t buffer;
@@ -330,7 +330,7 @@ static bool no_node(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
     return mid_q->nodes_get_list(&nodes) == 0;
 }
 
-TEMPLATE_TEST_CASE("middle add, delete and update node", "",
+TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
                    options_slim_default, options_slim_dense_cache,
                    options_flat_node_cache)
 {
@@ -339,7 +339,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    // Prepare a buffer with some nodes which we will add and change
+    // Prepare a buffer with some nodes which we will add and change.
     test_buffer_t buffer;
     auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
     auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
@@ -349,7 +349,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
 
     // Set up middle in "create" mode to get a cleanly initialized database
     // and add some nodes. Does this in its own scope so that the mid is
-    // closed up properly.
+    // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
@@ -363,10 +363,10 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
         mid->commit();
     }
 
-    // From now on use append mode to not destroy the data we just added
+    // From now on use append mode to not destroy the data we just added.
     options.append = true;
 
-    SECTION("Check that added nodes are there and no others")
+    SECTION("Added nodes are there and no others")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
@@ -398,7 +398,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -411,7 +411,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
         }
     }
 
-    SECTION("Change (delete and set) existing node and non-existing node")
+    SECTION("Change (delete and set) existing and non-existing node")
     {
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -430,7 +430,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -460,7 +460,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -488,16 +488,16 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(mid_q->way_get(orig_way.id(), outbuf));
     auto const &way = outbuf.get<osmium::Way>(0);
 
-    osmium::CRC<osmium::CRC_zlib> orig_way_crc;
-    orig_way_crc.update(orig_way);
+    osmium::CRC<osmium::CRC_zlib> orig_crc;
+    orig_crc.update(orig_way);
 
-    osmium::CRC<osmium::CRC_zlib> test_way_crc;
-    test_way_crc.update(way);
+    osmium::CRC<osmium::CRC_zlib> test_crc;
+    test_crc.update(way);
 
-    REQUIRE(orig_way_crc().checksum() == test_way_crc().checksum());
+    REQUIRE(orig_crc().checksum() == test_crc().checksum());
 }
 
-/// Return true if the way with the specified id is not in the mid
+/// Return true if the way with the specified id is not in the mid.
 static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
@@ -514,7 +514,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    // create some ways we'll use for the tests
+    // Create some ways we'll use for the tests.
     test_buffer_t buffer;
     auto const &way20 = buffer.add_way_and_get(
         20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
@@ -547,7 +547,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
     // From now on use append mode to not destroy the data we just added.
     options.append = true;
 
-    SECTION("Check that added ways are there and no others")
+    SECTION("Added ways are there and no others")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
@@ -579,7 +579,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -592,7 +592,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         }
     }
 
-    SECTION("Change (delete and set) existing way and non-existing way")
+    SECTION("Change (delete and set) existing and non-existing way")
     {
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -613,7 +613,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -645,7 +645,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -671,7 +671,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    // create some ways we'll use for the tests
+    // Create some ways we'll use for the tests.
     test_buffer_t buffer;
     auto &way20 = buffer.add_way_and_get(
         20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
@@ -680,12 +680,12 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
     way20.set_changeset(456);
     way20.set_uid(789);
 
-    // the same way but with default attributes
+    // The same way but with default attributes.
     auto &way20_no_attr = buffer.add_way_and_get(
         20, {10, 11}, {{"highway", "residential"}, {"name", "High Street"}});
 
-    // the same way but with attributes in tags
-    // the order of the tags is important here
+    // The same way but with attributes in tags.
+    // The order of the tags is important here!
     auto &way20_attr_tags =
         buffer.add_way_and_get(20, {10, 11},
                                {{"highway", "residential"},
@@ -724,8 +724,8 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 }
 
 /**
- * Check that the relation is in the mid with the right attributes and tags.
- * Does not check members.
+ * Check that the relation is in the mid with the right attributes, members
+ * and tags. Only checks the relation, does not recurse into members.
  */
 static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
                            osmium::Relation const &orig_relation)
@@ -736,16 +736,16 @@ static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(mid_q->relation_get(orig_relation.id(), outbuf));
     auto const &relation = outbuf.get<osmium::Relation>(0);
 
-    osmium::CRC<osmium::CRC_zlib> orig_relation_crc;
-    orig_relation_crc.update(orig_relation);
+    osmium::CRC<osmium::CRC_zlib> orig_crc;
+    orig_crc.update(orig_relation);
 
-    osmium::CRC<osmium::CRC_zlib> test_relation_crc;
-    test_relation_crc.update(relation);
+    osmium::CRC<osmium::CRC_zlib> test_crc;
+    test_crc.update(relation);
 
-    REQUIRE(orig_relation_crc().checksum() == test_relation_crc().checksum());
+    REQUIRE(orig_crc().checksum() == test_crc().checksum());
 }
 
-/// Return true if the relation with the specified id is not in the mid
+/// Return true if the relation with the specified id is not in the mid.
 static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
@@ -762,7 +762,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    // create some relations we'll use for the tests
+    // Create some relations we'll use for the tests.
     test_buffer_t buffer;
     using otype = osmium::item_type;
     auto const &relation30 = buffer.add_relation_and_get(
@@ -799,7 +799,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
     // From now on use append mode to not destroy the data we just added.
     options.append = true;
 
-    SECTION("Check that added relations are there and no others")
+    SECTION("Added relations are there and no others")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
@@ -831,7 +831,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -844,8 +844,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         }
     }
 
-    SECTION(
-        "Change (delete and set) existing relation and non-existing relation")
+    SECTION("Change (delete and set) existing and non-existing relation")
     {
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -866,7 +865,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -898,7 +897,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             mid->commit();
         }
         {
-            // Check with a new mid
+            // Check with a new mid.
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
@@ -925,7 +924,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
 
-    // create some relations we'll use for the tests
+    // Create some relations we'll use for the tests.
     test_buffer_t buffer;
     using otype = osmium::item_type;
     auto &relation30 = buffer.add_relation_and_get(
@@ -936,13 +935,13 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     relation30.set_changeset(456);
     relation30.set_uid(789);
 
-    // the same relation but with default attributes
+    // The same relation but with default attributes.
     auto &relation30_no_attr = buffer.add_relation_and_get(
         30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
         {{"type", "multipolygon"}, {"name", "Penguin Park"}});
 
-    // the same relation but with attributes in tags
-    // the order of the tags is important here
+    // The same relation but with attributes in tags.
+    // The order of the tags is important here!
     auto &relation30_attr_tags = buffer.add_relation_and_get(
         30, {{otype::way, 10, "outer"}, {otype::way, 11, "inner"}},
         {{"type", "multipolygon"},
