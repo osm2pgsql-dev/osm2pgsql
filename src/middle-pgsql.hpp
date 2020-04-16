@@ -81,8 +81,8 @@ struct middle_pgsql_t : public slim_middle_t
     {
     public:
         table_desc() {}
-        table_desc(options_t const *options, std::string const &name,
-                   std::string const &create, std::string const &prepare_query,
+        table_desc(std::string const &name, std::string const &create,
+                   std::string const &prepare_query,
                    std::string const &prepare_intarray = "",
                    std::string const &array_indexes = "");
 

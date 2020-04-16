@@ -30,8 +30,7 @@
 #include "output-pgsql.hpp"
 #include "util.hpp"
 
-middle_pgsql_t::table_desc::table_desc(options_t const *options,
-                                       std::string const &name,
+middle_pgsql_t::table_desc::table_desc(std::string const &name,
                                        std::string const &create,
                                        std::string const &prepare_query,
                                        std::string const &prepare_intarray,
@@ -681,7 +680,6 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
     std::string const unlogged{options->droptemp ? "UNLOGGED" : ""};
 
     m_tables[NODE_TABLE] = table_desc{
-        options,
         /*name*/ "{}_nodes"_format(options->prefix),
         /*create*/
         "CREATE {} TABLE {}_nodes (id int8 PRIMARY KEY {}, lat int4 NOT NULL, lon int4 NOT NULL) {};\n"_format(
@@ -692,7 +690,6 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
             options->prefix)};
 
     m_tables[WAY_TABLE] = table_desc{
-        options,
         /*name*/ "{}_ways"_format(options->prefix),
         /*create*/
         "CREATE {} TABLE {}_ways (id int8 PRIMARY KEY {}, nodes int8[] NOT NULL, tags text[]) {};\n"_format(
@@ -713,7 +710,6 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
             options->prefix, tablespace_clause(options->tblsslim_index))};
 
     m_tables[REL_TABLE] = table_desc{
-        options,
         /*name*/ "{}_rels"_format(options->prefix),
         /*create*/
         "CREATE {} TABLE {}_rels(id int8 PRIMARY KEY {}, way_off int2, rel_off int2, parts int8[], members text[], tags text[]) {};\n"_format(
