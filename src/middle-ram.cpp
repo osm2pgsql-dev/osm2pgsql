@@ -33,17 +33,17 @@
  *
  */
 
-void middle_ram_t::nodes_set(osmium::Node const &node)
+void middle_ram_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());
 }
 
-void middle_ram_t::ways_set(osmium::Way const &way)
+void middle_ram_t::way_set(osmium::Way const &way)
 {
     m_ways.set(way.id(), new ramWay{way, m_extra_attributes});
 }
 
-void middle_ram_t::relations_set(osmium::Relation const &rel)
+void middle_ram_t::relation_set(osmium::Relation const &rel)
 {
     m_rels.set(rel.id(), new ramRel{rel, m_extra_attributes});
 }
@@ -92,7 +92,7 @@ void middle_ram_t::release_relations() { m_rels.clear(); }
 
 void middle_ram_t::release_ways() { m_ways.clear(); }
 
-bool middle_ram_t::ways_get(osmid_t id, osmium::memory::Buffer &buffer) const
+bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
     if (m_simulate_ways_deleted) {
         return false;
@@ -117,7 +117,7 @@ size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
 {
     size_t count = 0;
     for (auto const &m : rel.members()) {
-        if (m.type() == osmium::item_type::way && ways_get(m.ref(), buffer)) {
+        if (m.type() == osmium::item_type::way && way_get(m.ref(), buffer)) {
             if (roles) {
                 roles->emplace_back(m.role());
             }
@@ -128,8 +128,8 @@ size_t middle_ram_t::rel_way_members_get(osmium::Relation const &rel,
     return count;
 }
 
-bool middle_ram_t::relations_get(osmid_t id,
-                                 osmium::memory::Buffer &buffer) const
+bool middle_ram_t::relation_get(osmid_t id,
+                                osmium::memory::Buffer &buffer) const
 {
     auto const *ele = m_rels.get(id);
 

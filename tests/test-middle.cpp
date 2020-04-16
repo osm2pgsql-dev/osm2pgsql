@@ -190,7 +190,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             buffer.add_node_and_get(1234, 98.7654321, 12.3456789);
 
         // set the node
-        mid->nodes_set(node);
+        mid->node_set(node);
         mid->flush();
 
         // getting it back works only via a waylist
@@ -218,11 +218,11 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
             nds.push_back(i);
             nodes.push_back(
                 buffer.add_node(i, lon - i * 0.003, lat + i * 0.001));
-            mid->nodes_set(buffer.get<osmium::Node>(nodes.back()));
+            mid->node_set(buffer.get<osmium::Node>(nodes.back()));
         }
 
         // set the way
-        mid->ways_set(buffer.add_way_and_get(way_id, nds));
+        mid->way_set(buffer.add_way_and_get(way_id, nds));
 
         mid->flush();
 
@@ -230,7 +230,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         osmium::memory::Buffer outbuf{4096,
                                       osmium::memory::Buffer::auto_grow::yes};
 
-        REQUIRE(mid_q->ways_get(way_id, outbuf));
+        REQUIRE(mid_q->way_get(way_id, outbuf));
 
         auto &way = outbuf.get<osmium::Way>(0);
 
@@ -243,7 +243,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other ways are not retrievable
-        REQUIRE_FALSE(mid_q->ways_get(way_id + 1, outbuf));
+        REQUIRE_FALSE(mid_q->way_get(way_id + 1, outbuf));
     }
 
     SECTION("Set and retrieve a single relation with supporting ways")
@@ -251,12 +251,12 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         idlist_t const nds[] = {{4, 5, 13, 14, 342}, {45, 90}, {30, 3, 45}};
 
         // set the node
-        mid->nodes_set(buffer.add_node_and_get(1, 4.1, 12.8));
+        mid->node_set(buffer.add_node_and_get(1, 4.1, 12.8));
 
         // set the ways
         osmid_t wid = 10;
         for (auto const &n : nds) {
-            mid->ways_set(buffer.add_way_and_get(wid, n));
+            mid->way_set(buffer.add_way_and_get(wid, n));
             ++wid;
         }
 
@@ -270,14 +270,14 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         osmium::CRC<osmium::CRC_zlib> orig_crc;
         orig_crc.update(relation);
 
-        mid->relations_set(relation);
+        mid->relation_set(relation);
 
         mid->flush();
 
         // retrieve the relation
         osmium::memory::Buffer outbuf{4096,
                                       osmium::memory::Buffer::auto_grow::yes};
-        REQUIRE(mid_q->relations_get(123, outbuf));
+        REQUIRE(mid_q->relation_get(123, outbuf));
         auto const &rel = outbuf.get<osmium::Relation>(0);
 
         CHECK(rel.id() == 123);
@@ -303,7 +303,7 @@ TEMPLATE_TEST_CASE("middle import", "", options_slim_default,
         }
 
         // other relations are not retrievable
-        REQUIRE_FALSE(mid_q->relations_get(999, outbuf));
+        REQUIRE_FALSE(mid_q->relation_get(999, outbuf));
     }
 }
 
@@ -354,8 +354,8 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->nodes_set(node10);
-        mid->nodes_set(node11);
+        mid->node_set(node10);
+        mid->node_set(node11);
         mid->flush();
 
         check_node(mid, node10);
@@ -385,9 +385,9 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->nodes_delete(5);
-            mid->nodes_delete(10);
-            mid->nodes_delete(42);
+            mid->node_delete(5);
+            mid->node_delete(10);
+            mid->node_delete(42);
             mid->flush();
 
             REQUIRE(no_node(mid, 5));
@@ -417,10 +417,10 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->nodes_delete(10);
-            mid->nodes_set(node10a);
-            mid->nodes_delete(12);
-            mid->nodes_set(node12);
+            mid->node_delete(10);
+            mid->node_set(node10a);
+            mid->node_delete(12);
+            mid->node_set(node12);
             mid->flush();
 
             check_node(mid, node10a);
@@ -448,7 +448,7 @@ TEMPLATE_TEST_CASE("middle add, delete and update node", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->nodes_set(node12);
+            mid->node_set(node12);
             mid->flush();
 
             REQUIRE(no_node(mid, 5));
@@ -485,7 +485,7 @@ static void check_way(std::shared_ptr<middle_pgsql_t> const &mid,
     auto const mid_q = mid->get_query_instance();
 
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    REQUIRE(mid_q->ways_get(orig_way.id(), outbuf));
+    REQUIRE(mid_q->way_get(orig_way.id(), outbuf));
     auto const &way = outbuf.get<osmium::Way>(0);
 
     osmium::CRC<osmium::CRC_zlib> orig_way_crc;
@@ -502,7 +502,7 @@ static bool no_way(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    return !mid_q->ways_get(id, outbuf);
+    return !mid_q->way_get(id, outbuf);
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
@@ -534,8 +534,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->ways_set(way20);
-        mid->ways_set(way21);
+        mid->way_set(way20);
+        mid->way_set(way21);
         mid->flush();
 
         check_way(mid, way20);
@@ -566,9 +566,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->ways_delete(5);
-            mid->ways_delete(20);
-            mid->ways_delete(42);
+            mid->way_delete(5);
+            mid->way_delete(20);
+            mid->way_delete(42);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -598,10 +598,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->ways_delete(20);
-            mid->ways_set(way20a);
-            mid->ways_delete(22);
-            mid->ways_set(way22);
+            mid->way_delete(20);
+            mid->way_set(way20a);
+            mid->way_delete(22);
+            mid->way_set(way22);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -633,7 +633,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update way", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->ways_set(way22);
+            mid->way_set(way22);
             mid->flush();
 
             REQUIRE(no_way(mid, 5));
@@ -700,7 +700,7 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->ways_set(way20);
+        mid->way_set(way20);
         mid->flush();
 
         check_way(mid,
@@ -733,7 +733,7 @@ static void check_relation(std::shared_ptr<middle_pgsql_t> const &mid,
     auto const mid_q = mid->get_query_instance();
 
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    REQUIRE(mid_q->relations_get(orig_relation.id(), outbuf));
+    REQUIRE(mid_q->relation_get(orig_relation.id(), outbuf));
     auto const &relation = outbuf.get<osmium::Relation>(0);
 
     osmium::CRC<osmium::CRC_zlib> orig_relation_crc;
@@ -750,7 +750,7 @@ static bool no_relation(std::shared_ptr<middle_pgsql_t> const &mid, osmid_t id)
 {
     auto const mid_q = mid->get_query_instance();
     osmium::memory::Buffer outbuf{4096, osmium::memory::Buffer::auto_grow::yes};
-    return !mid_q->relations_get(id, outbuf);
+    return !mid_q->relation_get(id, outbuf);
 }
 
 TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
@@ -786,8 +786,8 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->relations_set(relation30);
-        mid->relations_set(relation31);
+        mid->relation_set(relation30);
+        mid->relation_set(relation31);
         mid->flush();
 
         check_relation(mid, relation30);
@@ -818,9 +818,9 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relations_delete(5);
-            mid->relations_delete(30);
-            mid->relations_delete(42);
+            mid->relation_delete(5);
+            mid->relation_delete(30);
+            mid->relation_delete(42);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -851,10 +851,10 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relations_delete(30);
-            mid->relations_set(relation30a);
-            mid->relations_delete(32);
-            mid->relations_set(relation32);
+            mid->relation_delete(30);
+            mid->relation_set(relation30a);
+            mid->relation_delete(32);
+            mid->relation_set(relation32);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -886,7 +886,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update relation", "",
             auto mid = std::make_shared<middle_pgsql_t>(&options);
             mid->start();
 
-            mid->relations_set(relation32);
+            mid->relation_set(relation32);
             mid->flush();
 
             REQUIRE(no_relation(mid, 5));
@@ -957,7 +957,7 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
 
-        mid->relations_set(relation30);
+        mid->relation_set(relation30);
         mid->flush();
 
         check_relation(mid, options.extra_attributes ? relation30_attr_tags

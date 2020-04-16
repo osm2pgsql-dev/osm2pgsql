@@ -113,7 +113,7 @@ void output_pgsql_t::pending_way(osmid_t id, int exists)
 {
     // Try to fetch the way from the DB
     buffer.clear();
-    if (m_mid->ways_get(id, buffer)) {
+    if (m_mid->way_get(id, buffer)) {
         /* If the flag says this object may exist already, delete it first */
         if (exists) {
             pgsql_delete_way_from_output(id);
@@ -187,7 +187,7 @@ void output_pgsql_t::pending_relation(osmid_t id, int exists)
     // we cannot keep a reference to the relation and an autogrow buffer
     // might be relocated when more data is added.
     rels_buffer.clear();
-    if (m_mid->relations_get(id, rels_buffer)) {
+    if (m_mid->relation_get(id, rels_buffer)) {
         // If the flag says this object may exist already, delete it first.
         if (exists) {
             pgsql_delete_relation_from_output(id);

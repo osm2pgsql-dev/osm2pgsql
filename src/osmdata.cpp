@@ -48,7 +48,7 @@ slim_middle_t &osmdata_t::slim_middle() const noexcept
 
 void osmdata_t::node_add(osmium::Node const &node) const
 {
-    m_mid->nodes_set(node);
+    m_mid->node_set(node);
 
     if (m_with_extra_attrs || !node.tags().empty()) {
         for (auto &out : m_outs) {
@@ -59,7 +59,7 @@ void osmdata_t::node_add(osmium::Node const &node) const
 
 void osmdata_t::way_add(osmium::Way *way) const
 {
-    m_mid->ways_set(*way);
+    m_mid->way_set(*way);
 
     if (m_with_extra_attrs || !way->tags().empty()) {
         for (auto &out : m_outs) {
@@ -70,7 +70,7 @@ void osmdata_t::way_add(osmium::Way *way) const
 
 void osmdata_t::relation_add(osmium::Relation const &rel) const
 {
-    m_mid->relations_set(rel);
+    m_mid->relation_set(rel);
 
     if (m_with_extra_attrs || !rel.tags().empty()) {
         for (auto &out : m_outs) {
@@ -83,8 +83,8 @@ void osmdata_t::node_modify(osmium::Node const &node) const
 {
     auto &slim = slim_middle();
 
-    slim.nodes_delete(node.id());
-    slim.nodes_set(node);
+    slim.node_delete(node.id());
+    slim.node_set(node);
 
     for (auto &out : m_outs) {
         out->node_modify(node);
@@ -97,8 +97,8 @@ void osmdata_t::way_modify(osmium::Way *way) const
 {
     auto &slim = slim_middle();
 
-    slim.ways_delete(way->id());
-    slim.ways_set(*way);
+    slim.way_delete(way->id());
+    slim.way_set(*way);
 
     for (auto &out : m_outs) {
         out->way_modify(way);
@@ -111,8 +111,8 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
 {
     auto &slim = slim_middle();
 
-    slim.relations_delete(rel.id());
-    slim.relations_set(rel);
+    slim.relation_delete(rel.id());
+    slim.relation_set(rel);
 
     for (auto &out : m_outs) {
         out->relation_modify(rel);
@@ -127,7 +127,7 @@ void osmdata_t::node_delete(osmid_t id) const
         out->node_delete(id);
     }
 
-    slim_middle().nodes_delete(id);
+    slim_middle().node_delete(id);
 }
 
 void osmdata_t::way_delete(osmid_t id) const
@@ -136,7 +136,7 @@ void osmdata_t::way_delete(osmid_t id) const
         out->way_delete(id);
     }
 
-    slim_middle().ways_delete(id);
+    slim_middle().way_delete(id);
 }
 
 void osmdata_t::relation_delete(osmid_t id) const
@@ -145,7 +145,7 @@ void osmdata_t::relation_delete(osmid_t id) const
         out->relation_delete(id);
     }
 
-    slim_middle().relations_delete(id);
+    slim_middle().relation_delete(id);
 }
 
 void osmdata_t::start() const

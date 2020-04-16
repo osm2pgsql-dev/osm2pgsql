@@ -22,9 +22,9 @@ struct counting_slim_middle_t : public slim_middle_t
     void analyze() override {}
     void commit() override {}
 
-    void nodes_set(osmium::Node const &) override { ++node.added; }
-    void ways_set(osmium::Way const &) override { ++way.added; }
-    void relations_set(osmium::Relation const &) override { ++relation.added; }
+    void node_set(osmium::Node const &) override { ++node.added; }
+    void way_set(osmium::Way const &) override { ++way.added; }
+    void relation_set(osmium::Relation const &) override { ++relation.added; }
 
     void iterate_ways(pending_processor &) override {}
     void iterate_relations(pending_processor &) override {}
@@ -35,13 +35,13 @@ struct counting_slim_middle_t : public slim_middle_t
         return std::shared_ptr<middle_query_t>{};
     }
 
-    void nodes_delete(osmid_t) override { ++node.deleted; }
+    void node_delete(osmid_t) override { ++node.deleted; }
     void node_changed(osmid_t) override { ++node.modified; }
 
-    void ways_delete(osmid_t) override { ++way.deleted; }
+    void way_delete(osmid_t) override { ++way.deleted; }
     void way_changed(osmid_t) override { ++way.modified; }
 
-    void relations_delete(osmid_t) override { ++relation.deleted; }
+    void relation_delete(osmid_t) override { ++relation.deleted; }
     void relation_changed(osmid_t) override { ++relation.modified; }
 
     type_stats_t node, way, relation;

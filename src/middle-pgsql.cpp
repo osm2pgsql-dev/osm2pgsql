@@ -266,7 +266,7 @@ middle_query_pgsql_t::local_nodes_get_list(osmium::WayNodeList *nodes) const
     return count;
 }
 
-void middle_pgsql_t::nodes_set(osmium::Node const &node)
+void middle_pgsql_t::node_set(osmium::Node const &node)
 {
     m_cache->set(node.id(), node.location());
 
@@ -288,7 +288,7 @@ size_t middle_query_pgsql_t::nodes_get_list(osmium::WayNodeList *nodes) const
                               : local_nodes_get_list(nodes);
 }
 
-void middle_pgsql_t::nodes_delete(osmid_t osm_id)
+void middle_pgsql_t::node_delete(osmid_t osm_id)
 {
     assert(m_append);
 
@@ -322,7 +322,7 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     }
 }
 
-void middle_pgsql_t::ways_set(osmium::Way const &way)
+void middle_pgsql_t::way_set(osmium::Way const &way)
 {
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
 
@@ -340,8 +340,8 @@ void middle_pgsql_t::ways_set(osmium::Way const &way)
     m_db_copy.finish_line();
 }
 
-bool middle_query_pgsql_t::ways_get(osmid_t id,
-                                    osmium::memory::Buffer &buffer) const
+bool middle_query_pgsql_t::way_get(osmid_t id,
+                                   osmium::memory::Buffer &buffer) const
 {
     auto const res = exec_prepared("get_way", id);
 
@@ -417,7 +417,7 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
     return outres;
 }
 
-void middle_pgsql_t::ways_delete(osmid_t osm_id)
+void middle_pgsql_t::way_delete(osmid_t osm_id)
 {
     assert(m_append);
     m_db_copy.new_line(m_tables[WAY_TABLE].m_copy_target);
@@ -449,7 +449,7 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
     }
 }
 
-void middle_pgsql_t::relations_set(osmium::Relation const &rel)
+void middle_pgsql_t::relation_set(osmium::Relation const &rel)
 {
     // Sort relation members by their type.
     idlist_t parts[3];
@@ -492,8 +492,8 @@ void middle_pgsql_t::relations_set(osmium::Relation const &rel)
     m_db_copy.finish_line();
 }
 
-bool middle_query_pgsql_t::relations_get(osmid_t id,
-                                         osmium::memory::Buffer &buffer) const
+bool middle_query_pgsql_t::relation_get(osmid_t id,
+                                        osmium::memory::Buffer &buffer) const
 {
     auto const res = exec_prepared("get_rel", id);
     // Fields are: members, tags, member_count */
@@ -515,7 +515,7 @@ bool middle_query_pgsql_t::relations_get(osmid_t id,
     return true;
 }
 
-void middle_pgsql_t::relations_delete(osmid_t osm_id)
+void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_append);
     //keep track of whatever ways this relation interesects
