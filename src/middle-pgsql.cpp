@@ -30,16 +30,30 @@
 #include "output-pgsql.hpp"
 #include "util.hpp"
 
-middle_pgsql_t::table_desc::table_desc(std::string const &name,
-                                       std::string const &create,
-                                       std::string const &prepare_query,
-                                       std::string const &prepare_intarray,
-                                       std::string const &array_indexes)
-: m_create(create), m_prepare_query(prepare_query),
-  m_prepare_intarray(prepare_intarray), m_array_indexes(array_indexes),
+static std::string build_sql(options_t const &options, char const *templ)
+{
+    std::string const using_tablespace{options.tblsslim_index.empty()
+                                           ? ""
+                                           : "USING INDEX TABLESPACE " +
+                                                 options.tblsslim_index};
+    return fmt::format(
+        templ, fmt::arg("prefix", options.prefix),
+        fmt::arg("unlogged", options.droptemp ? "UNLOGGED" : ""),
+        fmt::arg("using_tablespace", using_tablespace),
+        fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
+        fmt::arg("index_tablespace",
+                 tablespace_clause(options.tblsslim_index)));
+}
+
+middle_pgsql_t::table_desc::table_desc(options_t const &options,
+                                       table_sql const &ts)
+: m_create(build_sql(options, ts.create_table)),
+  m_prepare_query(build_sql(options, ts.prepare_query)),
+  m_prepare_intarray(build_sql(options, ts.prepare_mark)),
+  m_array_indexes(build_sql(options, ts.create_index)),
   m_copy_target(std::make_shared<db_target_descr_t>())
 {
-    m_copy_target->name = name;
+    m_copy_target->name = build_sql(options, ts.name);
     m_copy_target->id = "id"; // XXX hardcoded column name
 }
 
@@ -658,6 +672,102 @@ void middle_pgsql_t::stop(osmium::thread::Pool &pool)
     }
 }
 
+static table_sql sql_for_nodes() noexcept
+{
+    table_sql sql{};
+
+    sql.name = "{prefix}_nodes";
+
+    sql.create_table = "CREATE {unlogged} TABLE {prefix}_nodes ("
+                       "  id int8 PRIMARY KEY {using_tablespace},"
+                       "  lat int4 NOT NULL,"
+                       "  lon int4 NOT NULL"
+                       ") {data_tablespace};\n";
+
+    sql.prepare_query = "PREPARE get_node_list(int8[]) AS"
+                        "  SELECT id, lat, lon FROM {prefix}_nodes"
+                        "  WHERE id = ANY($1::int8[]);\n";
+
+    return sql;
+}
+
+static table_sql sql_for_ways() noexcept
+{
+    table_sql sql{};
+
+    sql.name = "{prefix}_ways";
+
+    sql.create_table = "CREATE {unlogged} TABLE {prefix}_ways ("
+                       "  id int8 PRIMARY KEY {using_tablespace},"
+                       "  nodes int8[] NOT NULL,"
+                       "  tags text[]"
+                       ") {data_tablespace};\n";
+
+    sql.prepare_query = "PREPARE get_way(int8) AS"
+                        "  SELECT nodes, tags, array_upper(nodes, 1)"
+                        "    FROM {prefix}_ways WHERE id = $1;\n"
+                        "PREPARE get_way_list(int8[]) AS"
+                        "  SELECT id, nodes, tags, array_upper(nodes, 1)"
+                        "    FROM {prefix}_ways WHERE id = ANY($1::int8[]);\n";
+
+    sql.prepare_mark = "PREPARE mark_ways_by_node(int8) AS"
+                       "  SELECT id FROM {prefix}_ways"
+                       "    WHERE nodes && ARRAY[$1];\n"
+                       "PREPARE mark_ways_by_rel(int8) AS"
+                       "  SELECT id FROM {prefix}_ways"
+                       "    WHERE id IN ("
+                       "      SELECT unnest(parts[way_off+1:rel_off])"
+                       "        FROM {prefix}_rels WHERE id = $1"
+                       "    );\n";
+
+    sql.create_index = "CREATE INDEX ON {prefix}_ways USING GIN (nodes)"
+                       "  WITH (fastupdate = off) {index_tablespace};\n";
+
+    return sql;
+}
+
+static table_sql sql_for_relations() noexcept
+{
+    table_sql sql{};
+
+    sql.name = "{prefix}_rels";
+
+    sql.create_table = "CREATE {unlogged} TABLE {prefix}_rels ("
+                       "  id int8 PRIMARY KEY {using_tablespace},"
+                       "  way_off int2,"
+                       "  rel_off int2,"
+                       "  parts int8[],"
+                       "  members text[],"
+                       "  tags text[]"
+                       ") {data_tablespace};\n";
+
+    sql.prepare_query = "PREPARE get_rel(int8) AS"
+                        "  SELECT members, tags, array_upper(members, 1) / 2"
+                        "    FROM {prefix}_rels WHERE id = $1;\n"
+                        "PREPARE rels_using_way(int8) AS"
+                        "  SELECT id FROM {prefix}_rels"
+                        "    WHERE parts && ARRAY[$1]"
+                        "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
+
+    sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
+                       "  SELECT id FROM {prefix}_ways"
+                       "    WHERE nodes && ARRAY[$1];\n"
+                       "PREPARE mark_rels_by_way(int8) AS"
+                       "  SELECT id FROM {prefix}_rels"
+                       "    WHERE parts && ARRAY[$1]"
+                       "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
+                       "PREPARE mark_rels(int8) AS"
+                       "  SELECT id FROM {prefix}_rels"
+                       "    WHERE parts && ARRAY[$1]"
+                       "      AND parts[rel_off+1:array_length(parts,1)]"
+                       "        && ARRAY[$1];\n";
+
+    sql.create_index = "CREATE INDEX ON {prefix}_rels USING GIN (parts)"
+                       "  WITH (fastupdate = off) {index_tablespace};\n";
+
+    return sql;
+}
+
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : m_append(options->append), m_mark_pending(true), m_out_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
@@ -672,64 +782,9 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 
     fmt::print(stderr, "Mid: pgsql, cache={}\n", options->cache);
 
-    std::string const index_tablespace{options->tblsslim_index.empty()
-                                           ? ""
-                                           : "USING INDEX TABLESPACE " +
-                                                 options->tblsslim_index};
-
-    std::string const unlogged{options->droptemp ? "UNLOGGED" : ""};
-
-    m_tables[NODE_TABLE] = table_desc{
-        /*name*/ "{}_nodes"_format(options->prefix),
-        /*create*/
-        "CREATE {} TABLE {}_nodes (id int8 PRIMARY KEY {}, lat int4 NOT NULL, lon int4 NOT NULL) {};\n"_format(
-            unlogged, options->prefix, index_tablespace,
-            tablespace_clause(options->tblsslim_data)),
-        /*prepare_query */
-        "PREPARE get_node_list(int8[]) AS SELECT id, lat, lon FROM {}_nodes WHERE id = ANY($1::int8[]);\n"_format(
-            options->prefix)};
-
-    m_tables[WAY_TABLE] = table_desc{
-        /*name*/ "{}_ways"_format(options->prefix),
-        /*create*/
-        "CREATE {} TABLE {}_ways (id int8 PRIMARY KEY {}, nodes int8[] NOT NULL, tags text[]) {};\n"_format(
-            unlogged, options->prefix, index_tablespace,
-            tablespace_clause(options->tblsslim_data)),
-        /*prepare_query */
-        "PREPARE get_way(int8) AS SELECT nodes, tags, array_upper(nodes,1) "
-        "FROM {0}_ways WHERE id = $1;\n"
-        "PREPARE get_way_list(int8[]) AS SELECT id, nodes, tags, array_upper(nodes,1) FROM {0}_ways WHERE id = ANY($1::int8[]);\n"_format(
-            options->prefix),
-        /*prepare_intarray*/
-        "PREPARE mark_ways_by_node(int8) AS SELECT id FROM {0}_ways WHERE "
-        "nodes && ARRAY[$1];\n"
-        "PREPARE mark_ways_by_rel(int8) AS SELECT id FROM {0}_ways WHERE id IN (SELECT unnest(parts[way_off+1:rel_off]) FROM {0}_rels WHERE id = $1);\n"_format(
-            options->prefix),
-        /*array_indexes*/
-        "CREATE INDEX {0}_ways_nodes ON {0}_ways USING GIN (nodes) WITH (fastupdate = off) {1};\n"_format(
-            options->prefix, tablespace_clause(options->tblsslim_index))};
-
-    m_tables[REL_TABLE] = table_desc{
-        /*name*/ "{}_rels"_format(options->prefix),
-        /*create*/
-        "CREATE {} TABLE {}_rels(id int8 PRIMARY KEY {}, way_off int2, rel_off int2, parts int8[], members text[], tags text[]) {};\n"_format(
-            unlogged, options->prefix, index_tablespace,
-            tablespace_clause(options->tblsslim_data)),
-        /*prepare_query */
-        "PREPARE get_rel(int8) AS SELECT members, tags, "
-        "array_upper(members,1)/2 FROM {0}_rels WHERE id = $1;\n"
-        "PREPARE rels_using_way(int8) AS SELECT id FROM {0}_rels WHERE parts && ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"_format(
-            options->prefix),
-        /*prepare_intarray*/
-        "PREPARE mark_rels_by_node(int8) AS SELECT id FROM {0}_ways WHERE "
-        "nodes && ARRAY[$1];\n"
-        "PREPARE mark_rels_by_way(int8) AS SELECT id FROM {0}_rels WHERE parts "
-        "&& ARRAY[$1] AND parts[way_off+1:rel_off] && ARRAY[$1];\n"
-        "PREPARE mark_rels(int8) AS SELECT id FROM {0}_rels WHERE parts && ARRAY[$1] AND parts[rel_off+1:array_length(parts,1)] && ARRAY[$1];\n"_format(
-            options->prefix),
-        /*array_indexes*/
-        "CREATE INDEX {0}_rels_parts ON {0}_rels USING GIN (parts) WITH (fastupdate = off) {1};\n"_format(
-            options->prefix, tablespace_clause(options->tblsslim_index))};
+    m_tables[NODE_TABLE] = table_desc{*options, sql_for_nodes()};
+    m_tables[WAY_TABLE] = table_desc{*options, sql_for_ways()};
+    m_tables[REL_TABLE] = table_desc{*options, sql_for_relations()};
 }
 
 std::shared_ptr<middle_query_t>

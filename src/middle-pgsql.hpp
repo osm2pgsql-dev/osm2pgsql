@@ -49,6 +49,14 @@ private:
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
 };
 
+struct table_sql {
+    char const *name = "";
+    char const *create_table = "";
+    char const *prepare_query = "";
+    char const *prepare_mark = "";
+    char const *create_index = "";
+};
+
 struct middle_pgsql_t : public slim_middle_t
 {
     middle_pgsql_t(options_t const *options);
@@ -81,10 +89,7 @@ struct middle_pgsql_t : public slim_middle_t
     {
     public:
         table_desc() {}
-        table_desc(std::string const &name, std::string const &create,
-                   std::string const &prepare_query,
-                   std::string const &prepare_intarray = "",
-                   std::string const &array_indexes = "");
+        table_desc(options_t const &options, table_sql const &ts);
 
         char const *name() const { return m_copy_target->name.c_str(); }
         void clear_array_indexes() { m_array_indexes.clear(); }
