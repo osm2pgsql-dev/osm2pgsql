@@ -32,19 +32,21 @@
 
 static std::string build_sql(options_t const &options, char const *templ)
 {
-    std::string const index_tablespace{options.tblsslim_index.empty()
+    std::string const using_tablespace{options.tblsslim_index.empty()
                                            ? ""
                                            : "USING INDEX TABLESPACE " +
                                                  options.tblsslim_index};
     return fmt::format(
         templ, fmt::arg("prefix", options.prefix),
         fmt::arg("unlogged", options.droptemp ? "UNLOGGED" : ""),
-        fmt::arg("index_tablespace", index_tablespace),
-        fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)));
+        fmt::arg("using_tablespace", using_tablespace),
+        fmt::arg("data_tablespace", tablespace_clause(options.tblsslim_data)),
+        fmt::arg("index_tablespace",
+                 tablespace_clause(options.tblsslim_index)));
 }
 
 middle_pgsql_t::table_desc::table_desc(options_t const &options,
-                                       const table_sql &ts)
+                                       table_sql const &ts)
 : m_create(build_sql(options, ts.create_table)),
   m_prepare_query(build_sql(options, ts.prepare_query)),
   m_prepare_intarray(build_sql(options, ts.prepare_mark)),
@@ -677,7 +679,7 @@ static table_sql sql_for_nodes() noexcept
     sql.name = "{prefix}_nodes";
 
     sql.create_table = "CREATE {unlogged} TABLE {prefix}_nodes ("
-                       "  id int8 PRIMARY KEY {index_tablespace},"
+                       "  id int8 PRIMARY KEY {using_tablespace},"
                        "  lat int4 NOT NULL,"
                        "  lon int4 NOT NULL"
                        ") {data_tablespace};\n";
@@ -696,7 +698,7 @@ static table_sql sql_for_ways() noexcept
     sql.name = "{prefix}_ways";
 
     sql.create_table = "CREATE {unlogged} TABLE {prefix}_ways ("
-                       "  id int8 PRIMARY KEY {index_tablespace},"
+                       "  id int8 PRIMARY KEY {using_tablespace},"
                        "  nodes int8[] NOT NULL,"
                        "  tags text[]"
                        ") {data_tablespace};\n";
@@ -731,7 +733,7 @@ static table_sql sql_for_relations() noexcept
     sql.name = "{prefix}_rels";
 
     sql.create_table = "CREATE {unlogged} TABLE {prefix}_rels ("
-                       "  id int8 PRIMARY KEY {index_tablespace},"
+                       "  id int8 PRIMARY KEY {using_tablespace},"
                        "  way_off int2,"
                        "  rel_off int2,"
                        "  parts int8[],"
