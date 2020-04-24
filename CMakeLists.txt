@@ -129,11 +129,12 @@ if (BUILD_COVERAGE)
             ${GCOVR}
             ${CMAKE_BINARY_DIR}
             --root=${CMAKE_SOURCE_DIR}
-            --html --html-details
+            --html-details
+            --html-title "osm2pgsql coverage report"
             #--verbose
             #--keep
+            --delete
             '--exclude=.*contrib.*'
-            '--exclude=.*catch.hpp'
             --sort-percentage
             --gcov-executable=${GCOV}${gcov_param_}
             --output=${coverage_report_dir}/index.html)
