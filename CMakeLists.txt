@@ -157,7 +157,7 @@ CHECK_INCLUDE_FILES(unistd.h HAVE_UNISTD_H)
 #############################################################
 
 if (NOT EXTERNAL_LIBOSMIUM)
-    set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium")
+    set(OSMIUM_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/contrib/libosmium/include")
 endif()
 
 if (NOT EXTERNAL_PROTOZERO)
@@ -170,7 +170,7 @@ endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR})
 
-find_package(Osmium 2.14 REQUIRED COMPONENTS io)
+find_package(Osmium 2.15.4 REQUIRED COMPONENTS io)
 include_directories(SYSTEM ${OSMIUM_INCLUDE_DIRS} ${PROTOZERO_INCLUDE_DIR} ${FMT_INCLUDE_DIR})
 
 if (WITH_LUA)

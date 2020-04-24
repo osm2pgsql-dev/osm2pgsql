@@ -85,6 +85,10 @@ list(APPEND osm2pgsql_lib_SOURCES ${PROJECT_BINARY_DIR}/src/version.cpp)
 
 if (HAVE_PROJ4)
     list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-proj4.cpp)
+    if (NOT MSVC)
+        set_source_files_properties(reprojection-generic-proj4.cpp
+            PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+    endif()
 else()
     list(APPEND osm2pgsql_lib_SOURCES reprojection-generic-none.cpp)
 endif()
