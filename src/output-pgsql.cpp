@@ -510,9 +510,9 @@ output_pgsql_t::output_pgsql_t(
 
 output_pgsql_t::~output_pgsql_t() = default;
 
-size_t output_pgsql_t::pending_count() const
+bool output_pgsql_t::has_pending() const
 {
-    return ways_pending_tracker.size() + rels_pending_tracker.size();
+    return !ways_pending_tracker.empty() || !rels_pending_tracker.empty();
 }
 
 void output_pgsql_t::merge_pending_relations(output_t *other)

@@ -37,6 +37,7 @@ struct id_tracker
      */
     osmid_t pop_mark();
     size_t size() const;
+    bool empty() const;
     osmid_t last_returned() const;
 
     static bool is_valid(osmid_t);

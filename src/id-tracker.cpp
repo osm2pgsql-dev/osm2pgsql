@@ -185,6 +185,7 @@ osmid_t id_tracker::pop_mark()
 }
 
 size_t id_tracker::size() const { return impl->count; }
+bool id_tracker::empty() const { return impl->count == 0; }
 
 osmid_t id_tracker::last_returned() const { return impl->old_id; }
 

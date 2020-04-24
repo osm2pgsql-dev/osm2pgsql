@@ -70,9 +70,9 @@ void output_multi_t::start()
                    m_options.tblsmain_data);
 }
 
-size_t output_multi_t::pending_count() const
+bool output_multi_t::has_pending() const
 {
-    return ways_pending_tracker.size() + rels_pending_tracker.size();
+    return !ways_pending_tracker.empty() || !rels_pending_tracker.empty();
 }
 
 void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,

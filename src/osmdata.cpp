@@ -409,7 +409,7 @@ bool osmdata_t::has_pending() const noexcept
 
     return std::any_of(m_outs.cbegin(), m_outs.cend(),
                        [](std::shared_ptr<output_t> const &out) {
-                           return out->pending_count() > 0;
+                           return out->has_pending();
                        });
 }
 

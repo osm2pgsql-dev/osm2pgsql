@@ -806,6 +806,5 @@ middle_pgsql_t::get_query_instance()
 
 bool middle_pgsql_t::has_pending() const
 {
-    return (m_ways_pending_tracker->size() > 0) ||
-           (m_rels_pending_tracker->size() > 0);
+    return !m_ways_pending_tracker->empty() || !m_rels_pending_tracker->empty();
 }
