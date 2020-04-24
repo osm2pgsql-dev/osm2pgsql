@@ -38,9 +38,11 @@ public:
                   bool has_process_relation = false,
                   std::shared_ptr<std::vector<flex_table_t>> tables =
                       std::make_shared<std::vector<flex_table_t>>(),
-                  std::shared_ptr<id_tracker> ways_tracker =
+                  std::shared_ptr<id_tracker> ways_tracker_1c =
                       std::make_shared<id_tracker>(),
-                  std::shared_ptr<id_tracker> rels_tracker =
+                  std::shared_ptr<id_tracker> ways_tracker_2 =
+                      std::make_shared<id_tracker>(),
+                  std::shared_ptr<id_tracker> rels_tracker_2 =
                       std::make_shared<id_tracker>());
 
     output_flex_t(output_flex_t const &) = delete;
@@ -59,6 +61,7 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
+    void stage1c_proc(slim_middle_t *) override;
     void stage2_proc() override;
 
     void enqueue_ways(pending_queue_t &job_queue, osmid_t id,
@@ -82,6 +85,7 @@ public:
     void relation_delete(osmid_t id) override;
 
     bool has_pending() const override;
+    bool has_stage1c_pending() const override;
 
     void merge_pending_relations(output_t *other) override;
     void merge_expire_trees(output_t *other) override;
@@ -143,6 +147,7 @@ private:
     id_tracker m_rels_pending_tracker;
     std::shared_ptr<id_tracker> m_ways_done_tracker;
 
+    std::shared_ptr<id_tracker> m_stage1c_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_rels_tracker;
 
@@ -162,7 +167,14 @@ private:
 
     std::size_t m_num_way_nodes = std::numeric_limits<std::size_t>::max();
 
-    bool m_in_stage2 = false;
+    enum class stage : int8_t {
+        stage1a,
+        stage1b,
+        stage1c,
+        stage2,
+    };
+
+    stage m_stage = stage::stage1a;
     bool m_has_process_node = false;
     bool m_has_process_way = false;
     bool m_has_process_relation = false;

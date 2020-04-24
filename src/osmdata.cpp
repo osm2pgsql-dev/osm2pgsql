@@ -13,6 +13,7 @@
 #include "db-copy.hpp"
 #include "format.hpp"
 #include "middle.hpp"
+#include "middle-pgsql.hpp"
 #include "osmdata.hpp"
 #include "output.hpp"
 #include "util.hpp"
@@ -430,6 +431,8 @@ void osmdata_t::stop() const
 
     // are there any objects left pending?
     if (has_pending()) {
+        fmt::print(stderr, "Entering stage 1b...\n");
+
         //threaded pending processing
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
@@ -444,6 +447,27 @@ void osmdata_t::stop() const
             //on import, only on update.
             //TODO: Can we skip this on import?
             m_mid->iterate_relations(ptp);
+        }
+    } else {
+        fmt::print(stderr, "Skipping stage 1b.\n");
+    }
+
+    if (opts->append) {
+        fmt::print(stderr, "Entering stage 1c...\n");
+
+        for (auto &out : m_outs) {
+            if (out->has_stage1c_pending()) {
+                auto new_mid = std::make_shared<middle_pgsql_t>(opts);
+                new_mid->start();
+
+                out->stage1c_proc(new_mid.get());
+
+                if (new_mid->has_pending()) {
+                    pending_threaded_processor ptp(
+                        new_mid, m_outs, opts->num_procs, opts->append);
+                    new_mid->iterate_relations(ptp);
+                }
+            }
         }
     }
 

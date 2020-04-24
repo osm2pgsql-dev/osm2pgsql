@@ -19,6 +19,7 @@
 struct expire_tiles;
 struct id_tracker;
 struct middle_query_t;
+struct slim_middle_t;
 class db_copy_thread_t;
 
 struct pending_job_t
@@ -51,6 +52,7 @@ public:
     virtual void stop(osmium::thread::Pool *pool) = 0;
     virtual void commit() = 0;
 
+    virtual void stage1c_proc(slim_middle_t *) {}
     virtual void stage2_proc() {}
 
     virtual void enqueue_ways(pending_queue_t &job_queue, osmid_t id,
@@ -74,6 +76,7 @@ public:
     virtual void relation_delete(osmid_t id) = 0;
 
     virtual bool has_pending() const;
+    virtual bool has_stage1c_pending() const { return false; }
 
     const options_t *get_options() const;
 

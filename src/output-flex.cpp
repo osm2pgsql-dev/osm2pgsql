@@ -491,6 +491,15 @@ void output_flex_t::write_row(table_connection_t *table_connection,
 
 int output_flex_t::app_mark()
 {
+    if (m_stage == stage::stage2) {
+        throw std::runtime_error{"You can not call mark() in stage2"};
+    }
+
+    // In stage1c mark() is a no-op.
+    if (m_stage == stage::stage1c) {
+        return 0;
+    }
+
     char const *type_name = luaL_checkstring(lua_state(), 1);
     if (!type_name) {
         return 0;
@@ -499,6 +508,7 @@ int output_flex_t::app_mark()
     osmium::object_id_type const id = luaL_checkinteger(lua_state(), 2);
 
     if (type_name[0] == 'w') {
+        m_stage1c_ways_tracker->mark(id);
         m_stage2_ways_tracker->mark(id);
     } else if (type_name[0] == 'r') {
         m_stage2_rels_tracker->mark(id);
@@ -787,7 +797,7 @@ int output_flex_t::table_add_row()
             throw std::runtime_error{
                 "Trying to add way to table '{}'"_format(table.name())};
         }
-        if (m_in_stage2) {
+        if (m_stage == stage::stage2) {
             delete_from_table(&table_connection, osmium::item_type::way,
                               m_context_way->id());
         }
@@ -797,7 +807,7 @@ int output_flex_t::table_add_row()
             throw std::runtime_error{
                 "Trying to add relation to table '{}'"_format(table.name())};
         }
-        if (m_in_stage2) {
+        if (m_stage == stage::stage2) {
             delete_from_table(&table_connection, osmium::item_type::relation,
                               m_context_relation->id());
         }
@@ -1280,7 +1290,7 @@ output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
     return std::shared_ptr<output_t>(new output_flex_t{
         mid, *get_options(), copy_thread, true, m_lua_state, m_has_process_node,
         m_has_process_way, m_has_process_relation, m_tables,
-        m_stage2_ways_tracker, m_stage2_rels_tracker});
+        m_stage1c_ways_tracker, m_stage2_ways_tracker, m_stage2_rels_tracker});
 }
 
 output_flex_t::output_flex_t(
@@ -1289,12 +1299,14 @@ output_flex_t::output_flex_t(
     std::shared_ptr<lua_State> lua_state, bool has_process_node,
     bool has_process_way, bool has_process_relation,
     std::shared_ptr<std::vector<flex_table_t>> tables,
-    std::shared_ptr<id_tracker> ways_tracker,
-    std::shared_ptr<id_tracker> rels_tracker)
+    std::shared_ptr<id_tracker> ways_tracker_1c,
+    std::shared_ptr<id_tracker> ways_tracker_2,
+    std::shared_ptr<id_tracker> rels_tracker_2)
 : output_t(mid, o), m_tables(std::move(tables)),
   m_ways_done_tracker(new id_tracker{}),
-  m_stage2_ways_tracker(std::move(ways_tracker)),
-  m_stage2_rels_tracker(std::move(rels_tracker)), m_copy_thread(copy_thread),
+  m_stage1c_ways_tracker(std::move(ways_tracker_1c)),
+  m_stage2_ways_tracker(std::move(ways_tracker_2)),
+  m_stage2_rels_tracker(std::move(rels_tracker_2)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)), m_builder(o.projection),
   m_expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
   m_buffer(32768, osmium::memory::Buffer::auto_grow::yes),
@@ -1417,6 +1429,29 @@ bool output_flex_t::has_pending() const
     return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
 }
 
+bool output_flex_t::has_stage1c_pending() const
+{
+    return !m_stage1c_ways_tracker->empty();
+}
+
+void output_flex_t::stage1c_proc(slim_middle_t *mid)
+{
+    if (m_stage1c_ways_tracker->empty()) {
+        fmt::print(stderr, "Skipping stage 1c (no marked objects).\n");
+        return;
+    }
+
+    m_stage = stage::stage1c;
+
+    fmt::print(stderr, "Entering stage 1c processing of {} ways...\n"_format(
+                           m_stage1c_ways_tracker->size()));
+
+    osmid_t id;
+    while (id_tracker::is_valid((id = m_stage1c_ways_tracker->pop_mark()))) {
+        mid->way_changed(id);
+    }
+}
+
 void output_flex_t::stage2_proc()
 {
     bool const has_marked_ways = !m_stage2_ways_tracker->empty();
@@ -1428,7 +1463,7 @@ void output_flex_t::stage2_proc()
     }
 
     fmt::print(stderr, "Entering stage 2...\n");
-    m_in_stage2 = true;
+    m_stage = stage::stage2;
 
     if (!m_options.append) {
         fmt::print(stderr, "Creating id indexes...\n");
