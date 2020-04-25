@@ -516,13 +516,11 @@ static void check_way_nodes(std::shared_ptr<middle_pgsql_t> const &mid,
     REQUIRE(mid_q->nodes_get_list(&way.nodes()) == way.nodes().size());
     REQUIRE(way.nodes().size() == nodes.size());
 
-    auto it = way.nodes().cbegin();
-    for (auto const *nptr : nodes) {
-        REQUIRE(nptr->id() == it->ref());
-        REQUIRE(nptr->location() == it->location());
-        ++it;
-    }
-    REQUIRE(it == way.nodes().cend());
+    REQUIRE(std::equal(way.nodes().cbegin(), way.nodes().cend(), nodes.cbegin(),
+                       [](osmium::NodeRef const &nr, osmium::Node const *node) {
+                           return nr.ref() == node->id() &&
+                                  nr.location() == node->location();
+                       }));
 }
 
 /// Return true if the way with the specified id is not in the mid.
