@@ -693,8 +693,8 @@ TEMPLATE_TEST_CASE("middle: add way with attributes", "", options_slim_default,
 {
     options_t options = TestType::options(db);
 
-    SECTION("with attributes") { options.extra_attributes = true; }
-    SECTION("no attributes") { options.extra_attributes = false; }
+    SECTION("With attributes") { options.extra_attributes = true; }
+    SECTION("No attributes") { options.extra_attributes = false; }
 
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
@@ -946,8 +946,8 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
 {
     options_t options = TestType::options(db);
 
-    SECTION("with attributes") { options.extra_attributes = true; }
-    SECTION("no attributes") { options.extra_attributes = false; }
+    SECTION("With attributes") { options.extra_attributes = true; }
+    SECTION("No attributes") { options.extra_attributes = false; }
 
     testing::cleanup::file_t flatnode_cleaner{
         options.flat_node_file.get_value_or("")};
@@ -1014,9 +1014,9 @@ public:
 
     void enqueue_ways(osmid_t id) override { m_way_ids.push_back(id); }
 
-    void process_ways() override{};
-    void enqueue_relations(osmid_t) override{};
-    void process_relations() override{};
+    void process_ways() override {}
+    void enqueue_relations(osmid_t) override {}
+    void process_relations() override {}
 
     void check_way_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
     {
@@ -1089,7 +1089,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     // From now on use append mode to not destroy the data we just added.
     options.append = true;
 
-    SECTION("single way affected")
+    SECTION("Single way affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
         mid->start();
@@ -1110,7 +1110,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->commit();
     }
 
-    SECTION("two ways affected")
+    SECTION("Two ways affected")
     {
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
@@ -1145,7 +1145,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         }
     }
 
-    SECTION("change way so the changing node isn't in it any more")
+    SECTION("Change way so the changing node isn't in it any more")
     {
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
