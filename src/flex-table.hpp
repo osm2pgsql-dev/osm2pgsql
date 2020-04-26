@@ -100,12 +100,23 @@ public:
     /// Does this table take objects of the specified type?
     bool matches_type(osmium::item_type type) const noexcept
     {
+        // This table takes any type -> okay
         if (m_id_type == osmium::item_type::undefined) {
             return true;
         }
+
+        // Type and table type match -> okay
         if (type == m_id_type) {
             return true;
         }
+
+        // Relations can be written as linestrings into way tables -> okay
+        if (type == osmium::item_type::relation &&
+            m_id_type == osmium::item_type::way) {
+            return true;
+        }
+
+        // Area tables can take ways or relations, but not nodes
         return m_id_type == osmium::item_type::area &&
                type != osmium::item_type::node;
     }
@@ -113,7 +124,11 @@ public:
     /// Map way/node/relation ID to id value used in database table column
     osmid_t map_id(osmium::item_type type, osmid_t id) const noexcept
     {
-        if (m_id_type == osmium::item_type::area &&
+        if (m_id_type == osmium::item_type::undefined) {
+            return id;
+        }
+
+        if (m_id_type != osmium::item_type::relation &&
             type == osmium::item_type::relation) {
             return -id;
         }
