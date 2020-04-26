@@ -28,7 +28,7 @@ struct counting_slim_middle_t : public slim_middle_t
 
     void iterate_ways(pending_processor &) override {}
     void iterate_relations(pending_processor &) override {}
-    size_t pending_count() const override { return 0; }
+    bool has_pending() const override { return false; }
 
     std::shared_ptr<middle_query_t> get_query_instance() override
     {

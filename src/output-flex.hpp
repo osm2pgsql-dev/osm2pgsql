@@ -81,7 +81,7 @@ public:
     void way_delete(osmid_t id) override;
     void relation_delete(osmid_t id) override;
 
-    std::size_t pending_count() const override;
+    bool has_pending() const override;
 
     void merge_pending_relations(output_t *other) override;
     void merge_expire_trees(output_t *other) override;

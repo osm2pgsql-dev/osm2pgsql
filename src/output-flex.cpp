@@ -1412,15 +1412,15 @@ void output_flex_t::init_lua(std::string const &filename)
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
 
-std::size_t output_flex_t::pending_count() const
+bool output_flex_t::has_pending() const
 {
-    return m_ways_pending_tracker.size() + m_rels_pending_tracker.size();
+    return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
 }
 
 void output_flex_t::stage2_proc()
 {
-    bool const has_marked_ways = m_stage2_ways_tracker->size() > 0;
-    bool const has_marked_rels = m_stage2_rels_tracker->size() > 0;
+    bool const has_marked_ways = !m_stage2_ways_tracker->empty();
+    bool const has_marked_rels = !m_stage2_rels_tracker->empty();
 
     if (!has_marked_ways && !has_marked_rels) {
         fmt::print(stderr, "Skipping stage 2 (no marked objects).\n");

@@ -133,7 +133,7 @@ struct middle_t
     virtual void iterate_ways(pending_processor &pf) = 0;
     virtual void iterate_relations(pending_processor &pf) = 0;
 
-    virtual size_t pending_count() const = 0;
+    virtual bool has_pending() const = 0;
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };

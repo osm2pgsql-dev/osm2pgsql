@@ -118,7 +118,7 @@ struct middle_ram_t : public middle_t, public middle_query_t
     void iterate_ways(middle_t::pending_processor &pf) override;
     void iterate_relations(pending_processor &pf) override;
 
-    size_t pending_count() const override;
+    bool has_pending() const override { return false; }
 
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
