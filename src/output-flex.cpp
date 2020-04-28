@@ -983,6 +983,31 @@ void output_flex_t::add_row(table_connection_t *table_connection,
     }
 }
 
+static int msghandler (lua_State *L)
+{
+    const char *msg = lua_tostring(L, 1);
+    if (msg == NULL) {                           /* is error object not a string? */
+        if (luaL_callmeta(L, 1, "__tostring") && /* does it have a metamethod */
+            lua_type(L, -1) == LUA_TSTRING)      /* that produces a string? */
+            return 1;                            /* that is the message */
+        else
+            msg = lua_pushfstring(L, "(error object is a %s value)",
+                                     luaL_typename(L, 1));
+    }
+    luaL_traceback(L, L, msg, 1);                /* append a standard traceback */
+    return 1;                                    /* return the traceback */
+}
+
+static int docall (lua_State *L, int narg, int nres) {
+    int status;
+    int base = lua_gettop(L) - narg;       /* function index */
+    lua_pushcfunction(L, msghandler);      /* push message handler */
+    lua_insert(L, base);                   /* put it under function and args */
+    status = lua_pcall(L, narg, nres, base);
+    lua_remove(L, base);                   /* remove message handler from the stack */
+    return status;
+}
+
 void output_flex_t::call_process_function(int index,
                                           osmium::OSMObject const &object)
 {
@@ -996,7 +1021,7 @@ void output_flex_t::call_process_function(int index,
         get_options()->extra_attributes); // the single argument
 
     luaX_set_context(lua_state(), this);
-    if (lua_pcall(lua_state(), 1, 0, 0)) {
+    if (docall(lua_state(), 1, 0)) {
         throw std::runtime_error{"Failed to execute lua processing function:"
                                  " {}"_format(lua_tostring(lua_state(), -1))};
     }
