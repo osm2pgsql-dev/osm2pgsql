@@ -100,6 +100,7 @@ private:
     void init_clone();
 
     void call_process_function(int index, osmium::OSMObject const &object);
+    int do_pcall(int narg, int nres);
 
     void init_lua(std::string const &filename);
 
