@@ -250,10 +250,6 @@ void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     if (m_processor->interests(geometry_processor::interest_relation) &&
         exists) {
         way_delete(way->id());
-        auto const rel_ids = m_mid->relations_using_way(way->id());
-        for (auto const rel_id : rel_ids) {
-            rels_pending_tracker.mark(rel_id);
-        }
     }
 
     //check if we are keeping this way

@@ -74,13 +74,6 @@ void output_pgsql_t::pending_way(osmid_t id, int exists)
         /* If the flag says this object may exist already, delete it first */
         if (exists) {
             pgsql_delete_way_from_output(id);
-            // TODO: this now only has an effect when called from the iterate_ways
-            // call-back, so we need some alternative way to trigger this within
-            // osmdata_t.
-            idlist_t const rel_ids = m_mid->relations_using_way(id);
-            for (auto &mid : rel_ids) {
-                rels_pending_tracker.mark(mid);
-            }
         }
 
         taglist_t outtags;
