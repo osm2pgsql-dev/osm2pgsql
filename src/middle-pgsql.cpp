@@ -558,8 +558,6 @@ void middle_pgsql_t::iterate_relations(pending_processor &pf)
     while (id_tracker::is_valid(id = m_rels_pending_tracker->pop_mark())) {
         pf.enqueue_relations(id);
     }
-    // in case we had higher ones than the middle
-    pf.enqueue_relations(id_tracker::max());
 
     //let the threads work on them
     pf.process_relations();

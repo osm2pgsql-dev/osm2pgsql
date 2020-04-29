@@ -49,10 +49,6 @@ public:
     bool need_forward_dependencies() const noexcept override { return false; }
 
     void pending_way(osmid_t, int) override {}
-
-    void enqueue_relations(pending_queue_t &, osmid_t, size_t,
-                           size_t &) override
-    {}
     void pending_relation(osmid_t, int) override {}
 
     void node_add(osmium::Node const &node) override;

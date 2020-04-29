@@ -1031,15 +1031,6 @@ void output_flex_t::pending_way(osmid_t id, int exists)
     m_buffer.clear();
 }
 
-void output_flex_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                                      std::size_t output_id, std::size_t &added)
-{
-    if (id_tracker::is_valid(id)) {
-        job_queue.emplace(id, output_id);
-        ++added;
-    }
-}
-
 void output_flex_t::pending_relation(osmid_t id, int exists)
 {
     if (!m_has_process_relation) {

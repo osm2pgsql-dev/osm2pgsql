@@ -56,9 +56,6 @@ public:
     virtual bool need_forward_dependencies() const noexcept { return true; }
 
     virtual void pending_way(osmid_t id, int exists) = 0;
-
-    virtual void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                                   size_t output_id, size_t &added) = 0;
     virtual void pending_relation(osmid_t id, int exists) = 0;
 
     virtual void node_add(osmium::Node const &node) = 0;

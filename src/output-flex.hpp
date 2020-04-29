@@ -62,9 +62,6 @@ public:
     void stage2_proc() override;
 
     void pending_way(osmid_t id, int exists) override;
-
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                           std::size_t output_id, std::size_t &added) override;
     void pending_relation(osmid_t id, int exists) override;
 
     void node_add(osmium::Node const &node) override;

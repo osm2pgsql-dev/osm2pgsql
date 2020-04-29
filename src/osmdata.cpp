@@ -307,7 +307,10 @@ struct pending_threaded_processor : public middle_t::pending_processor
     void enqueue_relations(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
-            outs[i]->enqueue_relations(queue, id, i, ids_queued);
+            if (outs[i]->need_forward_dependencies()) {
+                queue.emplace(id, i);
+                ++ids_queued;
+            }
         }
     }
 
