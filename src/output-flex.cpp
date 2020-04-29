@@ -1007,7 +1007,7 @@ void output_flex_t::call_process_function(int index,
     }
 }
 
-void output_flex_t::pending_way(osmid_t id, int exists)
+void output_flex_t::pending_way(osmid_t id, bool exists)
 {
     if (!m_has_process_way) {
         return;
@@ -1031,7 +1031,7 @@ void output_flex_t::pending_way(osmid_t id, int exists)
     m_buffer.clear();
 }
 
-void output_flex_t::pending_relation(osmid_t id, int exists)
+void output_flex_t::pending_relation(osmid_t id, bool exists)
 {
     if (!m_has_process_relation) {
         return;

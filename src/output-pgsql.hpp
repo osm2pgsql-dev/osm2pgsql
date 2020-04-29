@@ -46,8 +46,8 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
-    void pending_way(osmid_t id, int exists) override;
-    void pending_relation(osmid_t id, int exists) override;
+    void pending_way(osmid_t id, bool exists) override;
+    void pending_relation(osmid_t id, bool exists) override;
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;

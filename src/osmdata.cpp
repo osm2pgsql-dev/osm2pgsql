@@ -171,7 +171,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
     static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        size_t &ids_done, std::mutex &mutex, int append,
+                        size_t &ids_done, std::mutex &mutex, bool append,
                         bool ways)
     {
         while (true) {

@@ -66,7 +66,7 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     }
 }
 
-void output_pgsql_t::pending_way(osmid_t id, int exists)
+void output_pgsql_t::pending_way(osmid_t id, bool exists)
 {
     // Try to fetch the way from the DB
     buffer.clear();
@@ -90,7 +90,7 @@ void output_pgsql_t::pending_way(osmid_t id, int exists)
     }
 }
 
-void output_pgsql_t::pending_relation(osmid_t id, int exists)
+void output_pgsql_t::pending_relation(osmid_t id, bool exists)
 {
     // Try to fetch the relation from the DB
     // Note that we cannot use the global buffer here because

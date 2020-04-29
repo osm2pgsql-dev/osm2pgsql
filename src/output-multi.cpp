@@ -65,7 +65,7 @@ void output_multi_t::start()
                    m_options.tblsmain_data);
 }
 
-void output_multi_t::pending_way(osmid_t id, int exists)
+void output_multi_t::pending_way(osmid_t id, bool exists)
 {
     // Try to fetch the way from the DB
     buffer.clear();
@@ -75,7 +75,7 @@ void output_multi_t::pending_way(osmid_t id, int exists)
     }
 }
 
-void output_multi_t::pending_relation(osmid_t id, int exists)
+void output_multi_t::pending_relation(osmid_t id, bool exists)
 {
     // Try to fetch the relation from the DB
     buffer.clear();

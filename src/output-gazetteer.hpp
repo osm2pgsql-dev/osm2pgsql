@@ -48,8 +48,8 @@ public:
 
     bool need_forward_dependencies() const noexcept override { return false; }
 
-    void pending_way(osmid_t, int) override {}
-    void pending_relation(osmid_t, int) override {}
+    void pending_way(osmid_t, bool) override {}
+    void pending_relation(osmid_t, bool) override {}
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
