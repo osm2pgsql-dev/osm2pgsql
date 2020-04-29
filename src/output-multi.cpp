@@ -28,7 +28,6 @@ output_multi_t::output_multi_t(
                       export_list.normal_columns(m_osm_type),
                       m_options.hstore_columns, m_processor->srid(),
                       m_options.append, m_options.hstore_mode, copy_thread}),
-  ways_done_tracker(new id_tracker{}),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -44,10 +43,6 @@ output_multi_t::output_multi_t(
   m_processor(other->m_processor), m_proj(other->m_proj),
   m_osm_type(other->m_osm_type),
   m_table(new table_t{*other->m_table, copy_thread}),
-  // NOTE: we need to know which ways were used by relations so each thread
-  // must have a copy of the original marked done ways, its read only so its
-  // ok
-  ways_done_tracker(other->ways_done_tracker),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -88,7 +83,7 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
     }
 
     //make sure we get the one passed in
-    if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
+    if (id_tracker::is_valid(id)) {
         job_queue.push(pending_job_t(id, output_id));
         ++added;
     }
@@ -101,17 +96,14 @@ void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
 
     //get all the ones up to the id that was passed in
     while (popped < id) {
-        if (!ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
+        job_queue.push(pending_job_t(popped, output_id));
+        ++added;
         popped = ways_pending_tracker.pop_mark();
     }
 
     //make sure to get this one as well and move to the next
     if (popped > id) {
-        if (!ways_done_tracker->is_marked(popped) &&
-            id_tracker::is_valid(popped)) {
+        if (id_tracker::is_valid(popped)) {
             job_queue.push(pending_job_t(popped, output_id));
             ++added;
         }
