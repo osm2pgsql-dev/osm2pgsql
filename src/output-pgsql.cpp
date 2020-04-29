@@ -69,10 +69,8 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
 void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
                                   size_t output_id, size_t &added)
 {
-    if (id_tracker::is_valid(id)) {
-        job_queue.emplace(id, output_id);
-        ++added;
-    }
+    job_queue.emplace(id, output_id);
+    ++added;
 }
 
 void output_pgsql_t::pending_way(osmid_t id, int exists)

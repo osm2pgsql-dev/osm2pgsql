@@ -445,8 +445,6 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
     while (id_tracker::is_valid(id = m_ways_pending_tracker->pop_mark())) {
         pf.enqueue_ways(id);
     }
-    // in case we had higher ones than the middle
-    pf.enqueue_ways(id_tracker::max());
 
     //let the threads work on them
     pf.process_ways();

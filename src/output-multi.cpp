@@ -73,10 +73,8 @@ bool output_multi_t::has_pending() const
 void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
                                   size_t output_id, size_t &added)
 {
-    if (id_tracker::is_valid(id)) {
-        job_queue.emplace(id, output_id);
-        ++added;
-    }
+    job_queue.emplace(id, output_id);
+    ++added;
 }
 
 void output_multi_t::pending_way(osmid_t id, int exists)
