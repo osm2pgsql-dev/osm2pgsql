@@ -137,8 +137,6 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
-    id_tracker m_rels_pending_tracker;
-
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_rels_tracker;
 

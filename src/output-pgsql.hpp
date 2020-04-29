@@ -86,7 +86,6 @@ protected:
     geom::osmium_builder_t m_builder;
     expire_tiles expire;
 
-    id_tracker rels_pending_tracker;
     osmium::memory::Buffer buffer;
     osmium::memory::Buffer rels_buffer;
 };
