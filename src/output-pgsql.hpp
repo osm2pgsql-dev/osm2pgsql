@@ -88,8 +88,7 @@ protected:
     geom::osmium_builder_t m_builder;
     expire_tiles expire;
 
-    id_tracker ways_pending_tracker, rels_pending_tracker;
-    std::shared_ptr<id_tracker> ways_done_tracker;
+    id_tracker rels_pending_tracker;
     osmium::memory::Buffer buffer;
     osmium::memory::Buffer rels_buffer;
 };

@@ -1005,43 +1005,9 @@ void output_flex_t::call_process_function(int index,
 void output_flex_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
                                  std::size_t output_id, std::size_t &added)
 {
-    osmid_t const prev = m_ways_pending_tracker.last_returned();
-    if (id_tracker::is_valid(prev) && prev >= id) {
-        if (prev > id) {
-            job_queue.push(pending_job_t(id, output_id));
-        }
-        // already done the job
-        return;
-    }
-
-    //make sure we get the one passed in
-    if (!m_ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
-        job_queue.push(pending_job_t(id, output_id));
+    if (id_tracker::is_valid(id)) {
+        job_queue.emplace(id, output_id);
         ++added;
-    }
-
-    //grab the first one or bail if its not valid
-    osmid_t popped = m_ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped)) {
-        return;
-    }
-
-    //get all the ones up to the id that was passed in
-    while (popped < id) {
-        if (!m_ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-        popped = m_ways_pending_tracker.pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    if (popped > id) {
-        if (!m_ways_done_tracker->is_marked(popped) &&
-            id_tracker::is_valid(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
     }
 }
 
@@ -1292,7 +1258,6 @@ output_flex_t::output_flex_t(
     std::shared_ptr<id_tracker> ways_tracker,
     std::shared_ptr<id_tracker> rels_tracker)
 : output_t(mid, o), m_tables(std::move(tables)),
-  m_ways_done_tracker(new id_tracker{}),
   m_stage2_ways_tracker(std::move(ways_tracker)),
   m_stage2_rels_tracker(std::move(rels_tracker)), m_copy_thread(copy_thread),
   m_lua_state(std::move(lua_state)), m_builder(o.projection),
@@ -1414,7 +1379,7 @@ void output_flex_t::init_lua(std::string const &filename)
 
 bool output_flex_t::has_pending() const
 {
-    return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
+    return !m_rels_pending_tracker.empty();
 }
 
 void output_flex_t::stage2_proc()
