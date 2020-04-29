@@ -1334,11 +1334,6 @@ void output_flex_t::init_lua(std::string const &filename)
     lua_remove(lua_state(), 1); // global "osm2pgsql"
 }
 
-bool output_flex_t::has_pending() const
-{
-    return false;
-}
-
 void output_flex_t::stage2_proc()
 {
     bool const has_marked_ways = !m_stage2_ways_tracker->empty();

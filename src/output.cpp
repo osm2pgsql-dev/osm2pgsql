@@ -197,8 +197,6 @@ output_t::output_t(std::shared_ptr<middle_query_t> const &mid,
 
 output_t::~output_t() = default;
 
-bool output_t::has_pending() const { return false; }
-
 options_t const *output_t::get_options() const { return &m_options; }
 
 void output_t::merge_pending_relations(output_t *) {}

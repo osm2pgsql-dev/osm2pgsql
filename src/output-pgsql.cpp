@@ -425,11 +425,6 @@ output_pgsql_t::output_pgsql_t(
 
 output_pgsql_t::~output_pgsql_t() = default;
 
-bool output_pgsql_t::has_pending() const
-{
-    return false;
-}
-
 void output_pgsql_t::merge_pending_relations(output_t *)
 {
 }

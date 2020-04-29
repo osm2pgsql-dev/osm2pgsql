@@ -73,8 +73,6 @@ public:
     virtual void way_delete(osmid_t id) = 0;
     virtual void relation_delete(osmid_t id) = 0;
 
-    virtual bool has_pending() const;
-
     const options_t *get_options() const;
 
     virtual void merge_pending_relations(output_t *other);
