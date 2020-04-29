@@ -199,6 +199,4 @@ output_t::~output_t() = default;
 
 options_t const *output_t::get_options() const { return &m_options; }
 
-void output_t::merge_pending_relations(output_t *) {}
-
 void output_t::merge_expire_trees(output_t *) {}

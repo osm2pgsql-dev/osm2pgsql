@@ -75,7 +75,6 @@ public:
 
     const options_t *get_options() const;
 
-    virtual void merge_pending_relations(output_t *other);
     virtual void merge_expire_trees(output_t *other);
 
 protected:

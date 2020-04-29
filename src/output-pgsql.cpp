@@ -425,10 +425,6 @@ output_pgsql_t::output_pgsql_t(
 
 output_pgsql_t::~output_pgsql_t() = default;
 
-void output_pgsql_t::merge_pending_relations(output_t *)
-{
-}
-
 void output_pgsql_t::merge_expire_trees(output_t *other)
 {
     auto *const opgsql = dynamic_cast<output_pgsql_t *>(other);

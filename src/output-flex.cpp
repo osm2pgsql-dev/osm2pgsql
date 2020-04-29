@@ -1403,10 +1403,6 @@ void output_flex_t::stage2_proc()
     }
 }
 
-void output_flex_t::merge_pending_relations(output_t *)
-{
-}
-
 void output_flex_t::merge_expire_trees(output_t *other)
 {
     auto *opgsql = dynamic_cast<output_flex_t *>(other);

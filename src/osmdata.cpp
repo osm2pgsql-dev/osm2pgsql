@@ -297,19 +297,9 @@ struct pending_threaded_processor : public middle_t::pending_processor
         ids_queued = 0;
         ids_done = 0;
 
-        //collect all the new rels that became pending from each
-        //output in each thread back to their respective main outputs
         for (auto const &clone : clones) {
-            //for each clone/original output
-            for (output_vec_t::const_iterator original_output = outs.begin(),
-                                              clone_output = clone.begin();
-                 original_output != outs.end() && clone_output != clone.end();
-                 ++original_output, ++clone_output) {
-                //done copying ways for now
-                clone_output->get()->commit();
-                //merge the pending from this threads copy of output back
-                original_output->get()->merge_pending_relations(
-                    clone_output->get());
+            for (auto const &clone_output : clone) {
+                clone_output.get()->commit();
             }
         }
     }

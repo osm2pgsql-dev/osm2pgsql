@@ -330,10 +330,6 @@ void output_multi_t::delete_from_output(osmid_t id)
     }
 }
 
-void output_multi_t::merge_pending_relations(output_t *)
-{
-}
-
 void output_multi_t::merge_expire_trees(output_t *other)
 {
     auto *const omulti = dynamic_cast<output_multi_t *>(other);
