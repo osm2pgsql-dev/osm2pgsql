@@ -46,8 +46,6 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id, size_t output_id,
-                      size_t &added) override;
     void pending_way(osmid_t id, int exists) override;
 
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id,

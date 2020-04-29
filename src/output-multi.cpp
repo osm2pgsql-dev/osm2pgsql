@@ -70,13 +70,6 @@ bool output_multi_t::has_pending() const
     return !rels_pending_tracker.empty();
 }
 
-void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
-                                  size_t output_id, size_t &added)
-{
-    job_queue.emplace(id, output_id);
-    ++added;
-}
-
 void output_multi_t::pending_way(osmid_t id, int exists)
 {
     // Try to fetch the way from the DB
