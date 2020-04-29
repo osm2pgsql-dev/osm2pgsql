@@ -67,46 +67,15 @@ void output_multi_t::start()
 
 bool output_multi_t::has_pending() const
 {
-    return !ways_pending_tracker.empty() || !rels_pending_tracker.empty();
+    return !rels_pending_tracker.empty();
 }
 
 void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
                                   size_t output_id, size_t &added)
 {
-    osmid_t const prev = ways_pending_tracker.last_returned();
-    if (id_tracker::is_valid(prev) && prev >= id) {
-        if (prev > id) {
-            job_queue.push(pending_job_t(id, output_id));
-        }
-        // already done the job
-        return;
-    }
-
-    //make sure we get the one passed in
     if (id_tracker::is_valid(id)) {
-        job_queue.push(pending_job_t(id, output_id));
+        job_queue.emplace(id, output_id);
         ++added;
-    }
-
-    //grab the first one or bail if its not valid
-    osmid_t popped = ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped)) {
-        return;
-    }
-
-    //get all the ones up to the id that was passed in
-    while (popped < id) {
-        job_queue.push(pending_job_t(popped, output_id));
-        ++added;
-        popped = ways_pending_tracker.pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    if (popped > id) {
-        if (id_tracker::is_valid(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
     }
 }
 
@@ -324,15 +293,7 @@ void output_multi_t::process_way(osmium::Way *way)
         auto const geom = m_processor->process_way(*way, &m_builder);
 
         if (!geom.empty()) {
-            //if we are also interested in relations we need to mark
-            //this way pending just in case it shows up in one
-            if (m_processor->interests(geometry_processor::interest_relation)) {
-                ways_pending_tracker.mark(way->id());
-            } else {
-                // We wouldn't be interested in this as a relation, so no need to mark it pending.
-                // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(way->id(), geom, outtags);
-            }
+            copy_to_table(way->id(), geom, outtags);
         }
     }
 }

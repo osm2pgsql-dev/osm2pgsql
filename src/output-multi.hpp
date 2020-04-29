@@ -87,7 +87,7 @@ protected:
     std::shared_ptr<reprojection> m_proj;
     osmium::item_type const m_osm_type;
     std::unique_ptr<table_t> m_table;
-    id_tracker ways_pending_tracker, rels_pending_tracker;
+    id_tracker rels_pending_tracker;
     expire_tiles m_expire;
     relation_helper m_relation_helper;
     osmium::memory::Buffer buffer;
