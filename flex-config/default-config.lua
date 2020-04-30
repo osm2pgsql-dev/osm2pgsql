@@ -243,7 +243,8 @@ function osm2pgsql.process_relation(object)
 
     if type == 'route' then
         tables.routes:add_row({
-            tags = object.tags
+            tags = object.tags,
+            geom = { create = 'line' }
         })
         return
     end
