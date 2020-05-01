@@ -996,7 +996,7 @@ void output_flex_t::call_process_function(int index,
         get_options()->extra_attributes); // the single argument
 
     luaX_set_context(lua_state(), this);
-    if (lua_pcall(lua_state(), 1, 0, 0)) {
+    if (luaX_pcall(lua_state(), 1, 0)) {
         throw std::runtime_error{"Failed to execute lua processing function:"
                                  " {}"_format(lua_tostring(lua_state(), -1))};
     }

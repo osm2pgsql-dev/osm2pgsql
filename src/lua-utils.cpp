@@ -135,3 +135,34 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
     throw std::runtime_error{
         "{} must contain a '{}' boolean field"_format(error_msg, key)};
 }
+
+static int pcall_error_traceback_handler(lua_State *lua_state)
+{
+    assert(lua_state);
+
+    char const *msg = lua_tostring(lua_state, 1);
+    if (msg == nullptr) { // is error object not a string?
+        if (luaL_callmeta(lua_state, 1,
+                          "__tostring") && // does it have a metamethod
+            lua_type(lua_state, -1) == LUA_TSTRING) { // that produces a string?
+            return 1;                                 // that is the message
+        } else {
+            msg = lua_pushfstring(lua_state, "(error object is a %s value)",
+                                  luaL_typename(lua_state, 1));
+        }
+    }
+    luaL_traceback(lua_state, lua_state, msg, 1); // append a standard traceback
+    return 1;                                     // return the traceback
+}
+
+// wrapper function for lua_pcall to include a stack traceback
+int luaX_pcall(lua_State *lua_state, int narg, int nres)
+{
+    int const base = lua_gettop(lua_state) - narg; // function index
+    lua_pushcfunction(lua_state,
+                      pcall_error_traceback_handler); // push message handler
+    lua_insert(lua_state, base); // put it under function and args
+    int const status = lua_pcall(lua_state, narg, nres, base);
+    lua_remove(lua_state, base); // remove message handler from the stack
+    return status;
+}

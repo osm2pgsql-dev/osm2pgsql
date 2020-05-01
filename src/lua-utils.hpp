@@ -49,4 +49,6 @@ char const *luaX_get_table_string(lua_State *lua_state, char const *key,
 bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
                          char const *error_msg, bool default_value);
 
+int luaX_pcall(lua_State *lua_state, int narg, int nres);
+
 #endif // OSM2PGSQL_FLEX_LUA_HPP
