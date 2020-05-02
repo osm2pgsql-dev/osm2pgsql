@@ -21,7 +21,8 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     }
     sql[sql.size() - 1] = ')';
 
-    conn->exec(fmt::to_string(sql));
+    sql.push_back('\0');
+    conn->exec(sql.data());
 }
 
 void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
@@ -54,8 +55,6 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
                        ") AS t (osm_type, osm_id) WHERE"
                        " p.{} = t.osm_type AND p.{} = t.osm_id",
                        type, column.c_str() + pos + 1);
-
-        conn->exec(fmt::to_string(sql));
     } else {
         fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
                        column);
@@ -64,8 +63,10 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
             format_to(sql, FMT_STRING("{},"), item.osm_id);
         }
         sql[sql.size() - 1] = ')';
-        conn->exec(fmt::to_string(sql));
     }
+
+    sql.push_back('\0');
+    conn->exec(sql.data());
 }
 
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
