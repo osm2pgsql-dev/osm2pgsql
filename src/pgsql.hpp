@@ -91,7 +91,8 @@ private:
  *
  * Wraps the PGconn object of the libpq library.
  *
- * The connection is automatically closed when the object is destroyed.
+ * The connection is automatically closed when the object is destroyed or
+ * you can close it explicitly by calling close().
  */
 class pg_conn_t
 {
@@ -115,6 +116,9 @@ public:
     void end_copy(std::string const &context) const;
 
     char const *error_msg() const noexcept;
+
+    /// Close database connection.
+    void close() noexcept { m_conn.reset(); }
 
 private:
     struct pg_conn_deleter_t
