@@ -439,7 +439,7 @@ void middle_pgsql_t::way_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
+void middle_pgsql_t::iterate_ways(pending_processor &pf)
 {
     // enqueue the jobs
     osmid_t id;

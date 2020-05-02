@@ -115,8 +115,8 @@ struct middle_ram_t : public middle_t, public middle_query_t
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    void iterate_ways(middle_t::pending_processor &pf) override;
-    void iterate_relations(pending_processor &pf) override;
+    void iterate_ways(pending_processor &) override {}
+    void iterate_relations(pending_processor &) override {}
 
     bool has_pending() const override { return false; }
 

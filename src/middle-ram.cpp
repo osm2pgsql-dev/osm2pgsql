@@ -64,28 +64,6 @@ size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
     return count;
 }
 
-void middle_ram_t::iterate_relations(pending_processor &pf)
-{
-    //TODO: just dont do anything
-
-    //let the outputs enqueue everything they have the non slim middle
-    //has nothing of its own to enqueue as it doesnt have pending anything
-    pf.enqueue_relations(id_tracker::max());
-
-    //let the threads process the relations
-    pf.process_relations();
-}
-
-void middle_ram_t::iterate_ways(middle_t::pending_processor &pf)
-{
-    //let the outputs enqueue everything they have the non slim middle
-    //has nothing of its own to enqueue as it doesnt have pending anything
-    pf.enqueue_ways(id_tracker::max());
-
-    //let the threads process the ways
-    pf.process_ways();
-}
-
 void middle_ram_t::release_relations() { m_rels.clear(); }
 
 void middle_ram_t::release_ways() { m_ways.clear(); }

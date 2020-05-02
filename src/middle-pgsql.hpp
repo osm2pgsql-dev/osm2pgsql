@@ -80,7 +80,7 @@ struct middle_pgsql_t : public slim_middle_t
 
     void flush() override;
 
-    void iterate_ways(middle_t::pending_processor &pf) override;
+    void iterate_ways(pending_processor &pf) override;
     void iterate_relations(pending_processor &pf) override;
 
     bool has_pending() const override;
