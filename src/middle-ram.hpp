@@ -159,13 +159,6 @@ private:
 
     std::unique_ptr<node_ram_cache> m_cache;
     bool m_extra_attributes;
-
-    /* the previous behaviour of iterate_ways was to delete all ways as they
-     * were being iterated. this doesn't work now that the output handles its
-     * own "done" status and output-specific "pending" status. however, the
-     * tests depend on the behaviour that ways will be unavailable once
-     * iterate_ways is complete, so this flag emulates that. */
-    bool m_simulate_ways_deleted;
 };
 
 #endif // OSM2PGSQL_MIDDLE_RAM_HPP

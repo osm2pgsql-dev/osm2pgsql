@@ -70,10 +70,6 @@ void middle_ram_t::release_ways() { m_ways.clear(); }
 
 bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
-    if (m_simulate_ways_deleted) {
-        return false;
-    }
-
     auto const *ele = m_ways.get(id);
 
     if (!ele) {
@@ -140,7 +136,7 @@ void middle_ram_t::commit() {}
 middle_ram_t::middle_ram_t(options_t const *options)
 : m_ways(), m_rels(),
   m_cache(new node_ram_cache{options->alloc_chunkwise, options->cache}),
-  m_extra_attributes(options->extra_attributes), m_simulate_ways_deleted(false)
+  m_extra_attributes(options->extra_attributes)
 {}
 
 middle_ram_t::~middle_ram_t()
