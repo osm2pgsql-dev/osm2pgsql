@@ -49,7 +49,7 @@ void parse_stats_t::print_summary() const
                m_rel.count, m_rel.max, rels_time(now));
 }
 
-void parse_stats_t::print_status(time_t now) const
+void parse_stats_t::print_status(std::time_t now) const
 {
     fmt::print(
         stderr,
