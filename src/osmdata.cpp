@@ -409,23 +409,14 @@ void osmdata_t::stop() const
     // should be the same for all outputs
     auto const *opts = m_outs[0]->get_options();
 
-    // are there any objects left pending?
-    if (m_mid->has_pending()) {
-        //threaded pending processing
+    // In append mode there might be dependent objects pending that we
+    // need to process.
+    if (opts->append && m_mid->has_pending()) {
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
 
-        if (!m_outs.empty()) {
-            //This stage takes ways which were processed earlier, but might be
-            //involved in a multipolygon relation. They could also be ways that
-            //were modified in diff processing.
-            m_mid->iterate_ways(ptp);
-
-            //This is like pending ways, except there aren't pending relations
-            //on import, only on update.
-            //TODO: Can we skip this on import?
-            m_mid->iterate_relations(ptp);
-        }
+        m_mid->iterate_ways(ptp);
+        m_mid->iterate_relations(ptp);
     }
 
     for (auto &out : m_outs) {
