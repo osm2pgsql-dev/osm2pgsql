@@ -456,15 +456,8 @@ void table_t::escape_type(std::string const &value, ColumnType flags)
     }
 }
 
-table_t::wkb_reader table_t::get_wkb_reader(osmid_t const id)
+table_t::wkb_reader table_t::get_wkb_reader(osmid_t id)
 {
-    util::integer_to_buffer tmp{id};
-    char const *param_values[] = {tmp.c_str()};
-
-    // the prepared statement get_wkb will behave differently depending on the
-    // sql_conn
-    // each table has its own sql_connection with the get_way referring to the
-    // appropriate table
-    auto res = m_sql_conn->exec_prepared("get_wkb", 1, param_values);
+    auto res = m_sql_conn->exec_prepared("get_wkb", id);
     return wkb_reader{std::move(res)};
 }

@@ -1,6 +1,7 @@
 /* Helper functions for the postgresql connections */
 #include "format.hpp"
 #include "pgsql.hpp"
+#include "util.hpp"
 
 #include <cstdarg>
 #include <cstdio>
@@ -118,6 +119,23 @@ pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
     }
 
     return res;
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *param) const
+{
+    return exec_prepared(stmt, 1, &param);
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt,
+                                     std::string const &param) const
+{
+    return exec_prepared(stmt, param.c_str());
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, osmid_t id) const
+{
+    util::integer_to_buffer buffer{id};
+    return exec_prepared(stmt, buffer.c_str());
 }
 
 std::string tablespace_clause(std::string const &name)

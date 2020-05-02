@@ -3,6 +3,8 @@
 
 /* Helper functions for PostgreSQL access */
 
+#include "osmtypes.hpp"
+
 #include <libpq-fe.h>
 
 #include <cassert>
@@ -102,6 +104,12 @@ public:
     pg_result_t exec_prepared(char const *stmt, int num_params,
                               char const *const *param_values,
                               ExecStatusType expect = PGRES_TUPLES_OK) const;
+
+    pg_result_t exec_prepared(char const *stmt, char const *param) const;
+
+    pg_result_t exec_prepared(char const *stmt, std::string const &param) const;
+
+    pg_result_t exec_prepared(char const *stmt, osmid_t id) const;
 
     pg_result_t query(ExecStatusType expect, char const *sql) const;
 
