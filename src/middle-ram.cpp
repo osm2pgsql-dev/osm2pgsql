@@ -7,14 +7,11 @@
  * emit the final geometry-enabled output formats
 */
 
-#include <stdexcept>
-
 #include <cassert>
-#include <cstdio>
+#include <memory>
 
 #include <osmium/builder/attr.hpp>
 
-#include "id-tracker.hpp"
 #include "middle-ram.hpp"
 #include "node-ram-cache.hpp"
 #include "options.hpp"
@@ -63,10 +60,6 @@ size_t middle_ram_t::nodes_get_list(osmium::WayNodeList *nodes) const
 
     return count;
 }
-
-void middle_ram_t::release_relations() { m_rels.clear(); }
-
-void middle_ram_t::release_ways() { m_ways.clear(); }
 
 bool middle_ram_t::way_get(osmid_t id, osmium::memory::Buffer &buffer) const
 {
@@ -117,21 +110,12 @@ bool middle_ram_t::relation_get(osmid_t id,
     return true;
 }
 
-void middle_ram_t::analyze()
-{ /* No need */
-}
-
-void middle_ram_t::start() {}
-
 void middle_ram_t::stop(osmium::thread::Pool &)
 {
-    m_cache.reset(nullptr);
-
-    release_ways();
-    release_relations();
+    m_cache.reset();
+    m_ways.clear();
+    m_rels.clear();
 }
-
-void middle_ram_t::commit() {}
 
 middle_ram_t::middle_ram_t(options_t const *options)
 : m_ways(), m_rels(),
@@ -139,24 +123,13 @@ middle_ram_t::middle_ram_t(options_t const *options)
   m_extra_attributes(options->extra_attributes)
 {}
 
-middle_ram_t::~middle_ram_t()
-{
-    //instance.reset();
-}
-
 idlist_t middle_ram_t::relations_using_way(osmid_t) const
 {
-    // this function shouldn't be called - relations_using_way is only used in
-    // slim mode, and a middle_ram_t shouldn't be constructed if the slim mode
-    // option is set.
-    throw std::runtime_error{
-        "middle_ram_t::relations_using_way is unimplemented, and "
-        "should not have been called. This is probably a bug, please "
-        "report it at https://github.com/openstreetmap/osm2pgsql/issues"};
+    assert(false && "Should only be called in slim mode");
+    return {};
 }
 
-std::shared_ptr<middle_query_t>
-middle_ram_t::get_query_instance()
+std::shared_ptr<middle_query_t> middle_ram_t::get_query_instance()
 {
     return shared_from_this();
 }

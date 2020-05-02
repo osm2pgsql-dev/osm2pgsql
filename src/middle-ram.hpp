@@ -92,12 +92,12 @@ public:
 struct middle_ram_t : public middle_t, public middle_query_t
 {
     middle_ram_t(options_t const *options);
-    virtual ~middle_ram_t();
+    virtual ~middle_ram_t() noexcept = default;
 
-    void start() override;
+    void start() override {}
     void stop(osmium::thread::Pool &pool) override;
-    void analyze(void) override;
-    void commit(void) override;
+    void analyze() override {}
+    void commit() override {}
 
     void node_set(osmium::Node const &node) override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
@@ -123,9 +123,6 @@ struct middle_ram_t : public middle_t, public middle_query_t
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
 private:
-    void release_ways();
-    void release_relations();
-
     struct ramWay
     {
         taglist_t tags;
