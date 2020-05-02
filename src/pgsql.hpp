@@ -101,13 +101,16 @@ class pg_conn_t
 public:
     explicit pg_conn_t(std::string const &conninfo);
 
-    pg_result_t exec_prepared(char const *stmt, int num_params,
-                              char const *const *param_values) const;
-
+    /// Execute a prepared statement with one parameter.
     pg_result_t exec_prepared(char const *stmt, char const *param) const;
 
+    /// Execute a prepared statement with two parameters.
+    pg_result_t exec_prepared(char const *stmt, char const *p1, char const *p2) const;
+
+    /// Execute a prepared statement with one string parameter.
     pg_result_t exec_prepared(char const *stmt, std::string const &param) const;
 
+    /// Execute a prepared statement with one integer parameter.
     pg_result_t exec_prepared(char const *stmt, osmid_t id) const;
 
     pg_result_t query(ExecStatusType expect, char const *sql) const;
@@ -128,6 +131,9 @@ public:
     void close() noexcept { m_conn.reset(); }
 
 private:
+    pg_result_t exec_prepared_internal(char const *stmt, int num_params,
+                                       char const *const *param_values) const;
+
     struct pg_conn_deleter_t
     {
         void operator()(PGconn *p) const noexcept { PQfinish(p); }

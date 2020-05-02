@@ -3,6 +3,7 @@
 #include "pgsql.hpp"
 #include "util.hpp"
 
+#include <array>
 #include <cstdarg>
 #include <cstdio>
 
@@ -94,8 +95,9 @@ void pg_conn_t::end_copy(std::string const &context) const
     }
 }
 
-pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
-                                     char const *const *param_values) const
+pg_result_t
+pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
+                                  char const *const *param_values) const
 {
 #ifdef DEBUG_PGSQL
     fmt::print(stderr, "ExecPrepared: {}\n", stmt);
@@ -119,9 +121,15 @@ pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
     return res;
 }
 
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *p1, char const *p2) const
+{
+    std::array<const char *, 2> params{p1, p2};
+    return exec_prepared_internal(stmt, params.size(), params.data());
+}
+
 pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *param) const
 {
-    return exec_prepared(stmt, 1, &param);
+    return exec_prepared_internal(stmt, 1, &param);
 }
 
 pg_result_t pg_conn_t::exec_prepared(char const *stmt,
