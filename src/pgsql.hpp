@@ -102,8 +102,7 @@ public:
     explicit pg_conn_t(std::string const &conninfo);
 
     pg_result_t exec_prepared(char const *stmt, int num_params,
-                              char const *const *param_values,
-                              ExecStatusType expect = PGRES_TUPLES_OK) const;
+                              char const *const *param_values) const;
 
     pg_result_t exec_prepared(char const *stmt, char const *param) const;
 

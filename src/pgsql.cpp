@@ -95,16 +95,14 @@ void pg_conn_t::end_copy(std::string const &context) const
 }
 
 pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
-                                     char const *const *param_values,
-                                     const ExecStatusType expect) const
+                                     char const *const *param_values) const
 {
 #ifdef DEBUG_PGSQL
     fmt::print(stderr, "ExecPrepared: {}\n", stmt);
 #endif
-    //run the prepared statement
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
-    if (PQresultStatus(res.get()) != expect) {
+    if (PQresultStatus(res.get()) != PGRES_TUPLES_OK) {
         fmt::print(stderr, "Prepared statement failed with: {} ({})\n",
                    error_msg(), PQresultStatus(res.get()));
         fmt::print(stderr, "Query: {}\n", stmt);
