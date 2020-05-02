@@ -80,61 +80,42 @@ std::string flex_table_column_t::sql_type_name(int srid) const
     switch (m_type) {
     case table_column_type::sql:
         return m_type_name;
-        break;
     case table_column_type::text:
         return "text";
-        break;
     case table_column_type::boolean:
         return "boolean";
-        break;
     case table_column_type::int2:
         return "int2";
-        break;
     case table_column_type::int4:
         return "int4";
-        break;
     case table_column_type::int8:
         return "int8";
-        break;
     case table_column_type::real:
         return "real";
-        break;
     case table_column_type::hstore:
         return "hstore";
-        break;
     case table_column_type::direction:
         return "int2";
-        break;
     case table_column_type::geometry:
         return "Geometry(GEOMETRY, {})"_format(srid);
-        break;
     case table_column_type::point:
         return "Geometry(POINT, {})"_format(srid);
-        break;
     case table_column_type::linestring:
         return "Geometry(LINESTRING, {})"_format(srid);
-        break;
     case table_column_type::polygon:
         return "Geometry(POLYGON, {})"_format(srid);
-        break;
     case table_column_type::multipoint:
         return "Geometry(MULTIPOINT, {})"_format(srid);
-        break;
     case table_column_type::multilinestring:
         return "Geometry(MULTILINESTRING, {})"_format(srid);
-        break;
     case table_column_type::multipolygon:
         return "Geometry(MULTIPOLYGON, {})"_format(srid);
-        break;
     case table_column_type::area:
         return "real";
-        break;
     case table_column_type::id_type:
         return "char(1)";
-        break;
     case table_column_type::id_num:
         return "int8";
-        break;
     }
     throw std::runtime_error{"Unknown column type"};
 }
