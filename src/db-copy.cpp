@@ -176,16 +176,17 @@ void db_copy_thread_t::thread_t::start_copy(
 {
     assert(!m_inflight);
 
-    std::string copystr = "COPY ";
-    copystr.reserve(target->name.size() + target->rows.size() + 14);
-    copystr += target->name;
-    if (!target->rows.empty()) {
-        copystr += '(';
-        copystr += target->rows;
-        copystr += ')';
+    fmt::memory_buffer sql;
+    sql.reserve(target->name.size() + target->rows.size() + 14);
+    if (target->rows.empty()) {
+        fmt::format_to(sql, FMT_STRING("COPY {} FROM STDIN"), target->name);
+    } else {
+        fmt::format_to(sql, FMT_STRING("COPY {} ({}) FROM STDIN"), target->name,
+                       target->rows);
     }
-    copystr += " FROM STDIN";
-    m_conn->query(PGRES_COPY_IN, copystr);
+
+    sql.push_back('\0');
+    m_conn->query(PGRES_COPY_IN, sql.data());
 
     m_inflight = target;
 }
