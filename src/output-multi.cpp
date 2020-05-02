@@ -28,7 +28,6 @@ output_multi_t::output_multi_t(
                       export_list.normal_columns(m_osm_type),
                       m_options.hstore_columns, m_processor->srid(),
                       m_options.append, m_options.hstore_mode, copy_thread}),
-  ways_done_tracker(new id_tracker{}),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -44,10 +43,6 @@ output_multi_t::output_multi_t(
   m_processor(other->m_processor), m_proj(other->m_proj),
   m_osm_type(other->m_osm_type),
   m_table(new table_t{*other->m_table, copy_thread}),
-  // NOTE: we need to know which ways were used by relations so each thread
-  // must have a copy of the original marked done ways, its read only so its
-  // ok
-  ways_done_tracker(other->ways_done_tracker),
   m_expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
            m_options.projection),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
@@ -72,50 +67,7 @@ void output_multi_t::start()
 
 bool output_multi_t::has_pending() const
 {
-    return !ways_pending_tracker.empty() || !rels_pending_tracker.empty();
-}
-
-void output_multi_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
-                                  size_t output_id, size_t &added)
-{
-    osmid_t const prev = ways_pending_tracker.last_returned();
-    if (id_tracker::is_valid(prev) && prev >= id) {
-        if (prev > id) {
-            job_queue.push(pending_job_t(id, output_id));
-        }
-        // already done the job
-        return;
-    }
-
-    //make sure we get the one passed in
-    if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
-        job_queue.push(pending_job_t(id, output_id));
-        ++added;
-    }
-
-    //grab the first one or bail if its not valid
-    osmid_t popped = ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped)) {
-        return;
-    }
-
-    //get all the ones up to the id that was passed in
-    while (popped < id) {
-        if (!ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-        popped = ways_pending_tracker.pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    if (popped > id) {
-        if (!ways_done_tracker->is_marked(popped) &&
-            id_tracker::is_valid(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-    }
+    return !rels_pending_tracker.empty();
 }
 
 void output_multi_t::pending_way(osmid_t id, int exists)
@@ -332,15 +284,7 @@ void output_multi_t::process_way(osmium::Way *way)
         auto const geom = m_processor->process_way(*way, &m_builder);
 
         if (!geom.empty()) {
-            //if we are also interested in relations we need to mark
-            //this way pending just in case it shows up in one
-            if (m_processor->interests(geometry_processor::interest_relation)) {
-                ways_pending_tracker.mark(way->id());
-            } else {
-                // We wouldn't be interested in this as a relation, so no need to mark it pending.
-                // TODO: Does this imply anything for non-multipolygon relations?
-                copy_to_table(way->id(), geom, outtags);
-            }
+            copy_to_table(way->id(), geom, outtags);
         }
     }
 }

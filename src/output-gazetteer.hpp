@@ -46,7 +46,8 @@ public:
     void stop(osmium::thread::Pool *) override {}
     void commit() override;
 
-    void enqueue_ways(pending_queue_t &, osmid_t, size_t, size_t &) override {}
+    bool need_forward_dependencies() const noexcept override { return false; }
+
     void pending_way(osmid_t, int) override {}
 
     void enqueue_relations(pending_queue_t &, osmid_t, size_t,

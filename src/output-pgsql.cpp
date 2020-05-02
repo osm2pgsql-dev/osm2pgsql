@@ -66,49 +66,6 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     }
 }
 
-void output_pgsql_t::enqueue_ways(pending_queue_t &job_queue, osmid_t id,
-                                  size_t output_id, size_t &added)
-{
-    osmid_t const prev = ways_pending_tracker.last_returned();
-    if (id_tracker::is_valid(prev) && prev >= id) {
-        if (prev > id) {
-            job_queue.push(pending_job_t(id, output_id));
-        }
-        // already done the job
-        return;
-    }
-
-    //make sure we get the one passed in
-    if (!ways_done_tracker->is_marked(id) && id_tracker::is_valid(id)) {
-        job_queue.push(pending_job_t(id, output_id));
-        ++added;
-    }
-
-    //grab the first one or bail if its not valid
-    osmid_t popped = ways_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped)) {
-        return;
-    }
-
-    //get all the ones up to the id that was passed in
-    while (popped < id) {
-        if (!ways_done_tracker->is_marked(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-        popped = ways_pending_tracker.pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    if (popped > id) {
-        if (!ways_done_tracker->is_marked(popped) &&
-            id_tracker::is_valid(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-    }
-}
-
 void output_pgsql_t::pending_way(osmid_t id, int exists)
 {
     // Try to fetch the way from the DB
@@ -436,7 +393,6 @@ output_pgsql_t::output_pgsql_t(
     std::shared_ptr<db_copy_thread_t> const &copy_thread)
 : output_t(mid, o), m_builder(o.projection),
   expire(o.expire_tiles_zoom, o.expire_tiles_max_bbox, o.projection),
-  ways_done_tracker(new id_tracker{}),
   buffer(32768, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
@@ -495,9 +451,6 @@ output_pgsql_t::output_pgsql_t(
   m_builder(m_options.projection),
   expire(m_options.expire_tiles_zoom, m_options.expire_tiles_max_bbox,
          m_options.projection),
-  //NOTE: we need to know which ways were used by relations so each thread
-  //must have a copy of the original marked done ways, its read only so its ok
-  ways_done_tracker(other->ways_done_tracker),
   buffer(1024, osmium::memory::Buffer::auto_grow::yes),
   rels_buffer(1024, osmium::memory::Buffer::auto_grow::yes)
 {
@@ -512,7 +465,7 @@ output_pgsql_t::~output_pgsql_t() = default;
 
 bool output_pgsql_t::has_pending() const
 {
-    return !ways_pending_tracker.empty() || !rels_pending_tracker.empty();
+    return !rels_pending_tracker.empty();
 }
 
 void output_pgsql_t::merge_pending_relations(output_t *other)

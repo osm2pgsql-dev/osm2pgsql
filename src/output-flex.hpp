@@ -61,8 +61,6 @@ public:
 
     void stage2_proc() override;
 
-    void enqueue_ways(pending_queue_t &job_queue, osmid_t id,
-                      std::size_t output_id, std::size_t &added) override;
     void pending_way(osmid_t id, int exists) override;
 
     void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
@@ -139,9 +137,7 @@ private:
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
 
-    id_tracker m_ways_pending_tracker;
     id_tracker m_rels_pending_tracker;
-    std::shared_ptr<id_tracker> m_ways_done_tracker;
 
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_rels_tracker;

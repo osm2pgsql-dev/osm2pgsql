@@ -1018,12 +1018,6 @@ public:
 
     void check_way_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
     {
-        REQUIRE(!m_way_ids.empty());
-
-        // The last tracked id is always the invalid id, which we ignore
-        REQUIRE_FALSE(id_tracker::is_valid(m_way_ids.back()));
-        m_way_ids.pop_back();
-
         REQUIRE(m_way_ids.size() == list.size());
         REQUIRE(std::equal(m_way_ids.cbegin(), m_way_ids.cend(), list.begin()));
     }
