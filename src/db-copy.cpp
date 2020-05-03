@@ -21,7 +21,8 @@ void db_deleter_by_id_t::delete_rows(std::string const &table,
     }
     sql[sql.size() - 1] = ')';
 
-    conn->exec(fmt::to_string(sql));
+    sql.push_back('\0');
+    conn->exec(sql.data());
 }
 
 void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
@@ -54,8 +55,6 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
                        ") AS t (osm_type, osm_id) WHERE"
                        " p.{} = t.osm_type AND p.{} = t.osm_id",
                        type, column.c_str() + pos + 1);
-
-        conn->exec(fmt::to_string(sql));
     } else {
         fmt::format_to(sql, FMT_STRING("DELETE FROM {} WHERE {} IN ("), table,
                        column);
@@ -64,8 +63,10 @@ void db_deleter_by_type_and_id_t::delete_rows(std::string const &table,
             format_to(sql, FMT_STRING("{},"), item.osm_id);
         }
         sql[sql.size() - 1] = ')';
-        conn->exec(fmt::to_string(sql));
     }
+
+    sql.push_back('\0');
+    conn->exec(sql.data());
 }
 
 db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
@@ -176,16 +177,17 @@ void db_copy_thread_t::thread_t::start_copy(
 {
     assert(!m_inflight);
 
-    std::string copystr = "COPY ";
-    copystr.reserve(target->name.size() + target->rows.size() + 14);
-    copystr += target->name;
-    if (!target->rows.empty()) {
-        copystr += '(';
-        copystr += target->rows;
-        copystr += ')';
+    fmt::memory_buffer sql;
+    sql.reserve(target->name.size() + target->rows.size() + 14);
+    if (target->rows.empty()) {
+        fmt::format_to(sql, FMT_STRING("COPY {} FROM STDIN"), target->name);
+    } else {
+        fmt::format_to(sql, FMT_STRING("COPY {} ({}) FROM STDIN"), target->name,
+                       target->rows);
     }
-    copystr += " FROM STDIN";
-    m_conn->query(PGRES_COPY_IN, copystr);
+
+    sql.push_back('\0');
+    m_conn->query(PGRES_COPY_IN, sql.data());
 
     m_inflight = target;
 }
