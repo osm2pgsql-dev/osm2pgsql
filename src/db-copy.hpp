@@ -230,8 +230,8 @@ public:
     db_copy_thread_t(db_copy_thread_t const &) = delete;
     db_copy_thread_t &operator=(db_copy_thread_t const &) = delete;
 
-    db_copy_thread_t(db_copy_thread_t &&) = default;
-    db_copy_thread_t &operator=(db_copy_thread_t &&) = default;
+    db_copy_thread_t(db_copy_thread_t &&) = delete;
+    db_copy_thread_t &operator=(db_copy_thread_t &&) = delete;
 
     ~db_copy_thread_t();
 
