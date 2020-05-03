@@ -73,7 +73,7 @@ db_copy_thread_t::db_copy_thread_t(std::string const &conninfo)
 {
     // conninfo is captured by copy here, because we don't know wether the
     // reference will still be valid once we get around to running the thread
-    m_worker = std::thread(thread_t{conninfo, m_shared});
+    m_worker = std::thread{thread_t{conninfo, m_shared}};
 }
 
 db_copy_thread_t::~db_copy_thread_t() { finish(); }

@@ -1,8 +1,8 @@
 #include <algorithm>
 #include <chrono>
-#include <cstdio>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
 #include <stdexcept>
 #include <utility>
@@ -209,7 +209,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
 
             fmt::print(stderr, "\rLeft to process: {}...", queue_size);
 
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::this_thread::sleep_for(std::chrono::seconds{1});
         } while (queue_size > 0);
     }
 

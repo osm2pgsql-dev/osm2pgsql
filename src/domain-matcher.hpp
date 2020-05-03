@@ -4,7 +4,6 @@
 #include <osmium/osm/tag.hpp>
 
 #include <cstring>
-#include <string>
 
 /**
  * Returns the tag specific name, if applicable.
@@ -19,7 +18,7 @@
 class DomainMatcher
 {
 public:
-    explicit DomainMatcher(char const *cls)
+    explicit DomainMatcher(char const *cls) noexcept
     : m_domain(cls), m_len(std::strlen(cls))
     {}
 
