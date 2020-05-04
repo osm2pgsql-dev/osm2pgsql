@@ -30,6 +30,22 @@
 #include "output-pgsql.hpp"
 #include "util.hpp"
 
+/**
+ * Iterate over the result from a pgsql query and call the func with all
+ * the ids from the first column.
+ *
+ * \param result The result to iterate over.
+ * \param func Lambda taking an osmid_t as only parameter.
+ */
+template <typename FUNC>
+void for_each_id(pg_result_t const &result, FUNC &&func)
+{
+    for (int i = 0; i < result.num_tuples(); ++i) {
+        auto const id = osmium::string_to_object_id(result.get_value(i, 0));
+        std::forward<FUNC>(func)(id);
+    }
+}
+
 static std::string build_sql(options_t const &options, char const *templ)
 {
     std::string const using_tablespace{options.tblsslim_index.empty()
@@ -300,19 +316,17 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     }
 
     // Find all ways referencing this node and mark them as pending.
-    auto res = m_db_connection.exec_prepared("mark_ways_by_node", osm_id);
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        way_changed(marked);
-        m_ways_pending_tracker->mark(marked);
-    }
+    auto const res_ways =
+        m_db_connection.exec_prepared("mark_ways_by_node", osm_id);
+    for_each_id(res_ways, [this](osmid_t id) {
+        way_changed(id);
+        m_ways_pending_tracker->mark(id);
+    });
 
     // Find all relations referencing this node and mark them as pending.
-    res = m_db_connection.exec_prepared("mark_rels_by_node", osm_id);
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        m_rels_pending_tracker->mark(marked);
-    }
+    auto const res_rels = m_db_connection.exec_prepared("mark_rels_by_node", osm_id);
+    for_each_id(res_rels,
+                [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
 }
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
@@ -376,9 +390,9 @@ middle_query_pgsql_t::rel_way_members_get(osmium::Relation const &rel,
 
     auto const res = m_sql_conn.exec_prepared("get_way_list", id_list);
     idlist_t wayidspg;
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        wayidspg.push_back(osmium::string_to_object_id(res.get_value(i, 0)));
-    }
+    for_each_id(res, [&wayidspg](osmid_t id) {
+        wayidspg.push_back(id);
+    });
 
     // Match the list of ways coming from postgres in a different order
     //   back to the list of ways given by the caller */
@@ -437,12 +451,9 @@ void middle_pgsql_t::way_changed(osmid_t osm_id)
         return;
     }
 
-    //keep track of whatever rels this way intersects
+    // Keep track of all relations having this way as member.
     auto const res = m_db_connection.exec_prepared("mark_rels_by_way", osm_id);
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        m_rels_pending_tracker->mark(marked);
-    }
+    for_each_id(res, [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
 }
 
 void middle_pgsql_t::relation_set(osmium::Relation const &rel)
@@ -514,12 +525,10 @@ bool middle_query_pgsql_t::relation_get(osmid_t id,
 void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_append);
-    //keep track of whatever ways this relation interesects
+
+    // Keep track of all member ways.
     auto const res = m_db_connection.exec_prepared("mark_ways_by_rel", osm_id);
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        m_ways_pending_tracker->mark(marked);
-    }
+    for_each_id(res, [this](osmid_t id) { m_ways_pending_tracker->mark(id); });
 
     m_db_copy.new_line(m_tables[REL_TABLE].m_copy_target);
     m_db_copy.delete_object(osm_id);
@@ -540,25 +549,17 @@ void middle_pgsql_t::iterate_relations(pending_processor &pf)
 void middle_pgsql_t::relation_changed(osmid_t osm_id)
 {
     assert(m_append);
-    //keep track of whatever ways and rels these nodes intersect
-    //TODO: dont need to stop the copy above since we are only reading?
-    //TODO: can we just mark the id without querying? the where clause seems intersect reltable.parts with the id
+
     auto const res = m_db_connection.exec_prepared("mark_rels", osm_id);
-    for (int i = 0; i < res.num_tuples(); ++i) {
-        osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
-        m_rels_pending_tracker->mark(marked);
-    }
+    for_each_id(res, [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
 }
 
 idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 {
     auto const result = m_sql_conn.exec_prepared("rels_using_way", way_id);
-    int const ntuples = result.num_tuples();
     idlist_t rel_ids;
-    rel_ids.resize((size_t)ntuples);
-    for (int i = 0; i < ntuples; ++i) {
-        rel_ids[i] = osmium::string_to_object_id(result.get_value(i, 0));
-    }
+    rel_ids.reserve((size_t)result.num_tuples());
+    for_each_id(result, [&rel_ids](osmid_t id) { rel_ids.push_back(id); });
 
     return rel_ids;
 }
