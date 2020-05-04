@@ -321,15 +321,12 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
         return;
     }
 
-    idlist_t way_ids;
-
     // Find all ways referencing this node and mark them as pending.
     auto res = exec_prepared("mark_ways_by_node", osm_id);
-    way_ids.reserve(res.num_tuples());
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
+        way_changed(marked);
         m_ways_pending_tracker->mark(marked);
-        way_ids.push_back(marked);
     }
 
     // Find all relations referencing this node and mark them as pending.
@@ -337,12 +334,6 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
         m_rels_pending_tracker->mark(marked);
-    }
-
-    // For all ways referencing this node, mark relations referencing them
-    // as pending.
-    for (auto const way_id : way_ids) {
-        way_changed(way_id);
     }
 }
 
@@ -463,6 +454,11 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
 void middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     assert(m_append);
+
+    if (m_ways_pending_tracker->is_marked(osm_id)) {
+        return;
+    }
+
     //keep track of whatever rels this way intersects
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
