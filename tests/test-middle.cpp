@@ -1005,9 +1005,8 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     }
 }
 
-class test_pending_processor : public middle_t::pending_processor
+struct test_pending_processor : public middle_t::pending_processor
 {
-public:
     test_pending_processor() = default;
 
     void enqueue_ways(osmid_t id) override { m_way_ids.push_back(id); }
@@ -1015,26 +1014,6 @@ public:
 
     void process_ways() override {}
     void process_relations() override {}
-
-    void check_way_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
-    {
-        REQUIRE(compare(m_way_ids, list));
-    }
-
-    void check_rel_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
-    {
-        REQUIRE(compare(m_rel_ids, list));
-    }
-
-private:
-    static bool compare(std::vector<osmid_t> const &l1,
-                        std::initializer_list<osmid_t> const &l2) noexcept
-    {
-        if (l1.size() != l2.size()) {
-            return false;
-        }
-        return std::equal(l1.cbegin(), l1.cend(), l2.begin());
-    }
 
     std::vector<osmid_t> m_way_ids;
     std::vector<osmid_t> m_rel_ids;
@@ -1087,7 +1066,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         REQUIRE_FALSE(mid->has_pending());
         test_pending_processor proc;
         mid->iterate_ways(proc);
-        proc.check_way_ids_equal_to({});
+        REQUIRE(proc.m_way_ids.empty());
 
         mid->commit();
     }
@@ -1108,7 +1087,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         REQUIRE(mid->has_pending());
         test_pending_processor proc;
         mid->iterate_ways(proc);
-        proc.check_way_ids_equal_to({20});
+        REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
 
         check_way(mid, way20);
         check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1140,7 +1119,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             REQUIRE(mid->has_pending());
             test_pending_processor proc;
             mid->iterate_ways(proc);
-            proc.check_way_ids_equal_to({20, 22});
+            REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20, 22}));
 
             check_way(mid, way20);
             check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1179,7 +1158,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             REQUIRE_FALSE(mid->has_pending());
             test_pending_processor proc;
             mid->iterate_ways(proc);
-            proc.check_way_ids_equal_to({});
+            REQUIRE(proc.m_way_ids.empty());
 
             mid->commit();
         }
@@ -1248,7 +1227,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         test_pending_processor proc;
         mid->iterate_relations(proc);
 
-        proc.check_rel_ids_equal_to({30});
+        REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({30}));
         check_relation(mid, rel30);
 
         mid->commit();
@@ -1267,10 +1246,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         REQUIRE(mid->has_pending());
         test_pending_processor proc;
         mid->iterate_ways(proc);
-        proc.check_way_ids_equal_to({20});
+        REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
 
         mid->iterate_relations(proc);
-        proc.check_rel_ids_equal_to({31});
+        REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({31}));
         check_relation(mid, rel31);
     }
 }
