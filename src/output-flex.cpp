@@ -706,6 +706,11 @@ void output_flex_t::setup_flex_table_columns(flex_table_t *table)
 
 int output_flex_t::app_define_table()
 {
+    if (m_context_node || m_context_way || m_context_relation) {
+        throw std::runtime_error{"Tables have to be defined before calling any "
+                                 "of the process callbacks"};
+    }
+
     luaL_checktype(lua_state(), 1, LUA_TTABLE);
 
     auto &new_table = create_flex_table();
