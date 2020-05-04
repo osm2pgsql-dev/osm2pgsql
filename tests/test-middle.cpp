@@ -1011,19 +1011,33 @@ public:
     test_pending_processor() = default;
 
     void enqueue_ways(osmid_t id) override { m_way_ids.push_back(id); }
+    void enqueue_relations(osmid_t id) override { m_rel_ids.push_back(id); }
 
     void process_ways() override {}
-    void enqueue_relations(osmid_t) override {}
     void process_relations() override {}
 
     void check_way_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
     {
-        REQUIRE(m_way_ids.size() == list.size());
-        REQUIRE(std::equal(m_way_ids.cbegin(), m_way_ids.cend(), list.begin()));
+        REQUIRE(compare(m_way_ids, list));
+    }
+
+    void check_rel_ids_equal_to(std::initializer_list<osmid_t> list) noexcept
+    {
+        REQUIRE(compare(m_rel_ids, list));
     }
 
 private:
+    static bool compare(std::vector<osmid_t> const &l1,
+                        std::initializer_list<osmid_t> const &l2) noexcept
+    {
+        if (l1.size() != l2.size()) {
+            return false;
+        }
+        return std::equal(l1.cbegin(), l1.cend(), l2.begin());
+    }
+
     std::vector<osmid_t> m_way_ids;
+    std::vector<osmid_t> m_rel_ids;
 };
 
 TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
@@ -1169,5 +1183,94 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
             mid->commit();
         }
+    }
+}
+
+TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
+                   options_slim_dense_cache, options_flat_node_cache)
+{
+    options_t options = TestType::options(db);
+
+    testing::cleanup::file_t flatnode_cleaner{
+        options.flat_node_file.get_value_or("")};
+
+    // create some nodes, ways, and relations we'll use for the tests
+    test_buffer_t buffer;
+    auto const &node10 = buffer.add_node_and_get(10, 1.0, 0.0);
+    auto const &node11 = buffer.add_node_and_get(11, 1.1, 0.0);
+    auto const &node12 = buffer.add_node_and_get(12, 1.2, 0.0);
+    auto const &node10a = buffer.add_node_and_get(10, 1.0, 1.0);
+    auto const &node11a = buffer.add_node_and_get(11, 1.1, 1.0);
+
+    auto const &way20 = buffer.add_way_and_get(20, {11, 12});
+
+    using otype = osmium::item_type;
+    auto const &rel30 = buffer.add_relation_and_get(30, {{otype::node, 10}});
+    auto const &rel31 = buffer.add_relation_and_get(31, {{otype::way, 20}});
+
+    // Set up middle in "create" mode to get a cleanly initialized database and
+    // add some nodes and ways. Does this in its own scope so that the mid is
+    // closed properly.
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->node_set(node10);
+        mid->node_set(node11);
+        mid->node_set(node12);
+        mid->flush();
+        mid->way_set(way20);
+        mid->flush();
+        mid->relation_set(rel30);
+        mid->relation_set(rel31);
+        mid->flush();
+
+        // Nothing pending yet
+        REQUIRE_FALSE(mid->has_pending());
+
+        mid->commit();
+    }
+
+    // From now on use append mode to not destroy the data we just added.
+    options.append = true;
+
+    SECTION("Single relation directly affected")
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->node_delete(10);
+        mid->node_set(node10a);
+        mid->node_changed(10);
+        mid->flush();
+
+        REQUIRE(mid->has_pending());
+        test_pending_processor proc;
+        mid->iterate_relations(proc);
+
+        proc.check_rel_ids_equal_to({30});
+        check_relation(mid, rel30);
+
+        mid->commit();
+    }
+
+    SECTION("Single relation indirectly affected (through way)")
+    {
+        auto mid = std::make_shared<middle_pgsql_t>(&options);
+        mid->start();
+
+        mid->node_delete(11);
+        mid->node_set(node11a);
+        mid->node_changed(11);
+        mid->flush();
+
+        REQUIRE(mid->has_pending());
+        test_pending_processor proc;
+        mid->iterate_ways(proc);
+        proc.check_way_ids_equal_to({20});
+
+        mid->iterate_relations(proc);
+        proc.check_rel_ids_equal_to({31});
+        check_relation(mid, rel31);
     }
 }

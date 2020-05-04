@@ -756,8 +756,9 @@ static table_sql sql_for_relations() noexcept
                         "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
     sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
-                       "  SELECT id FROM {prefix}_ways"
-                       "    WHERE nodes && ARRAY[$1];\n"
+                       "  SELECT id FROM {prefix}_rels"
+                       "    WHERE parts && ARRAY[$1]"
+                       "      AND parts[1:way_off] && ARRAY[$1];\n"
                        "PREPARE mark_rels_by_way(int8) AS"
                        "  SELECT id FROM {prefix}_rels"
                        "    WHERE parts && ARRAY[$1]"
