@@ -137,6 +137,17 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
         "{} must contain a '{}' boolean field"_format(error_msg, key)};
 }
 
+
+// Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
+#if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
+
+int luaX_pcall(lua_State *lua_state, int narg, int nres)
+{
+    return lua_pcall(lua_state, narg, nres, 0);
+}
+
+#else
+
 static int pcall_error_traceback_handler(lua_State *lua_state)
 {
     assert(lua_state);
@@ -159,16 +170,13 @@ static int pcall_error_traceback_handler(lua_State *lua_state)
 // wrapper function for lua_pcall to include a stack traceback
 int luaX_pcall(lua_State *lua_state, int narg, int nres)
 {
-// Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
-#if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
-    int const status = lua_pcall(lua_state, narg, nres, 0);
-#else
     int const base = lua_gettop(lua_state) - narg; // function index
     lua_pushcfunction(lua_state,
                       pcall_error_traceback_handler); // push message handler
     lua_insert(lua_state, base); // put it under function and args
     int const status = lua_pcall(lua_state, narg, nres, base);
     lua_remove(lua_state, base); // remove message handler from the stack
-#endif
     return status;
 }
+
+#endif
