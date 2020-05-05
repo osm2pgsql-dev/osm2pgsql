@@ -1,3 +1,4 @@
+#include "config.h"
 #include "lua-utils.hpp"
 #include "format.hpp"
 
@@ -136,6 +137,17 @@ bool luaX_get_table_bool(lua_State *lua_state, char const *key, int table_index,
         "{} must contain a '{}' boolean field"_format(error_msg, key)};
 }
 
+
+// Lua 5.1 doesn't support luaL_traceback, unless LuaJIT is used
+#if LUA_VERSION_NUM < 502 && !defined(HAVE_LUAJIT)
+
+int luaX_pcall(lua_State *lua_state, int narg, int nres)
+{
+    return lua_pcall(lua_state, narg, nres, 0);
+}
+
+#else
+
 static int pcall_error_traceback_handler(lua_State *lua_state)
 {
     assert(lua_state);
@@ -166,3 +178,5 @@ int luaX_pcall(lua_State *lua_state, int narg, int nres)
     lua_remove(lua_state, base); // remove message handler from the stack
     return status;
 }
+
+#endif

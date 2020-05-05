@@ -74,6 +74,18 @@ matrix:
 
     - os: linux
       dist: bionic
+      compiler: gcc-7
+      env: T="bionic_gcc7_pg12"
+           PG_VERSIONS=12
+           POSTGIS_VERSION=3
+           LUA_VERSION=5.1
+           BUILD_TYPE="Debug" LUAJIT_OPTION="OFF"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-7 CXX=g++-7 CPPVERSION=11
+
+
+    - os: linux
+      dist: bionic
       compiler: gcc-8
       env: T="bionic_gcc8_pg10_luajit"
            PG_VERSIONS=10
