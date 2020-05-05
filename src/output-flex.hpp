@@ -61,11 +61,8 @@ public:
 
     void stage2_proc() override;
 
-    void pending_way(osmid_t id, int exists) override;
-
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                           std::size_t output_id, std::size_t &added) override;
-    void pending_relation(osmid_t id, int exists) override;
+    void pending_way(osmid_t id, bool exists) override;
+    void pending_relation(osmid_t id, bool exists) override;
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
@@ -79,9 +76,6 @@ public:
     void way_delete(osmid_t id) override;
     void relation_delete(osmid_t id) override;
 
-    bool has_pending() const override;
-
-    void merge_pending_relations(output_t *other) override;
     void merge_expire_trees(output_t *other) override;
 
     int app_define_table();
@@ -136,8 +130,6 @@ private:
 
     std::shared_ptr<std::vector<flex_table_t>> m_tables;
     std::vector<table_connection_t> m_table_connections;
-
-    id_tracker m_rels_pending_tracker;
 
     std::shared_ptr<id_tracker> m_stage2_ways_tracker;
     std::shared_ptr<id_tracker> m_stage2_rels_tracker;

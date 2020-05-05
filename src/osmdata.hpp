@@ -34,7 +34,6 @@ public:
 
 private:
     slim_middle_t &slim_middle() const noexcept;
-    bool has_pending() const noexcept;
 
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;

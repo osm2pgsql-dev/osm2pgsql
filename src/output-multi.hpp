@@ -46,11 +46,8 @@ public:
     void stop(osmium::thread::Pool *pool) override;
     void commit() override;
 
-    void pending_way(osmid_t id, int exists) override;
-
-    void enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                           size_t output_id, size_t &added) override;
-    void pending_relation(osmid_t id, int exists) override;
+    void pending_way(osmid_t id, bool exists) override;
+    void pending_relation(osmid_t id, bool exists) override;
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
@@ -64,9 +61,6 @@ public:
     void way_delete(osmid_t id) override;
     void relation_delete(osmid_t id) override;
 
-    bool has_pending() const override;
-
-    void merge_pending_relations(output_t *other) override;
     void merge_expire_trees(output_t *other) override;
 
 protected:
@@ -85,7 +79,6 @@ protected:
     std::shared_ptr<reprojection> m_proj;
     osmium::item_type const m_osm_type;
     std::unique_ptr<table_t> m_table;
-    id_tracker rels_pending_tracker;
     expire_tiles m_expire;
     relation_helper m_relation_helper;
     osmium::memory::Buffer buffer;

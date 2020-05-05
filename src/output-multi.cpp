@@ -65,12 +65,7 @@ void output_multi_t::start()
                    m_options.tblsmain_data);
 }
 
-bool output_multi_t::has_pending() const
-{
-    return !rels_pending_tracker.empty();
-}
-
-void output_multi_t::pending_way(osmid_t id, int exists)
+void output_multi_t::pending_way(osmid_t id, bool exists)
 {
     // Try to fetch the way from the DB
     buffer.clear();
@@ -80,47 +75,7 @@ void output_multi_t::pending_way(osmid_t id, int exists)
     }
 }
 
-void output_multi_t::enqueue_relations(pending_queue_t &job_queue, osmid_t id,
-                                       size_t output_id, size_t &added)
-{
-    osmid_t const prev = rels_pending_tracker.last_returned();
-    if (id_tracker::is_valid(prev) && prev >= id) {
-        if (prev > id) {
-            job_queue.push(pending_job_t(id, output_id));
-        }
-        // already done the job
-        return;
-    }
-
-    //make sure we get the one passed in
-    if (id_tracker::is_valid(id)) {
-        job_queue.push(pending_job_t(id, output_id));
-        ++added;
-    }
-
-    //grab the first one or bail if its not valid
-    osmid_t popped = rels_pending_tracker.pop_mark();
-    if (!id_tracker::is_valid(popped)) {
-        return;
-    }
-
-    //get all the ones up to the id that was passed in
-    while (popped < id) {
-        job_queue.push(pending_job_t(popped, output_id));
-        ++added;
-        popped = rels_pending_tracker.pop_mark();
-    }
-
-    //make sure to get this one as well and move to the next
-    if (popped > id) {
-        if (id_tracker::is_valid(popped)) {
-            job_queue.push(pending_job_t(popped, output_id));
-            ++added;
-        }
-    }
-}
-
-void output_multi_t::pending_relation(osmid_t id, int exists)
+void output_multi_t::pending_relation(osmid_t id, bool exists)
 {
     // Try to fetch the relation from the DB
     buffer.clear();
@@ -250,10 +205,6 @@ void output_multi_t::reprocess_way(osmium::Way *way, bool exists)
     if (m_processor->interests(geometry_processor::interest_relation) &&
         exists) {
         way_delete(way->id());
-        auto const rel_ids = m_mid->relations_using_way(way->id());
-        for (auto const rel_id : rel_ids) {
-            rels_pending_tracker.mark(rel_id);
-        }
     }
 
     //check if we are keeping this way
@@ -367,19 +318,6 @@ void output_multi_t::delete_from_output(osmid_t id)
 {
     if (m_expire.from_db(m_table.get(), id)) {
         m_table->delete_row(id);
-    }
-}
-
-void output_multi_t::merge_pending_relations(output_t *other)
-{
-    auto *const omulti = dynamic_cast<output_multi_t *>(other);
-
-    if (omulti) {
-        osmid_t id;
-        while (id_tracker::is_valid(
-            (id = omulti->rels_pending_tracker.pop_mark()))) {
-            rels_pending_tracker.mark(id);
-        }
     }
 }
 

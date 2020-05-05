@@ -171,7 +171,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
     static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        size_t &ids_done, std::mutex &mutex, int append,
+                        size_t &ids_done, std::mutex &mutex, bool append,
                         bool ways)
     {
         while (true) {
@@ -297,19 +297,9 @@ struct pending_threaded_processor : public middle_t::pending_processor
         ids_queued = 0;
         ids_done = 0;
 
-        //collect all the new rels that became pending from each
-        //output in each thread back to their respective main outputs
         for (auto const &clone : clones) {
-            //for each clone/original output
-            for (output_vec_t::const_iterator original_output = outs.begin(),
-                                              clone_output = clone.begin();
-                 original_output != outs.end() && clone_output != clone.end();
-                 ++original_output, ++clone_output) {
-                //done copying ways for now
-                clone_output->get()->commit();
-                //merge the pending from this threads copy of output back
-                original_output->get()->merge_pending_relations(
-                    clone_output->get());
+            for (auto const &clone_output : clone) {
+                clone_output.get()->commit();
             }
         }
     }
@@ -317,7 +307,10 @@ struct pending_threaded_processor : public middle_t::pending_processor
     void enqueue_relations(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
-            outs[i]->enqueue_relations(queue, id, i, ids_queued);
+            if (outs[i]->need_forward_dependencies()) {
+                queue.emplace(id, i);
+                ++ids_queued;
+            }
         }
     }
 
@@ -401,21 +394,6 @@ private:
 
 } // anonymous namespace
 
-/**
- * Is there any pending work in the middle or one of the outputs?
- */
-bool osmdata_t::has_pending() const noexcept
-{
-    if (m_mid->has_pending()) {
-        return true;
-    }
-
-    return std::any_of(m_outs.cbegin(), m_outs.cend(),
-                       [](std::shared_ptr<output_t> const &out) {
-                           return out->has_pending();
-                       });
-}
-
 void osmdata_t::stop() const
 {
     /* Commit the transactions, so that multiple processes can
@@ -432,7 +410,7 @@ void osmdata_t::stop() const
     auto const *opts = m_outs[0]->get_options();
 
     // are there any objects left pending?
-    if (has_pending()) {
+    if (m_mid->has_pending()) {
         //threaded pending processing
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);

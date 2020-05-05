@@ -321,14 +321,15 @@ void middle_pgsql_t::node_changed(osmid_t osm_id)
         return;
     }
 
-    //keep track of whatever ways and rels these nodes intersect
+    // Find all ways referencing this node and mark them as pending.
     auto res = exec_prepared("mark_ways_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
+        way_changed(marked);
         m_ways_pending_tracker->mark(marked);
     }
 
-    //do the rels too
+    // Find all relations referencing this node and mark them as pending.
     res = exec_prepared("mark_rels_by_node", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
         osmid_t const marked = osmium::string_to_object_id(res.get_value(i, 0));
@@ -453,6 +454,11 @@ void middle_pgsql_t::iterate_ways(middle_t::pending_processor &pf)
 void middle_pgsql_t::way_changed(osmid_t osm_id)
 {
     assert(m_append);
+
+    if (m_ways_pending_tracker->is_marked(osm_id)) {
+        return;
+    }
+
     //keep track of whatever rels this way intersects
     auto const res = exec_prepared("mark_rels_by_way", osm_id);
     for (int i = 0; i < res.num_tuples(); ++i) {
@@ -548,8 +554,6 @@ void middle_pgsql_t::iterate_relations(pending_processor &pf)
     while (id_tracker::is_valid(id = m_rels_pending_tracker->pop_mark())) {
         pf.enqueue_relations(id);
     }
-    // in case we had higher ones than the middle
-    pf.enqueue_relations(id_tracker::max());
 
     //let the threads work on them
     pf.process_relations();
@@ -748,8 +752,9 @@ static table_sql sql_for_relations() noexcept
                         "      AND parts[way_off+1:rel_off] && ARRAY[$1];\n";
 
     sql.prepare_mark = "PREPARE mark_rels_by_node(int8) AS"
-                       "  SELECT id FROM {prefix}_ways"
-                       "    WHERE nodes && ARRAY[$1];\n"
+                       "  SELECT id FROM {prefix}_rels"
+                       "    WHERE parts && ARRAY[$1]"
+                       "      AND parts[1:way_off] && ARRAY[$1];\n"
                        "PREPARE mark_rels_by_way(int8) AS"
                        "  SELECT id FROM {prefix}_rels"
                        "    WHERE parts && ARRAY[$1]"
