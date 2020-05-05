@@ -130,7 +130,8 @@ private:
 
     std::shared_ptr<id_tracker> m_ways_pending_tracker, m_rels_pending_tracker;
 
-    std::unique_ptr<pg_conn_t> m_query_conn;
+    pg_conn_t m_db_connection;
+
     // middle keeps its own thread for writing to the database.
     std::shared_ptr<db_copy_thread_t> m_copy_thread;
     db_copy_mgr_t<db_deleter_by_id_t> m_db_copy;

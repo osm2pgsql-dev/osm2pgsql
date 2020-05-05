@@ -73,10 +73,9 @@ pg_result_t middle_query_pgsql_t::exec_prepared(char const *stmt,
 pg_result_t middle_pgsql_t::exec_prepared(char const *stmt,
                                           osmid_t osm_id) const
 {
-    assert(m_query_conn);
     util::integer_to_buffer buffer{osm_id};
     char const *const bptr = buffer.c_str();
-    return m_query_conn->exec_prepared(stmt, 1, &bptr);
+    return m_db_connection.exec_prepared(stmt, 1, &bptr);
 }
 
 void middle_query_pgsql_t::exec_sql(std::string const &sql_cmd) const
@@ -587,9 +586,8 @@ idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
 
 void middle_pgsql_t::analyze()
 {
-    assert(m_query_conn);
     for (auto const &table : m_tables) {
-        m_query_conn->exec("ANALYZE {}"_format(table.name()));
+        m_db_connection.exec("ANALYZE {}"_format(table.name()));
     }
 }
 
@@ -615,28 +613,25 @@ void middle_pgsql_t::start()
         m_mark_pending = false;
     }
 
-    m_query_conn.reset(
-        new pg_conn_t{m_out_options->database_options.conninfo()});
-
     if (m_append) {
         // Prepare queries for updating dependent objects
         for (auto &table : m_tables) {
             if (!table.m_prepare_intarray.empty()) {
-                m_query_conn->exec(table.m_prepare_intarray);
+                m_db_connection.exec(table.m_prepare_intarray);
             }
         }
     } else {
         // (Re)create tables.
-        m_query_conn->exec("SET client_min_messages = WARNING");
+        m_db_connection.exec("SET client_min_messages = WARNING");
         for (auto &table : m_tables) {
             fmt::print(stderr, "Setting up table: {}\n", table.name());
-            m_query_conn->exec(
+            m_db_connection.exec(
                 "DROP TABLE IF EXISTS {} CASCADE"_format(table.name()));
-            m_query_conn->exec(table.m_create);
+            m_db_connection.exec(table.m_create);
         }
 
         // The extra query connection is only needed in append mode, so close.
-        m_query_conn.reset();
+        m_db_connection.close();
     }
 }
 
@@ -646,7 +641,7 @@ void middle_pgsql_t::commit()
     // release the copy thread and its query connection
     m_copy_thread->finish();
 
-    m_query_conn.reset();
+    m_db_connection.close();
 }
 
 void middle_pgsql_t::flush() { m_db_copy.sync(); }
@@ -775,6 +770,7 @@ middle_pgsql_t::middle_pgsql_t(options_t const *options)
 : m_append(options->append), m_mark_pending(true), m_out_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
                              options->cache}),
+  m_db_connection(m_out_options->database_options.conninfo()),
   m_copy_thread(
       std::make_shared<db_copy_thread_t>(options->database_options.conninfo())),
   m_db_copy(m_copy_thread)
