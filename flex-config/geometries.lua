@@ -45,6 +45,12 @@ tables.boundaries = osm2pgsql.define_relation_table('boundaries', {
     { column = 'geom', type = 'multilinestring' },
 })
 
+-- Tables don't have to have a geometry column. This one will only collect
+-- all the names of pubs but without any location information.
+tables.pubs = osm2pgsql.define_node_table('pubs', {
+    { column = 'name', type = 'text' }
+})
+
 -- Helper function to remove some of the tags we usually are not interested in.
 -- Returns true if there are no tags left.
 function clean_tags(tags)
@@ -105,6 +111,12 @@ function osm2pgsql.process_node(object)
     tables.pois:add_row({
         tags = object.tags
     })
+
+    if object.tags.amenity == 'pub' then
+        tables.pubs:add_row({
+            name = object.tags.name
+        })
+    end
 end
 
 function osm2pgsql.process_way(object)

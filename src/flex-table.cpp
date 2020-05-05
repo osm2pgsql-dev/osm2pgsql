@@ -89,13 +89,13 @@ std::string flex_table_t::build_sql_prepare_get_wkb() const
     return "PREPARE get_wkb(bigint) AS SELECT ''";
 }
 
-std::string flex_table_t::build_sql_create_table(bool final_table) const
+std::string flex_table_t::build_sql_create_table(table_type ttype,
+                                                 std::string const &table_name) const
 {
     assert(!m_columns.empty());
 
     std::string sql = "CREATE {} TABLE IF NOT EXISTS {} ("_format(
-        final_table ? "" : "UNLOGGED",
-        final_table ? full_tmp_name() : full_name());
+        ttype == table_type::interim ? "UNLOGGED" : "", table_name);
 
     for (auto const &column : m_columns) {
         sql += column.sql_create(m_srid);
@@ -104,7 +104,7 @@ std::string flex_table_t::build_sql_create_table(bool final_table) const
     assert(sql.back() == ',');
     sql.back() = ')';
 
-    if (!final_table) {
+    if (ttype == table_type::interim) {
         sql += " WITH (autovacuum_enabled = off)";
     }
 
@@ -166,7 +166,11 @@ void table_connection_t::start(bool append)
             m_db_connection->exec(
                 "CREATE SCHEMA IF NOT EXISTS \"{}\""_format(table().schema()));
         }
-        m_db_connection->exec(table().build_sql_create_table(false));
+
+        m_db_connection->exec(table().build_sql_create_table(
+            table().has_geom_column() ? flex_table_t::table_type::interim
+                                      : flex_table_t::table_type::permanent,
+            table().full_name()));
     } else {
         //check the columns against those in the existing table
         auto const res = m_db_connection->query(
@@ -212,7 +216,8 @@ void table_connection_t::stop(bool updateable, bool append)
         // because they say nothing about the validity of the geometry in OSM.
         m_db_connection->exec("SET client_min_messages = WARNING");
 
-        m_db_connection->exec(table().build_sql_create_table(true));
+        m_db_connection->exec(table().build_sql_create_table(
+            flex_table_t::table_type::permanent, table().full_tmp_name()));
 
         std::string sql = "INSERT INTO {} SELECT * FROM {}"_format(
             table().full_tmp_name(), table().full_name());
