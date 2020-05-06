@@ -123,7 +123,7 @@ pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
 
 pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *p1, char const *p2) const
 {
-    std::array<const char *, 2> params{p1, p2};
+    std::array<const char *, 2> params{{p1, p2}};
     return exec_prepared_internal(stmt, params.size(), params.data());
 }
 
