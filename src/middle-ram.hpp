@@ -92,12 +92,12 @@ public:
 struct middle_ram_t : public middle_t, public middle_query_t
 {
     middle_ram_t(options_t const *options);
-    virtual ~middle_ram_t();
+    virtual ~middle_ram_t() noexcept = default;
 
-    void start() override;
+    void start() override {}
     void stop(osmium::thread::Pool &pool) override;
-    void analyze(void) override;
-    void commit(void) override;
+    void analyze() override {}
+    void commit() override {}
 
     void node_set(osmium::Node const &node) override;
     size_t nodes_get_list(osmium::WayNodeList *nodes) const override;
@@ -115,17 +115,14 @@ struct middle_ram_t : public middle_t, public middle_query_t
 
     idlist_t relations_using_way(osmid_t way_id) const override;
 
-    void iterate_ways(middle_t::pending_processor &pf) override;
-    void iterate_relations(pending_processor &pf) override;
+    void iterate_ways(pending_processor &) override {}
+    void iterate_relations(pending_processor &) override {}
 
     bool has_pending() const override { return false; }
 
     std::shared_ptr<middle_query_t> get_query_instance() override;
 
 private:
-    void release_ways();
-    void release_relations();
-
     struct ramWay
     {
         taglist_t tags;
@@ -159,13 +156,6 @@ private:
 
     std::unique_ptr<node_ram_cache> m_cache;
     bool m_extra_attributes;
-
-    /* the previous behaviour of iterate_ways was to delete all ways as they
-     * were being iterated. this doesn't work now that the output handles its
-     * own "done" status and output-specific "pending" status. however, the
-     * tests depend on the behaviour that ways will be unavailable once
-     * iterate_ways is complete, so this flag emulates that. */
-    bool m_simulate_ways_deleted;
 };
 
 #endif // OSM2PGSQL_MIDDLE_RAM_HPP
