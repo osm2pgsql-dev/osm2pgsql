@@ -77,9 +77,9 @@ std::shared_ptr<reprojection> reprojection::create_projection(int srs)
 {
     switch (srs) {
     case PROJ_LATLONG:
-        return std::shared_ptr<reprojection>(new latlon_reprojection_t{});
+        return std::make_shared<latlon_reprojection_t>();
     case PROJ_SPHERE_MERC:
-        return std::shared_ptr<reprojection>(new merc_reprojection_t{});
+        return std::make_shared<merc_reprojection_t>();
     }
 
     return make_generic_projection(srs);

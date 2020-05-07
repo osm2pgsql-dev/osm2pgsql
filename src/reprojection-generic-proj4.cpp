@@ -58,5 +58,5 @@ private:
 
 std::shared_ptr<reprojection> reprojection::make_generic_projection(int srs)
 {
-    return std::shared_ptr<reprojection>(new generic_reprojection_t{srs});
+    return std::make_shared<generic_reprojection_t>(srs);
 }

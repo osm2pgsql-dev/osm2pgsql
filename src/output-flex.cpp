@@ -1191,10 +1191,10 @@ std::shared_ptr<output_t>
 output_flex_t::clone(std::shared_ptr<middle_query_t> const &mid,
                      std::shared_ptr<db_copy_thread_t> const &copy_thread) const
 {
-    return std::shared_ptr<output_t>(new output_flex_t{
+    return std::make_shared<output_flex_t>(
         mid, *get_options(), copy_thread, true, m_lua_state, m_has_process_node,
         m_has_process_way, m_has_process_relation, m_tables,
-        m_stage2_ways_tracker, m_stage2_rels_tracker});
+        m_stage2_ways_tracker, m_stage2_rels_tracker);
 }
 
 output_flex_t::output_flex_t(
