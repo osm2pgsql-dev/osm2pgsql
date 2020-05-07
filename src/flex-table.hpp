@@ -21,6 +21,16 @@ class flex_table_t
 {
 
 public:
+
+    /**
+     * Table creation type: interim tables are created as UNLOGGED and with
+     * autovacuum disabled.
+     */
+    enum class table_type {
+        interim,
+        permanent
+    };
+
     flex_table_t(std::string const &name, int srid) : m_name(name), m_srid(srid)
     {}
 
@@ -91,7 +101,8 @@ public:
 
     std::string build_sql_prepare_get_wkb() const;
 
-    std::string build_sql_create_table(bool final_table) const;
+    std::string build_sql_create_table(table_type ttype,
+                                       std::string const &table_name) const;
 
     std::string build_sql_column_list() const;
 
