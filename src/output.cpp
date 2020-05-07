@@ -187,6 +187,11 @@ output_t::create_outputs(std::shared_ptr<middle_query_t> const &mid,
             "gazetteer, null, multi].\n"_format(options.output_backend)};
     }
 
+    if (outputs.empty()) {
+        throw std::runtime_error{"Must have at least one output, "
+                                 "but none have been configured."};
+    }
+
     return outputs;
 }
 
