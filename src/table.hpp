@@ -59,7 +59,7 @@ public:
         int m_count;
         int m_current;
     };
-    wkb_reader get_wkb_reader(osmid_t const id);
+    wkb_reader get_wkb_reader(osmid_t id);
 
 protected:
     void connect();

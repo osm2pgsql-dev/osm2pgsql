@@ -41,9 +41,6 @@ public:
 private:
     size_t local_nodes_get_list(osmium::WayNodeList *nodes) const;
 
-    pg_result_t exec_prepared(char const *stmt, char const *param) const;
-    pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
-
     pg_conn_t m_sql_conn;
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
@@ -117,7 +114,6 @@ private:
     };
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
-    pg_result_t exec_prepared(char const *stmt, osmid_t osm_id) const;
 
     table_desc m_tables[NUM_TABLES];
 

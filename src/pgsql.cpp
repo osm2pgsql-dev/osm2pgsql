@@ -1,7 +1,9 @@
 /* Helper functions for the postgresql connections */
 #include "format.hpp"
 #include "pgsql.hpp"
+#include "util.hpp"
 
+#include <array>
 #include <cstdarg>
 #include <cstdio>
 
@@ -93,17 +95,16 @@ void pg_conn_t::end_copy(std::string const &context) const
     }
 }
 
-pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
-                                     char const *const *param_values,
-                                     const ExecStatusType expect) const
+pg_result_t
+pg_conn_t::exec_prepared_internal(char const *stmt, int num_params,
+                                  char const *const *param_values) const
 {
 #ifdef DEBUG_PGSQL
     fmt::print(stderr, "ExecPrepared: {}\n", stmt);
 #endif
-    //run the prepared statement
     pg_result_t res{PQexecPrepared(m_conn.get(), stmt, num_params, param_values,
                                    nullptr, nullptr, 0)};
-    if (PQresultStatus(res.get()) != expect) {
+    if (PQresultStatus(res.get()) != PGRES_TUPLES_OK) {
         fmt::print(stderr, "Prepared statement failed with: {} ({})\n",
                    error_msg(), PQresultStatus(res.get()));
         fmt::print(stderr, "Query: {}\n", stmt);
@@ -118,6 +119,29 @@ pg_result_t pg_conn_t::exec_prepared(char const *stmt, int num_params,
     }
 
     return res;
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *p1, char const *p2) const
+{
+    std::array<const char *, 2> params{{p1, p2}};
+    return exec_prepared_internal(stmt, params.size(), params.data());
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, char const *param) const
+{
+    return exec_prepared_internal(stmt, 1, &param);
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt,
+                                     std::string const &param) const
+{
+    return exec_prepared(stmt, param.c_str());
+}
+
+pg_result_t pg_conn_t::exec_prepared(char const *stmt, osmid_t id) const
+{
+    util::integer_to_buffer buffer{id};
+    return exec_prepared(stmt, buffer.c_str());
 }
 
 std::string tablespace_clause(std::string const &name)
