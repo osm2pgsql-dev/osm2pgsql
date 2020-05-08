@@ -22,11 +22,7 @@ osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
 : m_mid(mid), m_outs(outs)
 {
     assert(m_mid);
-
-    if (m_outs.empty()) {
-        throw std::runtime_error{"Must have at least one output, "
-                                 "but none have been configured."};
-    }
+    assert(!m_outs.empty());
 
     // Get the "extra_attributes" option from the first output. We expect
     // all others to be the same.
