@@ -139,7 +139,7 @@ public:
                   copy_mgr_t &buffer) const;
     std::string class_list() const;
 
-    bool has_data() const { return !m_main.empty(); }
+    bool has_data() const noexcept { return !m_main.empty(); }
 
 private:
     bool add_metadata_style_entry(std::string const &key);
