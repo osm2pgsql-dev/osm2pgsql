@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "dependency-manager.hpp"
 #include "osmtypes.hpp"
 
 class output_t;
@@ -13,7 +14,8 @@ struct slim_middle_t;
 class osmdata_t
 {
 public:
-    osmdata_t(std::shared_ptr<middle_t> mid,
+    osmdata_t(dependency_manager_t *dependency_manager,
+              std::shared_ptr<middle_t> mid,
               std::vector<std::shared_ptr<output_t>> const &outs);
 
     void start() const;
@@ -35,6 +37,7 @@ public:
 private:
     slim_middle_t &slim_middle() const noexcept;
 
+    dependency_manager_t *m_dependency_manager;
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;
     bool m_with_extra_attrs;

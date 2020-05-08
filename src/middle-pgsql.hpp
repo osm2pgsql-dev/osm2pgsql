@@ -12,7 +12,6 @@
 #include <memory>
 
 #include "db-copy-mgr.hpp"
-#include "id-tracker.hpp"
 #include "middle.hpp"
 #include "node-persistent-cache.hpp"
 #include "node-ram-cache.hpp"
@@ -65,22 +64,20 @@ struct middle_pgsql_t : public slim_middle_t
 
     void node_set(osmium::Node const &node) override;
     void node_delete(osmid_t id) override;
-    void node_changed(osmid_t id) override;
 
     void way_set(osmium::Way const &way) override;
     void way_delete(osmid_t id) override;
-    void way_changed(osmid_t id) override;
 
     void relation_set(osmium::Relation const &rel) override;
     void relation_delete(osmid_t id) override;
-    void relation_changed(osmid_t id) override;
 
     void flush() override;
 
-    void iterate_ways(pending_processor &pf) override;
-    void iterate_relations(pending_processor &pf) override;
-
-    bool has_pending() const override;
+    idlist_t get_ways_by_node(osmid_t osm_id) override;
+    idlist_t get_rels_by_node(osmid_t osm_id) override;
+    idlist_t get_rels_by_way(osmid_t osm_id) override;
+    idlist_t get_rels_by_rel(osmid_t osm_id) override;
+    idlist_t get_ways_by_rel(osmid_t osm_id) override;
 
     class table_desc
     {
@@ -115,6 +112,8 @@ private:
 
     void buffer_store_tags(osmium::OSMObject const &obj, bool attrs);
 
+    idlist_t get_ids(const char* stmt, osmid_t osm_id);
+
     table_desc m_tables[NUM_TABLES];
 
     bool m_append;
@@ -123,8 +122,6 @@ private:
 
     std::shared_ptr<node_ram_cache> m_cache;
     std::shared_ptr<node_persistent_cache> m_persistent_cache;
-
-    std::shared_ptr<id_tracker> m_ways_pending_tracker, m_rels_pending_tracker;
 
     pg_conn_t m_db_connection;
 

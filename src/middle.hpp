@@ -121,6 +121,12 @@ struct middle_t
      */
     virtual void flush() = 0;
 
+    virtual idlist_t get_ways_by_node(osmid_t) { return {}; }
+    virtual idlist_t get_rels_by_node(osmid_t) { return {}; }
+    virtual idlist_t get_rels_by_way(osmid_t) { return {}; }
+    virtual idlist_t get_rels_by_rel(osmid_t) { return {}; }
+    virtual idlist_t get_ways_by_rel(osmid_t) { return {}; }
+
     struct pending_processor
     {
         virtual ~pending_processor() {}
@@ -129,11 +135,6 @@ struct middle_t
         virtual void enqueue_relations(osmid_t id) = 0;
         virtual void process_relations() = 0;
     };
-
-    virtual void iterate_ways(pending_processor &pf) = 0;
-    virtual void iterate_relations(pending_processor &pf) = 0;
-
-    virtual bool has_pending() const = 0;
 
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };
@@ -154,37 +155,16 @@ struct slim_middle_t : public middle_t
     virtual void node_delete(osmid_t id) = 0;
 
     /**
-     * Mark a node as changed. This has to be called *after* node_delete()
-     * and node_set() is called to trigger the propagation of this change
-     * to ways and relations.
-     */
-    virtual void node_changed(osmid_t id) = 0;
-
-    /**
      * Delete a way from data storage. Either because you want it removed
      * entirely or before you can way_set() a new version of it.
      */
     virtual void way_delete(osmid_t id) = 0;
 
     /**
-     * Mark a way as changed. This has to be called *after* way_delete()
-     * and way_set() is called to trigger the propagation of this change
-     * to relations.
-     */
-    virtual void way_changed(osmid_t id) = 0;
-
-    /**
      * Delete a relation from data storage. Either because you want it removed
      * entirely or before you can relation_set() a new version of it.
      */
     virtual void relation_delete(osmid_t id) = 0;
-
-    /**
-     * Mark a relation as changed. This has to be called *after*
-     * relation_delete() and relation_set() is called to trigger the
-     * propagation of this change to other relations.
-     */
-    virtual void relation_changed(osmid_t id) = 0;
 };
 
 inline slim_middle_t::~slim_middle_t() = default;

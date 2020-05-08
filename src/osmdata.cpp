@@ -17,10 +17,12 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
+osmdata_t::osmdata_t(dependency_manager_t *dependency_manager,
+                     std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs)
-: m_mid(mid), m_outs(outs)
+: m_dependency_manager(dependency_manager), m_mid(mid), m_outs(outs)
 {
+    assert(dependency_manager != nullptr);
     assert(m_mid);
     assert(!m_outs.empty());
 
@@ -86,7 +88,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
         out->node_modify(node);
     }
 
-    slim.node_changed(node.id());
+    m_dependency_manager->node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
@@ -100,7 +102,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
         out->way_modify(way);
     }
 
-    slim.way_changed(way->id());
+    m_dependency_manager->way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
@@ -114,7 +116,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
         out->relation_modify(rel);
     }
 
-    slim.relation_changed(rel.id());
+    m_dependency_manager->relation_changed(rel.id());
 }
 
 void osmdata_t::node_delete(osmid_t id) const
@@ -142,6 +144,8 @@ void osmdata_t::relation_delete(osmid_t id) const
     }
 
     slim_middle().relation_delete(id);
+
+    m_dependency_manager->relation_deleted(id);
 }
 
 void osmdata_t::start() const
@@ -407,12 +411,11 @@ void osmdata_t::stop() const
 
     // In append mode there might be dependent objects pending that we
     // need to process.
-    if (opts->append && m_mid->has_pending()) {
+    if (opts->append && m_dependency_manager->has_pending()) {
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
 
-        m_mid->iterate_ways(ptp);
-        m_mid->iterate_relations(ptp);
+        m_dependency_manager->process_pending(ptp);
     }
 
     for (auto &out : m_outs) {

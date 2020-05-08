@@ -7,6 +7,7 @@
 #include <osmium/io/reader.hpp>
 #include <osmium/visitor.hpp>
 
+#include "dependency-manager.hpp"
 #include "geometry-processor.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
@@ -21,17 +22,17 @@
 namespace testing {
 
 inline void parse_file(options_t const &options,
+                       dependency_manager_t *dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
                        std::vector<std::shared_ptr<output_t>> const &outs,
                        char const *filename = nullptr)
 {
-    //let osmdata orchestrate between the middle and the outs
-    osmdata_t osmdata{mid, outs};
+    osmdata_t osmdata{dependency_manager, mid, outs};
 
     osmdata.start();
-    parse_osmium_t parser(options.bbox, options.append, &osmdata);
+    parse_osmium_t parser{options.bbox, options.append, &osmdata};
 
-    std::string filep(TESTDATA_DIR);
+    std::string filep{TESTDATA_DIR};
     filep += filename ? filename : options.input_files[0];
 
     parser.stream_file(filep, "");
@@ -46,9 +47,9 @@ public:
 
     void stream_buffer(char const *buf, std::string const &fmt)
     {
-        osmium::io::File infile(buf, strlen(buf), fmt);
+        osmium::io::File infile{buf, std::strlen(buf), fmt};
 
-        osmium::io::Reader reader(infile);
+        osmium::io::Reader reader{infile};
         osmium::apply(reader, *this);
         reader.close();
     }
@@ -68,23 +69,29 @@ public:
     {
         options.database_options = m_db.db_options();
 
-        // setup the middle
         std::shared_ptr<middle_t> middle;
 
         if (options.slim) {
-            // middle gets its own copy-in thread
             middle = std::shared_ptr<middle_t>(new middle_pgsql_t{&options});
         } else {
             middle = std::shared_ptr<middle_t>(new middle_ram_t{&options});
         }
         middle->start();
 
-        // setup the output
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
 
-        //let osmdata orchestrate between the middle and the outs
-        osmdata_t osmdata{middle, outputs};
+        bool const need_dependencies =
+            std::any_of(outputs.cbegin(), outputs.cend(),
+                        [](std::shared_ptr<output_t> const &output) {
+                            return output->need_forward_dependencies();
+                        });
+
+        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+            need_dependencies ? new full_dependency_manager_t{middle.get()}
+                              : new dependency_manager_t{});
+
+        osmdata_t osmdata{dependency_manager.get(), middle, outputs};
 
         osmdata.start();
 
@@ -99,15 +106,15 @@ public:
     {
         options.database_options = m_db.db_options();
 
-        // setup the middle
         auto middle = std::make_shared<middle_ram_t>(&options);
         middle->start();
 
-        // setup the output
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
 
-        parse_file(options, middle, outputs, file);
+        full_dependency_manager_t dependency_manager{middle.get()};
+
+        parse_file(options, &dependency_manager, middle, outputs, file);
     }
 
     void run_file_multi_output(options_t options,
@@ -136,7 +143,10 @@ public:
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));
 
-        parse_file(options, mid_pgsql, {out_test}, file);
+        full_dependency_manager_t dependency_manager{mid_pgsql.get()};
+
+        parse_file(options, &dependency_manager, mid_pgsql, {out_test},
+                   file);
     }
 
     pg::conn_t connect() { return m_db.connect(); }

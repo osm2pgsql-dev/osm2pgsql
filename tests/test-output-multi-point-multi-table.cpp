@@ -45,7 +45,9 @@ TEST_CASE("parse point")
         outputs.push_back(out_test);
     }
 
-    testing::parse_file(options, mid_pgsql, outputs,
+    dependency_manager_t dependency_manager{};
+
+    testing::parse_file(options, &dependency_manager, mid_pgsql, outputs,
                         "liechtenstein-2013-08-03.osm.pbf");
 
     auto conn = db.db().connect();

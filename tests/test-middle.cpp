@@ -3,6 +3,7 @@
 #include <osmium/osm/crc.hpp>
 #include <osmium/osm/crc_zlib.hpp>
 
+#include "dependency-manager.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 
@@ -354,6 +355,7 @@ TEMPLATE_TEST_CASE("middle: add, delete and update node", "",
     // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
+
         mid->start();
 
         mid->node_set(node10);
@@ -1044,6 +1046,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
+        full_dependency_manager_t dependency_manager{mid.get()};
         mid->start();
 
         mid->node_set(node10);
@@ -1063,9 +1066,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
         // Nothing pending yet
-        REQUIRE_FALSE(mid->has_pending());
+        REQUIRE_FALSE(dependency_manager.has_pending());
         test_pending_processor proc;
-        mid->iterate_ways(proc);
+        dependency_manager.process_pending(proc);
         REQUIRE(proc.m_way_ids.empty());
 
         mid->commit();
@@ -1077,16 +1080,17 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     SECTION("Single way affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
+        full_dependency_manager_t dependency_manager{mid.get()};
         mid->start();
 
         mid->node_delete(10);
         mid->node_set(node10a);
-        mid->node_changed(10);
+        dependency_manager.node_changed(10);
         mid->flush();
 
-        REQUIRE(mid->has_pending());
+        REQUIRE(dependency_manager.has_pending());
         test_pending_processor proc;
-        mid->iterate_ways(proc);
+        dependency_manager.process_pending(proc);
         REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
 
         check_way(mid, way20);
@@ -1109,16 +1113,17 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         }
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
+            full_dependency_manager_t dependency_manager{mid.get()};
             mid->start();
 
             mid->node_delete(10);
             mid->node_set(node10a);
-            mid->node_changed(10);
+            dependency_manager.node_changed(10);
             mid->flush();
 
-            REQUIRE(mid->has_pending());
+            REQUIRE(dependency_manager.has_pending());
             test_pending_processor proc;
-            mid->iterate_ways(proc);
+            dependency_manager.process_pending(proc);
             REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20, 22}));
 
             check_way(mid, way20);
@@ -1148,16 +1153,17 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
+            full_dependency_manager_t dependency_manager{mid.get()};
             mid->start();
 
             mid->node_delete(10);
             mid->node_set(node10a);
-            mid->node_changed(10);
+            dependency_manager.node_changed(10);
             mid->flush();
 
-            REQUIRE_FALSE(mid->has_pending());
+            REQUIRE_FALSE(dependency_manager.has_pending());
             test_pending_processor proc;
-            mid->iterate_ways(proc);
+            dependency_manager.process_pending(proc);
             REQUIRE(proc.m_way_ids.empty());
 
             mid->commit();
@@ -1204,9 +1210,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->relation_set(rel31);
         mid->flush();
 
-        // Nothing pending yet
-        REQUIRE_FALSE(mid->has_pending());
-
         mid->commit();
     }
 
@@ -1216,16 +1219,17 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     SECTION("Single relation directly affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
+        full_dependency_manager_t dependency_manager{mid.get()};
         mid->start();
 
         mid->node_delete(10);
         mid->node_set(node10a);
-        mid->node_changed(10);
+        dependency_manager.node_changed(10);
         mid->flush();
 
-        REQUIRE(mid->has_pending());
+        REQUIRE(dependency_manager.has_pending());
         test_pending_processor proc;
-        mid->iterate_relations(proc);
+        dependency_manager.process_pending(proc);
 
         REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({30}));
         check_relation(mid, rel30);
@@ -1236,19 +1240,18 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     SECTION("Single relation indirectly affected (through way)")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
+        full_dependency_manager_t dependency_manager{mid.get()};
         mid->start();
 
         mid->node_delete(11);
         mid->node_set(node11a);
-        mid->node_changed(11);
+        dependency_manager.node_changed(11);
         mid->flush();
 
-        REQUIRE(mid->has_pending());
+        REQUIRE(dependency_manager.has_pending());
         test_pending_processor proc;
-        mid->iterate_ways(proc);
+        dependency_manager.process_pending(proc);
         REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
-
-        mid->iterate_relations(proc);
         REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({31}));
         check_relation(mid, rel31);
     }
