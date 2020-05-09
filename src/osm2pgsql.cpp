@@ -23,60 +23,52 @@
 #-----------------------------------------------------------------------------
 */
 
-#include "db-copy.hpp"
 #include "format.hpp"
 #include "middle-pgsql.hpp"
 #include "middle-ram.hpp"
 #include "options.hpp"
 #include "osmdata.hpp"
-#include "osmtypes.hpp"
 #include "output.hpp"
 #include "parse-osmium.hpp"
 #include "reprojection.hpp"
 #include "util.hpp"
 #include "version.hpp"
 
-#include <cstdio>
-#include <cstdlib>
-#include <stdexcept>
-#include <string>
-#include <vector>
+#include <ctime>
+#include <exception>
+#include <memory>
 
-#include <libpq-fe.h>
+static std::shared_ptr<middle_t> create_middle(options_t const &options)
+{
+    if (options.slim) {
+        return std::make_shared<middle_pgsql_t>(&options);
+    }
+
+    return std::make_shared<middle_ram_t>(&options);
+}
 
 int main(int argc, char *argv[])
 {
     fmt::print(stderr, "osm2pgsql version {}\n\n", get_osm2pgsql_version());
 
     try {
-        //parse the args into the different options members
-        options_t const options = options_t(argc, argv);
+        options_t const options{argc, argv};
         if (options.long_usage_bool) {
             return 0;
         }
 
-        //setup the middle and backend (output)
-        std::shared_ptr<middle_t> middle;
-
-        if (options.slim) {
-            // middle gets its own copy-in thread
-            middle = std::shared_ptr<middle_t>(new middle_pgsql_t{&options});
-        } else {
-            middle = std::shared_ptr<middle_t>(new middle_ram_t{&options});
-        }
-
+        auto middle = create_middle(options);
         middle->start();
 
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
-        //let osmdata orchestrate between the middle and the outs
+
         osmdata_t osmdata{middle, outputs};
 
         fmt::print(stderr, "Using projection SRS {} ({})\n",
                    options.projection->target_srs(),
                    options.projection->target_desc());
 
-        //start it up
         util::timer_t timer_overall;
         osmdata.start();
 
@@ -98,15 +90,15 @@ int main(int argc, char *argv[])
 
         stats.print_summary();
 
-        //Process pending ways, relations, cluster, and create indexes
+        // Process pending ways and relations. Cluster database tables and
+        // create indexes.
         osmdata.stop();
 
         fmt::print(stderr, "\nOsm2pgsql took {}s overall\n",
                    timer_overall.stop());
-
-        return 0;
-    } catch (std::runtime_error const &e) {
+    } catch (std::exception const &e) {
         fmt::print(stderr, "Osm2pgsql failed due to ERROR: {}\n", e.what());
-        exit(EXIT_FAILURE);
+        return 1;
     }
+    return 0;
 }
