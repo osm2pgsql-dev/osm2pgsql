@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstring>
+#include <stdexcept>
 
 #include <boost/property_tree/json_parser.hpp>
 #include <osmium/osm.hpp>
@@ -85,9 +86,9 @@ void gazetteer_style_t::load_style(std::string const &filename)
 
     pt::read_json(filename, root);
 
-    for (auto &entry : root) {
-        for (auto &tag : entry.second.get_child("keys")) {
-            for (auto &value : entry.second.get_child("values")) {
+    for (auto const &entry : root) {
+        for (auto const &tag : entry.second.get_child("keys")) {
+            for (auto const &value : entry.second.get_child("values")) {
                 add_style_entry(tag.second.data(), value.first,
                                 parse_flags(value.second.data()));
             }
@@ -102,7 +103,7 @@ gazetteer_style_t::flag_t gazetteer_style_t::parse_flags(std::string const &str)
     std::string::size_type start = 0;
 
     while (start != std::string::npos) {
-        auto end = str.find(',', start);
+        auto const end = str.find(',', start);
 
         std::string item;
 
@@ -236,40 +237,42 @@ void gazetteer_style_t::add_style_entry(std::string const &key,
 gazetteer_style_t::flag_t gazetteer_style_t::find_flag(char const *k,
                                                        char const *v) const
 {
-    auto klen = std::strlen(k);
-    auto vlen = std::strlen(v);
+    auto const klen = std::strlen(k);
+    auto const vlen = std::strlen(v);
 
     // full match
-    auto fulllen = klen + vlen + 1U;
+    auto const fulllen = klen + vlen + 1U;
     for (auto const &e : m_matcher) {
         switch (e.type) {
         case matcher_t::MT_FULL:
             if (e.name.size() == fulllen &&
                 std::strcmp(k, e.name.c_str()) == 0 &&
-                memcmp(v, e.name.data() + klen + 1, vlen) == 0) {
+                std::memcmp(v, e.name.data() + klen + 1, vlen) == 0) {
                 return e.flag;
             }
             break;
         case matcher_t::MT_KEY:
-            if (e.name.size() == klen && memcmp(k, e.name.data(), klen) == 0) {
+            if (e.name.size() == klen &&
+                std::memcmp(k, e.name.data(), klen) == 0) {
                 return e.flag;
             }
             break;
         case matcher_t::MT_PREFIX:
             if (e.name.size() < klen &&
-                memcmp(k, e.name.data(), e.name.size()) == 0) {
+                std::memcmp(k, e.name.data(), e.name.size()) == 0) {
                 return e.flag;
             }
             break;
         case matcher_t::MT_SUFFIX:
             if (e.name.size() < klen &&
-                memcmp(k + klen - e.name.size(), e.name.data(),
-                       e.name.size()) == 0) {
+                std::memcmp(k + klen - e.name.size(), e.name.data(),
+                            e.name.size()) == 0) {
                 return e.flag;
             }
             break;
         case matcher_t::MT_VALUE:
-            if (e.name.size() == vlen && memcmp(v, e.name.data(), vlen) == 0) {
+            if (e.name.size() == vlen &&
+                std::memcmp(v, e.name.data(), vlen) == 0) {
                 return e.flag;
             }
             break;
@@ -294,11 +297,11 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
     bool is_named = false;
 
     for (auto const &item : o.tags()) {
-        char const *k = item.key();
-        char const *v = item.value();
+        char const *const k = item.key();
+        char const *const v = item.value();
 
         if (std::strcmp(k, "admin_level") == 0) {
-            m_admin_level = atoi(v);
+            m_admin_level = std::atoi(v);
             if (m_admin_level <= 0 || m_admin_level > MAX_ADMINLEVEL) {
                 m_admin_level = MAX_ADMINLEVEL;
             }
@@ -309,7 +312,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             m_operator = v;
         }
 
-        flag_t flag = find_flag(k, v);
+        flag_t const flag = find_flag(k, v);
 
         if (flag == 0) {
             continue;
@@ -348,7 +351,7 @@ void gazetteer_style_t::process_tags(osmium::OSMObject const &o)
             // country and postcode are handled specially, ignore them here
             if (std::strcmp(addr_key, "country") != 0 &&
                 std::strcmp(addr_key, "postcode") != 0) {
-                bool first = std::none_of(
+                bool const first = std::none_of(
                     m_address.begin(), m_address.end(), [&](ptag_t const &t) {
                         return std::strcmp(t.first, addr_key) == 0;
                     });
@@ -413,7 +416,7 @@ void gazetteer_style_t::filter_main_tags(bool is_named,
     // first throw away unnamed mains
     auto mend =
         std::remove_if(m_main.begin(), m_main.end(), [&](pmaintag_t const &t) {
-            auto flags = std::get<2>(t);
+            auto const flags = std::get<2>(t);
 
             if (flags & SF_MAIN_NAMED) {
                 return !is_named;
@@ -468,7 +471,7 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
             DomainMatcher m{std::get<0>(tag)};
             buffer.new_hash();
             for (auto const &t : o.tags()) {
-                char const *k = m(t);
+                char const *const k = m(t);
                 if (k) {
                     buffer.add_hash_elem(k, t.value());
                 }
@@ -507,9 +510,10 @@ void gazetteer_style_t::copy_out(osmium::OSMObject const &o,
             for (auto const &a : m_address) {
                 if (std::strcmp(a.first, "tiger:county") == 0) {
                     std::string term;
-                    auto *end = strchr(a.second, ',');
+                    auto const *const end = std::strchr(a.second, ',');
                     if (end) {
-                        auto len = (std::string::size_type)(end - a.second);
+                        auto const len =
+                            (std::string::size_type)(end - a.second);
                         term = std::string(a.second, len);
                     } else {
                         term = a.second;

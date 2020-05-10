@@ -2,7 +2,6 @@
 #define OSM2PGSQL_OUTPUT_GAZETTEER_HPP
 
 #include <memory>
-#include <string>
 
 #include <osmium/memory/buffer.hpp>
 
@@ -20,7 +19,7 @@ class output_gazetteer_t : public output_t
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(cloned_mid, other->m_options), m_copy(copy_thread),
       m_builder(other->m_options.projection),
-      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
+      m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {}
 
 public:
@@ -29,7 +28,7 @@ public:
                        std::shared_ptr<db_copy_thread_t> const &copy_thread)
     : output_t(mid, options), m_copy(copy_thread),
       m_builder(options.projection),
-      osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
+      m_osmium_buffer(PLACE_BUFFER_SIZE, osmium::memory::Buffer::auto_grow::yes)
     {
         m_style.load_style(options.style);
     }
@@ -43,13 +42,13 @@ public:
     }
 
     void start() override;
-    void stop(osmium::thread::Pool *) override {}
+    void stop(osmium::thread::Pool *) noexcept override {}
     void commit() override;
 
     bool need_forward_dependencies() const noexcept override { return false; }
 
-    void pending_way(osmid_t, bool) override {}
-    void pending_relation(osmid_t, bool) override {}
+    void pending_way(osmid_t, bool) noexcept override {}
+    void pending_relation(osmid_t, bool) noexcept override {}
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
@@ -81,7 +80,7 @@ private:
     gazetteer_style_t m_style;
 
     geom::osmium_builder_t m_builder;
-    osmium::memory::Buffer osmium_buffer;
+    osmium::memory::Buffer m_osmium_buffer;
 };
 
 #endif // OSM2PGSQL_OUTPUT_GAZETTEER_HPP

@@ -1,5 +1,3 @@
-#include <libpq-fe.h>
-
 #include "format.hpp"
 #include "middle.hpp"
 #include "options.hpp"
@@ -10,8 +8,8 @@
 #include "wkb.hpp"
 
 #include <cstring>
-#include <iostream>
 #include <memory>
+#include <string>
 
 void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 {
@@ -20,7 +18,7 @@ void output_gazetteer_t::delete_unused_classes(char osm_type, osmid_t osm_id)
 
         assert(m_style.has_data());
 
-        std::string cls = m_style.class_list();
+        std::string const cls = m_style.class_list();
         m_copy.delete_object(osm_type, osm_id, cls);
     }
 }
@@ -35,10 +33,10 @@ void output_gazetteer_t::delete_unused_full(char osm_type, osmid_t osm_id)
 
 void output_gazetteer_t::start()
 {
-    int srid = m_options.projection->target_srs();
-
     /* (Re)create the table unless we are appending */
     if (!m_options.append) {
+        int const srid = m_options.projection->target_srs();
+
         pg_conn_t conn{m_options.database_options.conninfo()};
 
         /* Drop any existing table */
@@ -46,7 +44,7 @@ void output_gazetteer_t::start()
 
         /* Create the new table */
 
-        std::string sql =
+        std::string const sql =
             "CREATE TABLE place ("
             "  osm_id int8 NOT NULL,"
             "  osm_type char(1) NOT NULL,"
@@ -56,15 +54,14 @@ void output_gazetteer_t::start()
             "  admin_level smallint,"
             "  address hstore,"
             "  extratags hstore," +
-            "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")";
-
-        sql += tablespace_clause(m_options.tblsmain_data);
+            "  geometry Geometry(Geometry,{}) NOT NULL"_format(srid) + ")" +
+            tablespace_clause(m_options.tblsmain_data);
 
         conn.exec(sql);
 
         std::string const index_sql =
-            "CREATE INDEX place_id_idx ON place "
-            "USING BTREE (osm_type, osm_id)" +
+            "CREATE INDEX place_id_idx ON place"
+            " USING BTREE (osm_type, osm_id)" +
             tablespace_clause(m_options.tblsmain_index);
         conn.exec(index_sql);
     }
@@ -95,7 +92,7 @@ bool output_gazetteer_t::process_node(osmium::Node const &node)
         return false;
     }
 
-    auto wkb = m_builder.get_wkb_node(node.location());
+    auto const wkb = m_builder.get_wkb_node(node.location());
     delete_unused_classes('N', node.id());
     m_style.copy_out(node, wkb, m_copy);
 
@@ -133,7 +130,7 @@ bool output_gazetteer_t::process_way(osmium::Way *way)
         geom = m_builder.get_wkb_polygon(*way);
     }
     if (geom.empty()) {
-        auto wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
+        auto const wkbs = m_builder.get_wkb_line(way->nodes(), 0.0);
         if (wkbs.empty()) {
             return false;
         }
@@ -163,8 +160,7 @@ void output_gazetteer_t::relation_modify(osmium::Relation const &rel)
 
 bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
 {
-    auto const &tags = rel.tags();
-    char const *type = tags["type"];
+    char const *const type = rel.tags()["type"];
     if (!type) {
         return false;
     }
@@ -185,20 +181,22 @@ bool output_gazetteer_t::process_relation(osmium::Relation const &rel)
     }
 
     /* get the boundary path (ways) */
-    osmium_buffer.clear();
-    auto num_ways = m_mid->rel_way_members_get(rel, nullptr, osmium_buffer);
+    m_osmium_buffer.clear();
+    auto const num_ways =
+        m_mid->rel_way_members_get(rel, nullptr, m_osmium_buffer);
 
     if (num_ways == 0) {
         return false;
     }
 
-    for (auto &w : osmium_buffer.select<osmium::Way>()) {
+    for (auto &w : m_osmium_buffer.select<osmium::Way>()) {
         m_mid->nodes_get_list(&(w.nodes()));
     }
 
-    auto geoms = is_waterway
-                     ? m_builder.get_wkb_multiline(osmium_buffer, 0.0)
-                     : m_builder.get_wkb_multipolygon(rel, osmium_buffer, true);
+    auto const geoms =
+        is_waterway
+            ? m_builder.get_wkb_multiline(m_osmium_buffer, 0.0)
+            : m_builder.get_wkb_multipolygon(rel, m_osmium_buffer, true);
 
     if (geoms.empty()) {
         return false;
