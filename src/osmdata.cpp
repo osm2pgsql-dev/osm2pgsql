@@ -163,27 +163,17 @@ void osmdata_t::flush() const
 
 namespace {
 
-struct pending_job_t
-{
-    osmid_t osm_id;
-    size_t output_id;
-
-    pending_job_t() : osm_id(0), output_id(0) {}
-    pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
-};
-
-using pending_queue_t = std::stack<pending_job_t>;
-
 struct pending_threaded_processor : public pending_processor
 {
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
+    using pending_queue_t = std::stack<osmid_t>;
 
     static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
                         std::mutex &mutex, bool ways)
     {
         while (true) {
             //get the job off the queue synchronously
-            pending_job_t job;
+            osmid_t job;
             mutex.lock();
             if (queue.empty()) {
                 mutex.unlock();
@@ -195,9 +185,13 @@ struct pending_threaded_processor : public pending_processor
 
             //process it
             if (ways) {
-                outputs.at(job.output_id)->pending_way(job.osm_id);
+                for (auto const &out : outputs) {
+                    out->pending_way(job);
+                }
             } else {
-                outputs.at(job.output_id)->pending_relation(job.osm_id);
+                for (auto const &out : outputs) {
+                    out->pending_relation(job);
+                }
             }
         }
     }
@@ -233,19 +227,16 @@ struct pending_threaded_processor : public pending_processor
                 outs[0]->get_options()->database_options.conninfo());
 
             for (auto const &out : outs) {
-                m_clones[i].push_back(out->clone(midq, copy_thread));
+                if (out->need_forward_dependencies()) {
+                    m_clones[i].push_back(out->clone(midq, copy_thread));
+                }
             }
         }
     }
 
-    void enqueue_way(osmid_t id) override
-    {
-        for (size_t i = 0; i < outs.size(); ++i) {
-            if (outs[i]->need_forward_dependencies()) {
-                queue.emplace(id, i);
-            }
-        }
-    }
+    void enqueue_way(osmid_t id) override { queue.emplace(id); }
+
+    void enqueue_relation(osmid_t id) override { queue.emplace(id); }
 
     //waits for the completion of all outstanding jobs
     void process_ways() override
@@ -293,15 +284,6 @@ struct pending_threaded_processor : public pending_processor
         for (auto const &clone : m_clones) {
             for (auto const &clone_output : clone) {
                 clone_output.get()->commit();
-            }
-        }
-    }
-
-    void enqueue_relation(osmid_t id) override
-    {
-        for (size_t i = 0; i < outs.size(); ++i) {
-            if (outs[i]->need_forward_dependencies()) {
-                queue.emplace(id, i);
             }
         }
     }
