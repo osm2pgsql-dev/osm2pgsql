@@ -11,14 +11,15 @@
 #include <vector>
 
 #include "osmtypes.hpp"
-
-class pg_conn_t;
+#include "pgsql.hpp"
 
 /**
  * Table information necessary for building SQL queries.
  */
 struct db_target_descr_t
 {
+    /// Schema of the target table (can be empty for default schema)
+    std::string schema;
     /// Name of the target table for the copy operation.
     std::string name;
     /// Comma-separated list of rows for copy operation (when empty: all rows)
@@ -31,7 +32,8 @@ struct db_target_descr_t
      */
     bool same_copy_target(db_target_descr_t const &other) const noexcept
     {
-        return (this == &other) || (name == other.name && rows == other.rows);
+        return (this == &other) || (schema == other.schema &&
+                                    name == other.name && rows == other.rows);
     }
 
     db_target_descr_t() = default;
@@ -190,7 +192,8 @@ public:
     void delete_data(pg_conn_t *conn) override
     {
         if (m_deleter.has_data()) {
-            m_deleter.delete_rows(target->name, target->id, conn);
+            m_deleter.delete_rows(qualified_name(target->schema, target->name),
+                                  target->id, conn);
         }
     }
 

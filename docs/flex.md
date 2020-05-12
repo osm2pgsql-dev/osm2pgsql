@@ -69,6 +69,8 @@ With the `osm2pgsql.define_table()` function you can also define tables that
   additional column.
 * are in a specific PostgresSQL tablespace (set `data_tablespace`) or that
   get their indexes created in a specific tablespace (set `index_tablespace`).
+* are in a specific schema (set `schema`). Note that the schema has to be
+  created before you start osm2pgsql.
 
 If you are using the `osm2pgsql.define_(node|way|relation|area)_table()`
 convenience functions, osm2pgsql will automatically create an id column named

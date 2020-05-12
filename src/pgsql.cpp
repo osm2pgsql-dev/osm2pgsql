@@ -149,10 +149,28 @@ std::string tablespace_clause(std::string const &name)
     std::string sql;
 
     if (!name.empty()) {
-        sql += " TABLESPACE ";
+        sql += " TABLESPACE \"";
         sql += name;
+        sql += '"';
     }
 
     return sql;
 }
 
+std::string qualified_name(std::string const &schema, std::string const &name)
+{
+    std::string result{"\""};
+
+    if (!schema.empty()) {
+        result.reserve(schema.size() + name.size() + 5);
+        result += schema;
+        result += "\".\"";
+    } else {
+        result.reserve(name.size() + 2);
+    }
+
+    result += name;
+    result += '"';
+
+    return result;
+}

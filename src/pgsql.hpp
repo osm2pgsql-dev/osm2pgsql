@@ -142,6 +142,16 @@ private:
     std::unique_ptr<PGconn, pg_conn_deleter_t> m_conn;
 };
 
+/**
+ * Return a TABLESPACE clause with the specified tablespace name or an empty
+ * string if the name is empty.
+ */
 std::string tablespace_clause(std::string const &name);
+
+/**
+ * Return the possibly schema-qualified name of a table. Names are enclosed
+ * in double quotes.
+ */
+std::string qualified_name(std::string const &schema, std::string const &name);
 
 #endif // OSM2PGSQL_PGSQL_HPP
