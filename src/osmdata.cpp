@@ -223,7 +223,7 @@ struct pending_threaded_processor : public pending_processor
     //note that we cant hint to the stack how large it should be ahead of time
     //we could use a different datastructure like a deque or vector but then
     //the outputs the enqueue jobs would need the version check for the push(_back) method
-    : outs(outs), ids_queued(0), append(append), queue()
+    : outs(outs), append(append), queue()
     {
 
         //clone all the things we need
@@ -249,7 +249,6 @@ struct pending_threaded_processor : public pending_processor
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {
                 queue.emplace(id, i);
-                ++ids_queued;
             }
         }
     }
@@ -257,6 +256,8 @@ struct pending_threaded_processor : public pending_processor
     //waits for the completion of all outstanding jobs
     void process_ways() override
     {
+        auto const ids_queued = queue.size();
+
         fmt::print(stderr, "\nGoing over pending ways...\n");
         fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
@@ -294,7 +295,6 @@ struct pending_threaded_processor : public pending_processor
                 stderr, "{} Pending ways took {}s at a rate of {:.2f}/s\n",
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
-        ids_queued = 0;
 
         for (auto const &clone : clones) {
             for (auto const &clone_output : clone) {
@@ -308,13 +308,14 @@ struct pending_threaded_processor : public pending_processor
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {
                 queue.emplace(id, i);
-                ++ids_queued;
             }
         }
     }
 
     void process_relations() override
     {
+        auto const ids_queued = queue.size();
+
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
@@ -352,7 +353,6 @@ struct pending_threaded_processor : public pending_processor
                 stderr, "{} Pending relations took {}s at a rate of {:.2f}/s\n",
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
-        ids_queued = 0;
 
         //collect all expiry tree informations together into one
         for (auto const &clone : clones) {
@@ -374,8 +374,6 @@ private:
     std::vector<output_vec_t> clones;
     output_vec_t
         outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
-    //how many jobs do we have in the queue to start with
-    size_t ids_queued;
     //appending to output that is already there (diff processing)
     bool append;
     //job queue
