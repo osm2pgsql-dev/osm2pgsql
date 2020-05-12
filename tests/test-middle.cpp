@@ -1007,20 +1007,6 @@ TEMPLATE_TEST_CASE("middle: add relation with attributes", "",
     }
 }
 
-struct test_pending_processor : public middle_t::pending_processor
-{
-    test_pending_processor() = default;
-
-    void enqueue_ways(osmid_t id) override { m_way_ids.push_back(id); }
-    void enqueue_relations(osmid_t id) override { m_rel_ids.push_back(id); }
-
-    void process_ways() override {}
-    void process_relations() override {}
-
-    std::vector<osmid_t> m_way_ids;
-    std::vector<osmid_t> m_rel_ids;
-};
-
 TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
                    options_slim_dense_cache, options_flat_node_cache)
 {
@@ -1065,11 +1051,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         check_way(mid, way21);
         check_way_nodes(mid, way21.id(), {&node11, &node12});
 
-        // Nothing pending yet
         REQUIRE_FALSE(dependency_manager.has_pending());
-        test_pending_processor proc;
-        dependency_manager.process_pending(proc);
-        REQUIRE(proc.m_way_ids.empty());
 
         mid->commit();
     }
@@ -1089,9 +1071,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        test_pending_processor proc;
-        dependency_manager.process_pending(proc);
-        REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
+        idlist_t way_ids;
+        dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+        REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20}));
 
         check_way(mid, way20);
         check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1122,9 +1104,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->flush();
 
             REQUIRE(dependency_manager.has_pending());
-            test_pending_processor proc;
-            dependency_manager.process_pending(proc);
-            REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20, 22}));
+            idlist_t way_ids;
+            dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+            REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20, 22}));
 
             check_way(mid, way20);
             check_way_nodes(mid, way20.id(), {&node10a, &node11});
@@ -1162,9 +1144,6 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->flush();
 
             REQUIRE_FALSE(dependency_manager.has_pending());
-            test_pending_processor proc;
-            dependency_manager.process_pending(proc);
-            REQUIRE(proc.m_way_ids.empty());
 
             mid->commit();
         }
@@ -1228,10 +1207,10 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        test_pending_processor proc;
-        dependency_manager.process_pending(proc);
+        idlist_t rel_ids;
+        dependency_manager.get_pending_relation_ids(std::back_inserter(rel_ids));
 
-        REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({30}));
+        REQUIRE_THAT(rel_ids, Catch::Equals<osmid_t>({30}));
         check_relation(mid, rel30);
 
         mid->commit();
@@ -1249,10 +1228,12 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        test_pending_processor proc;
-        dependency_manager.process_pending(proc);
-        REQUIRE_THAT(proc.m_way_ids, Catch::Equals<osmid_t>({20}));
-        REQUIRE_THAT(proc.m_rel_ids, Catch::Equals<osmid_t>({31}));
+        idlist_t way_ids;
+        dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+        REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20}));
+        idlist_t rel_ids;
+        dependency_manager.get_pending_relation_ids(std::back_inserter(rel_ids));
+        REQUIRE_THAT(rel_ids, Catch::Equals<osmid_t>({31}));
         check_relation(mid, rel31);
     }
 }

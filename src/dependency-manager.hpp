@@ -102,6 +102,44 @@ public:
 
     void process_pending(middle_t::pending_processor &pf) override;
 
+    /**
+     * Get access to the pending way ids. This is for debugging only.
+     *
+     * Note that the list of pending way ids will be empty after calling
+     * this.
+     *
+     * \tparam TOutputIterator Some output iterator type, for instance
+     *         created with std::back_inserter(some vector).
+     * \param it output iterator to which all ids should be written. *it
+     *        must be of type osmid_t.
+     */
+    template <typename TOutputIterator>
+    void get_pending_way_ids(TOutputIterator &&it) {
+        osmid_t id;
+        while (id_tracker::is_valid(id = m_ways_pending_tracker.pop_mark())) {
+            *it++ = id;
+        }
+    }
+
+    /**
+     * Get access to the pending relation ids. This is for debugging only.
+     *
+     * Note that the list of pending relation ids will be empty after calling
+     * this.
+     *
+     * \tparam TOutputIterator Some output iterator type, for instance
+     *         created with std::back_inserter(some vector).
+     * \param it output iterator to which all ids should be written. *it
+     *        must be of type osmid_t.
+     */
+    template <typename TOutputIterator>
+    void get_pending_relation_ids(TOutputIterator &&it) {
+        osmid_t id;
+        while (id_tracker::is_valid(id = m_rels_pending_tracker.pop_mark())) {
+            *it++ = id;
+        }
+    }
+
 private:
     middle_t* m_object_store;
 
