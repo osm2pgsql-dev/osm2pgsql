@@ -179,8 +179,7 @@ struct pending_threaded_processor : public pending_processor
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
     static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        size_t &ids_done, std::mutex &mutex, bool append,
-                        bool ways)
+                        std::mutex &mutex, bool append, bool ways)
     {
         while (true) {
             //get the job off the queue synchronously
@@ -200,10 +199,6 @@ struct pending_threaded_processor : public pending_processor
             } else {
                 outputs.at(job.output_id)->pending_relation(job.osm_id, append);
             }
-
-            mutex.lock();
-            ++ids_done;
-            mutex.unlock();
         }
     }
 
@@ -228,7 +223,7 @@ struct pending_threaded_processor : public pending_processor
     //note that we cant hint to the stack how large it should be ahead of time
     //we could use a different datastructure like a deque or vector but then
     //the outputs the enqueue jobs would need the version check for the push(_back) method
-    : outs(outs), ids_queued(0), append(append), queue(), ids_done(0)
+    : outs(outs), ids_queued(0), append(append), queue()
     {
 
         //clone all the things we need
@@ -262,9 +257,6 @@ struct pending_threaded_processor : public pending_processor
     //waits for the completion of all outstanding jobs
     void process_ways() override
     {
-        //reset the number we've done
-        ids_done = 0;
-
         fmt::print(stderr, "\nGoing over pending ways...\n");
         fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
@@ -273,9 +265,9 @@ struct pending_threaded_processor : public pending_processor
         //make the threads and start them
         std::vector<std::future<void>> workers;
         for (auto const &clone : clones) {
-            workers.push_back(std::async(
-                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
-                std::ref(ids_done), std::ref(mutex), append, true));
+            workers.push_back(std::async(std::launch::async, do_jobs,
+                                         std::cref(clone), std::ref(queue),
+                                         std::ref(mutex), append, true));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -303,7 +295,6 @@ struct pending_threaded_processor : public pending_processor
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
         ids_queued = 0;
-        ids_done = 0;
 
         for (auto const &clone : clones) {
             for (auto const &clone_output : clone) {
@@ -324,9 +315,6 @@ struct pending_threaded_processor : public pending_processor
 
     void process_relations() override
     {
-        //reset the number we've done
-        ids_done = 0;
-
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
@@ -335,9 +323,9 @@ struct pending_threaded_processor : public pending_processor
         //make the threads and start them
         std::vector<std::future<void>> workers;
         for (auto const &clone : clones) {
-            workers.push_back(std::async(
-                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
-                std::ref(ids_done), std::ref(mutex), append, false));
+            workers.push_back(std::async(std::launch::async, do_jobs,
+                                         std::cref(clone), std::ref(queue),
+                                         std::ref(mutex), append, false));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -365,7 +353,6 @@ struct pending_threaded_processor : public pending_processor
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
         ids_queued = 0;
-        ids_done = 0;
 
         //collect all expiry tree informations together into one
         for (auto const &clone : clones) {
@@ -394,8 +381,6 @@ private:
     //job queue
     pending_queue_t queue;
 
-    //how many ids within the job have been processed
-    size_t ids_done;
     //so the threads can manage some of the shared state
     std::mutex mutex;
 };
