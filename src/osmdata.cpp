@@ -168,30 +168,35 @@ struct pending_threaded_processor : public pending_processor
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
     using pending_queue_t = std::stack<osmid_t>;
 
-    static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        std::mutex &mutex, bool ways)
+    static osmid_t pop_id(pending_queue_t &queue, std::mutex &mutex)
     {
-        while (true) {
-            //get the job off the queue synchronously
-            osmid_t job;
-            mutex.lock();
-            if (queue.empty()) {
-                mutex.unlock();
-                break;
-            }
-            job = queue.top();
-            queue.pop();
-            mutex.unlock();
+        osmid_t id = 0;
 
-            //process it
-            if (ways) {
-                for (auto const &out : outputs) {
-                    out->pending_way(job);
-                }
-            } else {
-                for (auto const &out : outputs) {
-                    out->pending_relation(job);
-                }
+        std::lock_guard<std::mutex> const lock{mutex};
+        if (!queue.empty()) {
+            id = queue.top();
+            queue.pop();
+        }
+
+        return id;
+    }
+
+    static void do_ways(output_vec_t const &outputs, pending_queue_t &queue,
+                        std::mutex &mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                output->pending_way(id);
+            }
+        }
+    }
+
+    static void do_rels(output_vec_t const &outputs, pending_queue_t &queue,
+                        std::mutex &mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                output->pending_relation(id);
             }
         }
     }
@@ -251,9 +256,9 @@ struct pending_threaded_processor : public pending_processor
         //make the threads and start them
         std::vector<std::future<void>> workers;
         for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, do_jobs,
+            workers.push_back(std::async(std::launch::async, do_ways,
                                          std::cref(clone), std::ref(queue),
-                                         std::ref(mutex), true));
+                                         std::ref(mutex)));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -300,9 +305,9 @@ struct pending_threaded_processor : public pending_processor
         //make the threads and start them
         std::vector<std::future<void>> workers;
         for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, do_jobs,
+            workers.push_back(std::async(std::launch::async, do_rels,
                                          std::cref(clone), std::ref(queue),
-                                         std::ref(mutex), false));
+                                         std::ref(mutex)));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
