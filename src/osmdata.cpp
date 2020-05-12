@@ -195,9 +195,9 @@ struct pending_threaded_processor : public pending_processor
 
             //process it
             if (ways) {
-                outputs.at(job.output_id)->pending_way(job.osm_id, true);
+                outputs.at(job.output_id)->pending_way(job.osm_id);
             } else {
-                outputs.at(job.output_id)->pending_relation(job.osm_id, true);
+                outputs.at(job.output_id)->pending_relation(job.osm_id);
             }
         }
     }

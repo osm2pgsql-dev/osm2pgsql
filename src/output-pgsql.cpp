@@ -66,15 +66,12 @@ void output_pgsql_t::pgsql_out_way(osmium::Way const &way, taglist_t *tags,
     }
 }
 
-void output_pgsql_t::pending_way(osmid_t id, bool exists)
+void output_pgsql_t::pending_way(osmid_t id)
 {
     // Try to fetch the way from the DB
     buffer.clear();
     if (m_mid->way_get(id, buffer)) {
-        /* If the flag says this object may exist already, delete it first */
-        if (exists) {
-            pgsql_delete_way_from_output(id);
-        }
+        pgsql_delete_way_from_output(id);
 
         taglist_t outtags;
         int polygon;
@@ -90,7 +87,7 @@ void output_pgsql_t::pending_way(osmid_t id, bool exists)
     }
 }
 
-void output_pgsql_t::pending_relation(osmid_t id, bool exists)
+void output_pgsql_t::pending_relation(osmid_t id)
 {
     // Try to fetch the relation from the DB
     // Note that we cannot use the global buffer here because
@@ -98,10 +95,7 @@ void output_pgsql_t::pending_relation(osmid_t id, bool exists)
     // might be relocated when more data is added.
     rels_buffer.clear();
     if (m_mid->relation_get(id, rels_buffer)) {
-        // If the flag says this object may exist already, delete it first.
-        if (exists) {
-            pgsql_delete_relation_from_output(id);
-        }
+        pgsql_delete_relation_from_output(id);
 
         auto const &rel = rels_buffer.get<osmium::Relation>(0);
         pgsql_process_relation(rel);

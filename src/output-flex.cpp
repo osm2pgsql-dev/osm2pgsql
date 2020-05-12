@@ -1007,7 +1007,7 @@ void output_flex_t::call_process_function(int index,
     }
 }
 
-void output_flex_t::pending_way(osmid_t id, bool exists)
+void output_flex_t::pending_way(osmid_t id)
 {
     if (!m_has_process_way) {
         return;
@@ -1018,9 +1018,7 @@ void output_flex_t::pending_way(osmid_t id, bool exists)
         return;
     }
 
-    if (exists) {
-        way_delete(id);
-    }
+    way_delete(id);
 
     auto &way = m_buffer.get<osmium::Way>(0);
 
@@ -1031,7 +1029,7 @@ void output_flex_t::pending_way(osmid_t id, bool exists)
     m_buffer.clear();
 }
 
-void output_flex_t::pending_relation(osmid_t id, bool exists)
+void output_flex_t::pending_relation(osmid_t id)
 {
     if (!m_has_process_relation) {
         return;
@@ -1045,10 +1043,7 @@ void output_flex_t::pending_relation(osmid_t id, bool exists)
         return;
     }
 
-    // If the flag says this object may exist already, delete it first.
-    if (exists) {
-        delete_from_tables(osmium::item_type::relation, id);
-    }
+    delete_from_tables(osmium::item_type::relation, id);
 
     auto const &relation = m_rels_buffer.get<osmium::Relation>(0);
 

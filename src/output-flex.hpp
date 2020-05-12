@@ -61,8 +61,8 @@ public:
 
     void stage2_proc() override;
 
-    void pending_way(osmid_t id, bool exists) override;
-    void pending_relation(osmid_t id, bool exists) override;
+    void pending_way(osmid_t id) override;
+    void pending_relation(osmid_t id) override;
 
     void node_add(osmium::Node const &node) override;
     void way_add(osmium::Way *way) override;
