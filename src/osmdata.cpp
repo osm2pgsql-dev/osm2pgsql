@@ -4,6 +4,7 @@
 #include <future>
 #include <memory>
 #include <mutex>
+#include <stack>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -162,11 +163,18 @@ void osmdata_t::flush() const
 
 namespace {
 
-//TODO: have the main thread using the main middle to query the middle for batches of ways (configurable number)
-//and stuffing those into the work queue, so we have a single producer multi consumer threaded queue
-//since the fetching from middle should be faster than the processing in each backend.
+struct pending_job_t
+{
+    osmid_t osm_id;
+    size_t output_id;
 
-struct pending_threaded_processor : public middle_t::pending_processor
+    pending_job_t() : osm_id(0), output_id(0) {}
+    pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
+};
+
+using pending_queue_t = std::stack<pending_job_t>;
+
+struct pending_threaded_processor : public pending_processor
 {
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
@@ -241,7 +249,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
     }
 
-    void enqueue_ways(osmid_t id) override
+    void enqueue_way(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {
@@ -304,7 +312,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
     }
 
-    void enqueue_relations(osmid_t id) override
+    void enqueue_relation(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {

@@ -43,18 +43,18 @@ bool full_dependency_manager_t::has_pending() const noexcept
     return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
 }
 
-void full_dependency_manager_t::process_pending(middle_t::pending_processor &pf)
+void full_dependency_manager_t::process_pending(pending_processor &proc)
 {
     osmid_t id;
     while (id_tracker::is_valid(id = m_ways_pending_tracker.pop_mark())) {
-        pf.enqueue_ways(id);
+        proc.enqueue_way(id);
     }
 
-    pf.process_ways();
+    proc.process_ways();
 
     while (id_tracker::is_valid(id = m_rels_pending_tracker.pop_mark())) {
-        pf.enqueue_relations(id);
+        proc.enqueue_relation(id);
     }
 
-    pf.process_relations();
+    proc.process_relations();
 }

@@ -7,6 +7,17 @@
 
 #include <cassert>
 
+struct pending_processor
+{
+    virtual ~pending_processor() = default;
+
+    virtual void enqueue_way(osmid_t id) = 0;
+    virtual void enqueue_relation(osmid_t id) = 0;
+
+    virtual void process_ways() = 0;
+    virtual void process_relations() = 0;
+};
+
 /**
  * The job of the dependency manager is to keep track of the dependencies
  * between OSM objects, that is nodes in ways and members of relations.
@@ -64,7 +75,7 @@ public:
      *
      * \post !has_pending()
      */
-    virtual void process_pending(middle_t::pending_processor &) {}
+    virtual void process_pending(pending_processor &) {}
 };
 
 /**
@@ -100,7 +111,7 @@ public:
 
     bool has_pending() const noexcept override;
 
-    void process_pending(middle_t::pending_processor &pf) override;
+    void process_pending(pending_processor &proc) override;
 
     /**
      * Get access to the pending way ids. This is for debugging only.

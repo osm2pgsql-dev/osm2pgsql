@@ -127,15 +127,6 @@ struct middle_t
     virtual idlist_t get_rels_by_rel(osmid_t) { return {}; }
     virtual idlist_t get_ways_by_rel(osmid_t) { return {}; }
 
-    struct pending_processor
-    {
-        virtual ~pending_processor() {}
-        virtual void enqueue_ways(osmid_t id) = 0;
-        virtual void process_ways() = 0;
-        virtual void enqueue_relations(osmid_t id) = 0;
-        virtual void process_relations() = 0;
-    };
-
     virtual std::shared_ptr<middle_query_t> get_query_instance() = 0;
 };
 
