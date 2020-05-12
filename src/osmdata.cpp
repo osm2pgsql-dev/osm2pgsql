@@ -227,20 +227,15 @@ struct pending_threaded_processor : public pending_processor
     {
 
         //clone all the things we need
-        clones.reserve(thread_count);
+        m_clones.resize(thread_count);
         for (size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
             auto copy_thread = std::make_shared<db_copy_thread_t>(
                 outs[0]->get_options()->database_options.conninfo());
 
-            //clone the outs
-            output_vec_t out_clones;
             for (auto const &out : outs) {
-                out_clones.push_back(out->clone(midq, copy_thread));
+                m_clones[i].push_back(out->clone(midq, copy_thread));
             }
-
-            //keep the clones for a specific thread to use
-            clones.push_back(out_clones);
         }
     }
 
@@ -260,12 +255,12 @@ struct pending_threaded_processor : public pending_processor
 
         fmt::print(stderr, "\nGoing over pending ways...\n");
         fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
+        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
         util::timer_t timer;
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
-        for (auto const &clone : clones) {
+        for (auto const &clone : m_clones) {
             workers.push_back(std::async(std::launch::async, do_jobs,
                                          std::cref(clone), std::ref(queue),
                                          std::ref(mutex), append, true));
@@ -296,7 +291,7 @@ struct pending_threaded_processor : public pending_processor
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
         }
 
-        for (auto const &clone : clones) {
+        for (auto const &clone : m_clones) {
             for (auto const &clone_output : clone) {
                 clone_output.get()->commit();
             }
@@ -318,12 +313,12 @@ struct pending_threaded_processor : public pending_processor
 
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
+        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
         util::timer_t timer;
 
         //make the threads and start them
         std::vector<std::future<void>> workers;
-        for (auto const &clone : clones) {
+        for (auto const &clone : m_clones) {
             workers.push_back(std::async(std::launch::async, do_jobs,
                                          std::cref(clone), std::ref(queue),
                                          std::ref(mutex), append, false));
@@ -355,7 +350,7 @@ struct pending_threaded_processor : public pending_processor
         }
 
         //collect all expiry tree informations together into one
-        for (auto const &clone : clones) {
+        for (auto const &clone : m_clones) {
             //for each clone/original output
             for (output_vec_t::const_iterator original_output = outs.begin(),
                                               clone_output = clone.begin();
@@ -371,7 +366,7 @@ struct pending_threaded_processor : public pending_processor
 
 private:
     // output copies, one vector per thread
-    std::vector<output_vec_t> clones;
+    std::vector<output_vec_t> m_clones;
     output_vec_t
         outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
     //appending to output that is already there (diff processing)
