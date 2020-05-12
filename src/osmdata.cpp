@@ -179,7 +179,7 @@ struct pending_threaded_processor : public pending_processor
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
     static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        std::mutex &mutex, bool append, bool ways)
+                        std::mutex &mutex, bool ways)
     {
         while (true) {
             //get the job off the queue synchronously
@@ -195,9 +195,9 @@ struct pending_threaded_processor : public pending_processor
 
             //process it
             if (ways) {
-                outputs.at(job.output_id)->pending_way(job.osm_id, append);
+                outputs.at(job.output_id)->pending_way(job.osm_id, true);
             } else {
-                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
+                outputs.at(job.output_id)->pending_relation(job.osm_id, true);
             }
         }
     }
@@ -218,12 +218,11 @@ struct pending_threaded_processor : public pending_processor
 
     //starts up count threads and works on the queue
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
-                               output_vec_t const &outs, size_t thread_count,
-                               int append)
+                               output_vec_t const &outs, size_t thread_count)
     //note that we cant hint to the stack how large it should be ahead of time
     //we could use a different datastructure like a deque or vector but then
     //the outputs the enqueue jobs would need the version check for the push(_back) method
-    : outs(outs), append(append), queue()
+    : outs(outs), queue()
     {
 
         //clone all the things we need
@@ -263,7 +262,7 @@ struct pending_threaded_processor : public pending_processor
         for (auto const &clone : m_clones) {
             workers.push_back(std::async(std::launch::async, do_jobs,
                                          std::cref(clone), std::ref(queue),
-                                         std::ref(mutex), append, true));
+                                         std::ref(mutex), true));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -321,7 +320,7 @@ struct pending_threaded_processor : public pending_processor
         for (auto const &clone : m_clones) {
             workers.push_back(std::async(std::launch::async, do_jobs,
                                          std::cref(clone), std::ref(queue),
-                                         std::ref(mutex), append, false));
+                                         std::ref(mutex), false));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
@@ -369,8 +368,6 @@ private:
     std::vector<output_vec_t> m_clones;
     output_vec_t
         outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
-    //appending to output that is already there (diff processing)
-    bool append;
     //job queue
     pending_queue_t queue;
 
@@ -398,8 +395,7 @@ void osmdata_t::stop() const
     // In append mode there might be dependent objects pending that we
     // need to process.
     if (opts->append && m_dependency_manager->has_pending()) {
-        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
-                                       opts->append);
+        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs);
 
         m_dependency_manager->process_pending(ptp);
     }
