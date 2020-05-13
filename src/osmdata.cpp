@@ -239,14 +239,14 @@ public:
 
 private:
     /// Get the next id from the queue.
-    static osmid_t pop_id(idlist_t &queue, std::mutex &mutex)
+    static osmid_t pop_id(idlist_t *queue, std::mutex *mutex)
     {
         osmid_t id = 0;
 
-        std::lock_guard<std::mutex> const lock{mutex};
-        if (!queue.empty()) {
-            id = queue.back();
-            queue.pop_back();
+        std::lock_guard<std::mutex> const lock{*mutex};
+        if (!queue->empty()) {
+            id = queue->back();
+            queue->pop_back();
         }
 
         return id;
@@ -256,8 +256,8 @@ private:
      * Runs in the worker threads: As long as there are any, get ids from
      * the queue and let the outputs process the ways.
      */
-    static void do_ways(output_vec_t const &outputs, idlist_t &queue,
-                        std::mutex &mutex)
+    static void do_ways(output_vec_t const &outputs, idlist_t *queue,
+                        std::mutex *mutex)
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
             for (auto const &output : outputs) {
@@ -272,8 +272,8 @@ private:
      * Runs in the worker threads: As long as there are any, get ids from
      * the queue and let the outputs process the relations.
      */
-    static void do_rels(output_vec_t const &outputs, idlist_t &queue,
-                        std::mutex &mutex)
+    static void do_rels(output_vec_t const &outputs, idlist_t *queue,
+                        std::mutex *mutex)
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
             for (auto const &output : outputs) {
@@ -285,13 +285,13 @@ private:
     }
 
     /// Runs in a worker thread: Update progress display once per second.
-    static void print_stats(idlist_t &queue, std::mutex &mutex)
+    static void print_stats(idlist_t *queue, std::mutex *mutex)
     {
         size_t queue_size;
         do {
-            mutex.lock();
-            queue_size = queue.size();
-            mutex.unlock();
+            mutex->lock();
+            queue_size = queue->size();
+            mutex->unlock();
 
             fmt::print(stderr, "\rLeft to process: {}...", queue_size);
 
@@ -314,10 +314,10 @@ private:
         for (auto const &clone : m_clones) {
             workers.push_back(std::async(
                 std::launch::async, std::forward<FUNCTION>(function),
-                std::cref(clone), std::ref(m_queue), std::ref(m_mutex)));
+                std::cref(clone), &m_queue, &m_mutex));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
-                                     std::ref(m_queue), std::ref(m_mutex)));
+                                     &m_queue, &m_mutex));
 
         for (auto &worker : workers) {
             try {
