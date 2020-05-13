@@ -162,61 +162,10 @@ void osmdata_t::flush() const
 
 namespace {
 
-struct pending_threaded_processor
+class pending_threaded_processor
 {
+public:
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
-    using pending_queue_t = idlist_t;
-
-    static osmid_t pop_id(pending_queue_t &queue, std::mutex &mutex)
-    {
-        osmid_t id = 0;
-
-        std::lock_guard<std::mutex> const lock{mutex};
-        if (!queue.empty()) {
-            id = queue.back();
-            queue.pop_back();
-        }
-
-        return id;
-    }
-
-    static void do_ways(output_vec_t const &outputs, pending_queue_t &queue,
-                        std::mutex &mutex)
-    {
-        while (osmid_t const id = pop_id(queue, mutex)) {
-            for (auto const &output : outputs) {
-                if (output) {
-                    output->pending_way(id);
-                }
-            }
-        }
-    }
-
-    static void do_rels(output_vec_t const &outputs, pending_queue_t &queue,
-                        std::mutex &mutex)
-    {
-        while (osmid_t const id = pop_id(queue, mutex)) {
-            for (auto const &output : outputs) {
-                if (output) {
-                    output->pending_relation(id);
-                }
-            }
-        }
-    }
-
-    static void print_stats(pending_queue_t &queue, std::mutex &mutex)
-    {
-        size_t queue_size;
-        do {
-            mutex.lock();
-            queue_size = queue.size();
-            mutex.unlock();
-
-            fmt::print(stderr, "\rLeft to process: {}...", queue_size);
-
-            std::this_thread::sleep_for(std::chrono::seconds{1});
-        } while (queue_size > 0);
-    }
 
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
                                output_vec_t const &outs, size_t thread_count)
@@ -242,6 +191,83 @@ struct pending_threaded_processor
                 }
             }
         }
+    }
+
+    void process_ways(idlist_t &&list)
+    {
+        m_queue = std::move(list);
+        process_queue("way", do_ways);
+    }
+
+    void process_relations(idlist_t &&list)
+    {
+        m_queue = std::move(list);
+        process_queue("relation", do_rels);
+
+        // Collect expiry tree information from all clones and merge it back
+        // into the original outputs.
+        for (auto const &clone : m_clones) {
+            auto it = clone.begin();
+            for (auto const &output : m_outputs) {
+                assert(it != clone.end());
+                if (*it) {
+                    output->merge_expire_trees(it->get());
+                }
+                ++it;
+            }
+        }
+    }
+
+private:
+    static osmid_t pop_id(idlist_t &queue, std::mutex &mutex)
+    {
+        osmid_t id = 0;
+
+        std::lock_guard<std::mutex> const lock{mutex};
+        if (!queue.empty()) {
+            id = queue.back();
+            queue.pop_back();
+        }
+
+        return id;
+    }
+
+    static void do_ways(output_vec_t const &outputs, idlist_t &queue,
+                        std::mutex &mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                if (output) {
+                    output->pending_way(id);
+                }
+            }
+        }
+    }
+
+    static void do_rels(output_vec_t const &outputs, idlist_t &queue,
+                        std::mutex &mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                if (output) {
+                    output->pending_relation(id);
+                }
+            }
+        }
+    }
+
+    static void print_stats(idlist_t &queue, std::mutex &mutex)
+    {
+        size_t queue_size;
+        do {
+            mutex.lock();
+            queue_size = queue.size();
+            mutex.unlock();
+
+            fmt::print(stderr, "\rLeft to process: {}...", queue_size);
+
+            std::this_thread::sleep_for(std::chrono::seconds{1});
+        } while (queue_size > 0);
     }
 
     template <typename FUNCTION>
@@ -297,32 +323,6 @@ struct pending_threaded_processor
         }
     }
 
-    void process_ways(idlist_t &&list)
-    {
-        m_queue = std::move(list);
-        process_queue("way", do_ways);
-    }
-
-    void process_relations(idlist_t &&list)
-    {
-        m_queue = std::move(list);
-        process_queue("relation", do_rels);
-
-        // Collect expiry tree information from all clones and merge it back
-        // into the original outputs.
-        for (auto const &clone : m_clones) {
-            auto it = clone.begin();
-            for (auto const &output : m_outputs) {
-                assert(it != clone.end());
-                if (*it) {
-                    output->merge_expire_trees(it->get());
-                }
-                ++it;
-            }
-        }
-    }
-
-private:
     /// Clones of all outputs, one vector of clones per thread.
     std::vector<output_vec_t> m_clones;
 
@@ -330,7 +330,7 @@ private:
     output_vec_t m_outputs;
 
     /// The queue with ids that the worker threads work on.
-    pending_queue_t m_queue;
+    idlist_t m_queue;
 
     /// Mutex to make sure worker threads coordinate access to queue.
     std::mutex m_mutex;
