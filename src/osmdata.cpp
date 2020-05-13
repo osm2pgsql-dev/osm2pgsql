@@ -215,23 +215,26 @@ struct pending_threaded_processor : public pending_processor
         } while (queue_size > 0);
     }
 
-    //starts up count threads and works on the queue
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
                                output_vec_t const &outs, size_t thread_count)
     //note that we cant hint to the stack how large it should be ahead of time
     //we could use a different datastructure like a deque or vector but then
     //the outputs the enqueue jobs would need the version check for the push(_back) method
-    : outs(outs), queue()
+    : m_outputs(outs)
     {
+        assert(!outs.empty());
 
-        //clone all the things we need
+        // The database connection info should be the same for all outputs,
+        // we take it arbitrarily from the first.
+        std::string const &conninfo =
+            m_outputs[0]->get_options()->database_options.conninfo();
+
         m_clones.resize(thread_count);
         for (size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
-            auto copy_thread = std::make_shared<db_copy_thread_t>(
-                outs[0]->get_options()->database_options.conninfo());
+            auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
 
-            for (auto const &out : outs) {
+            for (auto const &out : m_outputs) {
                 if (out->need_forward_dependencies()) {
                     m_clones[i].push_back(out->clone(midq, copy_thread));
                 }
@@ -239,9 +242,9 @@ struct pending_threaded_processor : public pending_processor
         }
     }
 
-    void enqueue_way(osmid_t id) override { queue.emplace(id); }
+    void enqueue_way(osmid_t id) override { m_queue.emplace(id); }
 
-    void enqueue_relation(osmid_t id) override { queue.emplace(id); }
+    void enqueue_relation(osmid_t id) override { m_queue.emplace(id); }
 
     template <typename FUNCTION>
     void process_queue(FUNCTION &&function)
@@ -249,23 +252,23 @@ struct pending_threaded_processor : public pending_processor
         std::vector<std::future<void>> workers;
 
         for (auto const &clone : m_clones) {
-            workers.push_back(
-                std::async(std::launch::async, std::forward<FUNCTION>(function),
-                           std::cref(clone), std::ref(queue), std::ref(mutex)));
+            workers.push_back(std::async(
+                std::launch::async, std::forward<FUNCTION>(function),
+                std::cref(clone), std::ref(m_queue), std::ref(m_mutex)));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
-                                     std::ref(queue), std::ref(mutex)));
+                                     std::ref(m_queue), std::ref(m_mutex)));
 
         for (auto &worker : workers) {
             try {
                 worker.get();
             } catch (...) {
                 // drain the queue, so that the other workers finish
-                mutex.lock();
-                while (!queue.empty()) {
-                    queue.pop();
+                m_mutex.lock();
+                while (!m_queue.empty()) {
+                    m_queue.pop();
                 }
-                mutex.unlock();
+                m_mutex.unlock();
                 throw;
             }
         }
@@ -273,7 +276,7 @@ struct pending_threaded_processor : public pending_processor
 
     void process_ways() override
     {
-        auto const ids_queued = queue.size();
+        auto const ids_queued = m_queue.size();
 
         fmt::print(stderr, "\nGoing over pending ways...\n");
         fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
@@ -300,7 +303,7 @@ struct pending_threaded_processor : public pending_processor
 
     void process_relations() override
     {
-        auto const ids_queued = queue.size();
+        auto const ids_queued = m_queue.size();
 
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
@@ -320,10 +323,11 @@ struct pending_threaded_processor : public pending_processor
 
         //collect all expiry tree informations together into one
         for (auto const &clone : m_clones) {
-            //for each clone/original output
-            for (output_vec_t::const_iterator original_output = outs.begin(),
-                                              clone_output = clone.begin();
-                 original_output != outs.end() && clone_output != clone.end();
+            for (output_vec_t::const_iterator
+                     original_output = m_outputs.begin(),
+                     clone_output = clone.begin();
+                 original_output != m_outputs.end() &&
+                 clone_output != clone.end();
                  ++original_output, ++clone_output) {
                 //done copying rels for now
                 clone_output->get()->commit();
@@ -334,15 +338,17 @@ struct pending_threaded_processor : public pending_processor
     }
 
 private:
-    // output copies, one vector per thread
+    /// Clones of all outputs, one vector of clones per thread.
     std::vector<output_vec_t> m_clones;
-    output_vec_t
-        outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
-    //job queue
-    pending_queue_t queue;
 
-    //so the threads can manage some of the shared state
-    std::mutex mutex;
+    /// All outputs.
+    output_vec_t m_outputs;
+
+    /// The queue with ids that the worker threads work on.
+    pending_queue_t m_queue;
+
+    /// Mutex to make sure worker threads coordinate access to queue.
+    std::mutex m_mutex;
 };
 
 } // anonymous namespace
