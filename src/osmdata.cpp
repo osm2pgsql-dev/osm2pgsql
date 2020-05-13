@@ -19,8 +19,9 @@
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> const &outs)
-: m_dependency_manager(std::move(dependency_manager)), m_mid(mid), m_outs(outs)
+                     std::vector<std::shared_ptr<output_t>> outs)
+: m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
+  m_outs(std::move(outs))
 {
     assert(m_dependency_manager);
     assert(m_mid);
@@ -173,11 +174,11 @@ class multithreaded_processor
 public:
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
-    multithreaded_processor(std::shared_ptr<middle_t> mid,
-                            output_vec_t const &outs, size_t thread_count)
-    : m_outputs(outs)
+    multithreaded_processor(std::shared_ptr<middle_t> const &mid,
+                            output_vec_t outs, size_t thread_count)
+    : m_outputs(std::move(outs))
     {
-        assert(!outs.empty());
+        assert(!m_outputs.empty());
 
         // The database connection info should be the same for all outputs,
         // we take it arbitrarily from the first.
