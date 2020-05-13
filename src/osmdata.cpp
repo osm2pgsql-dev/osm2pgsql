@@ -162,13 +162,19 @@ void osmdata_t::flush() const
 
 namespace {
 
-class pending_threaded_processor
+/**
+ * After all objects in a change file have been processed, all objects
+ * depending on the changed objects must also be processed. This class
+ * handles this extra processing by starting a number of threads and doing
+ * the processing in them.
+ */
+class multithreaded_processor
 {
 public:
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
-    pending_threaded_processor(std::shared_ptr<middle_t> mid,
-                               output_vec_t const &outs, size_t thread_count)
+    multithreaded_processor(std::shared_ptr<middle_t> mid,
+                            output_vec_t const &outs, size_t thread_count)
     : m_outputs(outs)
     {
         assert(!outs.empty());
@@ -178,6 +184,7 @@ public:
         std::string const &conninfo =
             m_outputs[0]->get_options()->database_options.conninfo();
 
+        // For each thread we create clones of all the outputs.
         m_clones.resize(thread_count);
         for (size_t i = 0; i < thread_count; ++i) {
             auto const midq = mid->get_query_instance();
@@ -193,12 +200,24 @@ public:
         }
     }
 
+    /**
+     * Process all ways in the list.
+     *
+     * \param list List of way ids to work on. The list is moved into the
+     *             function.
+     */
     void process_ways(idlist_t &&list)
     {
         m_queue = std::move(list);
         process_queue("way", do_ways);
     }
 
+    /**
+     * Process all relations in the list.
+     *
+     * \param list List of relation ids to work on. The list is moved into the
+     *             function.
+     */
     void process_relations(idlist_t &&list)
     {
         m_queue = std::move(list);
@@ -219,6 +238,7 @@ public:
     }
 
 private:
+    /// Get the next id from the queue.
     static osmid_t pop_id(idlist_t &queue, std::mutex &mutex)
     {
         osmid_t id = 0;
@@ -232,6 +252,10 @@ private:
         return id;
     }
 
+    /**
+     * Runs in the worker threads: As long as there are any, get ids from
+     * the queue and let the outputs process the ways.
+     */
     static void do_ways(output_vec_t const &outputs, idlist_t &queue,
                         std::mutex &mutex)
     {
@@ -244,6 +268,10 @@ private:
         }
     }
 
+    /**
+     * Runs in the worker threads: As long as there are any, get ids from
+     * the queue and let the outputs process the relations.
+     */
     static void do_rels(output_vec_t const &outputs, idlist_t &queue,
                         std::mutex &mutex)
     {
@@ -256,6 +284,7 @@ private:
         }
     }
 
+    /// Runs in a worker thread: Update progress display once per second.
     static void print_stats(idlist_t &queue, std::mutex &mutex)
     {
         size_t queue_size;
@@ -294,7 +323,7 @@ private:
             try {
                 worker.get();
             } catch (...) {
-                // drain the queue, so that the other workers finish
+                // Drain the queue, so that the other workers finish early.
                 m_mutex.lock();
                 m_queue.clear();
                 m_mutex.unlock();
@@ -356,10 +385,11 @@ void osmdata_t::stop() const
     // In append mode there might be dependent objects pending that we
     // need to process.
     if (opts->append && m_dependency_manager->has_pending()) {
-        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs);
+        multithreaded_processor proc{m_mid, m_outs,
+                                     (std::size_t)opts->num_procs};
 
-        ptp.process_ways(m_dependency_manager->get_pending_way_ids());
-        ptp.process_relations(m_dependency_manager->get_pending_relation_ids());
+        proc.process_ways(m_dependency_manager->get_pending_way_ids());
+        proc.process_relations(m_dependency_manager->get_pending_relation_ids());
     }
 
     for (auto &out : m_outs) {

@@ -2,11 +2,12 @@
 #define OSM2PGSQL_DEPENDENCY_MANAGER_HPP
 
 #include "id-tracker.hpp"
-#include "middle.hpp"
 #include "osmtypes.hpp"
 
 #include <cassert>
 #include <memory>
+
+struct middle_t;
 
 /**
  * The job of the dependency manager is to keep track of the dependencies

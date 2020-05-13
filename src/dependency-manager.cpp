@@ -1,5 +1,6 @@
 
 #include "dependency-manager.hpp"
+#include "middle.hpp"
 
 void full_dependency_manager_t::node_changed(osmid_t id)
 {
