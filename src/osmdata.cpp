@@ -243,29 +243,22 @@ struct pending_threaded_processor : public pending_processor
 
     void enqueue_relation(osmid_t id) override { queue.emplace(id); }
 
-    //waits for the completion of all outstanding jobs
-    void process_ways() override
+    template <typename FUNCTION>
+    void process_queue(FUNCTION &&function)
     {
-        auto const ids_queued = queue.size();
-
-        fmt::print(stderr, "\nGoing over pending ways...\n");
-        fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
-        util::timer_t timer;
-
-        //make the threads and start them
         std::vector<std::future<void>> workers;
+
         for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, do_ways,
-                                         std::cref(clone), std::ref(queue),
-                                         std::ref(mutex)));
+            workers.push_back(
+                std::async(std::launch::async, std::forward<FUNCTION>(function),
+                           std::cref(clone), std::ref(queue), std::ref(mutex)));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
                                      std::ref(queue), std::ref(mutex)));
 
-        for (auto &w : workers) {
+        for (auto &worker : workers) {
             try {
-                w.get();
+                worker.get();
             } catch (...) {
                 // drain the queue, so that the other workers finish
                 mutex.lock();
@@ -276,8 +269,20 @@ struct pending_threaded_processor : public pending_processor
                 throw;
             }
         }
+    }
 
+    void process_ways() override
+    {
+        auto const ids_queued = queue.size();
+
+        fmt::print(stderr, "\nGoing over pending ways...\n");
+        fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
+        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
+
+        util::timer_t timer;
+        process_queue(do_ways);
         timer.stop();
+
         fmt::print(stderr, "\rFinished processing {} ways in {} s\n\n",
                    ids_queued, timer.elapsed());
         if (timer.elapsed() > 0) {
@@ -300,33 +305,11 @@ struct pending_threaded_processor : public pending_processor
         fmt::print(stderr, "\nGoing over pending relations...\n");
         fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
         fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
+
         util::timer_t timer;
-
-        //make the threads and start them
-        std::vector<std::future<void>> workers;
-        for (auto const &clone : m_clones) {
-            workers.push_back(std::async(std::launch::async, do_rels,
-                                         std::cref(clone), std::ref(queue),
-                                         std::ref(mutex)));
-        }
-        workers.push_back(std::async(std::launch::async, print_stats,
-                                     std::ref(queue), std::ref(mutex)));
-
-        for (auto &w : workers) {
-            try {
-                w.get();
-            } catch (...) {
-                // drain the queue, so the other worker finish immediately
-                mutex.lock();
-                while (!queue.empty()) {
-                    queue.pop();
-                }
-                mutex.unlock();
-                throw;
-            }
-        }
-
+        process_queue(do_rels);
         timer.stop();
+
         fmt::print(stderr, "\rFinished processing {} relations in {} s\n\n",
                    ids_queued, timer.elapsed());
         if (timer.elapsed() > 0) {
