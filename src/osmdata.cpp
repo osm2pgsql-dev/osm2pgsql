@@ -186,7 +186,9 @@ struct pending_threaded_processor : public pending_processor
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
             for (auto const &output : outputs) {
-                output->pending_way(id);
+                if (output) {
+                    output->pending_way(id);
+                }
             }
         }
     }
@@ -196,7 +198,9 @@ struct pending_threaded_processor : public pending_processor
     {
         while (osmid_t const id = pop_id(queue, mutex)) {
             for (auto const &output : outputs) {
-                output->pending_relation(id);
+                if (output) {
+                    output->pending_relation(id);
+                }
             }
         }
     }
@@ -237,6 +241,8 @@ struct pending_threaded_processor : public pending_processor
             for (auto const &out : m_outputs) {
                 if (out->need_forward_dependencies()) {
                     m_clones[i].push_back(out->clone(midq, copy_thread));
+                } else {
+                    m_clones[i].emplace_back(nullptr);
                 }
             }
         }
@@ -282,7 +288,9 @@ struct pending_threaded_processor : public pending_processor
 
         for (auto const &clone : m_clones) {
             for (auto const &clone_output : clone) {
-                clone_output->commit();
+                if (clone_output) {
+                    clone_output->commit();
+                }
             }
         }
 
@@ -305,16 +313,16 @@ struct pending_threaded_processor : public pending_processor
     {
         process_queue("relation", do_rels);
 
-        //collect all expiry tree informations together into one
+        // Collect expiry tree information from all clones and merge it back
+        // into the original outputs.
         for (auto const &clone : m_clones) {
-            for (output_vec_t::const_iterator
-                     original_output = m_outputs.begin(),
-                     clone_output = clone.begin();
-                 original_output != m_outputs.end() &&
-                 clone_output != clone.end();
-                 ++original_output, ++clone_output) {
-                //merge the expire tree from this threads copy of output back
-                original_output->get()->merge_expire_trees(clone_output->get());
+            auto it = clone.begin();
+            for (auto const &output : m_outputs) {
+                assert(it != clone.end());
+                if (*it) {
+                    output->merge_expire_trees(it->get());
+                }
+                ++it;
             }
         }
     }
