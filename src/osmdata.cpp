@@ -247,8 +247,15 @@ struct pending_threaded_processor : public pending_processor
     void enqueue_relation(osmid_t id) override { m_queue.emplace(id); }
 
     template <typename FUNCTION>
-    void process_queue(FUNCTION &&function)
+    void process_queue(char const *type, FUNCTION &&function)
     {
+        auto const ids_queued = m_queue.size();
+
+        fmt::print(stderr, "\nGoing over pending {}s...\n", type);
+        fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
+        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
+
+        util::timer_t timer;
         std::vector<std::future<void>> workers;
 
         for (auto const &clone : m_clones) {
@@ -278,48 +285,25 @@ struct pending_threaded_processor : public pending_processor
                 clone_output->commit();
             }
         }
-    }
 
-    void process_ways() override
-    {
-        auto const ids_queued = m_queue.size();
-
-        fmt::print(stderr, "\nGoing over pending ways...\n");
-        fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
-
-        util::timer_t timer;
-        process_queue(do_ways);
         timer.stop();
 
-        fmt::print(stderr, "\rFinished processing {} ways in {} s\n\n",
-                   ids_queued, timer.elapsed());
+        fmt::print(stderr, "\rFinished processing {} {}s in {} s\n\n",
+                   ids_queued, type, timer.elapsed());
+
         if (timer.elapsed() > 0) {
-            fmt::print(
-                stderr, "{} Pending ways took {}s at a rate of {:.2f}/s\n",
-                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
+            fmt::print(stderr,
+                       "{} pending {}s took {}s at a rate of {:.2f}/s\n",
+                       ids_queued, type, timer.elapsed(),
+                       timer.per_second(ids_queued));
         }
     }
+
+    void process_ways() override { process_queue("way", do_ways); }
 
     void process_relations() override
     {
-        auto const ids_queued = m_queue.size();
-
-        fmt::print(stderr, "\nGoing over pending relations...\n");
-        fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
-
-        util::timer_t timer;
-        process_queue(do_rels);
-        timer.stop();
-
-        fmt::print(stderr, "\rFinished processing {} relations in {} s\n\n",
-                   ids_queued, timer.elapsed());
-        if (timer.elapsed() > 0) {
-            fmt::print(
-                stderr, "{} Pending relations took {}s at a rate of {:.2f}/s\n",
-                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
-        }
+        process_queue("relation", do_rels);
 
         //collect all expiry tree informations together into one
         for (auto const &clone : m_clones) {
