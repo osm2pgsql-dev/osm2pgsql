@@ -4,7 +4,6 @@
 #include <future>
 #include <memory>
 #include <mutex>
-#include <stack>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -166,7 +165,7 @@ namespace {
 struct pending_threaded_processor : public pending_processor
 {
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
-    using pending_queue_t = std::stack<osmid_t>;
+    using pending_queue_t = idlist_t;
 
     static osmid_t pop_id(pending_queue_t &queue, std::mutex &mutex)
     {
@@ -174,8 +173,8 @@ struct pending_threaded_processor : public pending_processor
 
         std::lock_guard<std::mutex> const lock{mutex};
         if (!queue.empty()) {
-            id = queue.top();
-            queue.pop();
+            id = queue.back();
+            queue.pop_back();
         }
 
         return id;
@@ -221,9 +220,6 @@ struct pending_threaded_processor : public pending_processor
 
     pending_threaded_processor(std::shared_ptr<middle_t> mid,
                                output_vec_t const &outs, size_t thread_count)
-    //note that we cant hint to the stack how large it should be ahead of time
-    //we could use a different datastructure like a deque or vector but then
-    //the outputs the enqueue jobs would need the version check for the push(_back) method
     : m_outputs(outs)
     {
         assert(!outs.empty());
@@ -248,9 +244,9 @@ struct pending_threaded_processor : public pending_processor
         }
     }
 
-    void enqueue_way(osmid_t id) override { m_queue.emplace(id); }
+    void enqueue_way(osmid_t id) override { m_queue.push_back(id); }
 
-    void enqueue_relation(osmid_t id) override { m_queue.emplace(id); }
+    void enqueue_relation(osmid_t id) override { m_queue.push_back(id); }
 
     template <typename FUNCTION>
     void process_queue(char const *type, FUNCTION &&function)
@@ -278,9 +274,7 @@ struct pending_threaded_processor : public pending_processor
             } catch (...) {
                 // drain the queue, so that the other workers finish
                 m_mutex.lock();
-                while (!m_queue.empty()) {
-                    m_queue.pop();
-                }
+                m_queue.clear();
                 m_mutex.unlock();
                 throw;
             }
