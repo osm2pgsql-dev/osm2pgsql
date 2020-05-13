@@ -272,6 +272,12 @@ struct pending_threaded_processor : public pending_processor
                 throw;
             }
         }
+
+        for (auto const &clone : m_clones) {
+            for (auto const &clone_output : clone) {
+                clone_output->commit();
+            }
+        }
     }
 
     void process_ways() override
@@ -292,12 +298,6 @@ struct pending_threaded_processor : public pending_processor
             fmt::print(
                 stderr, "{} Pending ways took {}s at a rate of {:.2f}/s\n",
                 ids_queued, timer.elapsed(), timer.per_second(ids_queued));
-        }
-
-        for (auto const &clone : m_clones) {
-            for (auto const &clone_output : clone) {
-                clone_output.get()->commit();
-            }
         }
     }
 
@@ -329,8 +329,6 @@ struct pending_threaded_processor : public pending_processor
                  original_output != m_outputs.end() &&
                  clone_output != clone.end();
                  ++original_output, ++clone_output) {
-                //done copying rels for now
-                clone_output->get()->commit();
                 //merge the expire tree from this threads copy of output back
                 original_output->get()->merge_expire_trees(clone_output->get());
             }
