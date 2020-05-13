@@ -1071,8 +1071,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        idlist_t way_ids;
-        dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+        idlist_t const way_ids = dependency_manager.get_pending_way_ids();
         REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20}));
 
         check_way(mid, way20);
@@ -1104,8 +1103,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
             mid->flush();
 
             REQUIRE(dependency_manager.has_pending());
-            idlist_t way_ids;
-            dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+            idlist_t const way_ids = dependency_manager.get_pending_way_ids();
             REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20, 22}));
 
             check_way(mid, way20);
@@ -1207,8 +1205,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        idlist_t rel_ids;
-        dependency_manager.get_pending_relation_ids(std::back_inserter(rel_ids));
+        idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
 
         REQUIRE_THAT(rel_ids, Catch::Equals<osmid_t>({30}));
         check_relation(mid, rel30);
@@ -1228,11 +1225,9 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
         mid->flush();
 
         REQUIRE(dependency_manager.has_pending());
-        idlist_t way_ids;
-        dependency_manager.get_pending_way_ids(std::back_inserter(way_ids));
+        idlist_t const way_ids = dependency_manager.get_pending_way_ids();
         REQUIRE_THAT(way_ids, Catch::Equals<osmid_t>({20}));
-        idlist_t rel_ids;
-        dependency_manager.get_pending_relation_ids(std::back_inserter(rel_ids));
+        idlist_t const rel_ids = dependency_manager.get_pending_relation_ids();
         REQUIRE_THAT(rel_ids, Catch::Equals<osmid_t>({31}));
         check_relation(mid, rel31);
     }

@@ -162,7 +162,7 @@ void osmdata_t::flush() const
 
 namespace {
 
-struct pending_threaded_processor : public pending_processor
+struct pending_threaded_processor
 {
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
     using pending_queue_t = idlist_t;
@@ -244,10 +244,6 @@ struct pending_threaded_processor : public pending_processor
         }
     }
 
-    void enqueue_way(osmid_t id) override { m_queue.push_back(id); }
-
-    void enqueue_relation(osmid_t id) override { m_queue.push_back(id); }
-
     template <typename FUNCTION>
     void process_queue(char const *type, FUNCTION &&function)
     {
@@ -301,10 +297,15 @@ struct pending_threaded_processor : public pending_processor
         }
     }
 
-    void process_ways() override { process_queue("way", do_ways); }
-
-    void process_relations() override
+    void process_ways(idlist_t &&list)
     {
+        m_queue = std::move(list);
+        process_queue("way", do_ways);
+    }
+
+    void process_relations(idlist_t &&list)
+    {
+        m_queue = std::move(list);
         process_queue("relation", do_rels);
 
         // Collect expiry tree information from all clones and merge it back
@@ -357,7 +358,8 @@ void osmdata_t::stop() const
     if (opts->append && m_dependency_manager->has_pending()) {
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs);
 
-        m_dependency_manager->process_pending(ptp);
+        ptp.process_ways(m_dependency_manager->get_pending_way_ids());
+        ptp.process_relations(m_dependency_manager->get_pending_relation_ids());
     }
 
     for (auto &out : m_outs) {
