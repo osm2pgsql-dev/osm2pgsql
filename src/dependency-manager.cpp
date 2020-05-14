@@ -1,7 +1,8 @@
 
 #include "dependency-manager.hpp"
 
-void full_dependency_manager_t::node_changed(osmid_t id) {
+void full_dependency_manager_t::node_changed(osmid_t id)
+{
     for (auto const way_id : m_object_store->get_ways_by_node(id)) {
         way_changed(way_id);
         m_ways_pending_tracker.mark(way_id);
@@ -12,7 +13,8 @@ void full_dependency_manager_t::node_changed(osmid_t id) {
     }
 }
 
-void full_dependency_manager_t::way_changed(osmid_t id) {
+void full_dependency_manager_t::way_changed(osmid_t id)
+{
     if (m_ways_pending_tracker.is_marked(id)) {
         return;
     }
@@ -22,7 +24,8 @@ void full_dependency_manager_t::way_changed(osmid_t id) {
     }
 }
 
-void full_dependency_manager_t::relation_changed(osmid_t id) {
+void full_dependency_manager_t::relation_changed(osmid_t id)
+{
     if (m_rels_pending_tracker.is_marked(id)) {
         return;
     }
@@ -32,7 +35,8 @@ void full_dependency_manager_t::relation_changed(osmid_t id) {
     }
 }
 
-void full_dependency_manager_t::relation_deleted(osmid_t id) {
+void full_dependency_manager_t::relation_deleted(osmid_t id)
+{
     for (auto const rel_id : m_object_store->get_ways_by_rel(id)) {
         m_ways_pending_tracker.mark(rel_id);
     }

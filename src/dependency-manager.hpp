@@ -40,7 +40,7 @@ public:
      *
      * This has to be called *after* the object was stored in the object store.
      */
-    virtual void node_changed(osmid_t) {};
+    virtual void node_changed(osmid_t) {}
 
     /**
      * Mark a way as changed to trigger the propagation of this change to
@@ -48,7 +48,7 @@ public:
      *
      * This has to be called *after* the object was stored in the object store.
      */
-    virtual void way_changed(osmid_t) {};
+    virtual void way_changed(osmid_t) {}
 
     /**
      * Mark a relation as changed to trigger the propagation of this change to
@@ -56,13 +56,13 @@ public:
      *
      * This has to be called *after* the object was stored in the object store.
      */
-    virtual void relation_changed(osmid_t) {};
+    virtual void relation_changed(osmid_t) {}
 
     /**
      * Mark a relation as deleted to trigger the propagation of this change to
      * the way members.
      */
-    virtual void relation_deleted(osmid_t) {};
+    virtual void relation_deleted(osmid_t) {}
 
     /// Are there pending objects that need to be processed?
     virtual bool has_pending() const noexcept { return false; }
@@ -89,7 +89,6 @@ public:
 class full_dependency_manager_t : public dependency_manager_t
 {
 public:
-
     /**
      * Constructor.
      *
@@ -125,7 +124,8 @@ public:
      *        must be of type osmid_t.
      */
     template <typename TOutputIterator>
-    void get_pending_way_ids(TOutputIterator &&it) {
+    void get_pending_way_ids(TOutputIterator &&it)
+    {
         osmid_t id;
         while (id_tracker::is_valid(id = m_ways_pending_tracker.pop_mark())) {
             *it++ = id;
@@ -144,7 +144,8 @@ public:
      *        must be of type osmid_t.
      */
     template <typename TOutputIterator>
-    void get_pending_relation_ids(TOutputIterator &&it) {
+    void get_pending_relation_ids(TOutputIterator &&it)
+    {
         osmid_t id;
         while (id_tracker::is_valid(id = m_rels_pending_tracker.pop_mark())) {
             *it++ = id;
@@ -152,7 +153,7 @@ public:
     }
 
 private:
-    middle_t* m_object_store;
+    middle_t *m_object_store;
 
     id_tracker m_ways_pending_tracker;
     id_tracker m_rels_pending_tracker;
