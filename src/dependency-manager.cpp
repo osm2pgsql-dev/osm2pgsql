@@ -26,10 +26,6 @@ void full_dependency_manager_t::way_changed(osmid_t id)
 
 void full_dependency_manager_t::relation_changed(osmid_t id)
 {
-    if (m_rels_pending_tracker.is_marked(id)) {
-        return;
-    }
-
     for (auto const rel_id : m_object_store->get_rels_by_rel(id)) {
         m_rels_pending_tracker.mark(rel_id);
     }
