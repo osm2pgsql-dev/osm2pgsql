@@ -14,7 +14,7 @@ struct slim_middle_t;
 class osmdata_t
 {
 public:
-    osmdata_t(dependency_manager_t *dependency_manager,
+    osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
               std::shared_ptr<middle_t> mid,
               std::vector<std::shared_ptr<output_t>> const &outs);
 
@@ -37,7 +37,7 @@ public:
 private:
     slim_middle_t &slim_middle() const noexcept;
 
-    dependency_manager_t *m_dependency_manager;
+    std::unique_ptr<dependency_manager_t> m_dependency_manager;
     std::shared_ptr<middle_t> m_mid;
     std::vector<std::shared_ptr<output_t>> m_outs;
     bool m_with_extra_attrs;

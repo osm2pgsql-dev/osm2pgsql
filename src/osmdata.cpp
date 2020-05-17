@@ -18,12 +18,12 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(dependency_manager_t *dependency_manager,
+osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs)
-: m_dependency_manager(dependency_manager), m_mid(mid), m_outs(outs)
+: m_dependency_manager(std::move(dependency_manager)), m_mid(mid), m_outs(outs)
 {
-    assert(dependency_manager != nullptr);
+    assert(m_dependency_manager);
     assert(m_mid);
     assert(!m_outs.empty());
 

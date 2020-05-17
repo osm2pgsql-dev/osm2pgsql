@@ -22,12 +22,12 @@
 namespace testing {
 
 inline void parse_file(options_t const &options,
-                       dependency_manager_t *dependency_manager,
+                       std::unique_ptr<dependency_manager_t> dependency_manager,
                        std::shared_ptr<middle_t> const &mid,
                        std::vector<std::shared_ptr<output_t>> const &outs,
                        char const *filename = nullptr)
 {
-    osmdata_t osmdata{dependency_manager, mid, outs};
+    osmdata_t osmdata{std::move(dependency_manager), mid, outs};
 
     osmdata.start();
     parse_osmium_t parser{options.bbox, options.append, &osmdata};
@@ -91,7 +91,7 @@ public:
             need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
-        osmdata_t osmdata{dependency_manager.get(), middle, outputs};
+        osmdata_t osmdata{std::move(dependency_manager), middle, outputs};
 
         osmdata.start();
 
@@ -112,9 +112,11 @@ public:
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
 
-        full_dependency_manager_t dependency_manager{middle};
+        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+            new full_dependency_manager_t{middle});
 
-        parse_file(options, &dependency_manager, middle, outputs, file);
+        parse_file(options, std::move(dependency_manager), middle, outputs,
+                   file);
     }
 
     void run_file_multi_output(options_t options,
@@ -143,10 +145,11 @@ public:
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));
 
-        full_dependency_manager_t dependency_manager{mid_pgsql};
+        auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+            new full_dependency_manager_t{mid_pgsql});
 
-        parse_file(options, &dependency_manager, mid_pgsql, {out_test},
-                   file);
+        parse_file(options, std::move(dependency_manager), mid_pgsql,
+                   {out_test}, file);
     }
 
     pg::conn_t connect() { return m_db.connect(); }
