@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
                         });
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            need_dependencies ? new full_dependency_manager_t{middle.get()}
+            need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
         osmdata_t osmdata{dependency_manager.get(), middle, outputs};

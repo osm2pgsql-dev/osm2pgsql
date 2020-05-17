@@ -6,6 +6,7 @@
 #include "osmtypes.hpp"
 
 #include <cassert>
+#include <memory>
 
 struct pending_processor
 {
@@ -97,10 +98,10 @@ public:
      *
      * \pre object_store != nullptr
      */
-    explicit full_dependency_manager_t(middle_t *object_store)
-    : m_object_store(object_store)
+    explicit full_dependency_manager_t(std::shared_ptr<middle_t> object_store)
+    : m_object_store(std::move(object_store))
     {
-        assert(object_store != nullptr);
+        assert(m_object_store != nullptr);
     }
 
     void node_changed(osmid_t id) override;
@@ -153,7 +154,7 @@ public:
     }
 
 private:
-    middle_t *m_object_store;
+    std::shared_ptr<middle_t> m_object_store;
 
     id_tracker m_ways_pending_tracker;
     id_tracker m_rels_pending_tracker;

@@ -88,7 +88,7 @@ public:
                         });
 
         auto dependency_manager = std::unique_ptr<dependency_manager_t>(
-            need_dependencies ? new full_dependency_manager_t{middle.get()}
+            need_dependencies ? new full_dependency_manager_t{middle}
                               : new dependency_manager_t{});
 
         osmdata_t osmdata{dependency_manager.get(), middle, outputs};
@@ -112,7 +112,7 @@ public:
         auto const outputs =
             output_t::create_outputs(middle->get_query_instance(), options);
 
-        full_dependency_manager_t dependency_manager{middle.get()};
+        full_dependency_manager_t dependency_manager{middle};
 
         parse_file(options, &dependency_manager, middle, outputs, file);
     }
@@ -143,7 +143,7 @@ public:
             std::make_shared<db_copy_thread_t>(
                 options.database_options.conninfo()));
 
-        full_dependency_manager_t dependency_manager{mid_pgsql.get()};
+        full_dependency_manager_t dependency_manager{mid_pgsql};
 
         parse_file(options, &dependency_manager, mid_pgsql, {out_test},
                    file);

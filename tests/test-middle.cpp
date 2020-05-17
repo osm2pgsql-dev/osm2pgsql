@@ -1032,7 +1032,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     // closed properly.
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
-        full_dependency_manager_t dependency_manager{mid.get()};
+        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
         mid->node_set(node10);
@@ -1062,7 +1062,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
     SECTION("Single way affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
-        full_dependency_manager_t dependency_manager{mid.get()};
+        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
         mid->node_delete(10);
@@ -1095,7 +1095,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
         }
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
-            full_dependency_manager_t dependency_manager{mid.get()};
+            full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
             mid->node_delete(10);
@@ -1135,7 +1135,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in way", "", options_slim_default,
 
         {
             auto mid = std::make_shared<middle_pgsql_t>(&options);
-            full_dependency_manager_t dependency_manager{mid.get()};
+            full_dependency_manager_t dependency_manager{mid};
             mid->start();
 
             mid->node_delete(10);
@@ -1198,7 +1198,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     SECTION("Single relation directly affected")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
-        full_dependency_manager_t dependency_manager{mid.get()};
+        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
         mid->node_delete(10);
@@ -1219,7 +1219,7 @@ TEMPLATE_TEST_CASE("middle: change nodes in relation", "", options_slim_default,
     SECTION("Single relation indirectly affected (through way)")
     {
         auto mid = std::make_shared<middle_pgsql_t>(&options);
-        full_dependency_manager_t dependency_manager{mid.get()};
+        full_dependency_manager_t dependency_manager{mid};
         mid->start();
 
         mid->node_delete(11);
