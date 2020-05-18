@@ -113,6 +113,11 @@ void parse_osmium_t::stream_file(std::string const &filename,
     std::string const &osmium_format = (fmt == "auto" ? "" : fmt);
     osmium::io::File infile{filename, osmium_format};
 
+    if (!m_append && infile.has_multiple_object_versions()) {
+        throw std::runtime_error{
+            "Reading an OSM change file only works in append mode."};
+    }
+
     if (infile.format() == osmium::io::file_format::unknown) {
         throw std::runtime_error{
             fmt == "auto"
@@ -137,6 +142,10 @@ void parse_osmium_t::node(osmium::Node const &node)
     }
 
     if (node.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
         m_data->node_delete(node.id());
     } else {
         // if the node is not valid, then node.location.lat/lon() can throw.
@@ -172,6 +181,10 @@ void parse_osmium_t::way(osmium::Way &way)
     }
 
     if (way.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
         m_data->way_delete(way.id());
     } else {
         if (m_append) {
@@ -191,6 +204,10 @@ void parse_osmium_t::relation(osmium::Relation const &rel)
     }
 
     if (rel.deleted()) {
+        if (!m_append) {
+            throw std::runtime_error{"Input file contains deleted objects but "
+                                     "you are not in append mode."};
+        }
         m_data->relation_delete(rel.id());
     } else {
         if (rel.members().size() > 32767) {
