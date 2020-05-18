@@ -121,7 +121,7 @@ before_script:
 
 script:
   - mkdir build && cd build
-  - cmake .. -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} -DWITH_LUAJIT=${LUAJIT_OPTION}
+  - cmake .. -LA -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_STANDARD=${CPPVERSION} -DWITH_LUAJIT=${LUAJIT_OPTION}
   - make -j2
   - echo "Running tests ... "
   - if [[ $TEST_NODB ]]; then
