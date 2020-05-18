@@ -101,7 +101,7 @@ matrix:
       compiler: gcc-9
       env: T="focal_gcc9_pg12_luajit"
            PG_VERSIONS=12
-           POSTGIS_VERSION=3.0
+           POSTGIS_VERSION=3
            LUA_VERSION=5.2
            BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
            CXXFLAGS="-pedantic -Wextra -Werror"
