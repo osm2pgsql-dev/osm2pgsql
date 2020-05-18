@@ -96,6 +96,17 @@ matrix:
            CC=gcc-8 CXX=g++-8 CPPVERSION=11
 
 
+    - os: linux
+      dist: focal
+      compiler: gcc-9
+      env: T="focal_gcc9_pg12_luajit"
+           PG_VERSIONS=12
+           POSTGIS_VERSION=3.0
+           LUA_VERSION=5.2
+           BUILD_TYPE="Debug" LUAJIT_OPTION="ON"
+           CXXFLAGS="-pedantic -Wextra -Werror"
+           CC=gcc-9 CXX=g++-9 CPPVERSION=11
+
 before_install:
   - dpkg -l | grep -E 'lua|proj|bz2|postgresql|postgis|zlib|boost|expat'  # checking available versions
   - sudo apt-get remove -yq postgresql-.*-postgis-.*
