@@ -4,6 +4,7 @@
 #include <future>
 #include <memory>
 #include <mutex>
+#include <stack>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -17,10 +18,12 @@
 #include "output.hpp"
 #include "util.hpp"
 
-osmdata_t::osmdata_t(std::shared_ptr<middle_t> mid,
+osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
+                     std::shared_ptr<middle_t> mid,
                      std::vector<std::shared_ptr<output_t>> const &outs)
-: m_mid(mid), m_outs(outs)
+: m_dependency_manager(std::move(dependency_manager)), m_mid(mid), m_outs(outs)
 {
+    assert(m_dependency_manager);
     assert(m_mid);
     assert(!m_outs.empty());
 
@@ -86,7 +89,7 @@ void osmdata_t::node_modify(osmium::Node const &node) const
         out->node_modify(node);
     }
 
-    slim.node_changed(node.id());
+    m_dependency_manager->node_changed(node.id());
 }
 
 void osmdata_t::way_modify(osmium::Way *way) const
@@ -100,7 +103,7 @@ void osmdata_t::way_modify(osmium::Way *way) const
         out->way_modify(way);
     }
 
-    slim.way_changed(way->id());
+    m_dependency_manager->way_changed(way->id());
 }
 
 void osmdata_t::relation_modify(osmium::Relation const &rel) const
@@ -114,7 +117,7 @@ void osmdata_t::relation_modify(osmium::Relation const &rel) const
         out->relation_modify(rel);
     }
 
-    slim.relation_changed(rel.id());
+    m_dependency_manager->relation_changed(rel.id());
 }
 
 void osmdata_t::node_delete(osmid_t id) const
@@ -142,6 +145,8 @@ void osmdata_t::relation_delete(osmid_t id) const
     }
 
     slim_middle().relation_delete(id);
+
+    m_dependency_manager->relation_deleted(id);
 }
 
 void osmdata_t::start() const
@@ -158,11 +163,18 @@ void osmdata_t::flush() const
 
 namespace {
 
-//TODO: have the main thread using the main middle to query the middle for batches of ways (configurable number)
-//and stuffing those into the work queue, so we have a single producer multi consumer threaded queue
-//since the fetching from middle should be faster than the processing in each backend.
+struct pending_job_t
+{
+    osmid_t osm_id;
+    size_t output_id;
 
-struct pending_threaded_processor : public middle_t::pending_processor
+    pending_job_t() : osm_id(0), output_id(0) {}
+    pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
+};
+
+using pending_queue_t = std::stack<pending_job_t>;
+
+struct pending_threaded_processor : public pending_processor
 {
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
@@ -237,7 +249,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
     }
 
-    void enqueue_ways(osmid_t id) override
+    void enqueue_way(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {
@@ -300,7 +312,7 @@ struct pending_threaded_processor : public middle_t::pending_processor
         }
     }
 
-    void enqueue_relations(osmid_t id) override
+    void enqueue_relation(osmid_t id) override
     {
         for (size_t i = 0; i < outs.size(); ++i) {
             if (outs[i]->need_forward_dependencies()) {
@@ -407,12 +419,11 @@ void osmdata_t::stop() const
 
     // In append mode there might be dependent objects pending that we
     // need to process.
-    if (opts->append && m_mid->has_pending()) {
+    if (opts->append && m_dependency_manager->has_pending()) {
         pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
                                        opts->append);
 
-        m_mid->iterate_ways(ptp);
-        m_mid->iterate_relations(ptp);
+        m_dependency_manager->process_pending(ptp);
     }
 
     for (auto &out : m_outs) {

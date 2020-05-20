@@ -1,5 +1,6 @@
 
 set(osm2pgsql_lib_SOURCES
+  dependency-manager.cpp
   db-copy.cpp
   expire-tiles.cpp
   gazetteer-style.cpp
@@ -31,6 +32,7 @@ set(osm2pgsql_lib_SOURCES
   tagtransform.cpp
   util.cpp
   wildcmp.cpp
+  dependency-manager.hpp
   db-copy.hpp
   expire-tiles.hpp
   gazetteer-style.hpp

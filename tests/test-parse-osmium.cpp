@@ -26,23 +26,14 @@ struct counting_slim_middle_t : public slim_middle_t
     void way_set(osmium::Way const &) override { ++way.added; }
     void relation_set(osmium::Relation const &) override { ++relation.added; }
 
-    void iterate_ways(pending_processor &) override {}
-    void iterate_relations(pending_processor &) override {}
-    bool has_pending() const override { return false; }
-
     std::shared_ptr<middle_query_t> get_query_instance() override
     {
         return std::shared_ptr<middle_query_t>{};
     }
 
     void node_delete(osmid_t) override { ++node.deleted; }
-    void node_changed(osmid_t) override { ++node.modified; }
-
     void way_delete(osmid_t) override { ++way.deleted; }
-    void way_changed(osmid_t) override { ++way.modified; }
-
     void relation_delete(osmid_t) override { ++relation.deleted; }
-    void relation_changed(osmid_t) override { ++relation.modified; }
 
     type_stats_t node, way, relation;
 };
@@ -101,6 +92,31 @@ struct counting_output_t : public output_null_t
     unsigned sum_members = 0;
 };
 
+struct counts_t {
+    std::size_t nodes_changed = 0;
+    std::size_t ways_changed = 0;
+    std::size_t relations_changed = 0;
+};
+
+/**
+ * This pseudo-dependency manager is just used for testing. It counts how
+ * often the *_changed() member functions are called.
+ */
+class counting_dependency_manager_t : public dependency_manager_t
+{
+public:
+    counting_dependency_manager_t(std::shared_ptr<counts_t> counts)
+    : m_counts(std::move(counts))
+    {}
+
+    void node_changed(osmid_t) override { ++m_counts->nodes_changed; }
+    void way_changed(osmid_t) override { ++m_counts->ways_changed; }
+    void relation_changed(osmid_t) override { ++m_counts->relations_changed; }
+
+private:
+    std::shared_ptr<counts_t> m_counts;
+};
+
 TEST_CASE("parse xml file")
 {
     options_t const options = testing::opt_t().slim();
@@ -108,7 +124,12 @@ TEST_CASE("parse xml file")
     auto const middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
-    testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
+    auto counts = std::make_shared<counts_t>();
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        new counting_dependency_manager_t{counts});
+
+    testing::parse_file(options, std::move(dependency_manager), middle,
+                        {output}, "test_multipolygon.osm");
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 4728);
@@ -126,14 +147,15 @@ TEST_CASE("parse xml file")
 
     auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
-    REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);
     REQUIRE(mid_test->way.added == 140);
-    REQUIRE(mid_test->way.modified == 0);
     REQUIRE(mid_test->way.deleted == 0);
     REQUIRE(mid_test->relation.added == 40);
-    REQUIRE(mid_test->relation.modified == 0);
     REQUIRE(mid_test->relation.deleted == 0);
+
+    REQUIRE(counts->nodes_changed == 0);
+    REQUIRE(counts->ways_changed == 0);
+    REQUIRE(counts->relations_changed == 0);
 }
 
 TEST_CASE("parse diff file")
@@ -143,7 +165,12 @@ TEST_CASE("parse diff file")
     auto const middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
-    testing::parse_file(options, middle, {output}, "008-ch.osc.gz");
+    auto counts = std::make_shared<counts_t>();
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        new counting_dependency_manager_t{counts});
+
+    testing::parse_file(options, std::move(dependency_manager), middle,
+                        {output}, "008-ch.osc.gz");
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->node.added == 0);
@@ -158,14 +185,15 @@ TEST_CASE("parse diff file")
 
     auto *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 1176);
-    REQUIRE(mid_test->node.modified == 1176);
     REQUIRE(mid_test->node.deleted == 17949);
     REQUIRE(mid_test->way.added == 161);
-    REQUIRE(mid_test->way.modified == 161);
     REQUIRE(mid_test->way.deleted == 165);
     REQUIRE(mid_test->relation.added == 11);
-    REQUIRE(mid_test->relation.modified == 11);
     REQUIRE(mid_test->relation.deleted == 12);
+
+    REQUIRE(counts->nodes_changed == 1176);
+    REQUIRE(counts->ways_changed == 161);
+    REQUIRE(counts->relations_changed == 11);
 }
 
 TEST_CASE("parse xml file with extra args")
@@ -176,7 +204,12 @@ TEST_CASE("parse xml file with extra args")
     auto const middle = std::make_shared<counting_slim_middle_t>();
     std::shared_ptr<output_t> output{new counting_output_t{options}};
 
-    testing::parse_file(options, middle, {output}, "test_multipolygon.osm");
+    auto counts = std::make_shared<counts_t>();
+    auto dependency_manager = std::unique_ptr<dependency_manager_t>(
+        new counting_dependency_manager_t{counts});
+
+    testing::parse_file(options, std::move(dependency_manager), middle,
+                        {output}, "test_multipolygon.osm");
 
     auto const *out_test = static_cast<counting_output_t *>(output.get());
     REQUIRE(out_test->sum_ids == 73514);
@@ -194,12 +227,13 @@ TEST_CASE("parse xml file with extra args")
 
     auto const *mid_test = static_cast<counting_slim_middle_t *>(middle.get());
     REQUIRE(mid_test->node.added == 353);
-    REQUIRE(mid_test->node.modified == 0);
     REQUIRE(mid_test->node.deleted == 0);
     REQUIRE(mid_test->way.added == 140);
-    REQUIRE(mid_test->way.modified == 0);
     REQUIRE(mid_test->way.deleted == 0);
     REQUIRE(mid_test->relation.added == 40);
-    REQUIRE(mid_test->relation.modified == 0);
     REQUIRE(mid_test->relation.deleted == 0);
+
+    REQUIRE(counts->nodes_changed == 0);
+    REQUIRE(counts->ways_changed == 0);
+    REQUIRE(counts->relations_changed == 0);
 }

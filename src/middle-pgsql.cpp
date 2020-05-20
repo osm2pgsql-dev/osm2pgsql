@@ -19,8 +19,6 @@
 #include <osmium/memory/buffer.hpp>
 #include <osmium/osm/types_from_string.hpp>
 
-#include <libpq-fe.h>
-
 #include "format.hpp"
 #include "middle-pgsql.hpp"
 #include "node-persistent-cache.hpp"
@@ -308,25 +306,40 @@ void middle_pgsql_t::node_delete(osmid_t osm_id)
     }
 }
 
-void middle_pgsql_t::node_changed(osmid_t osm_id)
+idlist_t middle_pgsql_t::get_ids(const char* stmt, osmid_t osm_id)
 {
-    assert(m_append);
-    if (!m_mark_pending) {
-        return;
-    }
+    idlist_t ids;
 
-    // Find all ways referencing this node and mark them as pending.
-    auto const res_ways =
-        m_db_connection.exec_prepared("mark_ways_by_node", osm_id);
-    for_each_id(res_ways, [this](osmid_t id) {
-        way_changed(id);
-        m_ways_pending_tracker->mark(id);
-    });
+    auto const res = m_db_connection.exec_prepared(stmt, osm_id);
+    ids.reserve(res.num_tuples());
+    for_each_id(res, [&ids](osmid_t id) { ids.push_back(id); });
 
-    // Find all relations referencing this node and mark them as pending.
-    auto const res_rels = m_db_connection.exec_prepared("mark_rels_by_node", osm_id);
-    for_each_id(res_rels,
-                [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
+    return ids;
+}
+
+idlist_t middle_pgsql_t::get_ways_by_node(osmid_t osm_id)
+{
+    return get_ids("mark_ways_by_node", osm_id);
+}
+
+idlist_t middle_pgsql_t::get_rels_by_node(osmid_t osm_id)
+{
+    return get_ids("mark_rels_by_node", osm_id);
+}
+
+idlist_t middle_pgsql_t::get_rels_by_way(osmid_t osm_id)
+{
+    return get_ids("mark_rels_by_way", osm_id);
+}
+
+idlist_t middle_pgsql_t::get_rels_by_rel(osmid_t osm_id)
+{
+    return get_ids("mark_rels", osm_id);
+}
+
+idlist_t middle_pgsql_t::get_ways_by_rel(osmid_t osm_id)
+{
+    return get_ids("mark_ways_by_rel", osm_id);
 }
 
 void middle_pgsql_t::way_set(osmium::Way const &way)
@@ -431,31 +444,6 @@ void middle_pgsql_t::way_delete(osmid_t osm_id)
     m_db_copy.delete_object(osm_id);
 }
 
-void middle_pgsql_t::iterate_ways(pending_processor &pf)
-{
-    // enqueue the jobs
-    osmid_t id;
-    while (id_tracker::is_valid(id = m_ways_pending_tracker->pop_mark())) {
-        pf.enqueue_ways(id);
-    }
-
-    //let the threads work on them
-    pf.process_ways();
-}
-
-void middle_pgsql_t::way_changed(osmid_t osm_id)
-{
-    assert(m_append);
-
-    if (m_ways_pending_tracker->is_marked(osm_id)) {
-        return;
-    }
-
-    // Keep track of all relations having this way as member.
-    auto const res = m_db_connection.exec_prepared("mark_rels_by_way", osm_id);
-    for_each_id(res, [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
-}
-
 void middle_pgsql_t::relation_set(osmium::Relation const &rel)
 {
     // Sort relation members by their type.
@@ -526,32 +514,8 @@ void middle_pgsql_t::relation_delete(osmid_t osm_id)
 {
     assert(m_append);
 
-    // Keep track of all member ways.
-    auto const res = m_db_connection.exec_prepared("mark_ways_by_rel", osm_id);
-    for_each_id(res, [this](osmid_t id) { m_ways_pending_tracker->mark(id); });
-
     m_db_copy.new_line(m_tables[REL_TABLE].m_copy_target);
     m_db_copy.delete_object(osm_id);
-}
-
-void middle_pgsql_t::iterate_relations(pending_processor &pf)
-{
-    // enqueue the jobs
-    osmid_t id;
-    while (id_tracker::is_valid(id = m_rels_pending_tracker->pop_mark())) {
-        pf.enqueue_relations(id);
-    }
-
-    //let the threads work on them
-    pf.process_relations();
-}
-
-void middle_pgsql_t::relation_changed(osmid_t osm_id)
-{
-    assert(m_append);
-
-    auto const res = m_db_connection.exec_prepared("mark_rels", osm_id);
-    for_each_id(res, [this](osmid_t id) { m_rels_pending_tracker->mark(id); });
 }
 
 idlist_t middle_query_pgsql_t::relations_using_way(osmid_t way_id) const
@@ -579,9 +543,6 @@ middle_query_pgsql_t::middle_query_pgsql_t(
 
 void middle_pgsql_t::start()
 {
-    m_ways_pending_tracker.reset(new id_tracker{});
-    m_rels_pending_tracker.reset(new id_tracker{});
-
     // Gazetter doesn't use mark-pending processing and consequently
     // needs no way-node index.
     // TODO Currently, set here to keep the impact on the code small.
@@ -781,9 +742,4 @@ middle_pgsql_t::get_query_instance()
     }
 
     return std::shared_ptr<middle_query_t>(mid.release());
-}
-
-bool middle_pgsql_t::has_pending() const
-{
-    return !m_ways_pending_tracker->empty() || !m_rels_pending_tracker->empty();
 }

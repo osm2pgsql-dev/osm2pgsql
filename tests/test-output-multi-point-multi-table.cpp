@@ -45,8 +45,11 @@ TEST_CASE("parse point")
         outputs.push_back(out_test);
     }
 
-    testing::parse_file(options, mid_pgsql, outputs,
-                        "liechtenstein-2013-08-03.osm.pbf");
+    auto dependency_manager =
+        std::unique_ptr<dependency_manager_t>(new dependency_manager_t{});
+
+    testing::parse_file(options, std::move(dependency_manager), mid_pgsql,
+                        outputs, "liechtenstein-2013-08-03.osm.pbf");
 
     auto conn = db.db().connect();
 
