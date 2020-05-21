@@ -229,15 +229,15 @@ public:
      */
     void merge_expire_trees()
     {
-        for (auto const &clone : m_clones) {
-            auto it = clone.begin();
-            for (auto const &output : m_outputs) {
-                assert(it != clone.end());
-                if (*it) {
-                    output->merge_expire_trees(it->get());
+        std::size_t n = 0;
+        for (auto const &output : m_outputs) {
+            for (auto const &clone : m_clones) {
+                assert(n < clone.size());
+                if (clone[n]) {
+                    output->merge_expire_trees(clone[n].get());
                 }
-                ++it;
             }
+            ++n;
         }
     }
 
