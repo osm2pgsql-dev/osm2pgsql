@@ -221,9 +221,14 @@ public:
     void process_relations(idlist_t &&list)
     {
         process_queue("relation", std::move(list), do_rels);
+    }
 
-        // Collect expiry tree information from all clones and merge it back
-        // into the original outputs.
+    /**
+     * Collect expiry tree information from all clones and merge it back
+     * into the original outputs.
+     */
+    void merge_expire_trees()
+    {
         for (auto const &clone : m_clones) {
             auto it = clone.begin();
             for (auto const &output : m_outputs) {
@@ -386,6 +391,7 @@ void osmdata_t::stop() const
 
         proc.process_ways(m_dependency_manager->get_pending_way_ids());
         proc.process_relations(m_dependency_manager->get_pending_relation_ids());
+        proc.merge_expire_trees();
     }
 
     for (auto &out : m_outs) {
