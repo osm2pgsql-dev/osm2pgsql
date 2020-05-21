@@ -44,7 +44,8 @@ bool full_dependency_manager_t::has_pending() const noexcept
     return !m_ways_pending_tracker.empty() || !m_rels_pending_tracker.empty();
 }
 
-idlist_t full_dependency_manager_t::get_ids(id_tracker& tracker) {
+idlist_t full_dependency_manager_t::get_ids(id_tracker &tracker)
+{
     idlist_t list;
     list.reserve(tracker.size());
 

@@ -113,7 +113,7 @@ public:
     }
 
 private:
-    idlist_t get_ids(id_tracker& tracker);
+    static idlist_t get_ids(id_tracker &tracker);
 
     std::shared_ptr<middle_t> m_object_store;
 
