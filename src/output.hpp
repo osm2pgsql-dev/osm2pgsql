@@ -40,8 +40,8 @@ public:
 
     virtual bool need_forward_dependencies() const noexcept { return true; }
 
-    virtual void pending_way(osmid_t id, bool exists) = 0;
-    virtual void pending_relation(osmid_t id, bool exists) = 0;
+    virtual void pending_way(osmid_t id) = 0;
+    virtual void pending_relation(osmid_t id) = 0;
 
     virtual void node_add(osmium::Node const &node) = 0;
     virtual void way_add(osmium::Way *way) = 0;

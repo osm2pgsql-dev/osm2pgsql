@@ -4,7 +4,6 @@
 #include <future>
 #include <memory>
 #include <mutex>
-#include <stack>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -20,8 +19,9 @@
 
 osmdata_t::osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
                      std::shared_ptr<middle_t> mid,
-                     std::vector<std::shared_ptr<output_t>> const &outs)
-: m_dependency_manager(std::move(dependency_manager)), m_mid(mid), m_outs(outs)
+                     std::vector<std::shared_ptr<output_t>> outs)
+: m_dependency_manager(std::move(dependency_manager)), m_mid(std::move(mid)),
+  m_outs(std::move(outs))
 {
     assert(m_dependency_manager);
     assert(m_mid);
@@ -163,57 +163,139 @@ void osmdata_t::flush() const
 
 namespace {
 
-struct pending_job_t
+/**
+ * After all objects in a change file have been processed, all objects
+ * depending on the changed objects must also be processed. This class
+ * handles this extra processing by starting a number of threads and doing
+ * the processing in them.
+ */
+class multithreaded_processor
 {
-    osmid_t osm_id;
-    size_t output_id;
-
-    pending_job_t() : osm_id(0), output_id(0) {}
-    pending_job_t(osmid_t id, size_t oid) : osm_id(id), output_id(oid) {}
-};
-
-using pending_queue_t = std::stack<pending_job_t>;
-
-struct pending_threaded_processor : public pending_processor
-{
+public:
     using output_vec_t = std::vector<std::shared_ptr<output_t>>;
 
-    static void do_jobs(output_vec_t const &outputs, pending_queue_t &queue,
-                        size_t &ids_done, std::mutex &mutex, bool append,
-                        bool ways)
+    multithreaded_processor(std::shared_ptr<middle_t> const &mid,
+                            output_vec_t outs, size_t thread_count)
+    : m_outputs(std::move(outs))
     {
-        while (true) {
-            //get the job off the queue synchronously
-            pending_job_t job;
-            mutex.lock();
-            if (queue.empty()) {
-                mutex.unlock();
-                break;
-            }
-            job = queue.top();
-            queue.pop();
-            mutex.unlock();
+        assert(!m_outputs.empty());
 
-            //process it
-            if (ways) {
-                outputs.at(job.output_id)->pending_way(job.osm_id, append);
-            } else {
-                outputs.at(job.output_id)->pending_relation(job.osm_id, append);
-            }
+        // The database connection info should be the same for all outputs,
+        // we take it arbitrarily from the first.
+        std::string const &conninfo =
+            m_outputs[0]->get_options()->database_options.conninfo();
 
-            mutex.lock();
-            ++ids_done;
-            mutex.unlock();
+        // For each thread we create clones of all the outputs.
+        m_clones.resize(thread_count);
+        for (size_t i = 0; i < thread_count; ++i) {
+            auto const midq = mid->get_query_instance();
+            auto copy_thread = std::make_shared<db_copy_thread_t>(conninfo);
+
+            for (auto const &out : m_outputs) {
+                if (out->need_forward_dependencies()) {
+                    m_clones[i].push_back(out->clone(midq, copy_thread));
+                } else {
+                    m_clones[i].emplace_back(nullptr);
+                }
+            }
         }
     }
 
-    static void print_stats(pending_queue_t &queue, std::mutex &mutex)
+    /**
+     * Process all ways in the list.
+     *
+     * \param list List of way ids to work on. The list is moved into the
+     *             function.
+     */
+    void process_ways(idlist_t &&list)
+    {
+        process_queue("way", std::move(list), do_ways);
+    }
+
+    /**
+     * Process all relations in the list.
+     *
+     * \param list List of relation ids to work on. The list is moved into the
+     *             function.
+     */
+    void process_relations(idlist_t &&list)
+    {
+        process_queue("relation", std::move(list), do_rels);
+    }
+
+    /**
+     * Collect expiry tree information from all clones and merge it back
+     * into the original outputs.
+     */
+    void merge_expire_trees()
+    {
+        for (auto const &clone : m_clones) {
+            auto it = clone.begin();
+            for (auto const &output : m_outputs) {
+                assert(it != clone.end());
+                if (*it) {
+                    output->merge_expire_trees(it->get());
+                }
+                ++it;
+            }
+        }
+    }
+
+private:
+    /// Get the next id from the queue.
+    static osmid_t pop_id(idlist_t *queue, std::mutex *mutex)
+    {
+        osmid_t id = 0;
+
+        std::lock_guard<std::mutex> const lock{*mutex};
+        if (!queue->empty()) {
+            id = queue->back();
+            queue->pop_back();
+        }
+
+        return id;
+    }
+
+    /**
+     * Runs in the worker threads: As long as there are any, get ids from
+     * the queue and let the outputs process the ways.
+     */
+    static void do_ways(output_vec_t const &outputs, idlist_t *queue,
+                        std::mutex *mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                if (output) {
+                    output->pending_way(id);
+                }
+            }
+        }
+    }
+
+    /**
+     * Runs in the worker threads: As long as there are any, get ids from
+     * the queue and let the outputs process the relations.
+     */
+    static void do_rels(output_vec_t const &outputs, idlist_t *queue,
+                        std::mutex *mutex)
+    {
+        while (osmid_t const id = pop_id(queue, mutex)) {
+            for (auto const &output : outputs) {
+                if (output) {
+                    output->pending_relation(id);
+                }
+            }
+        }
+    }
+
+    /// Runs in a worker thread: Update progress display once per second.
+    static void print_stats(idlist_t *queue, std::mutex *mutex)
     {
         size_t queue_size;
         do {
-            mutex.lock();
-            queue_size = queue.size();
-            mutex.unlock();
+            mutex->lock();
+            queue_size = queue->size();
+            mutex->unlock();
 
             fmt::print(stderr, "\rLeft to process: {}...", queue_size);
 
@@ -221,183 +303,67 @@ struct pending_threaded_processor : public pending_processor
         } while (queue_size > 0);
     }
 
-    //starts up count threads and works on the queue
-    pending_threaded_processor(std::shared_ptr<middle_t> mid,
-                               output_vec_t const &outs, size_t thread_count,
-                               int append)
-    //note that we cant hint to the stack how large it should be ahead of time
-    //we could use a different datastructure like a deque or vector but then
-    //the outputs the enqueue jobs would need the version check for the push(_back) method
-    : outs(outs), ids_queued(0), append(append), queue(), ids_done(0)
+    template <typename FUNCTION>
+    void process_queue(char const *type, idlist_t list, FUNCTION &&function)
     {
+        auto const ids_queued = list.size();
 
-        //clone all the things we need
-        clones.reserve(thread_count);
-        for (size_t i = 0; i < thread_count; ++i) {
-            auto const midq = mid->get_query_instance();
-            auto copy_thread = std::make_shared<db_copy_thread_t>(
-                outs[0]->get_options()->database_options.conninfo());
+        fmt::print(stderr, "\nGoing over pending {}s...\n", type);
+        fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
+        fmt::print(stderr, "\nUsing {} helper-processes\n", m_clones.size());
 
-            //clone the outs
-            output_vec_t out_clones;
-            for (auto const &out : outs) {
-                out_clones.push_back(out->clone(midq, copy_thread));
-            }
-
-            //keep the clones for a specific thread to use
-            clones.push_back(out_clones);
-        }
-    }
-
-    void enqueue_way(osmid_t id) override
-    {
-        for (size_t i = 0; i < outs.size(); ++i) {
-            if (outs[i]->need_forward_dependencies()) {
-                queue.emplace(id, i);
-                ++ids_queued;
-            }
-        }
-    }
-
-    //waits for the completion of all outstanding jobs
-    void process_ways() override
-    {
-        //reset the number we've done
-        ids_done = 0;
-
-        fmt::print(stderr, "\nGoing over pending ways...\n");
-        fmt::print(stderr, "\t{} ways are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
         util::timer_t timer;
-
-        //make the threads and start them
         std::vector<std::future<void>> workers;
-        for (auto const &clone : clones) {
+
+        for (auto const &clone : m_clones) {
             workers.push_back(std::async(
-                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
-                std::ref(ids_done), std::ref(mutex), append, true));
+                std::launch::async, std::forward<FUNCTION>(function),
+                std::cref(clone), &list, &m_mutex));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
-                                     std::ref(queue), std::ref(mutex)));
+                                     &list, &m_mutex));
 
-        for (auto &w : workers) {
+        for (auto &worker : workers) {
             try {
-                w.get();
+                worker.get();
             } catch (...) {
-                // drain the queue, so that the other workers finish
-                mutex.lock();
-                while (!queue.empty()) {
-                    queue.pop();
-                }
-                mutex.unlock();
+                // Drain the queue, so that the other workers finish early.
+                m_mutex.lock();
+                list.clear();
+                m_mutex.unlock();
                 throw;
             }
         }
 
-        timer.stop();
-        fmt::print(stderr, "\rFinished processing {} ways in {} s\n\n",
-                   ids_queued, timer.elapsed());
-        if (timer.elapsed() > 0) {
-            fmt::print(
-                stderr, "{} Pending ways took {}s at a rate of {:.2f}/s\n",
-                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
-        }
-        ids_queued = 0;
-        ids_done = 0;
-
-        for (auto const &clone : clones) {
+        for (auto const &clone : m_clones) {
             for (auto const &clone_output : clone) {
-                clone_output.get()->commit();
-            }
-        }
-    }
-
-    void enqueue_relation(osmid_t id) override
-    {
-        for (size_t i = 0; i < outs.size(); ++i) {
-            if (outs[i]->need_forward_dependencies()) {
-                queue.emplace(id, i);
-                ++ids_queued;
-            }
-        }
-    }
-
-    void process_relations() override
-    {
-        //reset the number we've done
-        ids_done = 0;
-
-        fmt::print(stderr, "\nGoing over pending relations...\n");
-        fmt::print(stderr, "\t{} relations are pending\n", ids_queued);
-        fmt::print(stderr, "\nUsing {} helper-processes\n", clones.size());
-        util::timer_t timer;
-
-        //make the threads and start them
-        std::vector<std::future<void>> workers;
-        for (auto const &clone : clones) {
-            workers.push_back(std::async(
-                std::launch::async, do_jobs, std::cref(clone), std::ref(queue),
-                std::ref(ids_done), std::ref(mutex), append, false));
-        }
-        workers.push_back(std::async(std::launch::async, print_stats,
-                                     std::ref(queue), std::ref(mutex)));
-
-        for (auto &w : workers) {
-            try {
-                w.get();
-            } catch (...) {
-                // drain the queue, so the other worker finish immediately
-                mutex.lock();
-                while (!queue.empty()) {
-                    queue.pop();
+                if (clone_output) {
+                    clone_output->commit();
                 }
-                mutex.unlock();
-                throw;
             }
         }
 
         timer.stop();
-        fmt::print(stderr, "\rFinished processing {} relations in {} s\n\n",
-                   ids_queued, timer.elapsed());
-        if (timer.elapsed() > 0) {
-            fmt::print(
-                stderr, "{} Pending relations took {}s at a rate of {:.2f}/s\n",
-                ids_queued, timer.elapsed(), timer.per_second(ids_queued));
-        }
-        ids_queued = 0;
-        ids_done = 0;
 
-        //collect all expiry tree informations together into one
-        for (auto const &clone : clones) {
-            //for each clone/original output
-            for (output_vec_t::const_iterator original_output = outs.begin(),
-                                              clone_output = clone.begin();
-                 original_output != outs.end() && clone_output != clone.end();
-                 ++original_output, ++clone_output) {
-                //done copying rels for now
-                clone_output->get()->commit();
-                //merge the expire tree from this threads copy of output back
-                original_output->get()->merge_expire_trees(clone_output->get());
-            }
+        fmt::print(stderr, "\rFinished processing {} {}s in {} s\n\n",
+                   ids_queued, type, timer.elapsed());
+
+        if (timer.elapsed() > 0) {
+            fmt::print(stderr,
+                       "{} pending {}s took {}s at a rate of {:.2f}/s\n",
+                       ids_queued, type, timer.elapsed(),
+                       timer.per_second(ids_queued));
         }
     }
 
-private:
-    // output copies, one vector per thread
-    std::vector<output_vec_t> clones;
-    output_vec_t
-        outs; //would like to move ownership of outs to osmdata_t and middle passed to output_t instead of owned by it
-    //how many jobs do we have in the queue to start with
-    size_t ids_queued;
-    //appending to output that is already there (diff processing)
-    bool append;
-    //job queue
-    pending_queue_t queue;
+    /// Clones of all outputs, one vector of clones per thread.
+    std::vector<output_vec_t> m_clones;
 
-    //how many ids within the job have been processed
-    size_t ids_done;
-    //so the threads can manage some of the shared state
-    std::mutex mutex;
+    /// All outputs.
+    output_vec_t m_outputs;
+
+    /// Mutex to make sure worker threads coordinate access to queue.
+    std::mutex m_mutex;
 };
 
 } // anonymous namespace
@@ -420,10 +386,12 @@ void osmdata_t::stop() const
     // In append mode there might be dependent objects pending that we
     // need to process.
     if (opts->append && m_dependency_manager->has_pending()) {
-        pending_threaded_processor ptp(m_mid, m_outs, opts->num_procs,
-                                       opts->append);
+        multithreaded_processor proc{m_mid, m_outs,
+                                     (std::size_t)opts->num_procs};
 
-        m_dependency_manager->process_pending(ptp);
+        proc.process_ways(m_dependency_manager->get_pending_way_ids());
+        proc.process_relations(m_dependency_manager->get_pending_relation_ids());
+        proc.merge_expire_trees();
     }
 
     for (auto &out : m_outs) {

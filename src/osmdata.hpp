@@ -16,7 +16,7 @@ class osmdata_t
 public:
     osmdata_t(std::unique_ptr<dependency_manager_t> dependency_manager,
               std::shared_ptr<middle_t> mid,
-              std::vector<std::shared_ptr<output_t>> const &outs);
+              std::vector<std::shared_ptr<output_t>> outs);
 
     void start() const;
     void flush() const;

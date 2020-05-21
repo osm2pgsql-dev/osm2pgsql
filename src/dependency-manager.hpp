@@ -2,22 +2,12 @@
 #define OSM2PGSQL_DEPENDENCY_MANAGER_HPP
 
 #include "id-tracker.hpp"
-#include "middle.hpp"
 #include "osmtypes.hpp"
 
 #include <cassert>
 #include <memory>
 
-struct pending_processor
-{
-    virtual ~pending_processor() = default;
-
-    virtual void enqueue_way(osmid_t id) = 0;
-    virtual void enqueue_relation(osmid_t id) = 0;
-
-    virtual void process_ways() = 0;
-    virtual void process_relations() = 0;
-};
+struct middle_t;
 
 /**
  * The job of the dependency manager is to keep track of the dependencies
@@ -69,14 +59,16 @@ public:
     virtual bool has_pending() const noexcept { return false; }
 
     /**
-     * Process all pending objects.
-     *
-     * \param pf Processor that we should feed the objects to and that
-     *        will handle the actual processing.
-     *
-     * \post !has_pending()
+     * Get the list of pending way ids. After calling this, the internal
+     * list is cleared.
      */
-    virtual void process_pending(pending_processor &) {}
+    virtual idlist_t get_pending_way_ids() { return {}; }
+
+    /**
+     * Get the list of pending relation ids. After calling this, the internal
+     * list is cleared.
+     */
+    virtual idlist_t get_pending_relation_ids() { return {}; }
 };
 
 /**
@@ -84,8 +76,7 @@ public:
  * between OSM objects, that is nodes in ways and members of relations.
  *
  * Whenever an OSM object changes, this class is notified and remembers
- * the ids for later use. Later on the class can be told to process the
- * ids it has remembered.
+ * the ids for later use.
  */
 class full_dependency_manager_t : public dependency_manager_t
 {
@@ -111,49 +102,19 @@ public:
 
     bool has_pending() const noexcept override;
 
-    void process_pending(pending_processor &proc) override;
-
-    /**
-     * Get access to the pending way ids. This is for debugging only.
-     *
-     * Note that the list of pending way ids will be empty after calling
-     * this.
-     *
-     * \tparam TOutputIterator Some output iterator type, for instance
-     *         created with std::back_inserter(some vector).
-     * \param it output iterator to which all ids should be written. *it
-     *        must be of type osmid_t.
-     */
-    template <typename TOutputIterator>
-    void get_pending_way_ids(TOutputIterator &&it)
+    idlist_t get_pending_way_ids() override
     {
-        osmid_t id;
-        while (id_tracker::is_valid(id = m_ways_pending_tracker.pop_mark())) {
-            *it++ = id;
-        }
+        return get_ids(m_ways_pending_tracker);
     }
 
-    /**
-     * Get access to the pending relation ids. This is for debugging only.
-     *
-     * Note that the list of pending relation ids will be empty after calling
-     * this.
-     *
-     * \tparam TOutputIterator Some output iterator type, for instance
-     *         created with std::back_inserter(some vector).
-     * \param it output iterator to which all ids should be written. *it
-     *        must be of type osmid_t.
-     */
-    template <typename TOutputIterator>
-    void get_pending_relation_ids(TOutputIterator &&it)
+    idlist_t get_pending_relation_ids() override
     {
-        osmid_t id;
-        while (id_tracker::is_valid(id = m_rels_pending_tracker.pop_mark())) {
-            *it++ = id;
-        }
+        return get_ids(m_rels_pending_tracker);
     }
 
 private:
+    static idlist_t get_ids(id_tracker &tracker);
+
     std::shared_ptr<middle_t> m_object_store;
 
     id_tracker m_ways_pending_tracker;

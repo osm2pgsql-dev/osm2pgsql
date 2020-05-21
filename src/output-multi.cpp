@@ -65,23 +65,23 @@ void output_multi_t::start()
                    m_options.tblsmain_data);
 }
 
-void output_multi_t::pending_way(osmid_t id, bool exists)
+void output_multi_t::pending_way(osmid_t id)
 {
     // Try to fetch the way from the DB
     buffer.clear();
     if (m_mid->way_get(id, buffer)) {
         // Output the way
-        reprocess_way(&buffer.get<osmium::Way>(0), exists);
+        reprocess_way(&buffer.get<osmium::Way>(0), true);
     }
 }
 
-void output_multi_t::pending_relation(osmid_t id, bool exists)
+void output_multi_t::pending_relation(osmid_t id)
 {
     // Try to fetch the relation from the DB
     buffer.clear();
     if (m_mid->relation_get(id, buffer)) {
         auto const &rel = buffer.get<osmium::Relation>(0);
-        process_relation(rel, exists);
+        process_relation(rel, true);
     }
 }
 
