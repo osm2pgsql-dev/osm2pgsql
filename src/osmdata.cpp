@@ -270,6 +270,11 @@ private:
                 }
             }
         }
+        for (auto const &output : outputs) {
+            if (output) {
+                output->commit();
+            }
+        }
     }
 
     /**
@@ -284,6 +289,11 @@ private:
                 if (output) {
                     output->pending_relation(id);
                 }
+            }
+        }
+        for (auto const &output : outputs) {
+            if (output) {
+                output->commit();
             }
         }
     }
@@ -332,14 +342,6 @@ private:
                 list.clear();
                 m_mutex.unlock();
                 throw;
-            }
-        }
-
-        for (auto const &clone : m_clones) {
-            for (auto const &clone_output : clone) {
-                if (clone_output) {
-                    clone_output->commit();
-                }
             }
         }
 
