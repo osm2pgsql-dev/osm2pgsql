@@ -209,8 +209,7 @@ public:
      */
     void process_ways(idlist_t &&list)
     {
-        m_queue = std::move(list);
-        process_queue("way", do_ways);
+        process_queue("way", std::move(list), do_ways);
     }
 
     /**
@@ -221,8 +220,7 @@ public:
      */
     void process_relations(idlist_t &&list)
     {
-        m_queue = std::move(list);
-        process_queue("relation", do_rels);
+        process_queue("relation", std::move(list), do_rels);
 
         // Collect expiry tree information from all clones and merge it back
         // into the original outputs.
@@ -301,9 +299,9 @@ private:
     }
 
     template <typename FUNCTION>
-    void process_queue(char const *type, FUNCTION &&function)
+    void process_queue(char const *type, idlist_t list, FUNCTION &&function)
     {
-        auto const ids_queued = m_queue.size();
+        auto const ids_queued = list.size();
 
         fmt::print(stderr, "\nGoing over pending {}s...\n", type);
         fmt::print(stderr, "\t{} {}s are pending\n", ids_queued, type);
@@ -315,10 +313,10 @@ private:
         for (auto const &clone : m_clones) {
             workers.push_back(std::async(
                 std::launch::async, std::forward<FUNCTION>(function),
-                std::cref(clone), &m_queue, &m_mutex));
+                std::cref(clone), &list, &m_mutex));
         }
         workers.push_back(std::async(std::launch::async, print_stats,
-                                     &m_queue, &m_mutex));
+                                     &list, &m_mutex));
 
         for (auto &worker : workers) {
             try {
@@ -326,7 +324,7 @@ private:
             } catch (...) {
                 // Drain the queue, so that the other workers finish early.
                 m_mutex.lock();
-                m_queue.clear();
+                list.clear();
                 m_mutex.unlock();
                 throw;
             }
@@ -358,9 +356,6 @@ private:
 
     /// All outputs.
     output_vec_t m_outputs;
-
-    /// The queue with ids that the worker threads work on.
-    idlist_t m_queue;
 
     /// Mutex to make sure worker threads coordinate access to queue.
     std::mutex m_mutex;
