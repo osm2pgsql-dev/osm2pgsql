@@ -19,7 +19,7 @@ public:
 
     void start() override {}
     void stop(osmium::thread::Pool * /*pool*/) override {}
-    void commit() override {}
+    void sync() override {}
     void cleanup() {}
 
     bool need_forward_dependencies() const noexcept override { return false; }

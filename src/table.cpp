@@ -50,7 +50,7 @@ table_t::table_t(table_t const &other,
 
 void table_t::teardown() { m_sql_conn.reset(); }
 
-void table_t::commit() { m_copy.sync(); }
+void table_t::sync() { m_copy.sync(); }
 
 void table_t::connect()
 {

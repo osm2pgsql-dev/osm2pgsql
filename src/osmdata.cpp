@@ -272,7 +272,7 @@ private:
         }
         for (auto const &output : outputs) {
             if (output) {
-                output->commit();
+                output->sync();
             }
         }
     }
@@ -293,7 +293,7 @@ private:
         }
         for (auto const &output : outputs) {
             if (output) {
-                output->commit();
+                output->sync();
             }
         }
     }
@@ -378,8 +378,7 @@ void osmdata_t::stop() const
      */
     m_mid->commit();
     for (auto &out : m_outs) {
-        //TODO: each of the outs can be in parallel
-        out->commit();
+        out->sync();
     }
 
     // should be the same for all outputs

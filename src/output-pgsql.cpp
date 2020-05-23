@@ -102,10 +102,10 @@ void output_pgsql_t::pending_relation(osmid_t id)
     }
 }
 
-void output_pgsql_t::commit()
+void output_pgsql_t::sync()
 {
     for (auto const &t : m_tables) {
-        t->commit();
+        t->sync();
     }
 }
 
