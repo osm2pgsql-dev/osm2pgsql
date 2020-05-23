@@ -271,9 +271,10 @@ flex backend, because they don't make sense in that context:
   option.)
 * `-G|--multi-geometry` (Use the `multi` option on the geometry transformation
   instead.)
-* The command line options to set the tablespace are ignored by the flex
-  backend, instead use the `data_tablespace` or `index_tablespace` options
-  when defining your table.
+* The command line options to set the tablespace (`-i|--tablespace-index`,
+  `--tablespace-main-data`, `--tablespace-main-index`) are ignored by the flex
+  backend, instead use the `data_tablespace` or `index_tablespace` options when
+  defining your table.
 
 ## Type conversions
 
