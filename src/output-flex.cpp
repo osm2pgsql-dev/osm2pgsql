@@ -593,18 +593,18 @@ flex_table_t &output_flex_t::create_flex_table()
     // optional "data_tablespace" field
     lua_getfield(lua_state(), -1, "data_tablespace");
     if (lua_isstring(lua_state(), -1)) {
-        std::string const schema = lua_tostring(lua_state(), -1);
-        check_name(schema, "data_tablespace");
-        new_table.set_data_tablespace(schema);
+        std::string const tablespace = lua_tostring(lua_state(), -1);
+        check_name(tablespace, "data_tablespace");
+        new_table.set_data_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
 
     // optional "index_tablespace" field
     lua_getfield(lua_state(), -1, "index_tablespace");
     if (lua_isstring(lua_state(), -1)) {
-        std::string const schema = lua_tostring(lua_state(), -1);
-        check_name(schema, "index_tablespace");
-        new_table.set_index_tablespace(schema);
+        std::string const tablespace = lua_tostring(lua_state(), -1);
+        check_name(tablespace, "index_tablespace");
+        new_table.set_index_tablespace(tablespace);
     }
     lua_pop(lua_state(), 1);
 

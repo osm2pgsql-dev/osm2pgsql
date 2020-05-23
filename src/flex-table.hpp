@@ -199,7 +199,9 @@ public:
                           table->name(), table->id_column_names(),
                           table->build_sql_column_list())),
       m_copy_mgr(copy_thread), m_db_connection(nullptr)
-    {}
+    {
+        m_target->schema = table->schema();
+    }
 
     void connect(std::string const &conninfo);
 

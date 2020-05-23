@@ -177,12 +177,13 @@ void db_copy_thread_t::thread_t::start_copy(
 {
     assert(!m_inflight);
 
+    auto const qname = qualified_name(target->schema, target->name);
     fmt::memory_buffer sql;
-    sql.reserve(target->name.size() + target->rows.size() + 14);
+    sql.reserve(qname.size() + target->rows.size() + 20);
     if (target->rows.empty()) {
-        fmt::format_to(sql, FMT_STRING("COPY {} FROM STDIN"), target->name);
+        fmt::format_to(sql, FMT_STRING("COPY {} FROM STDIN"), qname);
     } else {
-        fmt::format_to(sql, FMT_STRING("COPY {} ({}) FROM STDIN"), target->name,
+        fmt::format_to(sql, FMT_STRING("COPY {} ({}) FROM STDIN"), qname,
                        target->rows);
     }
 

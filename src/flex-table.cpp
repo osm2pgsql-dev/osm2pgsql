@@ -45,12 +45,12 @@ std::string flex_table_t::id_column_names() const
 
 std::string flex_table_t::full_name() const
 {
-    return "\"" + schema() + "\".\"" + name() + "\"";
+    return qualified_name(schema(), name());
 }
 
 std::string flex_table_t::full_tmp_name() const
 {
-    return "\"" + schema() + "\".\"" + name() + "_tmp\"";
+    return qualified_name(schema(), name() + "_tmp");
 }
 
 flex_table_column_t &flex_table_t::add_column(std::string const &name,
@@ -162,11 +162,6 @@ void table_connection_t::start(bool append)
     m_db_connection->exec("RESET client_min_messages");
 
     if (!append) {
-        if (table().schema() != "public") {
-            m_db_connection->exec(
-                "CREATE SCHEMA IF NOT EXISTS \"{}\""_format(table().schema()));
-        }
-
         m_db_connection->exec(table().build_sql_create_table(
             table().has_geom_column() ? flex_table_t::table_type::interim
                                       : flex_table_t::table_type::permanent,
@@ -299,7 +294,7 @@ void table_connection_t::stop(bool updateable, bool append)
     }
 
     fmt::print(stderr, "Analyzing table '{}'...\n", table().name());
-    m_db_connection->exec("ANALYZE \"{}\""_format(table().name()));
+    m_db_connection->exec("ANALYZE " + table().full_name());
 
     fmt::print(stderr, "All postprocessing on table '{}' done in {}s.\n",
                table().name(), timer.stop());
