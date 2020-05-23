@@ -28,7 +28,7 @@ public:
     void stop(bool updateable, bool enable_hstore_index,
               std::string const &table_space_index);
 
-    void commit();
+    void sync();
 
     void write_row(osmid_t id, taglist_t const &tags, std::string const &geom);
     void delete_row(osmid_t const id);

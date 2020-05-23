@@ -1053,10 +1053,10 @@ void output_flex_t::pending_relation(osmid_t id)
     m_rels_buffer.clear();
 }
 
-void output_flex_t::commit()
+void output_flex_t::sync()
 {
     for (auto &table : m_table_connections) {
-        table.commit();
+        table.sync();
     }
 }
 

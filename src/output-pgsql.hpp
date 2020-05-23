@@ -44,7 +44,7 @@ public:
 
     void start() override;
     void stop(osmium::thread::Pool *pool) override;
-    void commit() override;
+    void sync() override;
 
     void pending_way(osmid_t id) override;
     void pending_relation(osmid_t id) override;

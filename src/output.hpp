@@ -34,7 +34,7 @@ public:
 
     virtual void start() = 0;
     virtual void stop(osmium::thread::Pool *pool) = 0;
-    virtual void commit() = 0;
+    virtual void sync() = 0;
 
     virtual void stage2_proc() {}
 

@@ -270,6 +270,11 @@ private:
                 }
             }
         }
+        for (auto const &output : outputs) {
+            if (output) {
+                output->sync();
+            }
+        }
     }
 
     /**
@@ -284,6 +289,11 @@ private:
                 if (output) {
                     output->pending_relation(id);
                 }
+            }
+        }
+        for (auto const &output : outputs) {
+            if (output) {
+                output->sync();
             }
         }
     }
@@ -335,14 +345,6 @@ private:
             }
         }
 
-        for (auto const &clone : m_clones) {
-            for (auto const &clone_output : clone) {
-                if (clone_output) {
-                    clone_output->commit();
-                }
-            }
-        }
-
         timer.stop();
 
         fmt::print(stderr, "\rFinished processing {} {}s in {} s\n\n",
@@ -376,8 +378,7 @@ void osmdata_t::stop() const
      */
     m_mid->commit();
     for (auto &out : m_outs) {
-        //TODO: each of the outs can be in parallel
-        out->commit();
+        out->sync();
     }
 
     // should be the same for all outputs

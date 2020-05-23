@@ -97,7 +97,7 @@ void output_multi_t::stop(osmium::thread::Pool *pool)
     }
 }
 
-void output_multi_t::commit() { m_table->commit(); }
+void output_multi_t::sync() { m_table->sync(); }
 
 void output_multi_t::node_add(osmium::Node const &node)
 {

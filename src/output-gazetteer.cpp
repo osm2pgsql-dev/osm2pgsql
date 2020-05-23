@@ -67,7 +67,7 @@ void output_gazetteer_t::start()
     }
 }
 
-void output_gazetteer_t::commit() { m_copy.sync(); }
+void output_gazetteer_t::sync() { m_copy.sync(); }
 
 void output_gazetteer_t::node_add(osmium::Node const &node)
 {

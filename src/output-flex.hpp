@@ -57,7 +57,7 @@ public:
 
     void start() override;
     void stop(osmium::thread::Pool *pool) override;
-    void commit() override;
+    void sync() override;
 
     void stage2_proc() override;
 
