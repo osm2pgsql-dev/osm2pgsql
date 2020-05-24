@@ -551,7 +551,6 @@ void middle_pgsql_t::start()
     // itself doesn't need to know about details of the output.
     if (m_out_options->output_backend == "gazetteer") {
         m_tables[WAY_TABLE].clear_array_indexes();
-        m_mark_pending = false;
     }
 
     if (m_append) {
@@ -708,7 +707,7 @@ static table_sql sql_for_relations() noexcept
 }
 
 middle_pgsql_t::middle_pgsql_t(options_t const *options)
-: m_append(options->append), m_mark_pending(true), m_out_options(options),
+: m_append(options->append), m_out_options(options),
   m_cache(new node_ram_cache{options->alloc_chunkwise | ALLOC_LOSSY,
                              options->cache}),
   m_db_connection(m_out_options->database_options.conninfo()),
