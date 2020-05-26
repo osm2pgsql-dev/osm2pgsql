@@ -49,9 +49,9 @@ static std::shared_ptr<middle_t> create_middle(options_t const &options)
 
 int main(int argc, char *argv[])
 {
-    fmt::print(stderr, "osm2pgsql version {}\n\n", get_osm2pgsql_version());
-
     try {
+        fmt::print(stderr, "osm2pgsql version {}\n\n", get_osm2pgsql_version());
+
         options_t const options{argc, argv};
         if (options.long_usage_bool) {
             return 0;
