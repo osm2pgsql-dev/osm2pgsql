@@ -1,7 +1,6 @@
 #ifndef OSM2PGSQL_PARSE_OSMIUM_HPP
 #define OSM2PGSQL_PARSE_OSMIUM_HPP
 
-#include <boost/optional.hpp>
 #include <ctime>
 
 #include "osmtypes.hpp"
@@ -131,8 +130,7 @@ private:
 class parse_osmium_t : public osmium::handler::Handler
 {
 public:
-    parse_osmium_t(boost::optional<std::string> const &bbox, bool do_append,
-                   osmdata_t *osmdata);
+    parse_osmium_t(osmium::Box const &bbox, bool do_append, osmdata_t *osmdata);
 
     void stream_file(std::string const &filename, std::string const &fmt);
 
@@ -143,14 +141,18 @@ public:
     parse_stats_t const &stats() const noexcept { return m_stats; }
 
 private:
-    osmium::Box parse_bbox(boost::optional<std::string> const &bbox);
-
     osmdata_t *m_data;
-    bool m_append;
-    boost::optional<osmium::Box> m_bbox;
+
+    // Bounding box for node import or invalid Box if everything is imported
+    osmium::Box m_bbox;
+
     parse_stats_t m_stats;
+
     // Current type being parsed.
-    osmium::item_type m_type;
+    osmium::item_type m_type = osmium::item_type::undefined;
+
+    // Are we running in append mode?
+    bool m_append;
 };
 
 #endif // OSM2PGSQL_PARSE_OSMIUM_HPP

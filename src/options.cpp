@@ -304,6 +304,31 @@ options_t::options_t()
 
 options_t::~options_t() {}
 
+static osmium::Box parse_bbox(char const *bbox)
+{
+    double minx, maxx, miny, maxy;
+    int const n = sscanf(bbox, "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
+    if (n != 4) {
+        throw std::runtime_error{"Bounding box must be specified like: "
+                                 "minlon,minlat,maxlon,maxlat\n"};
+    }
+
+    if (maxx <= minx) {
+        throw std::runtime_error{
+            "Bounding box failed due to maxlon <= minlon\n"};
+    }
+
+    if (maxy <= miny) {
+        throw std::runtime_error{
+            "Bounding box failed due to maxlat <= minlat\n"};
+    }
+
+    fmt::print(stderr, "Applying Bounding box: {},{} to {},{}\n", minx, miny,
+               maxx, maxy);
+
+    return osmium::Box{minx, miny, maxx, maxy};
+}
+
 options_t::options_t(int argc, char *argv[]) : options_t()
 {
     int c;
@@ -322,7 +347,7 @@ options_t::options_t(int argc, char *argv[]) : options_t()
             append = true;
             break;
         case 'b':
-            bbox = optarg;
+            bbox = parse_bbox(optarg);
             break;
         case 'c':
             create = true;

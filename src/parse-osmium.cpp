@@ -72,40 +72,10 @@ void parse_stats_t::possibly_print_status()
     print_status(now);
 }
 
-parse_osmium_t::parse_osmium_t(boost::optional<std::string> const &bbox,
-                               bool do_append, osmdata_t *osmdata)
-: m_data(osmdata), m_append(do_append)
-{
-    if (bbox) {
-        m_bbox = parse_bbox(bbox);
-    }
-}
-
-osmium::Box parse_osmium_t::parse_bbox(boost::optional<std::string> const &bbox)
-{
-    double minx, maxx, miny, maxy;
-    int const n =
-        sscanf(bbox->c_str(), "%lf,%lf,%lf,%lf", &minx, &miny, &maxx, &maxy);
-    if (n != 4) {
-        throw std::runtime_error{"Bounding box must be specified like: "
-                                 "minlon,minlat,maxlon,maxlat\n"};
-    }
-
-    if (maxx <= minx) {
-        throw std::runtime_error{
-            "Bounding box failed due to maxlon <= minlon\n"};
-    }
-
-    if (maxy <= miny) {
-        throw std::runtime_error{
-            "Bounding box failed due to maxlat <= minlat\n"};
-    }
-
-    fmt::print(stderr, "Applying Bounding box: {},{} to {},{}\n", minx, miny,
-               maxx, maxy);
-
-    return osmium::Box(minx, miny, maxx, maxy);
-}
+parse_osmium_t::parse_osmium_t(osmium::Box const &bbox, bool do_append,
+                               osmdata_t *osmdata)
+: m_data(osmdata), m_bbox(bbox), m_append(do_append)
+{}
 
 void parse_osmium_t::stream_file(std::string const &filename,
                                  std::string const &fmt)
@@ -162,7 +132,7 @@ void parse_osmium_t::node(osmium::Node const &node)
             return;
         }
 
-        if (!m_bbox || m_bbox->contains(node.location())) {
+        if (!m_bbox.valid() || m_bbox.contains(node.location())) {
             if (m_append) {
                 m_data->node_modify(node);
             } else {

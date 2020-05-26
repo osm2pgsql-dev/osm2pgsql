@@ -4,6 +4,8 @@
 #include "node-ram-cache.hpp"
 #include "reprojection.hpp"
 
+#include <osmium/osm/box.hpp>
+
 #include <boost/optional.hpp>
 #include <memory>
 #include <string>
@@ -120,7 +122,7 @@ public:
     database_options_t database_options;
     std::string output_backend{"pgsql"};
     std::string input_reader{"auto"};
-    boost::optional<std::string> bbox{boost::none};
+    osmium::Box bbox;
     bool extra_attributes = false;
     bool verbose = false;
 
